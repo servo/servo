@@ -289,6 +289,10 @@ pub struct Window {
     /// Webrender API Sender
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_api_sender: RenderApiSender,
+
+    /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
+    /// It is used to avoid sending idle message more than once, which is unneccessary.
+    has_sent_idle_message: Cell<bool>,
 }
 
 impl Window {
@@ -1548,12 +1552,14 @@ impl Window {
                 elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
             });
 
-            let ready_state = document.ReadyState();
-
+            let has_sent_idle_message = self.has_sent_idle_message.get();
+            let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
             let pending_images = self.pending_layout_images.borrow().is_empty();
-            if ready_state == DocumentReadyState::Complete && !reftest_wait && pending_images {
+
+            if !has_sent_idle_message && is_ready_state_complete && !reftest_wait && pending_images {
                 let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
+                self.has_sent_idle_message.set(true);
             }
         }
 
@@ -2101,6 +2107,7 @@ impl Window {
             webrender_document,
             exists_mut_observer: Cell::new(false),
             webrender_api_sender,
+            has_sent_idle_message: Cell::new(false),
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }
