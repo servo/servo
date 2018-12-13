@@ -5,10 +5,15 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import os.path
-from decisionlib import *
+import decisionlib
+from decisionlib import CONFIG, SHARED
 
 
 def main(task_for):
+    assert CONFIG.git_ref.startswith("refs/heads/")
+    branch = CONFIG.git_ref[len("refs/heads/"):]
+    CONFIG.treeherder_repository_name = "servo-" + branch
+
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
         macos_wpt = magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
@@ -34,8 +39,6 @@ def main(task_for):
                 # Add functions here as needed, in your push to that branch
             ],
             "master": [
-                # Also show these tasks in https://treeherder.mozilla.org/#/jobs?repo=servo-auto
-                lambda: CONFIG.treeherder_repository_names.append("servo-auto"),
                 upload_docs,
             ],
 
@@ -56,9 +59,6 @@ def main(task_for):
                 android_x86_wpt
             ],
         }
-        assert CONFIG.git_ref.startswith("refs/heads/")
-        branch = CONFIG.git_ref[len("refs/heads/"):]
-        CONFIG.treeherder_repository_names.append("servo-" + branch)
         for function in by_branch_name.get(branch, []):
             function()
 
@@ -74,7 +74,7 @@ def mocked_only():
     windows_release()
     linux_wpt()
     android_x86_wpt()
-    linux_build_task("Indexed by task definition").find_or_create()
+    decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
@@ -141,7 +141,7 @@ def linux_tidy_unit_docs():
 
 
 def upload_docs():
-    docs_build_task_id = Task.find("docs." + CONFIG.git_sha)
+    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.git_sha)
     return (
         linux_task("Upload docs to GitHub Pages")
         .with_treeherder("Linux x64", "DocUpload")
@@ -175,7 +175,7 @@ def macos_unit():
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
         """)
-        .create()
+        .find_or_create("macos_unit." + CONFIG.git_sha)
     )
 
 
@@ -187,7 +187,8 @@ def with_rust_nightly():
         modified_build_env["RUSTFLAGS"] = " ".join(flags)
 
     return (
-        linux_build_task("Linux x64: with Rust Nightly", build_env=modified_build_env)
+        linux_build_task("with Rust Nightly", build_env=modified_build_env)
+        .with_treeherder("Linux x64", "RustNightly")
         .with_script("""
             echo "nightly" > rust-toolchain
             ./mach build --dev
@@ -206,7 +207,7 @@ def android_arm32_dev():
             ./etc/ci/lockfile_changed.sh
             python ./etc/ci/check_dynamic_symbols.py
         """)
-        .create()
+        .find_or_create("android_arm32_dev." + CONFIG.git_sha)
     )
 
 
@@ -239,7 +240,7 @@ def android_x86_release():
 def android_x86_wpt():
     build_task = android_x86_release()
     return (
-        DockerWorkerTask("WPT")
+        linux_task("WPT")
         .with_treeherder("Android x86")
         .with_provisioner_id("proj-servo")
         .with_worker_type("docker-worker-kvm")
@@ -255,7 +256,7 @@ def android_x86_wpt():
                 /_mozilla/mozilla/DOMParser.html \
                 /_mozilla/mozilla/webgl/context_creation_error.html
         """)
-        .create()
+        .find_or_create("android_x86_release." + CONFIG.git_sha)
     )
 
 
@@ -368,7 +369,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
         for word in script.split()
         if word.endswith(".log")
     ])
-    return task.create()
+    return task.find_or_create("linux_wpt_%s.%s" % (this_chunk, CONFIG.git_sha))
 
 
 def daily_tasks_setup():
@@ -402,18 +403,28 @@ def dockerfile_path(name):
 
 
 def linux_task(name):
-    return DockerWorkerTask(name).with_worker_type("servo-docker-worker")
+    return (
+        decisionlib.DockerWorkerTask(name)
+        .with_worker_type("servo-docker-worker")
+        .with_treeherder_required()
+    )
 
 
 def windows_task(name):
-    return WindowsGenericWorkerTask(name).with_worker_type("servo-win2016")
+    return (
+        decisionlib.WindowsGenericWorkerTask(name)
+        .with_worker_type("servo-win2016")
+        .with_treeherder_required()
+    )
+
 
 
 def macos_task(name):
     return (
-        MacOsGenericWorkerTask(name)
+        decisionlib.MacOsGenericWorkerTask(name)
         .with_provisioner_id("proj-servo")
         .with_worker_type("macos")
+        .with_treeherder_required()
     )
 
 

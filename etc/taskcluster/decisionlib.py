@@ -43,7 +43,7 @@ class Config:
         self.docker_image_buil_worker_type = None
         self.docker_images_expire_in = "1 month"
         self.repacked_msi_files_expire_in = "1 month"
-        self.treeherder_repository_names = []
+        self.treeherder_repository_name = None
 
         # Set by docker-worker:
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
@@ -119,6 +119,7 @@ class Task:
         self.scopes = []
         self.routes = []
         self.extra = {}
+        self.treeherder_required = False
 
     # All `with_*` methods return `self`, so multiple method calls can be chained.
     with_description = chaining(setattr, "description")
@@ -134,6 +135,10 @@ class Task:
     with_routes = chaining(append_to_attr, "routes")
 
     with_extra = chaining(update_attr, "extra")
+
+    def with_treeherder_required(self):
+        self.treeherder_required = True
+        return self
 
     def with_treeherder(self, category, symbol=None):
         symbol = symbol or self.name
@@ -156,14 +161,15 @@ class Task:
             "symbol": symbol,
         })
 
-        for repo in CONFIG.treeherder_repository_names:
+        if CONFIG.treeherder_repository_name:
             assert CONFIG.git_sha
-            suffix = ".v2._/%s.%s" % (repo, CONFIG.git_sha)
+            suffix = ".v2._/%s.%s" % (CONFIG.treeherder_repository_name, CONFIG.git_sha)
             self.with_routes(
                 "tc-treeherder" + suffix,
                 "tc-treeherder-staging" + suffix,
             )
 
+        self.treeherder_required = False  # Taken care of
         return self
 
     def build_worker_payload(self):  # pragma: no cover
@@ -183,6 +189,8 @@ class Task:
         <https://docs.taskcluster.net/docs/reference/platform/taskcluster-queue/references/api#createTask>
         """
         worker_payload = self.build_worker_payload()
+        assert not self.treeherder_required, \
+            "make sure to call with_treeherder() for this task: %s" % self.name
 
         assert CONFIG.decision_task_id
         assert CONFIG.task_owner
@@ -220,13 +228,15 @@ class Task:
 
         task_id = taskcluster.slugId().decode("utf8")
         SHARED.queue_service.createTask(task_id, queue_payload)
-        print("Scheduled %s" % self.name)
+        print("Scheduled %s: %s" % (task_id, self.name))
         return task_id
 
     @staticmethod
     def find(index_path):
         full_index_path = "%s.%s" % (CONFIG.index_prefix, index_path)
-        return SHARED.index_service.findTask(full_index_path)["taskId"]
+        task_id = SHARED.index_service.findTask(full_index_path)["taskId"]
+        print("Found task %s indexed at %s" % (task_id, full_index_path))
+        return task_id
 
     def find_or_create(self, index_path=None):
         """

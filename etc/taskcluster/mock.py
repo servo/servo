@@ -33,12 +33,12 @@ class Index:
 
     def findTask(self, path):
         if decision_task.CONFIG.git_ref == "refs/heads/master":
-            return {"taskId": ""}
+            return {"taskId": "<from index>"}
         raise TaskclusterRestFailure
 
 
 stringDate = str
-slugId = b"id".lower
+slugId = b"<new id>".lower
 Queue = fromNow = MagicMock()
 sys.modules["taskcluster"] = sys.modules[__name__]
 sys.dont_write_bytecode = True
