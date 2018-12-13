@@ -119,6 +119,7 @@ class Task:
         self.scopes = []
         self.routes = []
         self.extra = {}
+        self.treeherder_required = False
 
     # All `with_*` methods return `self`, so multiple method calls can be chained.
     with_description = chaining(setattr, "description")
@@ -134,6 +135,10 @@ class Task:
     with_routes = chaining(append_to_attr, "routes")
 
     with_extra = chaining(update_attr, "extra")
+
+    def with_treeherder_required(self):
+        self.treeherder_required = True
+        return self
 
     def with_treeherder(self, category, symbol=None):
         symbol = symbol or self.name
@@ -164,6 +169,7 @@ class Task:
                 "tc-treeherder-staging" + suffix,
             )
 
+        self.treeherder_required = False  # Taken care of
         return self
 
     def build_worker_payload(self):  # pragma: no cover
@@ -183,6 +189,8 @@ class Task:
         <https://docs.taskcluster.net/docs/reference/platform/taskcluster-queue/references/api#createTask>
         """
         worker_payload = self.build_worker_payload()
+        assert not self.treeherder_required, \
+            "make sure to call with_treeherder() for this task: %s" % self.name
 
         assert CONFIG.decision_task_id
         assert CONFIG.task_owner
