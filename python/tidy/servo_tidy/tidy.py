@@ -489,7 +489,7 @@ def check_manifest_dirs(config_file, print_text=True):
     p = parser.parse(lines)
     paths = rec_parse(wpt_path("web-platform-tests"), p)
     for idx, path in enumerate(paths):
-        if path.endswith("_mozilla") or path.endswith("_webgl"):
+        if '_mozilla' in path or '_webgl' in path:
             continue
         if not os.path.isdir(path):
             yield(config_file, idx + 1, "Path in manifest was not found: {}".format(path))
