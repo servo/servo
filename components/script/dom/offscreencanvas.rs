@@ -54,17 +54,7 @@ impl OffscreenCanvas{
     }
 
     pub fn Constructor (global: &GlobalScope, height: u64, width: u64) -> Fallible<DomRoot<OffscreenCanvas>> {
-        //step 1
         let offscreencanvas = OffscreenCanvas::new(global,height,width,None);
-        //step 2
-
-        if offscreencanvas.context.borrow().is_some() {
-            return Err(Error::InvalidState);
-        }
-
-        //offscreencanvas.placeholder = None;
-
-        //step 3
         Ok(offscreencanvas)
     }
 
@@ -84,55 +74,11 @@ impl OffscreenCanvas{
                 _ => None,
             };
         }
-        //let global = window_from_node(self);
         let size = self.get_size();
-        let context = unsafe {OffscreenCanvasRenderingContext2D::new(&GlobalScope::from_context(cx), self, size)};
+        let context = OffscreenCanvasRenderingContext2D::new(self.global(), self, size);
         *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(Dom::from_ref(&*context)));
         Some(context)
     }
-
-    /*#[allow(unsafe_code)]
-    unsafe fn get_or_init_webgl_context(
-        &self,
-        cx: *mut JSContext,
-        options: HandleValue,
-    ) -> Option<DomRoot<WebGLRenderingContext>> {
-        if let Some(ctx) = self.context() {
-            return match *ctx {
-                OffscreenCanvasContext::WebGL(ref ctx) => Some(DomRoot::from_ref(ctx)),
-                _ => None,
-            };
-        }
-        let window = window_from_node(self);
-        let size = self.get_size();
-        let attrs = Self::get_gl_attributes(cx, options)?;
-        let context = WebGLRenderingContext::new(&window, self, WebGLVersion::WebGL1, size, attrs)?;
-        *self.context.borrow_mut() = Some(OffscreenCanvasContext::WebGL(Dom::from_ref(&*context)));
-        Some(context)
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_or_init_webgl2_context(
-        &self,
-        cx: *mut JSContext,
-        options: HandleValue,
-    ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        if !PREFS.is_webgl2_enabled() {
-            return None;
-        }
-        if let Some(ctx) = self.context() {
-            return match *ctx {
-                OffscreenCanvasContext::WebGL2(ref ctx) => Some(DomRoot::from_ref(ctx)),
-                _ => None,
-            };
-        }
-        let window = window_from_node(self);
-        let size = self.get_size();
-        let attrs = Self::get_gl_attributes(cx, options)?;
-        let context = WebGL2RenderingContext::new(&window, self, size, attrs)?;
-        *self.context.borrow_mut() = Some(OffscreenCanvasContext::WebGL2(Dom::from_ref(&*context)));
-        Some(context)
-    }*/
 
 }
 
