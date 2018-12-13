@@ -43,7 +43,7 @@ class Config:
         self.docker_image_buil_worker_type = None
         self.docker_images_expire_in = "1 month"
         self.repacked_msi_files_expire_in = "1 month"
-        self.treeherder_repository_names = []
+        self.treeherder_repository_name = None
 
         # Set by docker-worker:
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
@@ -161,9 +161,9 @@ class Task:
             "symbol": symbol,
         })
 
-        for repo in CONFIG.treeherder_repository_names:
+        if CONFIG.treeherder_repository_name:
             assert CONFIG.git_sha
-            suffix = ".v2._/%s.%s" % (repo, CONFIG.git_sha)
+            suffix = ".v2._/%s.%s" % (CONFIG.treeherder_repository_name, CONFIG.git_sha)
             self.with_routes(
                 "tc-treeherder" + suffix,
                 "tc-treeherder-staging" + suffix,

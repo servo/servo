@@ -12,7 +12,7 @@ from decisionlib import CONFIG, SHARED
 def main(task_for):
     assert CONFIG.git_ref.startswith("refs/heads/")
     branch = CONFIG.git_ref[len("refs/heads/"):]
-    CONFIG.treeherder_repository_names.append("servo-" + branch)
+    CONFIG.treeherder_repository_name = "servo-" + branch
 
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
@@ -39,8 +39,6 @@ def main(task_for):
                 # Add functions here as needed, in your push to that branch
             ],
             "master": [
-                # Also show these tasks in https://treeherder.mozilla.org/#/jobs?repo=servo-auto
-                lambda: CONFIG.treeherder_repository_names.append("servo-auto"),
                 upload_docs,
             ],
 
