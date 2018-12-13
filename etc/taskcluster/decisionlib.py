@@ -228,13 +228,15 @@ class Task:
 
         task_id = taskcluster.slugId().decode("utf8")
         SHARED.queue_service.createTask(task_id, queue_payload)
-        print("Scheduled %s" % self.name)
+        print("Scheduled %s: %s" % (task_id, self.name))
         return task_id
 
     @staticmethod
     def find(index_path):
         full_index_path = "%s.%s" % (CONFIG.index_prefix, index_path)
-        return SHARED.index_service.findTask(full_index_path)["taskId"]
+        task_id = SHARED.index_service.findTask(full_index_path)["taskId"]
+        print("Found task %s indexed at %s" % (task_id, full_index_path))
+        return task_id
 
     def find_or_create(self, index_path=None):
         """
