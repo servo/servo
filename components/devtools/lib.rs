@@ -404,7 +404,7 @@ fn run_server(
             None => return,
         };
         let netevent_actor_name =
-            find_network_event_actor(actors.clone(), actor_requests, request_id.clone());
+            find_network_event_actor(actors.clone(), actor_requests, request_id);
         let mut actors = actors.lock().unwrap();
         let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
 
@@ -499,7 +499,7 @@ fn run_server(
                 }
 
                 let msg = NetworkEventUpdateMsg {
-                    from: netevent_actor_name.clone(),
+                    from: netevent_actor_name,
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "responseHeaders".to_owned(),
                 };
@@ -533,14 +533,13 @@ fn run_server(
         }
     }
 
-    let sender_clone = sender.clone();
     thread::Builder::new()
         .name("DevtoolsClientAcceptor".to_owned())
         .spawn(move || {
             // accept connections and process them, spawning a new thread for each one
             for stream in listener.incoming() {
                 // connection succeeded
-                sender_clone
+                sender
                     .send(DevtoolsControlMsg::FromChrome(
                         ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()),
                     ))

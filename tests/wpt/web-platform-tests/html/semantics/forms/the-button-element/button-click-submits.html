@@ -146,4 +146,65 @@ test(t => {
 
 }, "clicking a button inside a disabled fieldset's legend *should* trigger submit");
 
+async_test(t => {
+
+  const form = document.createElement("form");
+  const button = document.createElement("button");
+  const span = document.createElement("span");
+  button.appendChild(span);
+  form.appendChild(button);
+  document.body.appendChild(form);
+
+  form.addEventListener("submit", t.step_func_done(ev => {
+    ev.preventDefault();
+    assert_equals(ev.target, form);
+  }));
+
+  span.click();
+
+}, "clicking the child of a button with .click() should trigger a submit");
+
+async_test(t => {
+
+  const form = document.createElement("form");
+  const button = document.createElement("button");
+  const span = document.createElement("span");
+  button.appendChild(span);
+  form.appendChild(button);
+  document.body.appendChild(form);
+
+  form.addEventListener("submit", t.step_func_done(ev => {
+    ev.preventDefault();
+    assert_equals(ev.target, form);
+  }));
+
+  const e = new MouseEvent("click", { bubbles: true });
+  span.dispatchEvent(e);
+
+}, "clicking the child of a button by dispatching a bubbling event should trigger a submit");
+
+async_test(t => {
+
+  const form = document.createElement("form");
+  const button = document.createElement("button");
+  const span = document.createElement("span");
+  button.appendChild(span);
+  form.appendChild(button);
+  document.body.appendChild(form);
+
+  form.addEventListener("submit", t.step_func_done(ev => {
+    ev.preventDefault();
+    assert_unreached("Form should not be submitted");
+  }));
+
+  span.addEventListener("click", t.step_func(ev => {
+    ev.preventDefault();
+    t.step_timeout(() => t.done(), 500);
+  }));
+
+  const e = new MouseEvent("click", { bubbles: false });
+  span.dispatchEvent(e);
+
+}, "clicking the child of a button by dispatching a non-bubbling event should not trigger submit");
+
 </script>

@@ -40,7 +40,7 @@ function performChromiumSetup() {
   }
   return loadScripts([
     `${prefix}/mojo_bindings.js`,
-    `${prefix}/mojo_layouttest_test.mojom.js`,
+    `${prefix}/mojo_web_test_helper_test.mojom.js`,
     `${prefix}/uuid.mojom.js`,
     `${prefix}/fake_bluetooth.mojom.js`,
     `${prefix}/fake_bluetooth_chooser.mojom.js`,

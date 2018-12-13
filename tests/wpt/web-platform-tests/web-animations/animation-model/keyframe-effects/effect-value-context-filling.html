@@ -1,0 +1,377 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: Forwards-filling animations whose
+  values depend on their context (target element)</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#calculating-computed-keyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  div.style.fontSize = '10px';
+  const animation = div.animate(
+    [{ marginLeft: '10em' }, { marginLeft: '20em' }],
+    { duration: 1000, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value before updating font-size'
+  );
+
+  div.style.fontSize = '20px';
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '400px',
+    'Effect value after updating font-size'
+  );
+}, 'Filling effect values reflect changes to font-size on element');
+
+test(t => {
+  const parentDiv = createDiv(t);
+  const div = createDiv(t);
+  parentDiv.appendChild(div);
+  parentDiv.style.fontSize = '10px';
+
+  const animation = div.animate(
+    [{ marginLeft: '10em' }, { marginLeft: '20em' }],
+    { duration: 1000, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value before updating font-size on parent element'
+  );
+
+  parentDiv.style.fontSize = '20px';
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '400px',
+    'Effect value after updating font-size on parent element'
+  );
+}, 'Filling effect values reflect changes to font-size on parent element');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.setProperty('--target', '100px');
+  const animation = div.animate(
+    [{ marginLeft: '0px' }, { marginLeft: 'var(--target)' }],
+    { duration: 1000, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '100px',
+    'Effect value before updating variable'
+  );
+
+  div.style.setProperty('--target', '200px');
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value after updating variable'
+  );
+}, 'Filling effect values reflect changes to variables on element');
+
+test(t => {
+  const parentDiv = createDiv(t);
+  const div = createDiv(t);
+  parentDiv.appendChild(div);
+
+  parentDiv.style.setProperty('--target', '10em');
+  parentDiv.style.fontSize = '10px';
+
+  const animation = div.animate(
+    [{ marginLeft: '0px' }, { marginLeft: 'calc(var(--target) * 2)' }],
+    { duration: 1000, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value before updating variable'
+  );
+
+  parentDiv.style.setProperty('--target', '20em');
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '400px',
+    'Effect value after updating variable'
+  );
+}, 'Filling effect values reflect changes to variables on parent element');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px' }],
+    { duration: 1000, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value before updating the animation'
+  );
+
+  animation.effect.setKeyframes([
+    { marginLeft: '100px' },
+    { marginLeft: '300px' },
+  ]);
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value after updating the animation'
+  );
+}, 'Filling effect values reflect changes to the the animation\'s keyframes');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '100px';
+  const animation = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px' }],
+    { duration: 1000, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value before updating the animation'
+  );
+
+  animation.effect.composite = 'add';
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value after updating the composite mode'
+  );
+}, 'Filling effect values reflect changes to the the animation\'s composite mode');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(
+    [{ marginLeft: '0px' }, { marginLeft: '100px' }],
+    { duration: 1000, iterations: 2, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '100px',
+    'Effect value before updating the animation'
+  );
+
+  animation.effect.iterationComposite = 'accumulate';
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value after updating the iteration composite mode'
+  );
+}, 'Filling effect values reflect changes to the the animation\'s iteration composite mode');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '100px';
+  const animation = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px' }],
+    { duration: 1000, fill: 'forwards', composite: 'add' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value before updating underlying value'
+  );
+
+  div.style.marginLeft = '200px';
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '400px',
+    'Effect value after updating underlying value'
+  );
+}, 'Filling effect values reflect changes to the base value when using'
+   + ' additive animation');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '100px';
+  const animation = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px', composite: 'add' }],
+    { duration: 1000, fill: 'forwards' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value before updating underlying value'
+  );
+
+  div.style.marginLeft = '200px';
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '400px',
+    'Effect value after updating underlying value'
+  );
+}, 'Filling effect values reflect changes to the base value when using'
+   + ' additive animation on a single keyframe');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '0px';
+  const animation = div.animate([{ marginLeft: '100px', offset: 0 }], {
+    duration: 1000,
+    fill: 'forwards',
+  });
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '0px',
+    'Effect value before updating underlying value'
+  );
+
+  div.style.marginLeft = '200px';
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value after updating underlying value'
+  );
+}, 'Filling effect values reflect changes to the base value when using'
+   + ' the fill value is an implicit keyframe');
+
+test(t => {
+  const parentDiv = createDiv(t);
+  const div = createDiv(t);
+  parentDiv.appendChild(div);
+  parentDiv.style.fontSize = '10px';
+  div.style.marginLeft = '10em';
+  // Computed underlying margin-left is 100px
+
+  const animation = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px' }],
+    { duration: 1000, fill: 'forwards', composite: 'add' }
+  );
+  animation.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value before updating font-size on parent'
+  );
+
+  parentDiv.style.fontSize = '20px';
+  // Computed underlying margin-left is now 200px
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '400px',
+    'Effect value after updating font-size on parent'
+  );
+}, 'Filling effect values reflect changes to the base value via a'
+   + ' parent element');
+
+test(t => {
+  const div = createDiv(t);
+  const animationA = div.animate(
+    [{ marginLeft: '0px' }, { marginLeft: '100px' }],
+    { duration: 2000, fill: 'forwards', easing: 'step-end' }
+  );
+  const animationB = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px' }],
+    { duration: 1000, fill: 'forwards', composite: 'add' }
+  );
+  animationB.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value before updating underyling animation'
+  );
+
+  // Go to end of the underlying animation so that it jumps to 100px
+  animationA.finish();
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value after updating underlying animation'
+  );
+}, 'Filling effect values reflect changes to underlying animations');
+
+test(t => {
+  const parentDiv = createDiv(t);
+  const div = createDiv(t);
+  parentDiv.appendChild(div);
+
+  parentDiv.style.fontSize = '10px';
+
+  const animationA = div.animate(
+    [{ marginLeft: '0px' }, { marginLeft: '10em' }],
+    { duration: 2000, fill: 'forwards', easing: 'step-start' }
+  );
+  const animationB = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px' }],
+    { duration: 1000, fill: 'forwards', composite: 'add' }
+  );
+  animationB.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value before updating parent font-size'
+  );
+
+  parentDiv.style.fontSize = '20px';
+  // At this point the underlying animation's output should jump to 200px.
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '400px',
+    'Effect value after updating parent font-size'
+  );
+}, 'Filling effect values reflect changes to underlying animations via a'
+   + ' a parent element');
+
+test(t => {
+  const div = createDiv(t);
+  const animationA = div.animate(
+    [{ marginLeft: '0px' }, { marginLeft: '0px' }],
+    { duration: 2000, fill: 'forwards' }
+  );
+  const animationB = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px' }],
+    { duration: 1000, fill: 'forwards', composite: 'add' }
+  );
+  animationB.finish();
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '200px',
+    'Effect value before updating underyling animation'
+  );
+
+  animationA.effect.setKeyframes([
+    { marginLeft: '100px' },
+    { marginLeft: '100px' },
+  ]);
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Effect value after updating underlying animation'
+  );
+}, 'Filling effect values reflect changes to underlying animations made by'
+   + ' directly changing the keyframes');
+
+</script>
+</body>

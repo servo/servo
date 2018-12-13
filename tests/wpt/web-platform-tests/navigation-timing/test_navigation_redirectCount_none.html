@@ -5,6 +5,7 @@
         <title>window.performance.navigation.redirectCount on a non-redirected navigation</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="/common/performance-timeline-utils.js"></script>
@@ -23,7 +24,7 @@
         {
             test_equals(performanceNamespace.timing.redirectStart, 0, 'timing.redirectStart on an non-redirected navigation');
             test_equals(performanceNamespace.timing.redirectEnd, 0, 'timing.redirectEnd on an non-redirected navigation');
-            test_equals(performanceNamespace.navigation.redirectCount, 0, 'navigation.redirectCount on an non-redirected navigation',{help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"});
+            test_equals(performanceNamespace.navigation.redirectCount, 0, 'navigation.redirectCount on an non-redirected navigation');
         }
         </script>
     </body>

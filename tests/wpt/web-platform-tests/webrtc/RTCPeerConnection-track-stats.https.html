@@ -155,11 +155,6 @@
     }));
   }, 'addTrack(): Media stream stats references track stats');
 
-  // TODO(hbos): addStream() is legacy API not in the spec. Based on discussion
-  // whether to standardize in legacy section, consider removing this test or
-  // keeping it until addTrack() has wide support.
-  // https://github.com/w3c/webrtc-pc/issues/1705
-  // https://github.com/w3c/webrtc-pc/issues/1125
   async_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -170,7 +165,8 @@
       track = tracks[0];
       stream = streams[0];
       stream.addTrack(track);
-      pc.addStream(stream);
+      for (const track of stream.getTracks())
+        pc.addTrack(track, stream);
       return pc.createOffer();
     }))
     .then(t.step_func(offer => {
@@ -193,7 +189,7 @@
     .catch(t.step_func(reason => {
       assert_unreached(reason);
     }));
-  }, 'Legacy addStream(): Media stream stats references track stats');
+  }, 'Media stream stats references track stats');
 
   async_test(t => {
     const caller = new RTCPeerConnection();

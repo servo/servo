@@ -47,19 +47,17 @@
      let elem = document.getElementById(id);
      let elemStyle = window.getComputedStyle(elem);
 
+     // positioned element's auto margins should be resolved to 10px.
      test(function() {
        assert_equals(elemStyle.getPropertyValue("margin-left"), "10px");
        assert_equals(elemStyle.getPropertyValue("margin-right"), "10px");
-     }, id + "_computed_margins", {
-       assert: id + "-positioned element's auto margins should be resolved to 10px."
-     });
+     }, id + "_computed_margins");
 
+     // positioned element should have a left and right of 0px (as authored).
      test(function() {
        assert_equals(elemStyle.getPropertyValue("left"), "0px");
        assert_equals(elemStyle.getPropertyValue("right"), "0px");
-     }, id + "_computed_left_and_right", {
-       assert: id + "-positioned element should have a left and right of 0px (as authored)."
-     });
+     }, id + "_computed_left_and_right");
    }
  </script>
  </body>

@@ -143,7 +143,7 @@ impl FontHandleMethods for FontHandle {
 
         let mut handle = FontHandle {
             face: face,
-            font_data: template.clone(),
+            font_data: template,
             handle: fctx.clone(),
             can_do_fast_shaping: false,
         };

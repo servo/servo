@@ -13,6 +13,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::event::Event;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -26,6 +27,8 @@ use dom_struct::dom_struct;
 use metrics::ToMs;
 use std::cell::Cell;
 use std::cmp::Ordering;
+use std::collections::VecDeque; 
+use std::borrow::BorrowMut;
 
 const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
     "navigationStart",
@@ -60,7 +63,7 @@ pub struct PerformanceEntryList {
 
 impl PerformanceEntryList {
     pub fn new(entries: DOMPerformanceEntryList) -> Self {
-        PerformanceEntryList { entries }
+        PerformanceEntryList { entries } 
     }
 
     pub fn get_entries_by_name_and_type(
@@ -137,6 +140,12 @@ pub struct Performance {
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: u64,
+    resource_timing_buffer_size_limit: Cell<usize>,
+    resource_timing_buffer_current_size: Cell<usize>,
+    resource_timing_buffer_pending_full_event: Cell<bool>,
+    resource_timing_secondary_entries: DomRefCell<VecDeque<DomRoot<PerformanceEntry>>>,
+
+
 }
 
 impl Performance {
@@ -147,6 +156,11 @@ impl Performance {
             observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
             navigation_start_precise,
+            resource_timing_buffer_size_limit: Cell::new(250),
+            resource_timing_buffer_current_size: Cell::new(0),
+            resource_timing_buffer_pending_full_event: Cell::new(false),
+            resource_timing_secondary_entries:DomRefCell::new(VecDeque::new()),
+           
         }
     }
 
@@ -220,22 +234,31 @@ impl Performance {
             o.observer.queue_entry(entry);
         }
 
+	
         // Step 4.
         // If the "add to performance entry buffer flag" is set, add the
         // new entry to the buffer.
-        if add_to_performance_entries_buffer {
+        if add_to_performance_entries_buffer && self.can_add_resource_timing_entry() && self.resource_timing_buffer_pending_full_event.get() == false{
             self.entries
                 .borrow_mut()
                 .entries
                 .push(DomRoot::from_ref(entry));
+        let mut resource_timing_buffer_current_size =self.resource_timing_buffer_current_size.get();
+	    self.resource_timing_buffer_current_size.set(resource_timing_buffer_current_size+1);
+	    	return;
+        }
+        else if self.resource_timing_buffer_pending_full_event.get() == false{
+        	self.resource_timing_buffer_pending_full_event.set(true);
+        	self.fire_buffer_full_event();
+        	self.resource_timing_secondary_entries.borrow_mut()
+        		.push_back(DomRoot::from_ref(entry));
         }
 
         // Step 5.
         // If there is already a queued notification task, we just bail out.
         if self.pending_notification_observers_task.get() {
             return;
-        }
-
+        }		
         // Step 6.
         // Queue a new notification task.
         self.pending_notification_observers_task.set(true);
@@ -265,6 +288,7 @@ impl Performance {
                     o.observer.callback(),
                     o.observer.entries(),
                 )
+
             })
             .collect();
 
@@ -273,10 +297,31 @@ impl Performance {
             o.notify();
         }
     }
-
     fn now(&self) -> f64 {
         (time::precise_time_ns() - self.navigation_start_precise).to_ms()
     }
+    fn can_add_resource_timing_entry(&self) -> bool {
+		if self.resource_timing_buffer_current_size<=self.resource_timing_buffer_size_limit{
+			return true;
+		}
+		else {
+			return false;
+			}
+}
+	fn copy_secondary_resource_timing_buffer(&self) {
+		while self.can_add_resource_timing_entry() && self.resource_timing_secondary_entries.borrow_mut().len()>0 {
+			self.queue_entry(self.resource_timing_secondary_entries.borrow_mut().pop_front().unwrap().deref(),true); //not meant to build
+		}
+	}
+	fn fire_buffer_full_event(&self) {
+		while self.resource_timing_secondary_entries.borrow_mut().len() > 0 {
+			if self.can_add_resource_timing_entry()==false{
+				 let resourcetimingbufferfull = Event::new_inherited(); 
+				 resourcetimingbufferfull.fire(&(self.eventtarget));
+			}
+		}
+		self.resource_timing_buffer_pending_full_event.set(false);
+	}
 }
 
 impl PerformanceMethods for Performance {
@@ -405,4 +450,24 @@ impl PerformanceMethods for Performance {
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
+/// https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
+
+    fn ClearResourceTimings(&self) {
+        self.entries
+            .borrow_mut()
+            .clear_entries_by_name_and_type(None, Some(DOMString::from("resource")));
+	self.resource_timing_buffer_current_size.set(0_usize);
+    }
+/// https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
+
+    fn SetResourceTimingBufferSize(&self, max_size: u32) {
+        self.resource_timing_buffer_size_limit.set(max_size as usize);
+    }
+/// https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
+
+    event_handler!(
+        resourcetimingbufferfull,
+        GetOnresourcetimingbufferfull,
+        SetOnresourcetimingbufferfull
+    );
 }

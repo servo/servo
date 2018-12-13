@@ -17,17 +17,6 @@ partial interface Navigator {
   [SameObject] readonly attribute XR xr;
 };
 
-enum XRSessionMode {
-  "inline",
-  "immersive-vr",
-  "immersive-ar"
-};
-
-dictionary XRSessionCreationOptions {
-  XRSessionMode mode = "inline";
-  XRPresentationContext outputContext;
-};
-
 enum XREnvironmentBlendMode {
   "opaque",
   "additive",
@@ -62,6 +51,17 @@ enum XREnvironmentBlendMode {
   attribute EventHandler oninputsourceschange;
   attribute EventHandler onselectstart;
   attribute EventHandler onselectend;
+};
+
+enum XRSessionMode {
+  "inline",
+  "immersive-vr",
+  "immersive-ar"
+};
+
+dictionary XRSessionCreationOptions {
+  XRSessionMode mode = "inline";
+  XRPresentationContext outputContext;
 };
 
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);

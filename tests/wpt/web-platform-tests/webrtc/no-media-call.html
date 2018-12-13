@@ -1,7 +1,4 @@
 <!doctype html>
-<!--
-This test uses the legacy callback API with no media, and thus does not require fake media devices.
--->
 
 <html>
 <head>
@@ -37,7 +34,6 @@ This test uses the legacy callback API with no media, and thus does not require 
 
     var parsedOffer = new RTCSessionDescription({ type: 'offer',
                                                   sdp: offerSdp });
-    // These functions use the legacy interface extensions to RTCPeerConnection.
     gSecondConnection.setRemoteDescription(parsedOffer).then(
       function() {
         gSecondConnection.createAnswer().then(onAnswerCreated,

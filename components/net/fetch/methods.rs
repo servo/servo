@@ -191,7 +191,7 @@ pub fn main_fetch(
             },
             Referrer::ReferrerUrl(url) => {
                 request.headers.remove(header::REFERER);
-                let current_url = request.current_url().clone();
+                let current_url = request.current_url();
                 determine_request_referrer(
                     &mut request.headers,
                     request.referrer_policy.unwrap(),

@@ -1,4 +1,8 @@
-﻿//
+﻿/*
+author: W3C http://www.w3.org/
+help: http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute
+*/
+//
 // Helper Functions for NavigationTiming W3C tests
 //
 
@@ -45,7 +49,8 @@ function wp_test(func, msg, properties)
         if (performanceNamespace === undefined || performanceNamespace == null)
         {
             // show a single error that window.performance is undefined
-            test(function() { assert_true(performanceNamespace !== undefined && performanceNamespace != null, "window.performance is defined and not null"); }, "window.performance is defined and not null.", {author:"W3C http://www.w3.org/",help:"http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute",assert:"The window.performance attribute provides a hosting area for performance related attributes. "});
+            // The window.performance attribute provides a hosting area for performance related attributes.
+            test(function() { assert_true(performanceNamespace !== undefined && performanceNamespace != null, "window.performance is defined and not null"); }, "window.performance is defined and not null.");
         }
     }
 
@@ -56,12 +61,14 @@ function test_namespace(child_name, skip_root)
 {
     if (skip_root === undefined) {
         var msg = 'window.performance is defined';
-        wp_test(function () { assert_true(performanceNamespace !== undefined, msg); }, msg,{author:"W3C http://www.w3.org/",help:"http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute",assert:"The window.performance attribute provides a hosting area for performance related attributes. "});
+        // The window.performance attribute provides a hosting area for performance related attributes.
+        wp_test(function () { assert_true(performanceNamespace !== undefined, msg); }, msg);
     }
 
     if (child_name !== undefined) {
         var msg2 = 'window.performance.' + child_name + ' is defined';
-        wp_test(function() { assert_true(performanceNamespace[child_name] !== undefined, msg2); }, msg2,{author:"W3C http://www.w3.org/",help:"http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute",assert:"The window.performance attribute provides a hosting area for performance related attributes. "});
+        // The window.performance attribute provides a hosting area for performance related attributes.
+        wp_test(function() { assert_true(performanceNamespace[child_name] !== undefined, msg2); }, msg2);
     }
 }
 
