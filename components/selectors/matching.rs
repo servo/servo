@@ -410,6 +410,7 @@ fn next_element_for_combinator<E>(
     element: &E,
     combinator: Combinator,
     selector: &SelectorIter<E::Impl>,
+    context: &MatchingContext<E::Impl>,
 ) -> Option<E>
 where
     E: Element,
@@ -450,11 +451,20 @@ where
         },
         Combinator::SlotAssignment => {
             debug_assert!(
+                context.current_host.is_some(),
+                "Should not be trying to match slotted rules in a non-shadow-tree context"
+            );
+            debug_assert!(
                 element
                     .assigned_slot()
                     .map_or(true, |s| s.is_html_slot_element())
             );
-            element.assigned_slot()
+            let scope = context.current_host?;
+            let mut current_slot = element.assigned_slot()?;
+            while current_slot.containing_shadow_host().unwrap().opaque() != scope {
+                current_slot = current_slot.assigned_slot()?;
+            }
+            Some(current_slot)
         },
         Combinator::PseudoElement => element.pseudo_element_originating_element(),
     }
@@ -511,7 +521,12 @@ where
         Combinator::PseudoElement => SelectorMatchingResult::NotMatchedGlobally,
     };
 
-    let mut next_element = next_element_for_combinator(element, combinator, &selector_iter);
+    let mut next_element = next_element_for_combinator(
+        element,
+        combinator,
+        &selector_iter,
+        &context,
+    );
 
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
@@ -575,7 +590,12 @@ where
             visited_handling = VisitedHandlingMode::AllLinksUnvisited;
         }
 
-        next_element = next_element_for_combinator(&element, combinator, &selector_iter);
+        next_element = next_element_for_combinator(
+            &element,
+            combinator,
+            &selector_iter,
+            &context,
+        );
     }
 }
 

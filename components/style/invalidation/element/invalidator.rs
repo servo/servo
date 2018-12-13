@@ -471,25 +471,34 @@ where
             return false;
         }
 
+        let slot = self.element;
+        self.invalidate_slotted_elements_in_slot(slot, invalidations)
+    }
+
+    fn invalidate_slotted_elements_in_slot(
+        &mut self,
+        slot: E,
+        invalidations: &[Invalidation<'b>],
+    ) -> bool {
         let mut any = false;
 
         let mut sibling_invalidations = InvalidationVector::new();
-        let element = self.element;
-        for node in element.slotted_nodes() {
+        for node in slot.slotted_nodes() {
             let element = match node.as_element() {
                 Some(e) => e,
                 None => continue,
             };
 
-            any |= self.invalidate_child(
-                element,
-                invalidations,
-                &mut sibling_invalidations,
-                DescendantInvalidationKind::Slotted,
-            );
-
-            // FIXME(emilio): Need to handle nested slotted nodes if `element`
-            // is itself a <slot>.
+            if element.is_html_slot_element() {
+                any |= self.invalidate_slotted_elements_in_slot(element, invalidations);
+            } else {
+                any |= self.invalidate_child(
+                    element,
+                    invalidations,
+                    &mut sibling_invalidations,
+                    DescendantInvalidationKind::Slotted,
+                );
+            }
 
             debug_assert!(
                 sibling_invalidations.is_empty(),
