@@ -1302,7 +1302,7 @@ impl<Impl: SelectorImpl> ToCss for AttrSelectorWithOptionalNamespace<Impl> {
                     ParsedCaseSensitivity::CaseSensitive |
                     ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
                     ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
-                    ParsedCaseSensitivity::ExplicitCaseSensitive => dest.write_str(" i")?,
+                    ParsedCaseSensitivity::ExplicitCaseSensitive => dest.write_str(" s")?,
                 }
             },
         }
