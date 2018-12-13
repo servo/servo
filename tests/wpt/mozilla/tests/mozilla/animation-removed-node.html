@@ -19,9 +19,11 @@ div.test { animation: boo 1s infinite; }
       document.getElementById('second').style.display = 'none';
       // Ensure that we wait until the next layout is complete.
       requestAnimationFrame(t.step_func(function() {
-        // Verify that the previous animations are no longer considered active.
-        assert_equals(window.runningAnimationCount, 0);
-        t.done();
+        requestAnimationFrame(t.step_func(function() {
+          // Verify that the previous animations are no longer considered active.
+          assert_equals(window.runningAnimationCount, 0);
+          t.done();
+        });
       }));
     });
   }, "Animations are no longer active when a node can't be animated.");
