@@ -130,7 +130,7 @@ use style::values::specified::Length;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
 use tendril::{StrTendril, TendrilSink};
-use time::Duration;
+use time::{Duration, Timespec};
 use uuid::Uuid;
 use webrender_api::{DocumentId, ImageKey, RenderApiSender};
 use webvr_traits::WebVRGamepadHand;
@@ -488,6 +488,7 @@ unsafe_no_jsmanaged_fields!(dyn Player<Error = ServoMediaError>);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
+unsafe_no_jsmanaged_fields!(Timespec);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
