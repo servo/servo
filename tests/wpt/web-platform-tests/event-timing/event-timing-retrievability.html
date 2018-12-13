@@ -2,7 +2,7 @@
 <html>
 <meta charset=utf-8>
 <title>Event Timing: make sure event-timing entries are retrievable by existing perf APIs.</title>
-<button id='button' onclick='1'>Generate a 'click' event</button>
+<button id='button'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -13,7 +13,7 @@
 
 <script>
   function validateEntries() {
-    const entriesByName = performance.getEntriesByName('click', 'event');
+    const entriesByName = performance.getEntriesByName('mousedown', 'event');
     const entriesByType = performance.getEntriesByType('event');
     const allEntries = performance.getEntries();
     assert_equals(entriesByName.length, 1, 'event-timing entry should be retrievable by getEntriesByName');

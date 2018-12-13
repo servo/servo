@@ -2,7 +2,7 @@
 <html>
 <meta charset=utf-8 />
 <title>Event Timing: only observe the first input</title>
-<button id='button' onclick='1'>Generate a 'click' event</button>
+<button id='button'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -24,10 +24,11 @@
     new PerformanceObserver(t.step_func((entryList) => {
         assert_false(hasObservedFirstInput);
         hasObservedFirstInput = true;
-        const observedEntries = entryList.getEntries();
+        const observedEntries = entryList.getEntries().filter(
+            entry => entry.name === 'mousedown');
         assert_equals(observedEntries.length, 1);
         assert_equals(observedEntries[0].entryType, 'firstInput');
-        assert_equals(observedEntries[0].name, 'click');
+        assert_equals(observedEntries[0].name, 'mousedown');
     })).observe({ entryTypes: ['firstInput'] });
     on_event(window, 'load', () => {
       clickAndBlockMain('button').then(() => {

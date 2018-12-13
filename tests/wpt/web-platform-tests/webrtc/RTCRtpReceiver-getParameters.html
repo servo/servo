@@ -33,10 +33,51 @@
 
         - transactionId and degradationPreference are left undefined.
    */
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-    const { receiver } = pc.addTransceiver('audio');
-    const param = receiver.getParameters();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('audio');
+    const callee = await doOfferAnswerExchange(t, pc);
+    const param = callee.getReceivers()[0].getParameters();
     validateReceiverRtpParameters(param);
-  });
+
+    assert_greater_than(param.headerExtensions.length, 0);
+    assert_greater_than(param.codecs.length, 0);
+    assert_equals(param.encodings.length, 1);
+  }, 'getParameters() with audio receiver');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('video');
+    const callee = await doOfferAnswerExchange(t, pc);
+    const param = callee.getReceivers()[0].getParameters();
+    validateReceiverRtpParameters(param);
+
+    assert_greater_than(param.headerExtensions.length, 0);
+    assert_greater_than(param.codecs.length, 0);
+    assert_equals(param.encodings.length, 1);
+  }, 'getParameters() with video receiver');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('video', {
+      sendEncodings: [
+        { rid: "rid1" },
+        { rid: "rid2" }
+      ]
+    });
+    const callee = await doOfferAnswerExchange(t, pc);
+    const param = callee.getReceivers()[0].getParameters();
+    validateReceiverRtpParameters(param);
+
+    assert_greater_than(param.headerExtensions.length, 0);
+    assert_greater_than(param.codecs.length, 0);
+    assert_equals(param.encodings.length, 2, 'layer count must match');
+    assert_equals(param.encodings[0].rid, "rid1",
+      'simulcast rids must match');
+    assert_equals(param.encodings[1].rid, "rid2",
+      'simulcast rids must match');
+  }, 'getParameters() with simulcast video receiver');
 </script>

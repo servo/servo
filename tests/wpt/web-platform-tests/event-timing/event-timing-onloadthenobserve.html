@@ -4,7 +4,7 @@
 <title>Event Timing: long-latency events after onload and before observer
 registration are lost
 </title>
-<button id='button' onclick='1'>Generate a 'click' event</button>
+<button id='button'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -18,7 +18,7 @@ registration are lost
 
   function verifyBufferAndObserverEntries(observedEntries) {
     // Verify buffer entries
-    const bufferedEntries = performance.getEntriesByName('click', 'event');
+    const bufferedEntries = performance.getEntriesByName('mousedown', 'event');
     const bufferedEntriesBeforeObserver = bufferedEntries.filter(e => e.startTime <
       observerStart);
     assert_equals(bufferedEntries.length, 0,
@@ -42,7 +42,8 @@ registration are lost
   function startObserver(t) {
     new PerformanceObserver(t.step_func_done((entryList, obs) => {
         callbackTime = performance.now();
-        const observedEntries = entryList.getEntries();
+        const observedEntries = entryList.getEntries().filter(
+            entry => entry.name === 'mousedown');
         verifyBufferAndObserverEntries(observedEntries);
       })).observe({ entryTypes: ['event'] });
     observerStart = performance.now();

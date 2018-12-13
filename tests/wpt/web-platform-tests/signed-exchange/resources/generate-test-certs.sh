@@ -10,7 +10,7 @@ openssl ecparam -out 127.0.0.1.sxg.key -name prime256v1 -genkey
 openssl req -new -sha256 \
   -key 127.0.0.1.sxg.key \
   -out 127.0.0.1.sxg.csr \
-  --subj '/CN=127.0.0.1/O=Test/C=US'
+  -subj '/CN=127.0.0.1/O=Test/C=US'
 
 openssl x509 -req -days 3650 \
   -in 127.0.0.1.sxg.csr \

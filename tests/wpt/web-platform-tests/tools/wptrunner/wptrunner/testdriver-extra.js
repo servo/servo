@@ -57,7 +57,7 @@
             pending_resolve = resolve;
             pending_reject = reject;
         });
-        window.opener.postMessage({"type": "action", "action": "click", "selector": selector}, "*");
+        window.__wptrunner_message_queue.push({"type": "action", "action": "click", "selector": selector});
         return pending_promise;
     };
 
@@ -67,7 +67,7 @@
             pending_resolve = resolve;
             pending_reject = reject;
         });
-        window.opener.postMessage({"type": "action", "action": "send_keys", "selector": selector, "keys": keys}, "*");
+        window.__wptrunner_message_queue.push({"type": "action", "action": "send_keys", "selector": selector, "keys": keys});
         return pending_promise;
     };
 
@@ -85,7 +85,7 @@
                 }
             }
         }
-        window.opener.postMessage({"type": "action", "action": "action_sequence", "actions": actions}, "*");
+        window.__wptrunner_message_queue.push({"type": "action", "action": "action_sequence", "actions": actions});
         return pending_promise;
     };
 })();
