@@ -1556,7 +1556,8 @@ impl Window {
             let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
             let pending_images = self.pending_layout_images.borrow().is_empty();
 
-            if !has_sent_idle_message && is_ready_state_complete && !reftest_wait && pending_images {
+            if !has_sent_idle_message && is_ready_state_complete && !reftest_wait && pending_images
+            {
                 let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
                 self.has_sent_idle_message.set(true);
