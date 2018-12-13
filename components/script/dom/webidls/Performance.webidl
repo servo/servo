@@ -23,6 +23,7 @@ partial interface Performance {
   PerformanceEntryList getEntriesByType(DOMString type);
   PerformanceEntryList getEntriesByName(DOMString name,
                                         optional DOMString type);
+  
 };
 
 // https://w3c.github.io/user-timing/#extensions-performance-interface
@@ -34,6 +35,12 @@ partial interface Performance {
   [Throws]
   void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
   void clearMeasures(optional DOMString measureName);
+
+};
+partial interface Performance {
+  void clearResourceTimings ();
+  void setResourceTimingBufferSize (unsigned long maxSize);
+              attribute EventHandler onresourcetimingbufferfull;
 };
 
 // FIXME(avada): this should be deprecated, but is currently included for web compat

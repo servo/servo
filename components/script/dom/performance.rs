@@ -60,7 +60,7 @@ pub struct PerformanceEntryList {
 
 impl PerformanceEntryList {
     pub fn new(entries: DOMPerformanceEntryList) -> Self {
-        PerformanceEntryList { entries }
+        PerformanceEntryList { entries } // minimum default size mentioned in the specs was 250
     }
 
     pub fn get_entries_by_name_and_type(
@@ -137,6 +137,10 @@ pub struct Performance {
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: u64,
+    resource_timing_buffer_size: Cell<usize>,
+    resource_timing_buffer_current_size: Cell<usize>,
+    resource_timing_buffer_pending_full_event: bool,
+    resource_timing_secondary_entries: DomRefCell<Vec<DomRoot<PerformanceEntry>>>,
 }
 
 impl Performance {
@@ -147,6 +151,10 @@ impl Performance {
             observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
             navigation_start_precise,
+            resource_timing_buffer_size: Cell::new(250_usize),
+            resource_timing_buffer_current_size: Cell::new(0),
+            resource_timing_buffer_pending_full_event: false,
+            resource_timing_secondary_entries: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -405,4 +413,19 @@ impl PerformanceMethods for Performance {
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
+    fn ClearResourceTimings(&self) {
+        self.entries
+            .borrow_mut()
+            .clear_entries_by_name_and_type(None, Some(DOMString::from("resource")));
+    }
+    //sets the maximum size of the buffer
+    fn SetResourceTimingBufferSize(&self, max_size: u32) {
+        self.resource_timing_buffer_size.set(max_size as usize);
+    }
+    //event for buffer overflow
+    event_handler!(
+        resourcetimingbufferfull,
+        GetOnresourcetimingbufferfull,
+        SetOnresourcetimingbufferfull
+    );
 }
