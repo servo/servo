@@ -91,10 +91,12 @@ sudo apt install git curl autoconf libx11-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
 ```
 
-If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
+If you using a version prior to **Ubuntu 17.04**, **Linux Mint 19** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
 Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gstreamer`, or run `./mach bootstrap-gstreamer` to set it up.
 
-If you are using **Ubuntu 16.04** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
+If you are using **Ubuntu 16.04** or **Linux Mint 18.&#42;** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
+
+If you get an undefined symbol error on `gst_player_get_config` try removing `gir1.2-gst-plugins-bad-1.0` and all old versions of clang, see [#22016](https://github.com/servo/servo/issues/22016)
 
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround. You may also need to install gcc 4.9, clang 4.0, and cmake 3.2:
 

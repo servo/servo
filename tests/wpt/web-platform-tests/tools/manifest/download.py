@@ -33,46 +33,53 @@ def should_download(manifest_path, rebuild_time=timedelta(days=5)):
     return False
 
 
-def git_commits(repo_root):
+def merge_pr_tags(repo_root, max_count=50):
     git = Git.get_func(repo_root)
-    return [item for item in git("log", "--format=%H", "-n50").split("\n") if item]
+    tags = []
+    for line in git("log", "--format=%D", "--max-count=%s" % max_count).split("\n"):
+        for ref in line.split(", "):
+            if ref.startswith("tag: merge_pr_"):
+                tags.append(ref[5:])
+    return tags
 
 
-def github_url(commits):
-    try:
-        resp = urlopen("https://api.github.com/repos/web-platform-tests/wpt/releases")
-    except Exception:
-        return None
+def github_url(tags):
+    for tag in tags:
+        url = "https://api.github.com/repos/web-platform-tests/wpt/releases/tags/%s" % tag
+        try:
+            resp = urlopen(url)
+        except Exception:
+            logger.warning("Fetching %s failed" % url)
+            continue
 
-    if resp.code != 200:
-        return None
+        if resp.code != 200:
+            logger.warning("Fetching %s failed; got HTTP status %d" % (url, resp.code))
+            continue
 
-    try:
-        releases = json.load(resp.fp)
-    except ValueError:
-        logger.warning("Response was not valid JSON")
-        return None
+        try:
+            release = json.load(resp.fp)
+        except ValueError:
+            logger.warning("Response was not valid JSON")
+            return None
 
-    fallback = None
-    for release in releases:
-        for commit in commits:
-            for item in release["assets"]:
-                if item["name"] == "MANIFEST-%s.json.gz" % commit:
-                    return item["browser_download_url"]
-                elif item["name"] == "MANIFEST.json.gz" and not fallback:
-                    fallback = item["browser_download_url"]
-    if fallback:
-        logger.info("Can't find a commit-specific manifest so just using the most recent one")
-        return fallback
+        for item in release["assets"]:
+            # Accept both ways of naming the manfest asset, even though
+            # there's no longer a reason to include the commit sha.
+            if item["name"].startswith("MANIFEST-") and item["name"].endswith(".json.gz"):
+                return item["browser_download_url"]
+            elif item["name"] == "MANIFEST.json.gz":
+                return item["browser_download_url"]
+
+    return None
 
 
-def download_manifest(manifest_path, commits_func, url_func, force=False):
+def download_manifest(manifest_path, tags_func, url_func, force=False):
     if not force and not should_download(manifest_path):
         return False
 
-    commits = commits_func()
+    tags = tags_func()
 
-    url = url_func(commits)
+    url = url_func(tags)
     if not url:
         logger.warning("No generated manifest found")
         return False
@@ -120,7 +127,7 @@ def create_parser():
 
 
 def download_from_github(path, tests_root, force=False):
-    return download_manifest(path, lambda: git_commits(tests_root), github_url,
+    return download_manifest(path, lambda: merge_pr_tags(tests_root), github_url,
                              force=force)
 
 

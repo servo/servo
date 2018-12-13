@@ -183,7 +183,7 @@ pub fn init(
         .name(format!("WebSocket connection to {}", req_init.url))
         .spawn(move || {
             let protocols = match req_init.mode {
-                RequestMode::WebSocket { protocols } => protocols.clone(),
+                RequestMode::WebSocket { protocols } => protocols,
                 _ => panic!("Received a RequestInit with a non-websocket mode in websocket_loader"),
             };
 

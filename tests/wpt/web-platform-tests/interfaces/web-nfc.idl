@@ -30,9 +30,13 @@ partial interface Navigator {
 
 typedef (DOMString or ArrayBuffer or NFCMessage) NFCMessageSource;
 
+[Constructor(), SecureContext, Exposed=Window]
+interface NFCWriter {
+  Promise<void> push(NFCMessageSource message, optional NFCPushOptions options);
+};
+
 [SecureContext]
 interface NFC {
-  Promise<void> push(NFCMessageSource message, optional NFCPushOptions options);
   Promise<void> watch(MessageCallback callback, optional NFCWatchOptions options);
 };
 

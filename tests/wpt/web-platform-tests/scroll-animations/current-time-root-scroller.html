@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline current time algorithm - root scroller</title>
+<link rel="help" href="https://wicg.github.io/scroll-animations/#current-time-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+html {
+  /* Ensure the document is scrollable. */
+  min-height: 100%;
+  min-width: 100%;
+  padding-bottom: 100px;
+  padding-right: 100px;
+}
+</style>
+
+<script>
+test(function() {
+  const scroller = document.scrollingElement;
+  // Set the timeRange(s) such that currentTime maps directly to the value
+  // scrolled. This makes it easier to assert on the currentTime in the test.
+  const scrollerHeight = scroller.scrollHeight - scroller.clientHeight;
+  const scrollerWidth = scroller.scrollWidth - scroller.clientWidth;
+
+  const blockScrollTimeline = new ScrollTimeline(
+      { scrollSource: scroller, timeRange: scrollerHeight, orientation: 'block' });
+  const inlineScrollTimeline = new ScrollTimeline(
+      { scrollSource: scroller, timeRange: scrollerWidth, orientation: 'inline' });
+
+  // Unscrolled, both timelines should read a currentTime of 0.
+  assert_equals(blockScrollTimeline.currentTime, 0);
+  assert_equals(inlineScrollTimeline.currentTime, 0);
+
+  // Now do some scrolling and make sure that the ScrollTimelines update.
+  scroller.scrollTop = 50;
+  scroller.scrollLeft = 75;
+
+  // As noted above, the timeRange(s) are mapped such that currentTime should be
+  // the scroll offset.
+  assert_equals(blockScrollTimeline.currentTime, 50);
+  assert_equals(inlineScrollTimeline.currentTime, 75);
+}, 'currentTime calculates the correct time for a document.scrollingElement scrollSource');
+</script>

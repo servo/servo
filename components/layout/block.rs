@@ -1257,7 +1257,7 @@ impl BlockFlow {
                 self.fragment.inline_start_offset(),
                 Au(0),
             ));
-            self.base.floats = floats.clone();
+            self.base.floats = floats;
             self.adjust_fragments_for_collapsed_margins_if_root(layout_context.shared_context());
         } else {
             // We don't need to reflow, but we still need to perform in-order traversals if

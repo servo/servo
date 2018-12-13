@@ -354,6 +354,8 @@ def sub(request, response, escape_type="html"):
       sha224, sha256, sha384, and sha512. For example:
 
         {{file_hash(md5, dom/interfaces.html)}}
+    fs_path(filepath)
+      The absolute path to a file inside the wpt document root
 
     So for example in a setup running on localhost with a www
     subdomain and a http server on ports 80 and 81::
@@ -413,6 +415,21 @@ class SubFunctions(object):
             raise Exception('Cannot open file for hash computation: "%s"' % absolute_path)
 
         return base64.b64encode(hash_obj.digest()).strip()
+
+    @staticmethod
+    def fs_path(request, path):
+        if not path.startswith("/"):
+            subdir = request.request_path[len(request.url_base):]
+            if "/" in subdir:
+                subdir = subdir.rsplit("/", 1)[0]
+            root_rel_path = subdir + "/" + path
+        else:
+            root_rel_path = path[1:]
+        root_rel_path = root_rel_path.replace("/", os.path.sep)
+        absolute_path = os.path.abspath(os.path.join(request.doc_root, root_rel_path))
+        if ".." in os.path.relpath(absolute_path, request.doc_root):
+            raise ValueError("Path outside wpt root")
+        return absolute_path
 
 def template(request, content, escape_type="html"):
     #TODO: There basically isn't any error handling here

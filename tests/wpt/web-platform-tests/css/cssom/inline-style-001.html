@@ -14,21 +14,22 @@
  <div id="log"></div>
  <div id="test" style="margin-left: 5px;"></div>
  <script type="text/javascript">
+    // Can access CSSStyleDeclaration through style property
     test(function() {
         var test = document.getElementById("test");
         assert_idl_attribute(test, "style");
         declaration = test.style;
-    }, "CSSStyleDeclaration_accessible", {
-        assert: "Can access CSSStyleDeclaration through style property"
-    });
+    }, "CSSStyleDeclaration_accessible");
 
+    // initial property values are correct
     test(function() {
         assert_equals(declaration.cssText, "margin-left: 5px;");
         assert_equals(declaration.getPropertyValue("margin-left"), "5px");
-    }, "read", {
-        assert: "initial property values are correct"
-    });
+    }, "read");
 
+    // setting cssText adds new properties
+    // setting cssText removes existing properties
+    // properties set through cssText are reflected in the computed style
     test(function() {
         declaration.cssText = "margin-left: 10px; padding-left: 10px;";
         assert_equals(declaration.cssText, "margin-left: 10px; padding-left: 10px;");
@@ -41,12 +42,10 @@
         var computedStyle = window.getComputedStyle(document.getElementById("test"));
         assert_equals(computedStyle.getPropertyValue("margin-left"), "10px");
         assert_equals(computedStyle.getPropertyValue("padding-left"), "10px");
-    }, "csstext_write", {
-        assert: [ "setting cssText adds new properties",
-                "setting cssText removes existing properties",
-                "properties set through cssText are reflected in the computed style"]
-    });
+    }, "csstext_write");
 
+    // setProperty adds new properties
+    // properties set through setProperty are reflected in the computed style
     test(function() {
         while(declaration.length > 0)
             declaration.removeProperty(declaration.item(0));
@@ -62,11 +61,9 @@
         var computedStyle = window.getComputedStyle(document.getElementById("test"));
         assert_equals(computedStyle.getPropertyValue("margin-left"), "15px");
         assert_equals(computedStyle.getPropertyValue("padding-left"), "15px");
-    }, "property_write", {
-        assert: [ "setProperty adds new properties",
-                "properties set through setProperty are reflected in the computed style"]
-    });
+    }, "property_write");
 
+    // shorthand property is expanded
     test(function() {
         while(declaration.length > 0)
             declaration.removeProperty(declaration.item(0));
@@ -75,9 +72,7 @@
         assert_equals(declaration.getPropertyValue("margin-right"), "20px");
         assert_equals(declaration.getPropertyValue("margin-bottom"), "20px");
         assert_equals(declaration.getPropertyValue("margin-left"), "20px");
-    }, "shorthand_properties", {
-        assert: "shorthand property is expanded"
-    });
+    }, "shorthand_properties");
  </script>
  </body>
 </html>

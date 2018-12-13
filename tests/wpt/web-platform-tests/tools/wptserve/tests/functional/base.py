@@ -106,7 +106,6 @@ class TestUsingH2Server:
         self.conn.connect()
 
     def teardown_method(self, test_method):
-        self.conn.close()
         self.server.stop()
 
 

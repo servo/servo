@@ -100,10 +100,8 @@
 
       // create all the tests we need
       for (var i = 0; i < kANIMATABLE_CSS_PROPERTIES.length; i++) {
-        testsIntermediate.push(async_test(kANIMATABLE_CSS_PROPERTIES[i][0] + " intermediate",
-                                          { assert: "property " + kANIMATABLE_CSS_PROPERTIES[i][0] + " is animatable" }));
-        testsEnd.push(async_test(kANIMATABLE_CSS_PROPERTIES[i][0] + " end",
-                                          { assert: "property " + kANIMATABLE_CSS_PROPERTIES[i][0] + " has correct value after transition's end" }));
+        testsIntermediate.push(async_test(kANIMATABLE_CSS_PROPERTIES[i][0] + " intermediate"));
+        testsEnd.push(async_test(kANIMATABLE_CSS_PROPERTIES[i][0] + " end"));
       }
 
       // getComputedStyle helper

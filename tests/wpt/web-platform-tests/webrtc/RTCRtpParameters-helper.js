@@ -142,6 +142,7 @@ function validateRtpParameters(param) {
     RTCDtxStatus        dtx;
     boolean             active;
     RTCPriorityType     priority;
+    RTCPriorityType     networkPriority;
     unsigned long       ptime;
     unsigned long       maxBitrate;
     double              maxFramerate;
@@ -170,6 +171,8 @@ function validateEncodingParameters(encoding) {
 
   assert_optional_boolean_field(encoding, 'active');
   assert_optional_enum_field(encoding, 'priority',
+    ['very-low', 'low', 'medium', 'high']);
+  assert_optional_enum_field(encoding, 'networkPriority',
     ['very-low', 'low', 'medium', 'high']);
 
   assert_optional_unsigned_int_field(encoding, 'ptime');

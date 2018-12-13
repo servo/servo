@@ -158,7 +158,7 @@ class Task:
 
         if CONFIG.treeherder_repo_name:
             assert CONFIG.git_sha
-            suffix = ".v2.%s.%s" % (CONFIG.treeherder_repo_name, CONFIG.git_sha)
+            suffix = ".v2._/%s.%s" % (CONFIG.treeherder_repo_name, CONFIG.git_sha)
             self.with_routes(
                 "tc-treeherder" + suffix,
                 "tc-treeherder-staging" + suffix,

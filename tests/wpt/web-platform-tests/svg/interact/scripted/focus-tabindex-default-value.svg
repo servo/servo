@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+    <title>SVG Test: focus - default value of tabindex</title>
+    <metadata>
+        <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#Focus"/>
+    </metadata>
+    <a id="test1" href="#"></a>
+    <rect id="test2"></rect>
+    <h:script src="/resources/testharness.js"/>
+    <h:script src="/resources/testharnessreport.js"/>
+    <script><![CDATA[
+    test(function() {
+        assert_equals(document.getElementById("test1").tabIndex, 0, "The value of tabIndex attribute should be 0.");
+    }, "The default value of tabIndex attribute must be 0 for elements that are focusable");
+
+    test(function() {
+        assert_equals(document.getElementById("test2").tabIndex, -1, "The value of tabIndex attribute should be -1.");
+    }, "The default value of tabIndex attribute must be -1 for elements that are not focusable");
+    ]]></script>
+</svg>
