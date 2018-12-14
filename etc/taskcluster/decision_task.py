@@ -12,7 +12,9 @@ from decisionlib import CONFIG, SHARED
 def main(task_for):
     assert CONFIG.git_ref.startswith("refs/heads/")
     branch = CONFIG.git_ref[len("refs/heads/"):]
-    CONFIG.treeherder_repository_name = "servo-" + branch
+    CONFIG.treeherder_repository_name = "servo-" + (
+        branch if not branch.startswith("try-") else "try"
+    )
 
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
