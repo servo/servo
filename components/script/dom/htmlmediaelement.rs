@@ -21,7 +21,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
@@ -1279,7 +1279,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
     fn GetSrcObject(&self) -> Option<DomRoot<Blob>> {

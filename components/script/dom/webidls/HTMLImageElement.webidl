@@ -8,7 +8,7 @@ interface HTMLImageElement : HTMLElement {
   [CEReactions]
            attribute DOMString alt;
   [CEReactions]
-           attribute DOMString src;
+           attribute USVString src;
   [CEReactions]
            attribute DOMString srcset;
   [CEReactions]
