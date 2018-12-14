@@ -574,9 +574,6 @@ class MachCommands(CommandBase):
                     json.dump(intermittent, intermittents_file, indent=4)
                     print("\n", end='', file=intermittents_file)
 
-        if len(actual_failures) == 0:
-            return 0
-
         output = open(log_filteredsummary, "w") if log_filteredsummary else sys.stdout
         for failure in actual_failures:
             json.dump(failure, output, indent=4)
@@ -584,6 +581,9 @@ class MachCommands(CommandBase):
 
         if output is not sys.stdout:
             output.close()
+
+        if len(actual_failures) == 0:
+            return 0
         return 1
 
     @Command('test-android-startup',
