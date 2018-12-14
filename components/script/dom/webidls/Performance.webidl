@@ -37,6 +37,7 @@ partial interface Performance {
   void clearMeasures(optional DOMString measureName);
 
 };
+//https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
 partial interface Performance {
   void clearResourceTimings ();
   void setResourceTimingBufferSize (unsigned long maxSize);
