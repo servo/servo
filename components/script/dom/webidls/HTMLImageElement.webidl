@@ -8,9 +8,9 @@ interface HTMLImageElement : HTMLElement {
   [CEReactions]
            attribute DOMString alt;
   [CEReactions]
-           attribute DOMString src;
+           attribute USVString src;
   [CEReactions]
-           attribute DOMString srcset;
+           attribute USVString srcset;
   [CEReactions]
            attribute DOMString? crossOrigin;
   [CEReactions]
@@ -24,7 +24,7 @@ interface HTMLImageElement : HTMLElement {
   readonly attribute unsigned long naturalWidth;
   readonly attribute unsigned long naturalHeight;
   readonly attribute boolean complete;
-  readonly attribute DOMString currentSrc;
+  readonly attribute USVString currentSrc;
   // also has obsolete members
 };
 

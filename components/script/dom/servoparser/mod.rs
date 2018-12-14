@@ -16,7 +16,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
@@ -722,7 +722,7 @@ impl FetchResponseListener for ParserContext {
                 let doc = &parser.document;
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(local_name!("img"), None, doc);
-                img.SetSrc(DOMString::from(self.url.to_string()));
+                img.SetSrc(USVString(self.url.to_string()));
                 doc_body
                     .AppendChild(&DomRoot::upcast::<Node>(img))
                     .expect("Appending failed");
