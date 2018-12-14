@@ -571,7 +571,7 @@ class MachCommands(CommandBase):
         if log_intermittents:
             with open(log_intermittents, "w") as intermittents_file:
                 for intermittent in intermittents:
-                    json.dump(intermittent, intermittents_file)
+                    json.dump(intermittent, intermittents_file, indent=4)
                     print("\n", end='', file=intermittents_file)
 
         if len(actual_failures) == 0:
@@ -579,7 +579,7 @@ class MachCommands(CommandBase):
 
         output = open(log_filteredsummary, "w") if log_filteredsummary else sys.stdout
         for failure in actual_failures:
-            json.dump(failure, output)
+            json.dump(failure, output, indent=4)
             print("\n", end='', file=output)
 
         if output is not sys.stdout:
