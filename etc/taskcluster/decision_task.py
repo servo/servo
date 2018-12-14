@@ -21,6 +21,11 @@ def main(task_for):
         macos_wpt = magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
             android_arm32_dev_from_macos = lambda: None
 
+        # FIXME https://github.com/servo/servo/issues/22187
+        # In-emulator testing is disabled for now. (Instead we only compile.)
+        # This local variable shadows the module-level function of the same name.
+        android_x86_wpt = android_x86_release
+
         all_tests = [
             linux_tidy_unit_docs,
             windows_unit,
@@ -28,7 +33,7 @@ def main(task_for):
             magicleap_dev,
             android_arm32_dev,
             android_arm32_release,
-            android_x86_release,
+            android_x86_wpt,
             linux_arm32_dev,
             linux_arm64_dev,
             linux_wpt,
