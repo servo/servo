@@ -541,7 +541,57 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_path_from_homedir("python2", "python2\\Scripts")
 
 
-class MacOsGenericWorkerTask(GenericWorkerTask):
+class UnixTaskMixin(Task):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.curl_scripts_count = 0
+
+    def with_repo(self):
+        """
+        Make a shallow clone the git repository at the start of the task.
+        This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`
+
+        * generic-worker: creates the clone in a `repo` directory
+          in the task’s directory.
+
+        * docker-worker: creates the clone in a `/repo` directory
+          at the root of the Docker container’s filesystem.
+          `git` and `ca-certificate` need to be installed in the Docker image.
+
+        """
+        return self \
+        .with_env(**git_env()) \
+        .with_early_script("""
+            git init repo
+            cd repo
+            git fetch --depth 1 "$GIT_URL" "$GIT_REF"
+            git reset --hard "$GIT_SHA"
+        """)
+
+    def with_curl_script(self, url, file_path):
+        self.curl_scripts_count += 1
+        n = self.curl_scripts_count
+        return self \
+        .with_env(**{
+            "CURL_%s_URL" % n: url,
+            "CURL_%s_PATH" % n: file_path,
+        }) \
+        .with_script("""
+            mkdir -p $(dirname "$CURL_{n}_PATH")
+            curl --retry 5 --connect-timeout 10 -Lf "$CURL_{n}_URL" -o "$CURL_{n}_PATH"
+        """.format(n=n))
+
+    def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
+        return self \
+        .with_dependencies(task_id) \
+        .with_curl_script(
+            "https://queue.taskcluster.net/v1/task/%s/artifacts/public/%s"
+                % (task_id, artifact_name),
+            os.path.join(out_directory, url_basename(artifact_name)),
+        )
+
+
+class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
     """
     Task definition for a `generic-worker` task running on macOS.
 
@@ -566,21 +616,6 @@ class MacOsGenericWorkerTask(GenericWorkerTask):
             ]
         ]
 
-    def with_repo(self):
-        """
-        Make a shallow clone the git repository at the start of the task.
-        This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
-        and creates the clone in a `repo` directory in the task’s directory.
-        """
-        return self \
-        .with_env(**git_env()) \
-        .with_early_script("""
-            git init repo
-            cd repo
-            git fetch --depth 1 "$GIT_URL" "$GIT_REF"
-            git reset --hard "$GIT_SHA"
-        """)
-
     def with_python2(self):
         return self.with_early_script("""
             export PATH="$HOME/Library/Python/2.7/bin:$PATH"
@@ -595,7 +630,7 @@ class MacOsGenericWorkerTask(GenericWorkerTask):
         """)
 
 
-class DockerWorkerTask(Task):
+class DockerWorkerTask(UnixTaskMixin, Task):
     """
     Task definition for a worker type that runs the `generic-worker` implementation.
 
@@ -613,7 +648,6 @@ class DockerWorkerTask(Task):
         self.features = {}
         self.capabilities = {}
         self.artifacts = []
-        self.curl_scripts_count = 0
 
     with_docker_image = chaining(setattr, "docker_image")
     with_max_run_time_minutes = chaining(setattr, "max_run_time_minutes")
@@ -662,46 +696,6 @@ class DockerWorkerTask(Task):
         """
         self.features.update({name: True for name in names})
         return self
-
-    def with_curl_script(self, url, file_path):
-        self.curl_scripts_count += 1
-        n = self.curl_scripts_count
-        return self \
-        .with_env(**{
-            "CURL_%s_URL" % n: url,
-            "CURL_%s_PATH" % n: file_path,
-        }) \
-        .with_script("""
-            mkdir -p $(dirname "$CURL_{n}_PATH")
-            curl --retry 5 --connect-timeout 10 -Lf "$CURL_{n}_URL" -o "$CURL_{n}_PATH"
-        """.format(n=n))
-
-    def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
-        return self \
-        .with_dependencies(task_id) \
-        .with_curl_script(
-            "https://queue.taskcluster.net/v1/task/%s/artifacts/public/%s"
-                % (task_id, artifact_name),
-            os.path.join(out_directory, url_basename(artifact_name)),
-        )
-
-    def with_repo(self):
-        """
-        Make a shallow clone the git repository at the start of the task.
-        This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
-        and creates the clone in a `/repo` directory
-        at the root of the Docker container’s filesystem.
-
-        `git` and `ca-certificate` need to be installed in the Docker image.
-        """
-        return self \
-        .with_env(**git_env()) \
-        .with_early_script("""
-            git init repo
-            cd repo
-            git fetch --depth 1 "$GIT_URL" "$GIT_REF"
-            git reset --hard "$GIT_SHA"
-        """)
 
     def with_dockerfile(self, dockerfile):
         """
