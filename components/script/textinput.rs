@@ -442,12 +442,24 @@ impl<T: ClipboardProvider> TextInput<T> {
         let target_line: isize = self.edit_point.line as isize + adjust;
 
         if target_line < 0 {
-            self.edit_point.index = 0;
-            self.edit_point.line = 0;
+            let zero_point = TextPoint { index: 0, line: 0 };
+            self.edit_point = zero_point.clone();
+            match (self.selection_origin, self.selection_direction) {
+                (Some(_), SelectionDirection::None) | (Some(_), SelectionDirection::Forward) => {
+                    self.selection_origin = Some(zero_point)
+                },
+                _ => (),
+            }
             return;
         } else if target_line as usize >= self.lines.len() {
             self.edit_point.line = self.lines.len() - 1;
             self.edit_point.index = self.current_line_length();
+            match (self.selection_origin, self.selection_direction) {
+                (Some(_), SelectionDirection::Backward) => {
+                    self.selection_origin = Some(self.edit_point)
+                },
+                _ => (),
+            }
             return;
         }
 
@@ -456,6 +468,20 @@ impl<T: ClipboardProvider> TextInput<T> {
             .count();
         self.edit_point.line = target_line as usize;
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
+        match (self.selection_origin, self.selection_direction) {
+            (Some(origin), SelectionDirection::None) |
+            (Some(origin), SelectionDirection::Forward) => {
+                if self.edit_point <= origin {
+                    self.selection_origin = Some(self.edit_point);
+                }
+            },
+            (Some(origin), SelectionDirection::Backward) => {
+                if origin <= self.edit_point {
+                    self.selection_origin = Some(self.edit_point);
+                }
+            },
+            _ => (),
+        }
         self.assert_ok_selection();
     }
 
