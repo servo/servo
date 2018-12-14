@@ -16,7 +16,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{
@@ -769,7 +769,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_getter!(Step, "step");

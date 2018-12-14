@@ -24,7 +24,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
@@ -1484,20 +1484,19 @@ impl Element {
         }
     }
 
-    pub fn get_url_attribute(&self, local_name: &LocalName) -> DOMString {
+    pub fn get_url_attribute(&self, local_name: &LocalName) -> USVString {
         assert!(*local_name == local_name.to_ascii_lowercase());
         let attr = match self.get_attribute(&ns!(), local_name) {
             Some(attr) => attr,
-            None => return DOMString::new(),
+            None => return USVString::default(),
         };
         let value = &**attr.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        let base = document_from_node(self).base_url();
-        let value = base
+        document_from_node(self)
+            .base_url()
             .join(value)
-            .map(|parsed| parsed.into_string())
-            .unwrap_or_else(|_| value.to_owned());
-        DOMString::from(value)
+            .map(|parsed| USVString(parsed.into_string()))
+            .unwrap_or_else(|_| USVString(value.to_owned()))
     }
 
     pub fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
