@@ -410,6 +410,8 @@ pub struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
     /// Number of redirects for the document load
     redirect_count: Cell<u16>,
+    /// https://html.spec.whatwg.org/multipage/#completely-loaded
+    completely_loaded: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -499,6 +501,10 @@ impl Document {
 
     pub fn set_https_state(&self, https_state: HttpsState) {
         self.https_state.set(https_state);
+    }
+
+    pub fn is_completely_loaded(&self) -> bool {
+        self.completely_loaded.get()
     }
 
     pub fn is_fully_active(&self) -> bool {
@@ -2707,6 +2713,7 @@ impl Document {
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
+            completely_loaded: Cell::new(false),
         }
     }
 

@@ -1863,6 +1863,9 @@ where
             Some(parent_pipeline_id) => parent_pipeline_id,
             None => return warn!("Subframe {} has no parent.", pipeline_id),
         };
+        // https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
+        // When a Document in an iframe is marked as completely loaded,
+        // the user agent must run the iframe load event steps.
         let msg = ConstellationControlMsg::DispatchIFrameLoadEvent {
             target: browsing_context_id,
             parent: parent_pipeline_id,
