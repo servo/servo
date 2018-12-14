@@ -320,25 +320,26 @@ def linux_wpt():
 
 
 def macos_wpt():
-    build_task = (
-        macos_build_task("Release build")
-        .with_treeherder("macOS x64", "Release")
-        .with_script("""
-            ./mach build --release
-            ./etc/ci/lockfile_changed.sh
-            tar -czf target.tar.gz \
-                target/release/servo \
-                target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
-                target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
-        """)
-        .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
-    )
+    # build_task = (
+    #     macos_build_task("Release build")
+    #     .with_treeherder("macOS x64", "Release")
+    #     .with_script("""
+    #         ./mach build --release
+    #         ./etc/ci/lockfile_changed.sh
+    #         tar -czf target.tar.gz \
+    #             target/release/servo \
+    #             target/release/build/osmesa-src-*/output \
+    #             target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
+    #             target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
+    #     """)
+    #     .with_artifacts("repo/target.tar.gz")
+    #     .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
+    # )
+    build_task = "EYeO49t9SnuEL_Ap1tA-cA"
     def macos_run_task(name):
         return macos_task(name).with_python2()
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
-               total_chunks=6, processes=4, chunks=[1])
+               total_chunks=200, processes=4, chunks=[1])
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
@@ -360,24 +361,24 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 PROCESSES=str(processes),
             )
         )
-        if this_chunk == chunks[-1]:
-            task.name += " + extra"
-            task.extra["treeherder"]["symbol"] += "+"
-            task.with_script("""
-                ./mach test-wpt-failure
-                time ./mach test-wpt --release --binary-arg=--multiprocess \
-                    --processes $PROCESSES \
-                    --log-raw test-wpt-mp.log \
-                    --log-errorsummary wpt-mp-errorsummary.log \
-                    eventsource \
-                    | cat
-                time ./mach test-wpt --release --product=servodriver --headless  \
-                    tests/wpt/mozilla/tests/mozilla/DOMParser.html \
-                    tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
-                    tests/wpt/mozilla/tests/css/img_simple.html \
-                    tests/wpt/mozilla/tests/mozilla/secure.https.html \
-                    | cat
-            """)
+        # if this_chunk == chunks[-1]:
+        #     task.name += " + extra"
+        #     task.extra["treeherder"]["symbol"] += "+"
+        #     task.with_script("""
+        #         ./mach test-wpt-failure
+        #         time ./mach test-wpt --release --binary-arg=--multiprocess \
+        #             --processes $PROCESSES \
+        #             --log-raw test-wpt-mp.log \
+        #             --log-errorsummary wpt-mp-errorsummary.log \
+        #             eventsource \
+        #             | cat
+        #         time ./mach test-wpt --release --product=servodriver --headless  \
+        #             tests/wpt/mozilla/tests/mozilla/DOMParser.html \
+        #             tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
+        #             tests/wpt/mozilla/tests/css/img_simple.html \
+        #             tests/wpt/mozilla/tests/mozilla/secure.https.html \
+        #             | cat
+        #     """)
         # `test-wpt` is piped into `cat` so that stdout is not a TTY
         # and wptrunner does not use "interactive mode" formatting:
         # https://github.com/servo/servo/issues/22438
@@ -391,12 +392,16 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 --log-errorsummary wpt-errorsummary.log \
                 --always-succeed \
                 | cat
+            pwd
+            ls
             ./mach filter-intermittents \
                 wpt-errorsummary.log \
                 --log-intermittents intermittents.log \
                 --log-filteredsummary filtered-wpt-errorsummary.log \
                 --tracker-api default \
                 --reporter-api default
+            pwd
+            ls
         """)
         task.with_artifacts(*[
             "%s/%s" % (repo_dir, word)
