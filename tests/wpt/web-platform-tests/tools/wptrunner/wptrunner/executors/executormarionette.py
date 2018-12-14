@@ -98,6 +98,10 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
             except errors.ScriptTimeoutException:
                 self.logger.debug("Script timed out")
                 pass
+            except errors.JavascriptException as e:
+                # This can happen if we navigate, but just keep going
+                self.logger.debug(e.message)
+                pass
             except IOError:
                 self.logger.debug("Socket closed")
                 break

@@ -5,13 +5,15 @@
 <script src="/resources/testharnessreport.js"></script>
 <style></style>
 <div id=log></div>
-<div id=test foo="BAR"></div>
+<div id=test foo="BAR" baz="quux"></div>
 <iframe id="quirks" src="resources/syntax-quirks.html"></iframe>
 <iframe id="xml" src="resources/syntax-xml.xhtml"></iframe>
 <script>
 setup({explicit_done:true});
 var valid = [
   "[foo='BAR'] /* sanity check (valid) */",
+  "[baz='quux'] /* sanity check (valid) */",
+  // Case-insensitive selectors.
   "[foo='bar' i]",
   "[foo='bar' I]",
   "[foo=bar i]",
@@ -28,6 +30,7 @@ var valid = [
   "[foo='bar'\ri\r] /* \\r */",
   "[foo='bar' \\i]",
   "[foo='bar' \\69]",
+  "[foo='bar' \\49]",
   "[foo~='bar' i]",
   "[foo^='bar' i]",
   "[foo$='bar' i]",
@@ -35,6 +38,31 @@ var valid = [
   "[foo|='bar' i]",
   "[|foo='bar' i]",
   "[*|foo='bar' i]",
+  // Case-sensitive selectors.
+  "[baz='quux' s]",
+  "[baz='quux' S]",
+  "[baz=quux s]",
+  '[baz="quux" s]',
+  "[baz='quux's]",
+  "[baz='quux's ]",
+  "[baz='quux' s ]",
+  "[baz='quux' /**/ s]",
+  "[baz='quux' s /**/ ]",
+  "[baz='quux'/**/s/**/]",
+  "[baz=quux/**/s]",
+  "[baz='quux'\ts\t] /* \\t */",
+  "[baz='quux'\ns\n] /* \\n */",
+  "[baz='quux'\rs\r] /* \\r */",
+  "[baz='quux' \\s]",
+  "[baz='quux' \\73]",
+  "[baz='quux' \\53]",
+  "[baz~='quux' s]",
+  "[baz^='quux' s]",
+  "[baz$='quux' s]",
+  "[baz*='quux' s]",
+  "[baz|='quux' s]",
+  "[|baz='quux' s]",
+  "[*|baz='quux' s]",
 ];
 var invalid = [
   "[foo[ /* sanity check (invalid) */",

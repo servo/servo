@@ -1,0 +1,7 @@
+<script>
+onload = opener.t.step_func_done(function() {
+    document.write("<body>Filler Text<div id='log'></div>");
+    opener.assert_equals(document.body.textContent, "Filler Text");
+});
+</script>
+<body>FAIL

@@ -2,7 +2,7 @@
 <html>
 <meta charset=utf-8 />
 <title>Event Timing: buffer long-latency events before onload</title>
-<button id='button' onclick='clickDelay()'>Generate a 'click' event</button>
+<button id='button' onmousedown='clickDelay()'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -27,7 +27,7 @@
   }
 
   function validateEntries() {
-    const entries = performance.getEntriesByName('click', 'event');
+    const entries = performance.getEntriesByName('mousedown', 'event');
 
     const entriesBeforeOnload = entries.filter(
         e => e.startTime < onloadStart);
@@ -69,7 +69,8 @@
     const observerPromise = new Promise((resolve, reject) => {
       let entryCount = 0;
       new PerformanceObserver(entryList => {
-        entryCount += entryList.getEntries().length;
+        entryCount += entryList.getEntries().filter(
+          entry => entry.name === 'mousedown').length;
         if (entryCount >= 2)
           resolve();
       }).observe({ entryTypes: ['event'] });

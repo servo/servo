@@ -3,7 +3,7 @@
 <meta charset=utf-8 />
 <title>Event Timing: Performance observers can observe long-latency events
 </title>
-<button id='button' onclick='1'>Generate a 'click' event</button>
+<button id='button'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -77,7 +77,8 @@
   async_test(function(t) {
     const observerPromise = new Promise((resolve, reject) => {
       new PerformanceObserver(function(entryList) {
-        observedEntries = observedEntries.concat(entryList.getEntries());
+        observedEntries = observedEntries.concat(entryList.getEntries().filter(
+          entry => entry.name === 'mousedown'));
         if (observedEntries.length < 2) return;
         resolve(observedEntries);
       }).observe({ entryTypes: ['event'] });
@@ -93,7 +94,7 @@
       Promise.all([observerPromise, bufferPromise]).then((results) => {
         timeAfterSecondClick = performance.now();
         t.step(verifyObserverEntries.bind(null, results[0]));
-        t.step(verifyBuffer.bind(null, performance.getEntriesByName('click', 'event')));
+        t.step(verifyBuffer.bind(null, performance.getEntriesByName('mousedown', 'event')));
         t.done();
       });
     });

@@ -13,7 +13,31 @@
 trigger: none # disable builds for branches
 
 jobs:
-- job: root
+# The affected tests jobs are unconditional for speed, as most PRs have one or
+# more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
+- job: affected_macOS
+  displayName: 'affected tests (Safari Technology Preview)'
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - template: tools/ci/azure/affected_tests.yml
+    parameters:
+      artifactName: 'results'
+
+- job: affected_without_changes_macOS
+  displayName: 'affected tests without changes (Safari Technology Preview)'
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - template: tools/ci/azure/affected_tests.yml
+    parameters:
+      checkoutCommit: 'HEAD^1'
+      affectedRange: 'HEAD@{1}'
+      artifactName: 'results-without-changes'
+
+# The decision jobs runs `./wpt test-jobs` to determine which jobs to run,
+# and all following jobs wait for it to finish and depend on its output.
+- job: decision
   displayName: './wpt test-jobs'
   pool:
     vmImage: 'ubuntu-16.04'
@@ -29,8 +53,8 @@ jobs:
 
 - job: infrastructure_macOS
   displayName: 'infrastructure/ tests (macOS)'
-  dependsOn: root
-  condition: dependencies.root.outputs['test_jobs.wptrunner_infrastructure']
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_infrastructure']
   pool:
     vmImage: 'macOS-10.13'
   steps:
@@ -45,17 +69,22 @@ jobs:
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=dev chrome infrastructure/
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/chrome.tbpl.log --log-tbpl-level info --channel dev chrome infrastructure/
     displayName: 'Run tests (Chrome Dev)'
-  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=nightly firefox infrastructure/
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/firefox.tbpl.log --log-tbpl-level info --channel nightly firefox infrastructure/
     displayName: 'Run tests (Firefox Nightly)'
-  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=preview safari infrastructure/
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/safari.tbpl.log --log-tbpl-level info --channel preview safari infrastructure/
     displayName: 'Run tests (Safari Technology Preview)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'infrastructure'
+    condition: succeededOrFailed()
 
 - job: tools_unittest_macOS
   displayName: 'tools/ unittests (macOS)'
-  dependsOn: root
-  condition: dependencies.root.outputs['test_jobs.tools_unittest']
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
     vmImage: 'macOS-10.13'
   steps:
@@ -67,8 +96,8 @@ jobs:
 
 - job: wptrunner_unittest_macOS
   displayName: 'tools/wptrunner/ unittests (macOS)'
-  dependsOn: root
-  condition: dependencies.root.outputs['test_jobs.wptrunner_unittest']
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
     vmImage: 'macOS-10.13'
   steps:
@@ -79,8 +108,8 @@ jobs:
 
 - job: wpt_integration_macOS
   displayName: 'tools/wpt/ tests (macOS)'
-  dependsOn: root
-  condition: dependencies.root.outputs['test_jobs.wpt_integration']
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
     vmImage: 'macOS-10.13'
   steps:

@@ -7,7 +7,7 @@
 </head>
 
 <body>
-<button id='button' onclick='1'>Generate a 'click' event</button>
+<button id='button'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -22,7 +22,7 @@
   let onloadStart;
 
   function validateEntries() {
-    const entries = performance.getEntriesByName('click', 'event');
+    const entries = performance.getEntriesByName('mousedown', 'event');
 
     assert_equals(entries.length, 1,
       "Observer of main frames should only capture main-frame event-timing entries."
