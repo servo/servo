@@ -4,8 +4,6 @@
 
 //! Computed values for font properties
 
-use app_units::Au;
-use byteorder::{BigEndian, ByteOrder};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
@@ -19,6 +17,8 @@ use crate::values::specified::font::{self as specified, MAX_FONT_WEIGHT, MIN_FON
 use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
 use crate::Atom;
+use app_units::Au;
+use byteorder::{BigEndian, ByteOrder};
 use cssparser::{serialize_identifier, CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};

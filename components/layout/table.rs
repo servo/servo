@@ -4,7 +4,6 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
 use crate::context::LayoutContext;
@@ -24,6 +23,7 @@ use crate::table_cell::TableCellFlow;
 use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use crate::table_row::{TableRowFlow, TableRowSizeData};
 use crate::table_wrapper::TableLayout;
+use app_units::Au;
 use euclid::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::{cmp, fmt};
@@ -952,9 +952,8 @@ impl TableLikeFlow for BlockFlow {
                     row.mut_base().restyle_damage.remove(
                         ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW,
                     );
-                    current_block_offset =
-                        current_block_offset +
-                            border_spacing_for_row(&self.fragment, row, block_direction_spacing);
+                    current_block_offset = current_block_offset +
+                        border_spacing_for_row(&self.fragment, row, block_direction_spacing);
                     i += 1;
                 }
 
@@ -990,11 +989,12 @@ impl TableLikeFlow for BlockFlow {
             current_block_offset = current_block_offset + delta;
 
             // Take border, padding, and spacing into account.
-            let block_end_offset = self.fragment.border_padding.block_end + if has_rows {
-                block_direction_spacing
-            } else {
-                Au(0)
-            };
+            let block_end_offset = self.fragment.border_padding.block_end +
+                if has_rows {
+                    block_direction_spacing
+                } else {
+                    Au(0)
+                };
             current_block_offset = current_block_offset + block_end_offset;
 
             // Now that `current_block_offset` is at the block-end of the border box, compute the

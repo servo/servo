@@ -108,9 +108,9 @@ impl AnalyserNode {
                 let this = this.clone();
                 let _ = source.queue_with_canceller(
                     task!(append_analysis_block: move || {
-                let this = this.root();
-                this.push_block(block.to().unwrap())
-            }),
+                        let this = this.root();
+                        this.push_block(block.to().unwrap())
+                    }),
                     &canceller,
                 );
             }),

@@ -443,7 +443,7 @@ impl Handler {
                 return Err(WebDriverError::new(
                     ErrorStatus::InvalidArgument,
                     "Invalid URL",
-                ))
+                ));
             },
         };
 
@@ -1080,7 +1080,7 @@ impl Handler {
                 return Err(WebDriverError::new(
                     ErrorStatus::Timeout,
                     "Taking screenshot timed out",
-                ))
+                ));
             },
         };
 

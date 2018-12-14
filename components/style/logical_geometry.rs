@@ -1221,11 +1221,12 @@ impl<T: Copy + Add<T, Output = T> + Sub<T, Output = T>> LogicalRect<T> {
 
     pub fn translate(&self, offset: &LogicalPoint<T>) -> LogicalRect<T> {
         LogicalRect {
-            start: self.start + LogicalSize {
-                inline: offset.i,
-                block: offset.b,
-                debug_writing_mode: offset.debug_writing_mode,
-            },
+            start: self.start +
+                LogicalSize {
+                    inline: offset.i,
+                    block: offset.b,
+                    debug_writing_mode: offset.debug_writing_mode,
+                },
             size: self.size,
             debug_writing_mode: self.debug_writing_mode,
         }

@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
-use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
-use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
-use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
@@ -29,6 +25,10 @@ use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
+use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
+use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
+use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;

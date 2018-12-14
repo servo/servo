@@ -134,20 +134,20 @@ impl AudioContextMethods for AudioContext {
                 let context = Trusted::new(self);
                 let _ = task_source.queue(
                     task!(suspend_ok: move || {
-                    let base_context = base_context.root();
-                    let context = context.root();
-                    let promise = trusted_promise.root();
-                    promise.resolve_native(&());
-                    if base_context.State() != AudioContextState::Suspended {
-                        base_context.set_state_attribute(AudioContextState::Suspended);
-                        let window = DomRoot::downcast::<Window>(context.global()).unwrap();
-                        window.task_manager().dom_manipulation_task_source().queue_simple_event(
-                            context.upcast(),
-                            atom!("statechange"),
-                            &window
-                            );
-                    }
-                }),
+                        let base_context = base_context.root();
+                        let context = context.root();
+                        let promise = trusted_promise.root();
+                        promise.resolve_native(&());
+                        if base_context.State() != AudioContextState::Suspended {
+                            base_context.set_state_attribute(AudioContextState::Suspended);
+                            let window = DomRoot::downcast::<Window>(context.global()).unwrap();
+                            window.task_manager().dom_manipulation_task_source().queue_simple_event(
+                                context.upcast(),
+                                atom!("statechange"),
+                                &window
+                                );
+                        }
+                    }),
                     window.upcast(),
                 );
             },
@@ -156,9 +156,9 @@ impl AudioContextMethods for AudioContext {
                 // never fail, but we handle the case here for completion.
                 let _ = task_source.queue(
                     task!(suspend_error: move || {
-                    let promise = trusted_promise.root();
-                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                }),
+                        let promise = trusted_promise.root();
+                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                    }),
                     window.upcast(),
                 );
             },
@@ -196,20 +196,20 @@ impl AudioContextMethods for AudioContext {
                 let context = Trusted::new(self);
                 let _ = task_source.queue(
                     task!(suspend_ok: move || {
-                    let base_context = base_context.root();
-                    let context = context.root();
-                    let promise = trusted_promise.root();
-                    promise.resolve_native(&());
-                    if base_context.State() != AudioContextState::Closed {
-                        base_context.set_state_attribute(AudioContextState::Closed);
-                        let window = DomRoot::downcast::<Window>(context.global()).unwrap();
-                        window.task_manager().dom_manipulation_task_source().queue_simple_event(
-                            context.upcast(),
-                            atom!("statechange"),
-                            &window
-                            );
-                    }
-                }),
+                        let base_context = base_context.root();
+                        let context = context.root();
+                        let promise = trusted_promise.root();
+                        promise.resolve_native(&());
+                        if base_context.State() != AudioContextState::Closed {
+                            base_context.set_state_attribute(AudioContextState::Closed);
+                            let window = DomRoot::downcast::<Window>(context.global()).unwrap();
+                            window.task_manager().dom_manipulation_task_source().queue_simple_event(
+                                context.upcast(),
+                                atom!("statechange"),
+                                &window
+                                );
+                        }
+                    }),
                     window.upcast(),
                 );
             },
@@ -218,9 +218,9 @@ impl AudioContextMethods for AudioContext {
                 // never fail, but we handle the case here for completion.
                 let _ = task_source.queue(
                     task!(suspend_error: move || {
-                    let promise = trusted_promise.root();
-                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                }),
+                        let promise = trusted_promise.root();
+                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                    }),
                     window.upcast(),
                 );
             },

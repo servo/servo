@@ -277,8 +277,8 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
             ScrollState::TriggerDown(start)
                 if (start - point).square_length() < DRAG_CUTOFF_SQUARED =>
             {
-                return
-            },
+                return;
+            }
             ScrollState::TriggerDown(start) => (
                 ScrollState::TriggerDragging(start, point),
                 vec![

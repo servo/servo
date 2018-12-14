@@ -426,7 +426,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 let manufacturer_id = match u16::from_str(key.as_ref()) {
                     Ok(id) => id,
                     Err(err) => {
-                        return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err)))
+                        return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err)));
                     },
                 };
 

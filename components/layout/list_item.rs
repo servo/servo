@@ -5,7 +5,6 @@
 //! Layout for elements with a CSS `display` property of `list-item`. These elements consist of a
 //! block and an extra inline fragment for the marker.
 
-use app_units::Au;
 use crate::block::BlockFlow;
 use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::display_list::StackingContextCollectionState;
@@ -18,6 +17,7 @@ use crate::fragment::{
 };
 use crate::generated_content;
 use crate::inline::InlineFlow;
+use app_units::Au;
 use euclid::Point2D;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::computed_values::position::T as Position;

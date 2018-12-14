@@ -244,8 +244,8 @@ impl BaseAudioContext {
                 )));
                 let _ = task_source.queue(
                     task!(resume_error: move || {
-                    this.root().fulfill_in_flight_resume_promises(|| {})
-                }),
+                        this.root().fulfill_in_flight_resume_promises(|| {})
+                    }),
                     window.upcast(),
                 );
             },

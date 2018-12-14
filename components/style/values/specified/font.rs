@@ -4,8 +4,6 @@
 
 //! Specified values for font properties
 
-use app_units::Au;
-use byteorder::{BigEndian, ByteOrder};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::bindings;
 use crate::parser::{Parse, ParserContext};
@@ -22,6 +20,8 @@ use crate::values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage};
 use crate::values::specified::{NoCalcLength, Number, Percentage};
 use crate::values::CustomIdent;
 use crate::Atom;
+use app_units::Au;
+use byteorder::{BigEndian, ByteOrder};
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};

@@ -262,7 +262,7 @@ impl Parse for Gradient {
         let (shape, repeating, mut compat_mode) = match result {
             Some(result) => result,
             None => {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func)))
+                return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func)));
             },
         };
 
@@ -792,7 +792,7 @@ impl LineDirection {
                 CompatMode::WebKit if to_ident.is_ok() => {
                     return Err(
                         i.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("to".into()))
-                    )
+                    );
                 },
                 _ => {},
             }

@@ -734,10 +734,10 @@ fn parse_floating_point_number(input: &str) -> Result<f64, ()> {
     match input.trim().parse::<f64>() {
         Ok(val)
             if !(
-            // A valid number is the same as what rust considers to be valid,
-            // except for +1., NaN, and Infinity.
-            val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
-        ) =>
+                // A valid number is the same as what rust considers to be valid,
+                // except for +1., NaN, and Infinity.
+                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+            ) =>
         {
             // TODO(#19773): need consider `min`, `max`, `step`, when they are implemented
             Ok(val.round())

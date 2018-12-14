@@ -779,8 +779,8 @@ impl VirtualMethods for HTMLScriptElement {
         if tree_in_doc && !self.parser_inserted.get() {
             let script = Trusted::new(self);
             document_from_node(self).add_delayed_task(task!(ScriptDelayedInitialize: move || {
-                    script.root().prepare();
-                }));
+                script.root().prepare();
+            }));
         }
     }
 
@@ -822,9 +822,9 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
     fn Async(&self) -> bool {
-        self.non_blocking.get() || self
-            .upcast::<Element>()
-            .has_attribute(&local_name!("async"))
+        self.non_blocking.get() ||
+            self.upcast::<Element>()
+                .has_attribute(&local_name!("async"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async

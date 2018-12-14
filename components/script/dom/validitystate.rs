@@ -27,7 +27,7 @@ pub enum ValidityStatus {
     Valid,
 }
 
-bitflags!{
+bitflags! {
     pub struct ValidationFlags: u32 {
         const VALUE_MISSING    = 0b0000000001;
         const TYPE_MISMATCH    = 0b0000000010;

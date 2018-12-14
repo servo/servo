@@ -367,15 +367,15 @@ impl HTMLMediaElement {
             task_source
                 .queue(
                     task!(resolve_pending_play_promises: move || {
-                    let this = this.root();
-                    if generation_id != this.generation_id.get() {
-                        return;
-                    }
+                        let this = this.root();
+                        if generation_id != this.generation_id.get() {
+                            return;
+                        }
 
-                    this.fulfill_in_flight_play_promises(|| {
-                        this.play_media();
-                    });
-                }),
+                        this.fulfill_in_flight_play_promises(|| {
+                            this.play_media();
+                        });
+                    }),
                     window.upcast(),
                 )
                 .unwrap();
@@ -820,8 +820,8 @@ impl HTMLMediaElement {
                         .media_element_task_source()
                         .queue(
                             task!(set_media_delay_load_event_flag_to_false: move || {
-                            this.root().delay_load_event(false);
-                        }),
+                                this.root().delay_load_event(false);
+                            }),
                             window.upcast(),
                         )
                         .unwrap();

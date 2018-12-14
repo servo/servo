@@ -4,12 +4,12 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
+use app_units::Au;
 use euclid::Point2D;
 use std::fmt;
 use style::logical_geometry::LogicalSize;

@@ -379,12 +379,12 @@ impl Request {
                     HttpMethod::GET => {
                         return Err(Error::Type(
                             "Init's body is non-null, and request method is GET".to_string(),
-                        ))
+                        ));
                     },
                     HttpMethod::HEAD => {
                         return Err(Error::Type(
                             "Init's body is non-null, and request method is HEAD".to_string(),
-                        ))
+                        ));
                     },
                     _ => {},
                 }

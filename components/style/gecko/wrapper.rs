@@ -14,8 +14,6 @@
 //! style system it's kind of pointless in the Stylo case, and only Servo forces
 //! the separation between the style system implementation and everything else.
 
-use app_units::Au;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::author_styles::AuthorStyles;
 use crate::context::{PostAnimationTasks, QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
@@ -72,6 +70,8 @@ use crate::shared_lock::Locked;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
 use crate::CaseSensitivityExt;
+use app_units::Au;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::matching::VisitedHandlingMode;
@@ -931,13 +931,14 @@ impl<'le> GeckoElement<'le> {
 
         debug_assert_eq!(to.is_some(), from.is_some());
 
-        combined_duration > 0.0f32 && from != to && from
-            .unwrap()
-            .animate(
-                to.as_ref().unwrap(),
-                Procedure::Interpolate { progress: 0.5 },
-            )
-            .is_ok()
+        combined_duration > 0.0f32 &&
+            from != to &&
+            from.unwrap()
+                .animate(
+                    to.as_ref().unwrap(),
+                    Procedure::Interpolate { progress: 0.5 },
+                )
+                .is_ok()
     }
 }
 
@@ -1241,10 +1242,11 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
-        self.as_node().owner_doc().0 as *const structs::nsIDocument == device
-            .pres_context()
-            .mDocument
-            .raw::<structs::nsIDocument>()
+        self.as_node().owner_doc().0 as *const structs::nsIDocument ==
+            device
+                .pres_context()
+                .mDocument
+                .raw::<structs::nsIDocument>()
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
@@ -1864,9 +1866,8 @@ impl<'le> TElement for GeckoElement<'le> {
                 .intersects(NonTSPseudoClass::Active.state_flag());
             if active {
                 let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0) };
-                let declarations: Option<
-                    &RawOffsetArc<Locked<PropertyDeclarationBlock>>,
-                > = declarations.and_then(|s| s.as_arc_opt());
+                let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+                    declarations.and_then(|s| s.as_arc_opt());
                 if let Some(decl) = declarations {
                     hints.push(ApplicableDeclarationBlock::from_declarations(
                         decl.clone_arc(),
@@ -2081,11 +2082,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             return false;
         }
 
-        debug_assert!(
-            self.as_node()
-                .parent_node()
-                .map_or(false, |p| p.is_document())
-        );
+        debug_assert!(self
+            .as_node()
+            .parent_node()
+            .map_or(false, |p| p.is_document()));
         unsafe { bindings::Gecko_IsRootElement(self.0) }
     }
 

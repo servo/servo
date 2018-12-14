@@ -355,10 +355,7 @@ pub struct Stylist {
     stylesheets: StylistStylesheetSet,
 
     /// If true, the quirks-mode stylesheet is applied.
-    #[cfg_attr(
-        feature = "servo",
-        ignore_malloc_size_of = "defined in selectors"
-    )]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
 
     /// Selector maps for all of the style sheets in the stylist, after
@@ -1570,9 +1567,8 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         // Also, note that this call happens before we visit any of the simple
         // selectors in the next ComplexSelector, so we can use this to skip
         // looking at them.
-        self.passed_rightmost_selector =
-            self.passed_rightmost_selector ||
-                !matches!(combinator, None | Some(Combinator::PseudoElement));
+        self.passed_rightmost_selector = self.passed_rightmost_selector ||
+            !matches!(combinator, None | Some(Combinator::PseudoElement));
 
         true
     }
@@ -1589,9 +1585,8 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        self.needs_revalidation =
-            self.needs_revalidation ||
-                component_needs_revalidation(s, self.passed_rightmost_selector);
+        self.needs_revalidation = self.needs_revalidation ||
+            component_needs_revalidation(s, self.passed_rightmost_selector);
 
         match *s {
             Component::NonTSPseudoClass(ref p) => {
@@ -2024,10 +2019,10 @@ impl CascadeData {
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
 
                     // Don't let a prefixed keyframes animation override a non-prefixed one.
-                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() || self
-                        .animations
-                        .get(keyframes_rule.name.as_atom())
-                        .map_or(true, |rule| rule.vendor_prefix.is_some());
+                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
+                        self.animations
+                            .get(keyframes_rule.name.as_atom())
+                            .map_or(true, |rule| rule.vendor_prefix.is_some());
                     if needs_insertion {
                         let animation = KeyframesAnimation::from_keyframes(
                             &keyframes_rule.keyframes,

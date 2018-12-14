@@ -449,9 +449,7 @@ where
                 ref local_name,
                 never_matches,
                 ..
-            }
-                if !never_matches =>
-            {
+            } if !never_matches => {
                 if !visitor.visit_attribute_selector(
                     &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
                     local_name,
@@ -459,7 +457,7 @@ where
                 ) {
                     return false;
                 }
-            }
+            },
             AttributeOther(ref attr_selector) if !attr_selector.never_matches => {
                 let empty_string;
                 let namespace = match attr_selector.namespace() {
@@ -1366,7 +1364,7 @@ where
                     SelectorParseErrorKind::DanglingCombinator
                 } else {
                     SelectorParseErrorKind::EmptySelector
-                }))
+                }));
             },
         };
 
@@ -1634,7 +1632,7 @@ where
         OptionalQName::None(t) => {
             return Err(input.new_custom_error(
                 SelectorParseErrorKind::NoQualifiedNameInAttributeSelector(t),
-            ))
+            ));
         },
         OptionalQName::Some(_, None) => unreachable!(),
         OptionalQName::Some(ns, Some(ln)) => {
@@ -1691,7 +1689,7 @@ where
         Ok(t) => {
             return Err(location.new_custom_error(
                 SelectorParseErrorKind::UnexpectedTokenInAttributeSelector(t.clone()),
-            ))
+            ));
         },
     };
 
@@ -1768,11 +1766,12 @@ impl AttributeFlags {
             AttributeFlags::CaseSensitive => ParsedCaseSensitivity::ExplicitCaseSensitive,
             AttributeFlags::AsciiCaseInsensitive => ParsedCaseSensitivity::AsciiCaseInsensitive,
             AttributeFlags::CaseSensitivityDependsOnName => {
-                if !have_namespace && include!(concat!(
-                    env!("OUT_DIR"),
-                    "/ascii_case_insensitive_html_attributes.rs"
-                ))
-                .contains(local_name)
+                if !have_namespace &&
+                    include!(concat!(
+                        env!("OUT_DIR"),
+                        "/ascii_case_insensitive_html_attributes.rs"
+                    ))
+                    .contains(local_name)
                 {
                     ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
                 } else {
@@ -1961,7 +1960,7 @@ where
                     &Token::Ident(ref name) => name.clone(),
                     t => {
                         return Err(location
-                            .new_custom_error(SelectorParseErrorKind::NoIdentForPseudo(t.clone())))
+                            .new_custom_error(SelectorParseErrorKind::NoIdentForPseudo(t.clone())));
                     },
                 };
 

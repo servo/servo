@@ -4,7 +4,6 @@
 
 //! The context within which style is calculated.
 
-use app_units::Au;
 #[cfg(feature = "servo")]
 use crate::animation::Animation;
 use crate::bloom::StyleBloom;
@@ -29,6 +28,7 @@ use crate::thread_state::{self, ThreadState};
 use crate::timer::Timer;
 use crate::traversal::DomTraversal;
 use crate::traversal_flags::TraversalFlags;
+use app_units::Au;
 #[cfg(feature = "servo")]
 use crossbeam_channel::Sender;
 use euclid::Size2D;

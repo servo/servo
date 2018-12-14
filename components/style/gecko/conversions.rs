@@ -8,7 +8,6 @@
 
 #![allow(unsafe_code)]
 
-use app_units::Au;
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -27,6 +26,7 @@ use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
 use crate::values::generics::rect::Rect;
+use app_units::Au;
 use std::f32::consts::PI;
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {

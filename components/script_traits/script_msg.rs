@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use crate::AnimationState;
 use crate::AuxiliaryBrowsingContextLoadInfo;
 use crate::DocumentState;
@@ -12,6 +11,7 @@ use crate::LayoutControlMsg;
 use crate::LoadData;
 use crate::WorkerGlobalScopeInit;
 use crate::WorkerScriptLoadOrigin;
+use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};

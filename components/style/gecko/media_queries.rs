@@ -4,8 +4,6 @@
 
 //! Gecko's media-query device and expression representation.
 
-use app_units::Au;
-use app_units::AU_PER_PX;
 use crate::custom_properties::CssEnvironment;
 use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use crate::gecko_bindings::bindings;
@@ -16,6 +14,8 @@ use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::font::FontSize;
 use crate::values::{CustomIdent, KeyframesName};
+use app_units::Au;
+use app_units::AU_PER_PX;
 use cssparser::RGBA;
 use euclid::Size2D;
 use euclid::TypedScale;

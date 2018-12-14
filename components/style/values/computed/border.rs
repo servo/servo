@@ -4,7 +4,6 @@
 
 //! Computed types for CSS values related to borders.
 
-use app_units::Au;
 use crate::values::animated::ToAnimatedZero;
 use crate::values::computed::length::{LengthOrPercentage, NonNegativeLength};
 use crate::values::computed::{Number, NumberOrPercentage};
@@ -15,6 +14,7 @@ use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
 use crate::values::generics::size::Size;
+use app_units::Au;
 
 pub use crate::values::specified::border::BorderImageRepeat;
 

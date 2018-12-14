@@ -29,16 +29,6 @@
 //! The `unsafe_no_jsmanaged_fields!()` macro adds an empty implementation of
 //! `JSTraceable` to a datatype.
 
-use app_units::Au;
-use canvas_traits::canvas::{
-    CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
-};
-use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
-use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, TexDataType, TexFormat};
-use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebGLError};
-use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
-use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
-use canvas_traits::webgl::{WebGLShaderId, WebGLTextureId, WebGLVersion, WebGLVertexArrayId};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -50,6 +40,16 @@ use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::MediaFrameRenderer;
 use crate::task::TaskBox;
+use app_units::Au;
+use canvas_traits::canvas::{
+    CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
+};
+use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
+use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, TexDataType, TexFormat};
+use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
+use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
+use canvas_traits::webgl::{WebGLShaderId, WebGLTextureId, WebGLVersion, WebGLVertexArrayId};
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
@@ -769,8 +769,10 @@ struct RootedTraceableSet {
     set: Vec<*const dyn JSTraceable>,
 }
 
-thread_local!(/// TLV Holds a set of JSTraceables that need to be rooted
-static ROOTED_TRACEABLES: RefCell<RootedTraceableSet> = RefCell::new(RootedTraceableSet::new()););
+thread_local!(
+    /// TLV Holds a set of JSTraceables that need to be rooted
+    static ROOTED_TRACEABLES: RefCell<RootedTraceableSet> = RefCell::new(RootedTraceableSet::new());
+);
 
 impl RootedTraceableSet {
     fn new() -> RootedTraceableSet {

@@ -141,11 +141,7 @@ impl KeyframePercentage {
             Token::Percentage {
                 unit_value: percentage,
                 ..
-            }
-                if percentage >= 0. && percentage <= 1. =>
-            {
-                Ok(KeyframePercentage::new(percentage))
-            },
+            } if percentage >= 0. && percentage <= 1. => Ok(KeyframePercentage::new(percentage)),
             _ => Err(input.new_unexpected_token_error(token)),
         }
     }
@@ -600,7 +596,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
         let id = match PropertyId::parse(&name, self.context) {
             Ok(id) => id,
             Err(()) => {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnknownProperty(name)))
+                return Err(input.new_custom_error(StyleParseErrorKind::UnknownProperty(name)));
             },
         };
 

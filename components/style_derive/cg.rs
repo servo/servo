@@ -172,9 +172,7 @@ fn path_to_ident(path: &Path) -> Option<&Ident> {
         Path {
             leading_colon: None,
             ref segments,
-        }
-            if segments.len() == 1 =>
-        {
+        } if segments.len() == 1 => {
             if segments[0].arguments.is_empty() {
                 Some(&segments[0].ident)
             } else {

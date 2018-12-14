@@ -513,8 +513,7 @@ mod bindings {
                         "pub type nsTArrayBorrowed_{}<'a> = ",
                         "&'a mut ::gecko_bindings::structs::nsTArray<{}>;"
                     ),
-                    cpp_type,
-                    rust_type
+                    cpp_type, rust_type
                 ))
             })
             .handle_str_items("servo-immutable-borrow-types", |b, ty| b.borrowed_type(ty))

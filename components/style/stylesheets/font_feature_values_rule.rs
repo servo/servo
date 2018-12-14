@@ -70,11 +70,7 @@ impl Parse for SingleValue {
         match *input.next()? {
             Token::Number {
                 int_value: Some(v), ..
-            }
-                if v >= 0 =>
-            {
-                Ok(SingleValue(v as u32))
-            },
+            } if v >= 0 => Ok(SingleValue(v as u32)),
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }
@@ -103,22 +99,14 @@ impl Parse for PairValues {
         let first = match *input.next()? {
             Token::Number {
                 int_value: Some(a), ..
-            }
-                if a >= 0 =>
-            {
-                a as u32
-            },
+            } if a >= 0 => a as u32,
             ref t => return Err(location.new_unexpected_token_error(t.clone())),
         };
         let location = input.current_source_location();
         match input.next() {
             Ok(&Token::Number {
                 int_value: Some(b), ..
-            })
-                if b >= 0 =>
-            {
-                Ok(PairValues(first, Some(b as u32)))
-            },
+            }) if b >= 0 => Ok(PairValues(first, Some(b as u32))),
             // It can't be anything other than number.
             Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
             // It can be just one value.
@@ -157,11 +145,9 @@ impl Parse for VectorValues {
             match input.next() {
                 Ok(&Token::Number {
                     int_value: Some(a), ..
-                })
-                    if a >= 0 =>
-                {
+                }) if a >= 0 => {
                     vec.push(a as u32);
-                }
+                },
                 // It can't be anything other than number.
                 Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,

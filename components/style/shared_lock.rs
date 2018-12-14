@@ -4,10 +4,10 @@
 
 //! Different objects protected by the same lock
 
-#[cfg(feature = "gecko")]
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use crate::str::{CssString, CssStringWriter};
 use crate::stylesheets::Origin;
+#[cfg(feature = "gecko")]
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
 use servo_arc::Arc;

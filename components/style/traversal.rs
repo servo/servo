@@ -208,11 +208,11 @@ pub trait DomTraversal<E: TElement>: Sync {
         // animation-only restyle hint or recascade.
         if traversal_flags.for_animation_only() {
             return data.map_or(false, |d| d.has_styles()) &&
-                (el.has_animation_only_dirty_descendants() || data
-                    .as_ref()
-                    .unwrap()
-                    .hint
-                    .has_animation_hint_or_recascade());
+                (el.has_animation_only_dirty_descendants() ||
+                    data.as_ref()
+                        .unwrap()
+                        .hint
+                        .has_animation_hint_or_recascade());
         }
 
         // Non-incremental layout visits every node.
@@ -516,9 +516,8 @@ pub fn recalc_style_at<E, D, F>(
         !child_cascade_requirement.can_skip_cascade() ||
         is_servo_nonincremental_layout();
 
-    traverse_children =
-        traverse_children &&
-            !traversal.should_cull_subtree(context, element, &data, is_initial_style);
+    traverse_children = traverse_children &&
+        !traversal.should_cull_subtree(context, element, &data, is_initial_style);
 
     // Examine our children, and enqueue the appropriate ones for traversal.
     if traverse_children {

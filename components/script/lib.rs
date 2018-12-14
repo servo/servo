@@ -12,10 +12,7 @@
 #![allow(non_snake_case)]
 #![doc = "The script crate contains all matters DOM."]
 #![plugin(script_plugins)]
-#![cfg_attr(
-    not(feature = "unrooted_must_root_lint"),
-    allow(unknown_lints)
-)]
+#![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 
 #[macro_use]
 extern crate bitflags;

@@ -4,8 +4,8 @@
 
 // FIXME(rust-lang/rust#26264): Remove GenericEndingShape and GenericGradientItem.
 
-use app_units::Au;
 use crate::display_list::ToLayout;
+use app_units::Au;
 use euclid::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};

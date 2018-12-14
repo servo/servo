@@ -230,33 +230,34 @@ impl NonTSPseudoClass {
     /// Returns true if the given pseudoclass should trigger style sharing cache
     /// revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
-        self.state_flag().is_empty() && !matches!(*self,
-                  // :-moz-any is handled by the revalidation visitor walking
-                  // the things inside it; it does not need to cause
-                  // revalidation on its own.
-                  NonTSPseudoClass::MozAny(_) |
-                  // :dir() depends on state only, but doesn't use state_flag
-                  // because its semantics don't quite match.  Nevertheless, it
-                  // doesn't need cache revalidation, because we already compare
-                  // states for elements and candidates.
-                  NonTSPseudoClass::Dir(_) |
-                  // :-moz-is-html only depends on the state of the document and
-                  // the namespace of the element; the former is invariant
-                  // across all the elements involved and the latter is already
-                  // checked for by our caching precondtions.
-                  NonTSPseudoClass::MozIsHTML |
-                  // :-moz-placeholder is parsed but never matches.
-                  NonTSPseudoClass::MozPlaceholder |
-                  // :-moz-locale-dir and :-moz-window-inactive depend only on
-                  // the state of the document, which is invariant across all
-                  // the elements involved in a given style cache.
-                  NonTSPseudoClass::MozLocaleDir(_) |
-                  NonTSPseudoClass::MozWindowInactive |
-                  // Similar for the document themes.
-                  NonTSPseudoClass::MozLWTheme |
-                  NonTSPseudoClass::MozLWThemeBrightText |
-                  NonTSPseudoClass::MozLWThemeDarkText
-        )
+        self.state_flag().is_empty() &&
+            !matches!(*self,
+                      // :-moz-any is handled by the revalidation visitor walking
+                      // the things inside it; it does not need to cause
+                      // revalidation on its own.
+                      NonTSPseudoClass::MozAny(_) |
+                      // :dir() depends on state only, but doesn't use state_flag
+                      // because its semantics don't quite match.  Nevertheless, it
+                      // doesn't need cache revalidation, because we already compare
+                      // states for elements and candidates.
+                      NonTSPseudoClass::Dir(_) |
+                      // :-moz-is-html only depends on the state of the document and
+                      // the namespace of the element; the former is invariant
+                      // across all the elements involved and the latter is already
+                      // checked for by our caching precondtions.
+                      NonTSPseudoClass::MozIsHTML |
+                      // :-moz-placeholder is parsed but never matches.
+                      NonTSPseudoClass::MozPlaceholder |
+                      // :-moz-locale-dir and :-moz-window-inactive depend only on
+                      // the state of the document, which is invariant across all
+                      // the elements involved in a given style cache.
+                      NonTSPseudoClass::MozLocaleDir(_) |
+                      NonTSPseudoClass::MozWindowInactive |
+                      // Similar for the document themes.
+                      NonTSPseudoClass::MozLWTheme |
+                      NonTSPseudoClass::MozLWThemeBrightText |
+                      NonTSPseudoClass::MozLWThemeDarkText
+            )
     }
 
     /// Returns true if the evaluation of the pseudo-class depends on the

@@ -4,7 +4,6 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
@@ -18,6 +17,7 @@ use crate::layout_debug;
 use crate::model::MaybeAuto;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
+use app_units::Au;
 use euclid::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};

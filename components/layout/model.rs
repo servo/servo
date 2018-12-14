@@ -4,8 +4,8 @@
 
 //! Borders, padding, and margins.
 
-use app_units::Au;
 use crate::fragment::Fragment;
+use app_units::Au;
 use euclid::SideOffsets2D;
 use std::cmp::{max, min};
 use std::fmt;
@@ -133,8 +133,8 @@ impl MarginCollapseInfo {
     ) -> (CollapsibleMargins, Au) {
         let state = match self.state {
             MarginCollapseState::AccumulatingCollapsibleTopMargin => {
-                may_collapse_through =
-                    may_collapse_through && match fragment.style().content_block_size() {
+                may_collapse_through = may_collapse_through &&
+                    match fragment.style().content_block_size() {
                         LengthOrPercentageOrAuto::Auto => true,
                         LengthOrPercentageOrAuto::Length(l) => l.px() == 0.,
                         LengthOrPercentageOrAuto::Percentage(v) => {

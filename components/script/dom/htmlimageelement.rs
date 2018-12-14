@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::{Au, AU_PER_PX};
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -43,6 +42,7 @@ use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
+use app_units::{Au, AU_PER_PX};
 use cssparser::{Parser, ParserInput};
 
 use dom_struct::dom_struct;
@@ -286,12 +286,12 @@ impl HTMLImageElement {
                     // FIXME(nox): Why are errors silenced here?
                     let _ = task_source.queue_with_canceller(
                         task!(process_image_response: move || {
-                        let element = element.root();
-                        // Ignore any image response for a previous request that has been discarded.
-                        if generation == element.generation.get() {
-                            element.process_image_response(image);
-                        }
-                    }),
+                            let element = element.root();
+                            // Ignore any image response for a previous request that has been discarded.
+                            if generation == element.generation.get() {
+                                element.process_image_response(image);
+                            }
+                        }),
                         &canceller,
                     );
                 }),

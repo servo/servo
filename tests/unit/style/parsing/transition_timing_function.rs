@@ -22,27 +22,21 @@ fn test_cubic_bezier() {
     );
 
     // p1x and p2x values must be in range [0, 1]
-    assert!(
-        parse(
-            transition_timing_function::parse,
-            "cubic-bezier(-1, 0, 0, 0"
-        )
-        .is_err()
-    );
-    assert!(
-        parse(
-            transition_timing_function::parse,
-            "cubic-bezier(0, 0, -1, 0"
-        )
-        .is_err()
-    );
-    assert!(
-        parse(
-            transition_timing_function::parse,
-            "cubic-bezier(-1, 0, -1, 0"
-        )
-        .is_err()
-    );
+    assert!(parse(
+        transition_timing_function::parse,
+        "cubic-bezier(-1, 0, 0, 0"
+    )
+    .is_err());
+    assert!(parse(
+        transition_timing_function::parse,
+        "cubic-bezier(0, 0, -1, 0"
+    )
+    .is_err());
+    assert!(parse(
+        transition_timing_function::parse,
+        "cubic-bezier(-1, 0, -1, 0"
+    )
+    .is_err());
 
     assert!(parse(transition_timing_function::parse, "cubic-bezier(2, 0, 0, 0").is_err());
     assert!(parse(transition_timing_function::parse, "cubic-bezier(0, 0, 2, 0").is_err());

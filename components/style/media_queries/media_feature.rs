@@ -30,9 +30,10 @@ type MediaFeatureEvaluator<T> = fn(
 pub type KeywordSerializer = fn(KeywordDiscriminant) -> String;
 
 /// Parses a given identifier.
-pub type KeywordParser =
-    for<'a, 'i, 't> fn(context: &'a ParserContext, input: &'a mut Parser<'i, 't>)
-        -> Result<KeywordDiscriminant, ParseError<'i>>;
+pub type KeywordParser = for<'a, 'i, 't> fn(
+    context: &'a ParserContext,
+    input: &'a mut Parser<'i, 't>,
+) -> Result<KeywordDiscriminant, ParseError<'i>>;
 
 /// An evaluator for a given media feature.
 ///

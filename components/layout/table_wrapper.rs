@@ -11,7 +11,6 @@
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 
-use app_units::Au;
 use crate::block::{
     AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput,
 };
@@ -26,6 +25,7 @@ use crate::flow::{Flow, FlowClass, FlowFlags, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::model::MaybeAuto;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use app_units::Au;
 use euclid::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{max, min};
@@ -795,18 +795,18 @@ impl ExcessInlineSizeDistributionInfo {
                 if !column_intrinsic_inline_size.constrained &&
                     column_intrinsic_inline_size.percentage == 0.0
                 {
-                    column_intrinsic_inline_size.preferred.to_f32_px() / self
-                        .preferred_inline_size_of_nonconstrained_columns_with_no_percentage
-                        .to_f32_px()
+                    column_intrinsic_inline_size.preferred.to_f32_px() /
+                        self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage
+                            .to_f32_px()
                 } else {
                     0.0
                 }
             } else if self.count_of_nonconstrained_columns_with_no_percentage > 0 {
                 1.0 / (self.count_of_nonconstrained_columns_with_no_percentage as CSSFloat)
             } else if self.preferred_inline_size_of_constrained_columns_with_no_percentage > Au(0) {
-                column_intrinsic_inline_size.preferred.to_f32_px() / self
-                    .preferred_inline_size_of_constrained_columns_with_no_percentage
-                    .to_f32_px()
+                column_intrinsic_inline_size.preferred.to_f32_px() /
+                    self.preferred_inline_size_of_constrained_columns_with_no_percentage
+                        .to_f32_px()
             } else if self.total_percentage > 0.0 {
                 column_intrinsic_inline_size.percentage / self.total_percentage
             } else {

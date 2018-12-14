@@ -91,8 +91,7 @@ impl Parse for LineHeight {
         match ident {
             ref ident if ident.eq_ignore_ascii_case("normal") => Ok(GenericLineHeight::Normal),
             #[cfg(feature = "gecko")]
-            ref ident if ident.eq_ignore_ascii_case("-moz-block-height") =>
-            {
+            ref ident if ident.eq_ignore_ascii_case("-moz-block-height") => {
                 Ok(GenericLineHeight::MozBlockHeight)
             },
             ident => {

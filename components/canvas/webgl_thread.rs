@@ -1425,10 +1425,10 @@ impl WebGLImpl {
             (depth, gl::DEPTH_BUFFER_BIT),
             (stencil, gl::STENCIL_BUFFER_BIT),
         ]
-            .iter()
-            .fold(0, |bits, &(enabled, bit)| {
-                bits | if enabled { bit } else { 0 }
-            });
+        .iter()
+        .fold(0, |bits, &(enabled, bit)| {
+            bits | if enabled { bit } else { 0 }
+        });
 
         if state.scissor_test_enabled {
             gl.disable(gl::SCISSOR_TEST);

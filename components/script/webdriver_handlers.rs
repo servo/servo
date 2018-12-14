@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cookie::Cookie;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -25,6 +24,7 @@ use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{window_from_node, Node};
 use crate::script_thread::Documents;
+use cookie::Cookie;
 use euclid::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -97,7 +97,7 @@ pub fn handle_execute_script(
         None => {
             return reply
                 .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .unwrap()
+                .unwrap();
         },
     };
 
@@ -124,7 +124,7 @@ pub fn handle_execute_async_script(
         None => {
             return reply
                 .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .unwrap()
+                .unwrap();
         },
     };
 
@@ -304,7 +304,7 @@ pub fn handle_add_cookie(
         None => {
             return reply
                 .send(Err(WebDriverCookieError::UnableToSetCookie))
-                .unwrap()
+                .unwrap();
         },
     };
     let url = document.url();

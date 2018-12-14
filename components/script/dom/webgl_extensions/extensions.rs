@@ -4,7 +4,6 @@
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
 use super::{ext, WebGLExtension, WebGLExtensionSpec};
-use canvas_traits::webgl::WebGLVersion;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
@@ -18,6 +17,7 @@ use crate::dom::oestexturefloat::OESTextureFloat;
 use crate::dom::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use canvas_traits::webgl::WebGLVersion;
 use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::{self, GLenum};
 use js::jsapi::JSObject;

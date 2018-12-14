@@ -218,10 +218,7 @@ impl Display {
             // Special handling for contents and list-item on the root
             // element for Gecko.
             #[cfg(feature = "gecko")]
-            Display::Contents | Display::ListItem if _is_root_element =>
-            {
-                Display::Block
-            },
+            Display::Contents | Display::ListItem if _is_root_element => Display::Block,
 
             // These are not changed by blockification.
             Display::None | Display::Block | Display::Flex | Display::ListItem | Display::Table => {
@@ -747,7 +744,9 @@ impl Parse for Contain {
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
                 _ => {
-                    return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
+                    return Err(
+                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
+                    );
                 },
             };
             result.insert(flag);
@@ -826,7 +825,7 @@ impl Parse for TransitionProperty {
                     location,
                     ident,
                     &["none"],
-                )?))
+                )?));
             },
         };
 
@@ -1309,7 +1308,7 @@ impl BreakBetween {
             Ok(v) => v,
             Err(()) => {
                 return Err(location
-                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
             },
         };
         match break_value {

@@ -25,7 +25,6 @@
 //!
 //!   http://dev.w3.org/csswg/css-sizing/
 
-use app_units::{Au, MAX_AU};
 use crate::context::LayoutContext;
 use crate::display_list::items::DisplayListSection;
 use crate::display_list::StackingContextCollectionState;
@@ -49,6 +48,7 @@ use crate::model::{
 };
 use crate::sequential;
 use crate::traversal::PreorderFlowTraversal;
+use app_units::{Au, MAX_AU};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};
@@ -809,11 +809,10 @@ impl BlockFlow {
         viewport_size: &Size2D<Au>,
         descendant: OpaqueFlow,
     ) -> LogicalSize<Au> {
-        debug_assert!(
-            self.base
-                .flags
-                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
-        );
+        debug_assert!(self
+            .base
+            .flags
+            .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED));
         if self.is_fixed() || self.is_root() {
             // Initial containing block is the CB for the root
             LogicalSize::from_physical(self.base.writing_mode, *viewport_size)
@@ -1176,10 +1175,11 @@ impl BlockFlow {
             let mut block_size = cur_b - block_start_offset;
             let is_root = self.is_root();
 
-            if is_root || self.formatting_context_type() != FormattingContextType::None || self
-                .base
-                .flags
-                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+            if is_root ||
+                self.formatting_context_type() != FormattingContextType::None ||
+                self.base
+                    .flags
+                    .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
             {
                 // The content block-size includes all the floats per CSS 2.1 § 10.6.7. The easiest
                 // way to handle this is to just treat it as clearance.
@@ -1953,14 +1953,12 @@ impl BlockFlow {
                     )
                 },
                 (Float::Left, _) => {
-                    left_float_width_accumulator = left_float_width_accumulator + child_base
-                        .intrinsic_inline_sizes
-                        .preferred_inline_size;
+                    left_float_width_accumulator = left_float_width_accumulator +
+                        child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },
                 (Float::Right, _) => {
-                    right_float_width_accumulator = right_float_width_accumulator + child_base
-                        .intrinsic_inline_sizes
-                        .preferred_inline_size;
+                    right_float_width_accumulator = right_float_width_accumulator +
+                        child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },
             }
         }

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use caseless::compatibility_caseless_match_str;
 use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -47,6 +46,7 @@ use crate::textinput::KeyReaction::{
 };
 use crate::textinput::Lines::Single;
 use crate::textinput::{Direction, SelectionDirection, TextInput};
+use caseless::compatibility_caseless_match_str;
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
 use html5ever::{LocalName, Prefix};
@@ -946,7 +946,7 @@ impl HTMLInputElement {
         match self.input_type() {
             // Step 3.1: it's a button but it is not submitter.
             InputType::Submit | InputType::Button | InputType::Reset if !is_submitter => {
-                return vec![]
+                return vec![];
             },
 
             // Step 3.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
@@ -1769,21 +1769,22 @@ impl Activatable for HTMLInputElement {
                     .unwrap()
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
-                        input.form_owner() == owner && match input.input_type() {
-                            InputType::Text |
-                            InputType::Search |
-                            InputType::Url |
-                            InputType::Tel |
-                            InputType::Email |
-                            InputType::Password |
-                            InputType::Date |
-                            InputType::Month |
-                            InputType::Week |
-                            InputType::Time |
-                            InputType::DatetimeLocal |
-                            InputType::Number => true,
-                            _ => false,
-                        }
+                        input.form_owner() == owner &&
+                            match input.input_type() {
+                                InputType::Text |
+                                InputType::Search |
+                                InputType::Url |
+                                InputType::Tel |
+                                InputType::Email |
+                                InputType::Password |
+                                InputType::Date |
+                                InputType::Month |
+                                InputType::Week |
+                                InputType::Time |
+                                InputType::DatetimeLocal |
+                                InputType::Number => true,
+                                _ => false,
+                            }
                     });
 
                 if inputs.skip(1).next().is_some() {

@@ -44,10 +44,10 @@ struct TableRowFilter {
 impl CollectionFilter for TableRowFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
         elem.is::<HTMLTableRowElement>() &&
-            (root.is_parent_of(elem.upcast()) || self
-                .sections
-                .iter()
-                .any(|ref section| section.is_parent_of(elem.upcast())))
+            (root.is_parent_of(elem.upcast()) ||
+                self.sections
+                    .iter()
+                    .any(|ref section| section.is_parent_of(elem.upcast())))
     }
 }
 
@@ -327,7 +327,8 @@ impl HTMLTableElementMethods for HTMLTableElement {
                 .filter_map(DomRoot::downcast::<Element>)
                 .find(|n| {
                     n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody")
-                }) {
+                })
+            {
                 last_tbody
                     .upcast::<Node>()
                     .AppendChild(new_row.upcast::<Node>())

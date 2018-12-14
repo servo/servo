@@ -4,7 +4,6 @@
 
 //! Utilities for querying the layout, as needed by the layout thread.
 
-use app_units::Au;
 use crate::construct::ConstructionResult;
 use crate::context::LayoutContext;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
@@ -15,6 +14,7 @@ use crate::inline::InlineFragmentNodeFlags;
 use crate::opaque_node::OpaqueNodeMethods;
 use crate::sequential;
 use crate::wrapper::LayoutNodeLayoutData;
+use app_units::Au;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -777,7 +777,7 @@ where
         // so this should be web-compatible.
         PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
         PropertyId::Custom(ref name) => {
-            return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
+            return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
     };
 
@@ -825,7 +825,7 @@ where
         // so this should be web-compatible.
         PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
         PropertyId::Custom(ref name) => {
-            return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
+            return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
     };
 

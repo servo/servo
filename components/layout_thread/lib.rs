@@ -20,9 +20,9 @@ extern crate profile_traits;
 
 mod dom_wrapper;
 
-use app_units::Au;
 use crate::dom_wrapper::drop_style_and_layout_data;
 use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
+use app_units::Au;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};

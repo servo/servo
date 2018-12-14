@@ -180,7 +180,7 @@ impl CalcNode {
             ) => {
                 return NoCalcLength::parse_dimension(context, value, unit)
                     .map(CalcNode::Length)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             },
             (
                 &Token::Dimension {
@@ -204,7 +204,7 @@ impl CalcNode {
             },
             (&Token::Percentage { unit_value, .. }, CalcUnit::LengthOrPercentage) |
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
-                return Ok(CalcNode::Percentage(unit_value))
+                return Ok(CalcNode::Percentage(unit_value));
             },
             (&Token::ParenthesisBlock, _) => {},
             (&Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {},

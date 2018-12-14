@@ -22,11 +22,7 @@ pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseE
     match *input.next()? {
         Token::Dimension {
             value, ref unit, ..
-        }
-            if unit.eq_ignore_ascii_case("fr") && value.is_sign_positive() =>
-        {
-            Ok(value)
-        },
+        } if unit.eq_ignore_ascii_case("fr") && value.is_sign_positive() => Ok(value),
         ref t => Err(location.new_unexpected_token_error(t.clone())),
     }
 }

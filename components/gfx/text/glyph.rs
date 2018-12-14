@@ -806,11 +806,12 @@ impl<'a> Iterator for GlyphIterator<'a> {
         }
 
         // No glyph range. Look at next byte.
-        self.byte_index = self.byte_index + if self.store.is_rtl {
-            ByteIndex(-1)
-        } else {
-            ByteIndex(1)
-        };
+        self.byte_index = self.byte_index +
+            if self.store.is_rtl {
+                ByteIndex(-1)
+            } else {
+                ByteIndex(1)
+            };
         let i = self.byte_index;
         if !self.byte_range.contains(i) {
             return None;

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use canvas_traits::webgl::WebGLVersion;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::{
     self, OESVertexArrayObjectMethods,
@@ -12,6 +11,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
+use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 
 #[dom_struct]

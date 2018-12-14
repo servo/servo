@@ -7,7 +7,6 @@
 //! [at]: https://drafts.csswg.org/css-device-adapt/#atviewport-rule
 //! [meta]: https://drafts.csswg.org/css-device-adapt/#viewport-meta
 
-use app_units::Au;
 use crate::context::QuirksMode;
 use crate::error_reporting::ContextualParseError;
 use crate::font_metrics::get_metrics_provider_for_product;
@@ -20,6 +19,7 @@ use crate::str::CssStringWriter;
 use crate::stylesheets::{Origin, StylesheetInDocument};
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified::{LengthOrPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
+use app_units::Au;
 use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use euclid::TypedSize2D;

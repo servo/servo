@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::CanvasImageData;
-use canvas_traits::canvas::CanvasMsg;
-use canvas_traits::canvas::FromLayoutMsg;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
@@ -25,6 +22,9 @@ use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use canvas_traits::canvas::CanvasImageData;
+use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::canvas::FromLayoutMsg;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use euclid::TypedScale;

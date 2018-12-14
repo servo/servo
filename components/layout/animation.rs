@@ -78,16 +78,17 @@ pub fn update_animation_state<E>(
     for (key, running_animations) in running_animations.iter_mut() {
         let mut animations_still_running = vec![];
         for mut running_animation in running_animations.drain(..) {
-            let still_running = !running_animation.is_expired() && match running_animation {
-                Animation::Transition(_, started_at, ref frame) => {
-                    now < started_at + frame.duration
-                },
-                Animation::Keyframes(_, _, _, ref mut state) => {
-                    // This animation is still running, or we need to keep
-                    // iterating.
-                    now < state.started_at + state.duration || state.tick()
-                },
-            };
+            let still_running = !running_animation.is_expired() &&
+                match running_animation {
+                    Animation::Transition(_, started_at, ref frame) => {
+                        now < started_at + frame.duration
+                    },
+                    Animation::Keyframes(_, _, _, ref mut state) => {
+                        // This animation is still running, or we need to keep
+                        // iterating.
+                        now < state.started_at + state.duration || state.tick()
+                    },
+                };
 
             debug!(
                 "update_animation_state({:?}): {:?}",

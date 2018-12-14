@@ -367,9 +367,10 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 
     let disallowed_header_prefixes = ["sec-", "proxy-"];
 
-    disallowed_headers.iter().any(|header| *header == name) || disallowed_header_prefixes
-        .iter()
-        .any(|prefix| name.starts_with(prefix))
+    disallowed_headers.iter().any(|header| *header == name) ||
+        disallowed_header_prefixes
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
 }
 
 // There is some unresolved confusion over the definition of a name and a value.
