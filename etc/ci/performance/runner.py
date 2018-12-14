@@ -75,7 +75,7 @@ def run_servo_test(testcase, url, date, timeout, is_async):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     command = [
         "../../../target/release/servo", url,
-        "--userscripts", ua_script_path,
+        "--userscripts=" + ua_script_path,
         "--headless",
         "-x", "-o", "output.png"
     ]
