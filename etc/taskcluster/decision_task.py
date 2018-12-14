@@ -18,8 +18,11 @@ def main(task_for):
 
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
-        macos_wpt = magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
+        magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
             android_arm32_dev_from_macos = lambda: None
+
+        # FIXME: not enabled yet
+        macos_wpt = lambda: None
 
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
@@ -80,6 +83,7 @@ def main(task_for):
 def mocked_only():
     windows_release()
     linux_wpt()
+    macos_wpt()
     android_x86_wpt()
     decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
@@ -171,6 +175,7 @@ def upload_docs():
         """)
         .create()
     )
+
 
 def macos_unit():
     return (
@@ -299,21 +304,11 @@ def windows_release():
 
 
 def linux_wpt():
-    release_build_task = linux_release_build(with_debug_assertions=True)
-    total_chunks = 2
-    for i in range(total_chunks):
-        this_chunk = i + 1
-        wpt_chunk(release_build_task, total_chunks, this_chunk)
-
-
-def linux_release_build(with_debug_assertions=False):
-    a = with_debug_assertions
-    return (
-        linux_build_task("Release build" + ", with debug assertions" if a else "")
-        .with_treeherder("Linux x64", "Release" + "+A" if a else "")
-        .with_env(BUILD_FLAGS="--with-debug-assertions" if a else "")
+    release_build_task = (
+        linux_build_task("Release build, with debug assertions")
+        .with_treeherder("Linux x64", "Release+A")
         .with_script("""
-            ./mach build --release $BUILD_FLAGS -p servo
+            ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
             tar -czf /target.tar.gz \
                 target/release/servo \
@@ -321,68 +316,101 @@ def linux_release_build(with_debug_assertions=False):
                 target/release/build/osmesa-src-*/out/lib/gallium
         """)
         .with_artifacts("/target.tar.gz")
-        .find_or_create(
-            "build.linux_x64_release%s.%s" % ("_assertions" if a else "", CONFIG.git_sha)
-        )
+        .find_or_create("build.linux_x64_release~assertions" + CONFIG.git_sha)
     )
+    def linux_run_task(name):
+        return linux_task(name).with_dockerfile(dockerfile_path("run"))
+    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
+               total_chunks=2, processes=24)
 
 
-def wpt_chunk(release_build_task, total_chunks, this_chunk):
-    task = (
-        linux_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
-        .with_treeherder("Linux x64", "WPT-%s" % this_chunk)
-        .with_dockerfile(dockerfile_path("run"))
-        .with_repo()
-        .with_curl_artifact_script(release_build_task, "target.tar.gz")
-        .with_script("tar -xzf target.tar.gz")
-        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-        .with_max_run_time_minutes(60)
-        .with_env(TOTAL_CHUNKS=total_chunks, THIS_CHUNK=this_chunk)
-    )
-    if this_chunk == 1:
-        task.name += " + extra"
-        task.extra["treeherder"]["symbol"] += "+"
-        task.with_script("""
-            ./mach test-wpt-failure
-            ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
-                --log-raw test-wpt-mp.log \
-                --log-errorsummary wpt-mp-errorsummary.log \
-                eventsource \
-                | cat
-            time ./mach test-wpt --release --product=servodriver --headless  \
-                tests/wpt/mozilla/tests/mozilla/DOMParser.html \
-                tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
-                tests/wpt/mozilla/tests/css/img_simple.html \
-                tests/wpt/mozilla/tests/mozilla/secure.https.html \
-                | cat
+def macos_wpt():
+    build_task = (
+        macos_build_task("Release build")
+        .with_treeherder("macOS x64", "Release")
+        .with_script("""
+            ./mach build --release
+            ./etc/ci/lockfile_changed.sh
+            tar -czf target.tar.gz \
+                target/release/servo \
+                target/release/build/osmesa-src-*/output \
+                target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
+                target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
         """)
-    # `test-wpt` is piped into `cat` so that stdout is not a TTY
-    # and wptrunner does not use "interactive mode" formatting:
-    # https://github.com/servo/servo/issues/22438
-    task.with_script("""
-        ./mach test-wpt \
-            --release \
-            --processes 24 \
-            --total-chunks "$TOTAL_CHUNKS" \
-            --this-chunk "$THIS_CHUNK" \
-            --log-raw test-wpt.log \
-            --log-errorsummary wpt-errorsummary.log \
-            --always-succeed \
-            | cat
-        ./mach filter-intermittents\
-            wpt-errorsummary.log \
-            --log-intermittents intermittents.log \
-            --log-filteredsummary filtered-wpt-errorsummary.log \
-            --tracker-api default \
-            --reporter-api default
-    """)
-    task.with_artifacts(*[
-        "/repo/" + word
-        for script in task.scripts
-        for word in script.split()
-        if word.endswith(".log")
-    ])
-    return task.find_or_create("linux_wpt_%s.%s" % (this_chunk, CONFIG.git_sha))
+        .with_artifacts("repo/target.tar.gz")
+        .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
+    )
+    def macos_run_task(name):
+        return macos_task(name).with_python2()
+    wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
+               total_chunks=6, processes=4)
+
+
+def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
+               repo_dir, chunks="all"):
+    if chunks == "all":
+        chunks = [n + 1 for n in range(total_chunks)]
+    for this_chunk in chunks:
+        task = (
+            make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
+            .with_treeherder(platform, "WPT-%s" % this_chunk)
+            .with_repo()
+            .with_curl_artifact_script(build_task, "target.tar.gz")
+            .with_script("tar -xzf target.tar.gz")
+            .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+            .with_max_run_time_minutes(60)
+            .with_env(
+                TOTAL_CHUNKS=str(total_chunks),
+                THIS_CHUNK=str(this_chunk),
+                PROCESSES=str(processes),
+            )
+        )
+        if this_chunk == 1:
+            task.name += " + extra"
+            task.extra["treeherder"]["symbol"] += "+"
+            task.with_script("""
+                ./mach test-wpt-failure
+                time ./mach test-wpt --release --binary-arg=--multiprocess \
+                    --processes $PROCESSES \
+                    --log-raw test-wpt-mp.log \
+                    --log-errorsummary wpt-mp-errorsummary.log \
+                    eventsource \
+                    | cat
+                time ./mach test-wpt --release --product=servodriver --headless  \
+                    tests/wpt/mozilla/tests/mozilla/DOMParser.html \
+                    tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
+                    tests/wpt/mozilla/tests/css/img_simple.html \
+                    tests/wpt/mozilla/tests/mozilla/secure.https.html \
+                    | cat
+            """)
+        # `test-wpt` is piped into `cat` so that stdout is not a TTY
+        # and wptrunner does not use "interactive mode" formatting:
+        # https://github.com/servo/servo/issues/22438
+        task.with_script("""
+            ./mach test-wpt \
+                --release \
+                --processes $PROCESSES \
+                --total-chunks "$TOTAL_CHUNKS" \
+                --this-chunk "$THIS_CHUNK" \
+                --log-raw test-wpt.log \
+                --log-errorsummary wpt-errorsummary.log \
+                --always-succeed \
+                | cat
+            ./mach filter-intermittents \
+                wpt-errorsummary.log \
+                --log-intermittents intermittents.log \
+                --log-filteredsummary filtered-wpt-errorsummary.log \
+                --tracker-api default \
+                --reporter-api default
+        """)
+        task.with_artifacts(*[
+            "%s/%s" % (repo_dir, word)
+            for script in task.scripts
+            for word in script.split()
+            if word.endswith(".log")
+        ])
+        platform_id = platform.replace(" ", "_").lower()
+        task.find_or_create("%s_wpt_%s.%s" % (platform_id, this_chunk, CONFIG.git_sha))
 
 
 def daily_tasks_setup():
