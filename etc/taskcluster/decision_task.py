@@ -365,7 +365,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 PROCESSES=str(processes),
             )
         )
-        if this_chunk == 1:
+        if this_chunk == chunks[-1]:
             task.name += " + extra"
             task.extra["treeherder"]["symbol"] += "+"
             task.with_script("""
