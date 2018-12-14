@@ -38,7 +38,8 @@ __wptrunner__ = {"product": "firefox",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
                  "run_info_extras": "run_info_extras",
-                 "update_properties": "update_properties"}
+                 "update_properties": "update_properties",
+                 "timeout_multiplier": "get_timeout_multiplier"}
 
 
 def get_timeout_multiplier(test_type, run_info_data, **kwargs):
@@ -98,6 +99,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                                                                    **kwargs)
     executor_kwargs["e10s"] = run_info_data["e10s"]
     capabilities = {}
+    if test_type == "testharness":
+        capabilities["pageLoadStrategy"] = "eager"
     if test_type == "reftest":
         executor_kwargs["reftest_internal"] = kwargs["reftest_internal"]
         executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]

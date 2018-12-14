@@ -3,7 +3,7 @@
 <meta charset=utf-8 />
 <title>Event Timing only times certain types of trusted event.
 </title>
-<button id='button' onclick='mainThreadBusy(60)'
+<button id='button' onmousedown='mainThreadBusy(60)'
   onfocus='mainThreadBusy(60)'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -23,7 +23,7 @@
   function untrustedClickAndBlockMain(id) {
     const target = document.getElementById(id);
     // Block mainthread in the callback, as dispatchEvent() is a sync call.
-    target.dispatchEvent(new MouseEvent('click'));
+    target.dispatchEvent(new MouseEvent('mousedown'));
   }
 
   function trustedFocusAndBlockMain(id) {
@@ -36,11 +36,12 @@
   async_test(function(t) {
     new PerformanceObserver(t.step_func_done(entryList => {
       const observerCallbackTime = performance.now();
-      const entries = entryList.getEntries();
+      const entries = entryList.getEntries().filter(
+          entry => entry.name === 'mousedown');
       assert_equals(entries.length, 1,
           "Should only observe one entry: " +
           JSON.stringify(entries) + ".");
-      assert_equals(entries[0].name, 'click',
+      assert_equals(entries[0].name, 'mousedown',
           "The observed entry should be a click");
       assert_less_than(entries[0].startTime, observerCallbackTime,
           "The startTime should be before observerCallbackTime");

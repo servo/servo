@@ -11,9 +11,9 @@ function clickOnElement(id, callback) {
     mainThreadBusy(60);
     if (callback)
       callback();
-    element.removeEventListener("click", clickHandler);
+    element.removeEventListener("mousedown", clickHandler);
   };
-  element.addEventListener("click", clickHandler);
+  element.addEventListener("mousedown", clickHandler);
   test_driver.click(element);
 }
 
@@ -27,7 +27,7 @@ function mainThreadBusy(duration) {
 // the timings of the 'firstInput' entry should be equal to those of this entry.
 function verifyClickEvent(entry, is_first=false) {
   assert_true(entry.cancelable);
-  assert_equals(entry.name, 'click');
+  assert_equals(entry.name, 'mousedown');
   assert_equals(entry.entryType, 'event');
   assert_greater_than(entry.duration, 50,
       "The entry's duration should be greater than 50ms.");

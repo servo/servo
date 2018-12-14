@@ -138,14 +138,11 @@ def run_tests(config, test_paths, product, **kwargs):
     with wptlogging.CaptureIO(logger, not kwargs["no_capture_stdio"]):
         env.do_delayed_imports(logger, test_paths)
 
-        (check_args,
-         target_browser_cls, get_browser_kwargs,
-         executor_classes, get_executor_kwargs,
-         env_options, get_env_extras, run_info_extras) = products.load_product(config, product)
+        product = products.load_product(config, product, load_cls=True)
 
-        env_extras = get_env_extras(**kwargs)
+        env_extras = product.get_env_extras(**kwargs)
 
-        check_args(**kwargs)
+        product.check_args(**kwargs)
 
         if kwargs["install_fonts"]:
             env_extras.append(FontInstaller(
@@ -154,8 +151,8 @@ def run_tests(config, test_paths, product, **kwargs):
             ))
 
         run_info, test_loader = get_loader(test_paths,
-                                           product,
-                                           run_info_extras=run_info_extras(**kwargs),
+                                           product.name,
+                                           run_info_extras=product.run_info_extras(**kwargs),
                                            **kwargs)
 
         test_source_kwargs = {"processes": kwargs["processes"]}
@@ -180,10 +177,13 @@ def run_tests(config, test_paths, product, **kwargs):
                                        "host_cert_path": kwargs["host_cert_path"],
                                        "ca_cert_path": kwargs["ca_cert_path"]}}
 
+        testharness_timeout_multipler = product.get_timeout_multiplier("testharness", run_info, **kwargs)
+
         with env.TestEnvironment(test_paths,
+                                 testharness_timeout_multipler,
                                  kwargs["pause_after_test"],
                                  kwargs["debug_info"],
-                                 env_options,
+                                 product.env_options,
                                  ssl_config,
                                  env_extras) as test_environment:
             try:
@@ -205,7 +205,9 @@ def run_tests(config, test_paths, product, **kwargs):
 
                 test_count = 0
                 unexpected_count = 0
-                logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info,
+                logger.suite_start(test_loader.test_ids,
+                                   name='web-platform-test',
+                                   run_info=run_info,
                                    extra={"run_by_dir": kwargs["run_by_dir"]})
                 for test_type in kwargs["test_types"]:
                     logger.info("Running %s tests" % test_type)
@@ -218,23 +220,23 @@ def run_tests(config, test_paths, product, **kwargs):
                     if test_type == "wdspec":
                         browser_cls = NullBrowser
                     else:
-                        browser_cls = target_browser_cls
+                        browser_cls = product.browser_cls
 
-                    browser_kwargs = get_browser_kwargs(test_type,
-                                                        run_info,
-                                                        config=test_environment.config,
-                                                        **kwargs)
+                    browser_kwargs = product.get_browser_kwargs(test_type,
+                                                                run_info,
+                                                                config=test_environment.config,
+                                                                **kwargs)
 
-                    executor_cls = executor_classes.get(test_type)
-                    executor_kwargs = get_executor_kwargs(test_type,
-                                                          test_environment.config,
-                                                          test_environment.cache_manager,
-                                                          run_info,
-                                                          **kwargs)
+                    executor_cls = product.executor_classes.get(test_type)
+                    executor_kwargs = product.get_executor_kwargs(test_type,
+                                                                  test_environment.config,
+                                                                  test_environment.cache_manager,
+                                                                  run_info,
+                                                                  **kwargs)
 
                     if executor_cls is None:
                         logger.error("Unsupported test type %s for product %s" %
-                                     (test_type, product))
+                                     (test_type, product.name))
                         continue
 
                     for test in test_loader.disabled_tests[test_type]:
@@ -245,8 +247,8 @@ def run_tests(config, test_paths, product, **kwargs):
                     if test_type == "testharness":
                         run_tests = {"testharness": []}
                         for test in test_loader.tests["testharness"]:
-                            if (test.testdriver and not executor_cls.supports_testdriver) or (
-                                    test.jsshell and not executor_cls.supports_jsshell):
+                            if ((test.testdriver and not executor_cls.supports_testdriver) or
+                                (test.jsshell and not executor_cls.supports_jsshell)):
                                 logger.test_start(test.id)
                                 logger.test_end(test.id, status="SKIP")
                                 skipped_tests += 1

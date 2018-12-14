@@ -16,7 +16,7 @@ def inherit(super_module, child_globals, product_name):
     child_wptrunner["product"] = product_name
 
     for k in ("check_args", "browser", "browser_kwargs", "executor_kwargs",
-              "env_extras", "env_options"):
+              "env_extras", "env_options", "timeout_multiplier"):
         attr = super_wptrunner[k]
         child_globals[attr] = getattr(super_module, attr)
 
@@ -56,6 +56,13 @@ def get_free_port(start_port, exclude=None):
             return port
         finally:
             s.close()
+
+
+def get_timeout_multiplier(test_type, run_info_data, **kwargs):
+    if kwargs["timeout_multiplier"] is not None:
+        return kwargs["timeout_multiplier"]
+    return 1
+
 
 def browser_command(binary, args, debug_info):
     if debug_info:

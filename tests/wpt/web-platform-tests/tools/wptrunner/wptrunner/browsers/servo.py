@@ -1,6 +1,7 @@
 import os
 
 from .base import NullBrowser, ExecutorBrowser, require_arg
+from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorservo import ServoTestharnessExecutor, ServoRefTestExecutor, ServoWdspecExecutor  # noqa: F401
 
@@ -19,6 +20,7 @@ __wptrunner__ = {
     "executor_kwargs": "executor_kwargs",
     "env_extras": "env_extras",
     "env_options": "env_options",
+    "timeout_multiplier": "get_timeout_multiplier",
     "update_properties": "update_properties",
 }
 

@@ -2,6 +2,7 @@ import json
 import os
 import socket
 import threading
+import time
 import traceback
 import urlparse
 import uuid
@@ -94,29 +95,43 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
         self.webdriver.window_handle = self.runner_handle
         return self.runner_handle
 
-    def get_test_window(self, window_id, parent):
+    def get_test_window(self, window_id, parent, timeout=5):
+        """Find the test window amongst all the open windows.
+        This is assumed to be either the named window or the one after the parent in the list of
+        window handles
+
+        :param window_id: The DOM name of the Window
+        :param parent: The handle of the runner window
+        :param timeout: The time in seconds to wait for the window to appear. This is because in
+                        some implementations there's a race between calling window.open and the
+                        window being added to the list of WebDriver accessible windows."""
         test_window = None
-        try:
-            # Try using the JSON serialization of the WindowProxy object,
-            # it's in Level 1 but nothing supports it yet
-            win_s = self.webdriver.execute_script("return window['%s'];" % window_id)
-            win_obj = json.loads(win_s)
-            test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
-        except Exception:
-            pass
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                # Try using the JSON serialization of the WindowProxy object,
+                # it's in Level 1 but nothing supports it yet
+                win_s = self.webdriver.execute_script("return window['%s'];" % window_id)
+                win_obj = json.loads(win_s)
+                test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
+            except Exception:
+                pass
 
-        if test_window is None:
-            after = self.webdriver.handles
-            if len(after) == 2:
-                test_window = next(iter(set(after) - set([parent])))
-            elif after[0] == parent and len(after) > 2:
-                # Hope the first one here is the test window
-                test_window = after[1]
-            else:
-                raise Exception("unable to find test window")
+            if test_window is None:
+                after = self.webdriver.handles
+                if len(after) == 2:
+                    test_window = next(iter(set(after) - set([parent])))
+                elif after[0] == parent and len(after) > 2:
+                    # Hope the first one here is the test window
+                    test_window = after[1]
 
-        assert test_window != parent
-        return test_window
+            if test_window is not None:
+                assert test_window != parent
+                return test_window
+
+            time.sleep(0.1)
+
+        raise Exception("unable to find test window")
 
 
 class WebDriverSelectorProtocolPart(SelectorProtocolPart):
@@ -282,18 +297,17 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
 
     def __init__(self, browser, server_config, timeout_multiplier=1,
                  close_after_done=True, capabilities=None, debug_info=None,
-                 **kwargs):
+                 supports_eager_pageload=True, **kwargs):
         """WebDriver-based executor for testharness.js tests"""
         TestharnessExecutor.__init__(self, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
                                      debug_info=debug_info)
         self.protocol = WebDriverProtocol(self, browser, capabilities)
-        with open(os.path.join(here, "testharness_webdriver.js")) as f:
-            self.script = f.read()
         with open(os.path.join(here, "testharness_webdriver_resume.js")) as f:
             self.script_resume = f.read()
         self.close_after_done = close_after_done
         self.window_id = str(uuid.uuid4())
+        self.supports_eager_pageload = supports_eager_pageload
 
     def is_alive(self):
         return self.protocol.is_alive()
@@ -316,26 +330,51 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
         return (test.result_cls(*data), [])
 
     def do_testharness(self, protocol, url, timeout):
-        format_map = {"abs_url": url,
-                      "url": strip_server(url),
-                      "window_id": self.window_id,
-                      "timeout_multiplier": self.timeout_multiplier,
-                      "timeout": timeout * 1000}
+        format_map = {"url": strip_server(url)}
 
         parent_window = protocol.testharness.close_old_windows()
         # Now start the test harness
-        protocol.base.execute_script(self.script % format_map, async=True)
-        test_window = protocol.testharness.get_test_window(self.window_id, parent_window)
-
+        protocol.base.execute_script("window.open('about:blank', '%s', 'noopener')" % self.window_id)
+        test_window = protocol.testharness.get_test_window(self.window_id,
+                                                           parent_window,
+                                                           timeout=5*self.timeout_multiplier)
+        self.protocol.base.set_window(test_window)
         handler = CallbackHandler(self.logger, protocol, test_window)
+        protocol.webdriver.url = url
+
+        if not self.supports_eager_pageload:
+            self.wait_for_load(protocol)
+
         while True:
-            self.protocol.base.set_window(test_window)
             result = protocol.base.execute_script(
                 self.script_resume % format_map, async=True)
             done, rv = handler(result)
             if done:
                 break
         return rv
+
+    def wait_for_load(self, protocol):
+        # pageLoadStrategy=eager doesn't work in Chrome so try to emulate in user script
+        loaded = False
+        seen_error = False
+        while not loaded:
+            try:
+                loaded = protocol.base.execute_script("""
+var callback = arguments[arguments.length - 1];
+if (location.href === "about:blank") {
+  callback(false);
+} else if (document.readyState !== "loading") {
+  callback(true);
+} else {
+  document.addEventListener("readystatechange", () => {if (document.readyState !== "loading") {callback(true)}});
+}""", async=True)
+            except client.JavascriptErrorException:
+                # We can get an error here if the script runs in the initial about:blank
+                # document before it has navigated, with the driver returning an error
+                # indicating that the document was unloaded
+                if seen_error:
+                    raise
+                seen_error = True
 
 
 class WebDriverRefTestExecutor(RefTestExecutor):
