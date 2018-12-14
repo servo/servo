@@ -73,6 +73,7 @@ def main(task_for):
     elif task_for == "daily":
         daily_tasks_setup()
         with_rust_nightly()
+        linux_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -295,6 +296,31 @@ def windows_release():
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
         .find_or_create("build.windows_x64_release." + CONFIG.git_sha)
+    )
+
+
+def linux_nightly():
+    return (
+        linux_build_task("Nightly build and upload")
+        .with_treeherder("Linux x64", "Nightly")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload")
+        .with_env(PY=r"""if 1:
+            import urllib, json
+            url = "http://taskcluster/secrets/v1/secret/project/servo/s3-upload"
+            secret = json.load(urllib.urlopen(url))["secret"]
+            open("/root/.aws/credentials", "w").write(secret["credentials_file"])
+        """)
+        # Not reusing the build made for WPT because it has debug assertions
+        .with_script("""
+            ./mach build --release
+            ./mach package --release
+            mkdir /root/.aws
+            python -c "$PY"
+            ./mach upload-nightly linux
+        """)
+        .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
+        .find_or_create("build.linux_x64_nightly" + CONFIG.git_sha)
     )
 
 
