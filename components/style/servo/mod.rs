@@ -6,6 +6,7 @@
 //!
 //! These get compiled out on a Gecko build.
 
+pub mod global_thread_pool;
 pub mod media_queries;
 pub mod restyle_damage;
 pub mod selector_parser;

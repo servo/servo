@@ -67,7 +67,6 @@ extern crate malloc_size_of_derive;
 extern crate matches;
 #[cfg(feature = "gecko")]
 pub extern crate nsstring;
-#[cfg(feature = "gecko")]
 extern crate num_cpus;
 #[macro_use]
 extern crate num_derive;

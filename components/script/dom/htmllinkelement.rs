@@ -21,7 +21,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
+use crate::stylesheet_loader::{StylesheetSource, StylesheetLoader, StylesheetOwner};
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -322,7 +322,7 @@ impl HTMLLinkElement {
         // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(
-            StylesheetContextSource::LinkElement { media: Some(media) },
+            StylesheetSource::LinkElement(Some(media)),
             link_url,
             cors_setting,
             integrity_metadata.to_owned(),
