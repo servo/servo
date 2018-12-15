@@ -33,7 +33,6 @@ def write_hosts_file(config):
 
 
 class ServoTestharnessExecutor(ProcessTestExecutor):
-    supports_testdriver = True
     convert_result = testharness_result_converter
 
     def __init__(self, browser, server_config, timeout_multiplier=1, debug_info=None,
