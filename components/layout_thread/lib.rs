@@ -897,6 +897,7 @@ impl LayoutThread {
                 },
                 Msg::ExitNow => {
                     debug!("layout thread is exiting...");
+                    self.background_hang_monitor.unregister();
                     self.exit_now();
                     break;
                 },

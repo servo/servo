@@ -469,4 +469,6 @@ pub trait BackgroundHangMonitor {
     fn notify_activity(&self, annotation: HangAnnotation);
     /// Notify the start of waiting for a new event to come in.
     fn notify_wait(&self);
+    /// Unregister the component from monitor.
+    fn unregister(&self);
 }
