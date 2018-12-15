@@ -926,6 +926,7 @@ impl LayoutThread {
         self.root_flow.borrow_mut().take();
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
+        self.background_hang_monitor.unregister();
     }
 
     fn handle_add_stylesheet(&self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
