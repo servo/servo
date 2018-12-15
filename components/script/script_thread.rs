@@ -1314,6 +1314,10 @@ impl ScriptThread {
         // into this loop too, but for now it's only images.
         debug!("Issuing batched reflows.");
         for (_, document) in self.documents.borrow().iter() {
+            // Step 13
+            if !document.is_fully_active() {
+                continue;
+            }
             let window = document.window();
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
