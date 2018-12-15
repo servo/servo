@@ -559,6 +559,7 @@ ${helpers.predefined_type(
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     gecko_pref="layout.css.contain.enabled",
     spec="https://drafts.csswg.org/css-contain/#contain-property",
+    enabled_in="chrome",
 )}
 
 // Non-standard
