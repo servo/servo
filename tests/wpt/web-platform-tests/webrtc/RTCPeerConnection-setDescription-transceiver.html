@@ -238,6 +238,29 @@
     });
   }, 'setRemoteDescription(rollback) should remove newly created transceiver from transceiver list');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver('audio');
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+
+    assert_false(pc1.getTransceivers()[0].stopped, 'Transceiver is not stopped');
+
+    await pc2.setRemoteDescription(offer);
+    pc2.getTransceivers()[0].stop();
+    const answer = await pc2.createAnswer();
+
+    await pc1.setRemoteDescription(answer);
+
+    assert_true(pc1.getTransceivers()[0].stopped, 'Transceiver is stopped');
+    assert_equals(pc1.getReceivers().length, 0, 'getReceivers does not expose a receiver of a stopped transceiver');
+    assert_equals(pc1.getSenders().length, 0, 'getSenders does not expose a sender of a stopped transceiver');
+  }, 'setRemoteDescription should stop the transceiver if its corresponding m section is rejected');
+
   /*
     TODO
       - Steps for transceiver direction is added to tip of tree draft, but not yet
