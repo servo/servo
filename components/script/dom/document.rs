@@ -1735,7 +1735,7 @@ impl Document {
                 self.process_deferred_scripts();
             },
             LoadType::PageSource(_) => {
-                if self.has_browsing_context {
+                if self.has_browsing_context && self.is_fully_active() {
                     // Disarm the reflow timer and trigger the initial reflow.
                     self.reflow_timeout.set(None);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1900,6 +1900,7 @@ impl Document {
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
         let not_ready_for_load = self.loader.borrow().is_blocked() ||
+            !self.is_fully_active() ||
             self.window.window_proxy().is_delaying_load_events_mode();
         if not_ready_for_load {
             // Step 6.
