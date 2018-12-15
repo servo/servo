@@ -472,7 +472,7 @@ macro_rules! malloc_size_of_hash_set {
                 n
             }
         }
-    }
+    };
 }
 
 malloc_size_of_hash_set!(std::collections::HashSet<T, S>);
@@ -513,7 +513,7 @@ macro_rules! malloc_size_of_hash_map {
                 n
             }
         }
-    }
+    };
 }
 
 malloc_size_of_hash_map!(std::collections::HashMap<K, V, S>);

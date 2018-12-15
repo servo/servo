@@ -155,8 +155,7 @@ impl ParsedCaseSensitivity {
             ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
                 CaseSensitivity::CaseSensitive
             },
-            ParsedCaseSensitivity::CaseSensitive |
-            ParsedCaseSensitivity::ExplicitCaseSensitive => {
+            ParsedCaseSensitivity::CaseSensitive | ParsedCaseSensitivity::ExplicitCaseSensitive => {
                 CaseSensitivity::CaseSensitive
             },
             ParsedCaseSensitivity::AsciiCaseInsensitive => CaseSensitivity::AsciiCaseInsensitive,

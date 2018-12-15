@@ -12,7 +12,7 @@ use std::fmt::Debug;
 use std::ptr::NonNull;
 
 /// Opaque representation of an Element, for identity comparisons.
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct OpaqueElement(NonNull<()>);
 
 unsafe impl Send for OpaqueElement {}

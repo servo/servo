@@ -521,12 +521,8 @@ where
         Combinator::PseudoElement => SelectorMatchingResult::NotMatchedGlobally,
     };
 
-    let mut next_element = next_element_for_combinator(
-        element,
-        combinator,
-        &selector_iter,
-        &context,
-    );
+    let mut next_element =
+        next_element_for_combinator(element, combinator, &selector_iter, &context);
 
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
@@ -590,12 +586,7 @@ where
             visited_handling = VisitedHandlingMode::AllLinksUnvisited;
         }
 
-        next_element = next_element_for_combinator(
-            &element,
-            combinator,
-            &selector_iter,
-            &context,
-        );
+        next_element = next_element_for_combinator(&element, combinator, &selector_iter, &context);
     }
 }
 
