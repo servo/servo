@@ -1741,7 +1741,11 @@ impl Document {
                 self.process_deferred_scripts();
             },
             LoadType::PageSource(_) => {
-                if self.has_browsing_context {
+                if self.has_browsing_context && self.is_fully_active() {
+                    // Note: if the document is not fully active, the layout thread will have exited already.
+                    // The underlying problem might actually be that layout exits while it should be kept alive.
+                    // See https://github.com/servo/servo/issues/22507
+
                     // Disarm the reflow timer and trigger the initial reflow.
                     self.reflow_timeout.set(None);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
