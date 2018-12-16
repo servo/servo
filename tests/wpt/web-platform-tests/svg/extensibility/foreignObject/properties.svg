@@ -25,9 +25,9 @@
     var first = document.getElementById('first');
     assert_equals(getComputedStyle(first).x, "0px");
     assert_equals(getComputedStyle(first).y, "0px");
-    assert_equals(getComputedStyle(first).width, "auto");
-    assert_equals(getComputedStyle(first).height, "auto");
-  }, 'width and height default to auto');
+    assert_equals(getComputedStyle(first).width, "0px");
+    assert_equals(getComputedStyle(first).height, "0px");
+  }, 'width and height default to auto (which computes to "0px")');
 
   test(function() {
     var second = document.getElementById('second');

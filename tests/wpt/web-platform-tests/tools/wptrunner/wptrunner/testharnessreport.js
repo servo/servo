@@ -1,5 +1,20 @@
+class MessageQueue {
+  constructor() {
+    this._queue = [];
+  }
+
+  push(item) {
+    this._queue.push(item);
+    __wptrunner_process_next_event();
+  }
+
+  shift() {
+    return this._queue.shift();
+  }
+}
+
 window.__wptrunner_testdriver_callback = null;
-window.__wptrunner_message_queue = [];
+window.__wptrunner_message_queue = new MessageQueue();
 window.__wptrunner_url = null;
 
 window.__wptrunner_process_next_event = function() {

@@ -404,7 +404,7 @@ class ManifestLoader(object):
             download_from_github(manifest_path, tests_path)
         return manifest.load_and_update(tests_path, manifest_path, url_base,
                                         cache_root=cache_root, update=self.force_manifest_update,
-                                        meta_filters=self.meta_filters)
+                                        meta_filters=self.meta_filters, types=self.types)
 
 
 def iterfilter(filters, iter):

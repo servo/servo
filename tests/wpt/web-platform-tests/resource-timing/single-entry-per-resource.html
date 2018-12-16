@@ -13,6 +13,11 @@
     function (entryList, obs) {
       var entries = entryList.getEntriesByType("resource");
       for (var i = 0; i < entries.length; ++i) {
+        // Ignore any entries for the test harness files if present.
+        if (/testharness(report)?\.js/.test(entries[i].name)) {
+          continue;
+        }
+
         ++observed;
         if (entries[i].name.indexOf(img_url) != -1)
             ++img_entries;
