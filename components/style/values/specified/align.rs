@@ -92,8 +92,7 @@ impl ToCss for AlignFlags {
                 dest.write_char(' ')?;
             },
             AlignFlags::SAFE => dest.write_str("safe ")?,
-            // Don't serialize "unsafe", since it's the default.
-            AlignFlags::UNSAFE => {},
+            AlignFlags::UNSAFE => dest.write_str("unsafe ")?,
             _ => {
                 debug_assert_eq!(extra_flags, AlignFlags::empty());
             },

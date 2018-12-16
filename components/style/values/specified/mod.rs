@@ -36,7 +36,7 @@ pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
-pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
+pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float, Overflow};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
