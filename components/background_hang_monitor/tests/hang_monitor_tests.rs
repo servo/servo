@@ -95,18 +95,6 @@ fn test_hang_monitoring() {
     // No new alert yet
     assert!(background_hang_monitor_receiver.try_recv().is_err());
 
-    // New task handling starts.
-    background_hang_monitor.notify_activity(hang_annotation);
-
-    // Sleep for a while.
-    thread::sleep(Duration::from_millis(10));
-
-    // Unregister the component.
-    background_hang_monitor.unregister();
-
-    // No new alert yet
-    assert!(background_hang_monitor_receiver.try_recv().is_err());
-
     // Shut-down the hang monitor
     drop(background_hang_monitor_register);
     drop(background_hang_monitor);
@@ -115,5 +103,32 @@ fn test_hang_monitoring() {
     thread::sleep(Duration::from_millis(1000));
 
     // Still no new alerts because the hang monitor has shut-down already.
+    assert!(background_hang_monitor_receiver.try_recv().is_err());
+}
+
+#[test]
+fn test_hang_monitoring_unregister() {
+    let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
+        ipc::channel().expect("ipc channel failure");
+
+    let background_hang_monitor_register =
+        HangMonitorRegister::init(background_hang_monitor_ipc_sender.clone());
+    let background_hang_monitor = background_hang_monitor_register.register_component(
+        MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+    );
+
+    // Start an activity.
+    let hang_annotation = HangAnnotation::Script(ScriptHangAnnotation::AttachLayout);
+    background_hang_monitor.notify_activity(hang_annotation);
+
+    // Unregister the component.
+    background_hang_monitor.unregister();
+
+    // Sleep until the "transient" timeout has been reached.
+    thread::sleep(Duration::from_millis(10));
+
+    // No new alert yet
     assert!(background_hang_monitor_receiver.try_recv().is_err());
 }
