@@ -13,12 +13,10 @@ use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, Coor
 use crate::media_queries::Device;
 use crate::values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use crate::values::computed::FlexBasis as ComputedFlexBasis;
-use crate::values::computed::NonNegativeNumber;
 use crate::values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage};
 use crate::values::computed::{LengthOrPercentageOrAuto, Percentage};
 use crate::values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use crate::values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength};
-use crate::values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage};
 use crate::values::generics::basic_shape::ShapeRadius;
 use crate::values::generics::box_::Perspective;
 use crate::values::generics::flex::FlexBasis;
@@ -34,6 +32,9 @@ use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
+///
+/// TODO(emilio): Almost everything that is in this file should be somehow
+/// switched to cbindgen.
 pub trait GeckoStyleCoordConvertible: Sized {
     /// Convert this to a `nsStyleCoord`.
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
@@ -63,6 +64,19 @@ impl<A: GeckoStyleCoordConvertible, B: GeckoStyleCoordConvertible> GeckoStyleCoo
         A::from_gecko_style_coord(coord)
             .map(Either::First)
             .or_else(|| B::from_gecko_style_coord(coord).map(Either::Second))
+    }
+}
+
+impl<Inner> GeckoStyleCoordConvertible for NonNegative<Inner>
+where
+    Inner: GeckoStyleCoordConvertible,
+{
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        self.0.to_gecko_style_coord(coord)
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        Some(NonNegative(Inner::from_gecko_style_coord(coord)?))
     }
 }
 
@@ -152,16 +166,6 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
     }
 }
 
-impl GeckoStyleCoordConvertible for NonNegativeLengthOrPercentage {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        self.0.to_gecko_style_coord(coord);
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        LengthOrPercentage::from_gecko_style_coord(coord).map(NonNegative::<LengthOrPercentage>)
-    }
-}
-
 impl GeckoStyleCoordConvertible for Length {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         coord.set_value(CoordDataValue::Coord(self.to_i32_au()));
@@ -172,26 +176,6 @@ impl GeckoStyleCoordConvertible for Length {
             CoordDataValue::Coord(coord) => Some(Au(coord).into()),
             _ => None,
         }
-    }
-}
-
-impl GeckoStyleCoordConvertible for NonNegativeLength {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        self.0.to_gecko_style_coord(coord);
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        Length::from_gecko_style_coord(coord).map(NonNegative::<Length>)
-    }
-}
-
-impl GeckoStyleCoordConvertible for NonNegativeNumber {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        self.0.to_gecko_style_coord(coord);
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        Number::from_gecko_style_coord(coord).map(NonNegative::<Number>)
     }
 }
 
