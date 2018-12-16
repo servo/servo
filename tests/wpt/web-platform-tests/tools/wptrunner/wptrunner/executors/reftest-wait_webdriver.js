@@ -38,7 +38,7 @@ var observer = new MutationObserver(root_wait);
 observer.observe(root, {attributes: true});
 
 if (document.readyState != "complete") {
-    onload = root_wait;
+    addEventListener('load', root_wait);
 } else {
     root_wait();
 }

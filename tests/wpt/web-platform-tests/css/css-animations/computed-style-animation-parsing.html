@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations: parsing computedStyle.animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/#animation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="test1"></div>
+<div id="test2"></div>
+<script>
+function testComputedStyle(computedStyle1, computedStyle2, name) {
+  assert_equals(computedStyle1.animationName, name, "computedStyle1.animationName");
+  assert_equals(computedStyle2.animationName, name, "computedStyle2.animationName");
+  assert_equals(computedStyle1.animation, computedStyle2.animation,
+                "computedStyle1 and computedStyle2 should have the same animation");
+}
+
+function testAnimation(input, name) {
+  var style1 = test1.style;
+  var style2 = test2.style;
+  var computedStyle1 = getComputedStyle(test1);
+  var computedStyle2 = getComputedStyle(test2);
+
+  style1.animation = input;
+  style2.animation = style1.animation;
+  testComputedStyle(computedStyle1, computedStyle2, name);
+  style2.animation = computedStyle1.animation;
+  testComputedStyle(computedStyle1, computedStyle2, name);
+}
+
+test(() => {
+  // We are duplicating the logic of testAnimation because the animationName of
+  // the getComputedStyle is "none" when there is no animation.
+  var style1 = test1.style;
+  var style2 = test2.style;
+  var computedStyle1 = getComputedStyle(test1);
+  var computedStyle2 = getComputedStyle(test2);
+
+  style1.animation = "";
+  style2.animation = style1.animation;
+  testComputedStyle(computedStyle1, computedStyle2, "none");
+  style2.animation = computedStyle1.animation;
+  assert_equals(computedStyle2.animationName, "none");
+}, "Test animation name being empty.");
+
+test(() => {
+  testAnimation("myShorthandAnim", "myShorthandAnim");
+}, "Test a non-conflicting animation name.");
+
+test(() => {
+  testAnimation("none", "none");
+  testAnimation("forwards", "none");
+  testAnimation("none forwards", "forwards");
+}, "Test an animation name that is the same as a possible animation fill-mode.");
+
+test(() => {
+  testAnimation("normal", "none");
+  testAnimation("reverse", "none");
+  testAnimation("normal normal", "normal");
+  testAnimation("normal reverse", "reverse");
+}, "Test an animation name that is the same as a possible animation direction.");
+
+test(() => {
+  testAnimation("running", "none");
+  testAnimation("paused", "none");
+  testAnimation("running running", "running");
+  testAnimation("running paused", "paused");
+}, "Test an animation name that is the same as a possible running state.");
+</script>
