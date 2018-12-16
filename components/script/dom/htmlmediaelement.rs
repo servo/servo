@@ -314,7 +314,8 @@ impl HTMLMediaElement {
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
-            self.next_timeupdate_event.set(time::get_time() + Duration::milliseconds(350));
+            self.next_timeupdate_event
+                .set(time::get_time() + Duration::milliseconds(350));
         }
     }
 
@@ -1283,8 +1284,14 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
+            // XXX GStreamer is currently not very reliable playing OGG and most of
+            //     the media related WPTs uses OGG if we report that we are able to
+            //     play this type. So we report that we are unable to play it to force
+            //     the usage of other types.
+            //     https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/issues/520
             Ok(ref mime)
-                if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) =>
+                if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) ||
+                    (mime.subtype() == mime::OGG) =>
             {
                 CanPlayTypeResult::_empty
             },
