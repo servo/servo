@@ -2,23 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{OffscreenCanvasMethods, Wrap as OffscreenCanvasWrap, OffscreenRenderingContext};
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{DomRoot, Dom};
-use dom::bindings::str::DOMString;
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::htmlcanvaselement::HTMLCanvasElement;
-use dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
+    OffscreenCanvasMethods, OffscreenRenderingContext, Wrap as OffscreenCanvasWrap,
+};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
+use crate::dom::bindings::reflector::DomObject;
 use dom_struct::dom_struct;
 use euclid::Size2D;
-use js::rust::HandleValue;
 use js::jsapi::JSContext;
+use js::rust::HandleValue;
 use ref_filter_map;
-use std::cell::Ref;
 use std::cell::Cell;
+use std::cell::Ref;
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -28,9 +31,8 @@ pub enum OffscreenCanvasContext {
     //WebGL2(Dom<WebGL2RenderingContext>),
 }
 
-
 #[dom_struct]
-pub struct OffscreenCanvas{
+pub struct OffscreenCanvas {
     eventtarget: EventTarget,
     height: Cell<u64>,
     width: Cell<u64>,
@@ -38,8 +40,12 @@ pub struct OffscreenCanvas{
     placeholder: Option<Dom<HTMLCanvasElement>>,
 }
 
-impl OffscreenCanvas{
-    pub fn new_inherited(height: u64, width: u64, placeholder: Option<&HTMLCanvasElement>) -> OffscreenCanvas {
+impl OffscreenCanvas {
+    pub fn new_inherited(
+        height: u64,
+        width: u64,
+        placeholder: Option<&HTMLCanvasElement>,
+    ) -> OffscreenCanvas {
         OffscreenCanvas {
             eventtarget: EventTarget::new_inherited(),
             height: Cell::new(height),
@@ -49,12 +55,25 @@ impl OffscreenCanvas{
         }
     }
 
-    pub fn new(global: &GlobalScope, height: u64, width: u64, placeholder: Option<&HTMLCanvasElement>) -> DomRoot<OffscreenCanvas> {
-        reflect_dom_object(Box::new(OffscreenCanvas::new_inherited(height,width,placeholder)), global, OffscreenCanvasWrap)
+    pub fn new(
+        global: &GlobalScope,
+        height: u64,
+        width: u64,
+        placeholder: Option<&HTMLCanvasElement>,
+    ) -> DomRoot<OffscreenCanvas> {
+        reflect_dom_object(
+            Box::new(OffscreenCanvas::new_inherited(height, width, placeholder)),
+            global,
+            OffscreenCanvasWrap,
+        )
     }
 
-    pub fn Constructor (global: &GlobalScope, height: u64, width: u64) -> Fallible<DomRoot<OffscreenCanvas>> {
-        let offscreencanvas = OffscreenCanvas::new(global,height,width,None);
+    pub fn Constructor(
+        global: &GlobalScope,
+        height: u64,
+        width: u64,
+    ) -> Fallible<DomRoot<OffscreenCanvas>> {
+        let offscreencanvas = OffscreenCanvas::new(global, height, width, None);
         Ok(offscreencanvas)
     }
 
@@ -67,7 +86,10 @@ impl OffscreenCanvas{
     }
 
     #[allow(unsafe_code)]
-    fn get_or_init_2d_context(&self,cx: *mut JSContext) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
+    fn get_or_init_2d_context(
+        &self,
+        cx: *mut JSContext,
+    ) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 OffscreenCanvasContext::OffscreenContext2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
@@ -75,16 +97,15 @@ impl OffscreenCanvas{
             };
         }
         let size = self.get_size();
-        let context = OffscreenCanvasRenderingContext2D::new(self.global(), self, size);
-        *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(Dom::from_ref(&*context)));
+        let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, size);
+        *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(
+            Dom::from_ref(&*context),
+        ));
         Some(context)
     }
-
 }
 
-
-impl OffscreenCanvasMethods for OffscreenCanvas{
-
+impl OffscreenCanvasMethods for OffscreenCanvas {
     #[allow(unsafe_code)]
     unsafe fn GetContext(
         &self,

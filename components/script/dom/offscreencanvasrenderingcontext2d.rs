@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
-use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom,DomRoot};
-use dom::globalscope::GlobalScope;
-use dom::offscreencanvas::{OffscreenCanvas};
+use crate::dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
+use crate::dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::offscreencanvas::OffscreenCanvas;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 
 #[dom_struct]
-pub struct OffscreenCanvasRenderingContext2D{
+pub struct OffscreenCanvasRenderingContext2D {
     reflector_: Reflector,
     canvas: Option<Dom<OffscreenCanvas>>,
 }
@@ -39,12 +39,15 @@ impl OffscreenCanvasRenderingContext2D {
             Some(canvas),
             size,
         ));
-        reflect_dom_object(boxed, global, OffscreenCanvasRenderingContext2DBinding::Wrap)
+        reflect_dom_object(
+            boxed,
+            global,
+            OffscreenCanvasRenderingContext2DBinding::Wrap,
+        )
     }
 }
 
 impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContext2D {
-
     fn Canvas(&self) -> DomRoot<OffscreenCanvas> {
         DomRoot::from_ref(self.canvas.as_ref().expect("No canvas."))
     }
