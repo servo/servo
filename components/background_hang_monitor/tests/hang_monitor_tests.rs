@@ -95,6 +95,18 @@ fn test_hang_monitoring() {
     // No new alert yet
     assert!(background_hang_monitor_receiver.try_recv().is_err());
 
+    // New task handling starts.
+    background_hang_monitor.notify_activity(hang_annotation);
+
+    // Sleep for a while.
+    thread::sleep(Duration::from_millis(10));
+
+    // Unregister the component.
+    background_hang_monitor.unregister();
+
+    // No new alert yet
+    assert!(background_hang_monitor_receiver.try_recv().is_err());
+
     // Shut-down the hang monitor
     drop(background_hang_monitor_register);
     drop(background_hang_monitor);
