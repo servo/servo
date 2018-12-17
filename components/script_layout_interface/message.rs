@@ -220,6 +220,5 @@ pub struct NewLayoutThreadInfo {
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<dyn ImageCache>,
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
-    pub layout_threads: usize,
     pub paint_time_metrics: PaintTimeMetrics,
 }
