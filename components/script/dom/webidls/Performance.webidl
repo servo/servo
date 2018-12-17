@@ -23,7 +23,6 @@ partial interface Performance {
   PerformanceEntryList getEntriesByType(DOMString type);
   PerformanceEntryList getEntriesByName(DOMString name,
                                         optional DOMString type);
-  
 };
 
 // https://w3c.github.io/user-timing/#extensions-performance-interface
