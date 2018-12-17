@@ -300,7 +300,7 @@ def windows_release():
 
 def linux_wpt():
     release_build_task = linux_release_build(with_debug_assertions=True)
-    total_chunks = 2
+    total_chunks = 8
     for i in range(total_chunks):
         this_chunk = i + 1
         wpt_chunk(release_build_task, total_chunks, this_chunk)
