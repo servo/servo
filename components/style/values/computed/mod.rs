@@ -543,6 +543,15 @@ pub enum NumberOrPercentage {
     Number(Number),
 }
 
+impl NumberOrPercentage {
+    fn clamp_to_non_negative(self) -> Self {
+        match self {
+            NumberOrPercentage::Percentage(p) => NumberOrPercentage::Percentage(p.clamp_to_non_negative()),
+            NumberOrPercentage::Number(n) => NumberOrPercentage::Number(n.max(0.)),
+        }
+    }
+}
+
 impl ToComputedValue for specified::NumberOrPercentage {
     type ComputedValue = NumberOrPercentage;
 
@@ -569,6 +578,31 @@ impl ToComputedValue for specified::NumberOrPercentage {
                 specified::NumberOrPercentage::Number(ToComputedValue::from_computed_value(&number))
             },
         }
+    }
+}
+
+/// A non-negative <number-percentage>.
+pub type NonNegativeNumberOrPercentage = NonNegative<NumberOrPercentage>;
+
+impl NonNegativeNumberOrPercentage {
+    /// Returns the `100%` value.
+    #[inline]
+    pub fn hundred_percent() -> Self {
+        NonNegative(NumberOrPercentage::Percentage(Percentage::hundred()))
+    }
+}
+
+impl ToAnimatedValue for NonNegativeNumberOrPercentage {
+    type AnimatedValue = NumberOrPercentage;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        NonNegative(animated.clamp_to_non_negative())
     }
 }
 

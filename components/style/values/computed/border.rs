@@ -4,9 +4,9 @@
 
 //! Computed types for CSS values related to borders.
 
-use crate::values::animated::ToAnimatedZero;
-use crate::values::computed::length::{LengthOrPercentage, NonNegativeLength};
-use crate::values::computed::{Number, NumberOrPercentage};
+use crate::values::generics::NonNegative;
+use crate::values::computed::length::{NonNegativeLengthOrPercentage, NonNegativeLength};
+use crate::values::computed::{NonNegativeNumber, NonNegativeNumberOrPercentage};
 use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use crate::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice;
@@ -22,16 +22,16 @@ pub use crate::values::specified::border::BorderImageRepeat;
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
 /// A computed value for a single side of a `border-image-width` property.
-pub type BorderImageSideWidth = GenericBorderImageSideWidth<LengthOrPercentage, Number>;
+pub type BorderImageSideWidth = GenericBorderImageSideWidth<NonNegativeLengthOrPercentage, NonNegativeNumber>;
 
 /// A computed value for the `border-image-slice` property.
-pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
+pub type BorderImageSlice = GenericBorderImageSlice<NonNegativeNumberOrPercentage>;
 
 /// A computed value for the `border-radius` property.
-pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
+pub type BorderRadius = GenericBorderRadius<NonNegativeLengthOrPercentage>;
 
 /// A computed value for the `border-*-radius` longhand properties.
-pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
+pub type BorderCornerRadius = GenericBorderCornerRadius<NonNegativeLengthOrPercentage>;
 
 /// A computed value for the `border-spacing` longhand property.
 pub type BorderSpacing = GenericBorderSpacing<NonNegativeLength>;
@@ -40,7 +40,18 @@ impl BorderImageSideWidth {
     /// Returns `1`.
     #[inline]
     pub fn one() -> Self {
-        GenericBorderImageSideWidth::Number(1.)
+        GenericBorderImageSideWidth::Number(NonNegative(1.))
+    }
+}
+
+impl BorderImageSlice {
+    /// Returns the `100%` value.
+    #[inline]
+    pub fn hundred_percent() -> Self {
+        GenericBorderImageSlice {
+            offsets: Rect::all(NonNegativeNumberOrPercentage::hundred_percent()),
+            fill: false,
+        }
     }
 }
 
@@ -68,17 +79,9 @@ impl BorderCornerRadius {
     /// Returns `0 0`.
     pub fn zero() -> Self {
         GenericBorderCornerRadius(Size::new(
-            LengthOrPercentage::zero(),
-            LengthOrPercentage::zero(),
+            NonNegativeLengthOrPercentage::zero(),
+            NonNegativeLengthOrPercentage::zero(),
         ))
-    }
-}
-
-impl ToAnimatedZero for BorderCornerRadius {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        // FIXME(nox): Why?
-        Err(())
     }
 }
 
@@ -86,8 +89,8 @@ impl BorderRadius {
     /// Returns whether all the values are `0px`.
     pub fn all_zero(&self) -> bool {
         fn all(corner: &BorderCornerRadius) -> bool {
-            fn is_zero(l: &LengthOrPercentage) -> bool {
-                *l == LengthOrPercentage::zero()
+            fn is_zero(l: &NonNegativeLengthOrPercentage) -> bool {
+                *l == NonNegativeLengthOrPercentage::zero()
             }
             is_zero(corner.0.width()) && is_zero(corner.0.height())
         }

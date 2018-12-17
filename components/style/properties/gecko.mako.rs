@@ -1687,8 +1687,8 @@ fn static_assert() {
 
     pub fn clone_border_image_slice(&self) -> longhands::border_image_slice::computed_value::T {
         use crate::gecko_bindings::structs::NS_STYLE_BORDER_IMAGE_SLICE_FILL;
-        use crate::values::computed::{BorderImageSlice, NumberOrPercentage};
-        type NumberOrPercentageRect = crate::values::generics::rect::Rect<NumberOrPercentage>;
+        use crate::values::computed::{BorderImageSlice, NonNegativeNumberOrPercentage};
+        type NumberOrPercentageRect = crate::values::generics::rect::Rect<NonNegativeNumberOrPercentage>;
 
         BorderImageSlice {
             offsets:

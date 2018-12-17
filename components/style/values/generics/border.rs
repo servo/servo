@@ -45,6 +45,8 @@ pub struct BorderImageSlice<NumberOrPercentage> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
     ToComputedValue,
     ToCss,
 )]
@@ -104,19 +106,6 @@ pub struct BorderRadius<LengthOrPercentage> {
     pub bottom_right: BorderCornerRadius<LengthOrPercentage>,
     /// The bottom left radius.
     pub bottom_left: BorderCornerRadius<LengthOrPercentage>,
-}
-
-impl<N> From<N> for BorderImageSlice<N>
-where
-    N: Clone,
-{
-    #[inline]
-    fn from(value: N) -> Self {
-        Self {
-            offsets: Rect::all(value),
-            fill: false,
-        }
-    }
 }
 
 impl<L> BorderRadius<L> {

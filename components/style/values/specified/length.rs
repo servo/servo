@@ -717,6 +717,16 @@ impl NonNegativeLength {
     pub fn from_px(px_value: CSSFloat) -> Self {
         Length::from_px(px_value.max(0.)).into()
     }
+
+    /// Parses a non-negative length, optionally with quirks.
+    #[inline]
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(NonNegative(Length::parse_non_negative_quirky(context, input, allow_quirks)?))
+    }
 }
 
 /// Either a NonNegativeLength or the `auto` keyword.
