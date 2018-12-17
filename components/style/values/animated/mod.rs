@@ -12,7 +12,6 @@ use crate::properties::PropertyId;
 use crate::values::computed::length::CalcLengthOrPercentage;
 use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::Angle as ComputedAngle;
-use crate::values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use crate::values::CSSFloat;
 use app_units::Au;
 use euclid::{Point2D, Size2D};
@@ -339,23 +338,6 @@ trivial_to_animated_value!(ComputedAngle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
-
-impl ToAnimatedValue for ComputedBorderCornerRadius {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedBorderCornerRadius::new(
-            (animated.0).0.width.clamp_to_non_negative(),
-            (animated.0).0.height.clamp_to_non_negative(),
-        )
-    }
-}
 
 impl ToAnimatedZero for Au {
     #[inline]

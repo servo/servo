@@ -85,8 +85,8 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     ToComputedValue,
     ToCss,
 )]
-pub enum BasicShape<H, V, LengthOrPercentage> {
-    Inset(#[css(field_bound)] InsetRect<LengthOrPercentage>),
+pub enum BasicShape<H, V, LengthOrPercentage, NonNegativeLengthOrPercentage> {
+    Inset(#[css(field_bound)] InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage>),
     Circle(#[css(field_bound)] Circle<H, V, LengthOrPercentage>),
     Ellipse(#[css(field_bound)] Ellipse<H, V, LengthOrPercentage>),
     Polygon(Polygon<LengthOrPercentage>),
@@ -105,9 +105,9 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
     SpecifiedValueInfo,
     ToComputedValue,
 )]
-pub struct InsetRect<LengthOrPercentage> {
+pub struct InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage> {
     pub rect: Rect<LengthOrPercentage>,
-    pub round: Option<BorderRadius<LengthOrPercentage>>,
+    pub round: Option<BorderRadius<NonNegativeLengthOrPercentage>>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
@@ -258,9 +258,10 @@ impl<B, T, U> ToAnimatedZero for ShapeSource<B, T, U> {
     }
 }
 
-impl<L> ToCss for InsetRect<L>
+impl<Length, NonNegativeLength> ToCss for InsetRect<Length, NonNegativeLength>
 where
-    L: ToCss + PartialEq,
+    Length: ToCss + PartialEq,
+    NonNegativeLength: ToCss + PartialEq,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
