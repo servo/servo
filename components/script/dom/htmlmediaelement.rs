@@ -1030,10 +1030,8 @@ impl HTMLMediaElement {
         }
 
         // Step 3.
-        if self.seeking.get() {
-            // This will cancel only the sync part of the seek algorithm.
-            self.generation_id.set(self.generation_id.get() + 1);
-        }
+        // The fetch request associated with this seek already takes
+        // care of cancelling any previous requests.
 
         // Step 4.
         // The flag will be cleared when the media engine tells us the seek was done.
@@ -1687,6 +1685,11 @@ impl FetchResponseListener for HTMLMediaElementContext {
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
         let elem = self.elem.root();
 
+        if elem.generation_id.get() != self.generation_id {
+            // A new fetch request was triggered, so we ignore this response.
+            return;
+        }
+
         self.metadata = metadata.ok().map(|m| match m {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -1740,17 +1743,20 @@ impl FetchResponseListener for HTMLMediaElementContext {
     }
 
     fn process_response_chunk(&mut self, payload: Vec<u8>) {
-        if self.ignore_response {
-            // An error was received previously, skip processing the payload.
+        let elem = self.elem.root();
+        if self.ignore_response || elem.generation_id.get() != self.generation_id {
+            // An error was received previously or we triggered a new fetch request,
+            // skip processing the payload.
             return;
         }
 
         self.bytes_fetched += payload.len();
 
-        let elem = self.elem.root();
         // Push input data into the player.
         if let Err(e) = elem.player.push_data(payload) {
-            eprintln!("Could not push input data to player {:?}", e);
+            warn!("Could not push input data to player {:?}", e);
+            elem.fetch_canceller.borrow_mut().cancel();
+            self.ignore_response = true;
             return;
         }
 
@@ -1769,9 +1775,10 @@ impl FetchResponseListener for HTMLMediaElementContext {
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
         let elem = self.elem.root();
-        if self.ignore_response {
-            // An error was received previously, skip processing the payload
-            // and notify the media backend that we are done pushing data.
+        if self.ignore_response && elem.generation_id.get() == self.generation_id {
+            // An error was received previously and no new fetch request was triggered, so
+            // we skip processing the payload and notify the media backend that we are done
+            // pushing data.
             if let Err(e) = elem.player.end_of_stream() {
                 warn!("Could not signal EOS to player {:?}", e);
             }
@@ -1858,6 +1865,7 @@ impl PreInvoke for HTMLMediaElementContext {
 
 impl HTMLMediaElementContext {
     fn new(elem: &HTMLMediaElement, url: ServoUrl) -> HTMLMediaElementContext {
+        elem.generation_id.set(elem.generation_id.get() + 1);
         HTMLMediaElementContext {
             elem: Trusted::new(elem),
             metadata: None,
