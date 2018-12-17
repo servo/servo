@@ -14,7 +14,7 @@ use dom_struct::dom_struct;
 use std::fmt;
 use std::rc::Rc;
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 struct TimeRange {
     start: f64,
     end: f64,
@@ -57,7 +57,7 @@ pub enum TimeRangesError {
     OutOfRange,
 }
 
-#[derive(Debug, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
 pub struct TimeRangesContainer {
     ranges: Vec<TimeRange>,
 }
@@ -132,9 +132,6 @@ pub struct TimeRanges {
     ranges: Rc<DomRefCell<TimeRangesContainer>>,
 }
 
-//XXX(ferjm) We'll get warnings about unused methods until we use this
-//           on the media element implementation.
-#[allow(dead_code)]
 impl TimeRanges {
     fn new_inherited(ranges: Rc<DomRefCell<TimeRangesContainer>>) -> TimeRanges {
         Self {
