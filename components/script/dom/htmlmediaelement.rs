@@ -1657,6 +1657,17 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         TimeRanges::new(self.global().as_window(), self.played.clone())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-buffered
+    fn Buffered(&self) -> DomRoot<TimeRanges> {
+        let mut buffered = TimeRangesContainer::new();
+        if let Ok(ranges) = self.player.buffered() {
+            for range in ranges {
+                let _ = buffered.add(range.start as f64, range.end as f64);
+            }
+        }
+        TimeRanges::new(self.global().as_window(), Rc::new(DomRefCell::new(buffered)))
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
     fn TextTracks(&self) -> DomRoot<TextTrackList> {
         let window = window_from_node(self);
