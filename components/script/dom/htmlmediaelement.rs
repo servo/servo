@@ -710,13 +710,6 @@ impl HTMLMediaElement {
             return;
         }
 
-        // XXX(ferjm) Since we only support Blob for now it is fine to always set
-        //            the stream type to StreamType::Seekable. Once we support MediaStream,
-        //            this should be changed to also consider StreamType::Stream.
-        if let Err(e) = self.player.set_stream_type(StreamType::Seekable) {
-            eprintln!("Could not set stream type to Seekable. {:?}", e);
-        }
-
         // Steps 1-2.
         // Unapplicable, the `resource` variable already conveys which mode
         // is in use.
@@ -729,6 +722,20 @@ impl HTMLMediaElement {
             Resource::Url(url) => {
                 // Step 4.remote.1.
                 if self.Preload() == "none" && !self.autoplaying.get() {
+                    // We only set the stream type to Seekable in two cases:
+                    //
+                    // - If the url is a file:// url. Our network stack supports range requests for
+                    //   file:// urls.
+                    // - If the url is an http(s):// url and we identify that the server supports
+                    //   range requests.
+                    //
+                    // In the remaining cases, we use the default Stream type.
+                    if url.scheme() == "file" {
+                        if let Err(e) = self.player.set_stream_type(StreamType::Seekable) {
+                            warn!("Could not set stream type to Seekable. {:?}", e);
+                        }
+                    }
+
                     // Step 4.remote.1.1.
                     self.network_state.set(NetworkState::Idle);
 
@@ -1691,6 +1698,11 @@ impl FetchResponseListener for HTMLMediaElementContext {
                 // header. Otherwise, we get it from the Content-Length header.
                 let content_length =
                     if let Some(content_range) = headers.typed_get::<ContentRange>() {
+                        // The server supports range requests, so we can safely set the
+                        // type of stream to Seekable.
+                        if let Err(e) = elem.player.set_stream_type(StreamType::Seekable) {
+                            warn!("Could not set stream type to Seekable. {:?}", e);
+                        }
                         content_range.bytes_len()
                     } else if let Some(content_length) = headers.typed_get::<ContentLength>() {
                         Some(content_length.0)
