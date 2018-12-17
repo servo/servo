@@ -1115,6 +1115,24 @@ impl HTMLMediaElement {
 
     fn handle_player_event(&self, event: &PlayerEvent) {
         match *event {
+            PlayerEvent::EndOfStream => {
+                // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+                // => "If the media data can be fetched but is found by inspection to be in
+                //    an unsupported format, or can otherwise not be rendered at all"
+                if self.ready_state.get() < ReadyState::HaveMetadata {
+                    self.queue_dedicated_media_source_failure_steps();
+                }
+            },
+            PlayerEvent::Error => {
+                self.error.set(Some(&*MediaError::new(
+                    &*window_from_node(self),
+                    MEDIA_ERR_DECODE,
+                )));
+                self.upcast::<EventTarget>().fire_event(atom!("error"));
+            },
+            PlayerEvent::FrameUpdated => {
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            },
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
                 // => "Once enough of the media data has been fetched to determine the duration..."
@@ -1179,6 +1197,12 @@ impl HTMLMediaElement {
 
                 // XXX Steps 12 and 13 require audio and video tracks support.
             },
+            PlayerEvent::NeedData => {
+                // XXX(ferjm) implement backoff protocol.
+            },
+            PlayerEvent::EnoughData => {
+                // XXX(ferjm) implement backoff protocol.
+            },
             PlayerEvent::PositionChanged(position) => {
                 let position = position as f64;
                 let _ = self
@@ -1187,25 +1211,6 @@ impl HTMLMediaElement {
                     .add(self.playback_position.get(), position);
                 self.playback_position.set(position);
                 self.time_marches_on();
-            },
-            PlayerEvent::StateChanged(ref state) => match *state {
-                PlaybackState::Paused => {
-                    if self.ready_state.get() == ReadyState::HaveMetadata {
-                        self.change_ready_state(ReadyState::HaveEnoughData);
-                    }
-                },
-                _ => {},
-            },
-            PlayerEvent::EndOfStream => {
-                // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-                // => "If the media data can be fetched but is found by inspection to be in
-                //    an unsupported format, or can otherwise not be rendered at all"
-                if self.ready_state.get() < ReadyState::HaveMetadata {
-                    self.queue_dedicated_media_source_failure_steps();
-                }
-            },
-            PlayerEvent::FrameUpdated => {
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
             PlayerEvent::SeekData(p) => {
                 self.fetch_request(Some(p));
@@ -1221,12 +1226,13 @@ impl HTMLMediaElement {
                 };
                 ScriptThread::await_stable_state(Microtask::MediaElement(task));
             },
-            PlayerEvent::Error => {
-                self.error.set(Some(&*MediaError::new(
-                    &*window_from_node(self),
-                    MEDIA_ERR_DECODE,
-                )));
-                self.upcast::<EventTarget>().fire_event(atom!("error"));
+            PlayerEvent::StateChanged(ref state) => match *state {
+                PlaybackState::Paused => {
+                    if self.ready_state.get() == ReadyState::HaveMetadata {
+                        self.change_ready_state(ReadyState::HaveEnoughData);
+                    }
+                },
+                _ => {},
             },
         }
     }
