@@ -2122,6 +2122,7 @@ dependencies = [
 name = "libmlservo"
 version = "0.0.1"
 dependencies = [
+ "keyboard-types 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -13,6 +13,7 @@ test = false
 bench = false
 
 [dependencies]
+keyboard-types = "0.4"
 libservo = { path = "../../components/servo" }
 log = "0.4"
 servo-egl = "0.2"
