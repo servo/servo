@@ -496,8 +496,12 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     affected_revish = kwargs.pop("affected", None)
     if affected_revish is not None:
+        # TODO: Consolidate with `./wpt tests-affected --ignore-rules`:
+        # https://github.com/web-platform-tests/wpt/issues/14560
         files_changed, _ = testfiles.files_changed(
-            affected_revish, include_uncommitted=True, include_new=True)
+            affected_revish,
+            ignore_rules=["resources/testharness*"],
+            include_uncommitted=True, include_new=True)
         # TODO: Perhaps use wptrunner.testloader.ManifestLoader here
         # and remove the manifest-related code from testfiles.
         # https://github.com/web-platform-tests/wpt/issues/14421

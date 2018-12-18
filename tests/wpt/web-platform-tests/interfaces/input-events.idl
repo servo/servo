@@ -4,13 +4,11 @@
 // Source: Input Events Level 1 (https://cdn.staticaly.com/gh/w3c/input-events/v1/index.html)
 
 partial interface InputEvent {
-    readonly attribute DOMString inputType;
     readonly attribute DataTransfer? dataTransfer;
     sequence<StaticRange> getTargetRanges();
 };
 
 partial dictionary InputEventInit {
-    DOMString inputType = "";
     DataTransfer? dataTransfer = null;
     sequence<StaticRange> targetRanges = [];
 };

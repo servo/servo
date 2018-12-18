@@ -74,7 +74,7 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
 };
 
 [SecureContext, Exposed=Window] interface XRSpace : EventTarget {
-  Float32Array? getTransformTo(XRSpace other);
+  XRRigidTransform? getTransformTo(XRSpace other);
 };
 
 enum XRReferenceSpaceType {
@@ -125,6 +125,7 @@ enum XREye {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
   readonly attribute Float32Array viewMatrix;
+  readonly attribute XRRigidTransform transform;
 };
 
 [SecureContext, Exposed=Window] interface XRViewport {
@@ -134,8 +135,25 @@ enum XREye {
   readonly attribute long height;
 };
 
+[SecureContext, Exposed=Window,
+ Constructor(optional DOMPointInit position, optional DOMPointInit orientation)]
+interface XRRigidTransform {
+  readonly attribute DOMPointReadOnly position;
+  readonly attribute DOMPointReadOnly orientation;
+  readonly attribute Float32Array matrix;
+};
+
+[SecureContext, Exposed=Window,
+ Constructor(optional DOMPointInit origin, optional DOMPointInit direction),
+ Constructor(XRRigidTransform transform)]
+interface XRRay {
+  readonly attribute DOMPointReadOnly origin;
+  readonly attribute DOMPointReadOnly direction;
+  readonly attribute Float32Array matrix;
+};
+
 [SecureContext, Exposed=Window] interface XRViewerPose {
-  readonly attribute Float32Array poseMatrix;
+  readonly attribute XRRigidTransform transform;
   readonly attribute FrozenArray<XRView> views;
 };
 
@@ -158,17 +176,10 @@ interface XRInputSource {
 };
 
 [SecureContext, Exposed=Window]
-interface XRRay {
-  readonly attribute DOMPointReadOnly origin;
-  readonly attribute DOMPointReadOnly direction;
-  readonly attribute Float32Array transformMatrix;
-};
-
-[SecureContext, Exposed=Window]
 interface XRInputPose {
   readonly attribute boolean emulatedPosition;
   readonly attribute XRRay targetRay;
-  readonly attribute Float32Array? gripMatrix;
+  readonly attribute XRRigidTransform? gripTransform;
 };
 
 [SecureContext, Exposed=Window] interface XRLayer {};
@@ -243,10 +254,10 @@ dictionary XRInputSourceEventInit : EventInit {
 [SecureContext, Exposed=Window, Constructor(DOMString type, XRReferenceSpaceEventInit eventInitDict)]
 interface XRReferenceSpaceEvent : Event {
   readonly attribute XRReferenceSpace referenceSpace;
-  readonly attribute Float32Array? transformMatrix;
+  readonly attribute XRRigidTransform? transform;
 };
 
 dictionary XRReferenceSpaceEventInit : EventInit {
   required XRReferenceSpace referenceSpace;
-  Float32Array transformMatrix;
+  XRRigidTransform transform;
 };
