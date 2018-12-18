@@ -1322,7 +1322,7 @@ impl HTMLImageElement {
 
     pub fn same_origin(&self, origin: &MutableOrigin) -> bool {
         self.current_request
-            .borrow_mut()
+            .borrow()
             .final_url
             .as_ref()
             .map_or(false, |url| {
