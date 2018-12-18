@@ -362,40 +362,13 @@ impl GeckoStyleCoordConvertible for Normal {
 
 impl GeckoStyleCoordConvertible for ExtremumLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        use crate::gecko_bindings::structs::{
-            NS_STYLE_WIDTH_AVAILABLE, NS_STYLE_WIDTH_FIT_CONTENT,
-        };
-        use crate::gecko_bindings::structs::{
-            NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT,
-        };
-        coord.set_value(CoordDataValue::Enumerated(match *self {
-            ExtremumLength::MozMaxContent => NS_STYLE_WIDTH_MAX_CONTENT,
-            ExtremumLength::MozMinContent => NS_STYLE_WIDTH_MIN_CONTENT,
-            ExtremumLength::MozFitContent => NS_STYLE_WIDTH_FIT_CONTENT,
-            ExtremumLength::MozAvailable => NS_STYLE_WIDTH_AVAILABLE,
-        }))
+        coord.set_value(CoordDataValue::Enumerated(*self as u32));
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        use crate::gecko_bindings::structs::{
-            NS_STYLE_WIDTH_AVAILABLE, NS_STYLE_WIDTH_FIT_CONTENT,
-        };
-        use crate::gecko_bindings::structs::{
-            NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT,
-        };
+        use num_traits::FromPrimitive;
         match coord.as_value() {
-            CoordDataValue::Enumerated(NS_STYLE_WIDTH_MAX_CONTENT) => {
-                Some(ExtremumLength::MozMaxContent)
-            },
-            CoordDataValue::Enumerated(NS_STYLE_WIDTH_MIN_CONTENT) => {
-                Some(ExtremumLength::MozMinContent)
-            },
-            CoordDataValue::Enumerated(NS_STYLE_WIDTH_FIT_CONTENT) => {
-                Some(ExtremumLength::MozFitContent)
-            },
-            CoordDataValue::Enumerated(NS_STYLE_WIDTH_AVAILABLE) => {
-                Some(ExtremumLength::MozAvailable)
-            },
+            CoordDataValue::Enumerated(v) => ExtremumLength::from_u32(v),
             _ => None,
         }
     }

@@ -975,6 +975,7 @@ pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPerce
     Copy,
     Debug,
     Eq,
+    FromPrimitive,
     MallocSizeOf,
     Parse,
     PartialEq,
@@ -982,6 +983,7 @@ pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPerce
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum ExtremumLength {
     MozMaxContent,
     MozMinContent,
