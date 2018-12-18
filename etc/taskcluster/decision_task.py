@@ -338,7 +338,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(60)
         .with_env(TOTAL_CHUNKS=total_chunks, THIS_CHUNK=this_chunk)
-        .with_env(RUST_LOG="net::http_loader,net::resource_thread")
+        #.with_env(RUST_LOG="net::http_loader,net::resource_thread")
     )
     if this_chunk == 1:
         task.name += " + extra"
@@ -363,7 +363,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
     task.with_script("""
         ./mach test-wpt \
             --release \
-            --processes 24 \
+            --processes 16 \
             --total-chunks "$TOTAL_CHUNKS" \
             --this-chunk "$THIS_CHUNK" \
             --log-raw test-wpt.log \
