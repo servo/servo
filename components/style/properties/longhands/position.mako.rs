@@ -244,21 +244,12 @@ ${helpers.predefined_type(
         if logical:
             spec = "https://drafts.csswg.org/css-logical-props/#propdef-%s"
     %>
-    // NOTE: Block-size doesn't support -moz-*-content keywords, since they make
-    // no sense on the block axis, but it simplifies things the have that it has
-    // the same type as the other properties, since otherwise we'd need to
-    // handle logical props where the types are different, which looks like a
-    // pain.
     % if product == "gecko":
-        <%
-            parse_function = "parse" if size != "block-size" else "parse_disallow_keyword"
-        %>
         // width, height, block-size, inline-size
         ${helpers.predefined_type(
             size,
             "MozLength",
             "computed::MozLength::auto()",
-            parse_function,
             logical=logical,
             logical_group="size",
             allow_quirks=not logical,
@@ -272,7 +263,6 @@ ${helpers.predefined_type(
             "min-%s" % size,
             "MozLength",
             "computed::MozLength::auto()",
-            parse_function,
             logical=logical,
             logical_group="min-size",
             allow_quirks=not logical,
@@ -284,7 +274,6 @@ ${helpers.predefined_type(
             "max-%s" % size,
             "MaxLength",
             "computed::MaxLength::none()",
-            parse_function,
             logical=logical,
             logical_group="max-size",
             allow_quirks=not logical,
