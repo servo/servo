@@ -135,6 +135,7 @@ struct PerformanceObserver {
 #[dom_struct]
 pub struct Performance {
     eventtarget: EventTarget,
+    resourcetimingbufferfull:Event,
     entries: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
@@ -143,7 +144,7 @@ pub struct Performance {
     resource_timing_buffer_current_size: Cell<usize>,
     resource_timing_buffer_pending_full_event: Cell<bool>,
     resource_timing_secondary_entries: DomRefCell<VecDeque<DomRoot<PerformanceEntry>>>,
-    resourcetimingbufferfull:Event,
+   
 
 }
 
