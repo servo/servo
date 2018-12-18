@@ -2379,6 +2379,8 @@ impl ScriptThread {
             self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
         }
 
+        self.background_hang_monitor.unregister();
+
         debug!("Exited script thread.");
     }
 
