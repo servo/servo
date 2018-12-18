@@ -479,22 +479,22 @@ impl PerformanceMethods for Performance {
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
-    /// https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
 
+    // https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
     fn ClearResourceTimings(&self) {
         self.entries
             .borrow_mut()
             .clear_entries_by_name_and_type(None, Some(DOMString::from("resource")));
         self.resource_timing_buffer_current_size.set(0_usize);
     }
-    /// https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
 
+    // https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
     fn SetResourceTimingBufferSize(&self, max_size: u32) {
         self.resource_timing_buffer_size_limit
             .set(max_size as usize);
     }
-    /// https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
 
+    // https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
     event_handler!(
         resourcetimingbufferfull,
         GetOnresourcetimingbufferfull,
