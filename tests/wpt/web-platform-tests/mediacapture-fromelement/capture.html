@@ -9,25 +9,23 @@
 
 // Run captureStream() on different videos, and assert data is flowing.
 
-var makeAsyncTest = function(filename) {
-  async_test(function(test) {
-    var video = document.createElement('video');
+function makeAsyncTest(filename) {
+  promise_test(async test => {
+    const video = document.createElement('video');
     video.src = "/media/" + filename;
     video.onerror = this.unreached_func("<video> error");
     video.play();
 
-    var stream = video.captureStream();
+    const stream = video.captureStream();
 
-    // onactive event is marked for deprecation (https://crbug.com/649328)
-    stream.onactive = this.step_func_done(function() {
-      var recorder = new MediaRecorder(stream);
-        recorder.ondataavailable = test.step_func_done(function(event) {
-            assert_true(event.data.size > 0, 'Recorded data size should be > 0');
-      });
-      recorder.start(0);
-    });
- }), "<video>.captureStream() and assert data flows.";
-};
+    await new Promise(r => stream.onaddtrack = r);
+    const recorder = new MediaRecorder(stream);
+
+    recorder.start(0);
+    const {data} = await new Promise(r => recorder.ondataavailable = r);
+    assert_true(data.size > 0, 'Recorded data size should be > 0');
+  }), "<video>.captureStream() and assert data flows.";
+}
 
 generate_tests(makeAsyncTest, [
   [ "video-only", "test-v-128k-320x240-24fps-8kfr.webm" ],

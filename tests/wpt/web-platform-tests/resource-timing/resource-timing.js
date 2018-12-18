@@ -227,7 +227,7 @@ window.onload =
         // Ensure that responseStart only measures the time up to the first few
         // bytes of the header response. This is tested by writing an HTTP 1.1
         // status line, followed by a flush, then a pause before the end of the
-        // headers. The tests makes sure that responseStart is not delayed by
+        // headers. The test makes sure that responseStart is not delayed by
         // this pause.
         [
             { initiator: "iframe",         response: "(done)",    mime: mimeHtml },
@@ -248,13 +248,55 @@ window.onload =
                                         + "&mime:" + template.mime
                                         + "&send:" + encodeURIComponent(template.response)),
                         function (initiator, entry) {
-                            // Test that the delay between 'requestStart' and
-                            // 'responseStart' does not include the added delay
-                            // post-statusline.
-                            assert_less_than(
-                                entry.responseStart - entry.requestStart,
-                                serverStepDelay,
+                            // Test that the delay between 'responseStart' and
+                            // 'responseEnd' includes the delay, which implies
+                            // that 'responseStart' was measured at the time of
+                            // status line receipt.
+                            assert_greater_than_equal(
+                                entry.responseEnd,
+                                entry.responseStart + serverStepDelay,
                                 "Delay after HTTP/1.1 status should not affect 'responseStart'.");
+
+                            test.done();
+                        });
+                    }
+                });
+            });
+
+        // Test that responseStart uses the timing of 1XX responses by
+        // synthesizing a delay between a 100 and 200 status, and verifying that
+        // this delay is included before responseEnd. If the delay is not
+        // included, this implies that the 200 status line was (incorrectly) used
+        // for responseStart timing, despite the 100 response arriving earlier.
+        //
+        // Source: "In the case where more than one response is available for a
+        // request, due to an Informational 1xx response, the reported
+        // responseStart value is that of the first response to the last
+        // request."
+        [
+            { initiator: "iframe",         response: "(done)",    mime: mimeHtml },
+            { initiator: "xmlhttprequest", response: "(done)",    mime: mimeText },
+            { initiator: "script",         response: '"";',       mime: mimeScript },
+            { initiator: "link",           response: ".unused{}", mime: mimeCss },
+        ]
+        .forEach(function (template) {
+            testCases.push({
+                description: "'" + template.initiator + " responseStart uses 1XX (first) response timings'",
+                test: function (test) {
+                    initiateFetch(
+                        test,
+                        template.initiator,
+                        getSyntheticUrl("status:100"
+                                        + "&flush"
+                                        + "&" + serverStepDelay + "ms"
+                                        + "&status:200"
+                                        + "&mime:" + template.mime
+                                        + "&send:" + encodeURIComponent(template.response)),
+                        function (initiator, entry) {
+                            assert_greater_than_equal(
+                                entry.responseEnd,
+                                entry.responseStart + serverStepDelay,
+                                "HTTP/1.1 1XX (first) response should determine 'responseStart' timing.");
 
                             test.done();
                         });

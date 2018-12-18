@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" href="https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize">
+<title>This test validates that setResourceTimingBufferFull behaves appropriately when set to the current buffer level.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/buffer-full-utilities.js"></script>
+</head>
+<body>
+<script>
+let eventFired = false;
+
+let loadRandomResource = () => {
+    return fetch(window.location.href + "?" + Math.random());
+};
+
+setup(() => {
+    // Get the browser into a consistent state.
+    clearBufferAndSetSize(100);
+    window.result = "";
+});
+
+let fillUpTheBuffer = () => {
+    return new Promise(resolve => {
+        // Gather up 3 Resource Entries to kick off the rest of test behavior.
+        let resources = 0;
+        let observer = new PerformanceObserver(list => {
+            resources += list.getEntriesByType("resource").length;
+            if (resources !== 3)
+                return;
+            observer.disconnect();
+            resolve();
+        });
+        observer.observe({entryTypes: ["resource"]});
+        for (let i = 0; i < 3; ++i)
+            loadRandomResource();
+    });
+};
+
+let setBufferSize = () => {
+    performance.onresourcetimingbufferfull = () => {
+        eventFired = true;
+        window.result += "Event Fired with "  + performance.getEntriesByType("resource").length + " entries. ";
+        performance.clearResourceTimings();
+    };
+    window.result += "before setLimit(3). ";
+    performance.setResourceTimingBufferSize(3);
+    window.result += "after setLimit(3). ";
+};
+
+let overflowTheBuffer = () => {
+    return new Promise(resolve => {
+        loadRandomResource().then(() => {
+            window.result += "after loading 4th resource. ";
+            resolve();
+        });
+    });
+};
+
+let checkResult = () => {
+    return new Promise((resolve, reject) => {
+        if (window.result != "before setLimit(3). after setLimit(3). after loading 4th resource. Event Fired with 3 entries. ") {
+            reject("Non matching value: " + window.result);
+        }
+        let entries = performance.getEntriesByType("resource");
+        if (entries.length != 1) {
+            reject("Number of entries in resource timing buffer is unexpected: " + entries.length);
+        }
+        resolve();
+    });
+};
+
+promise_test(async () => {
+    await fillUpTheBuffer();
+    setBufferSize();
+    await overflowTheBuffer();
+    await waitForEventToFire();
+    await checkResult();
+}, "Test that entries added and event firing happened in the right sequence");
+</script>

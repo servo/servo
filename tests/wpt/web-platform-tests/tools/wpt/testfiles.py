@@ -309,6 +309,8 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("revish", default=None, help="Commits to consider. Defaults to the "
                         "commits on the current branch", nargs="?")
+    # TODO: Consolidate with `./wpt run --affected`:
+    # https://github.com/web-platform-tests/wpt/issues/14560
     parser.add_argument("--ignore-rules", nargs="*", type=set,
                         default=set(["resources/testharness*"]),
                         help="Rules for paths to exclude from lists of changes. Rules are paths "
