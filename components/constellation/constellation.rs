@@ -734,7 +734,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_pipeline_id: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-        initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
+        initial_window_size: TypedSize2D<f32, CSSPixel>,
         // TODO: we have to provide ownership of the LoadData
         // here, because it will be send on an ipc channel,
         // and ipc channels take onership of their data.
@@ -889,6 +889,7 @@ where
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
+        size: TypedSize2D<f32, CSSPixel>,
         is_private: bool,
         is_visible: bool,
     ) {
@@ -898,6 +899,7 @@ where
             top_level_id,
             pipeline_id,
             parent_pipeline_id,
+            size,
             is_private,
             is_visible,
         );
@@ -1599,14 +1601,20 @@ where
             EmbedderMsg::Panic(reason, backtrace),
         ));
 
-        let browsing_context = self.browsing_contexts.get(&browsing_context_id);
-        let window_size = browsing_context.and_then(|ctx| ctx.size);
-        let pipeline_id = browsing_context.map(|ctx| ctx.pipeline_id);
-        let is_visible = browsing_context.map(|ctx| ctx.is_visible);
+        let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(context) => context,
+            None => return warn!("failed browsing context is missing"),
+        };
+        let window_size = browsing_context.size;
+        let pipeline_id = browsing_context.pipeline_id;
+        let is_visible = browsing_context.is_visible;
 
-        let pipeline = pipeline_id.and_then(|id| self.pipelines.get(&id));
-        let pipeline_url = pipeline.map(|pipeline| pipeline.url.clone());
-        let opener = pipeline.and_then(|pipeline| pipeline.opener);
+        let pipeline = match self.pipelines.get(&pipeline_id) {
+            Some(p) => p,
+            None => return warn!("failed pipeline is missing"),
+        };
+        let pipeline_url = pipeline.url.clone();
+        let opener = pipeline.opener;
 
         self.close_browsing_context_children(
             browsing_context_id,
@@ -1616,10 +1624,8 @@ where
 
         let failure_url = ServoUrl::parse("about:failure").expect("infallible");
 
-        if let Some(pipeline_url) = pipeline_url {
-            if pipeline_url == failure_url {
-                return error!("about:failure failed");
-            }
+        if pipeline_url == failure_url {
+            return error!("about:failure failed");
         }
 
         warn!("creating replacement pipeline for about:failure");
@@ -1638,7 +1644,7 @@ where
             load_data,
             sandbox,
             is_private,
-            is_visible.unwrap_or(true),
+            is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -1737,7 +1743,7 @@ where
             top_level_browsing_context_id,
             None,
             None,
-            Some(window_size),
+            window_size,
             load_data,
             sandbox,
             is_private,
@@ -3275,6 +3281,7 @@ where
                     change.top_level_browsing_context_id,
                     change.new_pipeline_id,
                     new_context_info.parent_pipeline_id,
+                    self.window_size.initial_viewport, //XXXjdm is this valid?
                     new_context_info.is_private,
                     new_context_info.is_visible,
                 );
@@ -3612,44 +3619,41 @@ where
             }
 
             // Check the visible rectangle for this pipeline. If the constellation has received a
-            // size for the pipeline, then its painting should be up to date. If the constellation
-            // *hasn't* received a size, it could be that the layer was hidden by script before the
-            // compositor discovered it, so we just don't check the layer.
-            if let Some(size) = browsing_context.size {
-                // If the rectangle for this pipeline is zero sized, it will
-                // never be painted. In this case, don't query the layout
-                // thread as it won't contribute to the final output image.
-                if size == TypedSize2D::zero() {
-                    continue;
-                }
+            // size for the pipeline, then its painting should be up to date.
+            //
+            // If the rectangle for this pipeline is zero sized, it will
+            // never be painted. In this case, don't query the layout
+            // thread as it won't contribute to the final output image.
+            if browsing_context.size == TypedSize2D::zero() {
+                continue;
+            }
 
-                // Get the epoch that the compositor has drawn for this pipeline.
-                let compositor_epoch = pipeline_states.get(&browsing_context.pipeline_id);
-                match compositor_epoch {
-                    Some(compositor_epoch) => {
-                        // Synchronously query the layout thread to see if the current
-                        // epoch matches what the compositor has drawn. If they match
-                        // (and script is idle) then this pipeline won't change again
-                        // and can be considered stable.
-                        let message = LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone());
-                        if let Err(e) = pipeline.layout_chan.send(message) {
-                            warn!("Failed to send GetCurrentEpoch ({}).", e);
-                        }
-                        match epoch_receiver.recv() {
-                            Err(e) => warn!("Failed to receive current epoch ({}).", e),
-                            Ok(layout_thread_epoch) => {
-                                if layout_thread_epoch != *compositor_epoch {
-                                    return ReadyToSave::EpochMismatch;
-                                }
-                            },
-                        }
-                    },
-                    None => {
-                        // The compositor doesn't know about this pipeline yet.
-                        // Assume it hasn't rendered yet.
-                        return ReadyToSave::PipelineUnknown;
-                    },
-                }
+            // Get the epoch that the compositor has drawn for this pipeline.
+            let compositor_epoch = pipeline_states.get(&browsing_context.pipeline_id);
+            match compositor_epoch {
+                Some(compositor_epoch) => {
+                    // Synchronously query the layout thread to see if the current
+                    // epoch matches what the compositor has drawn. If they match
+                    // (and script is idle) then this pipeline won't change again
+                    // and can be considered stable.
+                    let message = LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone());
+                    if let Err(e) = pipeline.layout_chan.send(message) {
+                        warn!("Failed to send GetCurrentEpoch ({}).", e);
+                    }
+                    match epoch_receiver.recv() {
+                        Err(e) => warn!("Failed to receive current epoch ({}).", e),
+                        Ok(layout_thread_epoch) => {
+                            if layout_thread_epoch != *compositor_epoch {
+                                return ReadyToSave::EpochMismatch;
+                            }
+                        },
+                    }
+                },
+                None => {
+                    // The compositor doesn't know about this pipeline yet.
+                    // Assume it hasn't rendered yet.
+                    return ReadyToSave::PipelineUnknown;
+                },
             }
         }
 
@@ -3715,7 +3719,7 @@ where
         browsing_context_id: BrowsingContextId,
     ) {
         if let Some(browsing_context) = self.browsing_contexts.get_mut(&browsing_context_id) {
-            browsing_context.size = Some(new_size.initial_viewport);
+            browsing_context.size = new_size.initial_viewport;
             // Send Resize (or ResizeInactive) messages to each pipeline in the frame tree.
             let pipeline_id = browsing_context.pipeline_id;
             let pipeline = match self.pipelines.get(&pipeline_id) {
@@ -4001,7 +4005,6 @@ where
                     .map(|pipeline| {
                         let mut frame_tree = SendableFrameTree {
                             pipeline: pipeline.to_sendable(),
-                            size: browsing_context.size,
                             children: vec![],
                         };
 

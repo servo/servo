@@ -49,6 +49,7 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::MediaFrameRenderer;
+use crate::task::TaskBox;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
@@ -138,6 +139,8 @@ pub unsafe trait JSTraceable {
     /// Trace `self`.
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
+
+unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(CSSError);
 

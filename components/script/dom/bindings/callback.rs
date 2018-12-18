@@ -4,12 +4,15 @@
 
 //! Base classes to work with IDL callbacks.
 
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::{AddRawValueRoot, IsCallable, JSContext, JSObject};
@@ -242,6 +245,9 @@ impl CallSetup {
     #[allow(unrooted_must_root)]
     pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = unsafe { GlobalScope::from_object(callback.callback()) };
+        if let Some(window) = global.downcast::<Window>() {
+            window.Document().ensure_safe_to_run_script_or_layout();
+        }
         let cx = global.get_cx();
 
         let aes = AutoEntryScript::new(&global);
