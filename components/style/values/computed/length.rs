@@ -985,8 +985,10 @@ pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPerce
 )]
 #[repr(u8)]
 pub enum ExtremumLength {
-    MozMaxContent,
-    MozMinContent,
+    #[parse(aliases = "-moz-max-content")]
+    MaxContent,
+    #[parse(aliases = "-moz-min-content")]
+    MinContent,
     MozFitContent,
     MozAvailable,
 }
