@@ -300,7 +300,7 @@ def windows_release():
 
 def linux_wpt():
     release_build_task = linux_release_build(with_debug_assertions=True)
-    total_chunks = 4
+    total_chunks = 8
     for i in range(total_chunks):
         this_chunk = i + 1
         wpt_chunk(release_build_task, total_chunks, this_chunk)
@@ -363,7 +363,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
     task.with_script("""
         ./mach test-wpt \
             --release \
-            --processes 16 \
+            --processes 24 \
             --total-chunks "$TOTAL_CHUNKS" \
             --this-chunk "$THIS_CHUNK" \
             --log-raw test-wpt.log \
