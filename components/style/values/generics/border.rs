@@ -95,6 +95,7 @@ impl<L> BorderSpacing<L> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
 )]
 pub struct BorderRadius<LengthOrPercentage> {

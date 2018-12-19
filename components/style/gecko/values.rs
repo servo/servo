@@ -286,7 +286,9 @@ impl GeckoStyleCoordConvertible for ComputedShapeRadius {
                     None
                 }
             },
-            _ => LengthOrPercentage::from_gecko_style_coord(coord).map(ShapeRadius::Length),
+            _ => {
+                GeckoStyleCoordConvertible::from_gecko_style_coord(coord).map(ShapeRadius::Length)
+            },
         }
     }
 }
