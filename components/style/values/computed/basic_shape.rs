@@ -23,20 +23,26 @@ pub type ClippingShape = generic::ClippingShape<BasicShape, ComputedUrl>;
 pub type FloatAreaShape = generic::FloatAreaShape<BasicShape, Image>;
 
 /// A computed basic shape.
-pub type BasicShape =
-    generic::BasicShape<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage, NonNegativeLengthOrPercentage>;
+pub type BasicShape = generic::BasicShape<
+    LengthOrPercentage,
+    LengthOrPercentage,
+    LengthOrPercentage,
+    NonNegativeLengthOrPercentage,
+>;
 
 /// The computed value of `inset()`
 pub type InsetRect = generic::InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage>;
 
 /// A computed circle.
-pub type Circle = generic::Circle<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;
+pub type Circle =
+    generic::Circle<LengthOrPercentage, LengthOrPercentage, NonNegativeLengthOrPercentage>;
 
 /// A computed ellipse.
-pub type Ellipse = generic::Ellipse<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;
+pub type Ellipse =
+    generic::Ellipse<LengthOrPercentage, LengthOrPercentage, NonNegativeLengthOrPercentage>;
 
 /// The computed value of `ShapeRadius`
-pub type ShapeRadius = generic::ShapeRadius<LengthOrPercentage>;
+pub type ShapeRadius = generic::ShapeRadius<NonNegativeLengthOrPercentage>;
 
 impl ToCss for Circle {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result

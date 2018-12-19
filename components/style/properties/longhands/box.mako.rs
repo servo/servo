@@ -627,7 +627,7 @@ ${helpers.predefined_type(
     "generics::basic_shape::ShapeSource::None",
     products="gecko",
     boxed=True,
-    animation_value_type="ComputedValue",
+    animation_value_type="basic_shape::FloatAreaShape",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}

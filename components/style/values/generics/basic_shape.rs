@@ -20,7 +20,16 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
 /// <https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box>
 #[allow(missing_docs)]
 #[derive(
-    Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Animate,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
 )]
 pub enum GeometryBox {
     FillBox,
@@ -45,6 +54,7 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
     Parse,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
     ToCss,
 )]
@@ -59,7 +69,15 @@ pub enum ShapeBox {
 #[allow(missing_docs)]
 #[animation(no_bound(ImageOrUrl))]
 #[derive(
-    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Animate,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
 )]
 pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     #[animation(error)]
@@ -82,13 +100,14 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
     ToCss,
 )]
 pub enum BasicShape<H, V, LengthOrPercentage, NonNegativeLengthOrPercentage> {
     Inset(#[css(field_bound)] InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage>),
-    Circle(#[css(field_bound)] Circle<H, V, LengthOrPercentage>),
-    Ellipse(#[css(field_bound)] Ellipse<H, V, LengthOrPercentage>),
+    Circle(#[css(field_bound)] Circle<H, V, NonNegativeLengthOrPercentage>),
+    Ellipse(#[css(field_bound)] Ellipse<H, V, NonNegativeLengthOrPercentage>),
     Polygon(Polygon<LengthOrPercentage>),
 }
 
@@ -103,6 +122,7 @@ pub enum BasicShape<H, V, LengthOrPercentage, NonNegativeLengthOrPercentage> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
 )]
 pub struct InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage> {
@@ -122,11 +142,12 @@ pub struct InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
 )]
-pub struct Circle<H, V, LengthOrPercentage> {
+pub struct Circle<H, V, NonNegativeLengthOrPercentage> {
     pub position: Position<H, V>,
-    pub radius: ShapeRadius<LengthOrPercentage>,
+    pub radius: ShapeRadius<NonNegativeLengthOrPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-ellipse>
@@ -141,12 +162,13 @@ pub struct Circle<H, V, LengthOrPercentage> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
 )]
-pub struct Ellipse<H, V, LengthOrPercentage> {
+pub struct Ellipse<H, V, NonNegativeLengthOrPercentage> {
     pub position: Position<H, V>,
-    pub semiaxis_x: ShapeRadius<LengthOrPercentage>,
-    pub semiaxis_y: ShapeRadius<LengthOrPercentage>,
+    pub semiaxis_x: ShapeRadius<NonNegativeLengthOrPercentage>,
+    pub semiaxis_y: ShapeRadius<NonNegativeLengthOrPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#typedef-shape-radius>
@@ -160,11 +182,12 @@ pub struct Ellipse<H, V, LengthOrPercentage> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
     ToCss,
 )]
-pub enum ShapeRadius<LengthOrPercentage> {
-    Length(LengthOrPercentage),
+pub enum ShapeRadius<NonNegativeLengthOrPercentage> {
+    Length(NonNegativeLengthOrPercentage),
     #[animation(error)]
     ClosestSide,
     #[animation(error)]
@@ -175,7 +198,16 @@ pub enum ShapeRadius<LengthOrPercentage> {
 ///
 /// <https://drafts.csswg.org/css-shapes/#funcdef-polygon>
 #[css(comma, function)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+)]
 pub struct Polygon<LengthOrPercentage> {
     /// The filling rule for a polygon.
     #[css(skip_if = "fill_is_default")]
@@ -186,7 +218,16 @@ pub struct Polygon<LengthOrPercentage> {
 }
 
 /// Coordinates for Polygon.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+)]
 pub struct PolygonCoord<LengthOrPercentage>(pub LengthOrPercentage, pub LengthOrPercentage);
 
 // https://drafts.csswg.org/css-shapes/#typedef-fill-rule
@@ -204,6 +245,7 @@ pub struct PolygonCoord<LengthOrPercentage>(pub LengthOrPercentage, pub LengthOr
     Parse,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
     ToCss,
 )]
@@ -218,7 +260,15 @@ pub enum FillRule {
 /// https://drafts.csswg.org/css-shapes-2/#funcdef-path
 #[css(comma)]
 #[derive(
-    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Animate,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
 )]
 pub struct Path {
     /// The filling rule for the svg path.

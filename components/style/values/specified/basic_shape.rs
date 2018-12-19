@@ -32,19 +32,26 @@ pub type ClippingShape = generic::ClippingShape<BasicShape, SpecifiedUrl>;
 pub type FloatAreaShape = generic::FloatAreaShape<BasicShape, Image>;
 
 /// A specified basic shape.
-pub type BasicShape = generic::BasicShape<HorizontalPosition, VerticalPosition, LengthOrPercentage, NonNegativeLengthOrPercentage>;
+pub type BasicShape = generic::BasicShape<
+    HorizontalPosition,
+    VerticalPosition,
+    LengthOrPercentage,
+    NonNegativeLengthOrPercentage,
+>;
 
 /// The specified value of `inset()`
 pub type InsetRect = generic::InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage>;
 
 /// A specified circle.
-pub type Circle = generic::Circle<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
+pub type Circle =
+    generic::Circle<HorizontalPosition, VerticalPosition, NonNegativeLengthOrPercentage>;
 
 /// A specified ellipse.
-pub type Ellipse = generic::Ellipse<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
+pub type Ellipse =
+    generic::Ellipse<HorizontalPosition, VerticalPosition, NonNegativeLengthOrPercentage>;
 
 /// The specified value of `ShapeRadius`
-pub type ShapeRadius = generic::ShapeRadius<LengthOrPercentage>;
+pub type ShapeRadius = generic::ShapeRadius<NonNegativeLengthOrPercentage>;
 
 /// The specified value of `Polygon`
 pub type Polygon = generic::Polygon<LengthOrPercentage>;
@@ -309,7 +316,7 @@ impl Parse for ShapeRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+        if let Ok(lop) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
             return Ok(generic::ShapeRadius::Length(lop));
         }
 

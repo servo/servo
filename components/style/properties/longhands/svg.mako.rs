@@ -88,7 +88,7 @@ ${helpers.predefined_type(
     "generics::basic_shape::ShapeSource::None",
     products="gecko",
     boxed=True,
-    animation_value_type="ComputedValue",
+    animation_value_type="basic_shape::ClippingShape",
     flags="CREATES_STACKING_CONTEXT",
     spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path",
 )}
