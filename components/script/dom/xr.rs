@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VRBinding;
-use crate::dom::bindings::codegen::Bindings::VRBinding::VRMethods;
+use crate::dom::bindings::codegen::Bindings::XRBinding;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -26,38 +25,37 @@ use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVREvent, WebVRMsg};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
 
 #[dom_struct]
-pub struct VR {
-    reflector_: Reflector,
+pub struct XR {
+    eventtarget: EventTarget,
     displays: DomRefCell<Vec<Dom<VRDisplay>>>,
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
 }
 
-impl VR {
-    fn new_inherited() -> VR {
-        VR {
-            reflector_: Reflector::new(),
+impl XR {
+    fn new_inherited() -> XR {
+        XR {
+            eventtarget: EventTarget::new_inherited(),
             displays: DomRefCell::new(Vec::new()),
             gamepads: DomRefCell::new(Vec::new()),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<VR> {
-        let root = reflect_dom_object(Box::new(VR::new_inherited()), global, VRBinding::Wrap);
+    pub fn new(global: &GlobalScope) -> DomRoot<XR> {
+        let root = reflect_dom_object(Box::new(XR::new_inherited()), global, XRBinding::Wrap);
         root.register();
         root
     }
 }
 
-impl Drop for VR {
+impl Drop for XR {
     fn drop(&mut self) {
         self.unregister();
     }
 }
 
-impl VRMethods for VR {
+impl XR {
     #[allow(unrooted_must_root)]
-    // https://w3c.github.io/webvr/#interface-navigator
-    fn GetDisplays(&self) -> Rc<Promise> {
+    pub fn get_displays(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.global());
 
         if let Some(webvr_thread) = self.webvr_thread() {
@@ -93,9 +91,7 @@ impl VRMethods for VR {
 
         promise
     }
-}
 
-impl VR {
     fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.global().as_window().webvr_thread()
     }
@@ -209,7 +205,7 @@ impl VR {
 }
 
 // Gamepad
-impl VR {
+impl XR {
     fn find_gamepad(&self, gamepad_id: u32) -> Option<DomRoot<Gamepad>> {
         self.gamepads
             .borrow()
