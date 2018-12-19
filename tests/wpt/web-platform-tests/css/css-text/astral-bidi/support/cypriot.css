@@ -1,9 +1,0 @@
-@font-face {
-    font-family: "Noto Sans Cypriot";
-    font-weight: normal;
-    font-style: normal;
-    src: url("/fonts/noto/NotoSansCypriot-hinted/NotoSansCypriot-Regular.ttf") format("truetype");
-}
-p {
-    font-family: "Noto Sans Cypriot";
-}
