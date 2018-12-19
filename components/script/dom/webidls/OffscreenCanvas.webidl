@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-typedef (OffscreenCanvasRenderingContext2D or WebGLRenderingContext or WebGL2RenderingContext) OffscreenRenderingContext;
+// https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface
+typedef (OffscreenCanvasRenderingContext2D or WebGLRenderingContext or WebGL2RenderingContext)
+OffscreenRenderingContext;
 
 dictionary ImageEncodeOptions {
   DOMString type = "image/png";
@@ -12,7 +13,8 @@ dictionary ImageEncodeOptions {
 
 //enum OffscreenRenderingContextId { "2d", "webgl", "webgl2" };
 
-[Constructor([EnforceRange] unsigned long long width, [EnforceRange] unsigned long long height), Exposed=(Window,Worker)/*, Transferable*/, Pref="dom.offscreen_canvas.enabled"]
+[Constructor([EnforceRange] unsigned long long width, [EnforceRange] unsigned long long height),
+Exposed=(Window,Worker)/*, Transferable*/, Pref="dom.offscreen_canvas.enabled"]
 interface OffscreenCanvas : EventTarget {
   attribute /*[EnforceRange]*/ unsigned long long width;
   attribute /*[EnforceRange]*/ unsigned long long height;

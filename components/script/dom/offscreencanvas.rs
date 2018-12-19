@@ -6,15 +6,15 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     OffscreenCanvasMethods, OffscreenRenderingContext, Wrap as OffscreenCanvasWrap,
 };
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
-use crate::dom::bindings::reflector::DomObject;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::jsapi::JSContext;
@@ -106,6 +106,7 @@ impl OffscreenCanvas {
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
+    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext
     #[allow(unsafe_code)]
     unsafe fn GetContext(
         &self,
@@ -127,19 +128,23 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width
     fn Width(&self) -> u64 {
         return self.width.get();
     }
 
-    fn SetWidth(&self, value: u64) -> () {
+    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width
+    fn SetWidth(&self, value: u64) {
         self.width.set(value);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
     fn Height(&self) -> u64 {
         return self.height.get();
     }
 
-    fn SetHeight(&self, value: u64) -> () {
+    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
+    fn SetHeight(&self, value: u64) {
         self.height.set(value);
     }
 }
