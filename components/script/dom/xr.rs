@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::XRBinding;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
+use crate::dom::bindings::codegen::Bindings::XRBinding;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
