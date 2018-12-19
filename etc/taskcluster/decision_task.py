@@ -363,7 +363,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
     task.with_script("""
         ./mach test-wpt \
             --release \
-            --processes 8 \
+            --processes 4 \
             --total-chunks "$TOTAL_CHUNKS" \
             --this-chunk "$THIS_CHUNK" \
             --log-raw test-wpt.log \
