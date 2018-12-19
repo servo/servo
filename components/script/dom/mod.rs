@@ -518,4 +518,7 @@ pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
 pub mod xr;
+pub mod xrframe;
+pub mod xrlayer;
 pub mod xrsession;
+pub mod xrwebgllayer;
