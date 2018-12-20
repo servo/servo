@@ -865,11 +865,7 @@ impl WindowMethods for Window {
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
-            "/" => {
-                // TODO(#12715): Should be the origin of the incumbent settings
-                //               object, not self's.
-                Some(self.Document().origin().immutable().clone())
-            },
+            "/" => Some(source.Document().origin().immutable().clone()),
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
