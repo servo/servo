@@ -6,8 +6,8 @@
 [SecureContext, Exposed=Window]
 interface XR: EventTarget {
   // Methods
-  // Promise<void> supportsSessionMode(XRSessionMode mode);
-  // Promise<XRSession> requestSession(optional XRSessionCreationOptions parameters);
+  Promise<void> supportsSessionMode(XRSessionMode mode);
+  Promise<XRSession> requestSession(optional XRSessionCreationOptions parameters);
 
   // Events
   // attribute EventHandler ondevicechange;

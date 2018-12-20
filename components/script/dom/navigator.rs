@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -148,7 +149,13 @@ impl NavigatorMethods for Navigator {
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
     #[allow(unrooted_must_root)]
     fn GetVRDisplays(&self) -> Rc<Promise> {
-        self.Xr().get_displays()
+        let promise = Promise::new(&self.global());
+        let displays = self.Xr().get_displays();
+        match displays {
+            Ok(displays) => promise.resolve_native(&displays),
+            Err(e) => promise.reject_error(Error::Security),
+        }
+        promise
     }
 
     fn Xr(&self) -> DomRoot<XR> {
