@@ -1,4 +1,4 @@
-// META: global=worker
+// META: global=worker,jsshell
 'use strict';
 
 // Tests which patch the global environment are kept separate to avoid

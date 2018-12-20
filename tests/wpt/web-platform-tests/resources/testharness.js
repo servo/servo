@@ -513,7 +513,7 @@ policies and contribution forms [3].
             return new DedicatedWorkerTestEnvironment();
         }
 
-        if (!('self' in global_scope)) {
+        if (!('location' in global_scope)) {
             return new ShellTestEnvironment();
         }
 

@@ -11,8 +11,10 @@ from .utils import from_os_path, to_os_path
 
 try:
     import ujson as json
+    JSON_LIBRARY = 'ujson'
 except ImportError:
     import json
+    JSON_LIBRARY = 'json'
 
 CURRENT_VERSION = 5
 
@@ -473,5 +475,12 @@ def write(manifest, manifest_path):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     with open(manifest_path, "wb") as f:
-        json.dump(manifest.to_json(), f, sort_keys=True, indent=1)
+        if JSON_LIBRARY == 'ujson':
+            # ujson does not support the separators flag.
+            json.dump(manifest.to_json(), f, sort_keys=True, indent=1)
+        else:
+            # Use ',' instead of the default ', ' separator to prevent trailing
+            # spaces: https://docs.python.org/2/library/json.html#json.dump
+            json.dump(manifest.to_json(), f,
+                      sort_keys=True, indent=1, separators=(',', ': '))
         f.write("\n")
