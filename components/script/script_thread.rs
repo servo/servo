@@ -2851,6 +2851,21 @@ impl ScriptThread {
 
         window.init_document(&document);
 
+        // For any similar-origin iframe, ensure that the contentWindow/contentDocument
+        // APIs resolve to the new window/document as soon as parsing starts.
+        if let Some(frame) = window_proxy
+            .frame_element()
+            .and_then(|e| e.downcast::<HTMLIFrameElement>())
+        {
+            let parent_pipeline = frame.global().pipeline_id();
+            self.handle_update_pipeline_id(
+                parent_pipeline,
+                window_proxy.browsing_context_id(),
+                incomplete.pipeline_id,
+                UpdatePipelineIdReason::Navigation,
+            );
+        }
+
         self.script_sender
             .send((incomplete.pipeline_id, ScriptMsg::ActivateDocument))
             .unwrap();
