@@ -12,12 +12,12 @@ enum XREnvironmentBlendMode {
 
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // // Attributes
-  // readonly attribute XRSessionMode mode;
+  readonly attribute XRSessionMode mode;
   // readonly attribute XRPresentationContext outputContext;
   // readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
-  // attribute double depthNear;
-  // attribute double depthFar;
+  attribute double depthNear;
+  attribute double depthFar;
   // attribute XRLayer baseLayer;
 
   // // Methods

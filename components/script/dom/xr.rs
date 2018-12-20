@@ -5,6 +5,8 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding;
+use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionCreationOptions;
+use crate::dom::bindings::codegen::Bindings::XRBinding::{XRMethods, XRSessionMode};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -17,6 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
+use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
@@ -53,15 +56,59 @@ impl Drop for XR {
     }
 }
 
+impl XRMethods for XR {
+    #[allow(unrooted_must_root)]
+    fn SupportsSessionMode(&self, mode: XRSessionMode) -> Rc<Promise> {
+        // XXXManishearth this should select an XR device first
+        let promise = Promise::new(&self.global());
+        if mode == XRSessionMode::Immersive_vr {
+            promise.resolve_native(&());
+        } else {
+            // XXXManishearth support other modes
+            promise.reject_error(Error::NotSupported);
+        }
+
+        promise
+    }
+
+    #[allow(unrooted_must_root)]
+    fn RequestSession(&self, options: &XRSessionCreationOptions) -> Rc<Promise> {
+        let promise = Promise::new(&self.global());
+        if options.mode != XRSessionMode::Immersive_vr {
+            promise.reject_error(Error::NotSupported);
+            return promise;
+        }
+
+        let displays = self.get_displays();
+
+        let displays = match displays {
+            Ok(d) => d,
+            Err(_) => {
+                promise.reject_native(&());
+                return promise;
+            },
+        };
+
+        if displays.is_empty() {
+            promise.reject_error(Error::Security);
+        }
+
+        let session = XRSession::new(&self.global(), &displays[0]);
+        promise.resolve_native(&session);
+
+        promise
+    }
+}
+
 impl XR {
     #[allow(unrooted_must_root)]
-    pub fn get_displays(&self) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
-
+    pub fn get_displays(&self) -> Result<Vec<DomRoot<VRDisplay>>, ()> {
         if let Some(webvr_thread) = self.webvr_thread() {
             let (sender, receiver) =
                 ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             webvr_thread.send(WebVRMsg::GetDisplays(sender)).unwrap();
+
+            // FIXME(#22505) we should not block here and instead produce a promise
             match receiver.recv().unwrap() {
                 Ok(displays) => {
                     // Sync displays
@@ -69,27 +116,19 @@ impl XR {
                         self.sync_display(&display);
                     }
                 },
-                Err(e) => {
-                    promise.reject_native(&e);
-                    return promise;
-                },
+                Err(e) => return Err(()),
             }
         } else {
             // WebVR spec: The Promise MUST be rejected if WebVR is not enabled/supported.
-            promise.reject_error(Error::Security);
-            return promise;
+            return Err(());
         }
 
         // convert from Dom to DomRoot
-        let displays: Vec<DomRoot<VRDisplay>> = self
-            .displays
+        Ok(self.displays
             .borrow()
             .iter()
             .map(|d| DomRoot::from_ref(&**d))
-            .collect();
-        promise.resolve_native(&displays);
-
-        promise
+            .collect())
     }
 
     fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
