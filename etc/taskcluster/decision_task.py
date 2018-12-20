@@ -342,7 +342,7 @@ def linux_wpt():
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run"))
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               total_chunks=8, processes=2)
+               total_chunks=10, processes=2)
 
 
 def macos_wpt():
