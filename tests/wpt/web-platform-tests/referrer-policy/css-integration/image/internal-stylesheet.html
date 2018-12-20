@@ -16,27 +16,25 @@
     <div class="styled"></div>
 
     <script>
-      var css_test = async_test("Image from internal stylesheet.");
-      var id = token();
-      var css_url = location.protocol + "//www1." + location.hostname + ":" + location.port + "/referrer-policy/generic/subresource/image.py" + "?id=" + id;
-      var img_url = css_url + "&report-headers";
+      async_test(function(css_test) {
+        var id = token();
+        var css_url = location.protocol + "//www1." + location.hostname + ":" + location.port + "/referrer-policy/generic/subresource/image.py" + "?id=" + id;
+        var img_url = css_url + "&report-headers";
 
-      var style = document.createElement("style");
-      style.type = 'text/css';
-      style.appendChild(document.createTextNode("div.styled::before { content:url(" + css_url + ")}"));
-      document.head.appendChild(style);
-      css_test.step_timeout(
-          queryXhr.bind(this, img_url,
-                        function(message) {
-                          css_test.step(function() {
-                            assert_own_property(message, "headers");
-                            assert_own_property(message, "referrer");
-                            assert_equals(message.referrer, location.origin + "/");
-                          });
-                          css_test.done();
-                        }),
-          1000);
-      </script>
+        var style = document.createElement("style");
+        style.type = 'text/css';
+        style.appendChild(document.createTextNode("div.styled::before { content:url(" + css_url + ")}"));
+        document.head.appendChild(style);
+        css_test.step_timeout(function() {
+          queryXhr(img_url, function(message) {
+            assert_own_property(message, "headers");
+            assert_own_property(message, "referrer");
+            assert_equals(message.referrer, location.origin + "/");
+            css_test.done();
+          }, null, null, css_test);
+        }, 1000);
+      }, "Image from internal stylesheet.");
+    </script>
 
     <div id="log"></div>
   </body>

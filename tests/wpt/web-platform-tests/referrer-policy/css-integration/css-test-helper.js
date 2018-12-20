@@ -33,22 +33,18 @@ function runSvgTests(testProperties, testDescription, testFunction) {
       property: property,
     };
 
-    testFunction(current);
+    current.test.step(function() { testFunction(current) });
 
     let check_url = url_prefix + "svg.py" + "?id=" + current.id +
                     "&report-headers";
-    current.test.step_timeout(
-      queryXhr.bind(this, check_url,
-                    function(message) {
-                      current.test.step(function() {
-                        assert_own_property(message, "headers");
-                        assert_own_property(message, "referrer");
-                        assert_equals(message.referrer, current.expected);
-                      });
-                      current.test.done();
-                    }),
-      800);
-
+    current.test.step_timeout(function() {
+      queryXhr(check_url, function(message) {
+          assert_own_property(message, "headers");
+          assert_own_property(message, "referrer");
+          assert_equals(message.referrer, current.expected);
+          current.test.done();
+      }, null, null, current.test);
+    }, 800);
   };
 
   add_result_callback(runNextTest);
