@@ -571,7 +571,11 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    #[cfg(any(target_os = "android", target_arch="arm"))]
+    #[cfg(any(
+        target_os = "android",
+        target_arch = "arm",
+        target_arch = "aarch64"
+    ))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
         use ipc_channel::ipc::IpcOneShotServer;
         // Note that this function can panic, due to process creation,
@@ -593,7 +597,13 @@ impl UnprivilegedPipelineContent {
         Ok(())
     }
 
-    #[cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch="arm")))]
+    #[cfg(all(
+        not(target_os = "windows"),
+        not(target_os = "ios"),
+        not(target_os = "android"),
+        not(target_arch = "arm"),
+        not(target_arch = "aarch64")
+    ))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
         use crate::sandboxing::content_process_sandbox_profile;
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
