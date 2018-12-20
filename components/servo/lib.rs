@@ -68,14 +68,14 @@ use canvas::webgl_thread::WebGLThreads;
 use compositing::compositor_thread::{CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use compositing::{IOCompositor, RenderNotifier, ShutdownState};
-#[cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android")))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch="arm")))]
 use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
-#[cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android")))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch="arm")))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
@@ -661,14 +661,14 @@ pub fn run_content_process(token: String) {
                                      );
 }
 
-#[cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android")))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch="arm")))]
 fn create_sandbox() {
     ChildSandbox::new(content_process_sandbox_profile())
         .activate()
         .expect("Failed to activate sandbox!");
 }
 
-#[cfg(any(target_os = "windows", target_os = "ios", target_os = "android"))]
+#[cfg(any(target_os = "windows", target_os = "ios", target_os = "android", target_arch="arm"))]
 fn create_sandbox() {
-    panic!("Sandboxing is not supported on Windows, iOS and android.");
+    panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
 }
