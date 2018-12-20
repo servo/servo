@@ -859,6 +859,9 @@ impl WindowMethods for Window {
         message: HandleValue,
         origin: DOMString,
     ) -> ErrorResult {
+        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
+        let source = source_global.as_window();
+
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
@@ -878,7 +881,7 @@ impl WindowMethods for Window {
         let data = StructuredCloneData::write(cx, message)?;
 
         // Step 9.
-        self.post_message(origin, data);
+        self.post_message(origin, &*source.window_proxy(), data);
         Ok(())
     }
 
@@ -2194,11 +2197,14 @@ impl Window {
     pub fn post_message(
         &self,
         target_origin: Option<ImmutableOrigin>,
+        source: &WindowProxy,
         serialize_with_transfer_result: StructuredCloneData,
     ) {
         let this = Trusted::new(self);
+        let source = Trusted::new(source);
         let task = task!(post_serialised_message: move || {
             let this = this.root();
+            let source = source.root();
 
             // Step 7.1.
             if let Some(target_origin) = target_origin {
@@ -2226,7 +2232,8 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
-                None
+                None,
+                Some(&*source),
             );
         });
         // FIXME(nox): Why are errors silenced here?

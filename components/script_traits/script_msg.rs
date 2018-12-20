@@ -134,7 +134,16 @@ pub enum ScriptMsg {
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
-    PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
+    PostMessage {
+        /// The target of the posted message.
+        target: BrowsingContextId,
+        /// The source of the posted message.
+        source: PipelineId,
+        /// The expected origin of the target.
+        target_origin: Option<ImmutableOrigin>,
+        /// The data to be posted.
+        data: Vec<u8>,
+    },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
     NavigatedToFragment(ServoUrl, bool),
     /// HTMLIFrameElement Forward or Back traversal.
@@ -209,7 +218,7 @@ impl fmt::Debug for ScriptMsg {
             LoadComplete => "LoadComplete",
             LoadUrl(..) => "LoadUrl",
             AbortLoadUrl => "AbortLoadUrl",
-            PostMessage(..) => "PostMessage",
+            PostMessage { .. } => "PostMessage",
             NavigatedToFragment(..) => "NavigatedToFragment",
             TraverseHistory(..) => "TraverseHistory",
             PushHistoryState(..) => "PushHistoryState",
