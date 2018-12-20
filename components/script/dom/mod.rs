@@ -521,6 +521,7 @@ pub mod xr;
 pub mod xrframe;
 pub mod xrlayer;
 pub mod xrreferencespace;
+pub mod xrrigidtransform;
 pub mod xrsession;
 pub mod xrspace;
 pub mod xrstationaryreferencespace;
