@@ -524,5 +524,6 @@ pub mod xrreferencespace;
 pub mod xrsession;
 pub mod xrspace;
 pub mod xrstationaryreferencespace;
+pub mod xrview;
 pub mod xrviewerpose;
 pub mod xrwebgllayer;
