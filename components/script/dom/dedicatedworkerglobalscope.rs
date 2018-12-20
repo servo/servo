@@ -424,7 +424,7 @@ impl DedicatedWorkerGlobalScope {
                     JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
-                MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), None);
+                MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), None, None);
             },
             WorkerScriptMsg::Common(msg) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);
