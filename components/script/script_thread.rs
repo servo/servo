@@ -1411,7 +1411,7 @@ impl ScriptThread {
                     ChangeFrameVisibilityStatus(id, ..) => Some(id),
                     NotifyVisibilityChange(id, ..) => Some(id),
                     Navigate(id, ..) => Some(id),
-                    PostMessage(id, ..) => Some(id),
+                    PostMessage { target: id, .. } => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
                     UpdateHistoryState(id, ..) => Some(id),
                     RemoveHistoryStates(id, ..) => Some(id),
@@ -1581,9 +1581,19 @@ impl ScriptThread {
                 browsing_context_id,
                 visible,
             ),
-            ConstellationControlMsg::PostMessage(pipeline_id, origin, data) => {
-                self.handle_post_message_msg(pipeline_id, origin, data)
-            },
+            ConstellationControlMsg::PostMessage {
+                target: target_pipeline_id,
+                source: source_pipeline_id,
+                source_browsing_context,
+                target_origin: origin,
+                data,
+            } => self.handle_post_message_msg(
+                target_pipeline_id,
+                source_pipeline_id,
+                source_browsing_context,
+                origin,
+                data,
+            ),
             ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
@@ -2071,12 +2081,33 @@ impl ScriptThread {
     fn handle_post_message_msg(
         &self,
         pipeline_id: PipelineId,
+        source_pipeline_id: PipelineId,
+        source_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
         data: Vec<u8>,
     ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
-            None => return warn!("postMessage after pipeline {} closed.", pipeline_id),
-            Some(window) => window.post_message(origin, StructuredCloneData::Vector(data)),
+            None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
+            Some(window) => {
+                // FIXME: synchronously talks to constellation.
+                // send the required info as part of postmessage instead.
+                let source = match self.remote_window_proxy(
+                    &*window.global(),
+                    source_browsing_context,
+                    source_pipeline_id,
+                    None,
+                ) {
+                    None => {
+                        return warn!(
+                            "postMessage after source pipeline {} closed.",
+                            source_pipeline_id,
+                        )
+                    },
+                    Some(source) => source,
+                };
+                // FIXME: enqueues a task; unnecessary delay.
+                window.post_message(origin, &*source, StructuredCloneData::Vector(data))
+            },
         }
     }
 

@@ -1221,8 +1221,13 @@ where
                     warn!("constellation got set final url message for dead pipeline");
                 }
             },
-            FromScriptMsg::PostMessage(browsing_context_id, origin, data) => {
-                self.handle_post_message_msg(browsing_context_id, origin, data);
+            FromScriptMsg::PostMessage {
+                target: browsing_context_id,
+                source: source_pipeline_id,
+                target_origin: origin,
+                data,
+            } => {
+                self.handle_post_message_msg(browsing_context_id, source_pipeline_id, origin, data);
             },
             FromScriptMsg::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
@@ -2775,6 +2780,7 @@ where
     fn handle_post_message_msg(
         &mut self,
         browsing_context_id: BrowsingContextId,
+        source_pipeline: PipelineId,
         origin: Option<ImmutableOrigin>,
         data: Vec<u8>,
     ) {
@@ -2787,7 +2793,17 @@ where
             },
             Some(browsing_context) => browsing_context.pipeline_id,
         };
-        let msg = ConstellationControlMsg::PostMessage(pipeline_id, origin, data);
+        let source_browsing_context = match self.pipelines.get(&source_pipeline) {
+            Some(pipeline) => pipeline.top_level_browsing_context_id,
+            None => return warn!("PostMessage from closed pipeline {:?}", source_pipeline),
+        };
+        let msg = ConstellationControlMsg::PostMessage {
+            target: pipeline_id,
+            source: source_pipeline,
+            source_browsing_context: source_browsing_context,
+            target_origin: origin,
+            data,
+        };
         let result = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.event_loop.send(msg),
             None => return warn!("postMessage to closed pipeline {}.", pipeline_id),
