@@ -89,12 +89,15 @@ impl XRMethods for XR {
             },
         };
 
+        // XXXManishearth filter for displays which can_present
         if displays.is_empty() {
             promise.reject_error(Error::Security);
         }
 
         let session = XRSession::new(&self.global(), &displays[0]);
         promise.resolve_native(&session);
+        // whether or not we should initiate presentation is unclear
+        // https://github.com/immersive-web/webxr/issues/453
 
         promise
     }
