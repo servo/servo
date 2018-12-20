@@ -74,6 +74,8 @@ pub struct VRDisplay {
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
+    /// Whether or not this is XR mode
+    xr: Cell<bool>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayData);
@@ -129,6 +131,7 @@ impl VRDisplay {
             // This flag is set when the Display was presenting when it received a VR Pause event.
             // When the VR Resume event is received and the flag is set, VR presentation automatically restarts.
             stopped_on_pause: Cell::new(false),
+            xr: Cell::new(false),
         }
     }
 
@@ -551,8 +554,8 @@ impl VRDisplay {
                     let this = address.clone();
                     let sender = raf_sender.clone();
                     let task = Box::new(task!(handle_vrdisplay_raf: move || {
-                    this.root().handle_raf(&sender);
-                }));
+                        this.root().handle_raf(&sender);
+                    }));
                     // NOTE: WebVR spec doesn't specify what task source we should use. Is
                     // dom-manipulation a good choice long term?
                     js_sender

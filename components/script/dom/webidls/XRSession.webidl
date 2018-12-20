@@ -18,7 +18,7 @@ enum XREnvironmentBlendMode {
 
   attribute double depthNear;
   attribute double depthFar;
-  // attribute XRLayer baseLayer;
+  attribute XRLayer? baseLayer;
 
   // // Methods
   // Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type, optional XRReferenceSpaceOptions options);

@@ -7,10 +7,11 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrdisplay::VRDisplay;
+use crate::dom::xrlayer::XRLayer;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -20,6 +21,7 @@ pub struct XRSession {
     display: Dom<VRDisplay>,
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
+    base_layer: MutNullableDom<XRLayer>,
 }
 
 impl XRSession {
@@ -29,6 +31,7 @@ impl XRSession {
             display: Dom::from_ref(display),
             depth_near: Cell::new(0.1),
             depth_far: Cell::new(1000.),
+            base_layer: Default::default(),
         }
     }
 
@@ -60,5 +63,13 @@ impl XRSessionMethods for XRSession {
 
     fn Mode(&self) -> XRSessionMode {
         XRSessionMode::Immersive_vr
+    }
+
+    fn SetBaseLayer(&self, layer: Option<&XRLayer>) {
+        self.base_layer.set(layer)
+    }
+
+    fn GetBaseLayer(&self) -> Option<DomRoot<XRLayer>> {
+        self.base_layer.get()
     }
 }
