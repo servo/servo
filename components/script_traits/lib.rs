@@ -284,7 +284,18 @@ pub enum ConstellationControlMsg {
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     Navigate(PipelineId, BrowsingContextId, LoadData, bool),
     /// Post a message to a given window.
-    PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
+    PostMessage {
+        /// The target of the message.
+        target: PipelineId,
+        /// The source of the message.
+        source: PipelineId,
+        /// The top level browsing context associated with the source pipeline.
+        source_browsing_context: TopLevelBrowsingContextId,
+        /// The expected origin of the target.
+        target_origin: Option<ImmutableOrigin>,
+        /// The data to be posted.
+        data: Vec<u8>,
+    },
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
     UpdatePipelineId(
@@ -358,7 +369,7 @@ impl fmt::Debug for ConstellationControlMsg {
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
-            PostMessage(..) => "PostMessage",
+            PostMessage { .. } => "PostMessage",
             UpdatePipelineId(..) => "UpdatePipelineId",
             UpdateHistoryState(..) => "UpdateHistoryState",
             RemoveHistoryStates(..) => "RemoveHistoryStates",

@@ -238,6 +238,7 @@ impl EventSourceContext {
                 false,
                 data.handle(),
                 DOMString::from(self.origin.clone()),
+                None,
                 event_source.last_event_id.borrow().clone(),
             )
         };
