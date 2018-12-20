@@ -5,6 +5,8 @@
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -12,6 +14,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrlayer::XRLayer;
+use crate::dom::xrwebgllayer::XRWebGLLayer;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -66,7 +69,14 @@ impl XRSessionMethods for XRSession {
     }
 
     fn SetBaseLayer(&self, layer: Option<&XRLayer>) {
-        self.base_layer.set(layer)
+        self.base_layer.set(layer);
+        if let Some(layer) = layer {
+            let layer = layer.downcast::<XRWebGLLayer>().unwrap();
+            self.display.xr_present(&layer.Context());
+        } else {
+            // steps unknown
+            // https://github.com/immersive-web/webxr/issues/453
+        }
     }
 
     fn GetBaseLayer(&self) -> Option<DomRoot<XRLayer>> {

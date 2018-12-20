@@ -664,6 +664,35 @@ impl VRDisplay {
     }
 }
 
+// XR stuff
+// XXXManishearth eventually we should share as much logic as possible
+impl VRDisplay {
+    pub fn xr_present(&self, ctx: &WebGLRenderingContext) {
+        let layer_bounds = WebVRLayer::default();
+        self.xr.set(true);
+        if self.presenting.get() {
+            *self.layer.borrow_mut() = layer_bounds;
+            self.layer_ctx.set(Some(&ctx));
+            return;
+        }
+
+        // Request Present
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::RequestPresent(
+                self.global().pipeline_id(),
+                self.display.borrow().display_id,
+                sender,
+            )).unwrap();
+
+        if let Ok(()) = receiver.recv().unwrap() {
+            *self.layer.borrow_mut() = layer_bounds;
+            self.layer_ctx.set(Some(&ctx));
+            self.init_present();
+        }
+    }
+}
+
 // WebVR Spec: If the number of values in the leftBounds/rightBounds arrays
 // is not 0 or 4 for any of the passed layers the promise is rejected
 fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<(), &'static str> {
