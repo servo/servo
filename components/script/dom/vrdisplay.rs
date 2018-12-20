@@ -74,6 +74,8 @@ pub struct VRDisplay {
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
+    /// Whether or not this is XR mode
+    xr: Cell<bool>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayData);
@@ -129,6 +131,7 @@ impl VRDisplay {
             // This flag is set when the Display was presenting when it received a VR Pause event.
             // When the VR Resume event is received and the flag is set, VR presentation automatically restarts.
             stopped_on_pause: Cell::new(false),
+            xr: Cell::new(false),
         }
     }
 
