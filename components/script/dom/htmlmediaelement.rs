@@ -181,7 +181,6 @@ pub struct HTMLMediaElement {
     player: Box<Player>,
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
-    fetch_canceller: DomRefCell<FetchCanceller>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
@@ -206,7 +205,7 @@ pub struct HTMLMediaElement {
     next_timeupdate_event: Cell<Timespec>,
     /// Latest fetch request context.
     #[ignore_malloc_size_of = "Arc"]
-    current_fetch_request: DomRefCell<Option<Arc<Mutex<HTMLMediaElementContext>>>>,
+    current_fetch_request: DomRefCell<Option<Arc<Mutex<HTMLMediaElementFetchContext>>>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -253,7 +252,6 @@ impl HTMLMediaElement {
             frame_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
                 document.window().get_webrender_api_sender(),
             ))),
-            fetch_canceller: DomRefCell::new(Default::default()),
             show_poster: Cell::new(true),
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
@@ -674,11 +672,12 @@ impl HTMLMediaElement {
                 .unwrap()
                 .cancel(CancelReason::Overridden);
         }
-        let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(
+        let (context, cancel_receiver) = HTMLMediaElementFetchContext::new(
             self,
             self.resource_url.borrow().as_ref().unwrap().clone(),
             offset.unwrap_or(0),
-        )));
+        );
+        let context = Arc::new(Mutex::new(context));
         *current_fetch_request = Some(context.clone());
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let window = window_from_node(self);
@@ -696,12 +695,6 @@ impl HTMLMediaElement {
                 listener.notify_fetch(message.to().unwrap());
             }),
         );
-        // This method may be called the first time we try to fetch the media
-        // resource (from the start or from the last byte fetched before an
-        // EnoughData event was received) or after a seek is requested. In
-        // the latter case, we need to cancel any previous on-going request.
-        // initialize() takes care of cancelling previous fetches if any exist.
-        let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
         let global = self.global();
         global
             .core_resource_thread()
@@ -908,7 +901,12 @@ impl HTMLMediaElement {
             task_source.queue_simple_event(self.upcast(), atom!("emptied"), &window);
 
             // Step 6.2.
-            self.fetch_canceller.borrow_mut().cancel();
+            if let Some(ref current_fetch_request) = *self.current_fetch_request.borrow() {
+                current_fetch_request
+                    .lock()
+                    .unwrap()
+                    .cancel(CancelReason::Error);
+            }
 
             // Step 6.3.
             // FIXME(nox): Detach MediaSource media provider object.
@@ -1222,6 +1220,11 @@ impl HTMLMediaElement {
                     let current_fetch_request = current_fetch_request.lock().unwrap();
                     match current_fetch_request.cancel_reason() {
                         Some(ref reason) if *reason == CancelReason::Backoff => {
+                            // XXX(ferjm) Ideally we should just create a fetch request from
+                            // where we left. But keeping track of the exact next byte that the
+                            // media backend expects is not the easiest task, so I'm simply
+                            // seeking to the current playback position for now which will create
+                            // a new fetch request for the last rendered frame.
                             self.seek(self.playback_position.get(), false)
                         },
                         _ => (),
@@ -1700,7 +1703,7 @@ enum CancelReason {
     Overridden,
 }
 
-pub struct HTMLMediaElementContext {
+pub struct HTMLMediaElementFetchContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLMediaElement>,
     /// The response metadata received to date.
@@ -1711,9 +1714,9 @@ pub struct HTMLMediaElementContext {
     next_progress_event: Timespec,
     /// Some if the request has been cancelled.
     cancel_reason: Option<CancelReason>,
-    /// timing data for this resource
+    /// Timing data for this resource.
     resource_timing: ResourceFetchTiming,
-    /// url for the resource
+    /// Url for the resource.
     url: ServoUrl,
     /// Expected content length of the media asset being fetched or played.
     expected_content_length: Option<u64>,
@@ -1725,10 +1728,13 @@ pub struct HTMLMediaElementContext {
     latest_fetched_content: u64,
     /// Indicates whether the request support ranges or not.
     supports_ranges: bool,
+    /// Fetch canceller. Allows cancelling the current fetch request by
+    /// manually calling its .cancel() method or automatically on Drop.
+    fetch_canceller: FetchCanceller,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-impl FetchResponseListener for HTMLMediaElementContext {
+impl FetchResponseListener for HTMLMediaElementFetchContext {
     fn process_request_body(&mut self) {}
 
     fn process_request_eof(&mut self) {}
@@ -1870,7 +1876,12 @@ impl FetchResponseListener for HTMLMediaElementContext {
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
             // Step 1
-            elem.fetch_canceller.borrow_mut().cancel();
+            if let Some(ref current_fetch_request) = *elem.current_fetch_request.borrow() {
+                current_fetch_request
+                    .lock()
+                    .unwrap()
+                    .cancel(CancelReason::Error);
+            }
 
             // Step 2
             elem.error.set(Some(&*MediaError::new(
@@ -1905,7 +1916,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
     }
 }
 
-impl ResourceTimingListener for HTMLMediaElementContext {
+impl ResourceTimingListener for HTMLMediaElementFetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         let initiator_type = InitiatorType::LocalName(
             self.elem
@@ -1922,28 +1933,38 @@ impl ResourceTimingListener for HTMLMediaElementContext {
     }
 }
 
-impl PreInvoke for HTMLMediaElementContext {
+impl PreInvoke for HTMLMediaElementFetchContext {
     fn should_invoke(&self) -> bool {
         //TODO: finish_load needs to run at some point if the generation changes.
         self.elem.root().generation_id.get() == self.generation_id
     }
 }
 
-impl HTMLMediaElementContext {
-    fn new(elem: &HTMLMediaElement, url: ServoUrl, offset: u64) -> HTMLMediaElementContext {
+impl HTMLMediaElementFetchContext {
+    fn new(
+        elem: &HTMLMediaElement,
+        url: ServoUrl,
+        offset: u64,
+    ) -> (HTMLMediaElementFetchContext, ipc::IpcReceiver<()>) {
         elem.generation_id.set(elem.generation_id.get() + 1);
-        HTMLMediaElementContext {
-            elem: Trusted::new(elem),
-            metadata: None,
-            generation_id: elem.generation_id.get(),
-            next_progress_event: time::get_time() + Duration::milliseconds(350),
-            cancel_reason: None,
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            url,
-            expected_content_length: None,
-            latest_fetched_content: offset,
-            supports_ranges: false,
-        }
+        let mut fetch_canceller = FetchCanceller::new();
+        let cancel_receiver = fetch_canceller.initialize();
+        (
+            HTMLMediaElementFetchContext {
+                elem: Trusted::new(elem),
+                metadata: None,
+                generation_id: elem.generation_id.get(),
+                next_progress_event: time::get_time() + Duration::milliseconds(350),
+                cancel_reason: None,
+                resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+                url,
+                expected_content_length: None,
+                latest_fetched_content: offset,
+                supports_ranges: false,
+                fetch_canceller,
+            },
+            cancel_receiver,
+        )
     }
 
     fn supports_ranges(&self) -> bool {
@@ -1955,9 +1976,7 @@ impl HTMLMediaElementContext {
             return;
         }
         self.cancel_reason = Some(reason);
-        // XXX(ferjm) move fetch_canceller to context.
-        let elem = self.elem.root();
-        elem.fetch_canceller.borrow_mut().cancel();
+        self.fetch_canceller.cancel();
     }
 
     fn cancel_reason(&self) -> &Option<CancelReason> {

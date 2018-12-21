@@ -38,7 +38,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
-use crate::dom::htmlmediaelement::{HTMLMediaElementContext, MediaFrameRenderer};
+use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -488,7 +488,7 @@ unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
-unsafe_no_jsmanaged_fields!(Mutex<HTMLMediaElementContext>);
+unsafe_no_jsmanaged_fields!(Mutex<HTMLMediaElementFetchContext>);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
