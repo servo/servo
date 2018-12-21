@@ -123,7 +123,7 @@ use metrics::{
 use mime::{self, Mime};
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -1712,7 +1712,7 @@ impl Document {
     pub fn fetch_async(
         &self,
         load: LoadType,
-        request: RequestInit,
+        request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
         let mut loader = self.loader.borrow_mut();

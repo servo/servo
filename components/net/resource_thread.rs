@@ -22,7 +22,7 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::request::{Destination, Request, RequestInit};
+use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::WebSocketNetworkEvent;
@@ -430,7 +430,7 @@ impl CoreResourceManager {
 
     fn fetch(
         &self,
-        req_init: RequestInit,
+        request_builder: RequestBuilder,
         res_init_: Option<ResponseInit>,
         mut sender: IpcSender<FetchResponseMsg>,
         http_state: &Arc<HttpState>,
@@ -441,15 +441,15 @@ impl CoreResourceManager {
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
 
-        let timing_type = match req_init.destination {
+        let timing_type = match request_builder.destination {
             Destination::Document => ResourceTimingType::Navigation,
             _ => ResourceTimingType::Resource,
         };
 
         thread::Builder::new()
-            .name(format!("fetch thread for {}", req_init.url))
+            .name(format!("fetch thread for {}", request_builder.url))
             .spawn(move || {
-                let mut request = Request::from_init(req_init);
+                let mut request = request_builder.build();
                 // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
                 // todo load context / mimesniff in fetch
                 // todo referrer policy?
@@ -486,7 +486,7 @@ impl CoreResourceManager {
 
     fn websocket_connect(
         &self,
-        request: RequestInit,
+        request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
