@@ -28,7 +28,7 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
             return Some(quote! { Err(()) });
         }
         let (mapped, mapped_bindings) = cg::value(variant, "mapped");
-        let bindings_pairs = variant.bindings().into_iter().zip(mapped_bindings);
+        let bindings_pairs = variant.bindings().iter().zip(mapped_bindings);
         let mut computations = quote!();
         computations.append_all(bindings_pairs.map(|(binding, mapped_binding)| {
             let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&binding.ast());

@@ -48,6 +48,7 @@
         RTCDtxStatus        dtx;
         boolean             active;
         RTCPriorityType     priority;
+        RTCPriorityType     networkPriority;
         unsigned long       ptime;
         unsigned long       maxBitrate;
         double              maxFramerate;
@@ -146,6 +147,7 @@
         dtx: 'enabled',
         active: false,
         priority: 'low',
+        networkPriority: 'low',
         ptime: 5,
         maxBitrate: 8,
         maxFramerate: 25,
@@ -161,6 +163,7 @@
     assert_equals(encoding.dtx, 'enabled');
     assert_equals(encoding.active, false);
     assert_equals(encoding.priority, 'low');
+    assert_equals(encoding.networkPriority, 'low');
     assert_equals(encoding.ptime, 5);
     assert_equals(encoding.maxBitrate, 8);
     assert_equals(encoding.maxFramerate, 25);
@@ -338,6 +341,9 @@
 
   test_modified_encoding('audio', 'priority', 'very-low', 'high',
     'setParameters() with modified encoding.priority should succeed');
+
+  test_modified_encoding('audio', 'networkPriority', 'very-low', 'high',
+    'setParameters() with modified encoding.networkPriority should succeed');
 
   test_modified_encoding('audio', 'ptime', 2, 4,
     'setParameters() with modified encoding.ptime should succeed');

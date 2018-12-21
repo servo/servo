@@ -38,7 +38,8 @@ __wptrunner__ = {"product": "firefox",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
                  "run_info_extras": "run_info_extras",
-                 "update_properties": "update_properties"}
+                 "update_properties": "update_properties",
+                 "timeout_multiplier": "get_timeout_multiplier"}
 
 
 def get_timeout_multiplier(test_type, run_info_data, **kwargs):
@@ -98,6 +99,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                                                                    **kwargs)
     executor_kwargs["e10s"] = run_info_data["e10s"]
     capabilities = {}
+    if test_type == "testharness":
+        capabilities["pageLoadStrategy"] = "eager"
     if test_type == "reftest":
         executor_kwargs["reftest_internal"] = kwargs["reftest_internal"]
         executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
@@ -243,7 +246,7 @@ class FirefoxBrowser(Browser):
         self.profile.set_preferences({
             "marionette.port": self.marionette_port,
             "network.dns.localDomains": ",".join(self.config.domains_set),
-
+            "dom.file.createInChild": True,
             # TODO: Remove preferences once Firefox 64 is stable (Bug 905404)
             "network.proxy.type": 0,
             "places.history.enabled": False,
@@ -394,23 +397,15 @@ class FirefoxBrowser(Browser):
         assert self.marionette_port is not None
         return ExecutorBrowser, {"marionette_port": self.marionette_port}
 
-    def check_for_crashes(self):
+    def check_crash(self, process, test):
         dump_dir = os.path.join(self.profile.profile, "minidumps")
 
-        return bool(mozcrash.check_for_crashes(dump_dir,
-                                               symbols_path=self.symbols_path,
-                                               stackwalk_binary=self.stackwalk_binary,
-                                               quiet=True))
-
-    def log_crash(self, process, test):
-        dump_dir = os.path.join(self.profile.profile, "minidumps")
-
-        mozcrash.log_crashes(self.logger,
-                             dump_dir,
-                             symbols_path=self.symbols_path,
-                             stackwalk_binary=self.stackwalk_binary,
-                             process=process,
-                             test=test)
+        return bool(mozcrash.log_crashes(self.logger,
+                                         dump_dir,
+                                         symbols_path=self.symbols_path,
+                                         stackwalk_binary=self.stackwalk_binary,
+                                         process=process,
+                                         test=test))
 
     def setup_ssl(self):
         """Create a certificate database to use in the test profile. This is configured

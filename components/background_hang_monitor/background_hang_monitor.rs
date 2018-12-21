@@ -72,6 +72,8 @@ impl BackgroundHangMonitorClone for HangMonitorRegister {
 pub enum MonitoredComponentMsg {
     /// Register component for monitoring,
     Register(Box<Sampler>, Duration, Duration),
+    /// Unregister component for monitoring.
+    Unregister,
     /// Notify start of new activity for a given component,
     NotifyActivity(HangAnnotation),
     /// Notify start of waiting for a new task to come-in for processing.
@@ -117,6 +119,10 @@ impl BackgroundHangMonitor for BackgroundHangMonitorChan {
     }
     fn notify_wait(&self) {
         let msg = MonitoredComponentMsg::NotifyWait;
+        self.send(msg);
+    }
+    fn unregister(&self) {
+        let msg = MonitoredComponentMsg::Unregister;
         self.send(msg);
     }
 }
@@ -199,6 +205,12 @@ impl BackgroundHangMonitorWorker {
                         .is_none(),
                     "This component was already registered for monitoring."
                 );
+            },
+            (component_id, MonitoredComponentMsg::Unregister) => {
+                let _ = self
+                    .monitored_components
+                    .remove_entry(&component_id)
+                    .expect("Received Unregister for an unknown component");
             },
             (component_id, MonitoredComponentMsg::NotifyActivity(annotation)) => {
                 let component = self

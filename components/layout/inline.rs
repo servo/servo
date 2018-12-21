@@ -1660,7 +1660,7 @@ impl Flow for InlineFlow {
             None => Au(0),
         };
 
-        self.base.floats = scanner.floats.clone();
+        self.base.floats = scanner.floats;
         let writing_mode = self.base.floats.writing_mode;
         self.base.floats.translate(LogicalSize::new(
             writing_mode,

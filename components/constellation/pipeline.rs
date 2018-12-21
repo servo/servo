@@ -152,7 +152,7 @@ pub struct InitialPipelineState {
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Information about the initial window size.
-    pub window_size: Option<TypedSize2D<f32, CSSPixel>>,
+    pub window_size: TypedSize2D<f32, CSSPixel>,
 
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
@@ -200,11 +200,10 @@ impl Pipeline {
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
-        let device_pixel_ratio = state.device_pixel_ratio;
-        let window_size = state.window_size.map(|size| WindowSizeData {
-            initial_viewport: size,
-            device_pixel_ratio: device_pixel_ratio,
-        });
+        let window_size = WindowSizeData {
+            initial_viewport: state.window_size,
+            device_pixel_ratio: state.device_pixel_ratio,
+        };
 
         let url = state.load_data.url.clone();
 
@@ -219,9 +218,7 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
-                    content_process_shutdown_chan: Some(
-                        layout_content_process_shutdown_chan.clone(),
-                    ),
+                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
@@ -477,7 +474,7 @@ pub struct UnprivilegedPipelineContent {
     resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
-    window_size: Option<WindowSizeData>,
+    window_size: WindowSizeData,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
@@ -552,7 +549,7 @@ impl UnprivilegedPipelineContent {
             background_hang_monitor_register,
             self.layout_to_constellation_chan,
             self.script_chan,
-            image_cache.clone(),
+            image_cache,
             self.font_cache_thread,
             self.time_profiler_chan,
             self.mem_profiler_chan,

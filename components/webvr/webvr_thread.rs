@@ -287,7 +287,7 @@ impl WebVRThread {
     fn notify_events(&self, events: Vec<VREvent>) {
         let pipeline_ids: Vec<PipelineId> = self.contexts.iter().map(|c| *c).collect();
         self.constellation_chan
-            .send(ConstellationMsg::WebVREvents(pipeline_ids.clone(), events))
+            .send(ConstellationMsg::WebVREvents(pipeline_ids, events))
             .unwrap();
     }
 

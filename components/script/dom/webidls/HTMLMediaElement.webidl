@@ -54,13 +54,13 @@ interface HTMLMediaElement : HTMLElement {
 
   // controls
   // [CEReactions] attribute boolean controls;
-  // attribute double volume;
+  [Throws] attribute double volume;
   // attribute boolean muted;
   // [CEReactions] attribute boolean defaultMuted;
 
   // tracks
   // readonly attribute AudioTrackList audioTracks;
   // readonly attribute VideoTrackList videoTracks;
-  // readonly attribute TextTrackList textTracks;
-  // TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
+  readonly attribute TextTrackList textTracks;
+  TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
 };

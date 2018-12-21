@@ -13458,6 +13458,12 @@
      {}
     ]
    ], 
+   "mozilla/animation-removed-node.html": [
+    [
+     "/_mozilla/mozilla/animation-removed-node.html", 
+     {}
+    ]
+   ], 
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html", 
@@ -26613,6 +26619,10 @@
    "81de5b389c922067c61effe03208ea740ba8e067", 
    "testharness"
   ], 
+  "mozilla/animation-removed-node.html": [
+   "a2f9dfe284a22a6241290c86841172387dcdbeb6", 
+   "testharness"
+  ], 
   "mozilla/binding_keyword.html": [
    "818d2aa29471026c1b4215dfcd1b9939a052b1ea", 
    "testharness"
@@ -27070,7 +27080,7 @@
    "testharness"
   ], 
   "mozilla/interfaces.html": [
-   "ad17e930ddb5bc2daecb86216efe8885ae399173", 
+   "8153d67c8cb4e554b05ac884e9898f50508349be", 
    "testharness"
   ], 
   "mozilla/interfaces.js": [

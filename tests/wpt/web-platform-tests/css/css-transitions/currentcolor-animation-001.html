@@ -10,11 +10,12 @@
   <script src="/resources/testharnessreport.js"></script>
 <style id="style"></style>
 </head>
-<body onload="run()">
+<body>
 <div id=log></div>
 <div id="test"></div>
 <script>
 
+ // Transition does not occur when the value is currentColor and color changes
 test(function() {
        var div = document.getElementById("test");
        var cs = getComputedStyle(div, "");
@@ -32,8 +33,7 @@ test(function() {
        assert_true(quarter_interpolated != quarter_reference &&
                    quarter_interpolated == final_reference);
      },
-     "currentcolortransition",
-     { assert: "Transition does not occur when the value is currentColor and color changes" });
+     "currentcolortransition");
 
 </script>
 </body>

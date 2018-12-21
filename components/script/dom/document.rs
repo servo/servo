@@ -101,6 +101,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
+use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -410,6 +411,11 @@ pub struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
     /// Number of redirects for the document load
     redirect_count: Cell<u16>,
+    /// Number of outstanding requests to prevent JS or layout from running.
+    script_and_layout_blockers: Cell<u32>,
+    /// List of tasks to execute as soon as last script/layout blocker is removed.
+    #[ignore_malloc_size_of = "Measuring trait objects is hard"]
+    delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2586,26 +2592,32 @@ impl Document {
         let interactive_time =
             InteractiveMetrics::new(window.time_profiler_chan().clone(), url.clone());
 
+        let content_type = content_type.unwrap_or_else(|| {
+            match is_html_document {
+                // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+                IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
+                // https://dom.spec.whatwg.org/#concept-document-content-type
+                IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
+            }
+        });
+
+        let encoding = content_type
+            .get_param(mime::CHARSET)
+            .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
+            .unwrap_or(UTF_8);
+
         Document {
             node: Node::new_document_node(),
             window: Dom::from_ref(window),
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
-            content_type: match content_type {
-                Some(mime_data) => mime_data,
-                None => match is_html_document {
-                    // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
-                    // https://dom.spec.whatwg.org/#concept-document-content-type
-                    IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
-                },
-            },
+            content_type,
             last_modified: last_modified,
             url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
-            encoding: Cell::new(UTF_8),
+            encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
             id_map: DomRefCell::new(HashMap::new()),
@@ -2689,7 +2701,49 @@ impl Document {
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
+            script_and_layout_blockers: Cell::new(0),
+            delayed_tasks: Default::default(),
         }
+    }
+
+    /// Prevent any JS or layout from running until the corresponding call to
+    /// `remove_script_and_layout_blocker`. Used to isolate periods in which
+    /// the DOM is in an unstable state and should not be exposed to arbitrary
+    /// web content. Any attempts to invoke content JS or query layout during
+    /// that time will trigger a panic. `add_delayed_task` will cause the
+    /// provided task to be executed as soon as the last blocker is removed.
+    pub fn add_script_and_layout_blocker(&self) {
+        self.script_and_layout_blockers
+            .set(self.script_and_layout_blockers.get() + 1);
+    }
+
+    /// Terminate the period in which JS or layout is disallowed from running.
+    /// If no further blockers remain, any delayed tasks in the queue will
+    /// be executed in queue order until the queue is empty.
+    pub fn remove_script_and_layout_blocker(&self) {
+        assert!(self.script_and_layout_blockers.get() > 0);
+        self.script_and_layout_blockers
+            .set(self.script_and_layout_blockers.get() - 1);
+        while self.script_and_layout_blockers.get() == 0 && !self.delayed_tasks.borrow().is_empty()
+        {
+            let task = self.delayed_tasks.borrow_mut().remove(0);
+            task.run_box();
+        }
+    }
+
+    /// Enqueue a task to run as soon as any JS and layout blockers are removed.
+    pub fn add_delayed_task<T: 'static + TaskBox>(&self, task: T) {
+        self.delayed_tasks.borrow_mut().push(Box::new(task));
+    }
+
+    /// Assert that the DOM is in a state that will allow running content JS or
+    /// performing a layout operation.
+    pub fn ensure_safe_to_run_script_or_layout(&self) {
+        assert_eq!(
+            self.script_and_layout_blockers.get(),
+            0,
+            "Attempt to use script or layout while DOM not in a stable state"
+        );
     }
 
     // https://dom.spec.whatwg.org/#dom-document-document
@@ -2800,17 +2854,11 @@ impl Document {
     ///
     /// FIXME(emilio): This really needs to be somehow more in sync with layout.
     /// Feels like a hack.
-    ///
-    /// Also, shouldn't return an option, I'm quite sure.
-    pub fn device(&self) -> Option<Device> {
-        let window_size = self.window().window_size()?;
+    pub fn device(&self) -> Device {
+        let window_size = self.window().window_size();
         let viewport_size = window_size.initial_viewport;
         let device_pixel_ratio = window_size.device_pixel_ratio;
-        Some(Device::new(
-            MediaType::screen(),
-            viewport_size,
-            device_pixel_ratio,
-        ))
+        Device::new(MediaType::screen(), viewport_size, device_pixel_ratio)
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
@@ -4177,7 +4225,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = window.window_size()?.initial_viewport;
+        let viewport = window.window_size().initial_viewport;
 
         if self.browsing_context().is_none() {
             return None;
@@ -4212,10 +4260,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = match window.window_size() {
-            Some(size) => size.initial_viewport,
-            None => return vec![],
-        };
+        let viewport = window.window_size().initial_viewport;
 
         if self.browsing_context().is_none() {
             return vec![];
@@ -4340,7 +4385,7 @@ impl DocumentMethods for Document {
             .clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
-        ServoParser::parse_html_script_input(self, self.url(), "text/html");
+        ServoParser::parse_html_script_input(self, self.url());
 
         // Step 15
         self.ready_state.set(DocumentReadyState::Loading);

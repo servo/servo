@@ -2,7 +2,7 @@
 <html>
 <meta charset=utf-8 />
 <title>Event Timing: buffer long-latency events before onload</title>
-<button id='button' onclick='1'>Generate a 'click' event</button>
+<button id='button'>Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -23,7 +23,8 @@
     let numFirstInputObserved = 0;
     let numEventsObserved = 0;
     new PerformanceObserver(t.step_func((entryList, obs) => {
-        const observedEntries = entryList.getEntries();
+        const observedEntries = entryList.getEntries().filter(
+            entry => entry.name === 'mousedown');
         numEventsObserved += observedEntries.filter(entry =>
             entry.entryType == 'event').length;
         numFirstInputObserved += observedEntries.filter(entry =>

@@ -11,19 +11,6 @@ browser_specific_args = {
     "firefox": ["--install-browser"]
 }
 
-def tests_affected(commit_range):
-    output = subprocess.check_output([
-        "python", "./wpt", "tests-affected", "--null", commit_range
-    ], stderr=open(os.devnull, "w"))
-
-    tests = output.split("\0")
-
-    # Account for trailing null byte
-    if tests and not tests[-1]:
-        tests.pop()
-
-    return tests
-
 
 def find_wptreport(args):
     parser = argparse.ArgumentParser()
@@ -56,16 +43,10 @@ def main(product, commit_range, wpt_args):
 
     if commit_range:
         logger.info(
-            "Identifying tests affected in range '%s'..." % commit_range
+            "Running tests affected in range '%s'..." % commit_range
         )
-        tests = tests_affected(commit_range)
-        logger.info("Identified %s affected tests" % len(tests))
-
-        if not tests:
-            logger.info("Quitting because no tests were affected.")
-            return
+        wpt_args += ['--affected', commit_range]
     else:
-        tests = []
         logger.info("Running all tests")
 
     wpt_args += [
@@ -79,7 +60,7 @@ def main(product, commit_range, wpt_args):
     ]
     wpt_args += browser_specific_args.get(product, [])
 
-    command = ["python", "./wpt", "run"] + wpt_args + [product] + tests
+    command = ["python", "./wpt", "run"] + wpt_args + [product]
 
     logger.info("Executing command: %s" % " ".join(command))
 

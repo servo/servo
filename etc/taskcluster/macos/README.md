@@ -15,6 +15,18 @@ cd etc/taskcluster/macos
 ./salt-ssh '*' state.apply test=True
 ```
 
+## Troubleshooting
+
+SSH into `servo-tc-mac1.servo.org`.
+`generic-worker` logs are in `less /Users/worker/stderr.log`.
+
+If the worker seems stuck but nothing seems wrong in the log,
+try running `launchctl stop net.generic.worker`.
+(It is configured to restart automatically.)
+This issue is tracked at
+[generic-worker#133](https://github.com/taskcluster/generic-worker/issues/133).
+
+
 ## (Re)deploying a server
 
 * Place an order or file a ticket with MacStadium to get a new hardware or reinstall an OS.

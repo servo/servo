@@ -176,7 +176,7 @@ def pr():
     return pr if pr != "false" else None
 
 
-def get_changed_files(manifest_path, rev, ignore_changes, skip_tests):
+def get_changed_files(manifest_path, rev, ignore_changes):
     if not rev:
         branch_point = testfiles.branch_point()
         revish = "%s..HEAD" % branch_point
@@ -189,7 +189,7 @@ def get_changed_files(manifest_path, rev, ignore_changes, skip_tests):
         logger.info("Ignoring %s changed files:\n%s" %
                     (len(files_ignored), "".join(" * %s\n" % item for item in files_ignored)))
 
-    tests_changed, files_affected = testfiles.affected_testfiles(files_changed, skip_tests,
+    tests_changed, files_affected = testfiles.affected_testfiles(files_changed,
                                                                  manifest_path=manifest_path)
 
     return tests_changed, files_affected
@@ -217,7 +217,6 @@ def run(venv, wpt_args, **kwargs):
     with open(kwargs["config_file"], 'r') as config_fp:
         config = SafeConfigParser()
         config.readfp(config_fp)
-        skip_tests = config.get("file detection", "skip_tests").split()
         ignore_changes = set(config.get("file detection", "ignore_changes").split())
 
     if kwargs["output_bytes"] is not None:
@@ -250,7 +249,7 @@ def run(venv, wpt_args, **kwargs):
         if not wpt_kwargs["test_list"]:
             manifest_path = os.path.join(wpt_kwargs["metadata_root"], "MANIFEST.json")
             tests_changed, files_affected = get_changed_files(manifest_path, kwargs["rev"],
-                                                              ignore_changes, skip_tests)
+                                                              ignore_changes)
 
             if not (tests_changed or files_affected):
                 logger.info("No tests changed")

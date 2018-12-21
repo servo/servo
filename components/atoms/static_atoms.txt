@@ -1,6 +1,7 @@
 DOMContentLoaded
 abort
 activate
+addtrack
 beforeunload
 button
 canplay
@@ -69,6 +70,7 @@ range
 readystatechange
 reftest-wait
 rejectionhandled
+removetrack
 reset
 resize
 right
@@ -99,6 +101,7 @@ transitionend
 unhandledrejection
 unload
 url
+volumechange
 waiting
 webglcontextcreationerror
 week

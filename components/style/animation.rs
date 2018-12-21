@@ -25,6 +25,7 @@ use crate::values::computed::TimingFunction;
 use crate::values::generics::box_::AnimationIterationCount;
 use crate::values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
 use crate::Atom;
+#[cfg(feature = "servo")]
 use crossbeam_channel::Sender;
 use servo_arc::Arc;
 use std::fmt;

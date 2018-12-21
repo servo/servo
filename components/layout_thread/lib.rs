@@ -27,7 +27,7 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};
 use fnv::FnvHashMap;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -647,6 +647,7 @@ impl LayoutThread {
             },
             Msg::RegisterPaint(..) => LayoutHangAnnotation::RegisterPaint,
             Msg::SetNavigationStart(..) => LayoutHangAnnotation::SetNavigationStart,
+            Msg::GetRunningAnimations(..) => LayoutHangAnnotation::GetRunningAnimations,
         };
         self.background_hang_monitor
             .notify_activity(HangAnnotation::Layout(hang_annotation));
@@ -818,6 +819,9 @@ impl LayoutThread {
             Msg::SetNavigationStart(time) => {
                 self.paint_time_metrics.set_navigation_start(time);
             },
+            Msg::GetRunningAnimations(sender) => {
+                let _ = sender.send(self.running_animations.read().len());
+            },
         }
 
         true
@@ -922,6 +926,7 @@ impl LayoutThread {
         self.root_flow.borrow_mut().take();
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
+        self.background_hang_monitor.unregister();
     }
 
     fn handle_add_stylesheet(&self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
@@ -1447,6 +1452,7 @@ impl LayoutThread {
                 Some(&document),
                 &mut rw_data,
                 &mut layout_context,
+                FxHashSet::default(),
             );
         }
 
@@ -1624,7 +1630,7 @@ impl LayoutThread {
             let snapshots = SnapshotMap::new();
             let mut layout_context = self.build_layout_context(guards, false, &snapshots);
 
-            {
+            let invalid_nodes = {
                 // Perform an abbreviated style recalc that operates without access to the DOM.
                 let animations = self.running_animations.read();
                 profile(
@@ -1638,8 +1644,8 @@ impl LayoutThread {
                             &animations,
                         )
                     },
-                );
-            }
+                )
+            };
             self.perform_post_style_recalc_layout_passes(
                 &mut root_flow,
                 &reflow_info,
@@ -1647,6 +1653,7 @@ impl LayoutThread {
                 None,
                 &mut *rw_data,
                 &mut layout_context,
+                invalid_nodes,
             );
             assert!(layout_context.pending_images.is_none());
             assert!(layout_context.newly_transitioning_nodes.is_none());
@@ -1661,6 +1668,7 @@ impl LayoutThread {
         document: Option<&ServoLayoutDocument>,
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
+        invalid_nodes: FxHashSet<OpaqueNode>,
     ) {
         {
             let mut newly_transitioning_nodes = context
@@ -1675,6 +1683,7 @@ impl LayoutThread {
                 &self.script_chan,
                 &mut *self.running_animations.write(),
                 &mut *self.expired_animations.write(),
+                invalid_nodes,
                 newly_transitioning_nodes,
                 &self.new_animations_receiver,
                 self.id,

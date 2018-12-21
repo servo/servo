@@ -103,6 +103,7 @@ smallvec = { version = "0.6", features = ["std", "union"] }
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits"}
 swapper = "0.1"
+tendril = {version = "0.4.1", features = ["encoding_rs"]}
 time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = "1.6"

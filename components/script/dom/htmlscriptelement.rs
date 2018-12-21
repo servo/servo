@@ -777,7 +777,10 @@ impl VirtualMethods for HTMLScriptElement {
         }
 
         if tree_in_doc && !self.parser_inserted.get() {
-            self.prepare();
+            let script = Trusted::new(self);
+            document_from_node(self).add_delayed_task(task!(ScriptDelayedInitialize: move || {
+                    script.root().prepare();
+                }));
         }
     }
 

@@ -2288,7 +2288,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Pop all the PushTextShadows
         if !text_shadows.is_empty() {
             state.add_display_item(DisplayItem::PopAllTextShadows(Box::new(
-                PopAllTextShadowsDisplayItem { base: base.clone() },
+                PopAllTextShadowsDisplayItem { base },
             )));
         }
     }

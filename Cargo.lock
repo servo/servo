@@ -2328,7 +2328,7 @@ dependencies = [
  "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_codegen 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tendril 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3310,6 +3310,7 @@ dependencies = [
  "style 0.0.1",
  "style_traits 0.0.1",
  "swapper 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 3.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3528,7 +3529,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a3a2e8586074227f2e4b175c94f759df3690b195"
+source = "git+https://github.com/servo/media#352072f33b6d118f89aa4ccf000ceaf360a5f663"
 dependencies = [
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
@@ -3538,7 +3539,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a3a2e8586074227f2e4b175c94f759df3690b195"
+source = "git+https://github.com/servo/media#352072f33b6d118f89aa4ccf000ceaf360a5f663"
 dependencies = [
  "boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3555,7 +3556,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a3a2e8586074227f2e4b175c94f759df3690b195"
+source = "git+https://github.com/servo/media#352072f33b6d118f89aa4ccf000ceaf360a5f663"
 dependencies = [
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3563,6 +3564,7 @@ dependencies = [
  "gstreamer-app 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-audio 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-player 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-video 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
@@ -3573,7 +3575,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a3a2e8586074227f2e4b175c94f759df3690b195"
+source = "git+https://github.com/servo/media#352072f33b6d118f89aa4ccf000ceaf360a5f663"
 dependencies = [
  "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3660,7 +3662,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a3a2e8586074227f2e4b175c94f759df3690b195"
+source = "git+https://github.com/servo/media#352072f33b6d118f89aa4ccf000ceaf360a5f663"
 dependencies = [
  "proc-macro2 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3995,9 +3997,10 @@ dependencies = [
 
 [[package]]
 name = "tendril"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "encoding_rs 0.8.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "futf 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "utf-8 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5116,7 +5119,7 @@ dependencies = [
 "checksum syn 0.15.22 (registry+https://github.com/rust-lang/crates.io-index)" = "ae8b29eb5210bc5cf63ed6149cbf9adfc82ac0be023d8735c176ee74a2db4da7"
 "checksum synstructure 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "73687139bf99285483c96ac0add482c3776528beac1d97d444f6e91f203a2015"
 "checksum tempfile 3.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "47776f63b85777d984a50ce49d6b9e58826b6a3766a449fc95bc66cd5663c15b"
-"checksum tendril 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9de21546595a0873061940d994bbbc5c35f024ae4fd61ec5c5b159115684f508"
+"checksum tendril 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "707feda9f2582d5d680d733e38755547a3e8fb471e7ba11452ecfd9ce93a5d3b"
 "checksum termcolor 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "4096add70612622289f2fdcdbd5086dc81c1e2675e6ae58d6c4f62a16c6d7f2f"
 "checksum termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "689a3bdfaab439fd92bc87df5c4c78417d3cbe537487274e9b0b2dce76e92096"
 "checksum textwrap 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c0b59b6b4b44d867f1370ef1bd91bfb262bf07bf0ae65c202ea2fbc16153b693"

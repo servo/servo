@@ -182,7 +182,7 @@ struct InProgressLoad {
     /// The opener, if this is an auxiliary.
     opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
-    window_size: Option<WindowSizeData>,
+    window_size: WindowSizeData,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
     /// The activity level of the document (inactive, active or fully active).
@@ -210,7 +210,7 @@ impl InProgressLoad {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         layout_chan: Sender<message::Msg>,
-        window_size: Option<WindowSizeData>,
+        window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
     ) -> InProgressLoad {
@@ -1852,7 +1852,7 @@ impl ScriptThread {
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.window_size = Some(size);
+            load.window_size = size;
             return;
         }
         warn!("resize sent to nonexistent pipeline");
@@ -2378,6 +2378,8 @@ impl ScriptThread {
         for pipeline_id in pipeline_ids {
             self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
         }
+
+        self.background_hang_monitor.unregister();
 
         debug!("Exited script thread.");
     }

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset='utf-8'>
-<title>registerProtocolHandler()</title>
+<title>protocol handlers</title>
 
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
@@ -11,141 +11,80 @@
 registration requests on a page, you might need to disable or significantly
 increase that limit for the tests below to run.</p>
 
-<div id='log'></div>
-
 <script type='text/javascript'>
-
-test(function () {
+test(() => {
   assert_idl_attribute(navigator, 'registerProtocolHandler');
 }, 'the registerProtocolHandler method should exist on the navigator object');
 
-test(function () {
-  navigator.registerProtocolHandler('tel', location.href + '/%s', 'foo');
-}, 'a handler with valid arguments should work');
-
+test(() => {
+  assert_idl_attribute(navigator, 'unregisterProtocolHandler');
+}, 'the unregisterProtocolHandler method should exist on the navigator object');
 
 /* URL argument */
-test(function () {
-  navigator.registerProtocolHandler('tel', '%s', 'foo');
-}, 'a relative URL should work');
+const vaild_urls = [
+  '%s',
+  location.href + '/%s',
+  location.href + '#%s',
+  location.href + '?foo=%s',
+  location.href + '?foo=%s&bar',
+  location.href + '/%s/bar/baz/',
+  location.href + '/%s/bar/baz/?foo=1337&bar#baz',
+  location.href + '/%s/foo/%s/',
+];
+for (const url of vaild_urls) {
+  test(() => {
+    navigator.registerProtocolHandler('tel', url, 'foo');
+  }, 'registerProtocolHandler: Valid URL "' + url + '" should work.');
 
-test(function () {
-  navigator.registerProtocolHandler('tel', location.href + '#%s', 'foo');
-}, 'a URL with a fragment identifier should work');
+  test(() => {
+    navigator.unregisterProtocolHandler('tel', url);
+  }, 'unregisterProtocolHandler: Valid URL "' + url + '" should work.');
+}
 
-test(function () {
-  navigator.registerProtocolHandler('tel', location.href + '?foo=%s', 'foo');
-}, 'a URL with a query string should work');
+const invalid_urls1 = [
+  '',
+  '%S',
+  location.href + '',
+  location.href + '/%',
+  location.href + '/%a',
+  'http://example.com',
+  'http://[v8.:::]//url=%s',
+];
 
-test(function () {
-  navigator.registerProtocolHandler('tel', location.href + '?foo=%s&bar', 'foo');
-}, 'a URL with a multi-argument query string should work');
+for (const url of invalid_urls1) {
+  test(() => {
+    assert_throws('SYNTAX_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
+  }, 'registerProtocolHandler: Invalid URL "' + url + '" should throw SYNTAX_ERR.');
 
-test(function () {
-  navigator.registerProtocolHandler('tel', location.href + '/%s/bar/baz/', 'foo');
-}, 'a URL with the passed string as a directory name should work');
+  test(() => {
+    assert_throws('SYNTAX_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
+  }, 'unregisterProtocolHandler: Invalid URL "' + url + '" should throw SYNTAX_ERR.');
+}
 
-test(function () {
-  navigator.registerProtocolHandler('tel', location.href + '/%s/bar/baz/?foo=1337&bar#baz', 'foo');
-}, 'a URL with the passed string as a directory name followed by a query string and fragment identifier should work');
+const invaild_urls2 = [
+  'http://%s.com',
+  'http://%s.example.com',
+  'http://example.com/%s',
+  'https://example.com/%s',
+  'http://foobar.example.com/%s',
+  'mailto:%s@example.com',
+  'mailto:%s',
+];
+for (const url of invaild_urls2) {
+  test(() => {
+    assert_throws('SECURITY_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
+  }, 'registerProtocolHandler: Invalid URL "' + url + '" should throw SECURITY_ERR.');
 
-test(function () {
-  navigator.registerProtocolHandler('tel', location.href + '/%s/foo/%s/', 'foo');
-}, 'a URL with the passed string included twice should work');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', '', 'foo') } );
-}, 'an empty url argument should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://%s.com', 'foo') } );
-}, '%s instead of domain name should throw SECURITY_ERR');
-
-test(function () {
-  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://%s.example.com', 'foo') } );
-}, '%s instead of subdomain name should throw SECURITY_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', location.href + '', 'foo') } );
-}, 'a url argument without %s should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://example.com', 'foo') } );
-}, 'a url argument pointing to a different domain name, without %s should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', location.href + '/%', 'foo') } );
-}, 'a url argument without %s (but with %) should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', location.href + '/%a', 'foo') } );
-}, 'a url argument without %s (but with %a) should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://example.com/%s', 'foo') } );
-}, 'a url argument pointing to a different domain name should throw SECURITY_ERR');
-
-test(function () {
-  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'https://example.com/%s', 'foo') } );
-}, 'a url argument pointing to a different domain name should throw SECURITY_ERR (2)');
-
-test(function () {
-  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://foobar.example.com/%s', 'foo') } );
-}, 'a url argument pointing to a different domain name should throw SECURITY_ERR (3)');
-
-test(function () {
-  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'mailto:%s@example.com', 'foo') } );
-}, 'looping handlers should throw SECURITY_ERR');
-
-test(function () {
-  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('sms', 'tel:%s', 'foo') } );
-}, 'a url argument pointing to a non-http[s] scheme should throw SECURITY_ERR due to not being of the same origin');
+  test(() => {
+    assert_throws('SECURITY_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
+  }, 'unregisterProtocolHandler: Invalid URL "' + url + '" should throw SECURITY_ERR.');
+}
 
 /* Protocol argument */
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('unrecognized', location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing an unrecognized scheme should throw SECURITY_ERR'); /* This is a whitelist, not a blacklist. */
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto:', location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing : should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto://', location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing :// should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('http://', location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing http:// should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto' + String.fromCharCode(0), location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing a null character should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailtoo' + String.fromCharCode(8), location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing a backspace character should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto' + String.fromCharCode(10), location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing a LF character should throw SYNTAX_ERR');
-
-test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mаilto', location.href + '/%a', 'foo') } );
-}, 'a protocol argument containing non-alphanumeric characters (like a cyrillic “а”) should throw SYNTAX_ERR');
-
-test(function () {
-  navigator.registerProtocolHandler('TEL', location.href + '/%s', 'foo');
-}, 'a protocol argument of “TEL” should be equivalent to “tel”');
-
-test(function () {
-  navigator.registerProtocolHandler('teL', location.href + '/%s', 'foo');
-}, 'a protocol argument of “teL” should be equivalent to “tel”');
-
 
 /* Overriding any of the following protocols must never be allowed. That would
  * break the browser. */
-var blacklist = new Array(
+const blacklist = [
   'about',
   'attachment',
   'blob',
@@ -170,45 +109,76 @@ var blacklist = new Array(
   'view-source',
   'ws',
   'wss',
-  'wyciwyg');
+  'wyciwyg',
+  /*other invalid schemes*/
+  'unrecognized',
+  'mаilto', /*a cyrillic "а"*/
+  'mailto:',
+  'mailto://',
+  'mailto' + String.fromCharCode(0),
+  'mailtoo' + String.fromCharCode(8),
+  'mailto' + String.fromCharCode(10),
+  'http://',
+  'ssh:/',
+  'magnet:+',
+  'tel:sip',
+  'web+',
+];
+for (const scheme of blacklist) {
+  test(() => {
+    assert_throws('SECURITY_ERR', () => { navigator.registerProtocolHandler(scheme, location.href + '/%s', 'foo'); });
+  }, 'registerProtocolHandler: Attempting to override the "' + scheme + '" protocol should throw SECURITY_ERR.');
 
-for ( var bi=0, bl=blacklist.length; bi<bl; ++bi ){
-
-  test(function () {
-    assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler(blacklist[bi], location.href + '/%s', 'foo') } );
-  }, 'attempting to override the ' + blacklist[bi] + ' protocol should throw SECURITY_ERR');
-
+  test(() => {
+    assert_throws('SECURITY_ERR', () => { navigator.unregisterProtocolHandler(scheme, location.href + '/%s', 'foo'); });
+  }, 'unregisterProtocolHandler: Attempting to override the "' + scheme + '" protocol should throw SECURITY_ERR.');
 }
 
 /* The following protocols must be possible to override.
  * We're just testing that the call goes through here. Whether or not they
  * actually work as handlers is covered by the interactive tests. */
-var whitelist = new Array(
+
+const safelist = [
+  /* safelisted schemes listed in
+   * https://html.spec.whatwg.org/multipage/system-state.html#safelisted-scheme */
+  'bitcoin',
   'geo',
   'im',
   'irc',
   'ircs',
+  'magnet',
   'mailto',
   'mms',
   'news',
   'nntp',
+  'openpgp4fpr',
+  'sip',
   'sms',
   'smsto',
+  'ssh',
   'tel',
   'urn',
   'webcal',
   'wtai',
-  'xmpp');
+  'xmpp',
+  /*other vaild schemes*/
+  'BitcoIn',
+  'Irc',
+  'MagneT',
+  'SmsTo',
+  'TEL',
+  'teL',
+  'WebCAL',
+  'WTAI',
+  'web+myprotocol',
+];
+for (const scheme of safelist) {
+  test(() => {
+    navigator.registerProtocolHandler(scheme, location.href + '/%s', "foo");
+  }, 'registerProtocolHandler: overriding the "' + scheme + '" protocol should work');
 
-for ( var wi=0, wl=whitelist.length; wi<wl; ++wi ){
-
-  test(function () {
-    navigator.registerProtocolHandler(whitelist[wi], location.href + '/%s', 'foo');
-    assert_true(true);
-  }, 'overriding the ' + whitelist[wi] + ' protocol should work');
-
+  test(() => {
+    navigator.unregisterProtocolHandler(scheme, location.href + '/%s');
+  }, 'unregisterProtocolHandler: overriding the "' + scheme + '" protocol should work');
 }
 </script>
-
-</body>
-</html>

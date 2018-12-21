@@ -7,3 +7,4 @@ RUN apt-get install -qy --no-install-recommends \
     libdbus-1-3 \
     libgstreamer-plugins-bad1.0-0 \
     gstreamer1.0-plugins-good
+

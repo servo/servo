@@ -26,9 +26,13 @@ def livelog():
     files = win2016["secrets"]["files"]
     assert all(f["encoding"] == "base64" for f in files)
     files = {f.get("description"): f["content"] for f in files}
+    cert = files["SSL certificate for livelog"]
+    key = files["SSL key for livelog"]
     return {
-        "livelog_cert": base64.b64decode(files["SSL certificate for livelog"]),
-        "livelog_key": base64.b64decode(files["SSL key for livelog"]),
+        "livelog_cert_base64": cert,
+        "livelog_key_base64": key,
+        "livelog_cert": base64.b64decode(cert),
+        "livelog_key": base64.b64decode(key),
         "livelog_secret": win2016["secrets"]["generic-worker"]["config"]["livelogSecret"],
     }
 

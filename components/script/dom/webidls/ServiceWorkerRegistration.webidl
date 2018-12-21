@@ -8,7 +8,7 @@ interface ServiceWorkerRegistration : EventTarget {
   readonly attribute ServiceWorker? installing;
   readonly attribute ServiceWorker? waiting;
   readonly attribute ServiceWorker? active;
-  // [SameObject] readonly attribute NavigationPreloadManager navigationPreload;
+  [SameObject] readonly attribute NavigationPreloadManager navigationPreload;
 
   readonly attribute USVString scope;
   readonly attribute ServiceWorkerUpdateViaCache updateViaCache;

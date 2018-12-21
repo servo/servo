@@ -190,7 +190,7 @@ pub struct NewLayoutInfo {
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// Information about the initial window size.
-    pub window_size: Option<WindowSizeData>,
+    pub window_size: WindowSizeData,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
@@ -566,7 +566,7 @@ pub struct InitialScriptState {
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Information about the initial window size.
-    pub window_size: Option<WindowSizeData>,
+    pub window_size: WindowSizeData,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.

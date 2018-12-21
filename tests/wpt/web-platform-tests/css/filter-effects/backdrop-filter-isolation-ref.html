@@ -5,23 +5,26 @@
 
 
 
-<div class="outside">
-  <div class="stacking-context">
-    <div class="filter">
+<div>
+  <p>Expected: Two green boxes overlapped by a yellow box. The overlapped region<br>
+  of the right-hand box ONLY should be inverted (pink).</p>
+</div>
+<div class="box outside">
+  <div class="box stacking-context">
+    <div class="box filter">
     </div>
   </div>
 </div>
-<div style="background:#ffa5b2;width:70px;height:70px;top:40px;left:130px;"></div>
-
+<div class="box overlay"></div>
 <style>
-div {
+.box {
   position: absolute;
   width: 100px;
   height: 100px;
   background: green;
 }
 .outside {
-  top: 10px;
+  top: 110px;
   left: 10px;
 }
 .stacking-context {
@@ -34,9 +37,15 @@ div {
   height: 160px;
   top: 30px;
   left: -90px;
-  opacity: 0.3;
   will-change: transform;
-  background: yellow;
+  background: #ff08;
+}
+.overlay {
+  background:#ffc377;
+  width:70px;
+  height:70px;
+  top:140px;
+  left:130px;
 }
 </style>
 

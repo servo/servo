@@ -634,21 +634,14 @@ impl HTMLImageElement {
     ) -> Au {
         let document = document_from_node(self);
         let device = document.device();
-        if !device.is_some() {
-            return Au(1);
-        }
         let quirks_mode = document.quirks_mode();
         //FIXME https://github.com/whatwg/html/issues/3832
-        source_size_list.evaluate(&device.unwrap(), quirks_mode)
+        source_size_list.evaluate(&device, quirks_mode)
     }
 
     /// https://html.spec.whatwg.org/multipage/#matches-the-environment
     fn matches_environment(&self, media_query: String) -> bool {
         let document = document_from_node(self);
-        let device = match document.device() {
-            Some(device) => device,
-            None => return false,
-        };
         let quirks_mode = document.quirks_mode();
         let document_url = &document.url();
         // FIXME(emilio): This should do the same that we do for other media
@@ -668,7 +661,7 @@ impl HTMLImageElement {
         let mut parserInput = ParserInput::new(&media_query);
         let mut parser = Parser::new(&mut parserInput);
         let media_list = MediaList::parse(&context, &mut parser);
-        media_list.evaluate(&device, quirks_mode)
+        media_list.evaluate(&document.device(), quirks_mode)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
@@ -740,13 +733,11 @@ impl HTMLImageElement {
         // Step 5
         let mut best_candidate = max;
         let device = document_from_node(self).device();
-        if let Some(device) = device {
-            let device_den = device.device_pixel_ratio().get() as f64;
-            for (index, image_source) in img_sources.iter().enumerate() {
-                let current_den = image_source.descriptor.den.unwrap();
-                if current_den < best_candidate.0 && current_den >= device_den {
-                    best_candidate = (current_den, index);
-                }
+        let device_den = device.device_pixel_ratio().get() as f64;
+        for (index, image_source) in img_sources.iter().enumerate() {
+            let current_den = image_source.descriptor.den.unwrap();
+            if current_den < best_candidate.0 && current_den >= device_den {
+                best_candidate = (current_den, index);
             }
         }
         let selected_source = img_sources.remove(best_candidate.1).clone();

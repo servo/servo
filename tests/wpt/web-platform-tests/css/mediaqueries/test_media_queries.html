@@ -33,13 +33,13 @@ function run() {
     function should_apply(q) {
       test(function() {
         assert_true(query_applies(q));
-      }, "subtest_" + ++testNum, {assert: q + " should apply"});
+      }, "subtest_" + ++testNum);
     }
 
     function should_not_apply(q) {
       test(function() {
         assert_false(query_applies(q));
-      }, "subtest_" + ++testNum, {assert: q + " should not apply"});
+      }, "subtest_" + ++testNum);
     }
 
     /*
@@ -68,13 +68,13 @@ function run() {
     function query_should_be_parseable(q) {
       test(function() {
         assert_true(query_is_parseable(q))
-      }, "subtest_" + ++testNum, {assert: "query " + q + " should be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     function query_should_not_be_parseable(q) {
       test(function() {
         assert_false(query_is_parseable(q))
-      }, "subtest_" + ++testNum, {assert: "query " + q + " should not be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     /*
@@ -88,13 +88,13 @@ function run() {
     function expression_should_be_parseable(e) {
       test(function() {
         assert_true(expression_is_parseable(e));
-      }, "subtest_" + ++testNum, {assert: "expression " + e + " should be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     function expression_should_not_be_parseable(e) {
       test(function() {
         assert_false(expression_is_parseable(e));
-      }, "subtest_" + ++testNum, {assert: "expression " + e + " should not be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     // The no-type syntax doesn't mix with the not and only keywords.
