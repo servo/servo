@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -17,6 +18,7 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct XRSession {
@@ -81,5 +83,13 @@ impl XRSessionMethods for XRSession {
 
     fn GetBaseLayer(&self) -> Option<DomRoot<XRLayer>> {
         self.base_layer.get()
+    }
+
+    fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
+        self.display.xr_raf(callback) as i32
+    }
+
+    fn CancelAnimationFrame(&self, frame: i32) {
+        self.display.xr_cancel_raf(frame)
     }
 }
