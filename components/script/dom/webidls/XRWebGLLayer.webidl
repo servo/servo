@@ -4,29 +4,30 @@
 
 // https://immersive-web.github.io/webxr/#xrwebgllayer-interface
 
-typedef (WebGLRenderingContext or
-         WebGL2RenderingContext) XRWebGLRenderingContext;
+// typedef (WebGLRenderingContext or
+//          WebGL2RenderingContext) XRWebGLRenderingContext;
+
+typedef WebGLRenderingContext XRWebGLRenderingContext;
 
 dictionary XRWebGLLayerInit {
   boolean antialias = true;
   boolean depth = true;
   boolean stencil = false;
   boolean alpha = true;
-  double framebufferScaleFactor = 1.0;
+  // double framebufferScaleFactor = 1.0;
 };
 
-[SecureContext, Exposed=Window]
-// [Constructor(XRSession session,
-//             XRWebGLRenderingContext context,
-//             optional XRWebGLLayerInit layerInit)]
+[SecureContext, Exposed=Window, Constructor(XRSession session,
+            XRWebGLRenderingContext context,
+            optional XRWebGLLayerInit layerInit)]
 interface XRWebGLLayer : XRLayer {
   // // Attributes
-  // readonly attribute XRWebGLRenderingContext context;
+  readonly attribute XRWebGLRenderingContext context;
 
-  // readonly attribute boolean antialias;
-  // readonly attribute boolean depth;
-  // readonly attribute boolean stencil;
-  // readonly attribute boolean alpha;
+  readonly attribute boolean antialias;
+  readonly attribute boolean depth;
+  readonly attribute boolean stencil;
+  readonly attribute boolean alpha;
 
   // readonly attribute WebGLFramebuffer framebuffer;
   // readonly attribute unsigned long framebufferWidth;
