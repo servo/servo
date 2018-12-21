@@ -27,8 +27,8 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
 
   // FrozenArray<XRInputSource> getInputSources();
 
-  // long requestAnimationFrame(XRFrameRequestCallback callback);
-  // void cancelAnimationFrame(long handle);
+  long requestAnimationFrame(XRFrameRequestCallback callback);
+  void cancelAnimationFrame(long handle);
 
   // Promise<void> end();
 

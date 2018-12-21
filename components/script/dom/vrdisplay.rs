@@ -4,14 +4,15 @@
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VREye;
 use crate::dom::bindings::codegen::Bindings::VRLayerBinding::VRLayer;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -67,6 +68,8 @@ pub struct VRDisplay {
     /// List of request animation frame callbacks
     #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<FrameRequestCallback>>)>>,
+    #[ignore_malloc_size_of = "closures are hard"]
+    xr_raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<XRFrameRequestCallback>>)>>,
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_malloc_size_of = "closures are hard"]
@@ -122,6 +125,7 @@ impl VRDisplay {
             layer_ctx: MutNullableDom::default(),
             next_raf_id: Cell::new(1),
             raf_callback_list: DomRefCell::new(vec![]),
+            xr_raf_callback_list: DomRefCell::new(vec![]),
             frame_data_status: Cell::new(VRFrameDataStatus::Waiting),
             frame_data_receiver: DomRefCell::new(None),
             running_display_raf: Cell::new(false),
@@ -690,6 +694,22 @@ impl VRDisplay {
             *self.layer.borrow_mut() = layer_bounds;
             self.layer_ctx.set(Some(&ctx));
             self.init_present();
+        }
+    }
+
+    pub fn xr_raf(&self, callback: Rc<XRFrameRequestCallback>) -> u32 {
+        let raf_id = self.next_raf_id.get();
+        self.next_raf_id.set(raf_id + 1);
+        self.xr_raf_callback_list
+            .borrow_mut()
+            .push((raf_id, Some(callback)));
+        raf_id
+    }
+
+    pub fn xr_cancel_raf(&self, handle: i32) {
+        let mut list = self.xr_raf_callback_list.borrow_mut();
+        if let Some(pair) = list.iter_mut().find(|pair| pair.0 == handle as u32) {
+            pair.1 = None;
         }
     }
 }
