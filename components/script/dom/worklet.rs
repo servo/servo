@@ -620,14 +620,12 @@ impl WorkletThread {
         // TODO: Fetch the script asynchronously?
         // TODO: Caching.
         let resource_fetcher = self.global_init.resource_threads.sender();
-        let request = RequestInit {
-            url: script_url,
-            destination: Destination::Script,
-            mode: RequestMode::CorsMode,
-            credentials_mode: credentials.into(),
-            origin,
-            ..RequestInit::default()
-        };
+        let request = RequestInit::new(script_url)
+            .destination(Destination::Script)
+            .mode(RequestMode::CorsMode)
+            .credentials_mode(credentials.into())
+            .origin(origin);
+
         let script = load_whole_resource(request, &resource_fetcher)
             .ok()
             .and_then(|(_, bytes)| String::from_utf8(bytes).ok());

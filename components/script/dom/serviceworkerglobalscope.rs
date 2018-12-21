@@ -269,17 +269,14 @@ impl ServiceWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let request = RequestInit {
-                    url: script_url.clone(),
-                    destination: Destination::ServiceWorker,
-                    credentials_mode: CredentialsMode::Include,
-                    use_url_credentials: true,
-                    pipeline_id: pipeline_id,
-                    referrer_url: referrer_url,
-                    referrer_policy: referrer_policy,
-                    origin,
-                    ..RequestInit::default()
-                };
+                let request = RequestInit::new(script_url.clone())
+                    .destination(Destination::ServiceWorker)
+                    .credentials_mode(CredentialsMode::Include)
+                    .use_url_credentials(true)
+                    .pipeline_id(pipeline_id)
+                    .referrer_url(referrer_url)
+                    .referrer_policy(referrer_policy)
+                    .origin(origin);
 
                 let (url, source) =
                     match load_whole_resource(request, &init.resource_threads.sender()) {

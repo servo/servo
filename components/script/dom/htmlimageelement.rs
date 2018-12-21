@@ -362,12 +362,9 @@ impl HTMLImageElement {
             }),
         );
 
-        let request = RequestInit {
-            url: img_url.clone(),
-            origin: document.origin().immutable().clone(),
-            pipeline_id: Some(document.global().pipeline_id()),
-            ..RequestInit::default()
-        };
+        let request = RequestInit::new(img_url.clone())
+            .origin(document.origin().immutable().clone())
+            .pipeline_id(Some(document.global().pipeline_id()));
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.

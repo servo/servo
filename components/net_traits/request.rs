@@ -136,6 +136,7 @@ pub enum CorsSettings {
     UseCredentials,
 }
 
+// TODO: Implementing the Builder Pattern
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestInit {
     #[serde(
@@ -173,11 +174,11 @@ pub struct RequestInit {
     pub url_list: Vec<ServoUrl>,
 }
 
-impl Default for RequestInit {
-    fn default() -> RequestInit {
+impl RequestInit {
+    pub fn new(url: ServoUrl) -> RequestInit {
         RequestInit {
             method: Method::GET,
-            url: ServoUrl::parse("about:blank").unwrap(),
+            url: url,
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
@@ -197,6 +198,101 @@ impl Default for RequestInit {
             integrity_metadata: "".to_owned(),
             url_list: vec![],
         }
+    }
+
+    pub fn method(mut self, method: Method) -> RequestInit {
+        self.method = method;
+        self
+    }
+
+    pub fn headers(mut self, headers: HeaderMap) -> RequestInit {
+        self.headers = headers;
+        self
+    }
+
+    pub fn unsafe_request(mut self, unsafe_request: bool) -> RequestInit {
+        self.unsafe_request = unsafe_request;
+        self
+    }
+
+    pub fn body(mut self, body: Option<Vec<u8>>) -> RequestInit {
+        self.body = body;
+        self
+    }
+
+    pub fn service_workers_mode(mut self, service_workers_mode: ServiceWorkersMode) -> RequestInit {
+        self.service_workers_mode = service_workers_mode;
+        self
+    }
+
+    pub fn destination(mut self, destination: Destination) -> RequestInit {
+        self.destination = destination;
+        self
+    }
+
+    pub fn synchronous(mut self, synchronous: bool) -> RequestInit {
+        self.synchronous = synchronous;
+        self
+    }
+
+    pub fn mode(mut self, mode: RequestMode) -> RequestInit {
+        self.mode = mode;
+        self
+    }
+
+    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestInit {
+        self.cache_mode = cache_mode;
+        self
+    }
+
+    pub fn use_cors_preflight(mut self, use_cors_preflight: bool) -> RequestInit {
+        self.use_cors_preflight = use_cors_preflight;
+        self
+    }
+
+    pub fn credentials_mode(mut self, credentials_mode: CredentialsMode) -> RequestInit {
+        self.credentials_mode = credentials_mode;
+        self
+    }
+
+    pub fn use_url_credentials(mut self, use_url_credentials: bool) -> RequestInit {
+        self.use_url_credentials = use_url_credentials;
+        self
+    }
+
+    pub fn origin(mut self, origin: ImmutableOrigin) -> RequestInit {
+        self.origin = origin;
+        self
+    }
+
+    pub fn referrer_url(mut self, referrer_url: Option<ServoUrl>) -> RequestInit {
+        self.referrer_url = referrer_url;
+        self
+    }
+
+    pub fn referrer_policy(mut self, referrer_policy: Option<ReferrerPolicy>) -> RequestInit {
+        self.referrer_policy = referrer_policy;
+        self
+    }
+
+    pub fn pipeline_id(mut self, pipeline_id: Option<PipelineId>) -> RequestInit {
+        self.pipeline_id = pipeline_id;
+        self
+    }
+
+    pub fn redirect_mode(mut self, redirect_mode: RedirectMode) -> RequestInit {
+        self.redirect_mode = redirect_mode;
+        self
+    }
+
+    pub fn integrity_metadata(mut self, integrity_metadata: String) -> RequestInit {
+        self.integrity_metadata = integrity_metadata;
+        self
+    }
+
+    pub fn url_list(mut self, url_list: Vec<ServoUrl>) -> RequestInit {
+        self.url_list = url_list;
+        self
     }
 }
 

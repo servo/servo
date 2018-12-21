@@ -201,12 +201,10 @@ impl WebSocket {
         let address = Trusted::new(&*ws);
 
         // Step 8.
-        let request = RequestInit {
-            url: url_record,
-            origin: global.origin().immutable().clone(),
-            mode: RequestMode::WebSocket { protocols },
-            ..RequestInit::default()
-        };
+        let request = RequestInit::new(url_record)
+            .origin(global.origin().immutable().clone())
+            .mode(RequestMode::WebSocket { protocols });
+
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,
             action_receiver: resource_action_receiver,

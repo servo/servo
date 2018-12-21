@@ -99,30 +99,29 @@ fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<ServoUrl>
 }
 
 fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit {
-    NetTraitsRequestInit {
-        method: request.method.clone(),
-        url: request.url(),
-        headers: request.headers.clone(),
-        unsafe_request: request.unsafe_request,
-        body: request.body.clone(),
-        destination: request.destination,
-        synchronous: request.synchronous,
-        mode: request.mode.clone(),
-        use_cors_preflight: request.use_cors_preflight,
-        credentials_mode: request.credentials_mode,
-        use_url_credentials: request.use_url_credentials,
-        origin: GlobalScope::current()
-            .expect("No current global object")
-            .origin()
-            .immutable()
-            .clone(),
-        referrer_url: from_referrer_to_referrer_url(&request),
-        referrer_policy: request.referrer_policy,
-        pipeline_id: request.pipeline_id,
-        redirect_mode: request.redirect_mode,
-        cache_mode: request.cache_mode,
-        ..NetTraitsRequestInit::default()
-    }
+    NetTraitsRequestInit::new(request.url())
+        .method(request.method.clone())
+        .headers(request.headers.clone())
+        .unsafe_request(request.unsafe_request)
+        .body(request.body.clone())
+        .destination(request.destination)
+        .synchronous(request.synchronous)
+        .mode(request.mode.clone())
+        .use_cors_preflight(request.use_cors_preflight)
+        .credentials_mode(request.credentials_mode)
+        .use_url_credentials(request.use_url_credentials)
+        .origin(
+            GlobalScope::current()
+                .expect("No current global object")
+                .origin()
+                .immutable()
+                .clone(),
+        )
+        .referrer_url(from_referrer_to_referrer_url(&request))
+        .referrer_policy(request.referrer_policy)
+        .pipeline_id(request.pipeline_id)
+        .redirect_mode(request.redirect_mode)
+        .cache_mode(request.cache_mode)
 }
 
 // https://fetch.spec.whatwg.org/#fetch-method

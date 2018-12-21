@@ -203,17 +203,15 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let request = NetRequestInit {
-                url: url.clone(),
-                destination: Destination::Script,
-                credentials_mode: CredentialsMode::Include,
-                use_url_credentials: true,
-                origin: global_scope.origin().immutable().clone(),
-                pipeline_id: Some(self.upcast::<GlobalScope>().pipeline_id()),
-                referrer_url: None,
-                referrer_policy: None,
-                ..NetRequestInit::default()
-            };
+            let request = NetRequestInit::new(url.clone())
+                .destination(Destination::Script)
+                .credentials_mode(CredentialsMode::Include)
+                .use_url_credentials(true)
+                .origin(global_scope.origin().immutable().clone())
+                .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()))
+                .referrer_url(None)
+                .referrer_policy(None);
+;
             let (url, source) =
                 match load_whole_resource(request, &global_scope.resource_threads().sender()) {
                     Err(_) => return Err(Error::Network),

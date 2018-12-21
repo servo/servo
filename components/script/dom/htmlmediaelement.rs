@@ -717,18 +717,15 @@ impl HTMLMediaElement {
             header::RANGE,
             HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap(),
         );
-        let request = RequestInit {
-            url: self.resource_url.borrow().as_ref().unwrap().clone(),
-            headers,
-            destination,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
-            origin: document.origin().immutable().clone(),
-            pipeline_id: Some(self.global().pipeline_id()),
-            referrer_url: Some(document.url()),
-            referrer_policy: document.get_referrer_policy(),
-            ..RequestInit::default()
-        };
+        let request = RequestInit::new(self.resource_url.borrow().as_ref().unwrap().clone())
+            .headers(headers)
+            .destination(destination)
+            .credentials_mode(CredentialsMode::Include)
+            .use_url_credentials(true)
+            .origin(document.origin().immutable().clone())
+            .pipeline_id(Some(self.global().pipeline_id()))
+            .referrer_url(Some(document.url()))
+            .referrer_policy(document.get_referrer_policy());
 
         let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(
             self,

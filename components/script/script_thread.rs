@@ -3132,21 +3132,18 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, mut incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let req_init = RequestInit {
-            url: load_data.url.clone(),
-            method: load_data.method,
-            destination: Destination::Document,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
-            pipeline_id: Some(id),
-            referrer_url: load_data.referrer_url,
-            referrer_policy: load_data.referrer_policy,
-            headers: load_data.headers,
-            body: load_data.data,
-            redirect_mode: RedirectMode::Manual,
-            origin: incomplete.origin.immutable().clone(),
-            ..RequestInit::default()
-        };
+        let req_init = RequestInit::new(load_data.url.clone())
+            .method(load_data.method)
+            .destination(Destination::Document)
+            .credentials_mode(CredentialsMode::Include)
+            .use_url_credentials(true)
+            .pipeline_id(Some(id))
+            .referrer_url(load_data.referrer_url)
+            .referrer_policy(load_data.referrer_policy)
+            .headers(load_data.headers)
+            .body(load_data.data)
+            .redirect_mode(RedirectMode::Manual)
+            .origin(incomplete.origin.immutable().clone());
 
         let context = ParserContext::new(id, load_data.url);
         self.incomplete_parser_contexts

@@ -238,13 +238,7 @@ impl FontCache {
                     None => return,
                 };
 
-                let request = RequestInit {
-                    url: url.clone(),
-                    destination: Destination::Font,
-                    // TODO: Add a proper origin - Can't import GlobalScope from gfx
-                    // We can leave origin to be set by default
-                    ..RequestInit::default()
-                };
+                let request = RequestInit::new(url.clone()).destination(Destination::Font);
 
                 let channel_to_self = self.channel_to_self.clone();
                 let bytes = Mutex::new(Vec::new());

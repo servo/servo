@@ -522,20 +522,17 @@ impl EventSource {
         };
         // Step 8
         // TODO: Step 9 set request's client settings
-        let mut request = RequestInit {
-            url: url_record,
-            origin: global.origin().immutable().clone(),
-            pipeline_id: Some(global.pipeline_id()),
+        let mut request = RequestInit::new(url_record)
+            .origin(global.origin().immutable().clone())
+            .pipeline_id(Some(global.pipeline_id()))
             // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-            use_url_credentials: true,
-            mode: RequestMode::CorsMode,
-            credentials_mode: if cors_attribute_state == CorsSettings::Anonymous {
+            .use_url_credentials(true)
+            .mode(RequestMode::CorsMode)
+            .credentials_mode(if cors_attribute_state == CorsSettings::Anonymous {
                 CredentialsMode::CredentialsSameOrigin
             } else {
                 CredentialsMode::Include
-            },
-            ..RequestInit::default()
-        };
+            });
         // Step 10
         // TODO(eijebong): Replace once typed headers allow it
         request.headers.insert(

@@ -290,28 +290,25 @@ fn fetch_a_classic_script(
     let doc = document_from_node(script);
 
     // Step 1, 2.
-    let request = RequestInit {
-        url: url.clone(),
-        destination: Destination::Script,
+    let request = RequestInit::new(url.clone())
+        .destination(Destination::Script)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
-        mode: match cors_setting {
+        .mode(match cors_setting {
             Some(_) => RequestMode::CorsMode,
             None => RequestMode::NoCors,
-        },
+        })
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 3-4
-        credentials_mode: match cors_setting {
+        .credentials_mode(match cors_setting {
             Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
             _ => CredentialsMode::Include,
-        },
-        origin: doc.origin().immutable().clone(),
-        pipeline_id: Some(script.global().pipeline_id()),
-        referrer_url: Some(doc.url()),
-        referrer_policy: doc.get_referrer_policy(),
-        integrity_metadata: integrity_metadata,
-        ..RequestInit::default()
-    };
+        })
+        .origin(doc.origin().immutable().clone())
+        .pipeline_id(Some(script.global().pipeline_id()))
+        .referrer_url(Some(doc.url()))
+        .referrer_policy(doc.get_referrer_policy())
+        .integrity_metadata(integrity_metadata);
 
     // TODO: Step 3, Add custom steps to perform fetch
 
