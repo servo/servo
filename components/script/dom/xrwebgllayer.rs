@@ -4,10 +4,10 @@
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding;
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -32,8 +32,11 @@ pub struct XRWebGLLayer {
 }
 
 impl XRWebGLLayer {
-    pub fn new_inherited(session: &XRSession, context: &WebGLRenderingContext,
-                         init: &XRWebGLLayerInit) -> XRWebGLLayer {
+    pub fn new_inherited(
+        session: &XRSession,
+        context: &WebGLRenderingContext,
+        init: &XRWebGLLayerInit,
+    ) -> XRWebGLLayer {
         XRWebGLLayer {
             xrlayer: XRLayer::new_inherited(),
             antialias: Cell::new(init.antialias),
@@ -45,8 +48,12 @@ impl XRWebGLLayer {
         }
     }
 
-    pub fn new(global: &GlobalScope, session: &XRSession, context: &WebGLRenderingContext,
-               init: &XRWebGLLayerInit) -> DomRoot<XRWebGLLayer> {
+    pub fn new(
+        global: &GlobalScope,
+        session: &XRSession,
+        context: &WebGLRenderingContext,
+        init: &XRWebGLLayerInit,
+    ) -> DomRoot<XRWebGLLayer> {
         reflect_dom_object(
             Box::new(XRWebGLLayer::new_inherited(session, context, init)),
             global,
@@ -54,9 +61,12 @@ impl XRWebGLLayer {
         )
     }
 
-    pub fn Constructor(global: &Window, session: &XRSession, 
-                       context: &WebGLRenderingContext,
-                       init: &XRWebGLLayerInit) -> Fallible<DomRoot<Self>> {
+    pub fn Constructor(
+        global: &Window,
+        session: &XRSession,
+        context: &WebGLRenderingContext,
+        init: &XRWebGLLayerInit,
+    ) -> Fallible<DomRoot<Self>> {
         Ok(XRWebGLLayer::new(&global.global(), session, context, init))
     }
 }
@@ -97,7 +107,12 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
         // XXXManishearth this assumes the WebVR default of canvases being cut in half
         // which need not be generally true for all devices, and will not work in
         // inline VR mode
-        Some(XRViewport::new(&self.global(), x, 0, size.width / 2, size.height))
+        Some(XRViewport::new(
+            &self.global(),
+            x,
+            0,
+            size.width / 2,
+            size.height,
+        ))
     }
 }
-

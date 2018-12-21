@@ -11,7 +11,7 @@ enum XREye {
 
 [SecureContext, Exposed=Window] interface XRView {
   readonly attribute XREye eye;
-  // readonly attribute Float32Array projectionMatrix;
-  // readonly attribute Float32Array viewMatrix;
+  readonly attribute Float32Array projectionMatrix;
+  readonly attribute Float32Array viewMatrix;
   // readonly attribute XRRigidTransform transform;
 };

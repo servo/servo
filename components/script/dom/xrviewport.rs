@@ -22,12 +22,20 @@ impl XRViewport {
     fn new_inherited(x: u32, y: u32, width: u32, height: u32) -> XRViewport {
         XRViewport {
             reflector_: Reflector::new(),
-            x, y, width, height
+            x,
+            y,
+            width,
+            height,
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               x: u32, y: u32, width: u32, height: u32) -> DomRoot<XRViewport> {
+    pub fn new(
+        global: &GlobalScope,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+    ) -> DomRoot<XRViewport> {
         reflect_dom_object(
             Box::new(XRViewport::new_inherited(x, y, width, height)),
             global,

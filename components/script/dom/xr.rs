@@ -119,7 +119,7 @@ impl XR {
                         self.sync_display(&display);
                     }
                 },
-                Err(e) => return Err(()),
+                Err(_) => return Err(()),
             }
         } else {
             // WebVR spec: The Promise MUST be rejected if WebVR is not enabled/supported.
@@ -127,7 +127,8 @@ impl XR {
         }
 
         // convert from Dom to DomRoot
-        Ok(self.displays
+        Ok(self
+            .displays
             .borrow()
             .iter()
             .map(|d| DomRoot::from_ref(&**d))

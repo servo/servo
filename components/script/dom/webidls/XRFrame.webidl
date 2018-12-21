@@ -5,8 +5,8 @@
 // https://immersive-web.github.io/webxr/#xrframe-interface
 
 [SecureContext, Exposed=Window] interface XRFrame {
-  // readonly attribute XRSession session;
+  readonly attribute XRSession session;
 
-  // XRViewerPose? getViewerPose(optional XRReferenceSpace referenceSpace);
+  XRViewerPose? getViewerPose(optional XRReferenceSpace referenceSpace);
   // XRInputPose? getInputPose(XRInputSource inputSource, optional XRReferenceSpace referenceSpace);
 };

@@ -153,7 +153,7 @@ impl NavigatorMethods for Navigator {
         let displays = self.Xr().get_displays();
         match displays {
             Ok(displays) => promise.resolve_native(&displays),
-            Err(e) => promise.reject_error(Error::Security),
+            Err(_) => promise.reject_error(Error::Security),
         }
         promise
     }
