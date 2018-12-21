@@ -12,14 +12,14 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
-use net_traits::request::{Destination, RequestInit};
+use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::ResponseInit;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
 use net_traits::{IpcSend, NetworkError, ResourceThreads};
 
 pub struct NetworkListener {
     res_init: Option<ResponseInit>,
-    req_init: RequestInit,
+    request_builder: RequestBuilder,
     pipeline_id: PipelineId,
     resource_threads: ResourceThreads,
     sender: Sender<(PipelineId, FetchResponseMsg)>,
@@ -28,14 +28,14 @@ pub struct NetworkListener {
 
 impl NetworkListener {
     pub fn new(
-        req_init: RequestInit,
+        request_builder: RequestBuilder,
         pipeline_id: PipelineId,
         resource_threads: ResourceThreads,
         sender: Sender<(PipelineId, FetchResponseMsg)>,
     ) -> NetworkListener {
         NetworkListener {
             res_init: None,
-            req_init,
+            request_builder,
             pipeline_id,
             resource_threads,
             sender,
@@ -48,7 +48,7 @@ impl NetworkListener {
 
         let mut listener = NetworkListener {
             res_init: self.res_init.clone(),
-            req_init: self.req_init.clone(),
+            request_builder: self.request_builder.clone(),
             resource_threads: self.resource_threads.clone(),
             sender: self.sender.clone(),
             pipeline_id: self.pipeline_id.clone(),
@@ -57,17 +57,17 @@ impl NetworkListener {
 
         let msg = match self.res_init {
             Some(ref res_init_) => CoreResourceMsg::FetchRedirect(
-                self.req_init.clone(),
+                self.request_builder.clone(),
                 res_init_.clone(),
                 ipc_sender,
                 None,
             ),
             None => {
-                set_default_accept(Destination::Document, &mut listener.req_init.headers);
-                set_default_accept_language(&mut listener.req_init.headers);
+                set_default_accept(Destination::Document, &mut listener.request_builder.headers);
+                set_default_accept_language(&mut listener.request_builder.headers);
 
                 CoreResourceMsg::Fetch(
-                    listener.req_init.clone(),
+                    listener.request_builder.clone(),
                     FetchChannels::ResponseMsg(ipc_sender, cancel_chan),
                 )
             },
@@ -100,13 +100,17 @@ impl NetworkListener {
 
                 match metadata.headers {
                     Some(ref headers) if headers.contains_key(LOCATION) => {
-                        if self.req_init.url_list.is_empty() {
-                            self.req_init.url_list.push(self.req_init.url.clone());
+                        if self.request_builder.url_list.is_empty() {
+                            self.request_builder
+                                .url_list
+                                .push(self.request_builder.url.clone());
                         }
-                        self.req_init.url_list.push(metadata.final_url.clone());
+                        self.request_builder
+                            .url_list
+                            .push(metadata.final_url.clone());
 
-                        self.req_init.referrer_url = metadata.referrer.clone();
-                        self.req_init.referrer_policy = metadata.referrer_policy;
+                        self.request_builder.referrer_url = metadata.referrer.clone();
+                        self.request_builder.referrer_policy = metadata.referrer_policy;
 
                         self.res_init = Some(ResponseInit {
                             url: metadata.final_url.clone(),

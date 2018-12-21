@@ -59,7 +59,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
@@ -233,7 +233,7 @@ impl XMLHttpRequest {
         context: Arc<Mutex<XHRContext>>,
         task_source: NetworkingTaskSource,
         global: &GlobalScope,
-        init: RequestInit,
+        init: RequestBuilder,
         cancellation_chan: ipc::IpcReceiver<()>,
     ) {
         impl FetchResponseListener for XHRContext {
@@ -638,27 +638,24 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             unreachable!()
         };
 
-        let mut request = RequestInit {
-            method: self.request_method.borrow().clone(),
-            url: self.request_url.borrow().clone().unwrap(),
-            headers: (*self.request_headers.borrow()).clone(),
-            unsafe_request: true,
+        let mut request = RequestBuilder::new(self.request_url.borrow().clone().unwrap())
+            .method(self.request_method.borrow().clone())
+            .headers((*self.request_headers.borrow()).clone())
+            .unsafe_request(true)
             // XXXManishearth figure out how to avoid this clone
-            body: extracted_or_serialized.as_ref().map(|e| e.0.clone()),
+            .body(extracted_or_serialized.as_ref().map(|e| e.0.clone()))
             // XXXManishearth actually "subresource", but it doesn't exist
             // https://github.com/whatwg/xhr/issues/71
-            destination: Destination::None,
-            synchronous: self.sync.get(),
-            mode: RequestMode::CorsMode,
-            use_cors_preflight: has_handlers,
-            credentials_mode: credentials_mode,
-            use_url_credentials: use_url_credentials,
-            origin: self.global().origin().immutable().clone(),
-            referrer_url: self.referrer_url.clone(),
-            referrer_policy: self.referrer_policy.clone(),
-            pipeline_id: Some(self.global().pipeline_id()),
-            ..RequestInit::default()
-        };
+            .destination(Destination::None)
+            .synchronous(self.sync.get())
+            .mode(RequestMode::CorsMode)
+            .use_cors_preflight(has_handlers)
+            .credentials_mode(credentials_mode)
+            .use_url_credentials(use_url_credentials)
+            .origin(self.global().origin().immutable().clone())
+            .referrer_url(self.referrer_url.clone())
+            .referrer_policy(self.referrer_policy.clone())
+            .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
         match extracted_or_serialized {
@@ -1458,7 +1455,7 @@ impl XMLHttpRequest {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(&self, init: RequestInit, global: &GlobalScope) -> ErrorResult {
+    fn fetch(&self, init: RequestBuilder, global: &GlobalScope) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {

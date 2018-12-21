@@ -12,7 +12,7 @@ use headers_ext::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use net_traits::request::{RequestInit, RequestMode};
+use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use openssl::ssl::SslStream;
@@ -174,21 +174,23 @@ impl<'a> Handler for Client<'a> {
 }
 
 pub fn init(
-    req_init: RequestInit,
+    req_builder: RequestBuilder,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
 ) {
     thread::Builder::new()
-        .name(format!("WebSocket connection to {}", req_init.url))
+        .name(format!("WebSocket connection to {}", req_builder.url))
         .spawn(move || {
-            let protocols = match req_init.mode {
+            let protocols = match req_builder.mode {
                 RequestMode::WebSocket { protocols } => protocols,
-                _ => panic!("Received a RequestInit with a non-websocket mode in websocket_loader"),
+                _ => panic!(
+                    "Received a RequestBuilder with a non-websocket mode in websocket_loader"
+                ),
             };
 
-            let scheme = req_init.url.scheme();
-            let mut req_url = req_init.url.clone();
+            let scheme = req_builder.url.scheme();
+            let mut req_url = req_builder.url.clone();
             if scheme == "ws" {
                 req_url.as_mut_url().set_scheme("http").unwrap();
             } else if scheme == "wss" {
@@ -201,15 +203,15 @@ pub fn init(
                 return;
             }
 
-            let host = replace_host(req_init.url.host_str().unwrap());
-            let mut net_url = req_init.url.clone().into_url();
+            let host = replace_host(req_builder.url.host_str().unwrap());
+            let mut net_url = req_builder.url.clone().into_url();
             net_url.set_host(Some(&host)).unwrap();
 
             let host = Host::from(
                 format!(
                     "{}{}",
-                    req_init.url.host_str().unwrap(),
-                    req_init
+                    req_builder.url.host_str().unwrap(),
+                    req_builder
                         .url
                         .port_or_known_default()
                         .map(|v| format!(":{}", v))
@@ -220,11 +222,11 @@ pub fn init(
             );
 
             let client = Client {
-                origin: &req_init.origin.ascii_serialization(),
+                origin: &req_builder.origin.ascii_serialization(),
                 host: &host,
                 protocols: &protocols,
                 http_state: &http_state,
-                resource_url: &req_init.url,
+                resource_url: &req_builder.url,
                 event_sender: &resource_event_sender,
                 protocol_in_use: None,
             };
