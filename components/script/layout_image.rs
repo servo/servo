@@ -18,7 +18,7 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{Destination, RequestInit as FetchRequestInit};
+use net_traits::request::{Destination, RequestBuilder as FetchRequestInit};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
@@ -110,13 +110,10 @@ pub fn fetch_image_for_layout(
         }),
     );
 
-    let request = FetchRequestInit {
-        url: url,
-        origin: document.origin().immutable().clone(),
-        destination: Destination::Image,
-        pipeline_id: Some(document.global().pipeline_id()),
-        ..FetchRequestInit::default()
-    };
+    let request = FetchRequestInit::new(url)
+        .origin(document.origin().immutable().clone())
+        .destination(Destination::Image)
+        .pipeline_id(Some(document.global().pipeline_id()));
 
     // Layout image loads do not delay the document load event.
     document
