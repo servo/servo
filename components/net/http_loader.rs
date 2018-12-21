@@ -1195,12 +1195,12 @@ fn http_network_fetch(
         .as_ref()
         .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
 
-    if log_enabled!(log::Level::Info) {
+    //if log_enabled!(log::Level::Info) {
         info!("request for {} ({:?})", url, request.method);
-        for header in request.headers.iter() {
+        /*for header in request.headers.iter() {
             info!(" - {:?}", header);
-        }
-    }
+        }*/
+    //}
 
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
@@ -1226,12 +1226,12 @@ fn http_network_fetch(
         Err(error) => return Response::network_error(error),
     };
 
-    if log_enabled!(log::Level::Info) {
+    //if log_enabled!(log::Level::Info) {
         info!("response for {}", url);
-        for header in res.headers().iter() {
+        /*for header in res.headers().iter() {
             info!(" - {:?}", header);
-        }
-    }
+        }*/
+    //}
 
     let timing = &*context.timing.lock().unwrap();
     let mut response = Response::new(url.clone(), timing.clone());
