@@ -10,6 +10,8 @@ enum XREnvironmentBlendMode {
   "alpha-blend",
 };
 
+callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
+
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // // Attributes
   readonly attribute XRSessionMode mode;

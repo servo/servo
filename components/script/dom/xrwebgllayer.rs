@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
@@ -13,6 +14,8 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::window::Window;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
+use crate::dom::xrview::XRView;
+use crate::dom::xrviewport::XRViewport;
 use dom_struct::dom_struct;
 
 use std::cell::Cell;
@@ -77,6 +80,24 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
 
     fn Context(&self) -> DomRoot<WebGLRenderingContext> {
         DomRoot::from_ref(&self.context)
+    }
+
+    fn GetViewport(&self, view: &XRView) -> Option<DomRoot<XRViewport>> {
+        if self.session != view.session() {
+            return None;
+        }
+
+        let size = self.context.size();
+
+        let x = if view.Eye() == XREye::Left {
+            0
+        } else {
+            size.width / 2
+        };
+        // XXXManishearth this assumes the WebVR default of canvases being cut in half
+        // which need not be generally true for all devices, and will not work in
+        // inline VR mode
+        Some(XRViewport::new(&self.global(), x, 0, size.width / 2, size.height))
     }
 }
 
