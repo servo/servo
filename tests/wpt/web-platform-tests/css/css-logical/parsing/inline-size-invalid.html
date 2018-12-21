@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: parsing inline-size with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical-1/#dimension-properties">
+<meta name="assert" content="inline-size supports the full grammar 'auto | <length-percentage> | min-content | max-content | fit-content(<length-percentage>)'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("inline-size", "none");
+
+test_invalid_value("inline-size", "min-content available");
+test_invalid_value("inline-size", "max-content 10px");
+test_invalid_value("inline-size", "20% available");
+
+test_invalid_value("inline-size", "-10px");
+test_invalid_value("inline-size", "-20%");
+test_invalid_value("inline-size", "60");
+test_invalid_value("inline-size", "10px 20%");
+
+test_invalid_value("inline-size", "10px border-box");
+test_invalid_value("inline-size", "content-box 20%");
+</script>
+</body>
+</html>

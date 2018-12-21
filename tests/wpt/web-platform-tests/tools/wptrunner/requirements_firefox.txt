@@ -3,7 +3,7 @@ mozprofile==2.1.0
 mozprocess == 0.26
 mozcrash == 1.0
 mozrunner==7.2.0
-mozleak == 0.1
+mozleak==0.2
 mozinstall==1.16.0
 mozdownload==1.25
 

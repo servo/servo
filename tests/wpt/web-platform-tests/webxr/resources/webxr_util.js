@@ -105,7 +105,7 @@ function forEachWebxrObject(callback) {
   callback(window.XRFrame, 'XRFrame');
   callback(window.XRView, 'XRView');
   callback(window.XRViewport, 'XRViewport');
-  callback(window.XRDevicePose, 'XRDevicePose');
+  callback(window.XRViewerPose, 'XRViewerPose');
   callback(window.XRLayer, 'XRLayer');
   callback(window.XRWebGLLayer, 'XRWebGLLayer');
   callback(window.XRWebGLLayerInit, 'XRWebGLLayerInit');

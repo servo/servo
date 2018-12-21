@@ -52,6 +52,10 @@ and `}}`. Inside the block the following variables are available:
     The HTTP headers in the request
       e.g. `{{headers[X-Test]}}` for a hypothetical `X-Test` header.
 
+  `{{header_or_default(header, default)}}`
+    The value of an HTTP header, or a default value if it is absent.
+      e.g. `{{header_or_default(X-Test, test-header-absent)}}`
+
   `{{GET[]}}`
     The query parameters for the request
       e.g. `{{GET[id]}}` for an id parameter sent with the request.
