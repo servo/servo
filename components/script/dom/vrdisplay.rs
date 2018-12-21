@@ -683,7 +683,8 @@ impl VRDisplay {
                 self.global().pipeline_id(),
                 self.display.borrow().display_id,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
 
         if let Ok(()) = receiver.recv().unwrap() {
             *self.layer.borrow_mut() = layer_bounds;
