@@ -725,20 +725,6 @@ impl HTMLMediaElement {
             Resource::Url(url) => {
                 // Step 4.remote.1.
                 if self.Preload() == "none" && !self.autoplaying.get() {
-                    // We only set the stream type to Seekable in two cases:
-                    //
-                    // - If the url is a file:// url. Our network stack supports range requests for
-                    //   file:// urls.
-                    // - If the url is an http(s):// url and we identify that the server supports
-                    //   range requests.
-                    //
-                    // In the remaining cases, we use the default Stream type.
-                    if url.scheme() == "file" {
-                        if let Err(e) = self.player.set_stream_type(StreamType::Seekable) {
-                            warn!("Could not set stream type to Seekable. {:?}", e);
-                        }
-                    }
-
                     // Step 4.remote.1.1.
                     self.network_state.set(NetworkState::Idle);
 
@@ -1059,6 +1045,12 @@ impl HTMLMediaElement {
         // XXX(ferjm) seekable attribute: we need to get the information about
         //            what's been decoded and buffered so far from servo-media
         //            and add the seekable attribute as a TimeRange.
+        if let Some(ref current_fetch_request) = *self.current_fetch_request.borrow() {
+            if !current_fetch_request.lock().unwrap().is_seekable() {
+                self.seeking.set(false);
+                return;
+            }
+        }
 
         // Step 9.
         // servo-media with gstreamer does not support inaccurate seeking for now.
@@ -1238,7 +1230,7 @@ impl HTMLMediaElement {
                 // current fetch request, assuming that some frames will be dropped.
                 if let Some(ref current_fetch_request) = *self.current_fetch_request.borrow() {
                     let mut current_fetch_request = current_fetch_request.lock().unwrap();
-                    if current_fetch_request.supports_ranges() {
+                    if current_fetch_request.is_seekable() {
                         current_fetch_request.cancel(CancelReason::Backoff);
                     }
                 }
@@ -1726,8 +1718,8 @@ pub struct HTMLMediaElementFetchContext {
     /// EnoughData event uses this value to restart the download from
     /// the last fetched position.
     latest_fetched_content: u64,
-    /// Indicates whether the request support ranges or not.
-    supports_ranges: bool,
+    /// Indicates whether the stream is seekable.
+    is_seekable: bool,
     /// Fetch canceller. Allows cancelling the current fetch request by
     /// manually calling its .cancel() method or automatically on Drop.
     fetch_canceller: FetchCanceller,
@@ -1778,7 +1770,7 @@ impl FetchResponseListener for HTMLMediaElementFetchContext {
             }
         }
 
-        let (status_is_ok, supports_ranges) = self
+        let (status_is_ok, is_seekable) = self
             .metadata
             .as_ref()
             .and_then(|m| m.status.as_ref())
@@ -1786,9 +1778,9 @@ impl FetchResponseListener for HTMLMediaElementFetchContext {
                 (s.0 >= 200 && s.0 < 300, s.0 == 206 || s.0 == 416)
             });
 
-        if supports_ranges {
+        if is_seekable {
             // The server supports range requests,
-            self.supports_ranges = true;
+            self.is_seekable = true;
             // and we can safely set the type of stream to Seekable.
             if let Err(e) = elem.player.set_stream_type(StreamType::Seekable) {
                 warn!("Could not set stream type to Seekable. {:?}", e);
@@ -1960,15 +1952,15 @@ impl HTMLMediaElementFetchContext {
                 url,
                 expected_content_length: None,
                 latest_fetched_content: offset,
-                supports_ranges: false,
+                is_seekable: false,
                 fetch_canceller,
             },
             cancel_receiver,
         )
     }
 
-    fn supports_ranges(&self) -> bool {
-        self.supports_ranges
+    fn is_seekable(&self) -> bool {
+        self.is_seekable
     }
 
     fn cancel(&mut self, reason: CancelReason) {
