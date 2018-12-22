@@ -30,6 +30,8 @@ use crate::dom::vrframedata::VRFrameData;
 use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::xrframe::XRFrame;
+use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use crate::task_source::TaskSourceName;
@@ -77,8 +79,8 @@ pub struct VRDisplay {
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
-    /// Whether or not this is XR mode
-    xr: Cell<bool>,
+    /// Whether or not this is XR mode, and the session
+    xr_session: MutNullableDom<XRSession>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayData);
@@ -135,7 +137,7 @@ impl VRDisplay {
             // This flag is set when the Display was presenting when it received a VR Pause event.
             // When the VR Resume event is received and the flag is set, VR presentation automatically restarts.
             stopped_on_pause: Cell::new(false),
-            xr: Cell::new(false),
+            xr_session: MutNullableDom::default(),
         }
     }
 
@@ -631,25 +633,43 @@ impl VRDisplay {
 
     fn handle_raf(&self, end_sender: &Sender<Result<(f64, f64), ()>>) {
         self.frame_data_status.set(VRFrameDataStatus::Waiting);
-        self.running_display_raf.set(true);
+        
 
-        let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
         let now = self.global().as_window().Performance().Now();
 
-        // Call registered VRDisplay.requestAnimationFrame callbacks.
-        for (_, callback) in callbacks.drain(..) {
-            if let Some(callback) = callback {
-                let _ = callback.Call__(Finite::wrap(*now), ExceptionHandling::Report);
+        if let Some(session) = self.xr_session.get() {
+            let mut callbacks = mem::replace(&mut *self.xr_raf_callback_list.borrow_mut(), vec![]);
+            if callbacks.is_empty() {
+                return;
             }
-        }
-
-        self.running_display_raf.set(false);
-        if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
-            // User didn't call getFrameData while presenting.
-            // We automatically reads the pending VRFrameData to avoid overflowing the IPC-Channel buffers.
-            // Show a warning as the WebVR Spec recommends.
-            warn!("WebVR: You should call GetFrameData while presenting");
             self.sync_frame_data();
+            let frame = XRFrame::new(&self.global(), &session, self.frame_data.borrow().clone());
+
+            for (_, callback) in callbacks.drain(..) {
+                if let Some(callback) = callback {
+                    let _ = callback.Call__(Finite::wrap(*now), &frame, ExceptionHandling::Report);
+                }
+            }
+            // frame submission is automatic in XR
+            self.SubmitFrame();
+        } else {
+            self.running_display_raf.set(true);
+            let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
+            // Call registered VRDisplay.requestAnimationFrame callbacks.
+            for (_, callback) in callbacks.drain(..) {
+                if let Some(callback) = callback {
+                    let _ = callback.Call__(Finite::wrap(*now), ExceptionHandling::Report);
+                }
+            }
+
+            self.running_display_raf.set(false);
+            if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
+                // User didn't call getFrameData while presenting.
+                // We automatically reads the pending VRFrameData to avoid overflowing the IPC-Channel buffers.
+                // Show a warning as the WebVR Spec recommends.
+                warn!("WebVR: You should call GetFrameData while presenting");
+                self.sync_frame_data();
+            }
         }
 
         match self.frame_data_status.get() {
@@ -671,9 +691,9 @@ impl VRDisplay {
 // XR stuff
 // XXXManishearth eventually we should share as much logic as possible
 impl VRDisplay {
-    pub fn xr_present(&self, ctx: &WebGLRenderingContext) {
+    pub fn xr_present(&self, session: &XRSession, ctx: &WebGLRenderingContext) {
         let layer_bounds = WebVRLayer::default();
-        self.xr.set(true);
+        self.xr_session.set(Some(session));
         if self.presenting.get() {
             *self.layer.borrow_mut() = layer_bounds;
             self.layer_ctx.set(Some(&ctx));
