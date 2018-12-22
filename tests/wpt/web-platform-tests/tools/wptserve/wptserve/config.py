@@ -314,10 +314,9 @@ class ConfigBuilder(object):
         kwargs = data["ssl"].get(ssl_type, {})
         self._ssl_env = ssl_cls(self.logger, **kwargs)
         self._ssl_env.__enter__()
-        if self._ssl_env.ssl_enabled:
-            key_path, cert_path = self._ssl_env.host_cert_path(data["domains_set"])
-            ca_cert_path = self._ssl_env.ca_cert_path()
-            return {"key_path": key_path,
-                    "ca_cert_path": ca_cert_path,
-                    "cert_path": cert_path,
-                    "encrypt_after_connect": data["ssl"].get("encrypt_after_connect", False)}
+        key_path, cert_path = self._ssl_env.host_cert_path(data["domains_set"])
+        ca_cert_path = self._ssl_env.ca_cert_path()
+        return {"key_path": key_path,
+                "ca_cert_path": ca_cert_path,
+                "cert_path": cert_path,
+                "encrypt_after_connect": data["ssl"].get("encrypt_after_connect", False)}
