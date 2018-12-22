@@ -1,1 +1,1 @@
-Feature-Policy: encrypted-media-report-only 'none'
+Feature-Policy-Report-Only: encrypted-media 'none'

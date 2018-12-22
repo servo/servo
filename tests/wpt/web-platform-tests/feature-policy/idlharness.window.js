@@ -12,7 +12,7 @@ idl_test(
     idl_array.add_objects({
       Document: ['document'],
       HTMLIframeElement: ['document.createElement("iframe")'],
-      Policy: ['document.policy'],
+      FeaturePolicy: ['document.featurePolicy'],
     })
   }
 );

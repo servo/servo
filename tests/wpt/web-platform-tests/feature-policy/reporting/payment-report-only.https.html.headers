@@ -1,1 +1,1 @@
-Feature-Policy: payment-report-only 'none'
+Feature-Policy-Report-Only: payment 'none'

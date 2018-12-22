@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: parsing max-inline-size with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical-1/#dimension-properties">
+<meta name="assert" content="max-inline-size supports the full grammar 'none | <length-percentage> | min-content | max-content | fit-content(<length-percentage>)'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("max-inline-size", "none");
+
+test_valid_value("max-inline-size", "10px");
+test_valid_value("max-inline-size", "20%");
+test_valid_value("max-inline-size", "calc(2em + 3ex)");
+
+test_valid_value("max-inline-size", "min-content");
+test_valid_value("max-inline-size", "max-content");
+
+// The following are not yet supported by browsers:
+// test_valid_value("max-inline-size", "fit-content(100px)");
+// test_valid_value("max-inline-size", "fit-content(calc(10% + 10px))");
+</script>
+</body>
+</html>

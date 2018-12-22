@@ -126,6 +126,11 @@ server: http://localhost:{0}""".format(self.server.port).encode("ascii")
 """ % {"root": root, "sep": os.path.sep}
         self.assertEqual(resp.read(), expected.encode("utf8"))
 
+    def test_sub_header_or_default(self):
+        resp = self.request("/sub_header_or_default.sub.txt", headers={"X-Present": "OK"})
+        expected = b"OK\nabsent-default"
+        self.assertEqual(resp.read().rstrip(), expected)
+
 class TestTrickle(TestUsingServer):
     def test_trickle(self):
         #Actually testing that the response trickles in is not that easy

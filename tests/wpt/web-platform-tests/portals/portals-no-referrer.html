@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// TODO(jbroman): Remove use of BroadcastChannel for messaging once it is
+// possible to postMessage to a portal the normal way.
+promise_test(async () => {
+  assert_true('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  let portal = document.createElement('portal');
+  let channelName = 'portals-no-referrer';
+  let broadcastChannel = new BroadcastChannel(channelName);
+  try {
+    let referrerPromise = new Promise((resolve, reject) => {
+      broadcastChannel.addEventListener('message', e => {
+        resolve(e.data);
+      }, {once: true});
+    });
+    portal.src = `resources/postmessage-referrer.sub.html?broadcastchannel=${channelName}`;
+    document.body.appendChild(portal);
+    try {
+      let {httpReferrer, documentReferrer} = await referrerPromise;
+      assert_equals(httpReferrer, 'no-http-referrer', 'No HTTP Referer header should be sent');
+      assert_equals(documentReferrer, 'no-document-referrer', 'No document.referrer should be present');
+    } finally {
+      document.body.removeChild(portal);
+    }
+  } finally {
+    broadcastChannel.close();
+  }
+}, "portal contents should be loaded with no referrer");
+</script>
+</body>
