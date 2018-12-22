@@ -1235,8 +1235,11 @@ impl HTMLMediaElement {
                 // XXX(ferjm) We need to identify if the stream is seekable or
                 //            not to decide if we can loop. Ref. #22297
                 if self.Loop() {
-                    self.playback_position
-                        .set(self.default_playback_start_position.get());
+                    let t = self.default_playback_start_position.get();
+                    //self.playback_position.set(t);
+                    self.seek(t, /* approximate_for_speed */ false);
+                    //self.Play();
+                    self.player.play();
                 }
             },
             PlayerEvent::FrameUpdated => {
