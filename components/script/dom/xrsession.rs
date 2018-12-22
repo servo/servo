@@ -74,7 +74,7 @@ impl XRSessionMethods for XRSession {
         self.base_layer.set(layer);
         if let Some(layer) = layer {
             let layer = layer.downcast::<XRWebGLLayer>().unwrap();
-            self.display.xr_present(&layer.Context());
+            self.display.xr_present(&self, &layer.Context());
         } else {
             // steps unknown
             // https://github.com/immersive-web/webxr/issues/453
