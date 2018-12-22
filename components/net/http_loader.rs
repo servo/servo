@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::{create_http_client, Connector, WrappedBody, BUF_SIZE};
+use crate::connector::{create_http_client, Connector};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
+use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::methods::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, main_fetch,
@@ -20,7 +21,6 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
 };
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
-use flate2::read::{DeflateDecoder, GzDecoder};
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders};
 use headers_ext::{
@@ -49,7 +49,6 @@ use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::io::Cursor;
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
@@ -71,7 +70,7 @@ pub struct HttpState {
     pub http_cache: RwLock<HttpCache>,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
-    pub client: Client<Connector, WrappedBody>,
+    pub client: Client<Connector, Body>,
 }
 
 impl HttpState {
@@ -266,31 +265,6 @@ fn set_cookies_from_headers(
     }
 }
 
-impl Decoder {
-    fn from_http_response(response: &HyperResponse<Body>) -> Decoder {
-        if let Some(encoding) = response.headers().typed_get::<ContentEncoding>() {
-            if encoding.contains("gzip") {
-                Decoder::Gzip(None)
-            } else if encoding.contains("deflate") {
-                Decoder::Deflate(DeflateDecoder::new(Cursor::new(Bytes::new())))
-            } else if encoding.contains("br") {
-                Decoder::Brotli(Decompressor::new(Cursor::new(Bytes::new()), BUF_SIZE))
-            } else {
-                Decoder::Plain
-            }
-        } else {
-            Decoder::Plain
-        }
-    }
-}
-
-pub enum Decoder {
-    Gzip(Option<GzDecoder<Cursor<Bytes>>>),
-    Deflate(DeflateDecoder<Cursor<Bytes>>),
-    Brotli(Decompressor<Cursor<Bytes>>),
-    Plain,
-}
-
 fn prepare_devtools_request(
     request_id: String,
     url: ServoUrl,
@@ -367,7 +341,7 @@ fn auth_from_cache(
 }
 
 fn obtain_response(
-    client: &Client<Connector, WrappedBody>,
+    client: &Client<Connector, Body>,
     url: &ServoUrl,
     method: &Method,
     request_headers: &HeaderMap,
@@ -379,10 +353,7 @@ fn obtain_response(
     is_xhr: bool,
 ) -> Box<
     dyn Future<
-        Item = (
-            HyperResponse<WrappedBody>,
-            Option<ChromeToDevtoolsControlMsg>,
-        ),
+        Item = (HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>),
         Error = NetworkError,
     >,
 > {
@@ -423,7 +394,7 @@ fn obtain_response(
                 .replace("{", "%7B")
                 .replace("}", "%7D"),
         )
-        .body(WrappedBody::new(request_body.clone().into()));
+        .body(request_body.clone().into());
 
     let mut request = match request {
         Ok(request) => request,
@@ -436,6 +407,7 @@ fn obtain_response(
 
     let request_id = request_id.map(|v| v.to_owned());
     let pipeline_id = pipeline_id.clone();
+    let url3 = url.clone();
     let closure_url = url.clone();
     let method = method.clone();
     let send_start = precise_time_ms();
@@ -474,11 +446,7 @@ fn obtain_response(
                     debug!("Not notifying devtools (no request_id)");
                     None
                 };
-                let decoder = Decoder::from_http_response(&res);
-                Ok((
-                    res.map(move |r| WrappedBody::new_with_decoder(r, decoder)),
-                    msg,
-                ))
+                Ok((Decoder::detect(res, url3), msg))
             })
             .map_err(move |e| NetworkError::from_hyper_error(&e)),
     )
@@ -1265,6 +1233,7 @@ fn http_network_fetch(
     }
 
     *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+    let res_body2 = res_body.clone();
 
     if let Some(ref sender) = devtools_sender {
         if let Some(m) = msg {
@@ -1285,6 +1254,7 @@ fn http_network_fetch(
     }
 
     let done_sender2 = done_sender.clone();
+    let done_sender3 = done_sender.clone();
     HANDLE.lock().unwrap().spawn(
         res.into_body()
             .map_err(|_| ())
@@ -1311,7 +1281,15 @@ fn http_network_fetch(
                 let _ = done_sender2.send(Data::Done);
                 future::ok(())
             })
-            .map_err(|_| ()),
+            .map_err(move |_| {
+                let mut body = res_body2.lock().unwrap();
+                let completed_body = match *body {
+                    ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),
+                    _ => vec![],
+                };
+                *body = ResponseBody::Done(completed_body);
+                let _ = done_sender3.send(Data::Done);
+            }),
     );
 
     // TODO these substeps aren't possible yet
