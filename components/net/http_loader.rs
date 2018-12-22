@@ -793,7 +793,11 @@ fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<
     match *url_origin {
         ImmutableOrigin::Opaque(_) => Some(HyperOrigin::NULL),
         ImmutableOrigin::Tuple(ref scheme, ref host, ref port) => {
-            HyperOrigin::try_from_parts(&scheme, &host.to_string(), Some(port.clone())).ok()
+            let port = match (scheme.as_ref(), port) {
+                ("http", 80) | ("https", 443) => None,
+                _ => Some(*port),
+            };
+            HyperOrigin::try_from_parts(&scheme, &host.to_string(), port).ok()
         },
     }
 }
@@ -1194,6 +1198,13 @@ fn http_network_fetch(
         .devtools_chan
         .as_ref()
         .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
+
+    if log_enabled!(log::Level::Info) {
+        info!("request for {} ({:?})", url, request.method);
+        for header in request.headers.iter() {
+            info!(" - {:?}", header);
+        }
+    }
 
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
