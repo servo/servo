@@ -84,6 +84,7 @@ def main(task_for):
 def mocked_only():
     windows_release()
     android_x86_wpt()
+    linux_wpt()
     decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
