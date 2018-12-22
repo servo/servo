@@ -26,6 +26,9 @@ def main(task_for):
         # This local variable shadows the module-level function of the same name.
         android_x86_wpt = android_x86_release
 
+        # Implemented but disabled for now:
+        linux_wpt = lambda: None  # Shadows the existing top-level function
+
         all_tests = [
             linux_tidy_unit_docs,
             windows_unit,
@@ -81,6 +84,7 @@ def main(task_for):
 def mocked_only():
     windows_release()
     android_x86_wpt()
+    linux_wpt()
     decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
