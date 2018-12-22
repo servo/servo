@@ -36,7 +36,6 @@ packages = [
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
-  "log",
   "rand",
   "unicase",
   "winapi",
