@@ -51,6 +51,8 @@ files = [
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./tests/wpt/mozilla/meta/MANIFEST.json",
+  # Long encoded string
+  "./tests/wpt/mozilla/tests/mozilla/resources/brotli.py",
   "./tests/wpt/webgl/meta/MANIFEST.json",
   "./support/android/openssl.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
