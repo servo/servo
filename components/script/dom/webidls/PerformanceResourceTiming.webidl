@@ -27,9 +27,3 @@ interface PerformanceResourceTiming : PerformanceEntry {
     /// readonly attribute unsigned long long  decodedBodySize;
     // [Default] object toJSON();
 };
-//https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
-//partial interface Performance {
-  //void clearResourceTimings();
-  //void setResourceTimingBufferSize(unsigned long maxSize);
-  //attribute EventHandler onresourcetimingbufferfull;
- //};

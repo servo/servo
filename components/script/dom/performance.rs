@@ -310,24 +310,19 @@ impl Performance {
             );
         }
     }
+    // `fire a buffer full event` paragraph of
+    // https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
     fn fire_buffer_full_event(&self) {
-        while !self
-            .resource_timing_secondary_entries
-            .borrow_mut()
-            .is_empty()
-        {
-            let no_of_excess_entries_before =
-                self.resource_timing_secondary_entries.borrow_mut().len();
-            let mut no_of_excess_entries_after =
-                self.resource_timing_secondary_entries.borrow_mut().len();
+        while !self.resource_timing_secondary_entries.borrow().is_empty() {
+            let no_of_excess_entries_before = self.resource_timing_secondary_entries.borrow().len();
+
             if !self.can_add_resource_timing_entry() {
-                self.eventtarget
+                self.upcast::<EventTarget>()
                     .fire_event(atom!("resourcetimingbufferfull"));
-                self.copy_secondary_resource_timing_buffer();
-                no_of_excess_entries_after =
-                    self.resource_timing_secondary_entries.borrow_mut().len();
             }
-            if no_of_excess_entries_after >= no_of_excess_entries_before {
+            self.copy_secondary_resource_timing_buffer();
+            let no_of_excess_entries_after = self.resource_timing_secondary_entries.borrow().len();
+            if no_of_excess_entries_before <= no_of_excess_entries_after {
                 self.resource_timing_secondary_entries.borrow_mut().clear();
                 break;
             }
@@ -347,6 +342,13 @@ impl Performance {
             self.resource_timing_buffer_current_size
                 .set(resource_timing_buffer_current_size + 1);
             return true;
+        } else if !self.resource_timing_buffer_pending_full_event.get() {
+            self.resource_timing_buffer_pending_full_event.set(true);
+            self.fire_buffer_full_event();
+            self.resource_timing_secondary_entries
+                .borrow_mut()
+                .push_back(DomRoot::from_ref(entry));
+            return false;
         } else {
             return false;
         }
@@ -485,7 +487,7 @@ impl PerformanceMethods for Performance {
         self.entries
             .borrow_mut()
             .clear_entries_by_name_and_type(None, Some(DOMString::from("resource")));
-        self.resource_timing_buffer_current_size.set(0_usize);
+        self.resource_timing_buffer_current_size.set(0);
     }
 
     // https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
