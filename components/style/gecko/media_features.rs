@@ -327,6 +327,28 @@ fn eval_overflow_block(device: &Device, query_value: Option<OverflowBlock>) -> b
     }
 }
 
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+enum OverflowInline {
+    None,
+    Scroll,
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#mf-overflow-inline
+fn eval_overflow_inline(device: &Device, query_value: Option<OverflowInline>) -> bool {
+    // See the note in eval_overflow_block.
+    let scrolling = device.media_type() != MediaType::print();
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return scrolling,
+    };
+
+    match query_value {
+        OverflowInline::None => !scrolling,
+        OverflowInline::Scroll => scrolling,
+    }
+}
+
 /// https://drafts.csswg.org/mediaqueries-4/#mf-interaction
 bitflags! {
     struct PointerCapabilities: u8 {
@@ -505,7 +527,7 @@ lazy_static! {
     /// to support new types in these entries and (2) ensuring that either
     /// nsPresContext::MediaFeatureValuesChanged is called when the value that
     /// would be returned by the evaluator function could change.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 49] = [
+    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 50] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
@@ -628,6 +650,12 @@ lazy_static! {
             atom!("overflow-block"),
             AllowsRanges::No,
             keyword_evaluator!(eval_overflow_block, OverflowBlock),
+            ParsingRequirements::empty(),
+        ),
+        feature!(
+            atom!("overflow-inline"),
+            AllowsRanges::No,
+            keyword_evaluator!(eval_overflow_inline, OverflowInline),
             ParsingRequirements::empty(),
         ),
         feature!(
