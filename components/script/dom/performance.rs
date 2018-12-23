@@ -232,17 +232,16 @@ impl Performance {
         // Step 4.
         // If the "add to performance entry buffer flag" is set, add the
         // new entry to the buffer.
-        if add_to_performance_entries_buffer &&
-            entry.entry_type() == "resource" &&
-            self.should_queue_resource_entry(entry)
-        {
-            return;
-        } else if self.resource_timing_buffer_pending_full_event.get() == false {
-            self.resource_timing_buffer_pending_full_event.set(true);
-            self.fire_buffer_full_event();
-            self.resource_timing_secondary_entries
-                .borrow_mut()
-                .push_back(DomRoot::from_ref(entry));
+
+        if add_to_performance_entries_buffer {
+            if entry.entry_type() == "resource" && self.should_queue_resource_entry(entry) {
+                return;
+            } else {
+                self.entries
+                    .borrow_mut()
+                    .entries
+                    .push(DomRoot::from_ref(entry));
+            }
         }
 
         // Step 5.
@@ -295,19 +294,16 @@ impl Performance {
             self.resource_timing_buffer_size_limit.get()
     }
     fn copy_secondary_resource_timing_buffer(&self) {
-        while self.can_add_resource_timing_entry() && !self
-            .resource_timing_secondary_entries
-            .borrow_mut()
-            .is_empty()
-        {
-            self.queue_entry(
-                &(*(self
-                    .resource_timing_secondary_entries
-                    .borrow_mut()
-                    .pop_front()
-                    .unwrap())),
-                true,
-            );
+        while self.can_add_resource_timing_entry() {
+            let entry = self
+                .resource_timing_secondary_entries
+                .borrow_mut()
+                .pop_front();
+            if let Some(ref entry) = entry {
+                self.queue_entry(entry, true);
+            } else {
+                break;
+            }
         }
     }
     // `fire a buffer full event` paragraph of
