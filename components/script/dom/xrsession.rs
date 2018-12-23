@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
@@ -17,15 +18,12 @@ use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use dom_struct::dom_struct;
-use std::cell::Cell;
 use std::rc::Rc;
 
 #[dom_struct]
 pub struct XRSession {
     eventtarget: EventTarget,
     display: Dom<VRDisplay>,
-    depth_near: Cell<f64>,
-    depth_far: Cell<f64>,
     base_layer: MutNullableDom<XRLayer>,
 }
 
@@ -34,8 +32,6 @@ impl XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
             display: Dom::from_ref(display),
-            depth_near: Cell::new(0.1),
-            depth_far: Cell::new(1000.),
             base_layer: Default::default(),
         }
     }
@@ -52,22 +48,22 @@ impl XRSession {
 impl XRSessionMethods for XRSession {
     /// https://immersive-web.github.io/webxr/#dom-xrsession-depthnear
     fn DepthNear(&self) -> Finite<f64> {
-        Finite::wrap(self.depth_near.get())
+        self.display.DepthNear()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-depthfar
     fn DepthFar(&self) -> Finite<f64> {
-        Finite::wrap(self.depth_far.get())
+        self.display.DepthFar()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-depthnear
     fn SetDepthNear(&self, d: Finite<f64>) {
-        self.depth_near.set(*d)
+        self.display.SetDepthNear(d)
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-depthfar
     fn SetDepthFar(&self, d: Finite<f64>) {
-        self.depth_far.set(*d)
+        self.display.SetDepthFar(d)
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-mode
