@@ -633,7 +633,6 @@ impl VRDisplay {
 
     fn handle_raf(&self, end_sender: &Sender<Result<(f64, f64), ()>>) {
         self.frame_data_status.set(VRFrameDataStatus::Waiting);
-        
 
         let now = self.global().as_window().Performance().Now();
 

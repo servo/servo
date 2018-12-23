@@ -4,7 +4,8 @@
 
 // https://immersive-web.github.io/webxr/#xrviewport-interface
 
-[SecureContext, Exposed=Window] interface XRViewport {
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+interface XRViewport {
   readonly attribute long x;
   readonly attribute long y;
   readonly attribute long width;

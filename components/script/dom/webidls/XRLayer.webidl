@@ -4,4 +4,5 @@
 
 // https://immersive-web.github.io/webxr/#xrlayer-interface
 
-[SecureContext, Exposed=Window] interface XRLayer {};
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+interface XRLayer {};

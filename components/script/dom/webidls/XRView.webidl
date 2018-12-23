@@ -9,7 +9,8 @@ enum XREye {
   "right"
 };
 
-[SecureContext, Exposed=Window] interface XRView {
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
   readonly attribute Float32Array viewMatrix;

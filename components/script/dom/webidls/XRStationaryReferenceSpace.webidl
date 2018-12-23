@@ -14,7 +14,7 @@ dictionary XRStationaryReferenceSpaceOptions : XRReferenceSpaceOptions {
   required XRStationaryReferenceSpaceSubtype subtype;
 };
 
-[SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRStationaryReferenceSpace: XRReferenceSpace {
   // readonly attribute XRStationaryReferenceSpaceSubtype subtype;
 };

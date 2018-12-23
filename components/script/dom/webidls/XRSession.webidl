@@ -12,7 +12,7 @@ enum XREnvironmentBlendMode {
 
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
 
-[SecureContext, Exposed=Window] interface XRSession : EventTarget {
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"] interface XRSession : EventTarget {
   // // Attributes
   readonly attribute XRSessionMode mode;
   // readonly attribute XRPresentationContext outputContext;
