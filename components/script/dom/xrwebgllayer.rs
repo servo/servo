@@ -72,26 +72,32 @@ impl XRWebGLLayer {
 }
 
 impl XRWebGLLayerMethods for XRWebGLLayer {
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-depth
     fn Depth(&self) -> bool {
         self.depth.get()
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-stencil
     fn Stencil(&self) -> bool {
         self.stencil.get()
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-antialias
     fn Antialias(&self) -> bool {
         self.antialias.get()
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-alpha
     fn Alpha(&self) -> bool {
         self.alpha.get()
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-context
     fn Context(&self) -> DomRoot<WebGLRenderingContext> {
         DomRoot::from_ref(&self.context)
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
     fn GetViewport(&self, view: &XRView) -> Option<DomRoot<XRViewport>> {
         if self.session != view.session() {
             return None;

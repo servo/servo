@@ -46,10 +46,12 @@ impl XRFrame {
 }
 
 impl XRFrameMethods for XRFrame {
+    /// https://immersive-web.github.io/webxr/#dom-xrframe-session
     fn Session(&self) -> DomRoot<XRSession> {
         DomRoot::from_ref(&self.session)
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose
     fn GetViewerPose(&self, reference: Option<&XRReferenceSpace>) -> Option<DomRoot<XRViewerPose>> {
         // We assume the reference space is eye level for now
         // since it's the only one 3DOF devices support

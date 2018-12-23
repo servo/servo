@@ -95,6 +95,7 @@ WEBIDL_STANDARDS = [
     "//svgwg.org/svg2-draft",
     "//wicg.github.io",
     "//webaudio.github.io",
+    "//immersive-web.github.io/",
     # Not a URL
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."

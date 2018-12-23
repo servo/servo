@@ -50,26 +50,32 @@ impl XRSession {
 }
 
 impl XRSessionMethods for XRSession {
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthnear
     fn DepthNear(&self) -> Finite<f64> {
         Finite::wrap(self.depth_near.get())
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthfar
     fn DepthFar(&self) -> Finite<f64> {
         Finite::wrap(self.depth_far.get())
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthnear
     fn SetDepthNear(&self, d: Finite<f64>) {
         self.depth_near.set(*d)
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthfar
     fn SetDepthFar(&self, d: Finite<f64>) {
         self.depth_far.set(*d)
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-mode
     fn Mode(&self) -> XRSessionMode {
         XRSessionMode::Immersive_vr
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-baselayer
     fn SetBaseLayer(&self, layer: Option<&XRLayer>) {
         self.base_layer.set(layer);
         if let Some(layer) = layer {
@@ -81,14 +87,17 @@ impl XRSessionMethods for XRSession {
         }
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-baselayer
     fn GetBaseLayer(&self) -> Option<DomRoot<XRLayer>> {
         self.base_layer.get()
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
         self.display.xr_raf(callback) as i32
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-cancelanimationframe
     fn CancelAnimationFrame(&self, frame: i32) {
         self.display.xr_cancel_raf(frame)
     }
