@@ -381,7 +381,7 @@ impl ServoParser {
 
         // Step 4.
         self.document
-            .set_ready_state(DocumentReadyState::Interactive);
+            .set_ready_state(DocumentReadyState::Complete);
     }
 
     // https://html.spec.whatwg.org/multipage/#active-parser
