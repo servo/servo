@@ -1909,10 +1909,10 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
-		let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
-			Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
-			None => false
-		};
+        let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
+            Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
+            None => false,
+        };
         // Note: if the document is not fully active, the layout thread will have exited already,
         // and this method will panic.
         // The underlying problem might actually be that layout exits while it should be kept alive.
