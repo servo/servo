@@ -1108,6 +1108,15 @@ impl Element {
     }
 
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
+        match traversal_scope {
+            TraversalScope::ChildrenOnly(_) => {
+                if self.is_void() {
+                    return Ok(DOMString::from(""));
+                }
+            },
+            _ => (),
+        };
+
         let mut writer = vec![];
         match serialize(
             &mut writer,
