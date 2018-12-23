@@ -20,6 +20,7 @@ impl XRRigidTransform {
         }
     }
 
+    #[allow(unused)]
     pub fn new(global: &GlobalScope) -> DomRoot<XRRigidTransform> {
         reflect_dom_object(
             Box::new(XRRigidTransform::new_inherited()),

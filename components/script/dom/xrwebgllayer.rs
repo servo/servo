@@ -18,15 +18,14 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use dom_struct::dom_struct;
 
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct XRWebGLLayer {
     xrlayer: XRLayer,
-    antialias: Cell<bool>,
-    depth: Cell<bool>,
-    stencil: Cell<bool>,
-    alpha: Cell<bool>,
+    antialias: bool,
+    depth: bool,
+    stencil: bool,
+    alpha: bool,
     context: Dom<WebGLRenderingContext>,
     session: Dom<XRSession>,
 }
@@ -39,10 +38,10 @@ impl XRWebGLLayer {
     ) -> XRWebGLLayer {
         XRWebGLLayer {
             xrlayer: XRLayer::new_inherited(),
-            antialias: Cell::new(init.antialias),
-            depth: Cell::new(init.depth),
-            stencil: Cell::new(init.stencil),
-            alpha: Cell::new(init.alpha),
+            antialias: init.antialias,
+            depth: init.depth,
+            stencil: init.stencil,
+            alpha: init.alpha,
             context: Dom::from_ref(context),
             session: Dom::from_ref(session),
         }
@@ -74,22 +73,22 @@ impl XRWebGLLayer {
 impl XRWebGLLayerMethods for XRWebGLLayer {
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-depth
     fn Depth(&self) -> bool {
-        self.depth.get()
+        self.depth
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-stencil
     fn Stencil(&self) -> bool {
-        self.stencil.get()
+        self.stencil
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-antialias
     fn Antialias(&self) -> bool {
-        self.antialias.get()
+        self.antialias
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-alpha
     fn Alpha(&self) -> bool {
-        self.alpha.get()
+        self.alpha
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-context
