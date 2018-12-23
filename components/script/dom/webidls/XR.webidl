@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://immersive-web.github.io/webxr/#xr-interface
-[SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XR: EventTarget {
   // Methods
   Promise<void> supportsSessionMode(XRSessionMode mode);
@@ -15,7 +15,7 @@ interface XR: EventTarget {
 
 [SecureContext]
 partial interface Navigator {
-  [SameObject, Pref="dom.webvr.enabled"] readonly attribute XR xr;
+  [SameObject, Pref="dom.webxr.enabled"] readonly attribute XR xr;
 };
 
 enum XRSessionMode {

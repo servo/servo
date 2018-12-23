@@ -14,7 +14,8 @@ dictionary XRReferenceSpaceOptions {
   required XRReferenceSpaceType type;
 };
 
-[SecureContext, Exposed=Window] interface XRReferenceSpace : XRSpace {
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+interface XRReferenceSpace : XRSpace {
   // attribute XRRigidTransform originOffset;
   // attribute EventHandler onreset;
 };

@@ -7,6 +7,7 @@
   "windows": {},
   "vr": {
     "_comment": "settings specific to VR builds",
-    "dom.webvr.enabled": true
+    "dom.webvr.enabled": true,
+    "dom.webxr.enabled": true
   }
 }

@@ -19,7 +19,8 @@ dictionary XRWebGLLayerInit {
 
 [SecureContext, Exposed=Window, Constructor(XRSession session,
             XRWebGLRenderingContext context,
-            optional XRWebGLLayerInit layerInit)]
+            optional XRWebGLLayerInit layerInit),
+    Pref="dom.webxr.enabled"]
 interface XRWebGLLayer : XRLayer {
   // // Attributes
   readonly attribute XRWebGLRenderingContext context;
