@@ -1097,7 +1097,6 @@ impl Element {
             local_name!("input") |
             local_name!("keygen") |
             local_name!("link") |
-            local_name!("menuitem") |
             local_name!("meta") |
             local_name!("param") |
             local_name!("source") |
