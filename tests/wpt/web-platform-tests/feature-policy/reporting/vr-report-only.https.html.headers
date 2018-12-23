@@ -1,1 +1,1 @@
-Feature-Policy: vr-report-only 'none'
+Feature-Policy-Report-Only: vr 'none'

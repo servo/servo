@@ -1,1 +1,1 @@
-Feature-Policy: sync-xhr-report-only 'none'
+Feature-Policy-Report-Only: sync-xhr 'none'

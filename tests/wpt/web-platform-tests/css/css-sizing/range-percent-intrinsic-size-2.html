@@ -1,0 +1,145 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Test: INPUT type=range percent intrinsic block-size</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1513959">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-content-zero">
+  <link rel="match" href="range-percent-intrinsic-size-2-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace;
+}
+
+input { margin: 2px; }
+
+input.b {
+  height: 50%;
+  min-height: -moz-min-content;
+  min-height: min-content;
+  background: lime;
+}
+
+input.mb {
+  max-height: 50%;
+  min-height: -moz-min-content;
+  min-height: min-content;
+  background: lime;
+}
+
+input.b.min-auto, input.mb.min-auto, {
+  min-height: auto;
+}
+
+.n {
+  -webkit-appearance: none;
+}
+
+div {
+  display: inline-block;
+  border:1px solid;
+}
+
+.grid {
+  display: inline-grid;
+  grid: auto / min-content;
+  place-items: start;
+}
+input[orient="vertical"] {
+  -webkit-appearance: slider-vertical;
+  -webkit-appearance: range;
+}
+
+</style></head><body>
+
+<div style="height:30px"><div>
+  <input type="range" class="b" orient="vertical">
+</div></div>
+
+<div class="grid" style="grid: min-content / auto">
+  <input type="range" class="b" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(min-content,30px) / auto">
+  <input type="range" class="b" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="b" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="b min-auto" orient="vertical">
+</div>
+
+<div style="height:30px"><div>
+  <input type="range" class="b n" orient="vertical">
+</div></div>
+
+<div class="grid" style="grid: min-content / auto">
+  <input type="range" class="b n" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(min-content,30px) / auto">
+  <input type="range" class="b n" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="b n" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="b n min-auto" orient="vertical">
+</div>
+
+
+<br>
+<br>
+
+<div style="height:30px"><div>
+  <input type="range" class="mb" orient="vertical">
+</div></div>
+
+<div class="grid" style="grid: min-content / auto">
+  <input type="range" class="mb" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(min-content,30px) / auto">
+  <input type="range" class="mb" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="mb" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="mb min-auto" orient="vertical">
+</div>
+
+
+<div style="height:30px"><div>
+  <input type="range" class="mb n" orient="vertical">
+</div></div>
+
+<div class="grid" style="grid: min-content / auto">
+  <input type="range" class="mb n" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(min-content,30px) / auto">
+  <input type="range" class="mb n" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="mb n" orient="vertical">
+</div>
+
+<div class="grid" style="grid: minmax(auto,30px) / auto">
+  <input type="range" class="mb n min-auto" orient="vertical">
+</div>
+
+
+</body></html>

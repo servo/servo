@@ -1,4 +1,4 @@
-// META: global=worker
+// META: global=worker,jsshell
 'use strict';
 
 // Due to the limitations of floating-point precision, the calculation of desiredSize sometimes gives different answers

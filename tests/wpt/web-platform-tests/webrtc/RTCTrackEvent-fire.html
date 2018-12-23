@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Change of msid in remote description should trigger related track events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const sdpBase =`v=0
+o=- 5511237691691746 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=ice-options:trickle
+a=ice-lite
+a=msid-semantic:WMS *
+m=audio 9 UDP/TLS/RTP/SAVPF 111 103 9 102 0 8 105 13 110 113 126
+c=IN IP6 ::
+a=rtcp:9 IN IP6 ::
+a=rtcp-mux
+a=mid:0
+a=sendrecv
+a=ice-ufrag:z0i8R3C9C4hPRWls
+a=ice-pwd:O7bPpOFAqasqoidV4yxnFVbc
+a=ice-lite
+a=fingerprint:sha-256 B7:9C:0D:C9:D1:42:57:97:82:4D:F9:B7:93:75:49:C3:42:21:5A:DD:9C:B5:ED:53:53:F0:B4:C8:AE:88:7A:E7
+a=setup:actpass
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid
+a=rtpmap:0 PCMU/8000`;
+
+const sdp0 = sdpBase + `
+`;
+
+const sdp1 = sdpBase + `
+a=msid:1 2
+a=ssrc:3 cname:4
+a=ssrc:3 msid:1 2
+`;
+
+async function applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp)
+{
+    const testTrackPromise = new Promise(resolve  => {
+        pc.ontrack = (event) => { resolve([event.track, event.streams]); };
+    });
+    await pc.setRemoteDescription({type: 'offer', sdp: sdp});
+    return testTrackPromise;
+}
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp1);
+    assert_equals(streams.length, 1, "track event has a stream");
+    assert_equals(streams[0].id, "1", "msid should match");
+    const stream = streams[0];
+
+    await pc.setLocalDescription(await pc.createAnswer());
+
+    const testTrackPromise = new Promise((resolve) => { stream.onremovetrack = resolve; });
+    await pc.setRemoteDescription({type: 'offer', 'sdp': sdp0});
+    await testTrackPromise;
+
+    assert_equals(stream.getAudioTracks().length, 0, "stream should be empty");
+}, "Applying a remote description with removed msid should trigger firing a removetrack event on the corresponding stream");
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    let [track0, streams0] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp0);
+
+    await pc.setLocalDescription(await pc.createAnswer());
+
+    let [track1, streams1] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp1);
+
+    assert_equals(streams1.length, 1, "track event has a stream");
+    assert_equals(streams1[0].id, "1", "msid should match");
+    assert_equals(streams1[0].getTracks()[0], track0, "track should match");
+}, "Applying a remote description with a new msid should trigger firing an event with populated streams");
+</script>

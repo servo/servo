@@ -151,7 +151,7 @@ class BrowserSetup(object):
     browser_cls = None
 
     def __init__(self, venv, prompt=True, sub_product=None):
-        self.browser = self.browser_cls()
+        self.browser = self.browser_cls(logger)
         self.venv = venv
         self.prompt = prompt
         self.sub_product = sub_product
@@ -474,6 +474,7 @@ def setup_logging(kwargs, default_config=None):
         default_config = {default_formatter: sys.stdout}
     wptrunner.setup_logging(kwargs, default_config)
     logger = wptrunner.logger
+    return logger
 
 
 def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):

@@ -7,6 +7,7 @@ import sys
 
 import mozinfo
 import mozleak
+import mozversion
 from mozprocess import ProcessHandler
 from mozprofile import FirefoxProfile, Preferences
 from mozrunner import FirefoxRunner
@@ -151,11 +152,21 @@ def run_info_extras(**kwargs):
                 return value.lower() in ('true', '1')
         return False
 
-    return {"e10s": kwargs["gecko_e10s"],
-            "wasm": kwargs.get("wasm", True),
-            "verify": kwargs["verify"],
-            "headless": "MOZ_HEADLESS" in os.environ,
-            "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept"),}
+    rv = {"e10s": kwargs["gecko_e10s"],
+          "wasm": kwargs.get("wasm", True),
+          "verify": kwargs["verify"],
+          "headless": "MOZ_HEADLESS" in os.environ,
+          "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept")}
+    rv.update(run_info_browser_version(kwargs["binary"]))
+    return rv
+
+
+def run_info_browser_version(binary):
+    version_info = mozversion.get_version(binary)
+    if version_info:
+        return {"browser_build_id": version_info.get("application_buildid", None),
+                "browser_changeset": version_info.get("application_changeset", None)}
+    return {}
 
 
 def update_properties():

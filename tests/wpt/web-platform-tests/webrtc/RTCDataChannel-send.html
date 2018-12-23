@@ -14,7 +14,7 @@
   //  createDataChannelPair
   //  awaitMessage
   //  blobToArrayBuffer
-  //  assert_equals_array_buffer
+  //  assert_equals_typed_array
 
   /*
     6.2.  RTCDataChannel
@@ -140,7 +140,7 @@
       assert_true(messageBuffer instanceof ArrayBuffer,
         'Expect messageBuffer to be an ArrayBuffer');
 
-      assert_equals_array_buffer(messageBuffer, helloBuffer.buffer);
+      assert_equals_typed_array(messageBuffer, helloBuffer.buffer);
     });
   }, 'Data channel should be able to send Uint8Array message and receive as ArrayBuffer');
 
@@ -162,7 +162,7 @@
       assert_true(messageBuffer instanceof ArrayBuffer,
         'Expect messageBuffer to be an ArrayBuffer');
 
-      assert_equals_array_buffer(messageBuffer, helloBuffer.buffer);
+      assert_equals_typed_array(messageBuffer, helloBuffer.buffer);
     });
   }, 'Data channel should be able to send ArrayBuffer message and receive as ArrayBuffer');
 
@@ -183,7 +183,7 @@
       assert_true(messageBuffer instanceof ArrayBuffer,
         'Expect messageBuffer to be an ArrayBuffer');
 
-      assert_equals_array_buffer(messageBuffer, helloBuffer.buffer);
+      assert_equals_typed_array(messageBuffer, helloBuffer.buffer);
     });
   }, 'Data channel should be able to send Blob message and receive as ArrayBuffer');
 
@@ -210,7 +210,7 @@
       assert_true(messageBuffer instanceof ArrayBuffer,
         'Expect messageBuffer to be an ArrayBuffer');
 
-      assert_equals_array_buffer(messageBuffer, helloBuffer.buffer);
+      assert_equals_typed_array(messageBuffer, helloBuffer.buffer);
     });
   }, 'Data channel should be able to send ArrayBuffer message and receive as Blob');
 
@@ -240,7 +240,7 @@
       assert_true(messageBuffer instanceof ArrayBuffer,
         'Expect messageBuffer to be an ArrayBuffer');
 
-      assert_equals_array_buffer(messageBuffer, helloBuffer.buffer);
+      assert_equals_typed_array(messageBuffer, helloBuffer.buffer);
     });
   }, 'Data channel binaryType should receive message as Blob by default');
 
@@ -253,9 +253,9 @@
       receivedMessages.push(data);
 
       if(receivedMessages.length === 3) {
-        assert_equals_array_buffer(receivedMessages[0], helloBuffer.buffer);
+        assert_equals_typed_array(receivedMessages[0], helloBuffer.buffer);
         assert_equals(receivedMessages[1], unicodeString);
-        assert_equals_array_buffer(receivedMessages[2], helloBuffer.buffer);
+        assert_equals_typed_array(receivedMessages[2], helloBuffer.buffer);
 
         t.done();
       }
