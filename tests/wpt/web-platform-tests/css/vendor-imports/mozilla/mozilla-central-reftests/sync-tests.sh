@@ -23,6 +23,6 @@ fi
 
 rsync -avz --delete --filter=". ./sync-tests-filter" "$MOZTREE"/layout/reftests/w3c-css/submitted/ ./
 sed -i -e 's/^\(\(fails\|needs-focus\|random\|skip\|asserts\|slow\|require-or\|silentfail\|pref\|test-pref\|ref-pref\|fuzzy\)[^ ]* *\?\)\+//;/^default-preferences /d;s/ \?# \?\(TC: \)\?[bB]ug.*//' $(find . -name reftest.list)
-sed -i -e 's/-moz-crisp-edges/pixelated/g;s/-moz-min-content/min-content/g;s/-moz-max-content/max-content/g' $(find . -regex ".*\.\(xht\|xhtml\|html\|css\)")
+sed -i -e 's/-moz-crisp-edges/pixelated/g' $(find . -regex ".*\.\(xht\|xhtml\|html\|css\)")
 git add -A .
 git commit -m"Sync Mozilla CSS tests as of https://hg.mozilla.org/mozilla-central/rev/$MOZREV ." -e .

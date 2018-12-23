@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+    CSS Referece Case: Different values of block sizing properties in horizontal wm
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Boris Chiou" href="mailto:boris.chiou@gmail.com">
+  <link rel="stylesheet" type="text/css" href="support/ahem.css">
+  <meta name="flags" content="ahem">
+  <style>
+    html, body {
+      margin: 0;
+    }
+
+    .container {
+      width: 120px;
+      height: 200px;
+      border: 2px solid blue;
+      display: inline-block;
+      vertical-align: top;
+    }
+
+    .container > * {
+      border: 2px solid lime;
+      padding: inherit;
+      display: inline-block;
+
+      font-family: Ahem;
+      font-size: 10px;
+      line-height: 15px;
+    }
+
+    .too-small {
+      height: 10px;
+    }
+
+    .too-big {
+      height: 120px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="container">
+      <div>height: min-content<br>on this box.</div>
+      <div>height: max-content<br>on this box.</div>
+    </div>
+
+    <div class="container">
+      <div class="too-small">min-height: min-content<br>on this box.</div>
+      <div class="too-small">min-height: max-content<br>on this box.</div>
+    </div>
+
+    <div class="container">
+      <div class="too-big">max-height: min-content<br>on this box.</div>
+      <div class="too-big">max-height: max-content<br>on this box.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="container">
+      <div>block: min-content<br>on this box.</div>
+      <div>block: max-content<br>on this box.</div>
+    </div>
+
+    <div class="container">
+      <div class="too-small">min-block: min-content<br>on this box.</div>
+      <div class="too-small">min-block: max-content<br>on this box.</div>
+    </div>
+
+    <div class="container">
+      <div class="too-big">max-block: min-content<br>on this box.</div>
+      <div class="too-big">max-block: max-content<br>on this box.</div>
+    </div>
+  </div>
+</body>
+</html>

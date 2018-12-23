@@ -1,1 +1,1 @@
-Feature-Policy: midi-report-only 'none'
+Feature-Policy-Report-Only: midi 'none'

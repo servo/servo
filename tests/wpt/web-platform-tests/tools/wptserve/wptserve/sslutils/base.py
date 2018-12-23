@@ -13,5 +13,5 @@ class NoSSLEnvironment(object):
     def host_cert_path(self, hosts):
         return None, None
 
-    def ca_cert_path(self):
+    def ca_cert_path(self, hosts):
         return None

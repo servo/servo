@@ -64,6 +64,9 @@ include selectors4/reftest.list
 # Shapes Level 1
 include shapes1/reftest.list
 
+# CSS Intrinsic & Extrinsic Sizing Module Level 3
+include sizing/reftest.list
+
 # Text Level 3
 include text3/reftest.list
 

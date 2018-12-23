@@ -117,6 +117,7 @@ jobs:
   - template: tools/ci/azure/install_chrome.yml
   - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
   - template: tools/ci/azure/tox_pytest.yml
     parameters:
       directory: tools/wpt/

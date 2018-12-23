@@ -8,9 +8,9 @@
   <script>
 
     let immersiveTestName =
-      "XRFrame getDevicePose updates on the next frame for immersive sessions";
+      "XRFrame getViewerPose updates on the next frame for immersive sessions";
     let nonImmersiveTestName =
-      "XRFrame getDevicePose updates on the next frame for non-immersive sessions";
+      "XRFrame getViewerPose updates on the next frame for non-immersive sessions";
 
     let fakeDeviceInitParams = { supportsImmersive: true };
 
@@ -31,7 +31,7 @@
             if (counter == 0) {
               t.step( () => {
                 // Expecting to not get a pose since none has been supplied
-                assert_equals(vrFrame.getDevicePose(frameOfRef), null);
+                assert_equals(vrFrame.getViewerPose(frameOfRef), null);
 
                 fakeDeviceController.setXRPresentationFrameData(
                   validPoseMatrix, [{
@@ -45,11 +45,11 @@
                   }]);
 
                 // Check that pose does not update pose within the same frame.
-                assert_equals(vrFrame.getDevicePose(frameOfRef), null);
+                assert_equals(vrFrame.getViewerPose(frameOfRef), null);
               });
             } else {
               t.step( () => {
-                let pose = vrFrame.getDevicePose(frameOfRef);
+                let pose = vrFrame.getViewerPose(frameOfRef);
                 assert_not_equals(pose, null);
 
                 let poseMatrix = pose.poseModelMatrix;

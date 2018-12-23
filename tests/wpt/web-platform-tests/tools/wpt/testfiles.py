@@ -8,8 +8,6 @@ import sys
 from collections import OrderedDict
 from six import iteritems
 
-from ..manifest import manifest
-
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
@@ -183,24 +181,15 @@ def _in_repo_root(full_path):
     return len(path_components) < 2
 
 
-def _init_manifest_cache():
-    c = {}
-
-    def load(manifest_path=None, manifest_update=True):
-        if manifest_path is None:
-            manifest_path = os.path.join(wpt_root, "MANIFEST.json")
-        if c.get(manifest_path):
-            return c[manifest_path]
-        # cache at most one path:manifest
-        c.clear()
-        wpt_manifest = manifest.load_and_update(wpt_root, manifest_path, "/",
-                                                update=manifest_update)
-        c[manifest_path] = wpt_manifest
-        return c[manifest_path]
-    return load
-
-
-load_manifest = _init_manifest_cache()
+def load_manifest(manifest_path=None, manifest_update=True):
+    # Delay import after localpaths sets up sys.path, because otherwise the
+    # import path will be "..manifest" and Python will treat it as a different
+    # manifest module.
+    from manifest import manifest
+    if manifest_path is None:
+        manifest_path = os.path.join(wpt_root, "MANIFEST.json")
+    return manifest.load_and_update(wpt_root, manifest_path, "/",
+                                    update=manifest_update)
 
 
 def affected_testfiles(files_changed, skip_dirs=None,
