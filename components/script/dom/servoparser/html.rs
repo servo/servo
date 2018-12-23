@@ -210,6 +210,12 @@ impl<'a> Serialize for &'a Node {
     ) -> io::Result<()> {
         let node = *self;
 
+        if let TraversalScope::ChildrenOnly(_) = traversal_scope {
+            if node.downcast::<Element>().map_or(false, |e| e.is_void()) {
+                return Ok(());
+            }
+        }
+
         let iter = SerializationIterator::new(node, traversal_scope != IncludeNode);
 
         for cmd in iter {
