@@ -19,7 +19,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -131,7 +131,7 @@ enum ImageRequestPhase {
 struct ImageRequest {
     state: State,
     parsed_url: Option<ServoUrl>,
-    source_url: Option<DOMString>,
+    source_url: Option<USVString>,
     blocker: Option<LoadBlocker>,
     #[ignore_malloc_size_of = "Arc"]
     image: Option<Arc<Image>>,
@@ -149,7 +149,7 @@ pub struct HTMLImageElement {
     generation: Cell<u32>,
     #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
-    last_selected_source: DomRefCell<Option<DOMString>>,
+    last_selected_source: DomRefCell<Option<USVString>>,
 }
 
 impl HTMLImageElement {
@@ -456,7 +456,7 @@ impl HTMLImageElement {
     fn process_image_response_for_environment_change(
         &self,
         image: ImageResponse,
-        src: DOMString,
+        src: USVString,
         generation: u32,
         selected_pixel_density: f64,
     ) {
@@ -690,7 +690,7 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#select-an-image-source>
-    fn select_image_source(&self) -> Option<(DOMString, f64)> {
+    fn select_image_source(&self) -> Option<(USVString, f64)> {
         // Step 1, 3
         self.update_source_set();
         let source_set = &*self.source_set.borrow_mut();
@@ -742,7 +742,7 @@ impl HTMLImageElement {
         }
         let selected_source = img_sources.remove(best_candidate.1).clone();
         Some((
-            DOMString::from_string(selected_source.url),
+            USVString(selected_source.url),
             selected_source.descriptor.den.unwrap() as f64,
         ))
     }
@@ -751,7 +751,7 @@ impl HTMLImageElement {
         &self,
         request: &mut RefMut<ImageRequest>,
         url: &ServoUrl,
-        src: &DOMString,
+        src: &USVString,
     ) {
         request.parsed_url = Some(url.clone());
         request.source_url = Some(src.clone());
@@ -763,7 +763,7 @@ impl HTMLImageElement {
     }
 
     /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
-    fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString, selected_pixel_density: f64) {
+    fn prepare_image_request(&self, url: &ServoUrl, src: &USVString, selected_pixel_density: f64) {
         match self.image_request.get() {
             ImageRequestPhase::Pending => {
                 if let Some(pending_url) = self.pending_request.borrow().parsed_url.clone() {
@@ -869,7 +869,7 @@ impl HTMLImageElement {
         );
         // Step 11
         let base_url = document.base_url();
-        let parsed_url = base_url.join(&src);
+        let parsed_url = base_url.join(&src.0);
         match parsed_url {
             Ok(url) => {
                 // Step 13-17
@@ -877,7 +877,7 @@ impl HTMLImageElement {
             },
             Err(_) => {
                 // Step 12.1-12.5.
-                let src = String::from(src);
+                let src = src.0;
                 // FIXME(nox): Why are errors silenced here?
                 let _ = task_source.queue(
                     task!(image_selected_source_error: move || {
@@ -885,7 +885,7 @@ impl HTMLImageElement {
                         {
                             let mut current_request =
                                 this.current_request.borrow_mut();
-                            current_request.source_url = Some(src.into());
+                            current_request.source_url = Some(USVString(src))
                         }
                         this.upcast::<EventTarget>().fire_event(atom!("error"));
                         this.upcast::<EventTarget>().fire_event(atom!("loadend"));
@@ -907,7 +907,7 @@ impl HTMLImageElement {
         let document = document_from_node(self);
         let window = document.window();
         let elem = self.upcast::<Element>();
-        let src = elem.get_string_attribute(&local_name!("src"));
+        let src = elem.get_url_attribute(&local_name!("src"));
         let base_url = document.base_url();
 
         // https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations
@@ -929,7 +929,7 @@ impl HTMLImageElement {
         // Step 3, 4
         let mut selected_source = None;
         let mut pixel_density = None;
-        let src_set = elem.get_string_attribute(&local_name!("srcset"));
+        let src_set = elem.get_url_attribute(&local_name!("srcset"));
         let is_parent_picture = elem
             .upcast::<Node>()
             .GetParentElement()
@@ -973,7 +973,7 @@ impl HTMLImageElement {
                     // Step 6.3.6
                     current_request.current_pixel_density = pixel_density;
                     let this = Trusted::new(self);
-                    let src = String::from(src);
+                    let src = src.0;
                     let _ = window.task_manager().dom_manipulation_task_source().queue(
                         task!(image_load_event: move || {
                             let this = this.root();
@@ -981,7 +981,7 @@ impl HTMLImageElement {
                                 let mut current_request =
                                     this.current_request.borrow_mut();
                                 current_request.parsed_url = Some(img_url);
-                                current_request.source_url = Some(src.into());
+                                current_request.source_url = Some(USVString(src));
                             }
                             // TODO: restart animation, if set.
                             this.upcast::<EventTarget>().fire_event(atom!("load"));
@@ -1042,7 +1042,7 @@ impl HTMLImageElement {
                         // Ignore any image response for a previous request that has been discarded.
                         if generation == element.generation.get() {
                             element.process_image_response_for_environment_change(image,
-                            DOMString::from_string(selected_source_clone), generation, selected_pixel_density);
+                                USVString::from(selected_source_clone), generation, selected_pixel_density);
                         }
                     }),
                     &canceller,
@@ -1088,7 +1088,7 @@ impl HTMLImageElement {
 
         let base_url = document.base_url();
         // Step 6
-        let img_url = match base_url.join(&selected_source) {
+        let img_url = match base_url.join(&selected_source.0) {
             Ok(url) => url,
             Err(_) => return,
         };
@@ -1133,7 +1133,7 @@ impl HTMLImageElement {
                     image_cache.clone(),
                     id,
                     self,
-                    selected_source.to_string(),
+                    selected_source.0,
                     selected_pixel_density,
                 );
             },
@@ -1152,7 +1152,7 @@ impl HTMLImageElement {
                     image_cache,
                     id,
                     self,
-                    selected_source.to_string(),
+                    selected_source.0,
                     selected_pixel_density,
                 );
                 self.fetch_request(&img_url, id);
@@ -1163,13 +1163,13 @@ impl HTMLImageElement {
     /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     fn finish_reacting_to_environment_change(
         &self,
-        src: DOMString,
+        src: USVString,
         generation: u32,
         selected_pixel_density: f64,
     ) {
         let this = Trusted::new(self);
         let window = window_from_node(self);
-        let src = src.to_string();
+        let src = src.0;
         let _ = window.task_manager().dom_manipulation_task_source().queue(
             task!(image_load_event: move || {
                 let this = this.root();
@@ -1180,7 +1180,7 @@ impl HTMLImageElement {
                     return;
                 }
                 // Step 15.2
-                *this.last_selected_source.borrow_mut() = Some(DOMString::from_string(src));
+                *this.last_selected_source.borrow_mut() = Some(USVString(src));
 
                 {
                     let mut pending_request = this.pending_request.borrow_mut();
@@ -1463,12 +1463,12 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-srcset
-    make_getter!(Srcset, "srcset");
+    make_url_getter!(Srcset, "srcset");
     // https://html.spec.whatwg.org/multipage/#dom-img-src
-    make_setter!(SetSrcset, "srcset");
+    make_url_setter!(SetSrcset, "srcset");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
@@ -1560,16 +1560,16 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
-    fn CurrentSrc(&self) -> DOMString {
+    fn CurrentSrc(&self) -> USVString {
         let current_request = self.current_request.borrow();
         let ref url = current_request.parsed_url;
         match *url {
-            Some(ref url) => DOMString::from_string(url.clone().into_string()),
+            Some(ref url) => USVString(url.clone().into_string()),
             None => {
                 let ref unparsed_url = current_request.source_url;
                 match *unparsed_url {
                     Some(ref url) => url.clone(),
-                    None => DOMString::from(""),
+                    None => USVString("".to_owned()),
                 }
             },
         }

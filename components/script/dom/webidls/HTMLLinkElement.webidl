@@ -6,7 +6,7 @@
 [HTMLConstructor]
 interface HTMLLinkElement : HTMLElement {
   [CEReactions]
-           attribute DOMString href;
+           attribute USVString href;
   [CEReactions]
            attribute DOMString? crossOrigin;
   [CEReactions]
