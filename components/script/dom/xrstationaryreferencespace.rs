@@ -14,6 +14,7 @@ pub struct XRStationaryReferenceSpace {
     xrreferencespace: XRReferenceSpace,
 }
 
+#[allow(unused)]
 impl XRStationaryReferenceSpace {
     pub fn new_inherited() -> XRStationaryReferenceSpace {
         XRStationaryReferenceSpace {
