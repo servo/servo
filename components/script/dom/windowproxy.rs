@@ -45,7 +45,6 @@ use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
-use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::ptr;
@@ -290,7 +289,6 @@ impl WindowProxy {
                 pipeline_port: pipeline_receiver,
                 content_process_shutdown_chan: None,
                 window_size: window.window_size(),
-                layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
             };
             let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info, pipeline_sender);
             window.send_to_constellation(constellation_msg);

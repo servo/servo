@@ -38,7 +38,6 @@ use script_traits::{
     WindowSizeData,
 };
 use script_traits::{NewLayoutInfo, ScriptMsg};
-use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -204,7 +203,6 @@ impl HTMLIFrameElement {
                         },
                         device_pixel_ratio: window.device_pixel_ratio(),
                     },
-                    layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));

@@ -195,8 +195,6 @@ pub struct NewLayoutInfo {
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
-    /// Number of threads to use for layout.
-    pub layout_threads: usize,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?

@@ -219,7 +219,6 @@ impl Pipeline {
                     window_size: window_size,
                     pipeline_port: pipeline_port,
                     content_process_shutdown_chan: Some(layout_content_process_shutdown_chan),
-                    layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
                 if let Err(e) =
@@ -556,12 +555,6 @@ impl UnprivilegedPipelineContent {
             Some(self.layout_content_process_shutdown_chan),
             self.webrender_api_sender,
             self.webrender_document,
-            self.prefs
-                .get("layout.threads")
-                .expect("exists")
-                .value()
-                .as_u64()
-                .expect("count") as usize,
             paint_time_metrics,
         );
 

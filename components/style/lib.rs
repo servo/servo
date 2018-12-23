@@ -133,6 +133,7 @@ pub mod font_metrics;
 #[cfg(feature = "gecko")]
 #[allow(unsafe_code)]
 pub mod gecko_bindings;
+pub mod global_style_data;
 pub mod hash;
 pub mod invalidation;
 #[allow(missing_docs)] // TODO.

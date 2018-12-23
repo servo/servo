@@ -1910,7 +1910,6 @@ impl ScriptThread {
             window_size,
             pipeline_port,
             content_process_shutdown_chan,
-            layout_threads,
         } = new_layout_info;
 
         let layout_pair = unbounded();
@@ -1927,7 +1926,6 @@ impl ScriptThread {
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
-            layout_threads: layout_threads,
             paint_time_metrics: PaintTimeMetrics::new(
                 new_pipeline_id,
                 self.time_profiler_chan.clone(),
