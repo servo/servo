@@ -36,6 +36,7 @@ impl XRViewerPose {
 }
 
 impl XRViewerPoseMethods for XRViewerPose {
+    /// https://immersive-web.github.io/webxr/#dom-xrviewerpose-views
     fn Views(&self) -> Vec<DomRoot<XRView>> {
         vec![
             DomRoot::from_ref(&self.left),

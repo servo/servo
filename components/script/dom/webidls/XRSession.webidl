@@ -12,7 +12,8 @@ enum XREnvironmentBlendMode {
 
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"] interface XRSession : EventTarget {
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+interface XRSession : EventTarget {
   // // Attributes
   readonly attribute XRSessionMode mode;
   // readonly attribute XRPresentationContext outputContext;
@@ -23,7 +24,8 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
   attribute XRLayer? baseLayer;
 
   // // Methods
-  // Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type, optional XRReferenceSpaceOptions options);
+  // Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type,
+  //        optional XRReferenceSpaceOptions options);
 
   // FrozenArray<XRInputSource> getInputSources();
 

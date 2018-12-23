@@ -158,6 +158,7 @@ impl NavigatorMethods for Navigator {
         promise
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-navigator-xr
     fn Xr(&self) -> DomRoot<XR> {
         self.xr.or_init(|| XR::new(&self.global()))
     }
