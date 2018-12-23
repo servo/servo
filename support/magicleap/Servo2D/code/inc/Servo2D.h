@@ -61,6 +61,11 @@ public:
    */
   void updateHistory(bool canGoBack, const char* url, bool canGoForward);
 
+  /**
+   * Make the keyboard visible
+   */
+  void keyboardVisible(bool visible);
+
 protected:
   /**
    * Initializes the Landscape Application.
@@ -107,6 +112,7 @@ protected:
   bool pose6DofEventListener(lumin::ControlPose6DofInputEventData* event);
   void urlBarEventListener();
   bool gestureEventListener(lumin::GestureInputEventData* event);
+  bool keyboardEventListener(const lumin::ui::KeyboardEvent::EventData& event);
 
   /**
    * Convert a point in prism coordinates to viewport coordinates
