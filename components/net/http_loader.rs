@@ -505,21 +505,11 @@ pub fn http_fetch(
     // nothing to do, since actual_response is a function on response
 
     // Step 3
-    if request.service_workers_mode != ServiceWorkersMode::None {
-        // Substep 1
-        if request.service_workers_mode == ServiceWorkersMode::All {
-            // TODO (handle fetch unimplemented)
-        }
+    if request.service_workers_mode == ServiceWorkersMode::All {
+        // TODO: Substep 1
+        // Set response to the result of invoking handle fetch for request.
 
         // Substep 2
-        if response.is_none() && request.is_subresource_request() && match request.origin {
-            Origin::Origin(ref origin) => *origin == request.url().origin(),
-            _ => false,
-        } {
-            // TODO (handle foreign fetch unimplemented)
-        }
-
-        // Substep 3
         if let Some(ref res) = response {
             // Subsubstep 1
             // TODO: transmit body for request
@@ -567,7 +557,7 @@ pub fn http_fetch(
 
         // Substep 2
         if request.redirect_mode == RedirectMode::Follow {
-            request.service_workers_mode = ServiceWorkersMode::Foreign;
+            request.service_workers_mode = ServiceWorkersMode::None;
         }
 
         // Substep 3
