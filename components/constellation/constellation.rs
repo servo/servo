@@ -1056,11 +1056,12 @@ where
             // However, if the id is not encompassed by another change, it will be.
             FromCompositorMsg::AllowNavigationResponse(pipeline_id, allowed) => {
                 let pending = self.pending_approval_navigations.remove(&pipeline_id);
-                let top_level_browsing_context_id = self
-                    .pipelines
-                    .get(&pipeline_id)
-                    .map(|pipeline| pipeline.top_level_browsing_context_id)
-                    .expect("Navigated pipeline has already been closed");
+
+                let top_level_browsing_context_id = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.top_level_browsing_context_id,
+                    None => return warn!("Attempted to navigate {} after closure.", pipeline_id),
+                };
+
                 match pending {
                     Some((load_data, replace)) => {
                         if allowed {
