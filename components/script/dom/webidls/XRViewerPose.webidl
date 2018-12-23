@@ -9,5 +9,5 @@ interface XRViewerPose {
   // readonly attribute XRRigidTransform transform;
   // readonly attribute FrozenArray<XRView> views;
   // workaround until we have FrozenArray
-  sequence<XRView> views();
+  readonly attribute any views;
 };
