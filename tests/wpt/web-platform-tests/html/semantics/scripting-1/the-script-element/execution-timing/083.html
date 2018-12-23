@@ -34,6 +34,7 @@
 
   function test() {
     assert_equals(frames[0].location.toString(), "about:blank");
+		console.log(eventOrder)
     assert_array_equals(eventOrder, ['inline script #1',
       'IFRAME script',
       'end script #1',

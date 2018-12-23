@@ -1060,7 +1060,7 @@ where
                     .pipelines
                     .get(&pipeline_id)
                     .map(|pipeline| pipeline.top_level_browsing_context_id)
-                    .expect("Navigated pipeline doesn't have a top_level_browsing_context");
+                    .expect("Navigated pipeline has already been closed");
                 match pending {
                     Some((load_data, replace)) => {
                         if allowed {
