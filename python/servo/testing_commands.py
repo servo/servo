@@ -928,12 +928,13 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
 
         if not kwargs["no_run"]:
             p = create_parser_wpt()
-            args = ["--manifest-update"]
+            args = []
             if kwargs["release"]:
                 args.append("--release")
             args.append(test_path)
             wpt_kwargs = vars(p.parse_args(args))
             self.context.commands.dispatch("test-wpt", self.context, **wpt_kwargs)
+            self.context.commands.dispatch("update-manifest", self.context)
 
         if editor:
             proc.wait()
