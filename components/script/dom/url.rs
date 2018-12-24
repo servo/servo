@@ -279,4 +279,9 @@ impl URLMethods for URL {
     fn SetUsername(&self, value: USVString) {
         UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
     }
+
+    // https://url.spec.whatwg.org/#dom-url-tojson
+    fn ToJSON(&self) -> USVString {
+        UrlHelper::Href(&self.url.borrow())
+    }
 }
