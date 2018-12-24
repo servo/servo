@@ -39,9 +39,9 @@ use servo_url::ServoUrl;
 use std::mem;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
+use style::global_style_data::STYLE_THREAD_POOL;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
-use style::global_style_data::STYLE_THREAD_POOL;
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::import_rule::ImportSheet;
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
@@ -209,64 +209,63 @@ impl StylesheetLoadContext {
             None => return self.parse_sync(status),
         };
 
-        let metadata = match self.metadata.take() {
-            Some(meta) => meta,
-            None => return,
-        };
-        let is_css = metadata.content_type.map_or(false, |ct| {
-            let mime: Mime = ct.into_inner().into();
-            mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
-        });
-        let data = if is_css {
-            mem::replace(&mut self.data, vec![])
-        } else {
-            vec![]
-        };
-
-        // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-        let environment_encoding = UTF_8;
-        let final_url = metadata.final_url;
-        // FIXME: Revisit once consensus is reached at:
-        // https://github.com/whatwg/html/issues/1142
-        let successful = metadata.status.map_or(false, |(code, _)| code == 200);
-        let charset = metadata.charset;
-
-        let document = self.document.root();
-        let pipeline_id = document.window().pipeline_id();
-        let shared_lock = document.style_shared_lock().clone();
-        let quirks_mode = document.quirks_mode();
-
-        let trusted_elem = self.elem.clone();
         let elem = self.elem.root();
-        let script_chan = window_from_node(&*elem).main_thread_script_chan().clone();
+        let document = self.document.root();
 
-        let origin_clean = self.origin_clean;
-        let url = self.url.clone();
+        if status.is_ok() {
+            let metadata = match self.metadata.take() {
+                Some(meta) => meta,
+                None => return,
+            };
+            let is_css = metadata.content_type.map_or(false, |ct| {
+                let mime: Mime = ct.into_inner().into();
+                mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
+            });
+            let data = if is_css {
+                mem::replace(&mut self.data, vec![])
+            } else {
+                vec![]
+            };
 
-        let loader = ThreadSafeStylesheetLoader {
-            elem: trusted_elem.clone(),
-            script_chan: script_chan.clone(),
-            pipeline_id: pipeline_id,
-        };
+            // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+            let environment_encoding = UTF_8;
+            let final_url = metadata.final_url;
+            // FIXME: Revisit once consensus is reached at:
+            // https://github.com/whatwg/html/issues/1142
+            let successful = metadata.status.map_or(false, |(code, _)| code == 200);
+            let charset = metadata.charset;
 
-        let status_ok = status.is_ok();
+            let pipeline_id = document.window().pipeline_id();
+            let shared_lock = document.style_shared_lock().clone();
+            let quirks_mode = document.quirks_mode();
 
-        // Unroot document and move that into the thread. TODO(mandreyel):
-        // Should we move a rooted or an unrooted document into the thread?
-        let document = self.document.clone();
-        let request_generation_id = self.request_generation_id;
+            let trusted_elem = self.elem.clone();
+            let script_chan = window_from_node(&*elem).main_thread_script_chan().clone();
 
-        // Can't clone `MediaList` or move out of `self`, so manually move or
-        // clone sheet source as appropriate.
-        let mut source = match self.source {
-            StylesheetSource::LinkElement(ref mut media) => {
-                StylesheetSource::LinkElement(Some(media.take().unwrap()))
-            },
-            StylesheetSource::Import(ref mut sheet) => StylesheetSource::Import(sheet.clone()),
-        };
+            let origin_clean = self.origin_clean;
+            let url = self.url.clone();
 
-        thread_pool.spawn(move || {
-            if status_ok {
+            let loader = ThreadSafeStylesheetLoader {
+                elem: trusted_elem.clone(),
+                script_chan: script_chan.clone(),
+                pipeline_id: pipeline_id,
+            };
+
+            // Unroot document and move that into the thread. TODO(mandreyel):
+            // Should we move a rooted or an unrooted document into the thread?
+            let document = self.document.clone();
+            let request_generation_id = self.request_generation_id;
+
+            // Can't clone `MediaList` or move out of `self`, so manually move or
+            // clone sheet source as appropriate.
+            let mut source = match self.source {
+                StylesheetSource::LinkElement(ref mut media) => {
+                    StylesheetSource::LinkElement(Some(media.take().unwrap()))
+                },
+                StylesheetSource::Import(ref mut sheet) => StylesheetSource::Import(sheet.clone()),
+            };
+
+            thread_pool.spawn(move || {
                 let protocol_encoding_label = charset.as_ref().map(|s| &**s);
                 let sheet = match source {
                     StylesheetSource::LinkElement(ref mut media) => {
@@ -306,7 +305,6 @@ impl StylesheetLoadContext {
                     ScriptThreadEventCategory::StylesheetLoad,
                     Box::new(FinishAsyncStylesheetLoadTask {
                         successful,
-                        invalidate_stylesheets: true,
                         origin_clean,
                         top_level_stylesheet: sheet,
                         elem: trusted_elem,
@@ -317,28 +315,30 @@ impl StylesheetLoadContext {
                     pipeline_id,
                     TaskSourceName::Networking,
                 )));
-            } else {
-                // Even if we didn't manage to parse the sheet, we still need to
-                // send a message to the event loop to tell the document that
-                // the load has finished.
-                // TODO(mandreyel): What to do with errors?
-                let _ = script_chan.send(Msg::Common(CommonScriptMsg::Task(
-                    ScriptThreadEventCategory::StylesheetLoad,
-                    Box::new(FinishAsyncStylesheetLoadTask {
-                        successful,
-                        invalidate_stylesheets: false,
-                        origin_clean,
-                        top_level_stylesheet: None,
-                        elem: trusted_elem,
-                        document,
-                        url,
-                        request_generation_id: None,
-                    }),
-                    pipeline_id,
-                    TaskSourceName::Networking,
-                )));
+            });
+        } else {
+            // The load was not successful, let document know.
+            let owner = elem
+                .upcast::<Element>()
+                .as_stylesheet_owner()
+                .expect("Stylesheet not loaded by <style> or <link> element!");
+            owner.set_origin_clean(self.origin_clean);
+            if owner.parser_inserted() {
+                document.decrement_script_blocking_stylesheet_count();
             }
-        });
+
+            document.finish_load(LoadType::Stylesheet(self.url.clone()));
+
+            let successful = false;
+            if let Some(any_failed) = owner.load_finished(successful) {
+                let event = if any_failed {
+                    atom!("error")
+                } else {
+                    atom!("load")
+                };
+                elem.upcast::<EventTarget>().fire_event(event);
+            }
+        }
     }
 }
 
@@ -580,24 +580,22 @@ impl TaskOnce for ImportStylesheetTask {
 }
 
 /// A stylesheet may be parsed on a thread pool rather than its document's event
-/// loop. Setting the parsed stylesheet on the HTML element and the document
-/// needs to be done on the event loop, thus when the thread parsing the sheet
-/// is done it enqueues this task on the script thread's task queue that's
-/// managing the document.
+/// loop. However, setting the parsed stylesheet on the HTML element and the
+/// document needs to be done on the event loop, thus when the thread parsing
+/// the sheet is done it enqueues this task on the script thread's task queue
+/// that's managing the document.
 ///
 /// This task is used for both top-level as well as nested stylesheet loads. For
 /// top-level sheets the `top_level_stylesheet` field must be set, but parsing
-/// an imported sheet returns an empty sheet wrapped in an Arc in an
-/// `ImportRule` (which is inserted in its parent's rule list), and after an
-/// async fetch and parse, the empty stylesheet is set through the Arc
-/// reference.
+/// an imported sheet (in loader's `request_stylesheet`) returns an empty sheet
+/// wrapped in an Arc in an `ImportRule` (which is inserted in its parent's rule
+/// list), and after an async fetch and parse, the empty stylesheet is set
+/// through the Arc reference.
+///
+/// This task is only enqueued on the event loop if the load was successful.
 struct FinishAsyncStylesheetLoadTask {
     /// Used to tell the document whether the load has concluded successfully.
     successful: bool,
-    /// Whether document's current stylesheet needs to be invalidated. This is
-    /// necessary if a new top-level stylesheet or an import sheet has been
-    /// successfully parsed.
-    invalidate_stylesheets: bool,
     origin_clean: bool,
     /// If this was a top-level stylesheet load, the parsed stylesheet is placed
     /// here.
@@ -640,11 +638,7 @@ impl TaskOnce for FinishAsyncStylesheetLoadTask {
             }
         }
 
-        // We also need to invalidate a document's stylesheets if this was an
-        // import rule load, not just in the case of top-level sheet loads.
-        if self.invalidate_stylesheets {
-            document.invalidate_stylesheets();
-        }
+        document.invalidate_stylesheets();
 
         let owner = elem
             .upcast::<Element>()
