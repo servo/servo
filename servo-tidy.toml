@@ -21,7 +21,6 @@ rand = [
   "ipc-channel",
   "parking_lot_core",
   "phf_generator",
-  "rand",
   "servo_rand",
   "smithay-client-toolkit",
   "tempfile",
