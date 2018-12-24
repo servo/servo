@@ -181,25 +181,13 @@ impl StylesheetLoadContext {
             successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
-        let owner = elem
-            .upcast::<Element>()
-            .as_stylesheet_owner()
-            .expect("Stylesheet not loaded by <style> or <link> element!");
-        owner.set_origin_clean(self.origin_clean);
-        if owner.parser_inserted() {
-            document.decrement_script_blocking_stylesheet_count();
-        }
-
-        document.finish_load(LoadType::Stylesheet(self.url.clone()));
-
-        if let Some(any_failed) = owner.load_finished(successful) {
-            let event = if any_failed {
-                atom!("error")
-            } else {
-                atom!("load")
-            };
-            elem.upcast::<EventTarget>().fire_event(event);
-        }
+        post_parse_steps(
+            document,
+            elem,
+            self.url.clone(),
+            self.origin_clean,
+            successful,
+        );
     }
 
     fn parse_async(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
@@ -315,27 +303,7 @@ impl StylesheetLoadContext {
                 )));
             });
         } else {
-            // The load was not successful, let document know.
-            let owner = elem
-                .upcast::<Element>()
-                .as_stylesheet_owner()
-                .expect("Stylesheet not loaded by <style> or <link> element!");
-            owner.set_origin_clean(self.origin_clean);
-            if owner.parser_inserted() {
-                document.decrement_script_blocking_stylesheet_count();
-            }
-
-            document.finish_load(LoadType::Stylesheet(self.url.clone()));
-
-            let successful = false;
-            if let Some(any_failed) = owner.load_finished(successful) {
-                let event = if any_failed {
-                    atom!("error")
-                } else {
-                    atom!("load")
-                };
-                elem.upcast::<EventTarget>().fire_event(event);
-            }
+            post_parse_steps(document, elem, self.url.clone(), self.origin_clean, false);
         }
     }
 }
@@ -638,25 +606,41 @@ impl TaskOnce for FinishAsyncStylesheetLoadTask {
 
         document.invalidate_stylesheets();
 
-        let owner = elem
-            .upcast::<Element>()
-            .as_stylesheet_owner()
-            .expect("Stylesheet not loaded by <style> or <link> element!");
-        owner.set_origin_clean(self.origin_clean);
-        if owner.parser_inserted() {
-            document.decrement_script_blocking_stylesheet_count();
-        }
+        post_parse_steps(
+            document,
+            elem,
+            self.url.clone(),
+            self.origin_clean,
+            self.successful,
+        );
+    }
+}
 
-        document.finish_load(LoadType::Stylesheet(self.url));
+fn post_parse_steps(
+    document: DomRoot<Document>,
+    elem: DomRoot<HTMLElement>,
+    url: ServoUrl,
+    origin_clean: bool,
+    successful: bool,
+) {
+    let owner = elem
+        .upcast::<Element>()
+        .as_stylesheet_owner()
+        .expect("Stylesheet not loaded by <style> or <link> element!");
+    owner.set_origin_clean(origin_clean);
+    if owner.parser_inserted() {
+        document.decrement_script_blocking_stylesheet_count();
+    }
 
-        if let Some(any_failed) = owner.load_finished(self.successful) {
-            let event = if any_failed {
-                atom!("error")
-            } else {
-                atom!("load")
-            };
-            elem.upcast::<EventTarget>().fire_event(event);
-        }
+    document.finish_load(LoadType::Stylesheet(url));
+
+    if let Some(any_failed) = owner.load_finished(successful) {
+        let event = if any_failed {
+            atom!("error")
+        } else {
+            atom!("load")
+        };
+        elem.upcast::<EventTarget>().fire_event(event);
     }
 }
 
