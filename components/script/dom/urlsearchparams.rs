@@ -182,9 +182,7 @@ impl URLSearchParams {
             .extend_pairs(&*list)
             .finish()
     }
-}
 
-impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlsearchparams-update
     fn update_steps(&self) {
         if let Some(url) = self.url.root() {
