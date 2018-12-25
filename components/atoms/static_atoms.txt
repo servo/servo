@@ -40,6 +40,7 @@ input
 invalid
 keydown
 keypress
+kind
 left
 ltr
 load
@@ -88,6 +89,7 @@ seeked
 seeking
 select
 serif
+srclang
 statechange
 storage
 submit
