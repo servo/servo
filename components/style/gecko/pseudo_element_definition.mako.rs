@@ -156,8 +156,6 @@ impl PseudoElement {
     /// Construct a `CSSPseudoElementType` from a pseudo-element
     #[inline]
     fn pseudo_type(&self) -> CSSPseudoElementType {
-        use crate::gecko_bindings::structs::CSSPseudoElementType_InheritingAnonBox;
-
         match *self {
             % for pseudo in PSEUDOS:
                 % if not pseudo.is_anon_box():
@@ -165,7 +163,7 @@ impl PseudoElement {
                 % elif pseudo.is_tree_pseudo_element():
                     PseudoElement::${pseudo.capitalized_pseudo()}(..) => CSSPseudoElementType::XULTree,
                 % elif pseudo.is_inheriting_anon_box():
-                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::InheritingAnonBox,
                 % else:
                     PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::NonInheritingAnonBox,
                 % endif

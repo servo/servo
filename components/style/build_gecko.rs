@@ -139,7 +139,9 @@ mod bindings {
 
             // Disable rust unions, because we replace some types inside of
             // them.
-            let mut builder = Builder::default().rust_target(RustTarget::Stable_1_0);
+            let mut builder = Builder::default()
+                .rust_target(RustTarget::Stable_1_25)
+                .disable_untagged_union();
 
             let rustfmt_path = env::var_os("RUSTFMT")
                 // This can be replaced with

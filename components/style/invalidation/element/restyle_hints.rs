@@ -193,38 +193,31 @@ impl Default for RestyleHint {
 #[cfg(feature = "gecko")]
 impl From<nsRestyleHint> for RestyleHint {
     fn from(mut raw: nsRestyleHint) -> Self {
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Force as eRestyle_Force;
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_ForceDescendants as eRestyle_ForceDescendants;
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_LaterSiblings as eRestyle_LaterSiblings;
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Self as eRestyle_Self;
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_SomeDescendants as eRestyle_SomeDescendants;
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree as eRestyle_Subtree;
-
         let mut hint = RestyleHint::empty();
 
         debug_assert!(
-            raw.0 & eRestyle_LaterSiblings.0 == 0,
+            raw.0 & nsRestyleHint::eRestyle_LaterSiblings.0 == 0,
             "Handle later siblings manually if necessary plz."
         );
 
-        if (raw.0 & (eRestyle_Self.0 | eRestyle_Subtree.0)) != 0 {
-            raw.0 &= !eRestyle_Self.0;
+        if (raw.0 & (nsRestyleHint::eRestyle_Self.0 | nsRestyleHint::eRestyle_Subtree.0)) != 0 {
+            raw.0 &= !nsRestyleHint::eRestyle_Self.0;
             hint.insert(RestyleHint::RESTYLE_SELF);
         }
 
-        if (raw.0 & (eRestyle_Subtree.0 | eRestyle_SomeDescendants.0)) != 0 {
-            raw.0 &= !eRestyle_Subtree.0;
-            raw.0 &= !eRestyle_SomeDescendants.0;
+        if (raw.0 & (nsRestyleHint::eRestyle_Subtree.0 | nsRestyleHint::eRestyle_SomeDescendants.0)) != 0 {
+            raw.0 &= !nsRestyleHint::eRestyle_Subtree.0;
+            raw.0 &= !nsRestyleHint::eRestyle_SomeDescendants.0;
             hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
         }
 
-        if (raw.0 & (eRestyle_ForceDescendants.0 | eRestyle_Force.0)) != 0 {
-            raw.0 &= !eRestyle_Force.0;
+        if (raw.0 & (nsRestyleHint::eRestyle_ForceDescendants.0 | nsRestyleHint::eRestyle_Force.0)) != 0 {
+            raw.0 &= !nsRestyleHint::eRestyle_Force.0;
             hint.insert(RestyleHint::RECASCADE_SELF);
         }
 
-        if (raw.0 & eRestyle_ForceDescendants.0) != 0 {
-            raw.0 &= !eRestyle_ForceDescendants.0;
+        if (raw.0 & nsRestyleHint::eRestyle_ForceDescendants.0) != 0 {
+            raw.0 &= !nsRestyleHint::eRestyle_ForceDescendants.0;
             hint.insert(RestyleHint::RECASCADE_DESCENDANTS);
         }
 
@@ -248,7 +241,7 @@ pub fn assert_restyle_hints_match() {
             if cfg!(debug_assertions) {
                 let mut replacements = RestyleHint::replacements();
                 $(
-                    assert_eq!(structs::$a.0 as usize, $b.bits() as usize, stringify!($b));
+                    assert_eq!(structs::nsRestyleHint::$a.0 as usize, $b.bits() as usize, stringify!($b));
                     replacements.remove($b);
                 )*
                 assert_eq!(replacements, RestyleHint::empty(),
@@ -259,9 +252,9 @@ pub fn assert_restyle_hints_match() {
     }
 
     check_restyle_hints! {
-        nsRestyleHint_eRestyle_CSSTransitions => RestyleHint::RESTYLE_CSS_TRANSITIONS,
-        nsRestyleHint_eRestyle_CSSAnimations => RestyleHint::RESTYLE_CSS_ANIMATIONS,
-        nsRestyleHint_eRestyle_StyleAttribute => RestyleHint::RESTYLE_STYLE_ATTRIBUTE,
-        nsRestyleHint_eRestyle_StyleAttribute_Animations => RestyleHint::RESTYLE_SMIL,
+        eRestyle_CSSTransitions => RestyleHint::RESTYLE_CSS_TRANSITIONS,
+        eRestyle_CSSAnimations => RestyleHint::RESTYLE_CSS_ANIMATIONS,
+        eRestyle_StyleAttribute => RestyleHint::RESTYLE_STYLE_ATTRIBUTE,
+        eRestyle_StyleAttribute_Animations => RestyleHint::RESTYLE_SMIL,
     }
 }
