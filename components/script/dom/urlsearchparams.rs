@@ -54,9 +54,17 @@ impl URLSearchParams {
         match init {
             Some(USVStringOrURLSearchParams::USVString(init)) => {
                 // Step 2.
-                *query.list.borrow_mut() = form_urlencoded::parse(init.0.as_bytes())
-                    .into_owned()
-                    .collect();
+                let init_bytes = match init.0.chars().next() {
+                    Some(first_char) if first_char == '?' => {
+                        let (_, other_bytes) = init.0.as_bytes().split_at(1);
+
+                        other_bytes
+                    },
+                    _ => init.0.as_bytes(),
+                };
+
+                *query.list.borrow_mut() =
+                    form_urlencoded::parse(init_bytes).into_owned().collect();
             },
             Some(USVStringOrURLSearchParams::URLSearchParams(init)) => {
                 // Step 3.
