@@ -644,7 +644,12 @@ pub fn http_fetch(
         };
     }
 
-    // TODO redirect_end: last byte of response of last redirect
+    // redirect_end: last byte of response of last redirect
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::RedirectEnd);
 
     // set back to default
     response.return_internal = true;
