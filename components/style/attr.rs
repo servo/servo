@@ -548,7 +548,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     // Steps 1 & 2 are not relevant
 
     // Step 3
-    value = value.trim_left_matches(HTML_SPACE_CHARACTERS);
+    value = value.trim_start_matches(HTML_SPACE_CHARACTERS);
 
     // Step 4
     if value.is_empty() {

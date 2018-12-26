@@ -69,7 +69,7 @@ where
                 digits[0] = (x % 10) as u8 + b'0';
 
                 let s = str::from_utf8(&digits[..]).unwrap();
-                fmt.write_str(s.trim_right_matches('0'))
+                fmt.write_str(s.trim_end_matches('0'))
             },
         }
     }

@@ -161,7 +161,7 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
     // Servo heartbeat goes here!
     if let Some(servo) = servo.as_mut() {
         servo.servo.handle_events(vec![]);
-        for ((browser_id, event)) in servo.servo.get_events() {
+        for (browser_id, event) in servo.servo.get_events() {
             match event {
                 // Respond to any messages with a response channel
                 // to avoid deadlocking the constellation
@@ -554,7 +554,7 @@ impl log::Log for MLLogger {
             log::Level::Trace => MLLogLevel::Verbose,
         };
         let mut msg = SmallVec::<[u8; 128]>::new();
-        write!(msg, "{}\0", record.args());
+        write!(msg, "{}\0", record.args()).unwrap();
         (self.0)(lvl, &msg[0] as *const _ as *const _);
     }
 

@@ -778,7 +778,7 @@ impl ToCss for FontLanguageOverride {
         } else {
             unsafe { str::from_utf8_unchecked(&buf) }
         };
-        slice.trim_right().to_css(dest)
+        slice.trim_end().to_css(dest)
     }
 }
 
