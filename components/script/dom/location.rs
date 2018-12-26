@@ -37,7 +37,7 @@ impl Location {
         )
     }
 
-    fn get_url(&self) -> ServoUrl {
+    pub fn get_url(&self) -> ServoUrl {
         self.window.get_url()
     }
 
