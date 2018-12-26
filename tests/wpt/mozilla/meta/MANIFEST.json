@@ -7157,6 +7157,18 @@
      {}
     ]
    ], 
+   "mozilla/video_poster_frame.html": [
+    [
+     "/_mozilla/mozilla/video_poster_frame.html", 
+     [
+      [
+       "/_mozilla/mozilla/video_poster_frame_ref.html", 
+       "=="
+      ]
+     ], 
+     {}
+    ]
+   ], 
    "mozilla/webgl/clearcolor.html": [
     [
      "/_mozilla/mozilla/webgl/clearcolor.html", 
@@ -10368,6 +10380,11 @@
      {}
     ]
    ], 
+   "mozilla/poster.png": [
+    [
+     {}
+    ]
+   ], 
    "mozilla/referrer-policy/OWNERS": [
     [
      {}
@@ -11809,6 +11826,11 @@
     ]
    ], 
    "mozilla/timer_eventInvalidation_test.html": [
+    [
+     {}
+    ]
+   ], 
+   "mozilla/video_poster_frame_ref.html": [
     [
      {}
     ]
@@ -27227,6 +27249,10 @@
    "5aff666995fe6cd1d4e84e63a9f6019d04387f8e", 
    "testharness"
   ], 
+  "mozilla/poster.png": [
+   "33834c3ef095fa9c0080017e1b65b2eb8413eac4", 
+   "support"
+  ], 
   "mozilla/postmessage_closed.html": [
    "c54e371b270cd2e34558dfb7994785d697330534", 
    "testharness"
@@ -32810,6 +32836,14 @@
   "mozilla/variadic-interface.html": [
    "5ab0557c5e02828c38f5c58edde5425e40dcb4b1", 
    "testharness"
+  ], 
+  "mozilla/video_poster_frame.html": [
+   "2f4af97720c40fbbde8d1cad660b1018d88367e5", 
+   "reftest"
+  ], 
+  "mozilla/video_poster_frame_ref.html": [
+   "b45a87aa614eef6cbe21a77a7b75e81e9a9f8c95", 
+   "support"
   ], 
   "mozilla/weakref.html": [
    "4deccbe1e26a3f921eea85a4395394a55cc88be4", 

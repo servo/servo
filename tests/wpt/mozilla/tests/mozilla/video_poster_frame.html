@@ -1,0 +1,22 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="match" href="video_poster_frame_ref.html">
+  </head>
+  <body>
+    <video src="" poster="poster.png"></video>
+    <script>
+      let video = document.querySelector("video");
+      video.addEventListener("postershown", function() {
+        // Apart from removing the `reftest-wait` class we need to get
+        // the `load` event to signal that it's ok to take the reftest
+        // screenshot. Video loading delays the document `load` event,
+        // so we garantee that we get this event by setting an invaid
+        // src attribute to the video tag.
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    </script>
+  </body>
+</html>

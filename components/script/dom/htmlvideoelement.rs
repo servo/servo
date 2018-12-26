@@ -6,6 +6,7 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
@@ -113,6 +114,11 @@ impl HTMLVideoElement {
         // Step 3.
         let poster_url = match ServoUrl::parse(poster_url) {
             Ok(url) => url,
+            Err(url::ParseError::RelativeUrlWithoutBase) => {
+                let window = window_from_node(self);
+                let url = window.Location().get_url();
+                url.join(&poster_url).unwrap()
+            },
             Err(_) => return,
         };
 
@@ -219,6 +225,10 @@ impl HTMLVideoElementMethods for HTMLVideoElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
     make_setter!(SetPoster, "poster");
+
+    // For testing purposes only. This is not an event from
+    // https://html.spec.whatwg.org/multipage/#dom-video-poster
+    event_handler!(postershown, GetOnpostershown, SetOnpostershown);
 }
 
 impl VirtualMethods for HTMLVideoElement {
