@@ -1421,7 +1421,9 @@ impl Window {
             dom_count: self.Document().dom_count(),
         };
 
-        self.layout_chan.send(Msg::Reflow(reflow)).unwrap();
+        self.layout_chan
+            .send(Msg::Reflow(reflow))
+            .expect("Layout thread disconnected.");
 
         debug!("script: layout forked");
 
@@ -1783,8 +1785,14 @@ impl Window {
             }
         }
 
-        // Step 7
+        // Step 8
         if doc.prompt_to_unload(false) {
+            if self.window_proxy().parent().is_some() {
+                // Step 10
+                // If browsingContext is a nested browsing context,
+                // then put it in the delaying load events mode.
+                self.window_proxy().start_delaying_load_events_mode();
+            }
             self.main_thread_script_chan()
                 .send(MainThreadScriptMsg::Navigate(
                     pipeline_id,
