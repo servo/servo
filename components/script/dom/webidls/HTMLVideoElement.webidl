@@ -13,3 +13,8 @@ interface HTMLVideoElement : HTMLMediaElement {
   readonly attribute unsigned long videoHeight;
   [CEReactions] attribute DOMString poster;
 };
+
+partial interface HTMLVideoElement {
+  [Pref="media.testing.enabled"]
+  attribute EventHandler onpostershown;
+};
