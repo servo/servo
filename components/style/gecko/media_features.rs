@@ -9,7 +9,7 @@ use crate::gecko_bindings::structs;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
 use crate::media_queries::media_feature_expression::{AspectRatio, RangeOrOperator};
-use crate::media_queries::Device;
+use crate::media_queries::{Device, MediaType};
 use crate::values::computed::CSSPixelLength;
 use crate::values::computed::Resolution;
 use crate::Atom;
@@ -295,6 +295,38 @@ fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReduc
     }
 }
 
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+enum OverflowBlock {
+    None,
+    Scroll,
+    OptionalPaged,
+    Paged,
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#mf-overflow-block
+fn eval_overflow_block(device: &Device, query_value: Option<OverflowBlock>) -> bool {
+    // For the time being, assume that printing (including previews)
+    // is the only time when we paginate, and we are otherwise always
+    // scrolling. This is true at the moment in Firefox, but may need
+    // updating in the future (e.g., ebook readers built with Stylo, a
+    // billboard mode that doesn't support overflow at all).
+    //
+    // If this ever changes, don't forget to change eval_overflow_inline too.
+    let scrolling = device.media_type() != MediaType::print();
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return true,
+    };
+
+    match query_value {
+        OverflowBlock::None |
+        OverflowBlock::OptionalPaged => false,
+        OverflowBlock::Scroll => scrolling,
+        OverflowBlock::Paged => !scrolling,
+    }
+}
+
 /// https://drafts.csswg.org/mediaqueries-4/#mf-interaction
 bitflags! {
     struct PointerCapabilities: u8 {
@@ -473,7 +505,7 @@ lazy_static! {
     /// to support new types in these entries and (2) ensuring that either
     /// nsPresContext::MediaFeatureValuesChanged is called when the value that
     /// would be returned by the evaluator function could change.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 48] = [
+    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 49] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
@@ -590,6 +622,12 @@ lazy_static! {
             atom!("prefers-reduced-motion"),
             AllowsRanges::No,
             keyword_evaluator!(eval_prefers_reduced_motion, PrefersReducedMotion),
+            ParsingRequirements::empty(),
+        ),
+        feature!(
+            atom!("overflow-block"),
+            AllowsRanges::No,
+            keyword_evaluator!(eval_overflow_block, OverflowBlock),
             ParsingRequirements::empty(),
         ),
         feature!(
