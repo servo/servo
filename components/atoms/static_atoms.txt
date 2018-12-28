@@ -67,6 +67,7 @@ print
 progress
 radio
 range
+ratechange
 readystatechange
 reftest-wait
 rejectionhandled
