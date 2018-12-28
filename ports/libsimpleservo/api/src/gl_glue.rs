@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+pub type ServoGl = Rc<dyn servo::gl::Gl>;
+
 #[cfg(any(target_os = "android", target_os = "windows"))]
 #[allow(non_camel_case_types)]
 pub mod egl {
-    use servo::gl::{Gl, GlesFns};
+    use servo::gl::GlesFns;
     use std::ffi::CString;
     #[cfg(not(target_os = "windows"))]
     use std::os::raw::c_void;
-    use std::rc::Rc;
     #[cfg(target_os = "windows")]
     use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA};
 
@@ -39,7 +42,7 @@ pub mod egl {
     include!(concat!(env!("OUT_DIR"), "/egl_bindings.rs"));
 
     #[cfg(target_os = "android")]
-    pub fn init() -> Result<Rc<Gl>, &'static str> {
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         info!("Loading EGL...");
         unsafe {
             let egl = Egl;
@@ -84,9 +87,7 @@ pub mod egl {
     target_os = "macos"
 ))]
 pub mod gl {
-    use servo::gl::Gl;
-    use std::rc::Rc;
-    pub fn init() -> Result<Rc<dyn Gl>, &'static str> {
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         // FIXME: Add an OpenGL version
         unimplemented!()
     }

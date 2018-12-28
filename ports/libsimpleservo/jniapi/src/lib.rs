@@ -4,14 +4,18 @@
 
 #![allow(non_snake_case)]
 
+#[macro_use]
+extern crate log;
+
 use android_logger::{self, Filter};
-use crate::api::{self, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO};
-use crate::gl_glue;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
+use simpleservo::{
+    self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
+};
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -37,7 +41,7 @@ where
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_version(env: JNIEnv, _class: JClass) -> jstring {
-    let v = api::servo_version();
+    let v = simpleservo::servo_version();
     new_string(&env, &v).unwrap_or_else(|null| null)
 }
 
@@ -62,8 +66,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         // debug!() will only show in a debug build. Use info!() if logs
         // should show up in adb logcat with a release build.
         let filters = [
-            "simpleservo::api",
-            "simpleservo::jniapi",
+            "simpleservo",
             "simpleservo::gl_glue::egl",
             // Show JS errors by default.
             "script::dom::bindings::error",
@@ -102,7 +105,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
     if let Err(err) =
-        gl_glue::egl::init().and_then(|gl| api::init(opts, gl, wakeup, readfile, callbacks))
+        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, readfile, callbacks))
     {
         throw(&env, err)
     };
@@ -123,7 +126,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_requestShutdown(env: JNIEnv, _class: 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_deinit(_env: JNIEnv, _class: JClass) {
     debug!("deinit");
-    api::deinit();
+    simpleservo::deinit();
 }
 
 #[no_mangle]

@@ -716,7 +716,7 @@ install them, let us know by filing a bug!")
     def add_manifest_path(self, args, android=False, libsimpleservo=False):
         if "--manifest-path" not in args:
             if libsimpleservo or android:
-                manifest = self.ports_libsimpleservo_manifest()
+                manifest = self.ports_libsimpleservo_manifest(android)
             else:
                 manifest = self.ports_servo_manifest()
             args.append("--manifest-path")
@@ -725,8 +725,12 @@ install them, let us know by filing a bug!")
     def ports_servo_manifest(self):
         return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")
 
-    def ports_libsimpleservo_manifest(self):
-        return path.join(self.context.topdir, "ports", "libsimpleservo", "Cargo.toml")
+    def ports_libsimpleservo_manifest(self, android=False):
+        if android:
+            api = "jniapi"
+        else:
+            api = "capi"
+        return path.join(self.context.topdir, "ports", "libsimpleservo", api, "Cargo.toml")
 
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""

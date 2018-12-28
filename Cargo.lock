@@ -2174,22 +2174,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libsimpleservo"
-version = "0.0.1"
-dependencies = [
- "android_injected_glue 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "android_logger 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cc 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "jni 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.44 (registry+https://github.com/rust-lang/crates.io-index)",
- "libservo 0.0.1",
- "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "libz-sys"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3718,6 +3702,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "signpost"
 version = "0.1.0"
 source = "git+https://github.com/pcwalton/signpost.git#7ed712507f343c38646b9d1fefd049166f9c9a18"
+
+[[package]]
+name = "simpleservo"
+version = "0.0.1"
+dependencies = [
+ "gl_generator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.44 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libservo 0.0.1",
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "simpleservo_capi"
+version = "0.0.1"
+dependencies = [
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "simpleservo 0.0.1",
+]
+
+[[package]]
+name = "simpleservo_jniapi"
+version = "0.0.1"
+dependencies = [
+ "android_injected_glue 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "android_logger 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jni 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.44 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "simpleservo 0.0.1",
+]
 
 [[package]]
 name = "siphasher"
