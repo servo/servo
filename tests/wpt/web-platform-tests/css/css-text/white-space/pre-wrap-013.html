@@ -3,8 +3,8 @@
 <title>CSS Text level 3 Test: preserved white space at the end of and white-space:pre-wrap with center alignement</title>
 <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
-<link rel="match" href="reference/pre-wrap-001-ref.html">
-<meta name="assert" content="When white-space is pre-wrap, only spaces that overflow the line get collapsed or hanged, the ones that fit have an effect when centering.">
+<link rel="match" href="reference/pre-wrap-013-ref.html">
+<meta name="assert" content="When white-space is pre-wrap, spaces at the end of the line hang, so they do not have any effect when centering.">
 <style>
 div {
   font-size: 20px;
@@ -13,7 +13,7 @@ div {
   white-space: pre-wrap;
   color: green;
 
-  background: linear-gradient(red, red) 0 0/2ch 2ch no-repeat;
+  background: linear-gradient(red, red) 0.5ch 0/2ch 2ch no-repeat;
 
   width: 3ch;
   text-align: center;

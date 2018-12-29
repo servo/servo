@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: text-transform:lowercase and text-shaping</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#boundary-shaping">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-transform-property">
+<link rel="match" href="reference/text-transform-shaping-001-ref.html">
+<meta name="assert" content="Text shaping must not be broken across inline box boundaries when there is no change in formatting. Arabic is not a bicameral script, so text-transform:lowercase has no effect, and should not affect shaping.">
+<style>
+  div { font-size: 4em; }
+  div:last-of-type::first-letter { text-transform: lowercase; }
+  body {
+    /* Optional bit, just to avoid the arabic strings being too far off to the right,
+     which makes them harder to notice if you're going through a lot of tests
+     and not paying all that much attention. */
+    max-width: 600px;
+    max-width: max-content;
+  }
+</style>
+
+<p>Test passes if there are two identical strings below. Pay attention to the right-most character.
+<div dir=rtl lang=ar>عائلة</div>
+<div dir=rtl lang=ar>عائلة</div>

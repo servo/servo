@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: min-content sizing and white-space:pre-wrap</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#propdef-white-space">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<meta name="flags" content="">
+<link rel="match" href="reference/white-space-intrinsic-size-003-ref.html">
+<meta name="assert" content="Preserved spaces at the end of the line do not affect the intrinsic min-content size when white-space is pre-wrap. The value of overflow-wrap makes no difference.">
+<style>
+aside {
+  float: left;
+  white-space: pre-wrap;
+  background: red;
+}
+div {
+  color: transparent;
+  font-size: 50px;
+  width: 0ch;
+}
+.own { overflow-wrap: normal; }
+.owbw{ overflow-wrap: break-word; }
+
+#green {
+  position: absolute;
+  background: green;
+  z-index: 1;
+  width: auto;
+}
+</style>
+
+<p>Test passes if there is a green rectangle below and no red.
+<div id=green>X<br>X</div>
+<div>
+  <aside class=own>X   </aside>
+  <aside class=owbw>X   </aside>
+</div>
+
