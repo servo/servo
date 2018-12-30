@@ -71,6 +71,7 @@ reftest-wait
 rejectionhandled
 reset
 resize
+resourcetimingbufferfull
 right
 rtl
 sans-serif

@@ -27,9 +27,3 @@ interface PerformanceResourceTiming : PerformanceEntry {
     /// readonly attribute unsigned long long  decodedBodySize;
     // [Default] object toJSON();
 };
-
-// partial interface Performance {
-//  void clearResourceTimings();
-//  void setResourceTimingBufferSize(unsigned long maxSize);
-//              attribute EventHandler onresourcetimingbufferfull;
-// };
