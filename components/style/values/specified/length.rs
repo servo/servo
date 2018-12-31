@@ -7,7 +7,6 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
-use app_units::Au;
 use crate::font_metrics::FontMetricsQueryResult;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{self, CSSPixelLength, Context, ExtremumLength};
@@ -17,6 +16,7 @@ use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;
 use crate::values::{Auto, CSSFloat, Either, IsAuto, Normal};
+use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::Size2D;
 use std::cmp;
@@ -601,12 +601,10 @@ impl Length {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                }
-                    if num_context.is_ok(context.parsing_mode, value) =>
-                {
+                } if num_context.is_ok(context.parsing_mode, value) => {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(Length::NoCalc)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
                 },
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     if value != 0. &&
@@ -790,20 +788,18 @@ impl LengthOrPercentage {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                }
-                    if num_context.is_ok(context.parsing_mode, value) =>
-                {
+                } if num_context.is_ok(context.parsing_mode, value) => {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentage::Length)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
                 },
                 Token::Percentage { unit_value, .. }
                     if num_context.is_ok(context.parsing_mode, unit_value) =>
                 {
                     return Ok(LengthOrPercentage::Percentage(computed::Percentage(
                         unit_value,
-                    )))
-                },
+                    )));
+                }
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     if value != 0. &&
                         !context.parsing_mode.allows_unitless_lengths() &&
@@ -922,20 +918,18 @@ impl LengthOrPercentageOrAuto {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                }
-                    if num_context.is_ok(context.parsing_mode, value) =>
-                {
+                } if num_context.is_ok(context.parsing_mode, value) => {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentageOrAuto::Length)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
                 },
                 Token::Percentage { unit_value, .. }
                     if num_context.is_ok(context.parsing_mode, unit_value) =>
                 {
                     return Ok(LengthOrPercentageOrAuto::Percentage(computed::Percentage(
                         unit_value,
-                    )))
-                },
+                    )));
+                }
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     if value != 0. &&
                         !context.parsing_mode.allows_unitless_lengths() &&
@@ -948,7 +942,7 @@ impl LengthOrPercentageOrAuto {
                     )));
                 },
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") => {
-                    return Ok(LengthOrPercentageOrAuto::Auto)
+                    return Ok(LengthOrPercentageOrAuto::Auto);
                 },
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
                 _ => return Err(location.new_unexpected_token_error(token.clone())),
@@ -1088,20 +1082,18 @@ impl LengthOrPercentageOrNone {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                }
-                    if num_context.is_ok(context.parsing_mode, value) =>
-                {
+                } if num_context.is_ok(context.parsing_mode, value) => {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentageOrNone::Length)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
                 },
                 Token::Percentage { unit_value, .. }
                     if num_context.is_ok(context.parsing_mode, unit_value) =>
                 {
                     return Ok(LengthOrPercentageOrNone::Percentage(computed::Percentage(
                         unit_value,
-                    )))
-                },
+                    )));
+                }
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     if value != 0. &&
                         !context.parsing_mode.allows_unitless_lengths() &&
@@ -1115,7 +1107,7 @@ impl LengthOrPercentageOrNone {
                 },
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("none") => {
-                    return Ok(LengthOrPercentageOrNone::None)
+                    return Ok(LengthOrPercentageOrNone::None);
                 },
                 _ => return Err(location.new_unexpected_token_error(token.clone())),
             }

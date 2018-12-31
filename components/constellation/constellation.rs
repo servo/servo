@@ -89,17 +89,6 @@
 //!
 //! See https://github.com/servo/servo/issues/14704
 
-use background_hang_monitor::HangMonitorRegister;
-use backtrace::Backtrace;
-use bluetooth_traits::BluetoothRequest;
-use canvas::canvas_paint_thread::CanvasPaintThread;
-use canvas::webgl_thread::WebGLThreads;
-use canvas_traits::canvas::CanvasId;
-use canvas_traits::canvas::CanvasMsg;
-use clipboard::{ClipboardContext, ClipboardProvider};
-use compositing::compositor_thread::CompositorProxy;
-use compositing::compositor_thread::Msg as ToCompositorMsg;
-use compositing::SendableFrameTree;
 use crate::browsingcontext::NewBrowsingContextInfo;
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -111,6 +100,17 @@ use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
 use crate::timer_scheduler::TimerScheduler;
+use background_hang_monitor::HangMonitorRegister;
+use backtrace::Backtrace;
+use bluetooth_traits::BluetoothRequest;
+use canvas::canvas_paint_thread::CanvasPaintThread;
+use canvas::webgl_thread::WebGLThreads;
+use canvas_traits::canvas::CanvasId;
+use canvas_traits::canvas::CanvasMsg;
+use clipboard::{ClipboardContext, ClipboardProvider};
+use compositing::compositor_thread::CompositorProxy;
+use compositing::compositor_thread::Msg as ToCompositorMsg;
+use compositing::SendableFrameTree;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
@@ -1090,7 +1090,7 @@ where
                                         return warn!(
                                             "Attempted to navigate {} after closure.",
                                             pipeline_id
-                                        )
+                                        );
                                     },
                                 };
                                 if let Err(e) = result {
@@ -1103,7 +1103,7 @@ where
                         return warn!(
                             "AllowNavigationReqsponse for unknow request: {:?}",
                             pipeline_id
-                        )
+                        );
                     },
                 };
             },
@@ -1119,7 +1119,7 @@ where
                         return warn!(
                             "LoadUrl for unknow browsing context: {:?}",
                             top_level_browsing_context_id
-                        )
+                        );
                     },
                 };
                 // Since this is a top-level load, initiated by the embedder, go straight to load_url,
@@ -1857,7 +1857,7 @@ where
                 return warn!(
                     "Subframe {} loaded in closed browsing context {}.",
                     pipeline_id, browsing_context_id,
-                )
+                );
             },
         };
         let parent_pipeline_id = match parent_pipeline_id {
@@ -1878,7 +1878,7 @@ where
                 return warn!(
                     "Parent {} browsing context loaded after closure.",
                     parent_pipeline_id
-                )
+                );
             },
         };
         if let Err(e) = result {
@@ -1937,7 +1937,7 @@ where
                     return warn!(
                         "Script loaded url in iframe {} in closed parent pipeline {}.",
                         browsing_context_id, parent_pipeline_id,
-                    )
+                    );
                 },
             };
             let is_parent_private = match self.browsing_contexts.get(&parent_browsing_context_id) {
@@ -1946,7 +1946,7 @@ where
                     return warn!(
                         "Script loaded url in iframe {} in closed parent browsing context {}.",
                         browsing_context_id, parent_browsing_context_id,
-                    )
+                    );
                 },
             };
             is_parent_private
@@ -1959,7 +1959,7 @@ where
                 return warn!(
                     "Script loaded url in iframe with closed browsing context {}.",
                     browsing_context_id,
-                )
+                );
             },
         };
         let replace = if replace {
@@ -2022,7 +2022,7 @@ where
                     return warn!(
                         "New iframe {} loaded in closed parent browsing context {}.",
                         browsing_context_id, parent_browsing_context_id,
-                    )
+                    );
                 },
             };
         let is_private = is_private || is_parent_private;
@@ -2079,7 +2079,7 @@ where
                     return warn!(
                         "Auxiliary loaded url in closed iframe {}.",
                         opener_pipeline_id
-                    )
+                    );
                 },
             };
         let (is_opener_private, is_opener_visible) =
@@ -2089,7 +2089,7 @@ where
                     return warn!(
                         "New auxiliary {} loaded in closed opener browsing context {}.",
                         new_browsing_context_id, opener_browsing_context_id,
-                    )
+                    );
                 },
             };
         let pipeline = Pipeline::new(
@@ -2157,7 +2157,7 @@ where
                 match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(msg),
                     None => {
-                        return warn!("Pipeline {:?} got script tick after closure.", pipeline_id)
+                        return warn!("Pipeline {:?} got script tick after closure.", pipeline_id);
                     },
                 }
             },
@@ -2166,7 +2166,7 @@ where
                 match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.layout_chan.send(msg),
                     None => {
-                        return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id)
+                        return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id);
                     },
                 }
             },
@@ -2191,7 +2191,7 @@ where
                 return warn!(
                     "Pipeline {:?} tried to schedule a navigation while one is already pending.",
                     source_id
-                )
+                );
             },
             Entry::Vacant(entry) => {
                 let _ = entry.insert((load_data.clone(), replace));
@@ -2419,7 +2419,7 @@ where
                 return warn!(
                     "Pipeline {} navigated to fragment after closure",
                     pipeline_id
-                )
+                );
             },
         };
 
@@ -2668,7 +2668,7 @@ where
                     return warn!(
                         "Pipeline {} child traversed after closure",
                         parent_pipeline_id
-                    )
+                    );
                 },
                 Some(pipeline) => pipeline.event_loop.send(msg),
             };
@@ -2689,7 +2689,7 @@ where
                 return warn!(
                     "Pipeline {} history state updated after closure",
                     pipeline_id
-                )
+                );
             },
             Some(pipeline) => {
                 let msg = ConstellationControlMsg::UpdateHistoryState(
@@ -2743,7 +2743,7 @@ where
                     return warn!(
                         "Push history state {} for closed pipeline {}",
                         history_state_id, pipeline_id
-                    )
+                    );
                 },
             };
 
@@ -2775,7 +2775,7 @@ where
                 return warn!(
                     "Replace history state {} for closed pipeline {}",
                     history_state_id, pipeline_id
-                )
+                );
             },
         };
 
@@ -2799,14 +2799,14 @@ where
                         return warn!(
                             "Got key event for nonexistent browsing context {}.",
                             browsing_context_id,
-                        )
+                        );
                     },
                 };
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(msg),
                     None => {
-                        return debug!("Pipeline {:?} got key event after closure.", pipeline_id)
+                        return debug!("Pipeline {:?} got key event after closure.", pipeline_id);
                     },
                 };
                 if let Err(e) = result {
@@ -2828,7 +2828,7 @@ where
                 return warn!(
                     "Browsing context {} got reload event after closure.",
                     browsing_context_id
-                )
+                );
             },
         };
         let msg = ConstellationControlMsg::Reload(pipeline_id);
@@ -2852,7 +2852,7 @@ where
                 return warn!(
                     "PostMessage to closed browsing_context {}.",
                     browsing_context_id
-                )
+                );
             },
             Some(browsing_context) => browsing_context.pipeline_id,
         };
@@ -2920,7 +2920,7 @@ where
                 return warn!(
                     "Browser {} for focus msg does not exist",
                     top_level_browsing_context_id
-                )
+                );
             },
         };
 
@@ -2935,7 +2935,7 @@ where
                 return warn!(
                     "Browsing context {:?} focus parent after closure.",
                     browsing_context_id
-                )
+                );
             },
         };
         let parent_pipeline_id = match parent_pipeline_id {
@@ -2944,7 +2944,7 @@ where
                 return debug!(
                     "Browsing context {:?} focus has no parent.",
                     browsing_context_id
-                )
+                );
             },
         };
 
@@ -2983,7 +2983,7 @@ where
                 return warn!(
                     "No browsing context associated with pipeline {:?}",
                     pipeline_id
-                )
+                );
             },
         };
 
@@ -3019,7 +3019,7 @@ where
                 return warn!(
                     "Visibility change for closed browsing context {:?}.",
                     pipeline_id
-                )
+                );
             },
         };
 
@@ -3092,7 +3092,7 @@ where
                         return warn!(
                             "Browsing context {} Refresh after closure.",
                             browsing_context_id
-                        )
+                        );
                     },
                 };
                 let load_data = match self.pipelines.get(&pipeline_id) {
@@ -3108,7 +3108,7 @@ where
                         return warn!(
                             "Browsing context {} ScriptCommand after closure.",
                             browsing_context_id
-                        )
+                        );
                     },
                 };
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
@@ -3127,7 +3127,7 @@ where
                         return warn!(
                             "Browsing context {} SendKeys after closure.",
                             browsing_context_id
-                        )
+                        );
                     },
                 };
                 let event_loop = match self.pipelines.get(&pipeline_id) {
@@ -3169,7 +3169,7 @@ where
                 return warn!(
                     "Session history does not exist for {}",
                     top_level_browsing_context_id
-                )
+                );
             },
         };
 
@@ -3179,7 +3179,7 @@ where
             None => {
                 return warn!(
                     "notify_history_changed error after top-level browsing context closed."
-                )
+                );
             },
         };
 
@@ -3189,7 +3189,7 @@ where
                 return warn!(
                     "Pipeline {} refresh after closure.",
                     browsing_context.pipeline_id
-                )
+                );
             },
         };
 
@@ -3289,7 +3289,7 @@ where
                 return warn!(
                     "Webdriver load for closed browsing context {}.",
                     browsing_context_id
-                )
+                );
             },
         };
         if let Some(new_pipeline_id) = self.load_url(
@@ -3342,7 +3342,7 @@ where
                         return warn!(
                             "No NewBrowsingContextInfo for browsing context {}",
                             change.browsing_context_id,
-                        )
+                        );
                     },
                 };
                 self.new_browsing_context(
@@ -3424,7 +3424,7 @@ where
                                 return warn!(
                                     "Pipeline {} removed history states after closure",
                                     pipeline_id
-                                )
+                                );
                             },
                             Some(pipeline) => pipeline.event_loop.send(msg),
                         };
@@ -3465,9 +3465,9 @@ where
             .and_then(|browser_id| self.browsers.get(&browser_id))
             .map(|browser| browser.focused_browsing_context_id);
         focused_browsing_context_id.map_or(false, |focus_ctx_id| {
-            focus_ctx_id == browsing_context_id || self
-                .fully_active_descendant_browsing_contexts_iter(browsing_context_id)
-                .any(|nested_ctx| nested_ctx.id == focus_ctx_id)
+            focus_ctx_id == browsing_context_id ||
+                self.fully_active_descendant_browsing_contexts_iter(browsing_context_id)
+                    .any(|nested_ctx| nested_ctx.id == focus_ctx_id)
         })
     }
 
@@ -3557,7 +3557,7 @@ where
                         return warn!(
                             "Activated document {} after browsing context {} closure.",
                             change.new_pipeline_id, change.browsing_context_id,
-                        )
+                        );
                     },
                 },
             };
@@ -3866,7 +3866,7 @@ where
                     return warn!(
                         "Pipeline {:?} child closed after parent.",
                         parent_pipeline_id
-                    )
+                    );
                 },
                 Some(parent_pipeline) => parent_pipeline.remove_child(browsing_context_id),
             };
@@ -3925,7 +3925,7 @@ where
                 return warn!(
                     "Discarding pipeline {} after browser {} closure",
                     pipeline_id, top_level_browsing_context_id,
-                )
+                );
             },
         };
         self.close_pipeline(

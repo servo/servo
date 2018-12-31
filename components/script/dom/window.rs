@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
-use base64;
-use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLChan;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
@@ -68,6 +64,10 @@ use crate::task_manager::TaskManager;
 use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
+use app_units::Au;
+use base64;
+use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender, TryRecvError};
 use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -1747,16 +1747,16 @@ impl Window {
                 let old_url = doc.url().into_string();
                 let new_url = url.clone().into_string();
                 let task = task!(hashchange_event: move || {
-                        let this = this.root();
-                        let event = HashChangeEvent::new(
-                            &this,
-                            atom!("hashchange"),
-                            false,
-                            false,
-                            old_url,
-                            new_url);
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>());
-                    });
+                    let this = this.root();
+                    let event = HashChangeEvent::new(
+                        &this,
+                        atom!("hashchange"),
+                        false,
+                        false,
+                        old_url,
+                        new_url);
+                    event.upcast::<Event>().fire(this.upcast::<EventTarget>());
+                });
                 // FIXME(nox): Why are errors silenced here?
                 let _ = self.script_chan.send(CommonScriptMsg::Task(
                     ScriptThreadEventCategory::DomEvent,

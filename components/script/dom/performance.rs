@@ -72,9 +72,10 @@ impl PerformanceEntryList {
             .entries
             .iter()
             .filter(|e| {
-                name.as_ref().map_or(true, |name_| *e.name() == *name_) && entry_type
-                    .as_ref()
-                    .map_or(true, |type_| *e.entry_type() == *type_)
+                name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+                    entry_type
+                        .as_ref()
+                        .map_or(true, |type_| *e.entry_type() == *type_)
             })
             .map(|e| e.clone())
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
@@ -92,9 +93,10 @@ impl PerformanceEntryList {
         entry_type: Option<DOMString>,
     ) {
         self.entries.retain(|e| {
-            name.as_ref().map_or(true, |name_| *e.name() == *name_) && entry_type
-                .as_ref()
-                .map_or(true, |type_| *e.entry_type() == *type_)
+            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+                entry_type
+                    .as_ref()
+                    .map_or(true, |type_| *e.entry_type() == *type_)
         });
     }
 

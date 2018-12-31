@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cookie::Cookie;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
@@ -104,6 +103,7 @@ use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
+use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -542,30 +542,30 @@ impl Document {
                         .dom_manipulation_task_source()
                         .queue(
                             task!(fire_pageshow_event: move || {
-                            let document = document.root();
-                            let window = document.window();
-                            // Step 4.6.1
-                            if document.page_showing.get() {
-                                return;
-                            }
-                            // Step 4.6.2
-                            document.page_showing.set(true);
-                            // Step 4.6.4
-                            let event = PageTransitionEvent::new(
-                                window,
-                                atom!("pageshow"),
-                                false, // bubbles
-                                false, // cancelable
-                                true, // persisted
-                            );
-                            let event = event.upcast::<Event>();
-                            event.set_trusted(true);
-                            // FIXME(nox): Why are errors silenced here?
-                            let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                                document.upcast(),
-                                &event,
-                            );
-                        }),
+                                let document = document.root();
+                                let window = document.window();
+                                // Step 4.6.1
+                                if document.page_showing.get() {
+                                    return;
+                                }
+                                // Step 4.6.2
+                                document.page_showing.set(true);
+                                // Step 4.6.4
+                                let event = PageTransitionEvent::new(
+                                    window,
+                                    atom!("pageshow"),
+                                    false, // bubbles
+                                    false, // cancelable
+                                    true, // persisted
+                                );
+                                let event = event.upcast::<Event>();
+                                event.set_trusted(true);
+                                // FIXME(nox): Why are errors silenced here?
+                                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                                    document.upcast(),
+                                    &event,
+                                );
+                            }),
                             self.window.upcast(),
                         )
                         .unwrap();
@@ -615,11 +615,12 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        self.stylesheets.borrow().has_changed() || self.GetDocumentElement().map_or(false, |root| {
-            root.upcast::<Node>().has_dirty_descendants() ||
-                !self.pending_restyles.borrow().is_empty() ||
-                self.needs_paint()
-        })
+        self.stylesheets.borrow().has_changed() ||
+            self.GetDocumentElement().map_or(false, |root| {
+                root.upcast::<Node>().has_dirty_descendants() ||
+                    !self.pending_restyles.borrow().is_empty() ||
+                    self.needs_paint()
+            })
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
@@ -1940,46 +1941,46 @@ impl Document {
             .dom_manipulation_task_source()
             .queue(
                 task!(fire_load_event: move || {
-                let document = document.root();
-                let window = document.window();
-                if !window.is_alive() {
-                    return;
-                }
+                    let document = document.root();
+                    let window = document.window();
+                    if !window.is_alive() {
+                        return;
+                    }
 
-                // Step 7.1.
-                document.set_ready_state(DocumentReadyState::Complete);
+                    // Step 7.1.
+                    document.set_ready_state(DocumentReadyState::Complete);
 
-                // Step 7.2.
-                if document.browsing_context().is_none() {
-                    return;
-                }
-                let event = Event::new(
-                    window.upcast(),
-                    atom!("load"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                );
-                event.set_trusted(true);
+                    // Step 7.2.
+                    if document.browsing_context().is_none() {
+                        return;
+                    }
+                    let event = Event::new(
+                        window.upcast(),
+                        atom!("load"),
+                        EventBubbles::DoesNotBubble,
+                        EventCancelable::NotCancelable,
+                    );
+                    event.set_trusted(true);
 
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-                update_with_current_time_ms(&document.load_event_start);
+                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
+                    update_with_current_time_ms(&document.load_event_start);
 
-                debug!("About to dispatch load for {:?}", document.url());
-                // FIXME(nox): Why are errors silenced here?
-                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                    document.upcast(),
-                    &event,
-                );
+                    debug!("About to dispatch load for {:?}", document.url());
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                        document.upcast(),
+                        &event,
+                    );
 
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
-                update_with_current_time_ms(&document.load_event_end);
+                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+                    update_with_current_time_ms(&document.load_event_end);
 
-                window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
+                    window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
 
-                if let Some(fragment) = document.url().fragment() {
-                    document.check_and_scroll_fragment(fragment);
-                }
-            }),
+                    if let Some(fragment) = document.url().fragment() {
+                        document.check_and_scroll_fragment(fragment);
+                    }
+                }),
                 self.window.upcast(),
             )
             .unwrap();
@@ -1992,30 +1993,30 @@ impl Document {
                 .dom_manipulation_task_source()
                 .queue(
                     task!(fire_pageshow_event: move || {
-                    let document = document.root();
-                    let window = document.window();
-                    if document.page_showing.get() || !window.is_alive() {
-                        return;
-                    }
+                        let document = document.root();
+                        let window = document.window();
+                        if document.page_showing.get() || !window.is_alive() {
+                            return;
+                        }
 
-                    document.page_showing.set(true);
+                        document.page_showing.set(true);
 
-                    let event = PageTransitionEvent::new(
-                        window,
-                        atom!("pageshow"),
-                        false, // bubbles
-                        false, // cancelable
-                        false, // persisted
-                    );
-                    let event = event.upcast::<Event>();
-                    event.set_trusted(true);
+                        let event = PageTransitionEvent::new(
+                            window,
+                            atom!("pageshow"),
+                            false, // bubbles
+                            false, // cancelable
+                            false, // persisted
+                        );
+                        let event = event.upcast::<Event>();
+                        event.set_trusted(true);
 
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                        document.upcast(),
-                        &event,
-                    );
-                }),
+                        // FIXME(nox): Why are errors silenced here?
+                        let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                            document.upcast(),
+                            &event,
+                        );
+                    }),
                     self.window.upcast(),
                 )
                 .unwrap();
@@ -2040,12 +2041,12 @@ impl Document {
                 .dom_manipulation_task_source()
                 .queue(
                     task!(completely_loaded: move || {
-                    let document = document.root();
-                    document.completely_loaded.set(true);
-                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
-                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-                    document.notify_constellation_load();
-                }),
+                        let document = document.root();
+                        document.completely_loaded.set(true);
+                        // Note: this will, among others, result in the "iframe-load-event-steps" being run.
+                        // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+                        document.notify_constellation_load();
+                    }),
                     self.window.upcast(),
                 )
                 .unwrap();

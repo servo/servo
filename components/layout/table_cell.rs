@@ -4,7 +4,6 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
@@ -15,6 +14,7 @@ use crate::layout_debug;
 use crate::model::MaybeAuto;
 use crate::table::InternalTable;
 use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
+use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
@@ -106,12 +106,15 @@ impl TableCellFlow {
             if kid_base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 continue;
             }
-            let start = kid_base.position.start.b - kid_base
-                .collapsible_margins
-                .block_start_margin_for_noncollapsible_context();
-            let end = kid_base.position.start.b + kid_base.position.size.block + kid_base
-                .collapsible_margins
-                .block_end_margin_for_noncollapsible_context();
+            let start = kid_base.position.start.b -
+                kid_base
+                    .collapsible_margins
+                    .block_start_margin_for_noncollapsible_context();
+            let end = kid_base.position.start.b +
+                kid_base.position.size.block +
+                kid_base
+                    .collapsible_margins
+                    .block_end_margin_for_noncollapsible_context();
             match extents {
                 Some((ref mut first_start, ref mut last_end)) => {
                     if start < *first_start {

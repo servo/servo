@@ -62,17 +62,18 @@ impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
                         .damage_for_parent(child_is_absolutely_positioned),
                 );
 
-                has_counter_affecting_children =
-                    has_counter_affecting_children || kid.base().flags.intersects(
+                has_counter_affecting_children = has_counter_affecting_children ||
+                    kid.base().flags.intersects(
                         FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN,
                     );
             }
         }
 
         let self_base = self.mut_base();
-        if self_base.flags.float_kind() != Float::None && self_base
-            .restyle_damage
-            .intersects(ServoRestyleDamage::REFLOW)
+        if self_base.flags.float_kind() != Float::None &&
+            self_base
+                .restyle_damage
+                .intersects(ServoRestyleDamage::REFLOW)
         {
             special_damage.insert(SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT);
         }

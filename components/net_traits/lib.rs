@@ -17,11 +17,11 @@ extern crate serde;
 #[macro_use]
 extern crate url;
 
-use cookie::Cookie;
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::request::{Request, RequestInit};
 use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
+use cookie::Cookie;
 use headers_core::HeaderMapExt;
 use headers_ext::{ContentType, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap};

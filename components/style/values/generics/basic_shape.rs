@@ -241,11 +241,7 @@ where
             (
                 &ShapeSource::Shape(ref this, ref this_box),
                 &ShapeSource::Shape(ref other, ref other_box),
-            )
-                if this_box == other_box =>
-            {
-                this.compute_squared_distance(other)
-            },
+            ) if this_box == other_box => this.compute_squared_distance(other),
             (&ShapeSource::Path(ref this), &ShapeSource::Path(ref other))
                 if this.fill == other.fill =>
             {

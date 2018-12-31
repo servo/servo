@@ -7,7 +7,6 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 #[cfg(feature = "gecko")]
 use crate::context::PostAnimationTasks;
@@ -23,6 +22,7 @@ use crate::shared_lock::Locked;
 use crate::stylist::CascadeData;
 use crate::traversal_flags::TraversalFlags;
 use crate::{Atom, LocalName, Namespace, WeakAtom};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use selectors::Element as SelectorsElement;
@@ -42,10 +42,7 @@ use std::ops::Deref;
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(
-    feature = "servo",
-    derive(MallocSizeOf, Deserialize, Serialize)
-)]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf, Deserialize, Serialize))]
 pub struct OpaqueNode(pub usize);
 
 impl OpaqueNode {

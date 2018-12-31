@@ -213,21 +213,21 @@ impl Storage {
             .dom_manipulation_task_source()
             .queue(
                 task!(send_storage_notification: move || {
-                let this = this.root();
-                let global = this.global();
-                let event = StorageEvent::new(
-                    global.as_window(),
-                    atom!("storage"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    key.map(DOMString::from),
-                    old_value.map(DOMString::from),
-                    new_value.map(DOMString::from),
-                    DOMString::from(url.into_string()),
-                    Some(&this),
-                );
-                event.upcast::<Event>().fire(global.upcast());
-            }),
+                    let this = this.root();
+                    let global = this.global();
+                    let event = StorageEvent::new(
+                        global.as_window(),
+                        atom!("storage"),
+                        EventBubbles::DoesNotBubble,
+                        EventCancelable::NotCancelable,
+                        key.map(DOMString::from),
+                        old_value.map(DOMString::from),
+                        new_value.map(DOMString::from),
+                        DOMString::from(url.into_string()),
+                        Some(&this),
+                    );
+                    event.upcast::<Event>().fire(global.upcast());
+                }),
                 global.upcast(),
             )
             .unwrap();

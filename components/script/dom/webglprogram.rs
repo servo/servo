@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{webgl_channel, WebGLProgramId, WebGLResult};
-use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -17,6 +15,8 @@ use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webglshader::WebGLShader;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
+use canvas_traits::webgl::{webgl_channel, WebGLProgramId, WebGLResult};
+use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError};
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
 use std::cell::{Cell, Ref};
@@ -247,7 +247,7 @@ impl WebGLProgram {
 
         match shader_slot.get() {
             Some(ref attached_shader) if attached_shader.id() != shader.id() => {
-                return Err(WebGLError::InvalidOperation)
+                return Err(WebGLError::InvalidOperation);
             },
             None => return Err(WebGLError::InvalidOperation),
             _ => {},

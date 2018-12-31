@@ -138,7 +138,7 @@ fn parse_number_with_clamping_mode<'i, 't>(
             return Ok(Number {
                 value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
-            })
+            });
         },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
         ref t => return Err(location.new_unexpected_token_error(t.clone())),
@@ -808,7 +808,7 @@ impl Attr {
                             Some(ns) => ns,
                             None => {
                                 return Err(location
-                                    .new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                                    .new_custom_error(StyleParseErrorKind::UnspecifiedError));
                             },
                         };
                         Some((prefix, ns))

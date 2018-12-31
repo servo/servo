@@ -76,7 +76,7 @@ impl PromiseRejectionEvent {
             None => {
                 return Err(Error::Type(
                     "required member promise is undefined.".to_string(),
-                ))
+                ));
             },
         };
         let bubbles = EventBubbles::from(init.parent.bubbles);

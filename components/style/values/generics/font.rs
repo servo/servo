@@ -4,9 +4,9 @@
 
 //! Generic types for font stuff.
 
+use crate::parser::{Parse, ParserContext};
 use app_units::Au;
 use byteorder::{BigEndian, ReadBytesExt};
-use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
 use num_traits::One;
 use std::fmt::{self, Write};

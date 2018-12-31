@@ -4,8 +4,6 @@
 
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
-use app_units::Au;
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
 use crate::display_list::ToLayout;
@@ -22,6 +20,8 @@ use crate::text;
 use crate::text::TextRunScanner;
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use crate::ServoArc;
+use app_units::Au;
+use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
@@ -849,10 +849,10 @@ impl Fragment {
     }
 
     pub fn contains_node(&self, node_address: OpaqueNode) -> bool {
-        node_address == self.node || self
-            .inline_context
-            .as_ref()
-            .map_or(false, |ctx| ctx.contains_node(node_address))
+        node_address == self.node ||
+            self.inline_context
+                .as_ref()
+                .map_or(false, |ctx| ctx.contains_node(node_address))
     }
 
     /// Adds a style to the inline context for this fragment. If the inline context doesn't exist
@@ -1939,9 +1939,9 @@ impl Fragment {
             // The advance is more than the remaining inline-size, so split here. First, check to
             // see if we're going to overflow the line. If so, perform a best-effort split.
             let mut remaining_range = slice.text_run_range();
-            let split_is_empty = inline_start_range.is_empty() && !(self
-                .requires_line_break_afterward_if_wrapping_on_newlines() &&
-                !self.white_space().allow_wrap());
+            let split_is_empty = inline_start_range.is_empty() &&
+                !(self.requires_line_break_afterward_if_wrapping_on_newlines() &&
+                    !self.white_space().allow_wrap());
             if split_is_empty {
                 // We're going to overflow the line.
                 overflowing = true;
@@ -2416,9 +2416,9 @@ impl Fragment {
                         minimum_line_metrics.space_above_baseline
                 },
                 VerticalAlign::TextBottom => {
-                    offset = minimum_line_metrics.space_below_baseline - self
-                        .content_inline_metrics(layout_context)
-                        .space_below_baseline
+                    offset = minimum_line_metrics.space_below_baseline -
+                        self.content_inline_metrics(layout_context)
+                            .space_below_baseline
                 },
                 VerticalAlign::Top => {
                     if let Some(actual_line_metrics) = actual_line_metrics {

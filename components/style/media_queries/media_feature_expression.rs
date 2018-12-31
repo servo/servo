@@ -134,10 +134,11 @@ impl RangeOrOperator {
 
         match range_or_op {
             RangeOrOperator::Range(range) => {
-                cmp == Ordering::Equal || match range {
-                    Range::Min => cmp == Ordering::Greater,
-                    Range::Max => cmp == Ordering::Less,
-                }
+                cmp == Ordering::Equal ||
+                    match range {
+                        Range::Min => cmp == Ordering::Greater,
+                        Range::Max => cmp == Ordering::Less,
+                    }
             },
             RangeOrOperator::Operator(op) => match op {
                 Operator::Equal => cmp == Ordering::Equal,
@@ -344,7 +345,7 @@ impl MediaFeatureExpression {
                 Err(()) => {
                     return Err(location.new_custom_error(
                         StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
-                    ))
+                    ));
                 },
             }
 

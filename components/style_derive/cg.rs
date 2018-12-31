@@ -172,9 +172,7 @@ fn path_to_ident(path: &Path) -> Option<&Ident> {
         Path {
             leading_colon: None,
             ref segments,
-        }
-            if segments.len() == 1 =>
-        {
+        } if segments.len() == 1 => {
             if segments[0].arguments.is_empty() {
                 Some(&segments[0].ident)
             } else {
@@ -254,7 +252,7 @@ pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (TokenStream, Vec<Bi
 /// If the first Camel segment is "Moz", "Webkit", or "Servo", the result string
 /// is prepended with "-".
 pub fn to_css_identifier(mut camel_case: &str) -> String {
-    camel_case = camel_case.trim_right_matches('_');
+    camel_case = camel_case.trim_end_matches('_');
     let mut first = true;
     let mut result = String::with_capacity(camel_case.len());
     while let Some(segment) = split_camel_segment(&mut camel_case) {

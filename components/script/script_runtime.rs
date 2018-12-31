@@ -687,7 +687,9 @@ unsafe extern "C" fn debug_gc_callback(
     }
 }
 
-thread_local!(static THREAD_ACTIVE: Cell<bool> = Cell::new(true););
+thread_local!(
+    static THREAD_ACTIVE: Cell<bool> = Cell::new(true);
+);
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {

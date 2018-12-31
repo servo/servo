@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use atomic_refcell::AtomicRefCell;
 use crate::construct::ConstructionResult;
+use atomic_refcell::AtomicRefCell;
 use script_layout_interface::StyleData;
 
 #[repr(C)]

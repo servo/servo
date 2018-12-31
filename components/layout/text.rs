@@ -4,12 +4,12 @@
 
 //! Text layout.
 
-use app_units::Au;
 use crate::context::LayoutFontContext;
 use crate::fragment::{Fragment, ScannedTextFlags};
 use crate::fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use crate::inline::{InlineFragmentNodeFlags, InlineFragments};
 use crate::linked_list::split_off_head;
+use app_units::Au;
 use gfx::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
@@ -112,11 +112,11 @@ impl TextRunScanner {
             // Create a clump.
             split_first_fragment_at_newline_if_necessary(&mut fragments);
             self.clump.append(&mut split_off_head(&mut fragments));
-            while !fragments.is_empty() && self
-                .clump
-                .back()
-                .unwrap()
-                .can_merge_with_fragment(fragments.front().unwrap())
+            while !fragments.is_empty() &&
+                self.clump
+                    .back()
+                    .unwrap()
+                    .can_merge_with_fragment(fragments.front().unwrap())
             {
                 split_first_fragment_at_newline_if_necessary(&mut fragments);
                 self.clump.append(&mut split_off_head(&mut fragments));

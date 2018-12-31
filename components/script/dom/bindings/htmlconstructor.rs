@@ -105,7 +105,7 @@ where
         None => {
             return Err(Error::Type(
                 "No custom element definition found for new.target".to_owned(),
-            ))
+            ));
         },
     };
 

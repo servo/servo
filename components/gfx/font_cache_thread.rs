@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use crate::font::{FontFamilyDescriptor, FontFamilyName, FontSearchScope};
 use crate::font_context::FontSource;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
@@ -12,6 +11,7 @@ use crate::platform::font_list::for_each_variation;
 use crate::platform::font_list::system_default_family;
 use crate::platform::font_list::SANS_SERIF_FONT_FAMILY;
 use crate::platform::font_template::FontTemplateData;
+use app_units::Au;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::request::{Destination, RequestInit};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};

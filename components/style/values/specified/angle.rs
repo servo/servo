@@ -193,7 +193,7 @@ impl Angle {
                 AllowUnitlessZeroAngle::No => Err(()),
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
+                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i));
             },
             _ => Err(()),
         }

@@ -43,7 +43,7 @@ pub fn derive(input: DeriveInput) -> TokenStream {
         saw_condition |= parse_attrs.condition.is_some();
         let condition = match parse_attrs.condition {
             Some(ref p) => quote! { if #p(context) },
-            None => quote!{},
+            None => quote! {},
         };
 
         let mut body = quote! {

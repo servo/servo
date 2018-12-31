@@ -4,7 +4,6 @@
 
 //! Servo's media-query device and expression representation.
 
-use app_units::Au;
 use crate::custom_properties::CssEnvironment;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
@@ -14,6 +13,7 @@ use crate::properties::ComputedValues;
 use crate::values::computed::font::FontSize;
 use crate::values::computed::CSSPixelLength;
 use crate::values::KeyframesName;
+use app_units::Au;
 use cssparser::RGBA;
 use euclid::{Size2D, TypedScale, TypedSize2D};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};

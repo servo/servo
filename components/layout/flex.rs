@@ -4,7 +4,6 @@
 
 //! Layout for elements with a CSS `display` property of `flex`.
 
-use app_units::{Au, MAX_AU};
 use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
 use crate::display_list::StackingContextCollectionState;
@@ -16,6 +15,7 @@ use crate::layout_debug;
 use crate::model::{AdjoiningMargins, CollapsibleMargins};
 use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use crate::traversal::PreorderFlowTraversal;
+use app_units::{Au, MAX_AU};
 use euclid::Point2D;
 use std::cmp::{max, min};
 use std::ops::Range;
@@ -846,13 +846,14 @@ impl FlexFlow {
                     // as if it has a fixed cross size, all child blocks should resolve against it.
                     // block.assign_block_size(layout_context);
                 }
-                block.base.position.start.b = margin_block_start + if !self.cross_reverse {
-                    cur_b
-                } else {
-                    self.block_flow.fragment.border_padding.block_start * 2 + total_cross_size -
-                        cur_b -
-                        line.cross_size
-                };
+                block.base.position.start.b = margin_block_start +
+                    if !self.cross_reverse {
+                        cur_b
+                    } else {
+                        self.block_flow.fragment.border_padding.block_start * 2 + total_cross_size -
+                            cur_b -
+                            line.cross_size
+                    };
                 // TODO(stshine): support baseline alignment.
                 if free_space != Au(0) {
                     let flex_cross = match self_align {

@@ -8,8 +8,6 @@
 //! list building, as the actual painting does not happen here—only deciding *what* we're going to
 //! paint.
 
-use app_units::{Au, AU_PER_PX};
-use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::display_list::background::{self, get_cyclic};
@@ -33,6 +31,8 @@ use crate::inline::{InlineFlow, InlineFragmentNodeFlags};
 use crate::list_item::ListItemFlow;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
+use app_units::{Au, AU_PER_PX};
+use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
@@ -2172,13 +2172,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // FIXME(pcwalton): Get the real container size.
         let container_size = Size2D::zero();
         let metrics = &text_fragment.run.font_metrics;
-        let baseline_origin = stacking_relative_content_box.origin + LogicalPoint::new(
-            self.style.writing_mode,
-            Au(0),
-            metrics.ascent,
-        )
-        .to_physical(self.style.writing_mode, container_size)
-        .to_vector();
+        let baseline_origin = stacking_relative_content_box.origin +
+            LogicalPoint::new(self.style.writing_mode, Au(0), metrics.ascent)
+                .to_physical(self.style.writing_mode, container_size)
+                .to_vector();
 
         // Base item for all text/shadows
         let base = state.create_base_display_item(

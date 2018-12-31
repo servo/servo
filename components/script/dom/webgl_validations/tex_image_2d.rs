@@ -4,10 +4,10 @@
 
 use super::types::TexImageTarget;
 use super::WebGLValidator;
-use canvas_traits::webgl::{TexDataType, TexFormat, WebGLError::*};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::WebGLTexture;
+use canvas_traits::webgl::{TexDataType, TexFormat, WebGLError::*};
 use std::{self, fmt};
 
 /// The errors that the texImage* family of functions can generate.

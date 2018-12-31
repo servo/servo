@@ -522,7 +522,7 @@ impl CustomElementDefinition {
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
                         "Constructor did not return a DOM node".to_owned(),
-                    ))
+                    ));
                 },
                 _ => return Err(Error::JSFailed),
             };

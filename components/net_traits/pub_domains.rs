@@ -66,7 +66,7 @@ impl PubDomainRules {
             .collect()
     }
     fn suffix_pair<'a>(&self, domain: &'a str) -> (&'a str, &'a str) {
-        let domain = domain.trim_left_matches(".");
+        let domain = domain.trim_start_matches(".");
         let mut suffix = domain;
         let mut prev_suffix = domain;
         for (index, _) in domain.match_indices(".") {
@@ -96,7 +96,7 @@ impl PubDomainRules {
         // Speeded-up version of
         // domain != "" &&
         // self.public_suffix(domain) == domain.
-        let domain = domain.trim_left_matches(".");
+        let domain = domain.trim_start_matches(".");
         match domain.find(".") {
             None => !domain.is_empty(),
             Some(index) => {
@@ -109,7 +109,7 @@ impl PubDomainRules {
         // Speeded-up version of
         // self.public_suffix(domain) != domain &&
         // self.registrable_suffix(domain) == domain.
-        let domain = domain.trim_left_matches(".");
+        let domain = domain.trim_start_matches(".");
         match domain.find(".") {
             None => false,
             Some(index) => {

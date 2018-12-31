@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef,
 };
@@ -10,6 +9,7 @@ use crate::font_cache_thread::FontTemplateInfo;
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::FontHandle;
 pub use crate::platform::font_context::FontContextHandle;
+use app_units::Au;
 use fnv::FnvHasher;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_arc::Arc;

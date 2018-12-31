@@ -692,7 +692,7 @@ impl<'a> Iterator for TemplateAreasTokenizer<'a> {
     type Item = Result<Option<&'a str>, ()>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let rest = self.0.trim_left_matches(HTML_SPACE_CHARACTERS);
+        let rest = self.0.trim_start_matches(HTML_SPACE_CHARACTERS);
         if rest.is_empty() {
             return None;
         }

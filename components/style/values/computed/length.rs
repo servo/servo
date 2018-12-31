@@ -5,7 +5,6 @@
 //! `<length>` computed values, and related ones.
 
 use super::{Context, Number, Percentage, ToComputedValue};
-use app_units::Au;
 use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::length::MaxLength as GenericMaxLength;
@@ -15,6 +14,7 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
 use crate::values::{specified, Auto, CSSFloat, Either, IsAuto, Normal};
+use app_units::Au;
 use ordered_float::NotNan;
 use std::fmt::{self, Write};
 use std::ops::{Add, Neg};

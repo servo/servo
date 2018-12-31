@@ -5,11 +5,11 @@
 use super::{
     constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions,
 };
-use canvas_traits::webgl::WebGLVersion;
 use crate::dom::bindings::codegen::Bindings::OESTextureFloatBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 
 #[dom_struct]

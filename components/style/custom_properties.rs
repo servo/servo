@@ -434,7 +434,7 @@ fn parse_declaration_value_block<'i, 't>(
             return Ok((
                 TokenSerializationType::nothing(),
                 TokenSerializationType::nothing(),
-            ))
+            ));
         },
     };
     let first_token_type = token.serialization_type();

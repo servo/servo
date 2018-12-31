@@ -5,7 +5,6 @@
 //! A struct to encapsulate all the style fixups and flags propagations
 //! a computed style needs in order for it to adhere to the CSS spec.
 
-use app_units::Au;
 use crate::dom::TElement;
 use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::properties::longhands::display::computed_value::T as Display;
@@ -13,6 +12,7 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
+use app_units::Au;
 
 /// A struct that implements all the adjustment methods.
 ///
@@ -190,12 +190,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let is_root = self.style.pseudo.is_none() && element.map_or(false, |e| e.is_root());
         blockify_if!(is_root);
         if !self.skip_item_display_fixup(element) {
-            blockify_if!(
-                layout_parent_style
-                    .get_box()
-                    .clone_display()
-                    .is_item_container()
-            );
+            blockify_if!(layout_parent_style
+                .get_box()
+                .clone_display()
+                .is_item_container());
         }
 
         let is_item_or_root = blockify;
@@ -220,11 +218,12 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     pub fn set_bits(&mut self) {
         let display = self.style.get_box().clone_display();
 
-        if !display.is_contents() && !self
-            .style
-            .get_text()
-            .clone_text_decoration_line()
-            .is_empty()
+        if !display.is_contents() &&
+            !self
+                .style
+                .get_text()
+                .clone_text_decoration_line()
+                .is_empty()
         {
             self.style
                 .flags
@@ -299,10 +298,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_text_in_ruby(&mut self) {
         let parent_display = self.style.get_parent_box().clone_display();
-        if parent_display.is_ruby_type() || self
-            .style
-            .get_parent_flags()
-            .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
+        if parent_display.is_ruby_type() ||
+            self.style
+                .get_parent_flags()
+                .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
         {
             self.style
                 .flags

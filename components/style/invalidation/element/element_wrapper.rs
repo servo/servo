@@ -208,10 +208,10 @@ where
             // Instead, we use the `visited_handling` to determine if they
             // match.
             NonTSPseudoClass::Link => {
-                return self.is_link() && context.visited_handling().matches_unvisited()
+                return self.is_link() && context.visited_handling().matches_unvisited();
             },
             NonTSPseudoClass::Visited => {
-                return self.is_link() && context.visited_handling().matches_visited()
+                return self.is_link() && context.visited_handling().matches_visited();
             },
 
             #[cfg(feature = "gecko")]

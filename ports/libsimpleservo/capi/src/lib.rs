@@ -105,11 +105,7 @@ pub extern "C" fn init_with_egl(
     init(opts, gl, wakeup, readfile, callbacks)
 }
 
-#[cfg(any(
-    target_os = "linux",
-    target_os = "windows",
-    target_os = "macos"
-))]
+#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
 #[no_mangle]
 pub extern "C" fn init_with_gl(
     opts: CInitOptions,

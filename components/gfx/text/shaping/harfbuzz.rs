@@ -4,12 +4,12 @@
 
 #![allow(unsafe_code)]
 
-use app_units::Au;
 use crate::font::{Font, FontTableMethods, FontTableTag, ShapingFlags, ShapingOptions, KERN};
 use crate::platform::font::FontTable;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
+use app_units::Au;
 use euclid::Point2D;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::canvas_data::*;
 use azure::azure_hl::AntialiasMode;
 use canvas_traits::canvas::*;
-use crate::canvas_data::*;
 use euclid::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use std::borrow::ToOwned;

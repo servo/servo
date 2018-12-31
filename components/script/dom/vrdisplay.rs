@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
@@ -33,6 +32,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use crate::task_source::TaskSourceName;
+use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
 use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -551,8 +551,8 @@ impl VRDisplay {
                     let this = address.clone();
                     let sender = raf_sender.clone();
                     let task = Box::new(task!(handle_vrdisplay_raf: move || {
-                    this.root().handle_raf(&sender);
-                }));
+                        this.root().handle_raf(&sender);
+                    }));
                     // NOTE: WebVR spec doesn't specify what task source we should use. Is
                     // dom-manipulation a good choice long term?
                     js_sender

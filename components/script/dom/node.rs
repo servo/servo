@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use app_units::Au;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -55,6 +54,7 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
+use app_units::Au;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
@@ -1850,10 +1850,9 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         parent.owner_doc().add_script_and_layout_blocker();
-        assert!(
-            node.GetParentNode()
-                .map_or(false, |node_parent| &*node_parent == parent)
-        );
+        assert!(node
+            .GetParentNode()
+            .map_or(false, |node_parent| &*node_parent == parent));
         let cached_index = {
             if parent.ranges.is_empty() {
                 None
@@ -2242,10 +2241,10 @@ impl NodeMethods for Node {
         // Step 4-5.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is::<Document>() => {
-                return Err(Error::HierarchyRequest)
+                return Err(Error::HierarchyRequest);
             },
             NodeTypeId::DocumentType if !self.is::<Document>() => {
-                return Err(Error::HierarchyRequest)
+                return Err(Error::HierarchyRequest);
             },
             NodeTypeId::Document(_) => return Err(Error::HierarchyRequest),
             _ => (),
@@ -2462,14 +2461,14 @@ impl NodeMethods for Node {
                 NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)
                     if !is_equal_processinginstruction(this, node) =>
                 {
-                    return false
-                },
+                    return false;
+                }
                 NodeTypeId::CharacterData(CharacterDataTypeId::Text) |
                 NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
                     if !is_equal_characterdata(this, node) =>
                 {
-                    return false
-                },
+                    return false;
+                }
                 // Step 4.
                 NodeTypeId::Element(..) if !is_equal_element_attrs(this, node) => return false,
                 _ => (),

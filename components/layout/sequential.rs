@@ -4,7 +4,6 @@
 
 //! Implements sequential traversals over the DOM and flow trees.
 
-use app_units::Au;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::floats::SpeculatedFloatPlacement;
@@ -14,6 +13,7 @@ use crate::generated_content::ResolveGeneratedContent;
 use crate::incremental::RelayoutMode;
 use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use crate::traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
+use app_units::Au;
 use euclid::{Point2D, Vector2D};
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -106,10 +106,11 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(
                     .stacking_relative_border_box(CoordinateSystem::Own);
                 if let Some(matrix) = kid.as_block().fragment.transform_matrix(&relative_position) {
                     let transform_matrix = matrix.transform_point2d(&LayoutPoint::zero()).unwrap();
-                    stacking_context_position = stacking_context_position + Vector2D::new(
-                        Au::from_f32_px(transform_matrix.x),
-                        Au::from_f32_px(transform_matrix.y),
-                    )
+                    stacking_context_position = stacking_context_position +
+                        Vector2D::new(
+                            Au::from_f32_px(transform_matrix.x),
+                            Au::from_f32_px(transform_matrix.y),
+                        )
                 }
             }
             doit(kid, level + 1, iterator, &stacking_context_position);

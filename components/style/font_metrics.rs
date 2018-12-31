@@ -6,12 +6,12 @@
 
 #![deny(missing_docs)]
 
-use app_units::Au;
 use crate::context::SharedStyleContext;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
 use crate::properties::style_structs::Font;
 use crate::Atom;
+use app_units::Au;
 
 /// Represents the font metrics that style needs from a font to compute the
 /// value of certain CSS units like `ex`.

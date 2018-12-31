@@ -14,7 +14,6 @@
 //!                       Use this for structs that correspond to a DOM type
 
 #![deny(unsafe_code)]
-#![feature(macro_at_most_once_rep)]
 #![feature(plugin)]
 #![feature(plugin_registrar)]
 #![feature(rustc_private)]

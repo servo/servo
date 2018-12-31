@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::{Au, MIN_AU};
 use crate::block::AbsoluteAssignBSizesTraversal;
 use crate::context::{LayoutContext, LayoutFontContext};
 use crate::display_list::items::OpaqueNode;
@@ -20,6 +19,7 @@ use crate::model::IntrinsicISizesContribution;
 use crate::text;
 use crate::traversal::PreorderFlowTraversal;
 use crate::ServoArc;
+use app_units::{Au, MIN_AU};
 use euclid::{Point2D, Size2D};
 use gfx::font::FontMetrics;
 use gfx_traits::print_tree::PrintTree;
@@ -1363,9 +1363,9 @@ impl InlineFlow {
         fragment_index: FragmentIndex,
     ) -> Range<FragmentIndex> {
         let mut start_index = fragment_index;
-        while start_index > FragmentIndex(0) && self.fragments.fragments
-            [(start_index - FragmentIndex(1)).get() as usize]
-            .is_positioned()
+        while start_index > FragmentIndex(0) &&
+            self.fragments.fragments[(start_index - FragmentIndex(1)).get() as usize]
+                .is_positioned()
         {
             start_index = start_index - FragmentIndex(1)
         }

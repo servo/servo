@@ -695,9 +695,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                             for param in mime.params() {
                                 if param.0 == mime::CHARSET {
                                     if !param.1.as_ref().eq_ignore_ascii_case(encoding) {
-                                        let new_params: Vec<
-                                            (Name, Name),
-                                        > = mime
+                                        let new_params: Vec<(Name, Name)> = mime
                                             .params()
                                             .filter(|p| p.0 != mime::CHARSET)
                                             .map(|p| (p.0, p.1))
@@ -829,7 +827,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 1
         match self.ready_state.get() {
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => {
-                return Err(Error::InvalidState)
+                return Err(Error::InvalidState);
             },
             _ => {},
         }

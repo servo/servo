@@ -233,9 +233,10 @@ fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
 fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> Option<(usize, Tm)> {
     let mut oldest_accessed: Option<(usize, Tm)> = None;
     for (i, c) in cookies.iter().enumerate() {
-        if (c.cookie.secure().unwrap_or(false) == is_secure_cookie) && oldest_accessed
-            .as_ref()
-            .map_or(true, |a| c.last_access < a.1)
+        if (c.cookie.secure().unwrap_or(false) == is_secure_cookie) &&
+            oldest_accessed
+                .as_ref()
+                .map_or(true, |a| c.last_access < a.1)
         {
             oldest_accessed = Some((i, c.last_access));
         }

@@ -25,8 +25,8 @@ fn test_font_template_descriptor() {
             "dejavu-fonts-ttf-2.37",
             "ttf",
         ]
-            .iter()
-            .collect();
+        .iter()
+        .collect();
         path.push(format!("{}.ttf", filename));
 
         let file = File::open(path).unwrap();

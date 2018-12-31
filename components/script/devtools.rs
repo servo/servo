@@ -47,14 +47,12 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
         } else if rval.is_boolean() {
             EvaluateJSReply::BooleanValue(rval.to_boolean())
         } else if rval.is_double() || rval.is_int32() {
-            EvaluateJSReply::NumberValue(match FromJSValConvertible::from_jsval(
-                cx,
-                rval.handle(),
-                (),
-            ) {
-                Ok(ConversionResult::Success(v)) => v,
-                _ => unreachable!(),
-            })
+            EvaluateJSReply::NumberValue(
+                match FromJSValConvertible::from_jsval(cx, rval.handle(), ()) {
+                    Ok(ConversionResult::Success(v)) => v,
+                    _ => unreachable!(),
+                },
+            )
         } else if rval.is_string() {
             EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.to_string())))
         } else if rval.is_null() {
@@ -242,7 +240,7 @@ pub fn handle_modify_attribute(
             return warn!(
                 "node id {} for pipeline id {} is not found",
                 &node_id, &pipeline
-            )
+            );
         },
         Some(found_node) => found_node,
     };

@@ -189,8 +189,8 @@ impl TreeWalkerMethods for TreeWalker {
                 // This can happen if the user set the current node to somewhere
                 // outside of the tree rooted at the original root.
                 {
-                    return Ok(None)
-                },
+                    return Ok(None);
+                }
                 Some(n) => node = n,
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
@@ -321,8 +321,8 @@ impl TreeWalker {
                             Some(ref parent)
                                 if self.is_root_node(&parent) || self.is_current_node(&parent) =>
                             {
-                                return Ok(None)
-                            },
+                                return Ok(None);
+                            }
                             // "5. Otherwise, set node to parent."
                             Some(parent) => node = parent,
                         }

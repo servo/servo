@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::{Au, MAX_AU};
 use crate::block::FormattingContextType;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::persistent_list::PersistentList;
+use app_units::{Au, MAX_AU};
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::float::T as StyleFloat;
@@ -353,7 +353,7 @@ impl Floats {
                         info.ceiling,
                         info.max_inline_size,
                         MAX_AU,
-                    )
+                    );
                 },
                 FloatKind::Right => {
                     return LogicalRect::new(
@@ -362,7 +362,7 @@ impl Floats {
                         info.ceiling,
                         info.max_inline_size,
                         MAX_AU,
-                    )
+                    );
                 },
             }
         }
@@ -395,7 +395,7 @@ impl Floats {
                             info.max_inline_size,
                             MAX_AU,
                         ),
-                    }
+                    };
                 },
                 Some(rect) => {
                     assert_ne!(

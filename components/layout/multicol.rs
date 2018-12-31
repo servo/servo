@@ -4,7 +4,6 @@
 
 //! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
-use app_units::Au;
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
@@ -12,6 +11,7 @@ use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FragmentationContext, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::ServoArc;
+use app_units::Au;
 use euclid::{Point2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{max, min};

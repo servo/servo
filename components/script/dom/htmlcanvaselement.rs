@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64;
-use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
-use canvas_traits::webgl::WebGLVersion;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -31,6 +28,9 @@ use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
+use base64;
+use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
+use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};

@@ -181,7 +181,7 @@ impl Parse for Content {
                         None => {
                             return Err(input.new_custom_error(
                                 StyleParseErrorKind::UnexpectedFunction(name.clone()),
-                            ))
+                            ));
                         },
                     }
                 },

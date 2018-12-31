@@ -145,7 +145,7 @@ impl SupportsCondition {
         function: &str,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        match_ignore_ascii_case!{ function,
+        match_ignore_ascii_case! { function,
             // Although this is an internal syntax, it is not necessary
             // to check parsing context as far as we accept any
             // unexpected token as future syntax, and evaluate it to
@@ -350,9 +350,8 @@ impl RawSelector {
                     use crate::selector_parser::PseudoElement;
                     use selectors::parser::Component;
 
-                    let has_any_unknown_webkit_pseudo = selector.has_pseudo_element() && selector
-                        .iter_raw_match_order()
-                        .any(|component| {
+                    let has_any_unknown_webkit_pseudo = selector.has_pseudo_element() &&
+                        selector.iter_raw_match_order().any(|component| {
                             matches!(
                                 *component,
                                 Component::PseudoElement(PseudoElement::UnknownWebkit(..))

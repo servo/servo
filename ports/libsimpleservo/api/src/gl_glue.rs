@@ -22,11 +22,7 @@ pub mod egl {
     pub type EGLNativeWindowType = *const libc::c_void;
     #[cfg(target_os = "android")]
     pub type EGLNativeWindowType = *const libc::c_void;
-    #[cfg(any(
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "openbsd"
-    ))]
+    #[cfg(any(target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd"))]
     pub type EGLNativeWindowType = *const libc::c_void;
 
     pub type khronos_utime_nanoseconds_t = khronos_uint64_t;
@@ -81,11 +77,7 @@ pub mod egl {
     }
 }
 
-#[cfg(any(
-    target_os = "windows",
-    target_os = "linux",
-    target_os = "macos"
-))]
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
 pub mod gl {
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         // FIXME: Add an OpenGL version

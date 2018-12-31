@@ -48,10 +48,7 @@ pub enum DevicePixel {}
 /// Represents a mobile style pinch zoom factor.
 /// TODO(gw): Once WR supports pinch zoom, use a type directly from webrender_api.
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(
-    feature = "servo",
-    derive(Deserialize, Serialize, MallocSizeOf)
-)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize, MallocSizeOf))]
 pub struct PinchZoomFactor(f32);
 
 impl PinchZoomFactor {

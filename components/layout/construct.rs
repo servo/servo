@@ -763,17 +763,20 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         node: &ConcreteThreadSafeLayoutNode,
     ) -> ConstructionResult {
         let mut fragments = IntermediateInlineFragments::new();
-        let node_is_input_or_text_area =
-            node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
-                node.type_id() == Some(LayoutNodeType::Element(
+        let node_is_input_or_text_area = node.type_id() ==
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
+            node.type_id() ==
+                Some(LayoutNodeType::Element(
                     LayoutElementType::HTMLTextAreaElement,
                 ));
         if node.get_pseudo_element_type().is_replaced_content() || node_is_input_or_text_area {
             // A TextArea's text contents are displayed through the input text
             // box, so don't construct them.
-            if node.type_id() == Some(LayoutNodeType::Element(
-                LayoutElementType::HTMLTextAreaElement,
-            )) {
+            if node.type_id() ==
+                Some(LayoutNodeType::Element(
+                    LayoutElementType::HTMLTextAreaElement,
+                ))
+            {
                 for kid in node.children() {
                     self.set_flow_construction_result(&kid, ConstructionResult::None)
                 }

@@ -2,15 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(feature = "webgl_backtrace")]
-use backtrace::Backtrace;
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
-    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
-};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -55,6 +46,15 @@ use crate::dom::webgltexture::{TexParameterValue, WebGLTexture};
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
+#[cfg(feature = "webgl_backtrace")]
+use backtrace::Backtrace;
+use canvas_traits::webgl::WebGLError::*;
+use canvas_traits::webgl::{
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
+    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
+    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
+    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+};
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
@@ -1913,9 +1913,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(&self, mask: u32) {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
-        if mask & !(constants::DEPTH_BUFFER_BIT |
-            constants::STENCIL_BUFFER_BIT |
-            constants::COLOR_BUFFER_BIT) !=
+        if mask &
+            !(constants::DEPTH_BUFFER_BIT |
+                constants::STENCIL_BUFFER_BIT |
+                constants::COLOR_BUFFER_BIT) !=
             0
         {
             return self.webgl_error(InvalidValue);

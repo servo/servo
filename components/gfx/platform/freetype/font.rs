@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::c_str_to_string;
-use app_units::Au;
 use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use crate::font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
 use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::GlyphId;
 use crate::text::util::fixed_to_float;
+use app_units::Au;
 use freetype::freetype::FT_Sfnt_Tag;
 use freetype::freetype::{FT_Done_Face, FT_New_Face, FT_New_Memory_Face};
 use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use crate::rpc::LayoutRPC;
 use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
+use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
 use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;

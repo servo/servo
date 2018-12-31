@@ -4,7 +4,6 @@
 
 //! Data needed to style a Gecko document.
 
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings::{self, RawServoStyleSet};
@@ -19,6 +18,7 @@ use crate::selector_parser::SnapshotMap;
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
 use crate::stylist::Stylist;
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use malloc_size_of::MallocSizeOfOps;
 use servo_arc::Arc;
 use std::fmt;
