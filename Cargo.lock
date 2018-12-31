@@ -133,7 +133,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.35.0"
-source = "git+https://github.com/servo/rust-azure#a85619e40463ed6139ccc8186ef306e8c62a496d"
+source = "git+https://github.com/servo/rust-azure#5c648f2bd5d2d600c28d56f07c29c4e2a08173b6"
 dependencies = [
  "cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
