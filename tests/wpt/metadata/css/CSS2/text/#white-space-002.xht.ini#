@@ -1,0 +1,3 @@
+[white-space-002.xht]
+  expected:
+    if os == "linux": FAIL

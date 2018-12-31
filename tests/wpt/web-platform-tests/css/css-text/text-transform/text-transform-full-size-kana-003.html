@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: Katakana and text-transform: full-size-kana</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel='author' title='Diego Pino Garcia' href='mailto:dpino@igalia.com'>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-text-transform-full-size-kana">
+<link rel="match" href="reference/text-transform-full-size-kana-003-ref.html">
+<meta name="assert" content="small katakana are transformed to normal katakana by text-tranform:full-size-kana (part 2)">
+<style>
+td:nth-of-type(2) {
+  text-transform: full-size-kana
+}
+</style>
+
+<p>Test passes if the characters in the second column are
+the same shape and size as those in the rightmost column,
+not small as those in the leftmost column.<br>
+Any missing glyph should be ignored as long as it is missing in both the second and the rightmost column.
+
+<table>
+  <tr><td>ㇵ<td>ㇵ<td>ハ
+  <tr><td>ㇶ<td>ㇶ<td>ヒ
+  <tr><td>ㇷ<td>ㇷ<td>フ
+  <tr><td>ㇸ<td>ㇸ<td>ヘ
+  <tr><td>ㇹ<td>ㇹ<td>ホ
+  <tr><td>ㇺ<td>ㇺ<td>ム
+  <tr><td>ャ<td>ャ<td>ヤ
+  <tr><td>ュ<td>ュ<td>ユ
+  <tr><td>ョ<td>ョ<td>ヨ
+  <tr><td>ㇻ<td>ㇻ<td>ラ
+  <tr><td>ㇼ<td>ㇼ<td>リ
+  <tr><td>ㇽ<td>ㇽ<td>ル
+  <tr><td>ㇾ<td>ㇾ<td>レ
+  <tr><td>ㇿ<td>ㇿ<td>ロ
+  <tr><td>ヮ<td>ヮ<td>ワ
+</table>
