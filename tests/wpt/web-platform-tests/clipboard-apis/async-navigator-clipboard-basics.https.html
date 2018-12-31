@@ -5,7 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
-test(function() {
+test(() => {
   assert_not_equals(navigator.clipboard, undefined);
   assert_true(navigator.clipboard instanceof Clipboard);
   assert_equals(navigator.clipboard, navigator.clipboard);
@@ -13,23 +13,23 @@ test(function() {
 
 /* clipboard.write() */
 
-promise_test(function() {
-  var dt = new DataTransfer();
+promise_test(() => {
+  const dt = new DataTransfer();
   dt.items.add("Howdy", "text/plain");
   return navigator.clipboard.write(dt);
 }, "navigator.clipboard.write(DataTransfer) succeeds");
 
-promise_test(function(t) {
+promise_test(t => {
   return promise_rejects(t, new TypeError(),
                          navigator.clipboard.write());
 }, "navigator.clipboard.write() fails (expect DataTransfer)");
 
-promise_test(function(t) {
+promise_test(t => {
   return promise_rejects(t, new TypeError(),
                          navigator.clipboard.write(null));
 }, "navigator.clipboard.write(null) fails (expect DataTransfer)");
 
-promise_test(function(t) {
+promise_test(t => {
   return promise_rejects(t, new TypeError(),
                          navigator.clipboard.write("Bad string"));
 }, "navigator.clipboard.write(DOMString) fails (expect DataTransfer)");
@@ -37,11 +37,11 @@ promise_test(function(t) {
 
 /* clipboard.writeText() */
 
-promise_test(function() {
+promise_test(() => {
   return navigator.clipboard.writeText("New clipboard text");
 }, "navigator.clipboard.writeText(DOMString) succeeds");
 
-promise_test(function(t) {
+promise_test(t => {
   return promise_rejects(t, new TypeError(),
                          navigator.clipboard.writeText());
 }, "navigator.clipboard.writeText() fails (expect DOMString)");
@@ -49,9 +49,9 @@ promise_test(function(t) {
 
 /* clipboard.read() */
 
-promise_test(function() {
+promise_test(() => {
   return navigator.clipboard.read()
-    .then(function(result) {
+    .then(result => {
       assert_true(result instanceof DataTransfer);
     });
 }, "navigator.clipboard.read() succeeds");
@@ -59,9 +59,9 @@ promise_test(function() {
 
 /* clipboard.readText() */
 
-promise_test(function() {
+promise_test(() => {
   return navigator.clipboard.readText()
-    .then(function(result) {
+    .then(result => {
       assert_equals(typeof result, "string");
     });
 }, "navigator.clipboard.readText() succeeds");
