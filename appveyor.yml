@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: Visual Studio 2017
+image: Previous Visual Studio 2017
 
 environment:
   CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
@@ -17,7 +17,6 @@ environment:
     C:\\Python27\\Scripts;\
     C:\\Tools\\PsTools;\
     C:\\Tools\\NuGet3;\
-    C:\\Program Files\\LLVM\\bin;\
     C:\\Program Files\\Microsoft\\Web Platform Installer\\;\
     C:\\Program Files\\7-Zip;\
     C:\\Program Files\\Mercurial;\
