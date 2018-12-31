@@ -17,6 +17,7 @@ environment:
     C:\\Python27\\Scripts;\
     C:\\Tools\\PsTools;\
     C:\\Tools\\NuGet3;\
+    C:\\Program Files\\LLVM\\bin;\
     C:\\Program Files\\Microsoft\\Web Platform Installer\\;\
     C:\\Program Files\\7-Zip;\
     C:\\Program Files\\Mercurial;\
