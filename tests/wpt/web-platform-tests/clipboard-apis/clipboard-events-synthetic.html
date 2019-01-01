@@ -9,20 +9,20 @@
 <script>
 const EVENTS = [ 'copy', 'cut', 'paste' ];
 
-EVENTS.forEach(name => {
-  function testEvent(name, init, composed_flag_expectation, name) {
-    async_test(function(test) {
-      document.addEventListener(name, test.step_func_done((e) => {
-        assert_false(e.isTrusted, `synthetic ${name} event is untrusted`);
-        assert_equals(e.composed, composed_flag_expectation,
-                      `composed flag should be ${composed_flag_expectation}`);
-      }));
-      let event = new ClipboardEvent(name, init);
-      document.dispatchEvent(event);
-    }, name);
-  }
+function testEvent(eventName, init, composed_flag_expectation, testName) {
+  async_test(test => {
+    document.addEventListener(eventName, test.step_func_done(e => {
+      assert_false(e.isTrusted, `synthetic ${eventName} event is untrusted`);
+      assert_equals(e.composed, composed_flag_expectation,
+                    `composed flag should be ${composed_flag_expectation}`);
+    }));
+    const event = new ClipboardEvent(eventName, init);
+    document.dispatchEvent(event);
+  }, testName);
+}
 
-  testEvent(name, { bubbles: true, cancellable: true}, false,
+EVENTS.forEach(name => {
+  testEvent(name, { bubbles: true, cancellable: true }, false,
             `Unspecified synthetic ${name} event should not be composed.`);
   testEvent(name, { bubbles: true, cancelable: true, composed: true }, true,
             `Synthetic ${name} event can be explicitly composed.`);

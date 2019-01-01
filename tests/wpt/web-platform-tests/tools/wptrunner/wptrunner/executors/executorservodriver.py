@@ -177,6 +177,8 @@ def timeout_func(timeout):
 
 
 class ServoWebDriverTestharnessExecutor(TestharnessExecutor):
+    supports_testdriver = True
+
     def __init__(self, browser, server_config, timeout_multiplier=1,
                  close_after_done=True, capabilities=None, debug_info=None,
                  **kwargs):
