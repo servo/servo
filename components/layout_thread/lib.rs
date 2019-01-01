@@ -102,10 +102,11 @@ use std::thread;
 use std::time::Duration;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
-use style::context::{SharedStyleContext, StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
+use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
+use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -178,9 +179,6 @@ pub struct LayoutThread {
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
 
-    /// The workers that we use for parallel operation.
-    parallel_traversal: Option<rayon::ThreadPool>,
-
     /// Flag to indicate whether to use parallel operations
     parallel_flag: bool,
 
@@ -238,10 +236,6 @@ pub struct LayoutThread {
     /// only be a test-mode timer during testing for animations.
     timer: Timer,
 
-    // Number of layout threads. This is copied from `servo_config::opts`, but we'd
-    // rather limit the dependency on that module here.
-    layout_threads: usize,
-
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
 
@@ -270,7 +264,6 @@ impl LayoutThreadFactory for LayoutThread {
         content_process_shutdown_chan: Option<IpcSender<()>>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
-        layout_threads: usize,
         paint_time_metrics: PaintTimeMetrics,
     ) {
         thread::Builder::new()
@@ -308,7 +301,6 @@ impl LayoutThreadFactory for LayoutThread {
                         mem_profiler_chan.clone(),
                         webrender_api_sender,
                         webrender_document,
-                        layout_threads,
                         paint_time_metrics,
                     );
 
@@ -470,7 +462,6 @@ impl LayoutThread {
         mem_profiler_chan: profile_mem::ProfilerChan,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
-        layout_threads: usize,
         paint_time_metrics: PaintTimeMetrics,
     ) -> LayoutThread {
         // The device pixel ratio is incorrect (it does not have the hidpi value),
@@ -480,17 +471,6 @@ impl LayoutThread {
             opts::get().initial_window_size.to_f32() * TypedScale::new(1.0),
             TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
         );
-
-        let workers = rayon::ThreadPoolBuilder::new()
-            .num_threads(layout_threads)
-            .start_handler(|_| thread_state::initialize_layout_worker_thread())
-            .build();
-        let parallel_traversal = if layout_threads > 1 {
-            Some(workers.expect("ThreadPool creation failed"))
-        } else {
-            None
-        };
-        debug!("Possible layout Threads: {}", layout_threads);
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = unbounded();
@@ -521,7 +501,6 @@ impl LayoutThread {
             first_reflow: Cell::new(true),
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
-            parallel_traversal: parallel_traversal,
             parallel_flag: true,
             generation: Cell::new(0),
             new_animations_sender: new_animations_sender,
@@ -563,7 +542,6 @@ impl LayoutThread {
             } else {
                 Timer::new()
             },
-            layout_threads: layout_threads,
             paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
         }
@@ -596,8 +574,8 @@ impl LayoutThread {
             id: self.id,
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
-                options: StyleSystemOptions::default(),
-                guards: guards,
+                options: GLOBAL_STYLE_DATA.options.clone(),
+                guards,
                 visited_styles_enabled: false,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
@@ -881,7 +859,6 @@ impl LayoutThread {
             info.content_process_shutdown_chan,
             self.webrender_api.clone_sender(),
             self.webrender_document,
-            info.layout_threads,
             info.paint_time_metrics,
         );
     }
@@ -924,8 +901,7 @@ impl LayoutThread {
         );
 
         self.root_flow.borrow_mut().take();
-        // Drop the rayon threadpool if present.
-        let _ = self.parallel_traversal.take();
+        self.background_hang_monitor.unregister();
     }
 
     fn handle_add_stylesheet(&self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
@@ -1165,7 +1141,7 @@ impl LayoutThread {
 
         // Parallelize if there's more than 750 objects based on rzambre's suggestion
         // https://github.com/servo/servo/issues/10110
-        self.parallel_flag = self.layout_threads > 1 && data.dom_count > 750;
+        self.parallel_flag = data.dom_count > 750;
         debug!("layout: received layout request for: {}", self.url);
         debug!("Number of objects in DOM: {}", data.dom_count);
         debug!("layout: parallel? {}", self.parallel_flag);
@@ -1372,10 +1348,13 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
 
-        let thread_pool = if self.parallel_flag {
-            self.parallel_traversal.as_ref()
+        let (thread_pool, num_threads) = if self.parallel_flag {
+            (
+                STYLE_THREAD_POOL.style_thread_pool.as_ref(),
+                STYLE_THREAD_POOL.num_threads,
+            )
         } else {
-            None
+            (None, 1)
         };
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
@@ -1403,14 +1382,14 @@ impl LayoutThread {
                 },
             );
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
-            let text_shaping_time = (font::get_and_reset_text_shaping_performance_counter() as u64) /
-                (self.layout_threads as u64);
+            let text_shaping_time =
+                font::get_and_reset_text_shaping_performance_counter() / num_threads;
             profile_time::send_profile_data(
                 profile_time::ProfilerCategory::LayoutTextShaping,
                 self.profiler_metadata(),
                 &self.time_profiler_chan,
                 0,
-                text_shaping_time,
+                text_shaping_time as u64,
                 0,
                 0,
             );
@@ -1741,12 +1720,16 @@ impl LayoutThread {
                 || {
                     let profiler_metadata = self.profiler_metadata();
 
-                    if let (true, Some(traversal)) =
-                        (self.parallel_flag, self.parallel_traversal.as_ref())
-                    {
+                    let thread_pool = if self.parallel_flag {
+                        STYLE_THREAD_POOL.style_thread_pool.as_ref()
+                    } else {
+                        None
+                    };
+
+                    if let Some(pool) = thread_pool {
                         // Parallel mode.
                         LayoutThread::solve_constraints_parallel(
-                            traversal,
+                            pool,
                             FlowRef::deref_mut(root_flow),
                             profiler_metadata,
                             self.time_profiler_chan.clone(),
@@ -1912,7 +1895,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         ))))
     }
 
-    let shared_lock = SharedRwLock::new();
+    let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
+
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     let mut user_or_user_agent_stylesheets = vec![
@@ -1957,7 +1941,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     )?;
 
     Ok(UserAgentStylesheets {
-        shared_lock: shared_lock,
+        shared_lock: shared_lock.clone(),
         user_or_user_agent_stylesheets: user_or_user_agent_stylesheets,
         quirks_mode_stylesheet: quirks_mode_stylesheet,
     })

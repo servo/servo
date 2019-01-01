@@ -13,6 +13,7 @@ import json
 import os
 import os.path as path
 import subprocess
+import sys
 from shutil import copytree, rmtree, copy2
 
 from mach.decorators import (
@@ -263,10 +264,23 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        return self.call_rustup_run(
+        returncode = self.call_rustup_run(
             ["cargo", "doc", "--manifest-path", self.ports_servo_manifest()] + params,
-            env=self.build_env()
-        )
+            env=self.build_env())
+        if returncode:
+            return returncode
+
+        static = path.join(self.context.topdir, "etc", "doc.servo.org")
+        for name in os.listdir(static):
+            copy2(path.join(static, name), path.join(docs, name))
+
+        build = path.join(self.context.topdir, "components", "style", "properties", "build.py")
+        subprocess.check_call([sys.executable, build, "servo", "html"])
+
+        script = path.join(self.context.topdir, "components", "script")
+        subprocess.check_call(["cmake", "."], cwd=script)
+        subprocess.check_call(["cmake", "--build", ".", "--target", "supported-apis"], cwd=script)
+        copy2(path.join(script, "apis.html"), path.join(docs, "servo", "apis.html"))
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

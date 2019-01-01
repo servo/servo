@@ -9,7 +9,7 @@
   #column {
     column-count: 3;
     column-rule: 6px solid;
-    width: 600px;
+    width: 500px;
     outline: 1px solid black;
   }
   h3 {
@@ -18,7 +18,7 @@
   }
   </style>
 
-  <body onload="runTest();">
+  <body>
     <article id="column">
       <div>block1</div>
       <div style="display: inline-block;">
@@ -26,6 +26,21 @@
       </div>
       <div style="overflow: hidden;">
         <h3>non-spanner</h3>
+      </div>
+      <table>
+        <caption>
+          <h3>non-spanner in caption</h3>
+        </caption>
+      </table>
+      <div style="display: grid;">
+        <div>
+          <h3>non-spanner in grid</h3>
+        </div>
+      </div>
+      <div style="display: flex;">
+        <div>
+          <h3>non-spanner in flex</h3>
+        </div>
       </div>
       <div style="column-span: all; outline: 1px solid green;">
         Spanner

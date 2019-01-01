@@ -46,7 +46,7 @@ GMT:
         provisionerId: proj-servo
         workerType: macos
         workerGroup: servo-macos
-        workerId: mac1
+        workerId: {{ grains["id"] }}
         tasksDir: {{ home }}/tasks
         publicIP: {{ salt.network.ip_addrs()[0] }}
         signingKeyLocation: {{ home }}/key
@@ -85,7 +85,7 @@ GMT:
       bin: {{ bin }}
       etc: {{ etc }}
       home: {{ home }}
-      user: {{ user }}
+      username: {{ user }}
 
 net.generic.worker:
   service.running:

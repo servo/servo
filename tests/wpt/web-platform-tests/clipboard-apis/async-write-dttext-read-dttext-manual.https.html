@@ -4,25 +4,20 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-async_test(function(t) {
-  var test_data = "Clipboard write (dt/text) -> read (dt/text) test data";
-  var cb = navigator.clipboard;
-  var dt = new DataTransfer();
-  dt.items.add(test_data, "text/plain");
+promise_test(async (t) => {
+  const input = "Clipboard write (dt/text) -> read (dt/text) test data";
+  const dt = new DataTransfer();
+  dt.items.add(input, "text/plain");
 
-  cb.write(dt).then(t.step_func(() => {
-    cb.read().then(t.step_func((data) => {
-      assert_equals(data.items.length, 1);
-      data.items[0].getAsString(t.step_func((s) => {
-        assert_equals(s, test_data);
-        t.done();
-      }));
-    }), function() {
-      t.unreached_func("clipboard.read() fail");
-    });
-  }), function() {
-    t.unreached_func("clipboard.write() fail");
+  await navigator.clipboard.write(dt);
+  const output = await navigator.clipboard.read();
+
+  assert_equals(output.items.length, 1);
+  const result_promise = new Promise(resolve => {
+    output.items[0].getAsString(resolve);
   });
+  const string_output = await result_promise;
+  assert_equals(string_output, input);
 }, "Verify write and read clipboard (DataTransfer/text)");
 </script>
 Note: This is a manual test because it writes/reads to the shared system

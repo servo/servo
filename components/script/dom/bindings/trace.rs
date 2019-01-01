@@ -49,6 +49,7 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::MediaFrameRenderer;
+use crate::task::TaskBox;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
@@ -56,13 +57,11 @@ use encoding_rs::{Decoder, Encoding};
 use euclid::Length as EuclidLength;
 use euclid::{Point2D, Rect, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D};
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::stream::Utf8LossyDecoder;
-use html5ever::tendril::{StrTendril, TendrilSink};
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use http::header::HeaderMap;
 use hyper::Method;
 use hyper::StatusCode;
+use indexmap::IndexMap;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
@@ -128,6 +127,9 @@ use style::stylesheets::keyframes_rule::Keyframe;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
 use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule, ViewportRule};
 use style::values::specified::Length;
+use tendril::fmt::UTF8;
+use tendril::stream::LossyDecoder;
+use tendril::{StrTendril, TendrilSink};
 use time::Duration;
 use uuid::Uuid;
 use webrender_api::{DocumentId, ImageKey, RenderApiSender};
@@ -138,6 +140,8 @@ pub unsafe trait JSTraceable {
     /// Trace `self`.
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
+
+unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(CSSError);
 
@@ -347,6 +351,21 @@ unsafe impl<K: Ord + JSTraceable, V: JSTraceable> JSTraceable for BTreeMap<K, V>
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
         for (k, v) in self {
+            k.trace(trc);
+            v.trace(trc);
+        }
+    }
+}
+
+unsafe impl<K, V, S> JSTraceable for IndexMap<K, V, S>
+where
+    K: Hash + Eq + JSTraceable,
+    V: JSTraceable,
+    S: BuildHasher,
+{
+    #[inline]
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        for (k, v) in &*self {
             k.trace(trc);
             v.trace(trc);
         }
@@ -736,12 +755,12 @@ where
     }
 }
 
-unsafe impl<Sink> JSTraceable for Utf8LossyDecoder<Sink>
+unsafe impl<Sink> JSTraceable for LossyDecoder<Sink>
 where
     Sink: JSTraceable + TendrilSink<UTF8>,
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        self.inner_sink.trace(tracer);
+        self.inner_sink().trace(tracer);
     }
 }
 

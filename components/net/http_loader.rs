@@ -505,21 +505,11 @@ pub fn http_fetch(
     // nothing to do, since actual_response is a function on response
 
     // Step 3
-    if request.service_workers_mode != ServiceWorkersMode::None {
-        // Substep 1
-        if request.service_workers_mode == ServiceWorkersMode::All {
-            // TODO (handle fetch unimplemented)
-        }
+    if request.service_workers_mode == ServiceWorkersMode::All {
+        // TODO: Substep 1
+        // Set response to the result of invoking handle fetch for request.
 
         // Substep 2
-        if response.is_none() && request.is_subresource_request() && match request.origin {
-            Origin::Origin(ref origin) => *origin == request.url().origin(),
-            _ => false,
-        } {
-            // TODO (handle foreign fetch unimplemented)
-        }
-
-        // Substep 3
         if let Some(ref res) = response {
             // Subsubstep 1
             // TODO: transmit body for request
@@ -567,7 +557,7 @@ pub fn http_fetch(
 
         // Substep 2
         if request.redirect_mode == RedirectMode::Follow {
-            request.service_workers_mode = ServiceWorkersMode::Foreign;
+            request.service_workers_mode = ServiceWorkersMode::None;
         }
 
         // Substep 3
@@ -793,7 +783,11 @@ fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<
     match *url_origin {
         ImmutableOrigin::Opaque(_) => Some(HyperOrigin::NULL),
         ImmutableOrigin::Tuple(ref scheme, ref host, ref port) => {
-            HyperOrigin::try_from_parts(&scheme, &host.to_string(), Some(port.clone())).ok()
+            let port = match (scheme.as_ref(), port) {
+                ("http", 80) | ("https", 443) => None,
+                _ => Some(*port),
+            };
+            HyperOrigin::try_from_parts(&scheme, &host.to_string(), port).ok()
         },
     }
 }
@@ -1194,6 +1188,13 @@ fn http_network_fetch(
         .devtools_chan
         .as_ref()
         .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
+
+    if log_enabled!(log::Level::Info) {
+        info!("request for {} ({:?})", url, request.method);
+        for header in request.headers.iter() {
+            info!(" - {:?}", header);
+        }
+    }
 
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here

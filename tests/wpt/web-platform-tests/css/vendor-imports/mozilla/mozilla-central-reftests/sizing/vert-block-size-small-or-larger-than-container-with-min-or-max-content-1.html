@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+    CSS Test: Different values of block sizing properties with max-content and min-content in vertical wm
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Boris Chiou" href="mailto:boris.chiou@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing/#sizing-values">
+  <link rel="match" href="vert-block-size-small-or-larger-than-container-with-min-or-max-content-1-ref.html">
+  <meta name="flags" content="ahem">
+  <link rel="stylesheet" type="text/css" href="support/ahem.css">
+  <link rel="stylesheet" type="text/css" href="support/min-content-max-content.css">
+  <style>
+    html,body {
+      margin: 0;
+    }
+
+    .container {
+      width: 200px;
+      height: 120px;
+      border: 2px solid blue;
+      writing-mode: vertical-lr;
+    }
+
+    .container > * {
+      border: 2px solid lime;
+      font-size: 15px;
+
+      font-family: Ahem;
+      font-size: 10px;
+      line-height: 15px;
+    }
+
+    .too-small {
+      width: 10px;
+    }
+
+    .too-big {
+      width: 120px;
+    }
+  </style>
+</head>
+<body>
+  <div style="display: inline-block;">
+    <div class="container">
+      <div class="width-min-content">width: min-content<br>on this box.</div>
+      <div class="width-max-content">width: max-content<br>on this box.</div>
+    </div>
+
+    <div class="container">
+      <div class="too-small min-width-min-content">
+        min-width: min-content<br>on this box.
+      </div>
+      <div class="too-small min-width-max-content">
+        min-width: max-content<br>on this box.
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="too-big max-width-min-content">
+        max-width: min-content<br>on this box.
+      </div>
+
+      <div class="too-big max-width-max-content">
+        max-width: max-content<br>on this box.
+      </div>
+    </div>
+  </div>
+
+  <div style="display: inline-block;">
+    <div class="container">
+      <div class="block-min-content">block: min-content<br>on this box.</div>
+      <div class="block-max-content">block: max-content<br>on this box.</div>
+    </div>
+
+    <div class="container">
+      <div class="too-small min-block-min-content">
+        min-block: min-content<br>on this box.
+      </div>
+      <div class="too-small min-block-max-content">
+        min-block: max-content<br>on this box.
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="too-big max-block-min-content">
+        max-block: min-content<br>on this box.
+      </div>
+
+      <div class="too-big max-block-max-content">
+        max-block: max-content<br>on this box.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

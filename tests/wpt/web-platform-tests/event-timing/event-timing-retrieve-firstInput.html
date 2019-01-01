@@ -21,7 +21,7 @@
       assert_equals(performance.getEntriesByType('firstInput').length, 1,
         "There should be a firstInput entry in the performance timeline");
       const entry = performance.getEntriesByType('firstInput')[0];
-      assert_equals(entry.name, 'click');
+      assert_equals(entry.name, 'mousedown');
       assert_equals(entry.entryType, 'firstInput');
       assert_greater_than(entry.duration, 50,
         "The first input was a long one.");

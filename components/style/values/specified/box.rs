@@ -389,6 +389,7 @@ impl Parse for AnimationName {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum ScrollSnapType {
     None,
     Mandatory,
@@ -409,6 +410,7 @@ pub enum ScrollSnapType {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -429,6 +431,7 @@ pub enum OverscrollBehavior {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum OverflowClipBox {
     PaddingBox,
     ContentBox,
@@ -1359,4 +1362,29 @@ impl BreakBetween {
 pub enum BreakWithin {
     Auto,
     Avoid,
+}
+
+/// The value for the `overflow-x` / `overflow-y` properties.
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum Overflow {
+    Visible,
+    Hidden,
+    Scroll,
+    Auto,
+    #[cfg(feature = "gecko")]
+    MozHiddenUnscrollable,
 }

@@ -152,7 +152,7 @@ pub struct InitialPipelineState {
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Information about the initial window size.
-    pub window_size: Option<TypedSize2D<f32, CSSPixel>>,
+    pub window_size: TypedSize2D<f32, CSSPixel>,
 
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
@@ -200,11 +200,10 @@ impl Pipeline {
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
-        let device_pixel_ratio = state.device_pixel_ratio;
-        let window_size = state.window_size.map(|size| WindowSizeData {
-            initial_viewport: size,
-            device_pixel_ratio: device_pixel_ratio,
-        });
+        let window_size = WindowSizeData {
+            initial_viewport: state.window_size,
+            device_pixel_ratio: state.device_pixel_ratio,
+        };
 
         let url = state.load_data.url.clone();
 
@@ -219,8 +218,17 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
+<<<<<<< HEAD
                     content_process_shutdown_chan: Some(layout_content_process_shutdown_chan),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+||||||| merged common ancestors
+                    content_process_shutdown_chan: Some(
+                        layout_content_process_shutdown_chan.clone(),
+                    ),
+                    layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+=======
+                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan),
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
                 };
 
                 if let Err(e) =
@@ -475,7 +483,7 @@ pub struct UnprivilegedPipelineContent {
     resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
-    window_size: Option<WindowSizeData>,
+    window_size: WindowSizeData,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
@@ -557,12 +565,6 @@ impl UnprivilegedPipelineContent {
             Some(self.layout_content_process_shutdown_chan),
             self.webrender_api_sender,
             self.webrender_document,
-            self.prefs
-                .get("layout.threads")
-                .expect("exists")
-                .value()
-                .as_u64()
-                .expect("count") as usize,
             paint_time_metrics,
         );
 
@@ -572,7 +574,39 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
+    #[cfg(any(
+        target_os = "android",
+        target_arch = "arm",
+        target_arch = "aarch64"
+    ))]
+    pub fn spawn_multiprocess(self) -> Result<(), Error> {
+        use ipc_channel::ipc::IpcOneShotServer;
+        // Note that this function can panic, due to process creation,
+        // avoiding this panic would require a mechanism for dealing
+        // with low-resource scenarios.
+        let (server, token) = IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
+            .expect("Failed to create IPC one-shot server.");
+
+        let path_to_self = env::current_exe().expect("Failed to get current executor.");
+        let mut child_process = process::Command::new(path_to_self);
+        self.setup_common(&mut child_process, token);
+        let _ = child_process
+            .spawn()
+            .expect("Failed to start unsandboxed child process!");
+
+        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
+        sender.send(self)?;
+
+        Ok(())
+    }
+
+    #[cfg(all(
+        not(target_os = "windows"),
+        not(target_os = "ios"),
+        not(target_os = "android"),
+        not(target_arch = "arm"),
+        not(target_arch = "aarch64")
+    ))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
         use crate::sandboxing::content_process_sandbox_profile;
         use gaol::sandbox::{self, Sandbox, SandboxMethods};

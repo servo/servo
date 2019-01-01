@@ -12,15 +12,16 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaE
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
@@ -33,6 +34,8 @@ use crate::dom::mediaerror::MediaError;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
+use crate::dom::texttrack::TextTrack;
+use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
@@ -42,7 +45,7 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use headers_core::HeaderMapExt;
-use headers_ext::ContentLength;
+use headers_ext::{ContentLength, ContentRange};
 use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
@@ -161,6 +164,10 @@ pub struct HTMLMediaElement {
     error: MutNullableDom<MediaError>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
     paused: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
+    defaultPlaybackRate: Cell<f64>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
+    playbackRate: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#attr-media-autoplay>
     autoplaying: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
@@ -184,6 +191,8 @@ pub struct HTMLMediaElement {
     playback_position: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#default-playback-start-position
     default_playback_start_position: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-volume
+    volume: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
     /// URL of the media resource, if any.
@@ -191,6 +200,10 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
     played: Rc<DomRefCell<TimeRangesContainer>>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
+    text_tracks_list: MutNullableDom<TextTrackList>,
+    /// Expected content length of the media asset being fetched or played.
+    content_length: Cell<Option<u64>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -226,6 +239,8 @@ impl HTMLMediaElement {
             fired_loadeddata_event: Cell::new(false),
             error: Default::default(),
             paused: Cell::new(true),
+            defaultPlaybackRate: Cell::new(1.0),
+            playbackRate: Cell::new(1.0),
             // FIXME(nox): Why is this initialised to true?
             autoplaying: Cell::new(true),
             delaying_the_load_event_flag: Default::default(),
@@ -240,9 +255,12 @@ impl HTMLMediaElement {
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
+            volume: Cell::new(1.0),
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
+            text_tracks_list: Default::default(),
+            content_length: Cell::new(None),
         }
     }
 
@@ -256,6 +274,15 @@ impl HTMLMediaElement {
                 HTMLElementTypeId::HTMLMediaElement(media_type_id),
             )) => media_type_id,
             _ => unreachable!(),
+        }
+    }
+
+    fn play_media(&self) {
+        if let Err(e) = self.player.set_rate(self.playbackRate.get()) {
+            warn!("Could not set the playback rate {:?}", e);
+        }
+        if let Err(e) = self.player.play() {
+            warn!("Could not play media {:?}", e);
         }
     }
 
@@ -346,9 +373,7 @@ impl HTMLMediaElement {
                     }
 
                     this.fulfill_in_flight_play_promises(|| {
-                        if let Err(e) = this.player.play() {
-                            eprintln!("Could not play media {:?}", e);
-                        }
+                        this.play_media();
                     });
                 }),
                     window.upcast(),
@@ -437,9 +462,7 @@ impl HTMLMediaElement {
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1.
                     this.upcast::<EventTarget>().fire_event(atom!("playing"));
-                    if let Err(e) = this.player.play() {
-                        eprintln!("Could not play media {:?}", e);
-                    }
+                    this.play_media();
 
                     // Step 2.2.
                     // Done after running this closure in
@@ -876,6 +899,43 @@ impl HTMLMediaElement {
         );
     }
 
+    fn queue_ratechange_event(&self) {
+        let window = window_from_node(self);
+        let task_source = window.task_manager().media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("ratechange"), &window);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#potentially-playing
+    fn is_potentially_playing(&self) -> bool {
+        !self.paused.get() &&
+        // FIXME: We need https://github.com/servo/servo/pull/22348
+        //              to know whether playback has ended or not
+        // !self.Ended() &&
+        self.error.get().is_none() &&
+        !self.is_blocked_media_element()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#blocked-media-element
+    fn is_blocked_media_element(&self) -> bool {
+        self.ready_state.get() <= ReadyState::HaveCurrentData ||
+            self.is_paused_for_user_interaction() ||
+            self.is_paused_for_in_band_content()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#paused-for-user-interaction
+    fn is_paused_for_user_interaction(&self) -> bool {
+        // FIXME: we will likely be able to fill this placeholder once (if) we
+        //        implement the MediaSession API.
+        false
+    }
+
+    // https://html.spec.whatwg.org/multipage/#paused-for-in-band-content
+    fn is_paused_for_in_band_content(&self) -> bool {
+        // FIXME: we will likely be able to fill this placeholder once (if) we
+        //        implement https://github.com/servo/servo/issues/22314
+        false
+    }
+
     // https://html.spec.whatwg.org/multipage/#media-element-load-algorithm
     fn media_element_load_algorithm(&self) {
         // Reset the flag that signals whether loadeddata was ever fired for
@@ -948,7 +1008,7 @@ impl HTMLMediaElement {
         }
 
         // Step 7.
-        // FIXME(nox): Set playbackRate to defaultPlaybackRate.
+        self.playbackRate.set(self.defaultPlaybackRate.get());
 
         // Step 8.
         self.error.set(None);
@@ -1267,7 +1327,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
     fn GetSrcObject(&self) -> Option<DomRoot<Blob>> {
@@ -1287,8 +1347,8 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_setter!(SetPreload, "preload");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
-    fn CurrentSrc(&self) -> DOMString {
-        DOMString::from(self.current_src.borrow().clone())
+    fn CurrentSrc(&self) -> USVString {
+        USVString(self.current_src.borrow().clone())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-load
@@ -1338,6 +1398,53 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         self.paused.get()
     }
 
+    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    fn GetDefaultPlaybackRate(&self) -> Fallible<Finite<f64>> {
+        Ok(Finite::wrap(self.defaultPlaybackRate.get()))
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    fn SetDefaultPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+        let min_allowed = -64.0;
+        let max_allowed = 64.0;
+        if *value < min_allowed || *value > max_allowed {
+            return Err(Error::NotSupported);
+        }
+
+        if *value != self.defaultPlaybackRate.get() {
+            self.defaultPlaybackRate.set(*value);
+            self.queue_ratechange_event();
+        }
+
+        Ok(())
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    fn GetPlaybackRate(&self) -> Fallible<Finite<f64>> {
+        Ok(Finite::wrap(self.playbackRate.get()))
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    fn SetPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+        let min_allowed = -64.0;
+        let max_allowed = 64.0;
+        if *value < min_allowed || *value > max_allowed {
+            return Err(Error::NotSupported);
+        }
+
+        if *value != self.playbackRate.get() {
+            self.playbackRate.set(*value);
+            self.queue_ratechange_event();
+            if self.is_potentially_playing() {
+                if let Err(e) = self.player.set_rate(*value) {
+                    warn!("Could not set the playback rate {:?}", e);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-media-duration
     fn Duration(&self) -> f64 {
         self.duration.get()
@@ -1369,12 +1476,69 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
     fn FastSeek(&self, time: Finite<f64>) {
-        self.seek(*time, /* approximat_for_speed */ true);
+        self.seek(*time, /* approximate_for_speed */ true);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-played
     fn Played(&self) -> DomRoot<TimeRanges> {
         TimeRanges::new(self.global().as_window(), self.played.clone())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
+    fn TextTracks(&self) -> DomRoot<TextTrackList> {
+        let window = window_from_node(self);
+        self.text_tracks_list
+            .or_init(|| TextTrackList::new(&window, &[]))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack
+    fn AddTextTrack(
+        &self,
+        kind: TextTrackKind,
+        label: DOMString,
+        language: DOMString,
+    ) -> DomRoot<TextTrack> {
+        let window = window_from_node(self);
+        // Step 1 & 2
+        // FIXME(#22314, dlrobertson) set the ready state to Loaded
+        let track = TextTrack::new(
+            &window,
+            "".into(),
+            kind,
+            label,
+            language,
+            TextTrackMode::Hidden,
+        );
+        // Step 3 & 4
+        self.TextTracks().add(&track);
+        // Step 5
+        DomRoot::from_ref(&track)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-volume
+    fn GetVolume(&self) -> Fallible<Finite<f64>> {
+        Ok(Finite::wrap(self.volume.get()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-volume
+    fn SetVolume(&self, value: Finite<f64>) -> ErrorResult {
+        let minimum_volume = 0.0;
+        let maximum_volume = 1.0;
+        if *value < minimum_volume || *value > maximum_volume {
+            return Err(Error::IndexSize);
+        }
+
+        if *value != self.volume.get() {
+            self.volume.set(*value);
+
+            let window = window_from_node(self);
+            window
+                .task_manager()
+                .media_element_task_source()
+                .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
+        }
+
+        Ok(())
     }
 }
 
@@ -1488,6 +1652,8 @@ struct HTMLMediaElementContext {
     resource_timing: ResourceFetchTiming,
     /// url for the resource
     url: ServoUrl,
+    /// Amount of data fetched.
+    bytes_fetched: usize,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1497,6 +1663,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        let elem = self.elem.root();
+
         self.metadata = metadata.ok().map(|m| match m {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -1504,9 +1672,25 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
         if let Some(metadata) = self.metadata.as_ref() {
             if let Some(headers) = metadata.headers.as_ref() {
-                if let Some(content_length) = headers.typed_get::<ContentLength>() {
-                    if let Err(e) = self.elem.root().player.set_input_size(content_length.0) {
-                        eprintln!("Could not set player input size {:?}", e);
+                // For range requests we get the size of the media asset from the Content-Range
+                // header. Otherwise, we get it from the Content-Length header.
+                let content_length =
+                    if let Some(content_range) = headers.typed_get::<ContentRange>() {
+                        content_range.bytes_len()
+                    } else if let Some(content_length) = headers.typed_get::<ContentLength>() {
+                        Some(content_length.0)
+                    } else {
+                        None
+                    };
+
+                // We only set the expected input size if it changes.
+                if content_length != elem.content_length.get() {
+                    if let Some(content_length) = content_length {
+                        if let Err(e) = self.elem.root().player.set_input_size(content_length) {
+                            warn!("Could not set player input size {:?}", e);
+                        } else {
+                            elem.content_length.set(Some(content_length));
+                        }
                     }
                 }
             }
@@ -1523,7 +1707,6 @@ impl FetchResponseListener for HTMLMediaElementContext {
             // Ensure that the element doesn't receive any further notifications
             // of the aborted fetch.
             self.ignore_response = true;
-            let elem = self.elem.root();
             elem.fetch_canceller.borrow_mut().cancel();
             elem.queue_dedicated_media_source_failure_steps();
         }
@@ -1535,8 +1718,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
             return;
         }
 
-        let elem = self.elem.root();
+        self.bytes_fetched += payload.len();
 
+        let elem = self.elem.root();
         // Push input data into the player.
         if let Err(e) = elem.player.push_data(payload) {
             eprintln!("Could not push input data to player {:?}", e);
@@ -1557,18 +1741,17 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        let elem = self.elem.root();
         if self.ignore_response {
-            // An error was received previously, skip processing the payload.
+            // An error was received previously, skip processing the payload
+            // and notify the media backend that we are done pushing data.
+            if let Err(e) = elem.player.end_of_stream() {
+                warn!("Could not signal EOS to player {:?}", e);
+            }
             return;
         }
-        let elem = self.elem.root();
 
-        // Signal the eos to player.
-        if let Err(e) = elem.player.end_of_stream() {
-            eprintln!("Could not signal EOS to player {:?}", e);
-        }
-
-        if status.is_ok() {
+        if status.is_ok() && self.bytes_fetched != 0 {
             if elem.ready_state.get() == ReadyState::HaveNothing {
                 // Make sure that we don't skip the HaveMetadata and HaveCurrentData
                 // states for short streams.
@@ -1655,7 +1838,8 @@ impl HTMLMediaElementContext {
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             ignore_response: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            url: url,
+            url,
+            bytes_fetched: 0,
         }
     }
 }

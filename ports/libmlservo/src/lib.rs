@@ -8,6 +8,9 @@ use egl::egl::EGLSurface;
 use egl::egl::MakeCurrent;
 use egl::egl::SwapBuffers;
 use egl::eglext::eglGetProcAddress;
+use keyboard_types::Key;
+use keyboard_types::KeyState;
+use keyboard_types::KeyboardEvent;
 use log::info;
 use log::warn;
 use servo::compositing::windowing::AnimationState;
@@ -58,11 +61,39 @@ pub enum MLLogLevel {
     Verbose = 5,
 }
 
+#[repr(C)]
+#[allow(non_camel_case_types)]
+pub enum MLKeyType {
+    kNone,
+    kCharacter,
+    kBackspace,
+    kShift,
+    kSpeechToText,
+    kPageEmoji,
+    kPageLowerLetters,
+    kPageNumericSymbols,
+    kCancel,
+    kSubmit,
+    kPrevious,
+    kNext,
+    kClear,
+    kClose,
+    kEnter,
+    kCustom1,
+    kCustom2,
+    kCustom3,
+    kCustom4,
+    kCustom5,
+}
+
 #[repr(transparent)]
 pub struct MLLogger(extern "C" fn(MLLogLevel, *const c_char));
 
 #[repr(transparent)]
 pub struct MLHistoryUpdate(extern "C" fn(MLApp, bool, *const c_char, bool));
+
+#[repr(transparent)]
+pub struct MLKeyboard(extern "C" fn(MLApp, bool));
 
 #[repr(transparent)]
 #[derive(Clone, Copy)]
@@ -78,6 +109,7 @@ pub unsafe extern "C" fn init_servo(
     app: MLApp,
     logger: MLLogger,
     history_update: MLHistoryUpdate,
+    keyboard: MLKeyboard,
     url: *const c_char,
     width: u32,
     height: u32,
@@ -116,6 +148,7 @@ pub unsafe extern "C" fn init_servo(
         app: app,
         browser_id: browser_id,
         history_update: history_update,
+        keyboard: keyboard,
         scroll_state: ScrollState::TriggerUp,
         scroll_scale: TypedScale::new(SCROLL_SCALE / hidpi),
         servo: servo,
@@ -128,12 +161,15 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
     // Servo heartbeat goes here!
     if let Some(servo) = servo.as_mut() {
         servo.servo.handle_events(vec![]);
-        for ((_browser_id, event)) in servo.servo.get_events() {
+        for ((browser_id, event)) in servo.servo.get_events() {
             match event {
                 // Respond to any messages with a response channel
                 // to avoid deadlocking the constellation
-                EmbedderMsg::AllowNavigation(_url, sender) => {
-                    let _ = sender.send(true);
+                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
+                    if let Some(_browser_id) = browser_id {
+                        let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, true);
+                        servo.servo.handle_events(vec![window_event]);
+                    }
                 },
                 EmbedderMsg::GetSelectedBluetoothDevice(_, sender) => {
                     let _ = sender.send(None);
@@ -162,6 +198,8 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
                         }
                     }
                 },
+                EmbedderMsg::ShowIME(..) => (servo.keyboard.0)(servo.app, true),
+                EmbedderMsg::HideIME => (servo.keyboard.0)(servo.app, false),
                 // Ignore most messages for now
                 EmbedderMsg::ChangePageTitle(..) |
                 EmbedderMsg::BrowserCreated(..) |
@@ -177,12 +215,43 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::ShowIME(..) |
-                EmbedderMsg::HideIME |
                 EmbedderMsg::Shutdown |
                 EmbedderMsg::Panic(..) => {},
             }
         }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn keyboard_servo(
+    servo: *mut ServoInstance,
+    key_code: char,
+    key_type: MLKeyType,
+) {
+    if let Some(servo) = servo.as_mut() {
+        let key = match key_type {
+            MLKeyType::kCharacter => Key::Character([key_code].iter().collect()),
+            MLKeyType::kBackspace => Key::Backspace,
+            MLKeyType::kEnter => Key::Enter,
+            _ => return,
+        };
+
+        let key_down = KeyboardEvent {
+            state: KeyState::Down,
+            key: key,
+            ..KeyboardEvent::default()
+        };
+
+        let key_up = KeyboardEvent {
+            state: KeyState::Up,
+            ..key_down.clone()
+        };
+
+        // TODO: can the ML1 generate separate press and release events?
+        servo.servo.handle_events(vec![
+            WindowEvent::Keyboard(key_down),
+            WindowEvent::Keyboard(key_up),
+        ]);
     }
 }
 
@@ -353,6 +422,7 @@ pub struct ServoInstance {
     app: MLApp,
     browser_id: BrowserId,
     history_update: MLHistoryUpdate,
+    keyboard: MLKeyboard,
     servo: Servo<WindowInstance>,
     scroll_state: ScrollState,
     scroll_scale: TypedScale<f32, DevicePixel, LayoutPixel>,

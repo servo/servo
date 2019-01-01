@@ -7,6 +7,7 @@
 use crate::dom::bindings::conversions::jsid_to_string;
 use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::str::DOMString;
+use indexmap::IndexMap;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::JSContext;
 use js::jsapi::JS_NewPlainObject;
@@ -22,28 +23,27 @@ use js::rust::wrappers::JS_GetPropertyById;
 use js::rust::HandleValue;
 use js::rust::IdVector;
 use js::rust::MutableHandleValue;
-use std::collections::HashMap;
 use std::ops::Deref;
 
 /// The `MozMap` (open-ended dictionary) type.
 #[derive(Clone, JSTraceable)]
 pub struct MozMap<T> {
-    map: HashMap<DOMString, T>,
+    map: IndexMap<DOMString, T>,
 }
 
 impl<T> MozMap<T> {
     /// Create an empty `MozMap`.
     pub fn new() -> Self {
         MozMap {
-            map: HashMap::new(),
+            map: IndexMap::new(),
         }
     }
 }
 
 impl<T> Deref for MozMap<T> {
-    type Target = HashMap<DOMString, T>;
+    type Target = IndexMap<DOMString, T>;
 
-    fn deref(&self) -> &HashMap<DOMString, T> {
+    fn deref(&self) -> &IndexMap<DOMString, T> {
         &self.map
     }
 }
@@ -82,7 +82,7 @@ where
             ));
         }
 
-        let mut map = HashMap::new();
+        let mut map = IndexMap::new();
         for id in &*ids {
             rooted!(in(cx) let id = *id);
 

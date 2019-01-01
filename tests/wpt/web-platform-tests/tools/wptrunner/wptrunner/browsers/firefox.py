@@ -7,6 +7,7 @@ import sys
 
 import mozinfo
 import mozleak
+import mozversion
 from mozprocess import ProcessHandler
 from mozprofile import FirefoxProfile, Preferences
 from mozrunner import FirefoxRunner
@@ -38,7 +39,8 @@ __wptrunner__ = {"product": "firefox",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
                  "run_info_extras": "run_info_extras",
-                 "update_properties": "update_properties"}
+                 "update_properties": "update_properties",
+                 "timeout_multiplier": "get_timeout_multiplier"}
 
 
 def get_timeout_multiplier(test_type, run_info_data, **kwargs):
@@ -98,6 +100,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                                                                    **kwargs)
     executor_kwargs["e10s"] = run_info_data["e10s"]
     capabilities = {}
+    if test_type == "testharness":
+        capabilities["pageLoadStrategy"] = "eager"
     if test_type == "reftest":
         executor_kwargs["reftest_internal"] = kwargs["reftest_internal"]
         executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
@@ -148,11 +152,21 @@ def run_info_extras(**kwargs):
                 return value.lower() in ('true', '1')
         return False
 
-    return {"e10s": kwargs["gecko_e10s"],
-            "wasm": kwargs.get("wasm", True),
-            "verify": kwargs["verify"],
-            "headless": "MOZ_HEADLESS" in os.environ,
-            "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept"),}
+    rv = {"e10s": kwargs["gecko_e10s"],
+          "wasm": kwargs.get("wasm", True),
+          "verify": kwargs["verify"],
+          "headless": "MOZ_HEADLESS" in os.environ,
+          "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept")}
+    rv.update(run_info_browser_version(kwargs["binary"]))
+    return rv
+
+
+def run_info_browser_version(binary):
+    version_info = mozversion.get_version(binary)
+    if version_info:
+        return {"browser_build_id": version_info.get("application_buildid", None),
+                "browser_changeset": version_info.get("application_changeset", None)}
+    return {}
 
 
 def update_properties():
@@ -394,23 +408,15 @@ class FirefoxBrowser(Browser):
         assert self.marionette_port is not None
         return ExecutorBrowser, {"marionette_port": self.marionette_port}
 
-    def check_for_crashes(self):
+    def check_crash(self, process, test):
         dump_dir = os.path.join(self.profile.profile, "minidumps")
 
-        return bool(mozcrash.check_for_crashes(dump_dir,
-                                               symbols_path=self.symbols_path,
-                                               stackwalk_binary=self.stackwalk_binary,
-                                               quiet=True))
-
-    def log_crash(self, process, test):
-        dump_dir = os.path.join(self.profile.profile, "minidumps")
-
-        mozcrash.log_crashes(self.logger,
-                             dump_dir,
-                             symbols_path=self.symbols_path,
-                             stackwalk_binary=self.stackwalk_binary,
-                             process=process,
-                             test=test)
+        return bool(mozcrash.log_crashes(self.logger,
+                                         dump_dir,
+                                         symbols_path=self.symbols_path,
+                                         stackwalk_binary=self.stackwalk_binary,
+                                         process=process,
+                                         test=test))
 
     def setup_ssl(self):
         """Create a certificate database to use in the test profile. This is configured

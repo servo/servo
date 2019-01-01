@@ -46,13 +46,14 @@ class TestEnvironmentError(Exception):
 
 
 class TestEnvironment(object):
-    def __init__(self, test_paths, pause_after_test, debug_info, options, ssl_config, env_extras):
+    def __init__(self, test_paths, testharness_timeout_multipler, pause_after_test, debug_info, options, ssl_config, env_extras):
         """Context manager that owns the test environment i.e. the http and
         websockets servers"""
         self.test_paths = test_paths
         self.server = None
         self.config_ctx = None
         self.config = None
+        self.testharness_timeout_multipler = testharness_timeout_multipler
         self.pause_after_test = pause_after_test
         self.test_server_port = options.pop("test_server_port", True)
         self.debug_info = debug_info
@@ -169,7 +170,10 @@ class TestEnvironment(object):
         for path, format_args, content_type, route in [
                 ("testharness_runner.html", {}, "text/html", "/testharness_runner.html"),
                 (self.options.get("testharnessreport", "testharnessreport.js"),
-                 {"output": self.pause_after_test}, "text/javascript;charset=utf8",
+                 {"output": self.pause_after_test,
+                  "timeout_multiplier": self.testharness_timeout_multipler,
+                  "explicit_timeout": "true" if self.debug_info is not None else "false"},
+                 "text/javascript;charset=utf8",
                  "/resources/testharnessreport.js")]:
             path = os.path.normpath(os.path.join(here, path))
             # Note that .headers. files don't apply to static routes, so we need to

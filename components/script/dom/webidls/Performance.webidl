@@ -34,6 +34,7 @@ partial interface Performance {
   [Throws]
   void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
   void clearMeasures(optional DOMString measureName);
+<<<<<<< HEAD
 
 };
 //https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
@@ -41,6 +42,17 @@ partial interface Performance {
   void clearResourceTimings ();
   void setResourceTimingBufferSize (unsigned long maxSize);
               attribute EventHandler onresourcetimingbufferfull;
+||||||| merged common ancestors
+=======
+
+};
+
+// https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
+partial interface Performance {
+  void clearResourceTimings ();
+  void setResourceTimingBufferSize (unsigned long maxSize);
+              attribute EventHandler onresourcetimingbufferfull;
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
 };
 
 // FIXME(avada): this should be deprecated, but is currently included for web compat

@@ -182,7 +182,7 @@ struct InProgressLoad {
     /// The opener, if this is an auxiliary.
     opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
-    window_size: Option<WindowSizeData>,
+    window_size: WindowSizeData,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
     /// The activity level of the document (inactive, active or fully active).
@@ -210,7 +210,7 @@ impl InProgressLoad {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         layout_chan: Sender<message::Msg>,
-        window_size: Option<WindowSizeData>,
+        window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
     ) -> InProgressLoad {
@@ -1314,6 +1314,10 @@ impl ScriptThread {
         // into this loop too, but for now it's only images.
         debug!("Issuing batched reflows.");
         for (_, document) in self.documents.borrow().iter() {
+            // Step 13
+            if !document.is_fully_active() {
+                continue;
+            }
             let window = document.window();
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
@@ -1396,6 +1400,7 @@ impl ScriptThread {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => {
                 match *inner_msg {
+                    StopDelayingLoadEventsMode(id) => Some(id),
                     NavigationResponse(id, _) => Some(id),
                     AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
                     Resize(id, ..) => Some(id),
@@ -1533,6 +1538,9 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
+            ConstellationControlMsg::StopDelayingLoadEventsMode(pipeline_id) => {
+                self.handle_stop_delaying_load_events_mode(pipeline_id)
+            },
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
                 match fetch_data {
                     FetchResponseMsg::ProcessResponse(metadata) => {
@@ -1852,7 +1860,7 @@ impl ScriptThread {
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.window_size = Some(size);
+            load.window_size = size;
             return;
         }
         warn!("resize sent to nonexistent pipeline");
@@ -1910,7 +1918,6 @@ impl ScriptThread {
             window_size,
             pipeline_port,
             content_process_shutdown_chan,
-            layout_threads,
         } = new_layout_info;
 
         let layout_pair = unbounded();
@@ -1927,7 +1934,6 @@ impl ScriptThread {
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
-            layout_threads: layout_threads,
             paint_time_metrics: PaintTimeMetrics::new(
                 new_pipeline_id,
                 self.time_profiler_chan.clone(),
@@ -2080,6 +2086,19 @@ impl ScriptThread {
         }
     }
 
+    fn handle_stop_delaying_load_events_mode(&self, pipeline_id: PipelineId) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
+            match window.undiscarded_window_proxy() {
+                Some(window_proxy) => window_proxy.stop_delaying_load_events_mode(),
+                None => warn!(
+                    "Attempted to take {} of 'delaying-load-events-mode' after having been discarded.",
+                    pipeline_id
+                ),
+            };
+        }
+    }
+
     fn handle_unload_document(&self, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
@@ -2166,6 +2185,20 @@ impl ScriptThread {
                         status: Some((204...205, _)),
                         ..
                     }) => {
+                        // If we have an existing window that is being navigated:
+                        if let Some(window) = self.documents.borrow().find_window(id.clone()) {
+                            let window_proxy = window.window_proxy();
+                            // https://html.spec.whatwg.org/multipage/
+                            // #navigating-across-documents:delaying-load-events-mode-2
+                            if window_proxy.parent().is_some() {
+                                // The user agent must take this nested browsing context
+                                // out of the delaying load events mode
+                                // when this navigation algorithm later matures,
+                                // or when it terminates (whether due to having run all the steps,
+                                // or being canceled, or being aborted), whichever happens first.
+                                window_proxy.stop_delaying_load_events_mode();
+                            }
+                        }
                         self.script_sender
                             .send((id.clone(), ScriptMsg::AbortLoadUrl))
                             .unwrap();
@@ -2378,6 +2411,8 @@ impl ScriptThread {
         for pipeline_id in pipeline_ids {
             self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
         }
+
+        self.background_hang_monitor.unregister();
 
         debug!("Exited script thread.");
     }
@@ -2708,6 +2743,13 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        if window_proxy.parent().is_some() {
+            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+            // The user agent must take this nested browsing context
+            // out of the delaying load events mode
+            // when this navigation algorithm later matures.
+            window_proxy.stop_delaying_load_events_mode();
+        }
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {

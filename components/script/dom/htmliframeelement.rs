@@ -12,7 +12,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -26,6 +26,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use euclid::TypedSize2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
@@ -34,9 +35,9 @@ use script_layout_interface::message::ReflowGoal;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason,
+    WindowSizeData,
 };
 use script_traits::{NewLayoutInfo, ScriptMsg};
-use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -192,8 +193,16 @@ impl HTMLIFrameElement {
                     load_data: load_data.unwrap(),
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
-                    window_size: None,
-                    layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+                    window_size: WindowSizeData {
+                        initial_viewport: {
+                            let rect = self.upcast::<Node>().bounding_content_box_or_zero();
+                            TypedSize2D::new(
+                                rect.size.width.to_f32_px(),
+                                rect.size.height.to_f32_px(),
+                            )
+                        },
+                        device_pixel_ratio: window.device_pixel_ratio(),
+                    },
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -265,8 +274,13 @@ impl HTMLIFrameElement {
         );
 
         let pipeline_id = self.pipeline_id();
-        // If the initial `about:blank` page is the current page, load with replacement enabled.
-        let replace = pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        // If the initial `about:blank` page is the current page, load with replacement enabled,
+        // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
+        let is_about_blank =
+            pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        // Replacement enabled also takes into account whether the document is "completely loaded",
+        // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
+        let replace = is_about_blank || !document.is_completely_loaded();
         self.navigate_or_reload_child_browsing_context(
             Some(load_data),
             NavigationType::Regular,
@@ -470,7 +484,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self) -> DomRoot<DOMTokenList> {
@@ -612,18 +626,22 @@ impl VirtualMethods for HTMLIFrameElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        // https://html.spec.whatwg.org/multipage/#the-iframe-element
-        // "When an iframe element is inserted into a document that has
-        // a browsing context, the user agent must create a new
-        // browsing context, set the element's nested browsing context
-        // to the newly-created browsing context, and then process the
-        // iframe attributes for the "first time"."
-        if self.upcast::<Node>().is_in_doc_with_browsing_context() {
-            debug!("iframe bound to browsing context.");
-            debug_assert!(tree_in_doc, "is_in_doc_with_bc, but not tree_in_doc");
-            self.create_nested_browsing_context();
-            self.process_the_iframe_attributes(ProcessingMode::FirstTime);
-        }
+        let iframe = Trusted::new(self);
+        document_from_node(self).add_delayed_task(task!(IFrameDelayedInitialize: move || {
+                let this = iframe.root();
+                // https://html.spec.whatwg.org/multipage/#the-iframe-element
+                // "When an iframe element is inserted into a document that has
+                // a browsing context, the user agent must create a new
+                // browsing context, set the element's nested browsing context
+                // to the newly-created browsing context, and then process the
+                // iframe attributes for the "first time"."
+                if this.upcast::<Node>().is_in_doc_with_browsing_context() {
+                    debug!("iframe bound to browsing context.");
+                    debug_assert!(tree_in_doc, "is_in_doc_with_bc, but not tree_in_doc");
+                    this.create_nested_browsing_context();
+                    this.process_the_iframe_attributes(ProcessingMode::FirstTime);
+                }
+            }));
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {

@@ -61,7 +61,7 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions, SetterThrows]
            attribute unsigned long size;
   [CEReactions]
-           attribute DOMString src;
+           attribute USVString src;
   [CEReactions]
            attribute DOMString step;
   [CEReactions]

@@ -1175,6 +1175,8 @@
       stoppedTransceiver.receiver.track.onended = resolve;
     });
     stoppedTransceiver.stop();
+    assert_equals(pc1.getReceivers().length, 0, 'getReceivers does not expose a receiver of a stopped transceiver');
+    assert_equals(pc1.getSenders().length, 0, 'getSenders does not expose a sender of a stopped transceiver');
 
     await onended;
 

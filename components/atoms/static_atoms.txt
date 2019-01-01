@@ -1,6 +1,7 @@
 DOMContentLoaded
 abort
 activate
+addtrack
 beforeunload
 button
 canplay
@@ -66,9 +67,11 @@ print
 progress
 radio
 range
+ratechange
 readystatechange
 reftest-wait
 rejectionhandled
+removetrack
 reset
 resize
 resourcetimingbufferfull
@@ -100,6 +103,7 @@ transitionend
 unhandledrejection
 unload
 url
+volumechange
 waiting
 webglcontextcreationerror
 week

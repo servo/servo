@@ -345,6 +345,11 @@ def sub(request, response, escape_type="html"):
        includes the leading '?', but other delimiters are omitted.
     headers
       A dictionary of HTTP headers in the request.
+    header_or_default(header, default)
+      The value of an HTTP header, or a default value if it is absent.
+      For example:
+
+        {{header_or_default(X-Test, test-header-absent)}}
     GET
       A dictionary of query parameters supplied with the request.
     uuid()
@@ -416,6 +421,7 @@ class SubFunctions(object):
 
         return base64.b64encode(hash_obj.digest()).strip()
 
+<<<<<<< HEAD
     @staticmethod
     def fs_path(request, path):
         if not path.startswith("/"):
@@ -431,6 +437,28 @@ class SubFunctions(object):
             raise ValueError("Path outside wpt root")
         return absolute_path
 
+||||||| merged common ancestors
+=======
+    @staticmethod
+    def fs_path(request, path):
+        if not path.startswith("/"):
+            subdir = request.request_path[len(request.url_base):]
+            if "/" in subdir:
+                subdir = subdir.rsplit("/", 1)[0]
+            root_rel_path = subdir + "/" + path
+        else:
+            root_rel_path = path[1:]
+        root_rel_path = root_rel_path.replace("/", os.path.sep)
+        absolute_path = os.path.abspath(os.path.join(request.doc_root, root_rel_path))
+        if ".." in os.path.relpath(absolute_path, request.doc_root):
+            raise ValueError("Path outside wpt root")
+        return absolute_path
+
+    @staticmethod
+    def header_or_default(request, name, default):
+        return request.headers.get(name, default)
+
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
 def template(request, content, escape_type="html"):
     #TODO: There basically isn't any error handling here
     tokenizer = ReplacementTokenizer()

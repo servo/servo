@@ -11,9 +11,10 @@
   </head>
   <body>
     <style>#c-e::part(partp) { color: red; }</style>
+    <style>#c-e::part(new-partp) { color: green; }</style>
     <script>installCustomElement("custom-element", "custom-element-template");</script>
     <template id="custom-element-template">
-      <style>span { color: green; }</style>
+      <style>span { color: blue; }</style>
       <span id="part" part="partp">This text</span>
     </template>
     The following text should be green:

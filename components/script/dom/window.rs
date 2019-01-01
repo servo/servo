@@ -216,7 +216,7 @@ pub struct Window {
     layout_rpc: Box<LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
-    window_size: Cell<Option<WindowSizeData>>,
+    window_size: Cell<WindowSizeData>,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -289,6 +289,10 @@ pub struct Window {
     /// Webrender API Sender
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_api_sender: RenderApiSender,
+
+    /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
+    /// It is used to avoid sending idle message more than once, which is unneccessary.
+    has_sent_idle_message: Cell<bool>,
 }
 
 impl Window {
@@ -958,7 +962,9 @@ impl WindowMethods for Window {
     fn InnerHeight(&self) -> i32 {
         self.window_size
             .get()
-            .and_then(|e| e.initial_viewport.height.to_i32())
+            .initial_viewport
+            .height
+            .to_i32()
             .unwrap_or(0)
     }
 
@@ -967,7 +973,9 @@ impl WindowMethods for Window {
     fn InnerWidth(&self) -> i32 {
         self.window_size
             .get()
-            .and_then(|e| e.initial_viewport.width.to_i32())
+            .initial_viewport
+            .width
+            .to_i32()
             .unwrap_or(0)
     }
 
@@ -1245,10 +1253,7 @@ impl Window {
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
         let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
 
-        // Step 4
-        if self.window_size.get().is_none() {
-            return;
-        }
+        // TODO Step 4 - determine if a window has a viewport
 
         // Step 5
         //TODO remove scrollbar width
@@ -1322,9 +1327,7 @@ impl Window {
     }
 
     pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
-        self.window_size
-            .get()
-            .map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio)
+        self.window_size.get().device_pixel_ratio
     }
 
     fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
@@ -1362,18 +1365,13 @@ impl Window {
     /// Returns true if layout actually happened, false otherwise.
     #[allow(unsafe_code)]
     pub fn force_reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
+        self.Document().ensure_safe_to_run_script_or_layout();
         // Check if we need to unsuppress reflow. Note that this needs to be
         // *before* any early bailouts, or reflow might never be unsuppresed!
         match reason {
             ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
             _ => (),
         }
-
-        // If there is no window size, we have nothing to do.
-        let window_size = match self.window_size.get() {
-            Some(window_size) => window_size,
-            None => return false,
-        };
 
         let for_display = reflow_goal == ReflowGoal::Full;
         if for_display && self.suppress_reflow.get() {
@@ -1417,13 +1415,15 @@ impl Window {
             },
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
             stylesheets_changed,
-            window_size,
+            window_size: self.window_size.get(),
             reflow_goal,
             script_join_chan: join_chan,
             dom_count: self.Document().dom_count(),
         };
 
-        self.layout_chan.send(Msg::Reflow(reflow)).unwrap();
+        self.layout_chan
+            .send(Msg::Reflow(reflow))
+            .expect("Layout thread disconnected.");
 
         debug!("script: layout forked");
 
@@ -1504,19 +1504,18 @@ impl Window {
     /// may happen in the only case a query reflow may bail out, that is, if the
     /// viewport size is not present). See #11223 for an example of that.
     pub fn reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
+        self.Document().ensure_safe_to_run_script_or_layout();
         let for_display = reflow_goal == ReflowGoal::Full;
 
         let mut issued_reflow = false;
         if !for_display || self.Document().needs_reflow() {
             issued_reflow = self.force_reflow(reflow_goal, reason);
 
-            // If window_size is `None`, we don't reflow, so the document stays
-            // dirty. Otherwise, we shouldn't need a reflow immediately after a
+            // We shouldn't need a reflow immediately after a
             // reflow, except if we're waiting for a deferred paint.
             assert!(
                 !self.Document().needs_reflow() ||
                     (!for_display && self.Document().needs_paint()) ||
-                    self.window_size.get().is_none() ||
                     self.suppress_reflow.get()
             );
         } else {
@@ -1548,12 +1547,15 @@ impl Window {
                 elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
             });
 
-            let ready_state = document.ReadyState();
-
+            let has_sent_idle_message = self.has_sent_idle_message.get();
+            let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
             let pending_images = self.pending_layout_images.borrow().is_empty();
-            if ready_state == DocumentReadyState::Complete && !reftest_wait && pending_images {
+
+            if !has_sent_idle_message && is_ready_state_complete && !reftest_wait && pending_images
+            {
                 let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
+                self.has_sent_idle_message.set(true);
             }
         }
 
@@ -1783,8 +1785,14 @@ impl Window {
             }
         }
 
-        // Step 7
+        // Step 8
         if doc.prompt_to_unload(false) {
+            if self.window_proxy().parent().is_some() {
+                // Step 10
+                // If browsingContext is a nested browsing context,
+                // then put it in the delaying load events mode.
+                self.window_proxy().start_delaying_load_events_mode();
+            }
             self.main_thread_script_chan()
                 .send(MainThreadScriptMsg::Navigate(
                     pipeline_id,
@@ -1801,10 +1809,10 @@ impl Window {
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
-        self.window_size.set(Some(size));
+        self.window_size.set(size);
     }
 
-    pub fn window_size(&self) -> Option<WindowSizeData> {
+    pub fn window_size(&self) -> WindowSizeData {
         self.window_size.get()
     }
 
@@ -2021,7 +2029,7 @@ impl Window {
         layout_chan: Sender<Msg>,
         pipelineid: PipelineId,
         parent_info: Option<PipelineId>,
-        window_size: Option<WindowSizeData>,
+        window_size: WindowSizeData,
         origin: MutableOrigin,
         navigation_start: u64,
         navigation_start_precise: u64,
@@ -2101,6 +2109,7 @@ impl Window {
             webrender_document,
             exists_mut_observer: Cell::new(false),
             webrender_api_sender,
+            has_sent_idle_message: Cell::new(false),
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }

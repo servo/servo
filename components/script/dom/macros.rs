@@ -96,11 +96,24 @@ macro_rules! make_uint_getter(
 #[macro_export]
 macro_rules! make_url_getter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self) -> DOMString {
+        fn $attr(&self) -> USVString {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.get_url_attribute(&local_name!($htmlname))
+        }
+    );
+);
+
+#[macro_export]
+macro_rules! make_url_setter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, value: USVString) {
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.set_string_attribute(&local_name!($htmlname),
+                                         DOMString::from(value.0));
         }
     );
 );
@@ -167,18 +180,6 @@ macro_rules! make_bool_setter(
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.set_bool_attribute(&local_name!($htmlname), value)
-        }
-    );
-);
-
-#[macro_export]
-macro_rules! make_url_setter(
-    ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: DOMString) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
-            let element = self.upcast::<Element>();
-            element.set_url_attribute(&local_name!($htmlname), value);
         }
     );
 );
@@ -495,6 +496,7 @@ macro_rules! window_event_handlers(
         event_handler!(languagechange, GetOnlanguagechange,
                        SetOnlanguagechange);
         event_handler!(message, GetOnmessage, SetOnmessage);
+        event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
         event_handler!(offline, GetOnoffline, SetOnoffline);
         event_handler!(online, GetOnonline, SetOnonline);
         event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
@@ -527,6 +529,7 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(languagechange, GetOnlanguagechange,
                                     SetOnlanguagechange);
         window_owned_event_handler!(message, GetOnmessage, SetOnmessage);
+        window_owned_event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
         window_owned_event_handler!(offline, GetOnoffline, SetOnoffline);
         window_owned_event_handler!(online, GetOnonline, SetOnonline);
         window_owned_event_handler!(pagehide, GetOnpagehide, SetOnpagehide);

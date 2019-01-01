@@ -156,6 +156,7 @@ use servo_rand::{random, Rng, SeedableRng, ServoRng};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::marker::PhantomData;
 use std::mem::replace;
@@ -167,6 +168,8 @@ use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
+
+type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, bool)>;
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
 /// store browser specific data for bookkeeping.
@@ -366,6 +369,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel through which messages can be sent to the canvas paint thread.
     canvas_chan: IpcSender<CanvasMsg>,
+
+    /// Navigation requests from script awaiting approval from the embedder.
+    pending_approval_navigations: PendingApprovalNavigations,
 }
 
 /// State needed to construct a constellation.
@@ -698,6 +704,7 @@ where
                     webgl_threads: state.webgl_threads,
                     webvr_chan: state.webvr_chan,
                     canvas_chan: CanvasPaintThread::start(),
+                    pending_approval_navigations: HashMap::new(),
                 };
 
                 constellation.run();
@@ -734,7 +741,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_pipeline_id: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-        initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
+        initial_window_size: TypedSize2D<f32, CSSPixel>,
         // TODO: we have to provide ownership of the LoadData
         // here, because it will be send on an ipc channel,
         // and ipc channels take onership of their data.
@@ -889,6 +896,7 @@ where
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
+        size: TypedSize2D<f32, CSSPixel>,
         is_private: bool,
         is_visible: bool,
     ) {
@@ -898,6 +906,7 @@ where
             top_level_id,
             pipeline_id,
             parent_pipeline_id,
+            size,
             is_private,
             is_visible,
         );
@@ -1042,6 +1051,62 @@ where
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
             },
+            // Perform a navigation previously requested by script, if approved by the embedder.
+            // If there is already a pending page (self.pending_changes), it will not be overridden;
+            // However, if the id is not encompassed by another change, it will be.
+            FromCompositorMsg::AllowNavigationResponse(pipeline_id, allowed) => {
+                let pending = self.pending_approval_navigations.remove(&pipeline_id);
+
+                let top_level_browsing_context_id = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.top_level_browsing_context_id,
+                    None => return warn!("Attempted to navigate {} after closure.", pipeline_id),
+                };
+
+                match pending {
+                    Some((load_data, replace)) => {
+                        if allowed {
+                            self.load_url(
+                                top_level_browsing_context_id,
+                                pipeline_id,
+                                load_data,
+                                replace,
+                            );
+                        } else {
+                            let pipeline_is_top_level_pipeline = self
+                                .browsing_contexts
+                                .get(&BrowsingContextId::from(top_level_browsing_context_id))
+                                .map(|ctx| ctx.pipeline_id == pipeline_id)
+                                .unwrap_or(false);
+                            // If the navigation is refused, and this concerns an iframe,
+                            // we need to take it out of it's "delaying-load-events-mode".
+                            // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+                            if !pipeline_is_top_level_pipeline {
+                                let msg = ConstellationControlMsg::StopDelayingLoadEventsMode(
+                                    pipeline_id,
+                                );
+                                let result = match self.pipelines.get(&pipeline_id) {
+                                    Some(pipeline) => pipeline.event_loop.send(msg),
+                                    None => {
+                                        return warn!(
+                                            "Attempted to navigate {} after closure.",
+                                            pipeline_id
+                                        )
+                                    },
+                                };
+                                if let Err(e) = result {
+                                    self.handle_send_error(pipeline_id, e);
+                                }
+                            }
+                        }
+                    },
+                    None => {
+                        return warn!(
+                            "AllowNavigationReqsponse for unknow request: {:?}",
+                            pipeline_id
+                        )
+                    },
+                };
+            },
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -1057,12 +1122,9 @@ where
                         )
                     },
                 };
-                self.handle_load_url_msg(
-                    top_level_browsing_context_id,
-                    pipeline_id,
-                    load_data,
-                    false,
-                );
+                // Since this is a top-level load, initiated by the embedder, go straight to load_url,
+                // bypassing schedule_navigation.
+                self.load_url(top_level_browsing_context_id, pipeline_id, load_data, false);
             },
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
@@ -1174,11 +1236,9 @@ where
             FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
             },
-            // Load a new page from a mouse click
-            // If there is already a pending page (self.pending_changes), it will not be overridden;
-            // However, if the id is not encompassed by another change, it will be.
+            // Ask the embedder for permission to load a new page.
             FromScriptMsg::LoadUrl(load_data, replace) => {
-                self.handle_load_url_msg(source_top_ctx_id, source_pipeline_id, load_data, replace);
+                self.schedule_navigation(source_top_ctx_id, source_pipeline_id, load_data, replace);
             },
             FromScriptMsg::AbortLoadUrl => {
                 self.handle_abort_load_url_msg(source_pipeline_id);
@@ -1599,14 +1659,48 @@ where
             EmbedderMsg::Panic(reason, backtrace),
         ));
 
+<<<<<<< HEAD
         let browsing_context = self.browsing_contexts.get(&browsing_context_id);
         let window_size = browsing_context.and_then(|ctx| ctx.size);
         let pipeline_id = browsing_context.map(|ctx| ctx.pipeline_id);
         let is_visible = browsing_context.map(|ctx| ctx.is_visible);
+||||||| merged common ancestors
+        let (window_size, pipeline_id, is_visible) = {
+            let browsing_context = self.browsing_contexts.get(&browsing_context_id);
+            let window_size = browsing_context.and_then(|ctx| ctx.size);
+            let pipeline_id = browsing_context.map(|ctx| ctx.pipeline_id);
+            let is_visible = browsing_context.map(|ctx| ctx.is_visible);
+            (window_size, pipeline_id, is_visible)
+        };
+=======
+        let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(context) => context,
+            None => return warn!("failed browsing context is missing"),
+        };
+        let window_size = browsing_context.size;
+        let pipeline_id = browsing_context.pipeline_id;
+        let is_visible = browsing_context.is_visible;
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
 
+<<<<<<< HEAD
         let pipeline = pipeline_id.and_then(|id| self.pipelines.get(&id));
         let pipeline_url = pipeline.map(|pipeline| pipeline.url.clone());
         let opener = pipeline.and_then(|pipeline| pipeline.opener);
+||||||| merged common ancestors
+        let (pipeline_url, opener) = {
+            let pipeline = pipeline_id.and_then(|id| self.pipelines.get(&id));
+            let pipeline_url = pipeline.map(|pipeline| pipeline.url.clone());
+            let opener = pipeline.and_then(|pipeline| pipeline.opener);
+            (pipeline_url, opener)
+        };
+=======
+        let pipeline = match self.pipelines.get(&pipeline_id) {
+            Some(p) => p,
+            None => return warn!("failed pipeline is missing"),
+        };
+        let pipeline_url = pipeline.url.clone();
+        let opener = pipeline.opener;
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
 
         self.close_browsing_context_children(
             browsing_context_id,
@@ -1616,10 +1710,8 @@ where
 
         let failure_url = ServoUrl::parse("about:failure").expect("infallible");
 
-        if let Some(pipeline_url) = pipeline_url {
-            if pipeline_url == failure_url {
-                return error!("about:failure failed");
-            }
+        if pipeline_url == failure_url {
+            return error!("about:failure failed");
         }
 
         warn!("creating replacement pipeline for about:failure");
@@ -1638,7 +1730,7 @@ where
             load_data,
             sandbox,
             is_private,
-            is_visible.unwrap_or(true),
+            is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -1737,8 +1829,16 @@ where
             top_level_browsing_context_id,
             None,
             None,
+<<<<<<< HEAD
             Some(window_size),
             load_data,
+||||||| merged common ancestors
+            Some(window_size),
+            load_data.clone(),
+=======
+            window_size,
+            load_data,
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
             sandbox,
             is_private,
             is_visible,
@@ -1800,6 +1900,9 @@ where
             Some(parent_pipeline_id) => parent_pipeline_id,
             None => return warn!("Subframe {} has no parent.", pipeline_id),
         };
+        // https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
+        // When a Document in an iframe is marked as completely loaded,
+        // the user agent must run the iframe load event steps.
         let msg = ConstellationControlMsg::DispatchIFrameLoadEvent {
             target: browsing_context_id,
             parent: parent_pipeline_id,
@@ -2109,14 +2212,33 @@ where
         }
     }
 
-    fn handle_load_url_msg(
+    /// Schedule a navigation(via load_url).
+    /// 1: Ask the embedder for permission.
+    /// 2: Store the details of the navigation, pending approval from the embedder.
+    fn schedule_navigation(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         source_id: PipelineId,
         load_data: LoadData,
         replace: bool,
     ) {
-        self.load_url(top_level_browsing_context_id, source_id, load_data, replace);
+        match self.pending_approval_navigations.entry(source_id) {
+            Entry::Occupied(_) => {
+                return warn!(
+                    "Pipeline {:?} tried to schedule a navigation while one is already pending.",
+                    source_id
+                )
+            },
+            Entry::Vacant(entry) => {
+                let _ = entry.insert((load_data.clone(), replace));
+            },
+        };
+        // Allow the embedder to handle the url itself
+        let msg = (
+            Some(top_level_browsing_context_id),
+            EmbedderMsg::AllowNavigationRequest(source_id, load_data.url.clone()),
+        );
+        self.embedder_proxy.send(msg);
     }
 
     fn load_url(
@@ -2126,17 +2248,6 @@ where
         load_data: LoadData,
         replace: bool,
     ) -> Option<PipelineId> {
-        // Allow the embedder to handle the url itself
-        let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = (
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::AllowNavigation(load_data.url.clone(), chan),
-        );
-        self.embedder_proxy.send(msg);
-        if let Ok(false) = port.recv() {
-            return None;
-        }
-
         debug!("Loading {} in pipeline {}.", load_data.url, source_id);
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated
@@ -3275,6 +3386,7 @@ where
                     change.top_level_browsing_context_id,
                     change.new_pipeline_id,
                     new_context_info.parent_pipeline_id,
+                    self.window_size.initial_viewport, //XXXjdm is this valid?
                     new_context_info.is_private,
                     new_context_info.is_visible,
                 );
@@ -3612,44 +3724,41 @@ where
             }
 
             // Check the visible rectangle for this pipeline. If the constellation has received a
-            // size for the pipeline, then its painting should be up to date. If the constellation
-            // *hasn't* received a size, it could be that the layer was hidden by script before the
-            // compositor discovered it, so we just don't check the layer.
-            if let Some(size) = browsing_context.size {
-                // If the rectangle for this pipeline is zero sized, it will
-                // never be painted. In this case, don't query the layout
-                // thread as it won't contribute to the final output image.
-                if size == TypedSize2D::zero() {
-                    continue;
-                }
+            // size for the pipeline, then its painting should be up to date.
+            //
+            // If the rectangle for this pipeline is zero sized, it will
+            // never be painted. In this case, don't query the layout
+            // thread as it won't contribute to the final output image.
+            if browsing_context.size == TypedSize2D::zero() {
+                continue;
+            }
 
-                // Get the epoch that the compositor has drawn for this pipeline.
-                let compositor_epoch = pipeline_states.get(&browsing_context.pipeline_id);
-                match compositor_epoch {
-                    Some(compositor_epoch) => {
-                        // Synchronously query the layout thread to see if the current
-                        // epoch matches what the compositor has drawn. If they match
-                        // (and script is idle) then this pipeline won't change again
-                        // and can be considered stable.
-                        let message = LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone());
-                        if let Err(e) = pipeline.layout_chan.send(message) {
-                            warn!("Failed to send GetCurrentEpoch ({}).", e);
-                        }
-                        match epoch_receiver.recv() {
-                            Err(e) => warn!("Failed to receive current epoch ({}).", e),
-                            Ok(layout_thread_epoch) => {
-                                if layout_thread_epoch != *compositor_epoch {
-                                    return ReadyToSave::EpochMismatch;
-                                }
-                            },
-                        }
-                    },
-                    None => {
-                        // The compositor doesn't know about this pipeline yet.
-                        // Assume it hasn't rendered yet.
-                        return ReadyToSave::PipelineUnknown;
-                    },
-                }
+            // Get the epoch that the compositor has drawn for this pipeline.
+            let compositor_epoch = pipeline_states.get(&browsing_context.pipeline_id);
+            match compositor_epoch {
+                Some(compositor_epoch) => {
+                    // Synchronously query the layout thread to see if the current
+                    // epoch matches what the compositor has drawn. If they match
+                    // (and script is idle) then this pipeline won't change again
+                    // and can be considered stable.
+                    let message = LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone());
+                    if let Err(e) = pipeline.layout_chan.send(message) {
+                        warn!("Failed to send GetCurrentEpoch ({}).", e);
+                    }
+                    match epoch_receiver.recv() {
+                        Err(e) => warn!("Failed to receive current epoch ({}).", e),
+                        Ok(layout_thread_epoch) => {
+                            if layout_thread_epoch != *compositor_epoch {
+                                return ReadyToSave::EpochMismatch;
+                            }
+                        },
+                    }
+                },
+                None => {
+                    // The compositor doesn't know about this pipeline yet.
+                    // Assume it hasn't rendered yet.
+                    return ReadyToSave::PipelineUnknown;
+                },
             }
         }
 
@@ -3715,7 +3824,7 @@ where
         browsing_context_id: BrowsingContextId,
     ) {
         if let Some(browsing_context) = self.browsing_contexts.get_mut(&browsing_context_id) {
-            browsing_context.size = Some(new_size.initial_viewport);
+            browsing_context.size = new_size.initial_viewport;
             // Send Resize (or ResizeInactive) messages to each pipeline in the frame tree.
             let pipeline_id = browsing_context.pipeline_id;
             let pipeline = match self.pipelines.get(&pipeline_id) {
@@ -4001,7 +4110,6 @@ where
                     .map(|pipeline| {
                         let mut frame_tree = SendableFrameTree {
                             pipeline: pipeline.to_sendable(),
-                            size: browsing_context.size,
                             children: vec![],
                         };
 

@@ -41,7 +41,7 @@ pub struct BrowsingContext {
     pub top_level_id: TopLevelBrowsingContextId,
 
     /// The size of the frame.
-    pub size: Option<TypedSize2D<f32, CSSPixel>>,
+    pub size: TypedSize2D<f32, CSSPixel>,
 
     /// Whether this browsing context is in private browsing mode.
     pub is_private: bool,
@@ -70,6 +70,7 @@ impl BrowsingContext {
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
+        size: TypedSize2D<f32, CSSPixel>,
         is_private: bool,
         is_visible: bool,
     ) -> BrowsingContext {
@@ -78,7 +79,7 @@ impl BrowsingContext {
         BrowsingContext {
             id: id,
             top_level_id: top_level_id,
-            size: None,
+            size: size,
             is_private: is_private,
             is_visible: is_visible,
             pipeline_id: pipeline_id,

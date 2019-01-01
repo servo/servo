@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <title>word-break: break-all, syllabic cluster</title>
-<meta name="assert" content="[Exploratory test] word-break: break-all means lines may break between any two typographic letter units. An indic syllable cluster should be wrapped as a unit to the next line.">
+<meta name="assert" content="word-break: break-all means lines may break between any two typographic letter units. An indic syllable cluster should be wrapped as a unit to the next line.">
+<meta name="flags" content="should">
+<!--
+  Marking as "should"
+  because while the spec requires this behavior
+  about typographic letter units,
+  it is handwavy about what constitutes one,
+  and appeals to the UA's knowledge of "the right thing to do" for that language.
+-->
 <link rel='help' href='https://drafts.csswg.org/css-text-3/#word-break-property'>
 <link rel='match' href='reference/word-break-break-all-ref-008.html'>
 <link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
@@ -21,9 +29,5 @@
 var sentenceWidth = document.getElementById('testspan').offsetWidth
 document.getElementById('testdiv').style.width = String(sentenceWidth - 5)+'px'
 </script>
-<!--
-Notes:
-This test is exploratory because indic conjuncts containing more than one consonant are not covered by the extended grapheme cluster definition, and therefore constitute more than one typographic unit, as defined in the CSS spec. Nevertheless, people using indic scripts expect the user agent to keep the orthographic syllable as a single unit.
--->
 </body>
 </html>

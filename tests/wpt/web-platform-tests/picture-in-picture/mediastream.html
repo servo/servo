@@ -10,18 +10,10 @@
 promise_test(async t => {
   const canvas = document.createElement('canvas');
   const video = document.createElement('video');
-  const mediastreamVideoLoadedPromise = new Promise((resolve, reject) => {
-    canvas.getContext('2d').fillRect(0, 0, canvas.width, canvas.height);
-    video.autoplay = true;
-    video.srcObject = canvas.captureStream(60 /* fps */);
-    video.onloadedmetadata = () => {
-      resolve(video);
-    };
-    video.onerror = error => {
-      reject(error);
-    };
-  });
-  await mediastreamVideoLoadedPromise;
+  canvas.getContext('2d').fillRect(0, 0, canvas.width, canvas.height);
+  video.muted = true;
+  video.srcObject = canvas.captureStream(60 /* fps */);
+  await video.play();
 
   return requestPictureInPictureWithTrustedClick(video)
   .then(pipWindow => {

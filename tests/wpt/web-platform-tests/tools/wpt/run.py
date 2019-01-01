@@ -151,7 +151,7 @@ class BrowserSetup(object):
     browser_cls = None
 
     def __init__(self, venv, prompt=True, sub_product=None):
-        self.browser = self.browser_cls()
+        self.browser = self.browser_cls(logger)
         self.venv = venv
         self.prompt = prompt
         self.sub_product = sub_product
@@ -474,6 +474,7 @@ def setup_logging(kwargs, default_config=None):
         default_config = {default_formatter: sys.stdout}
     wptrunner.setup_logging(kwargs, default_config)
     logger = wptrunner.logger
+    return logger
 
 
 def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
@@ -494,6 +495,7 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     setup_cls = product_setup[kwargs["product"]](venv, prompt, sub_product)
     setup_cls.install_requirements()
 
+<<<<<<< HEAD
     affected_revish = kwargs.pop("affected", None)
     if affected_revish is not None:
         files_changed, _ = testfiles.files_changed(
@@ -511,6 +513,30 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
         test_list = [os.path.relpath(item, wpt_root) for item in test_list]
         kwargs["test_list"] += test_list
 
+||||||| merged common ancestors
+=======
+    affected_revish = kwargs.pop("affected", None)
+    if affected_revish is not None:
+        # TODO: Consolidate with `./wpt tests-affected --ignore-rules`:
+        # https://github.com/web-platform-tests/wpt/issues/14560
+        files_changed, _ = testfiles.files_changed(
+            affected_revish,
+            ignore_rules=["resources/testharness*"],
+            include_uncommitted=True, include_new=True)
+        # TODO: Perhaps use wptrunner.testloader.ManifestLoader here
+        # and remove the manifest-related code from testfiles.
+        # https://github.com/web-platform-tests/wpt/issues/14421
+        tests_changed, tests_affected = testfiles.affected_testfiles(
+            files_changed, manifest_path=kwargs.get("manifest_path"), manifest_update=kwargs["manifest_update"])
+        test_list = tests_changed | tests_affected
+        logger.info("Identified %s affected tests" % len(test_list))
+        if not test_list and not kwargs["test_list"]:
+            logger.info("Quitting because no tests were affected.")
+            exit()
+        test_list = [os.path.relpath(item, wpt_root) for item in test_list]
+        kwargs["test_list"] += test_list
+
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
     if install_browser and not kwargs["channel"]:
         logger.info("--install-browser is given but --channel is not set, default to nightly channel")
         kwargs["channel"] = "nightly"

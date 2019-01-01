@@ -122,7 +122,13 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
                     self.proc.wait()
                 else:
                     self.proc.kill()
+<<<<<<< HEAD
         except:
+||||||| merged common ancestors
+        except KeyboardInterrupt:
+=======
+        except:  # noqa
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
             self.proc.kill()
             raise
 

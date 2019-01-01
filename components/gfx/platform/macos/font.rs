@@ -239,15 +239,14 @@ impl FontHandleMethods for FontHandle {
 
         let result = unsafe {
             self.ctfont
-                .get_glyphs_for_characters(&characters[0], &mut glyphs[0], count)
+                .get_glyphs_for_characters(characters.as_ptr(), glyphs.as_mut_ptr(), count)
         };
 
-        if !result {
+        if !result || glyphs[0] == 0 {
             // No glyph for this character
             return None;
         }
 
-        assert_ne!(glyphs[0], 0); // FIXME: error handling
         return Some(glyphs[0] as GlyphId);
     }
 

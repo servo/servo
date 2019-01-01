@@ -15,6 +15,11 @@ node_modules/
 .wptcache/
 /config.json
 
+# Files generated when regenerating pre-generated certs
+/tools/certs/0*.pem
+/tools/certs/index.txt*
+/tools/certs/serial*
+
 # Various OS/editor specific files
 *#
 *.sw[po]

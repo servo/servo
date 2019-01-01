@@ -1,0 +1,39 @@
+[package]
+name = "simpleservo_jniapi"
+version = "0.0.1"
+build = "build.rs"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "simpleservo"
+crate-type = ["cdylib"]
+test = false
+bench = false
+
+[dependencies]
+android_injected_glue = "0.2"
+android_logger = "0.7"
+jni = "0.10.2"
+log = "0.4"
+simpleservo = { path = "../api" }
+libc = "0.2"
+
+[build-dependencies]
+cc = "1.0"
+
+[features]
+default = ["unstable", "default-except-unstable"]
+default-except-unstable = ["webdriver", "max_log_level"]
+max_log_level = ["simpleservo/max_log_level"]
+webdriver = ["simpleservo/webdriver"]
+energy-profiling = ["simpleservo/energy-profiling"]
+debugmozjs = ["simpleservo/debugmozjs"]
+unstable = ["simpleservo/unstable"]
+googlevr = ["simpleservo/googlevr"]
+oculusvr = ["simpleservo/oculusvr"]
+native-bluetooth = ["simpleservo/native-bluetooth"]
+webgl_backtrace = ["simpleservo/webgl_backtrace"]
+js_backtrace = ["simpleservo/js_backtrace"]

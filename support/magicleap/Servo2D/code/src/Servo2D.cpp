@@ -9,6 +9,7 @@
 #include <ml_logging.h>
 #include <scenesGen.h>
 #include <SceneDescriptor.h>
+#include <lumin/ui/Keyboard.h>
 #include <EGL/egl.h>
 #include <GLES/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -35,6 +36,9 @@ const float KEYBOARD_W = 0.666;
 // The home page
 const char* HOME_PAGE = "https://servo.org/ml-home";
 
+// The locale (currently ML only supports en)
+const lumin::ui::Locale::Code DEFAULT_LOCALE = lumin::ui::Locale::Code::kEn;
+
 // A function which calls the ML logger, suitable for passing into Servo
 typedef void (*MLLogger)(MLLogLevel lvl, char* msg);
 void logger(MLLogLevel lvl, char* msg) {
@@ -49,11 +53,18 @@ void history(Servo2D* app, bool canGoBack, char* url, bool canGoForward) {
   app->updateHistory(canGoBack, url, canGoForward);
 }
 
+// A function to show or hide the keyboard
+typedef void (*MLKeyboard)(Servo2D* app, bool visible);
+void keyboard(Servo2D* app, bool visible) {
+  app->keyboardVisible(visible);
+}
+
 // The functions Servo provides for hooking up to the ML.
 extern "C" ServoInstance* init_servo(EGLContext, EGLSurface, EGLDisplay,
-                                     Servo2D*, MLLogger, MLHistoryUpdate,
+                                     Servo2D*, MLLogger, MLHistoryUpdate, MLKeyboard,
                                      const char* url, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance*);
+extern "C" void keyboard_servo(ServoInstance*, char32_t code, lumin::ui::KeyType keyType);
 extern "C" void trigger_servo(ServoInstance*, float x, float y, bool down);
 extern "C" void move_servo(ServoInstance*, float x, float y);
 extern "C" void traverse_servo(ServoInstance*, int delta);
@@ -94,6 +105,18 @@ int Servo2D::init() {
   createInitialPrism();
   lumin::ui::Cursor::SetScale(prism_, 0.03f);
   instanceInitialScenes();
+
+  // Check privileges
+  if (checkPrivilege(lumin::PrivilegeId::kInternet) != lumin::PrivilegeResult::kGranted) {
+    ML_LOG(Error, "Servo2D Failed to get internet access");
+    abort();
+    return 1;
+  }
+  if (checkPrivilege(lumin::PrivilegeId::kControllerPose) != lumin::PrivilegeResult::kGranted) {
+    ML_LOG(Error, "Servo2D Failed to get controller access");
+    abort();
+    return 1;
+  }
 
   // Get the planar resource that holds the EGL context
   lumin::RootNode* root_node = prism_->getRootNode();
@@ -142,7 +165,7 @@ int Servo2D::init() {
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
   // Hook into servo
-  servo_ = init_servo(ctx, surf, dpy, this, logger, history, HOME_PAGE, VIEWPORT_W, VIEWPORT_H, HIDPI);
+  servo_ = init_servo(ctx, surf, dpy, this, logger, history, keyboard, HOME_PAGE, VIEWPORT_W, VIEWPORT_H, HIDPI);
   if (!servo_) {
     ML_LOG(Error, "Servo2D Failed to init servo instance");
     abort();
@@ -349,6 +372,33 @@ bool Servo2D::gestureEventListener(lumin::GestureInputEventData* event) {
 
 void Servo2D::urlBarEventListener() {
   navigate_servo(servo_, url_bar_->getText().c_str());
+}
+
+void Servo2D::keyboardVisible(bool visible) {
+  lumin::ui::Keyboard* keys = lumin::ui::Keyboard::Get();
+  if (visible) {
+    lumin::ui::KeyboardProperties properties;
+    properties.keyboardZPosition = lumin::ui::KeyboardProperties::KeyboardZPosition::kVolumeCursorPlane;
+    properties.width = KEYBOARD_W;
+    keys->show(
+      prism_,
+      DEFAULT_LOCALE,
+      properties,
+      std::bind(&Servo2D::keyboardEventListener, this, std::placeholders::_1)
+    );
+  } else {
+    keys->hide();
+  }
+}
+
+bool Servo2D::keyboardEventListener(const lumin::ui::KeyboardEvent::EventData& event) {
+  if (event.getEventType() != lumin::ui::KeyboardEvent::EventType::KEY_PRESSED) {
+    return false;
+  }
+  const lumin::ui::KeyboardEvent::KeyPressedData* keyPress =
+    static_cast<const lumin::ui::KeyboardEvent::KeyPressedData*>(&event);
+  keyboard_servo(servo_, keyPress->getCharCode(), keyPress->getKeyType());
+  return true;
 }
 
 void Servo2D::updateHistory(bool canGoBack, const char* url, bool canGoForward) {

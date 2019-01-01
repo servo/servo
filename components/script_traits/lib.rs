@@ -190,13 +190,11 @@ pub struct NewLayoutInfo {
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// Information about the initial window size.
-    pub window_size: Option<WindowSizeData>,
+    pub window_size: WindowSizeData,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
-    /// Number of threads to use for layout.
-    pub layout_threads: usize,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -248,6 +246,10 @@ pub enum UpdatePipelineIdReason {
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
+    /// Takes the associated window proxy out of "delaying-load-events-mode",
+    /// used if a scheduled navigated was refused by the embedder.
+    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    StopDelayingLoadEventsMode(PipelineId),
     /// Sends the final response to script thread for fetching after all redirections
     /// have been resolved
     NavigationResponse(PipelineId, FetchResponseMsg),
@@ -340,6 +342,7 @@ impl fmt::Debug for ConstellationControlMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ConstellationControlMsg::*;
         let variant = match *self {
+            StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
             NavigationResponse(..) => "NavigationResponse",
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
@@ -566,7 +569,7 @@ pub struct InitialScriptState {
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Information about the initial window size.
-    pub window_size: Option<WindowSizeData>,
+    pub window_size: WindowSizeData,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
@@ -726,6 +729,8 @@ pub enum ConstellationMsg {
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
     Keyboard(KeyboardEvent),
+    /// Whether to allow script to navigate.
+    AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Request to traverse the joint session history of the provided browsing context.
@@ -770,6 +775,7 @@ impl fmt::Debug for ConstellationMsg {
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
             IsReadyToSaveImage(..) => "IsReadyToSaveImage",
             Keyboard(..) => "Keyboard",
+            AllowNavigationResponse(..) => "AllowNavigationResponse",
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",
             WindowSize(..) => "WindowSize",

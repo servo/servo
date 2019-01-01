@@ -26619,10 +26619,18 @@
    "81de5b389c922067c61effe03208ea740ba8e067", 
    "testharness"
   ], 
+<<<<<<< HEAD
   "mozilla/animation-removed-node.html": [
    "6ba0318ea1e07b42ef444f838753adbefe9633d6", 
    "testharness"
   ], 
+||||||| merged common ancestors
+=======
+  "mozilla/animation-removed-node.html": [
+   "a2f9dfe284a22a6241290c86841172387dcdbeb6", 
+   "testharness"
+  ], 
+>>>>>>> c2b212ad43b2899c410bde339d75cadd939d0ad6
   "mozilla/binding_keyword.html": [
    "818d2aa29471026c1b4215dfcd1b9939a052b1ea", 
    "testharness"
@@ -27080,7 +27088,7 @@
    "testharness"
   ], 
   "mozilla/interfaces.html": [
-   "ad17e930ddb5bc2daecb86216efe8885ae399173", 
+   "8153d67c8cb4e554b05ac884e9898f50508349be", 
    "testharness"
   ], 
   "mozilla/interfaces.js": [
