@@ -515,6 +515,30 @@ function run() {
     should_not_apply("not all and (bogus)")
     should_not_apply("only all and (bogus)")
 
+    // Parsing tests for overflow-block from mediaqueries-4
+    expression_should_be_parseable("overflow-block")
+    expression_should_be_parseable("overflow-block: none")
+    expression_should_be_parseable("overflow-block: paged")
+    expression_should_be_parseable("overflow-block: scroll")
+    expression_should_be_parseable("overflow-block: optional-paged")
+    expression_should_not_be_parseable("overflow-block: some-random-invalid-thing")
+
+    // Sanity check for overflow-block
+    var any_overflow_block = query_applies("(overflow-block)");
+    var overflow_block_none = query_applies("(overflow-block: none)");
+    assert_not_equals(any_overflow_block, overflow_block_none, "overflow-block should be equivalent to not (overflow-block: none)");
+
+    // Parsing tests for overflow-inline from mediaqueries-4
+    expression_should_be_parseable("overflow-inline")
+    expression_should_be_parseable("overflow-inline: none")
+    expression_should_be_parseable("overflow-inline: scroll")
+    expression_should_not_be_parseable("overflow-inline: some-random-invalid-thing")
+
+    // Sanity check for overflow-inline
+    var any_overflow_inline = query_applies("(overflow-inline)");
+    var overflow_inline_none = query_applies("(overflow-inline: none)");
+    assert_not_equals(any_overflow_inline, overflow_inline_none, "overflow-inline should be equivalent to not (overflow-inline: none)");
+
     done();
 }
 
