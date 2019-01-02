@@ -7,8 +7,7 @@
 use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings::{self, RawServoStyleSet};
-use crate::gecko_bindings::structs::StyleSheet as DomStyleSheet;
-use crate::gecko_bindings::structs::{nsIDocument, StyleSheetInfo};
+use crate::gecko_bindings::structs::{StyleSheet as DomStyleSheet, StyleSheetInfo};
 use crate::gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetSizes};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
@@ -152,7 +151,7 @@ impl PerDocumentStyleData {
         //
         // Should we just force XBL Stylists to be NoQuirks?
         let quirks_mode =
-            unsafe { (*device.pres_context().mDocument.raw::<nsIDocument>()).mCompatMode };
+            unsafe { (*device.pres_context().mDocument.mRawPtr).mCompatMode };
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Stylist::new(device, quirks_mode.into()),
@@ -198,7 +197,7 @@ impl PerDocumentStyleDataImpl {
             .device()
             .pres_context()
             .mDocument
-            .raw::<nsIDocument>();
+            .mRawPtr;
         unsafe { bindings::Gecko_VisitedStylesEnabled(doc) }
     }
 
