@@ -162,8 +162,8 @@ impl Device {
 
     /// Gets the document pointer.
     #[inline]
-    pub fn document(&self) -> *mut structs::nsIDocument {
-        self.pres_context().mDocument.raw::<structs::nsIDocument>()
+    pub fn document(&self) -> *mut structs::Document {
+        self.pres_context().mDocument.mRawPtr
     }
 
     /// Recreates the default computed values.

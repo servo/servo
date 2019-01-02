@@ -45,7 +45,7 @@ use crate::gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWThe
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
-use crate::gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
+use crate::gecko_bindings::structs::Document_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::nsRestyleHint;
 use crate::gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use crate::gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
@@ -107,9 +107,9 @@ fn elements_with_id<'a, 'le>(
     }
 }
 
-/// A simple wrapper over `nsIDocument`.
+/// A simple wrapper over `Document`.
 #[derive(Clone, Copy)]
-pub struct GeckoDocument<'ld>(pub &'ld structs::nsIDocument);
+pub struct GeckoDocument<'ld>(pub &'ld structs::Document);
 
 impl<'ld> TDocument for GeckoDocument<'ld> {
     type ConcreteNode = GeckoNode<'ld>;
@@ -121,7 +121,7 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 
     #[inline]
     fn is_html_document(&self) -> bool {
-        self.0.mType == structs::root::nsIDocument_Type::eHTML
+        self.0.mType == structs::Document_Type::eHTML
     }
 
     #[inline]
@@ -1242,11 +1242,11 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
-        self.as_node().owner_doc().0 as *const structs::nsIDocument ==
+        self.as_node().owner_doc().0 as *const structs::Document ==
             device
                 .pres_context()
                 .mDocument
-                .raw::<structs::nsIDocument>()
+                .mRawPtr
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
