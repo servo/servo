@@ -46,6 +46,9 @@ os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_S
 os.environ["GIT_REF"] = "refs/heads/auto"
 import decision_task
 
+print("\n# PR:")
+decision_task.main("github-pull-request")
+
 print("\n# Push:")
 decision_task.main("github-push")
 
