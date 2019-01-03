@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset='utf-8'>
+<title>Async Cookies: cookieStore API in ServiceWorker across origins</title>
+<link rel='help' href='https://github.com/WICG/cookie-store'>
+<link rel='author' href='jarrydg@chromium.org' title='Jarryd Goodman'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='resources/helpers.js'></script>
+<style>iframe {display: none}</style>
+<script>
+'use strict';
+
+const kPath = '/cookie-store/resources/helper_iframe.sub.html';
+const kCorsBase = `https://{{domains[www1]}}:{{ports[https][0]}}`;
+const kCorsUrl = `${kCorsBase}${kPath}`;
+
+promise_test(async t => {
+  const iframe = await createIframe(kCorsUrl, t);
+  assert_true(iframe != null);
+
+  const serviceWorker = await createServiceWorker(t,
+      'serviceworker_cookieStore_cross_origin.js', '/does/not/exist');
+
+
+  iframe.contentWindow.postMessage({
+    opname: 'set-cookie',
+    name: 'cookie-name',
+    value: 'cookie-value',
+  }, kCorsBase);
+  t.add_cleanup(() => {
+    cookieStore.delete('cookie-name');
+  });
+
+  await waitForMessage();
+
+  const { workerCookies } = await sendMessageOverChannel({ op: 'get-cookies' },
+      serviceWorker);
+
+  assert_equals(workerCookies.length, 1);
+  assert_equals(workerCookies[0].name, 'cookie-name');
+  assert_equals(workerCookies[0].value, 'cookie-value');
+}, 'cookieStore.get() in ServiceWorker reads cookie set in cross-origin frame');
+</script>
