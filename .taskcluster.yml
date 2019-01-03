@@ -1,7 +1,7 @@
 version: 1
 policy:
   # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1#pull-requests
-  pullRequests: collaborators
+  pullRequests: public
 tasks:
   - $if: 'tasks_for == "github-push"'
     then:
