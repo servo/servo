@@ -72,6 +72,9 @@ def main(task_for):
         for function in by_branch_name.get(branch, []):
             function()
 
+    elif task_for == "github-pull-request":
+        tidy()
+
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
@@ -118,6 +121,18 @@ windows_sparse_checkout = [
     "!/tests/wpt/web-platform-tests",
     "/tests/wpt/web-platform-tests/tools",
 ]
+
+
+def tidy_untrusted():
+    return (
+        decisionlib.DockerWorkerTask("Tidy")
+        .with_worker_type("servo-docker-untrusted")
+        .with_treeherder("Linux x64", "Tidy")
+        .with_script("""
+            ./mach test-tidy --no-progress --all
+        """)
+        .create()
+    )
 
 
 def linux_tidy_unit_docs():
