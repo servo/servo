@@ -106,7 +106,6 @@ impl XRMethods for XR {
 }
 
 impl XR {
-    #[allow(unrooted_must_root)]
     pub fn get_displays(&self) -> Result<Vec<DomRoot<VRDisplay>>, ()> {
         if let Some(webvr_thread) = self.webvr_thread() {
             let (sender, receiver) =
