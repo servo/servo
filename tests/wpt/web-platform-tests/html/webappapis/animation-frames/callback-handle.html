@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>AnimationTiming Test: FrameRequestCallback - valid callback handle</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#animation-frames">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+  test(() => {
+    let requestId = window.requestAnimationFrame(() => {});
+    assert_greater_than(requestId, 0, "callback handle is a integer greater than zero");
+  }, "Check window.requestAnimationFrame can return a valid callback handle");
+
+</script>
