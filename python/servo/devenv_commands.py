@@ -26,7 +26,7 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
 from servo.build_commands import notify_build_done
-from servo.util import STATIC_RUST_LANG_ORG_DIST, URLOPEN_KWARGS
+from servo.util import get_static_rust_lang_org_dist, get_urlopen_kwargs
 
 
 @CommandProvider
@@ -216,8 +216,8 @@ class MachCommands(CommandBase):
              description='Update the Rust version to latest Nightly',
              category='devenv')
     def rustup(self):
-        url = STATIC_RUST_LANG_ORG_DIST + "/channel-rust-nightly-date.txt"
-        nightly_date = urllib2.urlopen(url, **URLOPEN_KWARGS).read()
+        url = get_static_rust_lang_org_dist() + "/channel-rust-nightly-date.txt"
+        nightly_date = urllib2.urlopen(url, **get_urlopen_kwargs()).read()
         toolchain = "nightly-" + nightly_date
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:

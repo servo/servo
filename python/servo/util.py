@@ -28,14 +28,22 @@ try:
 except ImportError:
     HAS_SNI = False
 
-# The cafile parameter was added in 2.7.9
-if HAS_SNI and sys.version_info >= (2, 7, 9):
-    import certifi
-    STATIC_RUST_LANG_ORG_DIST = "https://static.rust-lang.org/dist"
-    URLOPEN_KWARGS = {"cafile": certifi.where()}
-else:
-    STATIC_RUST_LANG_ORG_DIST = "https://static-rust-lang-org.s3.amazonaws.com/dist"
-    URLOPEN_KWARGS = {}
+HAS_SNI_AND_RECENT_PYTHON = HAS_SNI and sys.version_info >= (2, 7, 9)
+
+
+def get_static_rust_lang_org_dist():
+    if HAS_SNI_AND_RECENT_PYTHON:
+        return "https://static.rust-lang.org/dist"
+
+    return "https://static-rust-lang-org.s3.amazonaws.com/dist"
+
+
+def get_urlopen_kwargs():
+    # The cafile parameter was added in 2.7.9
+    if HAS_SNI_AND_RECENT_PYTHON:
+        import certifi
+        return {"cafile": certifi.where()}
+    return {}
 
 
 def remove_readonly(func, path, _):
@@ -96,7 +104,7 @@ def download(desc, src, writer, start_byte=0):
         req = urllib2.Request(src)
         if start_byte:
             req = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
-        resp = urllib2.urlopen(req, **URLOPEN_KWARGS)
+        resp = urllib2.urlopen(req, **get_urlopen_kwargs())
 
         fsize = None
         if resp.info().getheader('Content-Length'):
