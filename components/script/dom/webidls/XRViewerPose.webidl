@@ -9,5 +9,6 @@ interface XRViewerPose {
   // readonly attribute XRRigidTransform transform;
   // readonly attribute FrozenArray<XRView> views;
   // workaround until we have FrozenArray
+  // see https://github.com/servo/servo/issues/10427#issuecomment-449593626
   readonly attribute any views;
 };

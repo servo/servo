@@ -212,6 +212,8 @@ impl WebGLRenderingContext {
                 current_program: MutNullableDom::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
+                // FIXME(#21718) The backend is allowed to choose a size smaller than
+                // what was requested
                 size: Cell::new(size),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
                 extension_manager: WebGLExtensions::new(webgl_version),
@@ -268,6 +270,8 @@ impl WebGLRenderingContext {
     pub fn recreate(&self, size: Size2D<u32>) {
         let (sender, receiver) = webgl_channel().unwrap();
         self.webgl_sender.send_resize(size, sender).unwrap();
+        // FIXME(#21718) The backend is allowed to choose a size smaller than
+        // what was requested
         self.size.set(size);
 
         if let Err(msg) = receiver.recv().unwrap() {
