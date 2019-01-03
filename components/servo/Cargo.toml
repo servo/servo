@@ -20,6 +20,7 @@ googlevr = ["webvr/googlevr"]
 js_backtrace = ["script/js_backtrace"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 webrender_debugger = ["webrender/debugger"]
+no_static_freetype = ["webrender/no_static_freetype"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
