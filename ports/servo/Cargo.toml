@@ -36,6 +36,7 @@ energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
 unstable = ["libservo/unstable"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
+webrender_debugger = ["libservo/webrender_debugger"]
 js_backtrace = ["libservo/js_backtrace"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

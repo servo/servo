@@ -32,9 +32,14 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "base64",
+  "block-buffer",
+  "byte-tools",
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
+  "digest",
+  "generic-array",
   "rand",
   "unicase",
   "winapi",

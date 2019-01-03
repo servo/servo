@@ -14,7 +14,7 @@ bench = false
 
 [dependencies]
 keyboard-types = "0.4"
-libservo = { path = "../../components/servo" }
+libservo = { path = "../../components/servo", features = ["no_static_freetype"] }
 log = "0.4"
 servo-egl = "0.2"
 smallvec = "0.6"
