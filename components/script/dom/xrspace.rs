@@ -21,6 +21,7 @@ impl XRSpace {
         }
     }
 
+    #[allow(unused)]
     pub fn new(global: &GlobalScope) -> DomRoot<XRSpace> {
         reflect_dom_object(
             Box::new(XRSpace::new_inherited()),
