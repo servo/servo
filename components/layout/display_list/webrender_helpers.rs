@@ -163,7 +163,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     );
 
                     let clip_id = builder.push_reference_frame(
-                        &info.clone(),
+                        &stacking_context.bounds,
+                        stacking_context.transform_style,
                         stacking_context.transform.map(Into::into),
                         stacking_context.perspective,
                     );
