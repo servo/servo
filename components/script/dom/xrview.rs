@@ -72,12 +72,12 @@ impl XRViewMethods for XRView {
     #[allow(unsafe_code)]
     /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
     unsafe fn ProjectionMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.proj.get())
+        NonNull::new(self.proj.get()).unwrap()
     }
 
     #[allow(unsafe_code)]
     /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
     unsafe fn ViewMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.view.get())
+        NonNull::new(self.view.get()).unwrap()
     }
 }
