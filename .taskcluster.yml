@@ -13,8 +13,6 @@ tasks:
         # NOTE: when updating this consider whether the daily hook needs similar changes:
         # https://tools.taskcluster.net/hooks/project-servo/daily
 
-        taskGroupId: {$eval: as_slugid("decision_task")}
-        taskId: {$eval: as_slugid("decision_task")}
         provisionerId: aws-provisioner-v1
         workerType: servo-docker-worker
         created: {$fromNow: ''}
