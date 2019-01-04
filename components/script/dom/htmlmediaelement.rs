@@ -4,6 +4,8 @@
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
+use crate::dom::audiotrack::AudioTrack;
+use crate::dom::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
@@ -27,6 +29,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlaudioelement::HTMLAudioElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
@@ -37,6 +40,8 @@ use crate::dom::promise::Promise;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
+use crate::dom::videotrack::VideoTrack;
+use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskRunnable};
@@ -204,6 +209,10 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
     played: DomRefCell<TimeRangesContainer>,
+    // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
+    audio_tracks_list: MutNullableDom<AudioTrackList>,
+    // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
+    video_tracks_list: MutNullableDom<VideoTrackList>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
@@ -265,6 +274,8 @@ impl HTMLMediaElement {
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: DomRefCell::new(TimeRangesContainer::new()),
+            audio_tracks_list: Default::default(),
+            video_tracks_list: Default::default(),
             text_tracks_list: Default::default(),
             next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
             current_fetch_context: DomRefCell::new(None),
@@ -796,7 +807,8 @@ impl HTMLMediaElement {
                     )));
 
                     // Step 2.
-                    // FIXME(nox): Forget the media-resource-specific tracks.
+                    this.AudioTracks().clear();
+                    this.VideoTracks().clear();
 
                     // Step 3.
                     this.network_state.set(NetworkState::NoSource);
@@ -897,7 +909,8 @@ impl HTMLMediaElement {
             // FIXME(nox): Detach MediaSource media provider object.
 
             // Step 6.4.
-            // FIXME(nox): Forget the media-resource-specific tracks.
+            self.AudioTracks().clear();
+            self.VideoTracks().clear();
 
             // Step 6.5.
             if self.ready_state.get() != ReadyState::HaveNothing {
@@ -1220,6 +1233,74 @@ impl HTMLMediaElement {
             },
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+                // => If the media resource is found to have an audio track
+                if !metadata.audio_tracks.is_empty() {
+                    // Step 1
+                    let window = window_from_node(self);
+                    for track in metadata.audio_tracks.iter() {
+                        let audio_track = AudioTrack::new(
+                            &window,
+                            DOMString::new(),
+                            DOMString::new(),
+                            DOMString::new(),
+                            DOMString::new(),
+                        );
+
+                        // Step 2
+                        self.AudioTracks().add(&audio_track);
+
+                        // Step 3.
+                        audio_track.set_enabled(false);
+
+                        // Step 4
+                        // https://www.w3.org/TR/media-frags/#media-fragment-syntax
+                        // https://github.com/servo/servo/issues/22366
+
+                        // Step 5 & 6
+                        if audio_track.enabled() || self.AudioTracks().enabled_index().is_none() {
+                            self.AudioTracks()
+                                .set_enabled(self.AudioTracks().len() - 1, true);
+                        }
+
+                        // Steps 7
+                        // Fire an event named addtrack at this AudioTrackList object, using TrackEvent
+                    }
+                }
+
+                // => If the media resource is found to have a video track
+                if !metadata.video_tracks.is_empty() {
+                    for track in metadata.video_tracks.iter() {
+                        // Step 1
+                        let window = window_from_node(self);
+                        let video_track = VideoTrack::new(
+                            &window,
+                            DOMString::new(),
+                            DOMString::new(),
+                            DOMString::new(),
+                            DOMString::new(),
+                        );
+
+                        // Step 2
+                        self.VideoTracks().add(&video_track);
+
+                        // Step 3.
+                        video_track.set_selected(false);
+
+                        // Step 4
+                        // https://www.w3.org/TR/media-frags/#media-fragment-syntax
+                        // https://github.com/servo/servo/issues/22366
+
+                        // Step 5 & 6
+                        if video_track.selected() || self.VideoTracks().selected_index().is_none() {
+                            self.VideoTracks()
+                                .set_selected(self.VideoTracks().len() - 1, true);
+                        }
+
+                        // Steps 7
+                        // Fire an event named addtrack at this VideoTrackList object, using TrackEvent
+                    }
+                }
+
                 // => "Once enough of the media data has been fetched to determine the duration..."
                 // Step 1.
                 // servo-media owns the media timeline.
@@ -1280,7 +1361,15 @@ impl HTMLMediaElement {
                 //            https://www.w3.org/TR/media-frags/#media-fragment-syntax
                 //            https://github.com/servo/media/issues/156
 
-                // XXX Steps 12 and 13 require audio and video tracks support.
+                // Step 12
+                if !self.AudioTracks().is_empty() && self.AudioTracks().enabled_index().is_none() {
+                    self.AudioTracks().set_enabled(0, true);
+                }
+
+                // Step 13
+                if !self.VideoTracks().is_empty() && self.VideoTracks().selected_index().is_none() {
+                    self.VideoTracks().set_selected(0, true);
+                }
             },
             PlayerEvent::NeedData => {
                 // The player needs more data.
@@ -1666,6 +1755,20 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             }
         }
         TimeRanges::new(self.global().as_window(), buffered)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
+    fn AudioTracks(&self) -> DomRoot<AudioTrackList> {
+        let window = window_from_node(self);
+        self.audio_tracks_list
+            .or_init(|| AudioTrackList::new(&window, &[]))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
+    fn VideoTracks(&self) -> DomRoot<VideoTrackList> {
+        let window = window_from_node(self);
+        self.video_tracks_list
+            .or_init(|| VideoTrackList::new(&window, &[]))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
