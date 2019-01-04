@@ -59,8 +59,8 @@ interface HTMLMediaElement : HTMLElement {
   [CEReactions] attribute boolean defaultMuted;
 
   // tracks
-  // readonly attribute AudioTrackList audioTracks;
-  // readonly attribute VideoTrackList videoTracks;
+  readonly attribute AudioTrackList audioTracks;
+  readonly attribute VideoTrackList videoTracks;
   readonly attribute TextTrackList textTracks;
   TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
 };
