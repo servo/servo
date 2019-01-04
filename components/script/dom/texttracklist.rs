@@ -57,7 +57,6 @@ impl TextTrackList {
         if self.find(track).is_none() {
             self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
         };
-        self.upcast::<EventTarget>().fire_event(atom!("addtrack"));
     }
 
     // FIXME(#22314, dlrobertson) allow TextTracks to be
