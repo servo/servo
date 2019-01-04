@@ -427,7 +427,6 @@ ${helpers.single_keyword(
     "isolation",
     "auto isolate",
     products="gecko",
-    gecko_pref="layout.css.isolation.enabled",
     spec="https://drafts.fxtf.org/compositing/#isolation",
     flags="CREATES_STACKING_CONTEXT",
     animation_value_type="discrete",
