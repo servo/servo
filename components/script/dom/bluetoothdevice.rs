@@ -276,7 +276,6 @@ impl BluetoothDeviceMethods for BluetoothDevice {
         None
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
     fn WatchAdvertisements(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());

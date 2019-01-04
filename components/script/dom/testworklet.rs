@@ -51,7 +51,6 @@ impl TestWorklet {
 }
 
 impl TestWorkletMethods for TestWorklet {
-    #[allow(unrooted_must_root)]
     fn AddModule(&self, moduleURL: USVString, options: &WorkletOptions) -> Rc<Promise> {
         self.worklet.AddModule(moduleURL, options)
     }

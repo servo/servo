@@ -109,7 +109,6 @@ impl Worklet {
 }
 
 impl WorkletMethods for Worklet {
-    #[allow(unrooted_must_root)]
     /// <https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule>
     fn AddModule(&self, module_url: USVString, options: &WorkletOptions) -> Rc<Promise> {
         // Step 1.

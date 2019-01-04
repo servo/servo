@@ -1022,7 +1022,6 @@ impl HTMLMediaElement {
     }
 
     /// Appends a promise to the list of pending play promises.
-    #[allow(unrooted_must_root)]
     fn push_pending_play_promise(&self, promise: &Rc<Promise>) {
         self.pending_play_promises
             .borrow_mut()
@@ -1039,7 +1038,6 @@ impl HTMLMediaElement {
     /// Each call to this method must be followed by a call to
     /// `fulfill_in_flight_play_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
-    #[allow(unrooted_must_root)]
     fn take_pending_play_promises(&self, result: ErrorResult) {
         let pending_play_promises =
             mem::replace(&mut *self.pending_play_promises.borrow_mut(), vec![]);
@@ -1375,7 +1373,6 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-play
-    #[allow(unrooted_must_root)]
     fn Play(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.global());
         self.play(&promise);

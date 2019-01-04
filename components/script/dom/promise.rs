@@ -89,7 +89,7 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code, unrooted_must_root)]
+    #[allow(unsafe_code)]
     pub fn duplicate(&self) -> Rc<Promise> {
         let cx = self.global().get_cx();
         unsafe { Promise::new_with_js_promise(self.reflector().get_jsobject(), cx) }

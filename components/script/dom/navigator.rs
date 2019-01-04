@@ -147,7 +147,6 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
-    #[allow(unrooted_must_root)]
     fn GetVRDisplays(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.global());
         let displays = self.Xr().get_displays();

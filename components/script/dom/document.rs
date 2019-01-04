@@ -3139,7 +3139,6 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
-    #[allow(unrooted_must_root)]
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
         let promise = Promise::new(self.global().r());
@@ -3198,7 +3197,6 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#exit-fullscreen
-    #[allow(unrooted_must_root)]
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
@@ -4561,7 +4559,6 @@ impl DocumentMethods for Document {
         self.fullscreen_element.get()
     }
 
-    #[allow(unrooted_must_root)]
     // https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen
     fn ExitFullscreen(&self) -> Rc<Promise> {
         self.exit_fullscreen()
