@@ -23,15 +23,15 @@
     const validViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
 
     let testFunction = function(session, fakeDeviceController, t) {
-      return session.requestFrameOfReference("eye-level")
-        .then((frameOfRef) => new Promise((resolve, reject) => {
+      return session.requestReferenceSpace({ type: 'stationary', subtype: 'eye-level' })
+        .then((referenceSpace) => new Promise((resolve, reject) => {
           let counter = 0;
           function onFrame(time, vrFrame) {
             session.requestAnimationFrame(onFrame);
             if (counter == 0) {
               t.step( () => {
                 // Expecting to not get a pose since none has been supplied
-                assert_equals(vrFrame.getViewerPose(frameOfRef), null);
+                assert_equals(vrFrame.getViewerPose(referenceSpace), null);
 
                 fakeDeviceController.setXRPresentationFrameData(
                   validPoseMatrix, [{
@@ -45,11 +45,11 @@
                   }]);
 
                 // Check that pose does not update pose within the same frame.
-                assert_equals(vrFrame.getViewerPose(frameOfRef), null);
+                assert_equals(vrFrame.getViewerPose(referenceSpace), null);
               });
             } else {
               t.step( () => {
-                let pose = vrFrame.getViewerPose(frameOfRef);
+                let pose = vrFrame.getViewerPose(referenceSpace);
                 assert_not_equals(pose, null);
 
                 let poseMatrix = pose.poseModelMatrix;
