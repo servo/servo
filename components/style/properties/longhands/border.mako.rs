@@ -88,7 +88,6 @@ ${helpers.single_keyword(
     "box-decoration-break",
     "slice clone",
     gecko_enum_prefix="StyleBoxDecorationBreak",
-    gecko_pref="layout.css.box-decoration-break.enabled",
     spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
     products="gecko",
     animation_value_type="discrete",
