@@ -35,6 +35,7 @@ use std::ptr;
 use std::rc::Rc;
 
 #[dom_struct]
+#[allow_unrooted_in_rc]
 pub struct Promise {
     reflector: Reflector,
     /// Since Promise values are natively reference counted without the knowledge of
@@ -88,7 +89,7 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code, unrooted_must_root)]
+    #[allow(unsafe_code)]
     pub fn duplicate(&self) -> Rc<Promise> {
         let cx = self.global().get_cx();
         unsafe { Promise::new_with_js_promise(self.reflector().get_jsobject(), cx) }

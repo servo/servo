@@ -42,7 +42,6 @@ impl NavigationPreloadManager {
 }
 
 impl NavigationPreloadManagerMethods for NavigationPreloadManager {
-    #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable
     fn Enable(&self) -> Rc<Promise> {
         let promise = Promise::new(&*self.global());
@@ -65,7 +64,6 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         promise
     }
 
-    #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable
     fn Disable(&self) -> Rc<Promise> {
         let promise = Promise::new(&*self.global());
@@ -88,7 +86,6 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         promise
     }
 
-    #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue
     fn SetHeaderValue(&self, value: ByteString) -> Rc<Promise> {
         let promise = Promise::new(&*self.global());
@@ -111,7 +108,6 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         promise
     }
 
-    #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate
     fn GetState(&self) -> Rc<Promise> {
         let promise = Promise::new(&*self.global());

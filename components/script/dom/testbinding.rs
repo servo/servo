@@ -1006,7 +1006,6 @@ impl TestBindingMethods for TestBinding {
         );
     }
 
-    #[allow(unrooted_must_root)]
     fn PromiseNativeHandler(
         &self,
         resolve: Option<Rc<SimpleCallback>>,
@@ -1041,7 +1040,6 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    #[allow(unrooted_must_root)]
     fn PromiseAttribute(&self) -> Rc<Promise> {
         Promise::new(&self.global())
     }
