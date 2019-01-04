@@ -261,6 +261,12 @@ function requestDeviceWithTrustedClick() {
       () => navigator.bluetooth.requestDevice.apply(navigator.bluetooth, args));
 }
 
+// Calls requestLEScan() in a context that's 'allowed to show a popup'.
+function requestLEScanWithTrustedClick() {
+  return callWithTrustedClick(
+      () => navigator.bluetooth.requestLEScan.apply(navigator.bluetooth));
+}
+
 // errorUUID(alias) returns a UUID with the top 32 bits of
 // '00000000-97e5-4cd7-b9f1-f5a427670c59' replaced with the bits of |alias|.
 // For example, errorUUID(0xDEADBEEF) returns

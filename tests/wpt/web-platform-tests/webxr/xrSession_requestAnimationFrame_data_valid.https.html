@@ -34,8 +34,8 @@
 
     let testFunction = function(session, testDeviceController) {
       testSession = session;
-      return session.requestFrameOfReference('eye-level')
-        .then((frameOfRef) => new Promise((resolve) => {
+      return session.requestReferenceSpace({ type: 'stationary', subtype: 'eye-level' })
+        .then((referenceSpace) => new Promise((resolve) => {
 
           function onFrame(time, xrFrame) {
             assert_true(xrFrame instanceof XRFrame);
@@ -43,7 +43,7 @@
             assert_not_equals(xrFrame.views, null);
             assert_equals(xrFrame.views.length, 2);
 
-            let viewerPose = xrFrame.getViewerPose(frameOfRef);
+            let viewerPose = xrFrame.getViewerPose(referenceSpace);
 
             assert_not_equals(viewerPose, null);
             for(let i = 0; i < identityMatrix.length; i++) {
