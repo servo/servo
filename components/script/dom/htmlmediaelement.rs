@@ -301,93 +301,6 @@ impl HTMLMediaElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
-    // FIXME(nox): Move this back to HTMLMediaElementMethods::Play once
-    // Rc<Promise> doesn't require #[allow(unrooted_must_root)] anymore.
-    fn play(&self, promise: &Rc<Promise>) {
-        // Step 1.
-        // FIXME(nox): Reject promise if not allowed to play.
-
-        // Step 2.
-        if self
-            .error
-            .get()
-            .map_or(false, |e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
-        {
-            promise.reject_error(Error::NotSupported);
-            return;
-        }
-
-        // Step 3.
-        self.push_pending_play_promise(promise);
-
-        // Step 4.
-        if self.network_state.get() == NetworkState::Empty {
-            self.invoke_resource_selection_algorithm();
-        }
-
-        // Step 5.
-        // FIXME(nox): Seek to earliest possible position if playback has ended
-        // and direction of playback is forwards.
-
-        let state = self.ready_state.get();
-
-        let window = window_from_node(self);
-        // FIXME(nox): Why are errors silenced here?
-        let task_source = window.task_manager().media_element_task_source();
-        if self.Paused() {
-            // Step 6.1.
-            self.paused.set(false);
-
-            // Step 6.2.
-            if self.show_poster.get() {
-                self.show_poster.set(false);
-                self.time_marches_on();
-            }
-
-            // Step 6.3.
-            task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
-
-            // Step 6.4.
-            match state {
-                ReadyState::HaveNothing |
-                ReadyState::HaveMetadata |
-                ReadyState::HaveCurrentData => {
-                    task_source.queue_simple_event(self.upcast(), atom!("waiting"), &window);
-                },
-                ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
-                    self.notify_about_playing();
-                },
-            }
-        } else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
-            // Step 7.
-            self.take_pending_play_promises(Ok(()));
-            let this = Trusted::new(self);
-            let generation_id = self.generation_id.get();
-            task_source
-                .queue(
-                    task!(resolve_pending_play_promises: move || {
-                        let this = this.root();
-                        if generation_id != this.generation_id.get() {
-                            return;
-                        }
-
-                        this.fulfill_in_flight_play_promises(|| {
-                            this.play_media();
-                        });
-                    }),
-                    window.upcast(),
-                )
-                .unwrap();
-        }
-
-        // Step 8.
-        self.autoplaying.set(false);
-
-        // Step 9.
-        // Not applicable here, the promise is returned from Play.
-    }
-
     /// https://html.spec.whatwg.org/multipage/#time-marches-on
     fn time_marches_on(&self) {
         // TODO: implement this.
@@ -1375,7 +1288,86 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-play
     fn Play(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.global());
-        self.play(&promise);
+        // Step 1.
+        // FIXME(nox): Reject promise if not allowed to play.
+
+        // Step 2.
+        if self
+            .error
+            .get()
+            .map_or(false, |e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
+        {
+            promise.reject_error(Error::NotSupported);
+            return promise;
+        }
+
+        // Step 3.
+        self.push_pending_play_promise(&promise);
+
+        // Step 4.
+        if self.network_state.get() == NetworkState::Empty {
+            self.invoke_resource_selection_algorithm();
+        }
+
+        // Step 5.
+        // FIXME(nox): Seek to earliest possible position if playback has ended
+        // and direction of playback is forwards.
+
+        let state = self.ready_state.get();
+
+        let window = window_from_node(self);
+        // FIXME(nox): Why are errors silenced here?
+        let task_source = window.task_manager().media_element_task_source();
+        if self.Paused() {
+            // Step 6.1.
+            self.paused.set(false);
+
+            // Step 6.2.
+            if self.show_poster.get() {
+                self.show_poster.set(false);
+                self.time_marches_on();
+            }
+
+            // Step 6.3.
+            task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
+
+            // Step 6.4.
+            match state {
+                ReadyState::HaveNothing |
+                ReadyState::HaveMetadata |
+                ReadyState::HaveCurrentData => {
+                    task_source.queue_simple_event(self.upcast(), atom!("waiting"), &window);
+                },
+                ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
+                    self.notify_about_playing();
+                },
+            }
+        } else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
+            // Step 7.
+            self.take_pending_play_promises(Ok(()));
+            let this = Trusted::new(self);
+            let generation_id = self.generation_id.get();
+            task_source
+                .queue(
+                    task!(resolve_pending_play_promises: move || {
+                        let this = this.root();
+                        if generation_id != this.generation_id.get() {
+                            return;
+                        }
+
+                        this.fulfill_in_flight_play_promises(|| {
+                            this.play_media();
+                        });
+                    }),
+                    window.upcast(),
+                )
+                .unwrap();
+        }
+
+        // Step 8.
+        self.autoplaying.set(false);
+
+        // Step 9.
         promise
     }
 
