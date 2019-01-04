@@ -84,7 +84,6 @@ impl TreeWalkerMethods for TreeWalker {
         match self.filter {
             Filter::None => None,
             Filter::Dom(ref nf) => Some(nf.clone()),
-            Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter"),
         }
     }
 
@@ -434,7 +433,6 @@ impl TreeWalker {
         match self.filter {
             // Step 4.
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
-            Filter::Native(f) => Ok((f)(node)),
             Filter::Dom(ref callback) => {
                 // Step 5.
                 self.active.set(true);
@@ -479,6 +477,5 @@ impl<'a> Iterator for &'a TreeWalker {
 #[derive(JSTraceable)]
 pub enum Filter {
     None,
-    Native(fn(node: &Node) -> u16),
     Dom(Rc<NodeFilter>),
 }

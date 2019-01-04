@@ -124,10 +124,6 @@ impl Worker {
         Ok(worker)
     }
 
-    pub fn is_closing(&self) -> bool {
-        self.closing.load(Ordering::SeqCst)
-    }
-
     pub fn is_terminated(&self) -> bool {
         self.terminated.get()
     }
