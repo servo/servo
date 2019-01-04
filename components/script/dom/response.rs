@@ -362,31 +362,26 @@ impl ResponseMethods for Response {
         self.body_used.get()
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-text
     fn Text(&self) -> Rc<Promise> {
         consume_body(self, BodyType::Text)
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-blob
     fn Blob(&self) -> Rc<Promise> {
         consume_body(self, BodyType::Blob)
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-formdata
     fn FormData(&self) -> Rc<Promise> {
         consume_body(self, BodyType::FormData)
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-json
     fn Json(&self) -> Rc<Promise> {
         consume_body(self, BodyType::Json)
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
     fn ArrayBuffer(&self) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer)

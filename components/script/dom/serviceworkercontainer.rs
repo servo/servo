@@ -51,9 +51,9 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         self.client.get_controller()
     }
 
+    #[allow(unrooted_must_root)] // Job is unrooted
     /// https://w3c.github.io/ServiceWorker/#service-worker-container-register-method and - A
     /// https://w3c.github.io/ServiceWorker/#start-register-algorithm - B
-    #[allow(unrooted_must_root)] // Job is unrooted
     fn Register(&self, script_url: USVString, options: &RegistrationOptions) -> Rc<Promise> {
         // A: Step 1
         let promise = Promise::new(&*self.global());
