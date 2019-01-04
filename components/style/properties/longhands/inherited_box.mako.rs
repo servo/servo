@@ -55,7 +55,6 @@ ${helpers.single_keyword(
     "color-adjust",
     "economy exact", products="gecko",
     gecko_enum_prefix="StyleColorAdjust",
-    gecko_pref="layout.css.color-adjust.enabled",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-color/#propdef-color-adjust",
 )}
