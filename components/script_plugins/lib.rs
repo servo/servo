@@ -42,5 +42,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_late_lint_pass(Box::new(unrooted_must_root::UnrootedPass::new()));
 
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
+    reg.register_attribute("allow_unrooted_in_rc".to_string(), Whitelisted);
     reg.register_attribute("must_root".to_string(), Whitelisted);
 }

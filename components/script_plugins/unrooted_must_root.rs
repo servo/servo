@@ -45,12 +45,24 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
     let mut ret = false;
     ty.maybe_walk(|t| {
         match t.sty {
-            ty::Adt(did, _) => {
+            ty::Adt(did, substs) => {
                 if cx.tcx.has_attr(did.did, "must_root") {
                     ret = true;
                     false
                 } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
                     false
+                } else if match_def_path(cx, did.did, &["alloc", "rc", "Rc"]) {
+                    // Rc<Promise> is okay
+                    let inner = substs.type_at(0);
+                    if let ty::Adt(did, _) = inner.sty {
+                        if cx.tcx.has_attr(did.did, "allow_unrooted_in_rc") {
+                            false
+                        } else {
+                            true
+                        }
+                    } else {
+                        true
+                    }
                 } else if match_def_path(cx, did.did, &["core", "cell", "Ref"]) ||
                     match_def_path(cx, did.did, &["core", "cell", "RefMut"]) ||
                     match_def_path(cx, did.did, &["core", "slice", "Iter"]) ||

@@ -35,6 +35,7 @@ use std::ptr;
 use std::rc::Rc;
 
 #[dom_struct]
+#[allow_unrooted_in_rc]
 pub struct Promise {
     reflector: Reflector,
     /// Since Promise values are natively reference counted without the knowledge of
