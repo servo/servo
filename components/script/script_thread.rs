@@ -24,6 +24,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
@@ -3320,8 +3321,8 @@ impl ScriptThread {
     fn handle_webvr_events(&self, pipeline_id: PipelineId, events: Vec<WebVREvent>) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let vr = window.Navigator().Vr();
-            vr.handle_webvr_events(events);
+            let xr = window.Navigator().Xr();
+            xr.handle_webvr_events(events);
         }
     }
 

@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VRBinding;
-use crate::dom::bindings::codegen::Bindings::VRBinding::VRMethods;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
+use crate::dom::bindings::codegen::Bindings::XRBinding;
+use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionCreationOptions;
+use crate::dom::bindings::codegen::Bindings::XRBinding::{XRMethods, XRSessionMode};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -18,6 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
+use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
@@ -26,44 +28,91 @@ use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVREvent, WebVRMsg};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
 
 #[dom_struct]
-pub struct VR {
-    reflector_: Reflector,
+pub struct XR {
+    eventtarget: EventTarget,
     displays: DomRefCell<Vec<Dom<VRDisplay>>>,
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
 }
 
-impl VR {
-    fn new_inherited() -> VR {
-        VR {
-            reflector_: Reflector::new(),
+impl XR {
+    fn new_inherited() -> XR {
+        XR {
+            eventtarget: EventTarget::new_inherited(),
             displays: DomRefCell::new(Vec::new()),
             gamepads: DomRefCell::new(Vec::new()),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<VR> {
-        let root = reflect_dom_object(Box::new(VR::new_inherited()), global, VRBinding::Wrap);
+    pub fn new(global: &GlobalScope) -> DomRoot<XR> {
+        let root = reflect_dom_object(Box::new(XR::new_inherited()), global, XRBinding::Wrap);
         root.register();
         root
     }
 }
 
-impl Drop for VR {
+impl Drop for XR {
     fn drop(&mut self) {
         self.unregister();
     }
 }
 
-impl VRMethods for VR {
+impl XRMethods for XR {
     #[allow(unrooted_must_root)]
-    // https://w3c.github.io/webvr/#interface-navigator
-    fn GetDisplays(&self) -> Rc<Promise> {
+    /// https://immersive-web.github.io/webxr/#dom-xr-supportssessionmode
+    fn SupportsSessionMode(&self, mode: XRSessionMode) -> Rc<Promise> {
+        // XXXManishearth this should select an XR device first
         let promise = Promise::new(&self.global());
+        if mode == XRSessionMode::Immersive_vr {
+            promise.resolve_native(&());
+        } else {
+            // XXXManishearth support other modes
+            promise.reject_error(Error::NotSupported);
+        }
 
+        promise
+    }
+
+    #[allow(unrooted_must_root)]
+    /// https://immersive-web.github.io/webxr/#dom-xr-requestsession
+    fn RequestSession(&self, options: &XRSessionCreationOptions) -> Rc<Promise> {
+        let promise = Promise::new(&self.global());
+        if options.mode != XRSessionMode::Immersive_vr {
+            promise.reject_error(Error::NotSupported);
+            return promise;
+        }
+
+        let displays = self.get_displays();
+
+        let displays = match displays {
+            Ok(d) => d,
+            Err(_) => {
+                promise.reject_native(&());
+                return promise;
+            },
+        };
+
+        // XXXManishearth filter for displays which can_present
+        if displays.is_empty() {
+            promise.reject_error(Error::Security);
+        }
+
+        let session = XRSession::new(&self.global(), &displays[0]);
+        promise.resolve_native(&session);
+        // whether or not we should initiate presentation is unclear
+        // https://github.com/immersive-web/webxr/issues/453
+
+        promise
+    }
+}
+
+impl XR {
+    pub fn get_displays(&self) -> Result<Vec<DomRoot<VRDisplay>>, ()> {
         if let Some(webvr_thread) = self.webvr_thread() {
             let (sender, receiver) =
                 ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             webvr_thread.send(WebVRMsg::GetDisplays(sender)).unwrap();
+
+            // FIXME(#22505) we should not block here and instead produce a promise
             match receiver.recv().unwrap() {
                 Ok(displays) => {
                     // Sync displays
@@ -71,31 +120,22 @@ impl VRMethods for VR {
                         self.sync_display(&display);
                     }
                 },
-                Err(e) => {
-                    promise.reject_native(&e);
-                    return promise;
-                },
+                Err(_) => return Err(()),
             }
         } else {
             // WebVR spec: The Promise MUST be rejected if WebVR is not enabled/supported.
-            promise.reject_error(Error::Security);
-            return promise;
+            return Err(());
         }
 
         // convert from Dom to DomRoot
-        let displays: Vec<DomRoot<VRDisplay>> = self
+        Ok(self
             .displays
             .borrow()
             .iter()
             .map(|d| DomRoot::from_ref(&**d))
-            .collect();
-        promise.resolve_native(&displays);
-
-        promise
+            .collect())
     }
-}
 
-impl VR {
     fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.global().as_window().webvr_thread()
     }
@@ -209,7 +249,7 @@ impl VR {
 }
 
 // Gamepad
-impl VR {
+impl XR {
     fn find_gamepad(&self, gamepad_id: u32) -> Option<DomRoot<Gamepad>> {
         self.gamepads
             .borrow()

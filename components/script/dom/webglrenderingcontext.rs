@@ -157,6 +157,7 @@ pub struct WebGLRenderingContext {
     current_scissor: Cell<(i32, i32, u32, u32)>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
+    size: Cell<Size2D<u32>>,
     extension_manager: WebGLExtensions,
     capabilities: Capabilities,
     default_vao: DomOnceCell<WebGLVertexArrayObjectOES>,
@@ -211,6 +212,9 @@ impl WebGLRenderingContext {
                 current_program: MutNullableDom::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
+                // FIXME(#21718) The backend is allowed to choose a size smaller than
+                // what was requested
+                size: Cell::new(size),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
                 extension_manager: WebGLExtensions::new(webgl_version),
                 capabilities: Default::default(),
@@ -266,6 +270,9 @@ impl WebGLRenderingContext {
     pub fn recreate(&self, size: Size2D<u32>) {
         let (sender, receiver) = webgl_channel().unwrap();
         self.webgl_sender.send_resize(size, sender).unwrap();
+        // FIXME(#21718) The backend is allowed to choose a size smaller than
+        // what was requested
+        self.size.set(size);
 
         if let Err(msg) = receiver.recv().unwrap() {
             error!("Error resizing WebGLContext: {}", msg);
@@ -338,6 +345,10 @@ impl WebGLRenderingContext {
         if self.last_error.get().is_none() {
             self.last_error.set(Some(err));
         }
+    }
+
+    pub fn size(&self) -> Size2D<u32> {
+        self.size.get()
     }
 
     // Helper function for validating framebuffer completeness in
