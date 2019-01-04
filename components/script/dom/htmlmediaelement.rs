@@ -4,6 +4,8 @@
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
+use crate::dom::audiotrack::AudioTrack;
+use crate::dom::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
@@ -15,6 +17,7 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethod
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
+use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -37,6 +40,9 @@ use crate::dom::promise::Promise;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
+use crate::dom::trackevent::TrackEvent;
+use crate::dom::videotrack::VideoTrack;
+use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskRunnable};
@@ -204,6 +210,10 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
     played: DomRefCell<TimeRangesContainer>,
+    // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
+    audio_tracks_list: MutNullableDom<AudioTrackList>,
+    // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
+    video_tracks_list: MutNullableDom<VideoTrackList>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
@@ -265,6 +275,8 @@ impl HTMLMediaElement {
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: DomRefCell::new(TimeRangesContainer::new()),
+            audio_tracks_list: Default::default(),
+            video_tracks_list: Default::default(),
             text_tracks_list: Default::default(),
             next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
             current_fetch_context: DomRefCell::new(None),
@@ -796,7 +808,8 @@ impl HTMLMediaElement {
                     )));
 
                     // Step 2.
-                    // FIXME(nox): Forget the media-resource-specific tracks.
+                    this.AudioTracks().clear();
+                    this.VideoTracks().clear();
 
                     // Step 3.
                     this.network_state.set(NetworkState::NoSource);
@@ -897,7 +910,8 @@ impl HTMLMediaElement {
             // FIXME(nox): Detach MediaSource media provider object.
 
             // Step 6.4.
-            // FIXME(nox): Forget the media-resource-specific tracks.
+            self.AudioTracks().clear();
+            self.VideoTracks().clear();
 
             // Step 6.5.
             if self.ready_state.get() != ReadyState::HaveNothing {
@@ -1220,6 +1234,118 @@ impl HTMLMediaElement {
             },
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+                // => If the media resource is found to have an audio track
+                if !metadata.audio_tracks.is_empty() {
+                    for (i, _track) in metadata.audio_tracks.iter().enumerate() {
+                        // Step 1.
+                        let kind = match i {
+                            0 => "main",
+                            _ => "",
+                        };
+                        let window = window_from_node(self);
+                        let audio_track = AudioTrack::new(
+                            &window,
+                            DOMString::new(),
+                            DOMString::from(kind),
+                            DOMString::new(),
+                            DOMString::new(),
+                        );
+
+                        // Step 2.
+                        self.AudioTracks().add(&audio_track);
+
+                        // Step 3.
+                        audio_track.set_enabled(false);
+
+                        // Step 4
+                        // https://www.w3.org/TR/media-frags/#media-fragment-syntax
+                        // https://github.com/servo/servo/issues/22366
+
+                        // Step 5. & 6,
+                        if audio_track.enabled() || self.AudioTracks().enabled_index().is_none() {
+                            let window = window_from_node(self);
+                            let task_source = window.task_manager().media_element_task_source();
+                            let this = Trusted::new(self);
+
+                            task_source
+                                .queue(
+                                    task!(media_track_change: move || {
+                                        let this = this.root();
+                                        this.AudioTracks().set_enabled(0, true);
+                                        this.upcast::<EventTarget>().fire_event(atom!("change"));
+                                    }),
+                                    window.upcast(),
+                                )
+                                .unwrap();
+                        }
+
+                        // Steps 7.
+                        TrackEvent::new(
+                            &self.global(),
+                            atom!("addtrack"),
+                            false,
+                            false,
+                            &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(audio_track)),
+                        );
+                    }
+                }
+
+                // => If the media resource is found to have a video track
+                if !metadata.video_tracks.is_empty() {
+                    for (i, _track) in metadata.video_tracks.iter().enumerate() {
+                        // Step 1.
+                        let kind = match i {
+                            0 => "main",
+                            _ => "",
+                        };
+                        let window = window_from_node(self);
+                        let video_track = VideoTrack::new(
+                            &window,
+                            DOMString::new(),
+                            DOMString::from(kind),
+                            DOMString::new(),
+                            DOMString::new(),
+                        );
+
+                        // Step 2.
+                        self.VideoTracks().add(&video_track);
+
+                        // Step 3.
+                        video_track.set_selected(false);
+
+                        // Step 4.
+                        // https://www.w3.org/TR/media-frags/#media-fragment-syntax
+                        // https://github.com/servo/servo/issues/22366
+
+                        // Step 5. & 6.
+                        if video_track.selected() || self.VideoTracks().selected_index().is_none() {
+                            let window = window_from_node(self);
+                            let task_source = window.task_manager().media_element_task_source();
+                            let this = Trusted::new(self);
+
+                            task_source
+                                .queue(
+                                    task!(media_track_change: move || {
+                                        let this = this.root();
+                                        this.VideoTracks().set_selected(0, true);
+                                        this.upcast::<EventTarget>().fire_event(atom!("change"));
+                                    }),
+                                    window.upcast(),
+                                )
+                                .unwrap();
+                        }
+
+                        // Steps 7.
+                        TrackEvent::new(
+                            &self.global(),
+                            atom!("addtrack"),
+                            false,
+                            false,
+                            &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(video_track)),
+                        );
+                    }
+                }
+
                 // => "Once enough of the media data has been fetched to determine the duration..."
                 // Step 1.
                 // servo-media owns the media timeline.
@@ -1280,7 +1406,43 @@ impl HTMLMediaElement {
                 //            https://www.w3.org/TR/media-frags/#media-fragment-syntax
                 //            https://github.com/servo/media/issues/156
 
-                // XXX Steps 12 and 13 require audio and video tracks support.
+                // Step 12
+                if !self.AudioTracks().is_empty() && self.AudioTracks().enabled_index().is_none() {
+                    let window = window_from_node(self);
+                    let this = Trusted::new(self);
+
+                    let _ = window
+                        .task_manager()
+                        .media_element_task_source()
+                        .queue(
+                            task!(media_track_change: move || {
+                                let this = this.root();
+                                this.AudioTracks().set_selected(0, true);
+                                this.upcast::<EventTarget>().fire_event(atom!("change"));
+                            }),
+                            window.upcast(),
+                        )
+                        .unwrap();
+                }
+
+                // Step 13
+                if !self.VideoTracks().is_empty() && self.VideoTracks().selected_index().is_none() {
+                    let window = window_from_node(self);
+                    let this = Trusted::new(self);
+
+                    let _ = window
+                        .task_manager()
+                        .media_element_task_source()
+                        .queue(
+                            task!(media_track_change: move || {
+                                let this = this.root();
+                                this.VideoTracks().set_selected(0, true);
+                                this.upcast::<EventTarget>().fire_event(atom!("change"));
+                            }),
+                            window.upcast(),
+                        )
+                        .unwrap();
+                }
             },
             PlayerEvent::NeedData => {
                 // The player needs more data.
@@ -1666,6 +1828,20 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             }
         }
         TimeRanges::new(self.global().as_window(), buffered)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
+    fn AudioTracks(&self) -> DomRoot<AudioTrackList> {
+        let window = window_from_node(self);
+        self.audio_tracks_list
+            .or_init(|| AudioTrackList::new(&window, &[]))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
+    fn VideoTracks(&self) -> DomRoot<VideoTrackList> {
+        let window = window_from_node(self);
+        self.video_tracks_list
+            .or_init(|| VideoTrackList::new(&window, &[]))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
