@@ -77,6 +77,5 @@ ${helpers.single_keyword(
     products="gecko",
     gecko_enum_prefix="StyleImageOrientation",
     animation_value_type="discrete",
-    gecko_pref="layout.css.image-orientation.enabled",
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation",
 )}
