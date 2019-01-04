@@ -307,7 +307,6 @@ impl VRDisplayMethods for VRDisplay {
         }
     }
 
-    #[allow(unrooted_must_root)]
     // https://w3c.github.io/webvr/#dom-vrdisplay-requestpresent
     fn RequestPresent(&self, layers: Vec<VRLayer>) -> Rc<Promise> {
         let promise = Promise::new(&self.global());
@@ -380,7 +379,6 @@ impl VRDisplayMethods for VRDisplay {
         promise
     }
 
-    #[allow(unrooted_must_root)]
     // https://w3c.github.io/webvr/#dom-vrdisplay-exitpresent
     fn ExitPresent(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.global());

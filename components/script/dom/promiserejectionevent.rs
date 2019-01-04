@@ -95,7 +95,6 @@ impl PromiseRejectionEvent {
 }
 
 impl PromiseRejectionEventMethods for PromiseRejectionEvent {
-    #[allow(unrooted_must_root)]
     // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-promise
     fn Promise(&self) -> Rc<Promise> {
         self.promise.clone()

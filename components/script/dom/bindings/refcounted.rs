@@ -91,7 +91,6 @@ impl TrustedPromise {
     /// Obtain a usable DOM Promise from a pinned `TrustedPromise` value. Fails if used on
     /// a different thread than the original value from which this `TrustedPromise` was
     /// obtained.
-    #[allow(unrooted_must_root)]
     pub fn root(self) -> Rc<Promise> {
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();

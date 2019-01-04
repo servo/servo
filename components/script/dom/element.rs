@@ -2571,7 +2571,6 @@ impl ElementMethods for Element {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
-    #[allow(unrooted_must_root)]
     fn RequestFullscreen(&self) -> Rc<Promise> {
         let doc = document_from_node(self);
         doc.enter_fullscreen(self)

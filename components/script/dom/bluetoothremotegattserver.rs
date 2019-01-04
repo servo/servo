@@ -68,7 +68,6 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
         self.connected.get()
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn Connect(&self) -> Rc<Promise> {
         // Step 1.
@@ -109,7 +108,6 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
         self.Device().garbage_collect_the_connection()
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Rc<Promise> {
         // Step 1 - 2.
@@ -124,7 +122,6 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
         )
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
     fn GetPrimaryServices(&self, service: Option<BluetoothServiceUUID>) -> Rc<Promise> {
         // Step 1 - 2.

@@ -1134,7 +1134,6 @@ impl WindowMethods for Window {
         mql
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(
         &self,

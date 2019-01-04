@@ -399,7 +399,6 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
-    #[allow(unrooted_must_root)]
     fn WhenDefined(&self, name: DOMString) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
         let name = LocalName::from(&*name);

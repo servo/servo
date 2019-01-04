@@ -62,7 +62,6 @@ pub enum BaseAudioContextOptions {
     OfflineAudioContext(OfflineAudioContextOptions),
 }
 
-#[must_root]
 #[derive(JSTraceable)]
 struct DecodeResolver {
     pub promise: Rc<Promise>,
@@ -147,7 +146,6 @@ impl BaseAudioContext {
         self.state.get() == AudioContextState::Suspended
     }
 
-    #[allow(unrooted_must_root)]
     fn push_pending_resume_promise(&self, promise: &Rc<Promise>) {
         self.pending_resume_promises
             .borrow_mut()
@@ -164,7 +162,6 @@ impl BaseAudioContext {
     /// Each call to this method must be followed by a call to
     /// `fulfill_in_flight_resume_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
-    #[allow(unrooted_must_root)]
     fn take_pending_resume_promises(&self, result: ErrorResult) {
         let pending_resume_promises =
             mem::replace(&mut *self.pending_resume_promises.borrow_mut(), vec![]);
@@ -271,7 +268,6 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
-    #[allow(unrooted_must_root)]
     fn Resume(&self) -> Rc<Promise> {
         // Step 1.
         let promise = Promise::new(&self.global());
@@ -397,7 +393,6 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-decodeaudiodata
-    #[allow(unrooted_must_root)]
     fn DecodeAudioData(
         &self,
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,

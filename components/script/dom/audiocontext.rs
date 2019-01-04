@@ -107,7 +107,6 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
-    #[allow(unrooted_must_root)]
     fn Suspend(&self) -> Rc<Promise> {
         // Step 1.
         let promise = Promise::new(&self.global());
@@ -169,7 +168,6 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-close
-    #[allow(unrooted_must_root)]
     fn Close(&self) -> Rc<Promise> {
         // Step 1.
         let promise = Promise::new(&self.global());
