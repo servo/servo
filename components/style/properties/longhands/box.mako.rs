@@ -389,7 +389,6 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "scroll-behavior",
     "auto smooth",
-    gecko_pref="layout.css.scroll-behavior.property-enabled",
     products="gecko",
     spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
     animation_value_type="discrete",
