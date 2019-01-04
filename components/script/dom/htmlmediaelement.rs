@@ -4,6 +4,7 @@
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
+use crate::dom::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
@@ -37,6 +38,7 @@ use crate::dom::promise::Promise;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
+use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskRunnable};
@@ -200,6 +202,10 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
     played: Rc<DomRefCell<TimeRangesContainer>>,
+    // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
+    audio_tracks_list: MutNullableDom<AudioTrackList>,
+    // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
+    video_tracks_list: MutNullableDom<VideoTrackList>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Expected content length of the media asset being fetched or played.
@@ -259,6 +265,8 @@ impl HTMLMediaElement {
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
+            audio_tracks_list: Default::default(),
+            video_tracks_list: Default::default(),
             text_tracks_list: Default::default(),
             content_length: Cell::new(None),
         }
@@ -1164,7 +1172,17 @@ impl HTMLMediaElement {
                 //            https://www.w3.org/TR/media-frags/#media-fragment-syntax
                 //            https://github.com/servo/media/issues/156
 
-                // XXX Steps 12 and 13 require audio and video tracks support.
+                // Step 12
+                let audio_tracks = self.audio_tracks_list.get().unwrap();
+                if !audio_tracks.is_empty() && audio_tracks.enabled_index() == -1 {
+                    audio_tracks.set_enabled(0, true);
+                }
+
+                // Step 13
+                let video_tracks = self.video_tracks_list.get().unwrap();
+                if !video_tracks.is_empty() && video_tracks.selected_index() == -1 {
+                    video_tracks.set_selected(0, true);
+                }
             },
             PlayerEvent::PositionChanged(position) => {
                 let position = position as f64;
@@ -1471,6 +1489,20 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-played
     fn Played(&self) -> DomRoot<TimeRanges> {
         TimeRanges::new(self.global().as_window(), self.played.clone())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
+    fn AudioTracks(&self) -> DomRoot<AudioTrackList> {
+        let window = window_from_node(self);
+        self.audio_tracks_list
+            .or_init(|| AudioTrackList::new(&window, &[]))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
+    fn VideoTracks(&self) -> DomRoot<VideoTrackList> {
+        let window = window_from_node(self);
+        self.video_tracks_list
+            .or_init(|| VideoTrackList::new(&window, &[]))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
