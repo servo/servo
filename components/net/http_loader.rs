@@ -60,6 +60,7 @@ use std::time::{Duration, SystemTime};
 use time::{self, Tm};
 use tokio::prelude::{future, Future, Stream};
 use tokio::runtime::Runtime;
+use url::percent_encoding::percent_decode;
 
 lazy_static! {
     pub static ref HANDLE: Mutex<Runtime> = { Mutex::new(Runtime::new().unwrap()) };
@@ -192,7 +193,7 @@ fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> 
         }
         return Some(referrer_url);
     }
-    return None;
+    None
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer>
@@ -412,17 +413,10 @@ fn obtain_response(
     // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
     // fetch passes the timing allow check
     let connect_start = precise_time_ms();
-    // https://url.spec.whatwg.org/#percent-encoded-bytes
+    let url_bytes = url.clone().into_url().as_ref().bytes().collect::<Vec<u8>>();
     let request = HyperRequest::builder()
         .method(method)
-        .uri(
-            url.clone()
-                .into_url()
-                .as_ref()
-                .replace("|", "%7C")
-                .replace("{", "%7B")
-                .replace("}", "%7D"),
-        )
+        .uri(percent_decode(&url_bytes).decode_utf8_lossy().into_owned())
         .body(WrappedBody::new(request_body.clone().into()));
 
     let mut request = match request {
