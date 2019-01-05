@@ -265,6 +265,7 @@ class Task:
         except taskcluster.TaskclusterRestFailure as e:
             if e.status_code != 404:  # pragma: no cover
                 raise
+            # FIXME: skip for untrusted tasks that don’t have the scope to do this?
             self.routes.append("index.%s.%s" % (CONFIG.index_prefix, index_path))
             task_id = self.create()
 
