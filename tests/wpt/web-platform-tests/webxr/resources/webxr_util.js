@@ -48,7 +48,7 @@ function xr_session_promise_test(
               })
               .then((device) => {
                 testDevice = device;
-                return gl.setCompatibleXRDevice(device);
+                return gl.makeXRCompatible();
               })
               .then(() => new Promise((resolve, reject) => {
                       // Perform the session request in a user gesture.

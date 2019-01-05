@@ -169,6 +169,12 @@ def run_tests(config, test_paths, product, **kwargs):
         test_total = 0
         unexpected_total = 0
 
+        if len(test_loader.test_ids) == 0:
+            logger.error("Unable to find any tests at the path(s):")
+            for path in kwargs["test_list"]:
+                logger.error("  %s" % path)
+            logger.error("Please check spelling and make sure there are tests in the specified path(s).")
+            return False
         kwargs["pause_after_test"] = get_pause_after_test(test_loader, **kwargs)
 
         ssl_config = {"type": kwargs["ssl_type"],

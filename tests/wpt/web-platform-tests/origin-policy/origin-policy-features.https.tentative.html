@@ -7,8 +7,8 @@
 <body>
   <script>
     async_test(t => {
-      assert_false(document.policy.allowsFeature('geolocation'));
-      assert_true(document.policy.allowsFeature('camera'));
+      assert_false(document.featurePolicy.allowsFeature('geolocation'));
+      assert_true(document.featurePolicy.allowsFeature('camera'));
       t.done();
     }, "Origin-Policy-based Feature policy");
   </script>

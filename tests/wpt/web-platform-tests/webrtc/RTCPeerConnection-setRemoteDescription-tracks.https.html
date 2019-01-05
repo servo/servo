@@ -95,7 +95,7 @@
       ontrackEventResolvers[ontrackEventsFired++].resolve(e);
     });
     await exchangeOffer(caller, callee);
-    let firstTrackEvent = await ontrackEventResolvers[0].promise;
+    let firstTrackEvent = await ontrackEventResolvers[0];
     assert_equals(firstTrackEvent.track.id,
                   localStreams[0].getTracks()[0].id,
                   'First ontrack\'s track ID matches first local track.');
@@ -104,7 +104,7 @@
     assert_equals(firstTrackEvent.streams[0].id,
                   localStreams[0].id,
                   'First ontrack\'s stream ID matches local stream.');
-    let secondTrackEvent = await ontrackEventResolvers[1].promise;
+    let secondTrackEvent = await ontrackEventResolvers[1];
     assert_equals(secondTrackEvent.track.id,
                   localStreams[1].getTracks()[0].id,
                   'Second ontrack\'s track ID matches second local track.');

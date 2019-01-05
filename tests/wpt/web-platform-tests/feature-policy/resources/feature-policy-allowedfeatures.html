@@ -2,6 +2,6 @@
 'use strict';
 
 window.onload = function() {
-  parent.postMessage(document.policy.allowedFeatures(), '*');
+  parent.postMessage(document.featurePolicy.allowedFeatures(), '*');
 }
 </script>
