@@ -18,8 +18,8 @@ function loadScripts(paths) {
 }
 
 function performChromiumSetup() {
-  // Make sure we are actually on Chromium.
-  if (!Mojo) {
+  // Make sure we are actually on Chromium with Mojo enabled.
+  if (typeof Mojo === 'undefined') {
     return;
   }
 

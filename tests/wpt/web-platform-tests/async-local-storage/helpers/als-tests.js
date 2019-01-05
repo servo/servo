@@ -19,7 +19,7 @@ export function testWithDefaultArea(testFn, description) {
 }
 
 // These two functions take a key/value and use them to test
-// set()/get()/delete()/has()/keys()/values()/entries(). The keyEqualityAsserter should be a
+// set()/get()/delete()/keys()/values()/entries(). The keyEqualityAsserter should be a
 // function from ./equality-asserters.js.
 
 export function testVariousMethodsWithDefaultArea(label, key, value, keyEqualityAsserter) {
@@ -35,7 +35,6 @@ function testVariousMethodsInner(key, value, keyEqualityAsserter) {
     await assertPromiseEquals(area.set(key, value), undefined, "set()", "undefined");
 
     await assertPromiseEquals(area.get(key), value, "get()", "the set value");
-    await assertPromiseEquals(area.has(key), true, "has()", "true");
 
     const keysPromise = area.keys();
     assertIsPromise(keysPromise, "keys()");
@@ -58,7 +57,6 @@ function testVariousMethodsInner(key, value, keyEqualityAsserter) {
     await assertPromiseEquals(area.delete(key), undefined, "delete()", "undefined");
 
     await assertPromiseEquals(area.get(key), undefined, "get()", "undefined after deleting");
-    await assertPromiseEquals(area.has(key), false, "has()", "false after deleting");
   };
 }
 

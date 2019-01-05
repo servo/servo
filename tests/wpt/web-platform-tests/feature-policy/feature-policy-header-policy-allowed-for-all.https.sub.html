@@ -15,7 +15,7 @@
   // Test that fullscreen's allowlist is ['*']
   test(function() {
     assert_array_equals(
-      document.policy.getAllowlistForFeature('fullscreen'),
+      document.featurePolicy.getAllowlistForFeature('fullscreen'),
       ['*']);
   }, header_policy + ' -- test allowlist is ['*']');
 

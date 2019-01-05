@@ -21,14 +21,13 @@ test(() => {
 
 test(() => {
   classAssert.propertyKeys(StorageArea.prototype, [
-    "constructor", "set", "get", "has", "delete", "clear",
+    "constructor", "set", "get", "delete", "clear",
     "keys", "values", "entries", "backingStore"
   ], []);
 
   classAssert.methods(StorageArea.prototype, {
     set: 2,
     get: 1,
-    has: 1,
     delete: 1,
     clear: 0,
     keys: 0,
@@ -43,7 +42,7 @@ test(() => {
 
 testWithArea(async area => {
   classAssert.propertyKeys(area, [], []);
-}, "Instances don't have any properties")
+}, "Instances don't have any properties");
 
 test(() => {
   assert_equals(storage instanceof StorageArea, true, "instanceof");
