@@ -25,7 +25,7 @@ html, body {
 
   // Sanity check.
   test(() => {
-    assert_false(document.policy.allowsFeature("vertical-scroll"),
+    assert_false(document.featurePolicy.allowsFeature("vertical-scroll"),
                  "Expected 'vertical-scroll' to be disabled.");
   }, "'vertical-scroll' disabled in main document.");
 

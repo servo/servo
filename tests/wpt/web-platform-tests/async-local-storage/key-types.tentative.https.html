@@ -32,7 +32,7 @@ const validKeys = {
   "an ArrayBuffer": [new Uint8Array([5, 6]).buffer, assertEqualArrayBuffers]
 };
 
-const methods = ["set", "get", "has", "delete"];
+const methods = ["delete", "get", "set"];
 
 for (const method of methods) {
   testWithArea(async (area, t) => {

@@ -1,6 +1,7 @@
 // Feature test to avoid timeouts
 function assert_feature_policy_supported() {
-  assert_not_equals(document.policy, undefined, 'Feature Policy is supported');
+  assert_not_equals(document.featurePolicy, undefined,
+                    'Feature Policy is supported');
 }
 // Tests whether a feature that is enabled/disabled by feature policy works
 // as expected.
@@ -257,7 +258,8 @@ function run_all_fp_tests_allow_all(
 // Arguments:
 //     expected_policy: A list of {feature, allowlist} pairs where the feature is
 //         enabled for every origin in the allowlist, in the |policy|.
-//     policy: Either a document.policy or a iframe.policy to be tested.
+//     policy: Either a document.featurePolicy or an iframe.featurePolicy to be
+//         tested.
 //     message: A short description of what policy is being tested.
 function test_allowlists(expected_policy, policy, message) {
   for (var allowlist of allowlists) {
@@ -409,7 +411,7 @@ function test_frame_policy(
   document.body.appendChild(frame);
   // frame_policy should be dynamically updated as allow and allowfullscreen is
   // updated.
-  var frame_policy = frame.policy;
+  var frame_policy = frame.featurePolicy;
   if (typeof allow !== 'undefined') {
     frame.setAttribute('allow', allow);
   }
