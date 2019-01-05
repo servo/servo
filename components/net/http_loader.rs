@@ -60,6 +60,7 @@ use std::time::{Duration, SystemTime};
 use time::{self, Tm};
 use tokio::prelude::{future, Future, Stream};
 use tokio::runtime::Runtime;
+use url::{percent_encoding::percent_decode, Url};
 
 lazy_static! {
     pub static ref HANDLE: Mutex<Runtime> = { Mutex::new(Runtime::new().unwrap()) };
@@ -192,7 +193,26 @@ fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> 
         }
         return Some(referrer_url);
     }
-    return None;
+    None
+}
+
+fn percent_decode_path_and_fragment(url: &mut Url) -> &mut Url {
+    if let Some(decoded_path) = percent_decode(url.path().as_bytes())
+        .if_any()
+        .and_then(|bytes| String::from_utf8(bytes).ok())
+    {
+        url.set_path(&decoded_path);
+    }
+
+    if let Some(decoded_query) = url
+        .query()
+        .and_then(|query| percent_decode(query.as_bytes()).if_any())
+        .and_then(|bytes| String::from_utf8(bytes).ok())
+    {
+        url.set_query(Some(&decoded_query));
+    }
+
+    url
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer>
@@ -412,17 +432,9 @@ fn obtain_response(
     // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
     // fetch passes the timing allow check
     let connect_start = precise_time_ms();
-    // https://url.spec.whatwg.org/#percent-encoded-bytes
     let request = HyperRequest::builder()
         .method(method)
-        .uri(
-            url.clone()
-                .into_url()
-                .as_ref()
-                .replace("|", "%7C")
-                .replace("{", "%7B")
-                .replace("}", "%7D"),
-        )
+        .uri(percent_decode_path_and_fragment(&mut url.as_url().clone()).as_str())
         .body(WrappedBody::new(request_body.clone().into()));
 
     let mut request = match request {
