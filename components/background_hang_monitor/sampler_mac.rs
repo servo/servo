@@ -112,6 +112,9 @@ unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
         if let Err(()) = native_stack.process_register(*pc, *stack) {
             break;
         }
+        if next <= current {
+            break;
+        }
         current = next;
     }
     native_stack
