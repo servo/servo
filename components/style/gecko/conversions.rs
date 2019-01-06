@@ -20,7 +20,7 @@ use crate::stylesheets::{Origin, RulesMutateError};
 use crate::values::computed::image::LineDirection;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
-use crate::values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
+use crate::values::computed::{Angle, Gradient, Image};
 use crate::values::computed::{Integer, LengthOrPercentage};
 use crate::values::computed::{LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto};
 use crate::values::computed::{Percentage, TextAlign};
@@ -31,9 +31,10 @@ use crate::values::generics::rect::Rect;
 use crate::values::generics::NonNegative;
 use app_units::Au;
 use std::f32::consts::PI;
+use style_traits::values::specified::AllowedNumericType;
 
-impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
-    fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
+impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
+    fn from(other: LengthOrPercentage) -> nsStyleCoord_CalcValue {
         let has_percentage = other.percentage.is_some();
         nsStyleCoord_CalcValue {
             mLength: other.unclamped_length().to_i32_au(),
@@ -43,32 +44,19 @@ impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     }
 }
 
-impl From<nsStyleCoord_CalcValue> for CalcLengthOrPercentage {
-    fn from(other: nsStyleCoord_CalcValue) -> CalcLengthOrPercentage {
+impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
+    fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentage {
         let percentage = if other.mHasPercent {
             Some(Percentage(other.mPercent))
         } else {
             None
         };
-        Self::new(Au(other.mLength).into(), percentage)
-    }
-}
-
-impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
-    fn from(other: LengthOrPercentage) -> nsStyleCoord_CalcValue {
-        match other {
-            LengthOrPercentage::Length(px) => nsStyleCoord_CalcValue {
-                mLength: px.to_i32_au(),
-                mPercent: 0.0,
-                mHasPercent: false,
-            },
-            LengthOrPercentage::Percentage(pc) => nsStyleCoord_CalcValue {
-                mLength: 0,
-                mPercent: pc.0,
-                mHasPercent: true,
-            },
-            LengthOrPercentage::Calc(calc) => calc.into(),
-        }
+        Self::with_clamping_mode(
+            Au(other.mLength).into(),
+            percentage,
+            AllowedNumericType::All,
+            /* was_calc = */ true,
+        )
     }
 }
 
@@ -76,39 +64,15 @@ impl LengthOrPercentageOrAuto {
     /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
     pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
         match *self {
-            LengthOrPercentageOrAuto::Length(px) => Some(nsStyleCoord_CalcValue {
-                mLength: px.to_i32_au(),
-                mPercent: 0.0,
-                mHasPercent: false,
-            }),
-            LengthOrPercentageOrAuto::Percentage(pc) => Some(nsStyleCoord_CalcValue {
-                mLength: 0,
-                mPercent: pc.0,
-                mHasPercent: true,
-            }),
-            LengthOrPercentageOrAuto::Calc(calc) => Some(calc.into()),
+            LengthOrPercentageOrAuto::LengthOrPercentage(len) => Some(From::from(len)),
             LengthOrPercentageOrAuto::Auto => None,
-        }
-    }
-}
-
-impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
-    fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentage {
-        match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentage::Length(Au(other.mLength).into()),
-            (true, 0) => LengthOrPercentage::Percentage(Percentage(other.mPercent)),
-            _ => LengthOrPercentage::Calc(other.into()),
         }
     }
 }
 
 impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentageOrAuto {
-        match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength).into()),
-            (true, 0) => LengthOrPercentageOrAuto::Percentage(Percentage(other.mPercent)),
-            _ => LengthOrPercentageOrAuto::Calc(other.into()),
-        }
+        LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::from(other))
     }
 }
 
@@ -116,9 +80,8 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
 // disappear as we move more stuff to cbindgen.
 impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> Self {
-        use style_traits::values::specified::AllowedNumericType;
-        NonNegative(if other.mLength < 0 || other.mPercent < 0. {
-            LengthOrPercentageOrAuto::Calc(CalcLengthOrPercentage::with_clamping_mode(
+        NonNegative(
+            LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::with_clamping_mode(
                 Au(other.mLength).into(),
                 if other.mHasPercent {
                     Some(Percentage(other.mPercent))
@@ -126,10 +89,9 @@ impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
                     None
                 },
                 AllowedNumericType::NonNegative,
+                /* was_calc = */ true,
             ))
-        } else {
-            other.into()
-        })
+        )
     }
 }
 
@@ -143,20 +105,13 @@ fn line_direction(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) 
     use crate::values::computed::position::Position;
     use crate::values::specified::position::{X, Y};
 
-    let horizontal_percentage = match horizontal {
-        LengthOrPercentage::Percentage(percentage) => Some(percentage.0),
-        _ => None,
-    };
-
-    let vertical_percentage = match vertical {
-        LengthOrPercentage::Percentage(percentage) => Some(percentage.0),
-        _ => None,
-    };
+    let horizontal_percentage = horizontal.as_percentage();
+    let vertical_percentage = vertical.as_percentage();
 
     let horizontal_as_corner = horizontal_percentage.and_then(|percentage| {
-        if percentage == 0.0 {
+        if percentage.0 == 0.0 {
             Some(X::Left)
-        } else if percentage == 1.0 {
+        } else if percentage.0 == 1.0 {
             Some(X::Right)
         } else {
             None
@@ -164,9 +119,9 @@ fn line_direction(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) 
     });
 
     let vertical_as_corner = vertical_percentage.and_then(|percentage| {
-        if percentage == 0.0 {
+        if percentage.0 == 0.0 {
             Some(Y::Top)
-        } else if percentage == 1.0 {
+        } else if percentage.0 == 1.0 {
             Some(Y::Bottom)
         } else {
             None
@@ -178,13 +133,13 @@ fn line_direction(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) 
     }
 
     if let Some(hc) = horizontal_as_corner {
-        if vertical_percentage == Some(0.5) {
+        if vertical_percentage == Some(Percentage(0.5)) {
             return LineDirection::Horizontal(hc);
         }
     }
 
     if let Some(vc) = vertical_as_corner {
-        if horizontal_percentage == Some(0.5) {
+        if horizontal_percentage == Some(Percentage(0.5)) {
             return LineDirection::Vertical(vc);
         }
     }

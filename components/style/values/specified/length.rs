@@ -789,6 +789,12 @@ impl LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
+    #[inline]
+    /// Returns a `0%` value.
+    pub fn zero_percent() -> LengthOrPercentage {
+        LengthOrPercentage::Percentage(computed::Percentage::zero())
+    }
+
     fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -898,24 +904,8 @@ impl IsZeroLength for LengthOrPercentage {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum LengthOrPercentageOrAuto {
-    Length(NoCalcLength),
-    Percentage(computed::Percentage),
+    LengthOrPercentage(LengthOrPercentage),
     Auto,
-    Calc(Box<CalcLengthOrPercentage>),
-}
-
-impl From<NoCalcLength> for LengthOrPercentageOrAuto {
-    #[inline]
-    fn from(len: NoCalcLength) -> Self {
-        LengthOrPercentageOrAuto::Length(len)
-    }
-}
-
-impl From<computed::Percentage> for LengthOrPercentageOrAuto {
-    #[inline]
-    fn from(pc: computed::Percentage) -> Self {
-        LengthOrPercentageOrAuto::Percentage(pc)
-    }
 }
 
 impl LengthOrPercentageOrAuto {
@@ -925,48 +915,16 @@ impl LengthOrPercentageOrAuto {
         num_context: AllowedNumericType,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove early returns when lifetimes are non-lexical
-        {
-            let location = input.current_source_location();
-            let token = input.next()?;
-            match *token {
-                Token::Dimension {
-                    value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) => {
-                    return NoCalcLength::parse_dimension(context, value, unit)
-                        .map(LengthOrPercentageOrAuto::Length)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
-                },
-                Token::Percentage { unit_value, .. }
-                    if num_context.is_ok(context.parsing_mode, unit_value) =>
-                {
-                    return Ok(LengthOrPercentageOrAuto::Percentage(computed::Percentage(
-                        unit_value,
-                    )));
-                }
-                Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. &&
-                        !context.parsing_mode.allows_unitless_lengths() &&
-                        !allow_quirks.allowed(context.quirks_mode)
-                    {
-                        return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                    }
-                    return Ok(LengthOrPercentageOrAuto::Length(NoCalcLength::Absolute(
-                        AbsoluteLength::Px(value),
-                    )));
-                },
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") => {
-                    return Ok(LengthOrPercentageOrAuto::Auto);
-                },
-                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-                _ => return Err(location.new_unexpected_token_error(token.clone())),
-            }
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(LengthOrPercentageOrAuto::Auto);
         }
 
-        let calc = input.parse_nested_block(|i| {
-            CalcNode::parse_length_or_percentage(context, i, num_context)
-        })?;
-        Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
+        Ok(LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::parse_internal(
+            context,
+            input,
+            num_context,
+            allow_quirks,
+        )?))
     }
 
     /// Parse a non-negative length, percentage, or auto.
@@ -1000,13 +958,13 @@ impl LengthOrPercentageOrAuto {
 
     /// Returns a value representing a `0` length.
     pub fn zero() -> Self {
-        LengthOrPercentageOrAuto::Length(NoCalcLength::zero())
+        LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::zero())
     }
 
     /// Returns a value representing `0%`.
     #[inline]
     pub fn zero_percent() -> Self {
-        LengthOrPercentageOrAuto::Percentage(computed::Percentage::zero())
+        LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::zero_percent())
     }
 
     /// Parses, with quirks.
@@ -1076,9 +1034,7 @@ impl Parse for NonNegativeLengthOrPercentageOrAuto {
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 #[allow(missing_docs)]
 pub enum LengthOrPercentageOrNone {
-    Length(NoCalcLength),
-    Percentage(computed::Percentage),
-    Calc(Box<CalcLengthOrPercentage>),
+    LengthOrPercentage(LengthOrPercentage),
     None,
 }
 
@@ -1089,48 +1045,16 @@ impl LengthOrPercentageOrNone {
         num_context: AllowedNumericType,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove early returns when lifetimes are non-lexical
-        {
-            let location = input.current_source_location();
-            let token = input.next()?;
-            match *token {
-                Token::Dimension {
-                    value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) => {
-                    return NoCalcLength::parse_dimension(context, value, unit)
-                        .map(LengthOrPercentageOrNone::Length)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
-                },
-                Token::Percentage { unit_value, .. }
-                    if num_context.is_ok(context.parsing_mode, unit_value) =>
-                {
-                    return Ok(LengthOrPercentageOrNone::Percentage(computed::Percentage(
-                        unit_value,
-                    )));
-                }
-                Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. &&
-                        !context.parsing_mode.allows_unitless_lengths() &&
-                        !allow_quirks.allowed(context.quirks_mode)
-                    {
-                        return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                    }
-                    return Ok(LengthOrPercentageOrNone::Length(NoCalcLength::Absolute(
-                        AbsoluteLength::Px(value),
-                    )));
-                },
-                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("none") => {
-                    return Ok(LengthOrPercentageOrNone::None);
-                },
-                _ => return Err(location.new_unexpected_token_error(token.clone())),
-            }
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(LengthOrPercentageOrNone::None);
         }
 
-        let calc = input.parse_nested_block(|i| {
-            CalcNode::parse_length_or_percentage(context, i, num_context)
-        })?;
-        Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
+        Ok(LengthOrPercentageOrNone::LengthOrPercentage(LengthOrPercentage::parse_internal(
+            context,
+            input,
+            num_context,
+            allow_quirks,
+        )?))
     }
 
     /// Parse a non-negative LengthOrPercentageOrNone.

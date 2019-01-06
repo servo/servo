@@ -323,12 +323,12 @@ where
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             OriginComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(ComputedPercentage(0.5))
+                ComputedLengthOrPercentage::new_percent(ComputedPercentage(0.5))
             },
             OriginComponent::Length(ref length) => length.to_computed_value(context),
             OriginComponent::Side(ref keyword) => {
                 let p = ComputedPercentage(if keyword.is_start() { 0. } else { 1. });
-                ComputedLengthOrPercentage::Percentage(p)
+                ComputedLengthOrPercentage::new_percent(p)
             },
         }
     }

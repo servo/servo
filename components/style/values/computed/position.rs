@@ -28,8 +28,8 @@ impl Position {
     #[inline]
     pub fn center() -> Self {
         Self::new(
-            LengthOrPercentage::Percentage(Percentage(0.5)),
-            LengthOrPercentage::Percentage(Percentage(0.5)),
+            LengthOrPercentage::new_percent(Percentage(0.5)),
+            LengthOrPercentage::new_percent(Percentage(0.5)),
         )
     }
 

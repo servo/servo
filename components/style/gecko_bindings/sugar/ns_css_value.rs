@@ -69,11 +69,14 @@ impl nsCSSValue {
 
     /// Sets LengthOrPercentage value to this nsCSSValue.
     pub unsafe fn set_lop(&mut self, lop: LengthOrPercentage) {
-        match lop {
-            LengthOrPercentage::Length(px) => self.set_px(px.px()),
-            LengthOrPercentage::Percentage(pc) => self.set_percentage(pc.0),
-            LengthOrPercentage::Calc(calc) => bindings::Gecko_CSSValue_SetCalc(self, calc.into()),
+        if lop.was_calc {
+            return bindings::Gecko_CSSValue_SetCalc(self, lop.into())
         }
+        debug_assert!(lop.percentage.is_none() || lop.unclamped_length() == Length::zero());
+        if let Some(p) = lop.percentage {
+            return self.set_percentage(p.0);
+        }
+        self.set_px(lop.unclamped_length().px());
     }
 
     /// Sets a px value to this nsCSSValue.
@@ -90,13 +93,16 @@ impl nsCSSValue {
     pub unsafe fn get_lop(&self) -> LengthOrPercentage {
         match self.mUnit {
             nsCSSUnit::eCSSUnit_Pixel => {
-                LengthOrPercentage::Length(Length::new(bindings::Gecko_CSSValue_GetNumber(self)))
+                LengthOrPercentage::new(
+                    Length::new(bindings::Gecko_CSSValue_GetNumber(self)),
+                    None,
+                )
             },
-            nsCSSUnit::eCSSUnit_Percent => LengthOrPercentage::Percentage(Percentage(
+            nsCSSUnit::eCSSUnit_Percent => LengthOrPercentage::new_percent(Percentage(
                 bindings::Gecko_CSSValue_GetPercentage(self),
             )),
             nsCSSUnit::eCSSUnit_Calc => {
-                LengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
+                bindings::Gecko_CSSValue_GetCalc(self).into()
             },
             _ => panic!("Unexpected unit"),
         }

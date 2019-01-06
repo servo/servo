@@ -5,7 +5,7 @@
 //! `<length>` computed values, and related ones.
 
 use super::{Context, Number, Percentage, ToComputedValue};
-use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
+use crate::values::animated::{ToAnimatedValue};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::length::MaxLength as GenericMaxLength;
 use crate::values::generics::length::MozLength as GenericMozLength;
@@ -68,15 +68,38 @@ impl ToComputedValue for specified::Length {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedZero)]
-pub struct CalcLengthOrPercentage {
+#[derive(Clone, Copy, Debug, MallocSizeOf, ToAnimatedZero)]
+pub struct LengthOrPercentage {
     #[animation(constant)]
     pub clamping_mode: AllowedNumericType,
     length: Length,
     pub percentage: Option<Percentage>,
+    /// Whether this was from a calc() expression. This is needed because right
+    /// now we don't treat calc() the same way as non-calc everywhere, but
+    /// that's a bug in most cases.
+    ///
+    /// Please don't add new uses of this that aren't for converting to Gecko's
+    /// representation, or to interpolate values.
+    ///
+    /// See https://github.com/w3c/csswg-drafts/issues/3482.
+    #[animation(constant)]
+    pub was_calc: bool,
 }
 
-impl ComputeSquaredDistance for CalcLengthOrPercentage {
+// FIXME(emilio): This is a bit of a hack that can disappear as soon as we share
+// representation of LengthOrPercentage with Gecko. The issue here is that Gecko
+// uses CalcValue to represent position components, so they always come back as
+// was_calc == true, and we mess up in the transitions code.
+//
+// This was a pre-existing bug, though arguably so only in pretty obscure cases
+// like calc(0px + 5%) and such.
+impl PartialEq for LengthOrPercentage {
+    fn eq(&self, other: &Self) -> bool {
+        self.length == other.length && self.percentage == other.percentage
+    }
+}
+
+impl ComputeSquaredDistance for LengthOrPercentage {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         // FIXME(nox): This looks incorrect to me, to add a distance between lengths
@@ -89,24 +112,36 @@ impl ComputeSquaredDistance for CalcLengthOrPercentage {
     }
 }
 
-impl CalcLengthOrPercentage {
-    /// Returns a new `CalcLengthOrPercentage`.
+impl LengthOrPercentage {
+    /// Returns a new `LengthOrPercentage`.
     #[inline]
     pub fn new(length: Length, percentage: Option<Percentage>) -> Self {
-        Self::with_clamping_mode(length, percentage, AllowedNumericType::All)
+        Self::with_clamping_mode(
+            length,
+            percentage,
+            AllowedNumericType::All,
+            /* was_calc = */ false,
+        )
     }
 
-    /// Returns a new `CalcLengthOrPercentage` with a specific clamping mode.
+    /// Returns a new `LengthOrPercentage` with zero length and some percentage.
+    pub fn new_percent(percentage: Percentage) -> Self {
+        Self::new(Length::zero(), Some(percentage))
+    }
+
+    /// Returns a new `LengthOrPercentage` with a specific clamping mode.
     #[inline]
     pub fn with_clamping_mode(
         length: Length,
         percentage: Option<Percentage>,
         clamping_mode: AllowedNumericType,
+        was_calc: bool,
     ) -> Self {
         Self {
             clamping_mode,
             length,
             percentage,
+            was_calc,
         }
     }
 
@@ -131,22 +166,38 @@ impl CalcLengthOrPercentage {
         self.length
     }
 
+
     /// Return the percentage value as CSSFloat.
     #[inline]
     pub fn percentage(&self) -> CSSFloat {
         self.percentage.map_or(0., |p| p.0)
     }
 
+    /// Returns the percentage component if this could be represented as a
+    /// non-calc percentage.
+    pub fn as_percentage(&self) -> Option<Percentage> {
+        if self.length.px() != 0. {
+            return None;
+        }
+
+        let p = self.percentage?;
+        if self.clamping_mode.clamp(p.0) != p.0 {
+            return None;
+        }
+
+        Some(p)
+    }
+
     /// Convert the computed value into used value.
     #[inline]
-    pub fn to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
-        self.to_pixel_length(container_len).map(Au::from)
+    pub fn maybe_to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
+        self.maybe_to_pixel_length(container_len).map(Au::from)
     }
 
     /// If there are special rules for computing percentages in a value (e.g.
     /// the height property), they apply whenever a calc() expression contains
     /// percentages.
-    pub fn to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
+    pub fn maybe_to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
         match (container_len, self.percentage) {
             (Some(len), Some(percent)) => {
                 let pixel = self.length.px() + len.scale_by(percent.0).to_f32_px();
@@ -158,81 +209,12 @@ impl CalcLengthOrPercentage {
     }
 }
 
-impl From<LengthOrPercentage> for CalcLengthOrPercentage {
-    fn from(len: LengthOrPercentage) -> CalcLengthOrPercentage {
-        match len {
-            LengthOrPercentage::Percentage(this) => {
-                CalcLengthOrPercentage::new(Length::new(0.), Some(this))
-            },
-            LengthOrPercentage::Length(this) => CalcLengthOrPercentage::new(this, None),
-            LengthOrPercentage::Calc(this) => this,
-        }
-    }
-}
-
-impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
-    fn from(len: LengthOrPercentageOrAuto) -> Option<CalcLengthOrPercentage> {
-        match len {
-            LengthOrPercentageOrAuto::Percentage(this) => {
-                Some(CalcLengthOrPercentage::new(Length::new(0.), Some(this)))
-            },
-            LengthOrPercentageOrAuto::Length(this) => Some(CalcLengthOrPercentage::new(this, None)),
-            LengthOrPercentageOrAuto::Calc(this) => Some(this),
-            LengthOrPercentageOrAuto::Auto => None,
-        }
-    }
-}
-
-impl From<LengthOrPercentageOrNone> for Option<CalcLengthOrPercentage> {
-    fn from(len: LengthOrPercentageOrNone) -> Option<CalcLengthOrPercentage> {
-        match len {
-            LengthOrPercentageOrNone::Percentage(this) => {
-                Some(CalcLengthOrPercentage::new(Length::new(0.), Some(this)))
-            },
-            LengthOrPercentageOrNone::Length(this) => Some(CalcLengthOrPercentage::new(this, None)),
-            LengthOrPercentageOrNone::Calc(this) => Some(this),
-            LengthOrPercentageOrNone::None => None,
-        }
-    }
-}
-
-impl ToCss for CalcLengthOrPercentage {
+impl ToCss for LengthOrPercentage {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
-        use num_traits::Zero;
-
-        let length = self.unclamped_length();
-        match self.percentage {
-            Some(p) => {
-                if length.px() == 0. && self.clamping_mode.clamp(p.0) == p.0 {
-                    return p.to_css(dest);
-                }
-            },
-            None => {
-                if self.clamping_mode.clamp(length.px()) == length.px() {
-                    return length.to_css(dest);
-                }
-            },
-        }
-
-        dest.write_str("calc(")?;
-        if let Some(percentage) = self.percentage {
-            percentage.to_css(dest)?;
-            if length.px() != 0. {
-                dest.write_str(if length.px() < Zero::zero() {
-                    " - "
-                } else {
-                    " + "
-                })?;
-                length.abs().to_css(dest)?;
-            }
-        } else {
-            length.to_css(dest)?;
-        }
-
-        dest.write_str(")")
+        specified::LengthOrPercentage::from_computed_value(self).to_css(dest)
     }
 }
 
@@ -243,7 +225,7 @@ impl specified::CalcLengthOrPercentage {
         context: &Context,
         zoom_fn: F,
         base_size: FontBaseSize,
-    ) -> CalcLengthOrPercentage
+    ) -> LengthOrPercentage
     where
         F: Fn(Length) -> Length,
     {
@@ -277,10 +259,11 @@ impl specified::CalcLengthOrPercentage {
             }
         }
 
-        CalcLengthOrPercentage {
+        LengthOrPercentage {
             clamping_mode: self.clamping_mode,
             length: Length::new(length.min(f32::MAX).max(f32::MIN)),
             percentage: self.percentage,
+            was_calc: true,
         }
     }
 
@@ -289,7 +272,7 @@ impl specified::CalcLengthOrPercentage {
         &self,
         context: &Context,
         base_size: FontBaseSize,
-    ) -> CalcLengthOrPercentage {
+    ) -> LengthOrPercentage {
         self.to_computed_value_with_zoom(
             context,
             |abs| context.maybe_zoom_text(abs.into()).0,
@@ -324,15 +307,15 @@ impl specified::CalcLengthOrPercentage {
 }
 
 impl ToComputedValue for specified::CalcLengthOrPercentage {
-    type ComputedValue = CalcLengthOrPercentage;
+    type ComputedValue = LengthOrPercentage;
 
-    fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
+    fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
         // normal properties don't zoom, and compute em units against the current style's font-size
         self.to_computed_value_with_zoom(context, |abs| abs, FontBaseSize::CurrentStyle)
     }
 
     #[inline]
-    fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
+    fn from_computed_value(computed: &LengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
             clamping_mode: computed.clamping_mode,
             absolute: Some(AbsoluteLength::from_computed_value(&computed.length)),
@@ -342,95 +325,33 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     }
 }
 
-#[allow(missing_docs)]
-#[animate(fallback = "Self::animate_fallback")]
-#[css(derive_debug)]
-#[derive(
-    Animate,
-    Clone,
-    ComputeSquaredDistance,
-    Copy,
-    MallocSizeOf,
-    PartialEq,
-    ToAnimatedValue,
-    ToAnimatedZero,
-    ToCss,
-)]
-#[distance(fallback = "Self::compute_squared_distance_fallback")]
-pub enum LengthOrPercentage {
-    Length(Length),
-    Percentage(Percentage),
-    Calc(CalcLengthOrPercentage),
-}
-
-impl LengthOrPercentage {
-    /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
-    fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        // Special handling for zero values since these should not require calc().
-        if self.is_definitely_zero() {
-            return other.to_animated_zero()?.animate(other, procedure);
-        }
-        if other.is_definitely_zero() {
-            return self.animate(&self.to_animated_zero()?, procedure);
-        }
-
-        let this = CalcLengthOrPercentage::from(*self);
-        let other = CalcLengthOrPercentage::from(*other);
-        Ok(LengthOrPercentage::Calc(this.animate(&other, procedure)?))
-    }
-
-    #[inline]
-    fn compute_squared_distance_fallback(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        CalcLengthOrPercentage::compute_squared_distance(&(*self).into(), &(*other).into())
-    }
-}
-
-impl From<Au> for LengthOrPercentage {
-    #[inline]
-    fn from(length: Au) -> Self {
-        LengthOrPercentage::Length(length.into())
-    }
-}
-
 impl LengthOrPercentage {
     #[inline]
     #[allow(missing_docs)]
     pub fn zero() -> LengthOrPercentage {
-        LengthOrPercentage::Length(Length::new(0.))
+        LengthOrPercentage::new(Length::new(0.), None)
     }
 
-    #[inline]
     /// 1px length value for SVG defaults
+    #[inline]
     pub fn one() -> LengthOrPercentage {
-        LengthOrPercentage::Length(Length::new(1.))
+        LengthOrPercentage::new(Length::new(1.), None)
     }
 
     /// Returns true if the computed value is absolute 0 or 0%.
-    ///
-    /// (Returns false for calc() values, even if ones that may resolve to zero.)
     #[inline]
     pub fn is_definitely_zero(&self) -> bool {
-        use self::LengthOrPercentage::*;
-        match *self {
-            Length(l) => l.px() == 0.0,
-            Percentage(p) => p.0 == 0.0,
-            Calc(_) => false,
-        }
+        self.unclamped_length().px() == 0.0 && self.percentage.map_or(true, |p| p.0 == 0.0)
     }
 
     // CSSFloat doesn't implement Hash, so does CSSPixelLength. Therefore, we still use Au as the
     // hash key.
     #[allow(missing_docs)]
     pub fn to_hash_key(&self) -> (Au, NotNan<f32>) {
-        use self::LengthOrPercentage::*;
-        match *self {
-            Length(l) => (Au::from(l), NotNan::new(0.0).unwrap()),
-            Percentage(p) => (Au(0), NotNan::new(p.0).unwrap()),
-            Calc(c) => (
-                Au::from(c.unclamped_length()),
-                NotNan::new(c.percentage()).unwrap(),
-            ),
-        }
+        (
+            Au::from(self.unclamped_length()),
+            NotNan::new(self.percentage()).unwrap(),
+        )
     }
 
     /// Returns the used value.
@@ -440,27 +361,40 @@ impl LengthOrPercentage {
 
     /// Returns the used value as CSSPixelLength.
     pub fn to_pixel_length(&self, containing_length: Au) -> Length {
-        match *self {
-            LengthOrPercentage::Length(length) => length,
-            LengthOrPercentage::Percentage(p) => containing_length.scale_by(p.0).into(),
-            LengthOrPercentage::Calc(ref calc) => {
-                calc.to_pixel_length(Some(containing_length)).unwrap()
-            },
-        }
+        self.maybe_to_pixel_length(Some(containing_length)).unwrap()
     }
 
     /// Returns the clamped non-negative values.
+    ///
+    /// TODO(emilio): It's a bit unfortunate that this depends on whether the
+    /// value was a `calc()` value or not. Should it?
     #[inline]
     pub fn clamp_to_non_negative(self) -> Self {
-        match self {
-            LengthOrPercentage::Length(length) => {
-                LengthOrPercentage::Length(length.clamp_to_non_negative())
-            },
-            LengthOrPercentage::Percentage(percentage) => {
-                LengthOrPercentage::Percentage(percentage.clamp_to_non_negative())
-            },
-            _ => self,
+        if self.was_calc {
+            return Self::with_clamping_mode(
+                self.length,
+                self.percentage,
+                AllowedNumericType::NonNegative,
+                self.was_calc,
+            )
         }
+
+        debug_assert!(self.percentage.is_none() || self.unclamped_length() == Length::zero());
+        if let Some(p) = self.percentage {
+            return Self::with_clamping_mode(
+                Length::zero(),
+                Some(p.clamp_to_non_negative()),
+                AllowedNumericType::NonNegative,
+                self.was_calc,
+            );
+        }
+
+        Self::with_clamping_mode(
+            self.length.clamp_to_non_negative(),
+            None,
+            AllowedNumericType::NonNegative,
+            self.was_calc,
+        )
     }
 }
 
@@ -470,71 +404,57 @@ impl ToComputedValue for specified::LengthOrPercentage {
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
         match *self {
             specified::LengthOrPercentage::Length(ref value) => {
-                LengthOrPercentage::Length(value.to_computed_value(context))
+                LengthOrPercentage::new(value.to_computed_value(context), None)
             },
             specified::LengthOrPercentage::Percentage(value) => {
-                LengthOrPercentage::Percentage(value)
+                LengthOrPercentage::new_percent(value)
             },
             specified::LengthOrPercentage::Calc(ref calc) => {
-                LengthOrPercentage::Calc((**calc).to_computed_value(context))
+                (**calc).to_computed_value(context)
             },
         }
     }
 
     fn from_computed_value(computed: &LengthOrPercentage) -> Self {
-        match *computed {
-            LengthOrPercentage::Length(value) => {
-                specified::LengthOrPercentage::Length(ToComputedValue::from_computed_value(&value))
-            },
-            LengthOrPercentage::Percentage(value) => {
-                specified::LengthOrPercentage::Percentage(value)
-            },
-            LengthOrPercentage::Calc(ref calc) => specified::LengthOrPercentage::Calc(Box::new(
-                ToComputedValue::from_computed_value(calc),
-            )),
+        let length = computed.unclamped_length();
+        if let Some(p) = computed.as_percentage() {
+            return specified::LengthOrPercentage::Percentage(p)
         }
+
+        let percentage = computed.percentage;
+        if percentage.is_none() &&
+            computed.clamping_mode.clamp(length.px()) == length.px() {
+            return specified::LengthOrPercentage::Length(
+                ToComputedValue::from_computed_value(&length)
+            )
+        }
+
+        specified::LengthOrPercentage::Calc(Box::new(
+            ToComputedValue::from_computed_value(computed),
+        ))
     }
 }
 
 impl IsZeroLength for LengthOrPercentage {
     #[inline]
     fn is_zero_length(&self) -> bool {
-        match *self {
-            LengthOrPercentage::Length(l) => l.0 == 0.0,
-            LengthOrPercentage::Percentage(p) => p.0 == 0.0,
-            LengthOrPercentage::Calc(c) => c.unclamped_length().0 == 0.0 && c.percentage() == 0.0,
-        }
+        self.is_definitely_zero()
     }
 }
 
 #[allow(missing_docs)]
-#[animate(fallback = "Self::animate_fallback")]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToCss)]
-#[distance(fallback = "Self::compute_squared_distance_fallback")]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero, ToCss)]
 pub enum LengthOrPercentageOrAuto {
-    Length(Length),
-    Percentage(Percentage),
+    LengthOrPercentage(LengthOrPercentage),
     Auto,
-    Calc(CalcLengthOrPercentage),
 }
 
 impl LengthOrPercentageOrAuto {
-    /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
-    fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let this = <Option<CalcLengthOrPercentage>>::from(*self);
-        let other = <Option<CalcLengthOrPercentage>>::from(*other);
-        Ok(LengthOrPercentageOrAuto::Calc(
-            this.animate(&other, procedure)?.ok_or(())?,
-        ))
-    }
-
+    /// Returns the `0` value.
     #[inline]
-    fn compute_squared_distance_fallback(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        <Option<CalcLengthOrPercentage>>::compute_squared_distance(
-            &(*self).into(),
-            &(*other).into(),
-        )
+    pub fn zero() -> Self {
+        LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::zero())
     }
 }
 
@@ -572,24 +492,21 @@ impl ToAnimatedValue for NonNegativeLengthOrPercentageOrAuto {
 
 impl LengthOrPercentageOrAuto {
     /// Returns true if the computed value is absolute 0 or 0%.
-    ///
-    /// (Returns false for calc() values, even if ones that may resolve to zero.)
     #[inline]
     pub fn is_definitely_zero(&self) -> bool {
         use self::LengthOrPercentageOrAuto::*;
         match *self {
-            Length(l) => l.px() == 0.0,
-            Percentage(p) => p.0 == 0.0,
-            Calc(_) | Auto => false,
+            LengthOrPercentage(ref l) => l.is_definitely_zero(),
+            Auto => false,
         }
     }
 
-    fn clamp_to_non_negative(self) -> Self {
+    /// Clamps the value to a non-negative value.
+    pub fn clamp_to_non_negative(self) -> Self {
         use self::LengthOrPercentageOrAuto::*;
         match self {
-            Length(l) => Length(l.clamp_to_non_negative()),
-            Percentage(p) => Percentage(p.clamp_to_non_negative()),
-            _ => self,
+            LengthOrPercentage(l) => LengthOrPercentage(l.clamp_to_non_negative()),
+            Auto => Auto,
         }
     }
 }
@@ -600,16 +517,12 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAuto {
         match *self {
-            specified::LengthOrPercentageOrAuto::Length(ref value) => {
-                LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
-            },
-            specified::LengthOrPercentageOrAuto::Percentage(value) => {
-                LengthOrPercentageOrAuto::Percentage(value)
+            specified::LengthOrPercentageOrAuto::LengthOrPercentage(ref value) => {
+                LengthOrPercentageOrAuto::LengthOrPercentage(
+                    value.to_computed_value(context),
+                )
             },
             specified::LengthOrPercentageOrAuto::Auto => LengthOrPercentageOrAuto::Auto,
-            specified::LengthOrPercentageOrAuto::Calc(ref calc) => {
-                LengthOrPercentageOrAuto::Calc((**calc).to_computed_value(context))
-            },
         }
     }
 
@@ -617,48 +530,21 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     fn from_computed_value(computed: &LengthOrPercentageOrAuto) -> Self {
         match *computed {
             LengthOrPercentageOrAuto::Auto => specified::LengthOrPercentageOrAuto::Auto,
-            LengthOrPercentageOrAuto::Length(value) => specified::LengthOrPercentageOrAuto::Length(
-                ToComputedValue::from_computed_value(&value),
-            ),
-            LengthOrPercentageOrAuto::Percentage(value) => {
-                specified::LengthOrPercentageOrAuto::Percentage(value)
+            LengthOrPercentageOrAuto::LengthOrPercentage(ref value) => {
+                specified::LengthOrPercentageOrAuto::LengthOrPercentage(
+                    ToComputedValue::from_computed_value(value),
+                )
             },
-            LengthOrPercentageOrAuto::Calc(calc) => specified::LengthOrPercentageOrAuto::Calc(
-                Box::new(ToComputedValue::from_computed_value(&calc)),
-            ),
         }
     }
 }
 
 #[allow(missing_docs)]
-#[animate(fallback = "Self::animate_fallback")]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
-#[distance(fallback = "Self::compute_squared_distance_fallback")]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero, ToCss)]
 pub enum LengthOrPercentageOrNone {
-    Length(Length),
-    Percentage(Percentage),
-    Calc(CalcLengthOrPercentage),
+    LengthOrPercentage(LengthOrPercentage),
     None,
-}
-
-impl LengthOrPercentageOrNone {
-    /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
-    fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let this = <Option<CalcLengthOrPercentage>>::from(*self);
-        let other = <Option<CalcLengthOrPercentage>>::from(*other);
-        Ok(LengthOrPercentageOrNone::Calc(
-            this.animate(&other, procedure)?.ok_or(())?,
-        ))
-    }
-
-    fn compute_squared_distance_fallback(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        <Option<CalcLengthOrPercentage>>::compute_squared_distance(
-            &(*self).into(),
-            &(*other).into(),
-        )
-    }
 }
 
 impl LengthOrPercentageOrNone {
@@ -666,29 +552,22 @@ impl LengthOrPercentageOrNone {
     pub fn to_used_value(&self, containing_length: Au) -> Option<Au> {
         match *self {
             LengthOrPercentageOrNone::None => None,
-            LengthOrPercentageOrNone::Length(length) => Some(Au::from(length)),
-            LengthOrPercentageOrNone::Percentage(percent) => {
-                Some(containing_length.scale_by(percent.0))
+            LengthOrPercentageOrNone::LengthOrPercentage(ref lop) => {
+                Some(lop.to_used_value(containing_length))
             },
-            LengthOrPercentageOrNone::Calc(ref calc) => calc.to_used_value(Some(containing_length)),
         }
     }
 }
 
+// FIXME(emilio): Derive this.
 impl ToComputedValue for specified::LengthOrPercentageOrNone {
     type ComputedValue = LengthOrPercentageOrNone;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrNone {
         match *self {
-            specified::LengthOrPercentageOrNone::Length(ref value) => {
-                LengthOrPercentageOrNone::Length(value.to_computed_value(context))
-            },
-            specified::LengthOrPercentageOrNone::Percentage(value) => {
-                LengthOrPercentageOrNone::Percentage(value)
-            },
-            specified::LengthOrPercentageOrNone::Calc(ref calc) => {
-                LengthOrPercentageOrNone::Calc((**calc).to_computed_value(context))
+            specified::LengthOrPercentageOrNone::LengthOrPercentage(ref value) => {
+                LengthOrPercentageOrNone::LengthOrPercentage(value.to_computed_value(context))
             },
             specified::LengthOrPercentageOrNone::None => LengthOrPercentageOrNone::None,
         }
@@ -698,15 +577,11 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
     fn from_computed_value(computed: &LengthOrPercentageOrNone) -> Self {
         match *computed {
             LengthOrPercentageOrNone::None => specified::LengthOrPercentageOrNone::None,
-            LengthOrPercentageOrNone::Length(value) => specified::LengthOrPercentageOrNone::Length(
-                ToComputedValue::from_computed_value(&value),
-            ),
-            LengthOrPercentageOrNone::Percentage(value) => {
-                specified::LengthOrPercentageOrNone::Percentage(value)
+            LengthOrPercentageOrNone::LengthOrPercentage(value) => {
+                specified::LengthOrPercentageOrNone::LengthOrPercentage(
+                    ToComputedValue::from_computed_value(&value),
+                )
             },
-            LengthOrPercentageOrNone::Calc(calc) => specified::LengthOrPercentageOrNone::Calc(
-                Box::new(ToComputedValue::from_computed_value(&calc)),
-            ),
         }
     }
 }
@@ -719,19 +594,19 @@ impl ToAnimatedValue for NonNegativeLengthOrPercentage {
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
-        self.into()
+        self.0
     }
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.clamp_to_non_negative().into()
+        NonNegative(animated.clamp_to_non_negative())
     }
 }
 
 impl From<NonNegativeLength> for NonNegativeLengthOrPercentage {
     #[inline]
     fn from(length: NonNegativeLength) -> Self {
-        LengthOrPercentage::Length(length.0).into()
+        LengthOrPercentage::new(length.0, None).into()
     }
 }
 
@@ -746,6 +621,15 @@ impl From<NonNegativeLengthOrPercentage> for LengthOrPercentage {
     #[inline]
     fn from(lop: NonNegativeLengthOrPercentage) -> LengthOrPercentage {
         lop.0
+    }
+}
+
+// TODO(emilio): This is a really generic impl which is only needed to implement
+// Animated and co for Spacing<>. Get rid of this, probably?
+impl From<Au> for LengthOrPercentage {
+    #[inline]
+    fn from(length: Au) -> Self {
+        LengthOrPercentage::new(length.into(), None)
     }
 }
 
@@ -798,11 +682,6 @@ impl CSSPixelLength {
         self.0
     }
 
-    #[inline]
-    fn clamp_to_non_negative(self) -> Self {
-        Self::new(self.px().max(0.))
-    }
-
     /// Return the length with app_unit i32 type.
     #[inline]
     pub fn to_i32_au(&self) -> i32 {
@@ -810,11 +689,19 @@ impl CSSPixelLength {
     }
 
     /// Return the absolute value of this length.
+    #[inline]
     pub fn abs(self) -> Self {
         CSSPixelLength::new(self.0.abs())
     }
 
+    /// Return the clamped value of this length.
+    #[inline]
+    pub fn clamp_to_non_negative(self) -> Self {
+        CSSPixelLength::new(self.0.max(0.))
+    }
+
     /// Zero value
+    #[inline]
     pub fn zero() -> Self {
         CSSPixelLength::new(0.)
     }

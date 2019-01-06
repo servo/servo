@@ -558,18 +558,16 @@ def set_gecko_property(ffi_name, expr):
             },
             CoordDataValue::Coord(coord) => {
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Length(Au(coord).into())
+                    LengthOrPercentage::new(Au(coord).into(), None)
                 )
             },
             CoordDataValue::Percent(p) => {
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Percentage(Percentage(p))
+                    LengthOrPercentage::new(Au(0).into(), Some(Percentage(p)))
                 )
             },
             CoordDataValue::Calc(calc) => {
-                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Calc(calc.into())
-                )
+                SvgLengthOrPercentageOrNumber::LengthOrPercentage(calc.into())
             },
             _ => unreachable!("Unexpected coordinate in ${ident}"),
         };
@@ -5062,6 +5060,7 @@ clip-path
     pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
         use crate::values::computed::LengthOrPercentage;
+        use crate::values::generics::NonNegative;
         use crate::values::generics::svg::{SVGStrokeDashArray, SvgLengthOrPercentageOrNumber};
 
         if self.gecko.mContextFlags & CONTEXT_VALUE != 0 {
@@ -5075,13 +5074,13 @@ clip-path
                     vec.push(SvgLengthOrPercentageOrNumber::Number(number.into())),
                 CoordDataValue::Coord(coord) =>
                     vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Length(Au(coord).into()).into())),
+                        NonNegative(LengthOrPercentage::new(Au(coord).into(), None).into()))),
                 CoordDataValue::Percent(p) =>
                     vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Percentage(Percentage(p)).into())),
+                        NonNegative(LengthOrPercentage::new_percent(Percentage(p)).into()))),
                 CoordDataValue::Calc(calc) =>
                     vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Calc(calc.into()).into())),
+                        NonNegative(LengthOrPercentage::from(calc).clamp_to_non_negative()))),
                 _ => unreachable!(),
             }
         }

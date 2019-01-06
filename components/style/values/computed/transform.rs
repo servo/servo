@@ -31,8 +31,8 @@ impl TransformOrigin {
     #[inline]
     pub fn initial_value() -> Self {
         Self::new(
-            LengthOrPercentage::Percentage(Percentage(0.5)),
-            LengthOrPercentage::Percentage(Percentage(0.5)),
+            LengthOrPercentage::new_percent(Percentage(0.5)),
+            LengthOrPercentage::new_percent(Percentage(0.5)),
             Length::new(0.),
         )
     }

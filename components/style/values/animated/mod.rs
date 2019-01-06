@@ -9,7 +9,7 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use crate::properties::PropertyId;
-use crate::values::computed::length::CalcLengthOrPercentage;
+use crate::values::computed::length::LengthOrPercentage;
 use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::Angle as ComputedAngle;
 use crate::values::computed::Image;
@@ -335,7 +335,7 @@ macro_rules! trivial_to_animated_value {
 }
 
 trivial_to_animated_value!(Au);
-trivial_to_animated_value!(CalcLengthOrPercentage);
+trivial_to_animated_value!(LengthOrPercentage);
 trivial_to_animated_value!(ComputedAngle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
