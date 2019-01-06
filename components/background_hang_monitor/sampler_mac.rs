@@ -7,6 +7,7 @@ use libc;
 use mach;
 use std::panic;
 use std::process;
+use std::usize;
 
 type MonitoredThreadId = mach::mach_types::thread_act_t;
 
@@ -96,7 +97,9 @@ unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
     // --dev,
     // or --with-frame-pointer.
 
-    let stackaddr = libc::pthread_get_stackaddr_np(libc::pthread_self());
+    let pthread_t = libc::pthread_self();
+    let stackaddr = libc::pthread_get_stackaddr_np(pthread_t);
+    let stacksize = libc::pthread_get_stacksize_np(pthread_t);
     let mut native_stack = NativeStack::new();
     let pc = regs.instruction_ptr as *mut std::ffi::c_void;
     let stack = regs.stack_ptr as *mut std::ffi::c_void;
@@ -104,12 +107,21 @@ unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
     let mut current = regs.frame_ptr as *mut *mut std::ffi::c_void;
     while !current.is_null() {
         if (current as usize) < stackaddr as usize {
+            // Reached the end of the stack.
+            break;
+        }
+        if current as usize >= stackaddr.add(stacksize * 8) as usize {
+            // Reached the beginning of the stack.
+            // Assumining 64 bit mac(see the stacksize * 8).
             break;
         }
         let next = *current as *mut *mut std::ffi::c_void;
         let pc = current.add(1);
         let stack = current.add(2);
         if let Err(()) = native_stack.process_register(*pc, *stack) {
+            break;
+        }
+        if (next <= current) && (next as usize & 3 != 0) {
             break;
         }
         current = next;
