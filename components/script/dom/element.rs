@@ -128,6 +128,7 @@ use style::selector_parser::{
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::thread_state;
+use style::values::generics::NonNegative;
 use style::values::{computed, specified};
 use style::values::{CSSFloat, Either};
 use style::CaseSensitivityExt;
@@ -847,8 +848,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         };
 
         if let Some(border) = border {
-            let width_value =
-                specified::BorderSideWidth::Length(specified::Length::from_px(border as f32));
+            let width_value = specified::BorderSideWidth::Length(NonNegative(
+                specified::Length::from_px(border as f32),
+            ));
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BorderTopWidth(width_value.clone()),
