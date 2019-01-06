@@ -7,6 +7,7 @@ use libc;
 use mach;
 use std::panic;
 use std::process;
+use std::usize;
 
 type MonitoredThreadId = mach::mach_types::thread_act_t;
 
@@ -104,12 +105,20 @@ unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
     let mut current = regs.frame_ptr as *mut *mut std::ffi::c_void;
     while !current.is_null() {
         if (current as usize) < stackaddr as usize {
+            // Reached the end of the stack.
+            break;
+        }
+        if (usize::max_value() / current as usize) <= 1 {
+            // Frame pointer is pointing to a weird value "above" the beginning of the stack.
             break;
         }
         let next = *current as *mut *mut std::ffi::c_void;
         let pc = current.add(1);
         let stack = current.add(2);
         if let Err(()) = native_stack.process_register(*pc, *stack) {
+            break;
+        }
+        if next <= current {
             break;
         }
         current = next;
