@@ -10,7 +10,10 @@ use crate::stylesheets::OriginSet;
 /// Checks that the values for OriginFlags are the ones we expect.
 pub fn assert_flags_match() {
     use crate::stylesheets::origin::*;
-    debug_assert_eq!(OriginFlags::UserAgent.0, OriginSet::ORIGIN_USER_AGENT.bits());
+    debug_assert_eq!(
+        OriginFlags::UserAgent.0,
+        OriginSet::ORIGIN_USER_AGENT.bits()
+    );
     debug_assert_eq!(OriginFlags::Author.0, OriginSet::ORIGIN_AUTHOR.bits());
     debug_assert_eq!(OriginFlags::User.0, OriginSet::ORIGIN_USER.bits());
 }

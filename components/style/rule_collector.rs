@@ -260,8 +260,7 @@ where
 
         let cascade_data = containing_shadow.style_data();
         let host = containing_shadow.host();
-        if let Some(map) = cascade_data.and_then(|data| data.normal_rules(self.pseudo_element))
-        {
+        if let Some(map) = cascade_data.and_then(|data| data.normal_rules(self.pseudo_element)) {
             self.collect_rules_in_shadow_tree(host, map, CascadeLevel::SameTreeAuthorNormal);
         }
     }
