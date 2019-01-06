@@ -16,6 +16,9 @@ interface URLSearchParams {
   sequence<USVString> getAll(USVString name);
   boolean has(USVString name);
   void set(USVString name, USVString value);
+
+  void sort();
+
   // Be careful with implementing iterable interface.
   // Search params might be mutated by URL::SetSearch while iterating (discussed in PR #10351).
   iterable<USVString, USVString>;
