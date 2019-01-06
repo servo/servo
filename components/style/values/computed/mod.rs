@@ -546,7 +546,9 @@ pub enum NumberOrPercentage {
 impl NumberOrPercentage {
     fn clamp_to_non_negative(self) -> Self {
         match self {
-            NumberOrPercentage::Percentage(p) => NumberOrPercentage::Percentage(p.clamp_to_non_negative()),
+            NumberOrPercentage::Percentage(p) => {
+                NumberOrPercentage::Percentage(p.clamp_to_non_negative())
+            },
             NumberOrPercentage::Number(n) => NumberOrPercentage::Number(n.max(0.)),
         }
     }

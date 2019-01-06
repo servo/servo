@@ -725,7 +725,11 @@ impl NonNegativeLength {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        Ok(NonNegative(Length::parse_non_negative_quirky(context, input, allow_quirks)?))
+        Ok(NonNegative(Length::parse_non_negative_quirky(
+            context,
+            input,
+            allow_quirks,
+        )?))
     }
 }
 

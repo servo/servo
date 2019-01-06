@@ -320,8 +320,7 @@ fn eval_overflow_block(device: &Device, query_value: Option<OverflowBlock>) -> b
     };
 
     match query_value {
-        OverflowBlock::None |
-        OverflowBlock::OptionalPaged => false,
+        OverflowBlock::None | OverflowBlock::OptionalPaged => false,
         OverflowBlock::Scroll => scrolling,
         OverflowBlock::Paged => !scrolling,
     }

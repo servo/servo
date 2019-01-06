@@ -13,7 +13,7 @@ use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
 use crate::values::generics::size::Size;
-use crate::values::specified::length::{NonNegativeLengthOrPercentage, NonNegativeLength};
+use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
 use crate::values::specified::{AllowQuirks, NonNegativeNumber, NonNegativeNumberOrPercentage};
 use cssparser::Parser;
 use std::fmt::{self, Write};
@@ -78,7 +78,8 @@ pub enum BorderSideWidth {
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
 /// A specified value for a single side of a `border-image-width` property.
-pub type BorderImageSideWidth = GenericBorderImageSideWidth<NonNegativeLengthOrPercentage, NonNegativeNumber>;
+pub type BorderImageSideWidth =
+    GenericBorderImageSideWidth<NonNegativeLengthOrPercentage, NonNegativeNumber>;
 
 /// A specified value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NonNegativeNumberOrPercentage>;
@@ -116,8 +117,7 @@ impl BorderSideWidth {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(length) =
-            input.try(|i| NonNegativeLength::parse_quirky(context, i, allow_quirks))
+        if let Ok(length) = input.try(|i| NonNegativeLength::parse_quirky(context, i, allow_quirks))
         {
             return Ok(BorderSideWidth::Length(length));
         }

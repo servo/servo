@@ -205,13 +205,17 @@ impl From<nsRestyleHint> for RestyleHint {
             hint.insert(RestyleHint::RESTYLE_SELF);
         }
 
-        if (raw.0 & (nsRestyleHint::eRestyle_Subtree.0 | nsRestyleHint::eRestyle_SomeDescendants.0)) != 0 {
+        if (raw.0 & (nsRestyleHint::eRestyle_Subtree.0 | nsRestyleHint::eRestyle_SomeDescendants.0)) !=
+            0
+        {
             raw.0 &= !nsRestyleHint::eRestyle_Subtree.0;
             raw.0 &= !nsRestyleHint::eRestyle_SomeDescendants.0;
             hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
         }
 
-        if (raw.0 & (nsRestyleHint::eRestyle_ForceDescendants.0 | nsRestyleHint::eRestyle_Force.0)) != 0 {
+        if (raw.0 & (nsRestyleHint::eRestyle_ForceDescendants.0 | nsRestyleHint::eRestyle_Force.0)) !=
+            0
+        {
             raw.0 &= !nsRestyleHint::eRestyle_Force.0;
             hint.insert(RestyleHint::RECASCADE_SELF);
         }

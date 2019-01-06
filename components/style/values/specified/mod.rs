@@ -375,7 +375,9 @@ impl Parse for NonNegativeNumberOrPercentage {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Ok(NonNegative(NumberOrPercentage::parse_non_negative(context, input)?))
+        Ok(NonNegative(NumberOrPercentage::parse_non_negative(
+            context, input,
+        )?))
     }
 }
 
