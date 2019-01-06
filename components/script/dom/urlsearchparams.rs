@@ -168,6 +168,17 @@ impl URLSearchParamsMethods for URLSearchParams {
         self.update_steps();
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-sort
+    fn Sort(&self) {
+        // Step 1.
+        self.list
+            .borrow_mut()
+            .sort_by(|(a, _), (b, _)| a.encode_utf16().cmp(b.encode_utf16()));
+
+        // Step 2.
+        self.update_steps();
+    }
+
     // https://url.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
         DOMString::from(self.serialize_utf8())
