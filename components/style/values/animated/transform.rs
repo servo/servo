@@ -1167,17 +1167,6 @@ impl Animate for ComputedTransformOperation {
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1318591#c0.
 impl ComputeSquaredDistance for ComputedTransformOperation {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        // For translate, We don't want to require doing layout in order to calculate the result, so
-        // drop the percentage part. However, dropping percentage makes us impossible to
-        // compute the distance for the percentage-percentage case, but Gecko uses the
-        // same formula, so it's fine for now.
-        // Note: We use pixel value to compute the distance for translate, so we have to
-        // convert Au into px.
-        let extract_pixel_length = |lop: &LengthOrPercentage| match *lop {
-            LengthOrPercentage::Length(px) => px.px(),
-            LengthOrPercentage::Percentage(_) => 0.,
-            LengthOrPercentage::Calc(calc) => calc.length().px(),
-        };
         match (self, other) {
             (&TransformOperation::Matrix3D(ref this), &TransformOperation::Matrix3D(ref other)) => {
                 this.compute_squared_distance(other)
@@ -1199,10 +1188,16 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 &TransformOperation::Translate3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Translate3D(ref tx, ref ty, ref tz),
             ) => {
-                let fx = extract_pixel_length(&fx);
-                let fy = extract_pixel_length(&fy);
-                let tx = extract_pixel_length(&tx);
-                let ty = extract_pixel_length(&ty);
+                // For translate, We don't want to require doing layout in order
+                // to calculate the result, so drop the percentage part.
+                //
+                // However, dropping percentage makes us impossible to compute
+                // the distance for the percentage-percentage case, but Gecko
+                // uses the same formula, so it's fine for now.
+                let fx = fx.length_component().px();
+                let fy = fy.length_component().px();
+                let tx = tx.length_component().px();
+                let ty = ty.length_component().px();
 
                 Ok(fx.compute_squared_distance(&tx)? +
                     fy.compute_squared_distance(&ty)? +

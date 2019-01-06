@@ -288,18 +288,14 @@ impl ToAbsoluteLength for ComputedLength {
 impl ToAbsoluteLength for ComputedLengthOrPercentage {
     #[inline]
     fn to_pixel_length(&self, containing_len: Option<Au>) -> Result<CSSFloat, ()> {
-        let extract_pixel_length = |lop: &ComputedLengthOrPercentage| match *lop {
-            ComputedLengthOrPercentage::Length(px) => px.px(),
-            ComputedLengthOrPercentage::Percentage(_) => 0.,
-            ComputedLengthOrPercentage::Calc(calc) => calc.length().px(),
-        };
-
         match containing_len {
             Some(relative_len) => Ok(self.to_pixel_length(relative_len).px()),
             // If we don't have reference box, we cannot resolve the used value,
             // so only retrieve the length part. This will be used for computing
             // distance without any layout info.
-            None => Ok(extract_pixel_length(self)),
+            //
+            // FIXME(emilio): This looks wrong.
+            None => Ok(self.length_component().px()),
         }
     }
 }

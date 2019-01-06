@@ -10,7 +10,6 @@
 use crate::hash::FxHashMap;
 use crate::parser::{Parse, ParserContext};
 use crate::str::HTML_SPACE_CHARACTERS;
-use crate::values::computed::CalcLengthOrPercentage;
 use crate::values::computed::LengthOrPercentage as ComputedLengthOrPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
 use crate::values::generics::position::Position as GenericPosition;
@@ -255,25 +254,21 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            PositionComponent::Center => ComputedLengthOrPercentage::Percentage(Percentage(0.5)),
+            PositionComponent::Center => ComputedLengthOrPercentage::new_percent(Percentage(0.5)),
             PositionComponent::Side(ref keyword, None) => {
                 let p = Percentage(if keyword.is_start() { 0. } else { 1. });
-                ComputedLengthOrPercentage::Percentage(p)
+                ComputedLengthOrPercentage::new_percent(p)
             },
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
-                match length.to_computed_value(context) {
-                    ComputedLengthOrPercentage::Length(length) => ComputedLengthOrPercentage::Calc(
-                        CalcLengthOrPercentage::new(-length, Some(Percentage::hundred())),
-                    ),
-                    ComputedLengthOrPercentage::Percentage(p) => {
-                        ComputedLengthOrPercentage::Percentage(Percentage(1.0 - p.0))
-                    },
-                    ComputedLengthOrPercentage::Calc(calc) => {
-                        let p = Percentage(1. - calc.percentage.map_or(0., |p| p.0));
-                        let l = -calc.unclamped_length();
-                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(l, Some(p)))
-                    },
-                }
+                let length = length.to_computed_value(context);
+                let p = Percentage(1. - length.percentage());
+                let l = -length.unclamped_length();
+                ComputedLengthOrPercentage::with_clamping_mode(
+                    l,
+                    Some(p),
+                    length.clamping_mode,
+                    length.was_calc,
+                )
             },
             PositionComponent::Side(_, Some(ref length)) |
             PositionComponent::Length(ref length) => length.to_computed_value(context),

@@ -9,8 +9,6 @@
 
 use crate::values::computed::position::Position;
 use crate::values::computed::url::ComputedImageUrl;
-#[cfg(feature = "gecko")]
-use crate::values::computed::Percentage;
 use crate::values::computed::{Angle, Color, Context};
 use crate::values::computed::{Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use crate::values::generics::image::{self as generic, CompatMode};
@@ -73,15 +71,10 @@ impl generic::LineDirection for LineDirection {
             LineDirection::Vertical(Y::Top) if compat_mode != CompatMode::Modern => true,
             LineDirection::Corner(..) => false,
             #[cfg(feature = "gecko")]
-            LineDirection::MozPosition(
-                Some(Position {
-                    horizontal: LengthOrPercentage::Percentage(Percentage(x)),
-                    vertical: LengthOrPercentage::Percentage(Percentage(y)),
-                }),
-                None,
-            ) => {
+            LineDirection::MozPosition(Some(Position { ref vertical, ref horizontal }), None) => {
                 // `50% 0%` is the default value for line direction.
-                x == 0.5 && y == 0.0
+                horizontal.as_percentage().map_or(false, |p| p.0 == 0.5) &&
+                vertical.as_percentage().map_or(false, |p| p.0 == 0.0)
             },
             _ => false,
         }

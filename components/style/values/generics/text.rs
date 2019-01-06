@@ -103,10 +103,7 @@ where
     }
 }
 
-impl<V> ToAnimatedZero for Spacing<V>
-where
-    V: From<Au>,
-{
+impl<V> ToAnimatedZero for Spacing<V> {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())

@@ -18,7 +18,7 @@ use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use crate::str::CssStringWriter;
 use crate::stylesheets::{Origin, StylesheetInDocument};
 use crate::values::computed::{Context, ToComputedValue};
-use crate::values::specified::{LengthOrPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
+use crate::values::specified::{self, LengthOrPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
 use app_units::Au;
 use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
@@ -157,7 +157,9 @@ impl FromMeta for ViewportLength {
     fn from_meta(value: &str) -> Option<ViewportLength> {
         macro_rules! specified {
             ($value:expr) => {
-                ViewportLength::Specified(LengthOrPercentageOrAuto::Length($value))
+                ViewportLength::Specified(LengthOrPercentageOrAuto::LengthOrPercentage(
+                    specified::LengthOrPercentage::Length($value)
+                ))
             };
         }
 
@@ -752,16 +754,10 @@ impl MaybeNew for ViewportConstraints {
                 if let Some($value) = $value {
                     match *$value {
                         ViewportLength::Specified(ref length) => match *length {
-                            LengthOrPercentageOrAuto::Length(ref value) => {
-                                Some(Au::from(value.to_computed_value(&context)))
-                            },
-                            LengthOrPercentageOrAuto::Percentage(value) => {
-                                Some(initial_viewport.$dimension.scale_by(value.0))
-                            },
                             LengthOrPercentageOrAuto::Auto => None,
-                            LengthOrPercentageOrAuto::Calc(ref calc) => calc
+                            LengthOrPercentageOrAuto::LengthOrPercentage(ref lop) => Some(lop
                                 .to_computed_value(&context)
-                                .to_used_value(Some(initial_viewport.$dimension)),
+                                .to_used_value(initial_viewport.$dimension)),
                         },
                         ViewportLength::ExtendToZoom => {
                             // $extend_to will be 'None' if 'extend-to-zoom' is 'auto'

@@ -148,19 +148,21 @@ impl GeckoStyleCoordConvertible for NumberOrPercentage {
 
 impl GeckoStyleCoordConvertible for LengthOrPercentage {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        let value = match *self {
-            LengthOrPercentage::Length(px) => CoordDataValue::Coord(px.to_i32_au()),
-            LengthOrPercentage::Percentage(p) => CoordDataValue::Percent(p.0),
-            LengthOrPercentage::Calc(calc) => CoordDataValue::Calc(calc.into()),
-        };
-        coord.set_value(value);
+        if self.was_calc {
+            return coord.set_value(CoordDataValue::Calc((*self).into()))
+        }
+        debug_assert!(self.percentage.is_none() || self.unclamped_length() == Length::zero());
+        if let Some(p) = self.percentage {
+            return coord.set_value(CoordDataValue::Percent(p.0));
+        }
+        coord.set_value(CoordDataValue::Coord(self.unclamped_length().to_i32_au()))
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
-            CoordDataValue::Coord(coord) => Some(LengthOrPercentage::Length(Au(coord).into())),
-            CoordDataValue::Percent(p) => Some(LengthOrPercentage::Percentage(Percentage(p))),
-            CoordDataValue::Calc(calc) => Some(LengthOrPercentage::Calc(calc.into())),
+            CoordDataValue::Coord(coord) => Some(LengthOrPercentage::new(Au(coord).into(), None)),
+            CoordDataValue::Percent(p) => Some(LengthOrPercentage::new(Au(0).into(), Some(Percentage(p)))),
+            CoordDataValue::Calc(calc) => Some(calc.into()),
             _ => None,
         }
     }
@@ -181,48 +183,32 @@ impl GeckoStyleCoordConvertible for Length {
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        let value = match *self {
-            LengthOrPercentageOrAuto::Length(px) => CoordDataValue::Coord(px.to_i32_au()),
-            LengthOrPercentageOrAuto::Percentage(p) => CoordDataValue::Percent(p.0),
-            LengthOrPercentageOrAuto::Auto => CoordDataValue::Auto,
-            LengthOrPercentageOrAuto::Calc(calc) => CoordDataValue::Calc(calc.into()),
-        };
-        coord.set_value(value);
+        match *self {
+            LengthOrPercentageOrAuto::Auto => coord.set_value(CoordDataValue::Auto),
+            LengthOrPercentageOrAuto::LengthOrPercentage(ref lop) => lop.to_gecko_style_coord(coord),
+        }
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
-            CoordDataValue::Coord(coord) => {
-                Some(LengthOrPercentageOrAuto::Length(Au(coord).into()))
-            },
-            CoordDataValue::Percent(p) => Some(LengthOrPercentageOrAuto::Percentage(Percentage(p))),
             CoordDataValue::Auto => Some(LengthOrPercentageOrAuto::Auto),
-            CoordDataValue::Calc(calc) => Some(LengthOrPercentageOrAuto::Calc(calc.into())),
-            _ => None,
+            _ => LengthOrPercentage::from_gecko_style_coord(coord).map(LengthOrPercentageOrAuto::LengthOrPercentage),
         }
     }
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        let value = match *self {
-            LengthOrPercentageOrNone::Length(px) => CoordDataValue::Coord(px.to_i32_au()),
-            LengthOrPercentageOrNone::Percentage(p) => CoordDataValue::Percent(p.0),
-            LengthOrPercentageOrNone::None => CoordDataValue::None,
-            LengthOrPercentageOrNone::Calc(calc) => CoordDataValue::Calc(calc.into()),
-        };
-        coord.set_value(value);
+        match *self {
+            LengthOrPercentageOrNone::None => coord.set_value(CoordDataValue::None),
+            LengthOrPercentageOrNone::LengthOrPercentage(ref lop) => lop.to_gecko_style_coord(coord),
+        }
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
-            CoordDataValue::Coord(coord) => {
-                Some(LengthOrPercentageOrNone::Length(Au(coord).into()))
-            },
-            CoordDataValue::Percent(p) => Some(LengthOrPercentageOrNone::Percentage(Percentage(p))),
             CoordDataValue::None => Some(LengthOrPercentageOrNone::None),
-            CoordDataValue::Calc(calc) => Some(LengthOrPercentageOrNone::Calc(calc.into())),
-            _ => None,
+            _ => LengthOrPercentage::from_gecko_style_coord(coord).map(LengthOrPercentageOrNone::LengthOrPercentage),
         }
     }
 }

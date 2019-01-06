@@ -32,10 +32,16 @@ fn to_number_or_percentage(
     value: &SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number>,
 ) -> Result<NumberOrPercentage, ()> {
     Ok(match *value {
-        SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref l) => match *l {
-            LengthOrPercentage::Length(ref l) => NumberOrPercentage::Number(l.px()),
-            LengthOrPercentage::Percentage(ref p) => NumberOrPercentage::Percentage(*p),
-            LengthOrPercentage::Calc(..) => return Err(()),
+        SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref l) => {
+            match l.percentage {
+                Some(p) => {
+                    if l.unclamped_length().px() != 0. {
+                        return Err(());
+                    }
+                    NumberOrPercentage::Percentage(p)
+                }
+                None => NumberOrPercentage::Number(l.length().px())
+            }
         },
         SvgLengthOrPercentageOrNumber::Number(ref n) => NumberOrPercentage::Number(*n),
     })
@@ -55,7 +61,7 @@ impl Animate for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
                 NumberOrPercentage::Percentage(ref this),
                 NumberOrPercentage::Percentage(ref other),
             ) => Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                LengthOrPercentage::Percentage(this.animate(other, procedure)?),
+                LengthOrPercentage::new_percent(this.animate(other, procedure)?),
             )),
             _ => Err(()),
         }
