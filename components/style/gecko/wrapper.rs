@@ -22,7 +22,6 @@ use crate::dom::{LayoutIterator, NodeInfo, OpaqueNode, TDocument, TElement, TNod
 use crate::element_state::{DocumentState, ElementState};
 use crate::font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use crate::gecko::data::GeckoStyleSheet;
-use crate::gecko::global_style_data::GLOBAL_STYLE_DATA;
 use crate::gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::gecko::snapshot_helpers;
 use crate::gecko_bindings::bindings;
@@ -57,6 +56,7 @@ use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
 use crate::gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
+use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
