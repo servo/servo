@@ -122,51 +122,10 @@ PRELUDE = '''
 // DO NOT EDIT DIRECTLY
 '''[1:]
 
-IMPORTS = '''
-use gecko_bindings::structs::nsStaticAtom;
-use string_cache::Atom;
-'''
-
-UNSAFE_STATIC = '''
-#[inline(always)]
-pub unsafe fn atom_from_static(ptr: *const nsStaticAtom) -> Atom {
-    Atom::from_static(ptr)
-}
-'''
-
-SATOMS_TEMPLATE = '''
-            #[link_name = \"{link_name}\"]
-            pub static nsGkAtoms_sAtoms: *const nsStaticAtom;
-'''[1:]
-
-CFG_IF_TEMPLATE = '''
-cfg_if! {{
-    if #[cfg(not(target_env = "msvc"))] {{
-        extern {{
-{gnu}\
-        }}
-    }} else if #[cfg(target_pointer_width = "64")] {{
-        extern {{
-{msvc64}\
-        }}
-    }} else {{
-        extern {{
-{msvc32}\
-        }}
-    }}
-}}\n
-'''
-
-CONST_TEMPLATE = '''
-pub const k_{name}: isize = {index};
-'''[1:]
-
 RULE_TEMPLATE = '''
-("{atom}") =>
-    {{{{
-        use $crate::string_cache::atom_macro;
+    ("{atom}") => {{{{
         #[allow(unsafe_code)] #[allow(unused_unsafe)]
-        unsafe {{ atom_macro::atom_from_static(atom_macro::nsGkAtoms_sAtoms.offset(atom_macro::k_{name})) }}
+        unsafe {{ $crate::string_cache::Atom::from_index({index}) }}
     }}}};
 '''[1:]
 
@@ -180,26 +139,8 @@ macro_rules! atom {{
 def write_atom_macro(atoms, file_name):
     with FileAvoidWrite(file_name) as f:
         f.write(PRELUDE)
-        f.write(IMPORTS)
-        f.write(UNSAFE_STATIC)
-
-        gnu_name='_ZN9nsGkAtoms6sAtomsE'
-        gnu_symbols = SATOMS_TEMPLATE.format(link_name=gnu_name)
-
-        # Prepend "\x01" to avoid LLVM prefixing the mangled name with "_".
-        # See https://github.com/rust-lang/rust/issues/36097
-        msvc32_name = '\\x01?sAtoms@nsGkAtoms@@0QBVnsStaticAtom@@B'
-        msvc32_symbols = SATOMS_TEMPLATE.format(link_name=msvc32_name)
-
-        msvc64_name = '?sAtoms@nsGkAtoms@@0QEBVnsStaticAtom@@EB'
-        msvc64_symbols = SATOMS_TEMPLATE.format(link_name=msvc64_name)
-
-        f.write(CFG_IF_TEMPLATE.format(gnu=gnu_symbols, msvc32=msvc32_symbols, msvc64=msvc64_symbols))
-
-        consts = [CONST_TEMPLATE.format(name=atom.ident, index=i) for (i, atom) in enumerate(atoms)]
-        f.write('{}'.format(''.join(consts)))
-
-        macro_rules = [RULE_TEMPLATE.format(atom=atom.value, name=atom.ident) for atom in atoms]
+        macro_rules = [RULE_TEMPLATE.format(atom=atom.value, name=atom.ident, index=i)
+                       for (i, atom) in enumerate(atoms)]
         f.write(MACRO_TEMPLATE.format(body=''.join(macro_rules)))
 
 
