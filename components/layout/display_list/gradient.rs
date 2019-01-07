@@ -107,14 +107,14 @@ fn convert_gradient_stops(
     {
         let first = stop_items.first_mut().unwrap();
         if first.position.is_none() {
-            first.position = Some(LengthOrPercentage::Percentage(Percentage(0.0)));
+            first.position = Some(LengthOrPercentage::new_percent(Percentage(0.)));
         }
     }
     // If the last color stop does not have a position, set its position to 100%.
     {
         let last = stop_items.last_mut().unwrap();
         if last.position.is_none() {
-            last.position = Some(LengthOrPercentage::Percentage(Percentage(1.0)));
+            last.position = Some(LengthOrPercentage::new_percent(Percentage(1.0)));
         }
     }
 
@@ -214,13 +214,7 @@ fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
     if total_length == Au(0) {
         return 0.0;
     }
-    match position {
-        LengthOrPercentage::Length(l) => l.to_i32_au() as f32 / total_length.0 as f32,
-        LengthOrPercentage::Percentage(percentage) => percentage.0 as f32,
-        LengthOrPercentage::Calc(calc) => {
-            calc.to_used_value(Some(total_length)).unwrap().0 as f32 / total_length.0 as f32
-        },
-    }
+    position.to_used_value(total_length).0 as f32 / total_length.0 as f32
 }
 
 pub fn linear(

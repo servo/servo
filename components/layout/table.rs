@@ -301,16 +301,16 @@ impl Flow for TableFlow {
                 self.column_intrinsic_inline_sizes
                     .push(ColumnIntrinsicInlineSize {
                         minimum_length: match *specified_inline_size {
-                            LengthOrPercentageOrAuto::Auto |
-                            LengthOrPercentageOrAuto::Calc(_) |
-                            LengthOrPercentageOrAuto::Percentage(_) => Au(0),
-                            LengthOrPercentageOrAuto::Length(length) => Au::from(length),
+                            LengthOrPercentageOrAuto::Auto => Au(0),
+                            LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                                lp.maybe_to_used_value(None).unwrap_or(Au(0))
+                            },
                         },
                         percentage: match *specified_inline_size {
-                            LengthOrPercentageOrAuto::Auto |
-                            LengthOrPercentageOrAuto::Calc(_) |
-                            LengthOrPercentageOrAuto::Length(_) => 0.0,
-                            LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
+                            LengthOrPercentageOrAuto::Auto => 0.0,
+                            LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                                lp.as_percentage().map_or(0.0, |p| p.0)
+                            },
                         },
                         preferred: Au(0),
                         constrained: false,

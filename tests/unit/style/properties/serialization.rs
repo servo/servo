@@ -4,13 +4,11 @@
 
 use crate::properties::{parse, parse_input};
 use crate::stylesheets::block_from;
-use style::computed_values::display::T as Display;
 use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
 use style::properties::{Importance, PropertyDeclaration};
 use style::values::specified::url::SpecifiedUrl;
-use style::values::specified::NoCalcLength;
-use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::specified::Length;
 use style_traits::ToCss;
 
 trait ToCssString {
@@ -23,53 +21,6 @@ impl ToCssString for PropertyDeclarationBlock {
         self.to_css(&mut css).unwrap();
         css
     }
-}
-
-#[test]
-fn property_declaration_block_should_serialize_correctly() {
-    use style::properties::longhands::overflow_x::SpecifiedValue as OverflowValue;
-
-    let declarations = vec![
-        (
-            PropertyDeclaration::Width(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(
-                70f32,
-            ))),
-            Importance::Normal,
-        ),
-        (
-            PropertyDeclaration::MinHeight(LengthOrPercentage::Length(NoCalcLength::from_px(
-                20f32,
-            ))),
-            Importance::Normal,
-        ),
-        (
-            PropertyDeclaration::Height(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(
-                20f32,
-            ))),
-            Importance::Important,
-        ),
-        (
-            PropertyDeclaration::Display(Display::InlineBlock),
-            Importance::Normal,
-        ),
-        (
-            PropertyDeclaration::OverflowX(OverflowValue::Auto),
-            Importance::Normal,
-        ),
-        (
-            PropertyDeclaration::OverflowY(OverflowValue::Auto),
-            Importance::Normal,
-        ),
-    ];
-
-    let block = block_from(declarations);
-
-    let css_string = block.to_css_string();
-
-    assert_eq!(
-        css_string,
-        "width: 70px; min-height: 20px; height: 20px !important; display: inline-block; overflow: auto;"
-    );
 }
 
 mod shorthand_serialization {
