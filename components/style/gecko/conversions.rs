@@ -80,8 +80,8 @@ impl From<nsStyleCoord_CalcValue> for LengthPercentageOrAuto {
 // disappear as we move more stuff to cbindgen.
 impl From<nsStyleCoord_CalcValue> for NonNegativeLengthPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> Self {
-        NonNegative(
-            LengthPercentageOrAuto::LengthPercentage(LengthPercentage::with_clamping_mode(
+        NonNegative(LengthPercentageOrAuto::LengthPercentage(
+            LengthPercentage::with_clamping_mode(
                 Au(other.mLength).into(),
                 if other.mHasPercent {
                     Some(Percentage(other.mPercent))
@@ -90,8 +90,8 @@ impl From<nsStyleCoord_CalcValue> for NonNegativeLengthPercentageOrAuto {
                 },
                 AllowedNumericType::NonNegative,
                 /* was_calc = */ true,
-            ))
-        )
+            ),
+        ))
     }
 }
 
@@ -529,17 +529,15 @@ impl nsStyleImage {
                     structs::NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL => {
                         let length_percentage_keyword = match gecko_gradient.mSize as u32 {
                             structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => match (
-                                LengthPercentage::from_gecko_style_coord(
-                                    &gecko_gradient.mRadiusX,
-                                ),
-                                LengthPercentage::from_gecko_style_coord(
-                                    &gecko_gradient.mRadiusY,
-                                ),
+                                LengthPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusX),
+                                LengthPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusY),
                             ) {
                                 (Some(x), Some(y)) => Ellipse::Radii(x, y),
                                 _ => {
-                                    debug_assert!(false,
-                                                      "mRadiusX, mRadiusY could not convert to LengthPercentage");
+                                    debug_assert!(
+                                        false,
+                                        "mRadiusX, mRadiusY could not convert to LengthPercentage"
+                                    );
                                     Ellipse::Radii(
                                         LengthPercentage::zero(),
                                         LengthPercentage::zero(),
@@ -802,10 +800,9 @@ pub mod basic_shape {
                         ),
                     ),
                     NonNegative(
-                        LengthPercentage::from_gecko_style_coord(&other.data_at(index + 1))
-                            .expect(
-                                "<border-radius> should be a length, percentage, or calc value",
-                            ),
+                        LengthPercentage::from_gecko_style_coord(&other.data_at(index + 1)).expect(
+                            "<border-radius> should be a length, percentage, or calc value",
+                        ),
                     ),
                 )
             };

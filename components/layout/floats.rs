@@ -547,13 +547,12 @@ impl SpeculatedFloatPlacement {
                 // nonzero value (in this case, 1px) so that the layout
                 // traversal logic will know that objects later in the document
                 // might flow around this float.
-                let inline_size =
-                    flow.as_block().fragment.style.content_inline_size();
+                let inline_size = flow.as_block().fragment.style.content_inline_size();
                 let fixed = match inline_size {
                     LengthPercentageOrAuto::Auto => false,
                     LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                         lp.is_definitely_zero() || lp.maybe_to_used_value(None).is_some()
-                    }
+                    },
                 };
                 if !fixed {
                     float_inline_size = Au::from_px(1)

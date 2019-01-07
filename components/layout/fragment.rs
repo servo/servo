@@ -1614,7 +1614,7 @@ impl Fragment {
                     LengthPercentageOrAuto::Auto => None,
                     LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                         lp.maybe_to_used_value(None)
-                    }
+                    },
                 };
 
                 let mut inline_size = inline_size.unwrap_or_else(|| {
@@ -1622,8 +1622,7 @@ impl Fragment {
                     // the size constraints work properly.
                     // TODO(stshine): Find a cleaner way to do this.
                     let padding = self.style.logical_padding();
-                    self.border_padding.inline_start =
-                        padding.inline_start.to_used_value(Au(0));
+                    self.border_padding.inline_start = padding.inline_start.to_used_value(Au(0));
                     self.border_padding.inline_end = padding.inline_end.to_used_value(Au(0));
                     self.border_padding.block_start = padding.block_start.to_used_value(Au(0));
                     self.border_padding.block_end = padding.block_end.to_used_value(Au(0));

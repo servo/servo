@@ -5,7 +5,7 @@
 //! `<length>` computed values, and related ones.
 
 use super::{Context, Number, Percentage, ToComputedValue};
-use crate::values::animated::{ToAnimatedValue};
+use crate::values::animated::ToAnimatedValue;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::length::MaxLength as GenericMaxLength;
 use crate::values::generics::length::MozLength as GenericMozLength;
@@ -169,7 +169,6 @@ impl LengthPercentage {
     pub fn unclamped_length(&self) -> CSSPixelLength {
         self.length
     }
-
 
     /// Return the percentage value as CSSFloat.
     #[inline]
@@ -380,7 +379,7 @@ impl LengthPercentage {
                 self.percentage,
                 AllowedNumericType::NonNegative,
                 self.was_calc,
-            )
+            );
         }
 
         debug_assert!(self.percentage.is_none() || self.unclamped_length() == Length::zero());
@@ -410,32 +409,25 @@ impl ToComputedValue for specified::LengthPercentage {
             specified::LengthPercentage::Length(ref value) => {
                 LengthPercentage::new(value.to_computed_value(context), None)
             },
-            specified::LengthPercentage::Percentage(value) => {
-                LengthPercentage::new_percent(value)
-            },
-            specified::LengthPercentage::Calc(ref calc) => {
-                (**calc).to_computed_value(context)
-            },
+            specified::LengthPercentage::Percentage(value) => LengthPercentage::new_percent(value),
+            specified::LengthPercentage::Calc(ref calc) => (**calc).to_computed_value(context),
         }
     }
 
     fn from_computed_value(computed: &LengthPercentage) -> Self {
         let length = computed.unclamped_length();
         if let Some(p) = computed.as_percentage() {
-            return specified::LengthPercentage::Percentage(p)
+            return specified::LengthPercentage::Percentage(p);
         }
 
         let percentage = computed.percentage;
-        if percentage.is_none() &&
-            computed.clamping_mode.clamp(length.px()) == length.px() {
-            return specified::LengthPercentage::Length(
-                ToComputedValue::from_computed_value(&length)
-            )
+        if percentage.is_none() && computed.clamping_mode.clamp(length.px()) == length.px() {
+            return specified::LengthPercentage::Length(ToComputedValue::from_computed_value(
+                &length,
+            ));
         }
 
-        specified::LengthPercentage::Calc(Box::new(
-            ToComputedValue::from_computed_value(computed),
-        ))
+        specified::LengthPercentage::Calc(Box::new(ToComputedValue::from_computed_value(computed)))
     }
 }
 
@@ -448,7 +440,9 @@ impl IsZeroLength for LengthPercentage {
 
 #[allow(missing_docs)]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero, ToCss)]
+#[derive(
+    Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero, ToCss,
+)]
 pub enum LengthPercentageOrAuto {
     LengthPercentage(LengthPercentage),
     Auto,
@@ -522,9 +516,7 @@ impl ToComputedValue for specified::LengthPercentageOrAuto {
     fn to_computed_value(&self, context: &Context) -> LengthPercentageOrAuto {
         match *self {
             specified::LengthPercentageOrAuto::LengthPercentage(ref value) => {
-                LengthPercentageOrAuto::LengthPercentage(
-                    value.to_computed_value(context),
-                )
+                LengthPercentageOrAuto::LengthPercentage(value.to_computed_value(context))
             },
             specified::LengthPercentageOrAuto::Auto => LengthPercentageOrAuto::Auto,
         }
@@ -545,7 +537,9 @@ impl ToComputedValue for specified::LengthPercentageOrAuto {
 
 #[allow(missing_docs)]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero, ToCss)]
+#[derive(
+    Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero, ToCss,
+)]
 pub enum LengthPercentageOrNone {
     LengthPercentage(LengthPercentage),
     None,
