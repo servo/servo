@@ -83,8 +83,8 @@ impl Parse for LineHeight {
         if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
             return Ok(GenericLineHeight::Number(number));
         }
-        if let Ok(nlop) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
-            return Ok(GenericLineHeight::Length(nlop));
+        if let Ok(nlp) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
+            return Ok(GenericLineHeight::Length(nlp));
         }
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
@@ -116,8 +116,8 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Number(number) => {
                 GenericLineHeight::Number(number.to_computed_value(context))
             },
-            GenericLineHeight::Length(ref non_negative_lop) => {
-                let result = match non_negative_lop.0 {
+            GenericLineHeight::Length(ref non_negative_lp) => {
+                let result = match non_negative_lp.0 {
                     LengthPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
                         context
                             .maybe_zoom_text(abs.to_computed_value(context).into())

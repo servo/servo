@@ -556,8 +556,8 @@ impl LengthPercentageOrNone {
     pub fn to_used_value(&self, containing_length: Au) -> Option<Au> {
         match *self {
             LengthPercentageOrNone::None => None,
-            LengthPercentageOrNone::LengthPercentage(ref lop) => {
-                Some(lop.to_used_value(containing_length))
+            LengthPercentageOrNone::LengthPercentage(ref lp) => {
+                Some(lp.to_used_value(containing_length))
             },
         }
     }
@@ -616,15 +616,15 @@ impl From<NonNegativeLength> for NonNegativeLengthPercentage {
 
 impl From<LengthPercentage> for NonNegativeLengthPercentage {
     #[inline]
-    fn from(lop: LengthPercentage) -> Self {
-        NonNegative::<LengthPercentage>(lop)
+    fn from(lp: LengthPercentage) -> Self {
+        NonNegative::<LengthPercentage>(lp)
     }
 }
 
 impl From<NonNegativeLengthPercentage> for LengthPercentage {
     #[inline]
-    fn from(lop: NonNegativeLengthPercentage) -> LengthPercentage {
-        lop.0
+    fn from(lp: NonNegativeLengthPercentage) -> LengthPercentage {
+        lp.0
     }
 }
 

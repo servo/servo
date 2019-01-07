@@ -526,8 +526,8 @@ def set_gecko_property(ffi_name, expr):
             }
         };
         match length {
-            SvgLengthPercentageOrNumber::LengthPercentage(lop) =>
-                self.gecko.${gecko_ffi_name}.set(lop),
+            SvgLengthPercentageOrNumber::LengthPercentage(lp) =>
+                self.gecko.${gecko_ffi_name}.set(lp),
             SvgLengthPercentageOrNumber::Number(num) =>
                 self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(num.into())),
         }
@@ -939,10 +939,10 @@ def set_gecko_property(ffi_name, expr):
 transform_functions = [
     ("Matrix3D", "matrix3d", ["number"] * 16),
     ("Matrix", "matrix", ["number"] * 6),
-    ("Translate", "translate", ["lop", "optional_lop"]),
-    ("Translate3D", "translate3d", ["lop", "lop", "length"]),
-    ("TranslateX", "translatex", ["lop"]),
-    ("TranslateY", "translatey", ["lop"]),
+    ("Translate", "translate", ["lp", "optional_lp"]),
+    ("Translate3D", "translate3d", ["lp", "lp", "length"]),
+    ("TranslateX", "translatex", ["lp"]),
+    ("TranslateY", "translatey", ["lp"]),
     ("TranslateZ", "translatez", ["length"]),
     ("Scale3D", "scale3d", ["number"] * 3),
     ("Scale", "scale", ["number", "optional_number"]),
@@ -993,7 +993,7 @@ transform_functions = [
             # Note: This is an integer type, but we use it as a percentage value in Gecko, so
             #       need to cast it to f32.
             "integer_to_percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s as f32)",
-            "lop" : "%s.set_lop(%s)",
+            "lp" : "%s.set_length_percentage(%s)",
             "angle" : "%s.set_angle(%s)",
             "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
             # Note: We use nsCSSValueSharedList here, instead of nsCSSValueList_heap
@@ -1042,8 +1042,8 @@ transform_functions = [
         # %s is substituted with the call to GetArrayItem.
         css_value_getters = {
             "length" : "Length::new(bindings::Gecko_CSSValue_GetNumber(%s))",
-            "lop" : "%s.get_lop()",
-            "lopon" : "Either::Second(%s.get_lop())",
+            "lp" : "%s.get_length_percentage()",
+            "lpon" : "Either::Second(%s.get_length_percentage())",
             "lon" : "Either::First(%s.get_length())",
             "angle" : "%s.get_angle()",
             "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
@@ -4568,7 +4568,7 @@ fn static_assert() {
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
         use crate::values::generics::text::Spacing;
         match v {
-            Spacing::Value(lop) => self.gecko.mWordSpacing.set(lop),
+            Spacing::Value(lp) => self.gecko.mWordSpacing.set(lp),
             // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal
             Spacing::Normal => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
         }
@@ -5027,8 +5027,8 @@ clip-path
                 }
                 for (gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
                     match servo {
-                        SvgLengthPercentageOrNumber::LengthPercentage(lop) =>
-                            gecko.set(lop),
+                        SvgLengthPercentageOrNumber::LengthPercentage(lp) =>
+                            gecko.set(lp),
                         SvgLengthPercentageOrNumber::Number(num) =>
                             gecko.set_value(CoordDataValue::Factor(num.into())),
                     }
