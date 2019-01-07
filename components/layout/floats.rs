@@ -542,16 +542,21 @@ impl SpeculatedFloatPlacement {
         let mut float_inline_size = base_flow.intrinsic_inline_sizes.preferred_inline_size;
         if float_inline_size == Au(0) {
             if flow.is_block_like() {
-                // Hack: If the size of the float is a percentage, then there's no way we can guess
-                // at its size now. So just pick an arbitrary nonzero value (in this case, 1px) so
-                // that the layout traversal logic will know that objects later in the document
+                // Hack: If the size of the float is not fixed, then there's no
+                // way we can guess at its size now. So just pick an arbitrary
+                // nonzero value (in this case, 1px) so that the layout
+                // traversal logic will know that objects later in the document
                 // might flow around this float.
-                if let LengthOrPercentageOrAuto::Percentage(percentage) =
-                    flow.as_block().fragment.style.content_inline_size()
-                {
-                    if percentage.0 > 0.0 {
-                        float_inline_size = Au::from_px(1)
+                let inline_size =
+                    flow.as_block().fragment.style.content_inline_size();
+                let fixed = match inline_size {
+                    LengthOrPercentageOrAuto::Auto => false,
+                    LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                        lp.is_definitely_zero() || lp.maybe_to_used_value(None).is_none()
                     }
+                };
+                if !fixed {
+                    float_inline_size = Au::from_px(1)
                 }
             }
         }

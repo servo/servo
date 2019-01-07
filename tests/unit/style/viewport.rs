@@ -17,6 +17,7 @@ use style::stylesheets::{CssRuleType, Origin, Stylesheet, StylesheetInDocument};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
+use style::values::specified::LengthOrPercentage;
 use style_traits::viewport::*;
 use style_traits::{ParsingMode, PinchZoomFactor};
 
@@ -96,14 +97,14 @@ macro_rules! assert_decl_len {
 
 macro_rules! viewport_length {
     ($value:expr, px) => {
-        ViewportLength::Specified(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(
-            $value,
-        )))
-    };
-    ($value:expr, vw) => {
-        ViewportLength::Specified(LengthOrPercentageOrAuto::Length(ViewportPercentage(Vw(
+        ViewportLength::Specified(LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::Length(NoCalcLength::from_px(
             $value,
         ))))
+    };
+    ($value:expr, vw) => {
+        ViewportLength::Specified(LengthOrPercentageOrAuto::LengthOrPercentage(LengthOrPercentage::Length(ViewportPercentage(Vw(
+            $value,
+        )))))
     };
 }
 
