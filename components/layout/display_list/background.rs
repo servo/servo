@@ -12,7 +12,7 @@ use style::computed_values::background_attachment::single_value::T as Background
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::properties::style_structs::Background;
-use style::values::computed::{BackgroundSize, LengthOrPercentageOrAuto};
+use style::values::computed::{BackgroundSize, LengthPercentageOrAuto};
 use style::values::generics::background::BackgroundSize as GenericBackgroundSize;
 use style::values::generics::NonNegative;
 use style::values::specified::background::BackgroundRepeatKeyword;
@@ -88,7 +88,7 @@ fn compute_background_image_size(
                 (
                     GenericBackgroundSize::Explicit {
                         width,
-                        height: NonNegative(LengthOrPercentageOrAuto::Auto),
+                        height: NonNegative(LengthPercentageOrAuto::Auto),
                     },
                     _,
                 ) => {
@@ -98,7 +98,7 @@ fn compute_background_image_size(
                 },
                 (
                     GenericBackgroundSize::Explicit {
-                        width: NonNegative(LengthOrPercentageOrAuto::Auto),
+                        width: NonNegative(LengthPercentageOrAuto::Auto),
                         height,
                     },
                     _,

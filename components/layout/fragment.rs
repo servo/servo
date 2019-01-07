@@ -61,7 +61,7 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::computed::counters::ContentItem;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthPercentage, LengthPercentageOrAuto};
 use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
 use webrender_api::{self, LayoutTransform};
@@ -1448,14 +1448,14 @@ impl Fragment {
     pub fn relative_position(&self, containing_block_size: &LogicalSize<Au>) -> LogicalSize<Au> {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>) -> LogicalSize<Au> {
             let offsets = style.logical_position();
-            let offset_i = if offsets.inline_start != LengthOrPercentageOrAuto::Auto {
+            let offset_i = if offsets.inline_start != LengthPercentageOrAuto::Auto {
                 MaybeAuto::from_style(offsets.inline_start, container_size.inline)
                     .specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.inline_end, container_size.inline)
                     .specified_or_zero()
             };
-            let offset_b = if offsets.block_start != LengthOrPercentageOrAuto::Auto {
+            let offset_b = if offsets.block_start != LengthPercentageOrAuto::Auto {
                 MaybeAuto::from_style(offsets.block_start, container_size.block).specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.block_end, container_size.block).specified_or_zero()
@@ -1611,8 +1611,8 @@ impl Fragment {
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Svg(_) => {
                 let inline_size = match self.style.content_inline_size() {
-                    LengthOrPercentageOrAuto::Auto => None,
-                    LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                    LengthPercentageOrAuto::Auto => None,
+                    LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                         lp.maybe_to_used_value(None)
                     }
                 };
@@ -2510,12 +2510,12 @@ impl Fragment {
                             continue;
                         }
                         if inline_context_node.style.logical_margin().inline_end !=
-                            LengthOrPercentageOrAuto::zero()
+                            LengthPercentageOrAuto::zero()
                         {
                             return false;
                         }
                         if inline_context_node.style.logical_padding().inline_end !=
-                            LengthOrPercentage::zero()
+                            LengthPercentage::zero()
                         {
                             return false;
                         }
@@ -2536,12 +2536,12 @@ impl Fragment {
                             continue;
                         }
                         if inline_context_node.style.logical_margin().inline_start !=
-                            LengthOrPercentageOrAuto::zero()
+                            LengthPercentageOrAuto::zero()
                         {
                             return false;
                         }
                         if inline_context_node.style.logical_padding().inline_start !=
-                            LengthOrPercentage::zero()
+                            LengthPercentage::zero()
                         {
                             return false;
                         }

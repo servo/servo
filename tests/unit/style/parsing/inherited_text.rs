@@ -20,10 +20,10 @@ fn negative_letter_spacing_should_parse_properly() {
 #[test]
 fn negative_word_spacing_should_parse_properly() {
     use style::properties::longhands::word_spacing;
-    use style::values::specified::length::{FontRelativeLength, LengthOrPercentage, NoCalcLength};
+    use style::values::specified::length::{FontRelativeLength, LengthPercentage, NoCalcLength};
 
     let negative_value = parse_longhand!(word_spacing, "-0.5em");
-    let expected = Spacing::Value(LengthOrPercentage::Length(NoCalcLength::FontRelative(
+    let expected = Spacing::Value(LengthPercentage::Length(NoCalcLength::FontRelative(
         FontRelativeLength::Em(-0.5),
     )));
     assert_eq!(negative_value, expected);

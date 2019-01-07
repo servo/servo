@@ -718,8 +718,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::LengthOrPercentage(
-                    specified::LengthOrPercentage::Length(value)
+                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(value)
                 )),
             ));
         }
@@ -745,8 +745,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match width {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthOrPercentageOrAuto::LengthOrPercentage(
-                    specified::LengthOrPercentage::Percentage(
+                let width_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Percentage(
                         computed::Percentage(percentage),
                     ),
                 );
@@ -757,8 +757,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             },
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value =
-                    specified::LengthOrPercentageOrAuto::LengthOrPercentage(
-                        specified::LengthOrPercentage::Length(
+                    specified::LengthPercentageOrAuto::LengthPercentage(
+                        specified::LengthPercentage::Length(
                             specified::NoCalcLength::Absolute(
                                 specified::AbsoluteLength::Px(length.to_f32_px()),
                             ),
@@ -784,8 +784,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match height {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::LengthOrPercentageOrAuto::LengthOrPercentage(
-                    specified::LengthOrPercentage::Percentage(
+                let height_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Percentage(
                         computed::Percentage(percentage),
                     )
                 );
@@ -796,8 +796,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             },
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value =
-                    specified::LengthOrPercentageOrAuto::LengthOrPercentage(
-                        specified::LengthOrPercentage::Length(
+                    specified::LengthPercentageOrAuto::LengthPercentage(
+                        specified::LengthPercentage::Length(
                             specified::NoCalcLength::Absolute(
                                 specified::AbsoluteLength::Px(length.to_f32_px()),
                             )
@@ -829,8 +829,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::LengthOrPercentage(
-                    specified::LengthOrPercentage::Length(value)
+                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(value)
                 )),
             ));
         }
@@ -853,8 +853,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             ));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Height(specified::LengthOrPercentageOrAuto::LengthOrPercentage(
-                    specified::LengthOrPercentage::Length(value)
+                PropertyDeclaration::Height(specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(value)
                 )),
             ));
         }

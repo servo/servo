@@ -66,7 +66,7 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::{LengthPercentageOrAuto, LengthPercentageOrNone};
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -418,15 +418,15 @@ impl CandidateBSizeIterator {
         // `min-height` and `max-height`, percentage values are ignored.
 
         let block_size = match fragment.style.content_block_size() {
-            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
-            LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+            LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                 MaybeAuto::from_option(lp.maybe_to_used_value(block_container_block_size))
             },
         };
 
         let max_block_size = match fragment.style.max_block_size() {
-            LengthOrPercentageOrNone::None => None,
-            LengthOrPercentageOrNone::LengthOrPercentage(ref lp) => {
+            LengthPercentageOrNone::None => None,
+            LengthPercentageOrNone::LengthPercentage(ref lp) => {
                 lp.maybe_to_used_value(block_container_block_size)
             },
         };
@@ -1396,7 +1396,7 @@ impl BlockFlow {
         let content_block_size = self.fragment.style().content_block_size();
 
         match content_block_size {
-            LengthOrPercentageOrAuto::Auto => {
+            LengthPercentageOrAuto::Auto => {
                 let container_size = containing_block_size?;
                 let (block_start, block_end) = {
                     let position = self.fragment.style().logical_position();
@@ -1415,11 +1415,11 @@ impl BlockFlow {
                         // calculated during assign-inline-size.
                         let margin = self.fragment.style().logical_margin();
                         let margin_block_start = match margin.block_start {
-                            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                            LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
                             _ => MaybeAuto::Specified(self.fragment.margin.block_start),
                         };
                         let margin_block_end = match margin.block_end {
-                            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                            LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
                             _ => MaybeAuto::Specified(self.fragment.margin.block_end),
                         };
 
@@ -1431,7 +1431,7 @@ impl BlockFlow {
                     (_, _) => None,
                 }
             },
-            LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                 lp.maybe_to_used_value(containing_block_size)
             },
         }
@@ -1452,11 +1452,11 @@ impl BlockFlow {
             // calculated during assign-inline-size.
             let margin = self.fragment.style().logical_margin();
             let margin_block_start = match margin.block_start {
-                LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
                 _ => MaybeAuto::Specified(self.fragment.margin.block_start),
             };
             let margin_block_end = match margin.block_end {
-                LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
                 _ => MaybeAuto::Specified(self.fragment.margin.block_end),
             };
 
@@ -2022,7 +2022,7 @@ impl BlockFlow {
         // If `max-width` is set, then don't perform this speculation. We guess that the
         // page set `max-width` in order to avoid hitting floats. The search box on Google
         // SERPs falls into this category.
-        if self.fragment.style.max_inline_size() != LengthOrPercentageOrNone::None {
+        if self.fragment.style.max_inline_size() != LengthPercentageOrNone::None {
             return;
         }
 
@@ -2153,8 +2153,8 @@ impl Flow for BlockFlow {
         // If this block has a fixed width, just use that for the minimum and preferred width,
         // rather than bubbling up children inline width.
         let consult_children = match self.fragment.style().get_position().width {
-            LengthOrPercentageOrAuto::Auto => true,
-            LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => lp.maybe_to_used_value(None).is_none(),
+            LengthPercentageOrAuto::Auto => true,
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => lp.maybe_to_used_value(None).is_none(),
         };
         self.bubble_inline_sizes_for_block(consult_children);
         self.fragment
@@ -2541,8 +2541,8 @@ impl Flow for BlockFlow {
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
             self.fragment.style().logical_position().inline_start ==
-                LengthOrPercentageOrAuto::Auto &&
-            self.fragment.style().logical_position().inline_end == LengthOrPercentageOrAuto::Auto
+                LengthPercentageOrAuto::Auto &&
+            self.fragment.style().logical_position().inline_end == LengthPercentageOrAuto::Auto
         {
             self.base.position.start.i = inline_position
         }
@@ -2554,8 +2554,8 @@ impl Flow for BlockFlow {
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
             self.fragment.style().logical_position().block_start ==
-                LengthOrPercentageOrAuto::Auto &&
-            self.fragment.style().logical_position().block_end == LengthOrPercentageOrAuto::Auto
+                LengthPercentageOrAuto::Auto &&
+            self.fragment.style().logical_position().block_end == LengthPercentageOrAuto::Auto
         {
             self.base.position.start.b = block_position
         }
