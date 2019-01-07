@@ -95,10 +95,9 @@ impl XRMethods for XR {
         }
 
         let session = XRSession::new(&self.global(), &displays[0]);
+        // XXXManishearth we should actually xr_present() here instead of
+        // in XRSession::new, and resolve a promise based on it
         promise.resolve_native(&session);
-        // whether or not we should initiate presentation is unclear
-        // https://github.com/immersive-web/webxr/issues/453
-
         promise
     }
 }
