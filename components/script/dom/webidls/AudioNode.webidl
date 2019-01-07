@@ -57,5 +57,6 @@ interface AudioNode : EventTarget {
   attribute unsigned long channelCount;
   [SetterThrows]
   attribute ChannelCountMode channelCountMode;
+  [SetterThrows]
   attribute ChannelInterpretation channelInterpretation;
 };
