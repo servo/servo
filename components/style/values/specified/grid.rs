@@ -32,8 +32,8 @@ impl Parse for TrackBreadth<LengthPercentage> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) = input.try(|i| LengthPercentage::parse_non_negative(context, i)) {
-            return Ok(TrackBreadth::Breadth(lop));
+        if let Ok(lp) = input.try(|i| LengthPercentage::parse_non_negative(context, i)) {
+            return Ok(TrackBreadth::Breadth(lp));
         }
 
         if let Ok(f) = input.try(parse_flex) {
@@ -57,7 +57,7 @@ impl Parse for TrackSize<LengthPercentage> {
             return input.parse_nested_block(|input| {
                 let inflexible_breadth =
                     match input.try(|i| LengthPercentage::parse_non_negative(context, i)) {
-                        Ok(lop) => TrackBreadth::Breadth(lop),
+                        Ok(lp) => TrackBreadth::Breadth(lp),
                         Err(..) => {
                             let keyword = TrackKeyword::parse(input)?;
                             TrackBreadth::Keyword(keyword)
@@ -73,9 +73,9 @@ impl Parse for TrackSize<LengthPercentage> {
         }
 
         input.expect_function_matching("fit-content")?;
-        let lop =
+        let lp =
             input.parse_nested_block(|i| LengthPercentage::parse_non_negative(context, i))?;
-        Ok(TrackSize::FitContent(lop))
+        Ok(TrackSize::FitContent(lp))
     }
 }
 

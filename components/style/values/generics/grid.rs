@@ -190,7 +190,7 @@ impl<L> TrackBreadth<L> {
     #[inline]
     pub fn is_fixed(&self) -> bool {
         match *self {
-            TrackBreadth::Breadth(ref _lop) => true,
+            TrackBreadth::Breadth(ref _lp) => true,
             _ => false,
         }
     }
@@ -278,9 +278,9 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 max.to_css(dest)?;
                 dest.write_str(")")
             },
-            TrackSize::FitContent(ref lop) => {
+            TrackSize::FitContent(ref lp) => {
                 dest.write_str("fit-content(")?;
-                lop.to_css(dest)?;
+                lp.to_css(dest)?;
                 dest.write_str(")")
             },
         }
@@ -308,7 +308,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
             TrackSize::Minmax(ref b1, ref b2) => {
                 TrackSize::Minmax(b1.to_computed_value(context), b2.to_computed_value(context))
             },
-            TrackSize::FitContent(ref lop) => TrackSize::FitContent(lop.to_computed_value(context)),
+            TrackSize::FitContent(ref lp) => TrackSize::FitContent(lp.to_computed_value(context)),
         }
     }
 
@@ -322,8 +322,8 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
                 ToComputedValue::from_computed_value(b1),
                 ToComputedValue::from_computed_value(b2),
             ),
-            TrackSize::FitContent(ref lop) => {
-                TrackSize::FitContent(ToComputedValue::from_computed_value(lop))
+            TrackSize::FitContent(ref lp) => {
+                TrackSize::FitContent(ToComputedValue::from_computed_value(lp))
             },
         }
     }

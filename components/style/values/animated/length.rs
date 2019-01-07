@@ -51,12 +51,12 @@ impl ToAnimatedValue for ComputedMaxLength {
         use crate::values::computed::LengthPercentageOrNone;
         use crate::values::generics::length::MaxLength as GenericMaxLength;
         match animated {
-            GenericMaxLength::LengthPercentageOrNone(lopn) => {
-                let result = match lopn {
+            GenericMaxLength::LengthPercentageOrNone(lpn) => {
+                let result = match lpn {
                     LengthPercentageOrNone::LengthPercentage(len) => {
                         LengthPercentageOrNone::LengthPercentage(len.clamp_to_non_negative())
                     },
-                    LengthPercentageOrNone::None => lopn,
+                    LengthPercentageOrNone::None => lpn,
                 };
                 GenericMaxLength::LengthPercentageOrNone(result)
             },
@@ -77,8 +77,8 @@ impl ToAnimatedValue for ComputedMozLength {
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         use crate::values::generics::length::MozLength as GenericMozLength;
         match animated {
-            GenericMozLength::LengthPercentageOrAuto(lopa) => {
-                GenericMozLength::LengthPercentageOrAuto(lopa.clamp_to_non_negative())
+            GenericMozLength::LengthPercentageOrAuto(lpa) => {
+                GenericMozLength::LengthPercentageOrAuto(lpa.clamp_to_non_negative())
             },
             _ => animated,
         }

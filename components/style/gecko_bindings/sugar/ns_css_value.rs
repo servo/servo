@@ -68,15 +68,15 @@ impl nsCSSValue {
     }
 
     /// Sets LengthPercentage value to this nsCSSValue.
-    pub unsafe fn set_lop(&mut self, lop: LengthPercentage) {
-        if lop.was_calc {
-            return bindings::Gecko_CSSValue_SetCalc(self, lop.into())
+    pub unsafe fn set_length_percentage(&mut self, lp: LengthPercentage) {
+        if lp.was_calc {
+            return bindings::Gecko_CSSValue_SetCalc(self, lp.into())
         }
-        debug_assert!(lop.percentage.is_none() || lop.unclamped_length() == Length::zero());
-        if let Some(p) = lop.percentage {
+        debug_assert!(lp.percentage.is_none() || lp.unclamped_length() == Length::zero());
+        if let Some(p) = lp.percentage {
             return self.set_percentage(p.0);
         }
-        self.set_px(lop.unclamped_length().px());
+        self.set_px(lp.unclamped_length().px());
     }
 
     /// Sets a px value to this nsCSSValue.
@@ -90,7 +90,7 @@ impl nsCSSValue {
     }
 
     /// Returns LengthPercentage value.
-    pub unsafe fn get_lop(&self) -> LengthPercentage {
+    pub unsafe fn get_length_percentage(&self) -> LengthPercentage {
         match self.mUnit {
             nsCSSUnit::eCSSUnit_Pixel => {
                 LengthPercentage::new(

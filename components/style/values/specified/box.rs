@@ -278,10 +278,10 @@ impl Parse for VerticalAlign {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) =
+        if let Ok(lp) =
             input.try(|i| LengthPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
-            return Ok(GenericVerticalAlign::Length(lop));
+            return Ok(GenericVerticalAlign::Length(lp));
         }
 
         try_match_ident_ignore_ascii_case! { input,

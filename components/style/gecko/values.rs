@@ -185,7 +185,7 @@ impl GeckoStyleCoordConvertible for LengthPercentageOrAuto {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
             LengthPercentageOrAuto::Auto => coord.set_value(CoordDataValue::Auto),
-            LengthPercentageOrAuto::LengthPercentage(ref lop) => lop.to_gecko_style_coord(coord),
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => lp.to_gecko_style_coord(coord),
         }
     }
 
@@ -201,7 +201,7 @@ impl GeckoStyleCoordConvertible for LengthPercentageOrNone {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
             LengthPercentageOrNone::None => coord.set_value(CoordDataValue::None),
-            LengthPercentageOrNone::LengthPercentage(ref lop) => lop.to_gecko_style_coord(coord),
+            LengthPercentageOrNone::LengthPercentage(ref lp) => lp.to_gecko_style_coord(coord),
         }
     }
 
@@ -216,7 +216,7 @@ impl GeckoStyleCoordConvertible for LengthPercentageOrNone {
 impl<L: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for TrackBreadth<L> {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
-            TrackBreadth::Breadth(ref lop) => lop.to_gecko_style_coord(coord),
+            TrackBreadth::Breadth(ref lp) => lp.to_gecko_style_coord(coord),
             TrackBreadth::Fr(fr) => coord.set_value(CoordDataValue::FlexFraction(fr)),
             TrackBreadth::Keyword(TrackKeyword::Auto) => coord.set_value(CoordDataValue::Auto),
             TrackBreadth::Keyword(TrackKeyword::MinContent) => coord.set_value(
@@ -257,7 +257,7 @@ impl GeckoStyleCoordConvertible for ComputedShapeRadius {
             ShapeRadius::FarthestSide => coord.set_value(CoordDataValue::Enumerated(
                 StyleShapeRadius::FarthestSide as u32,
             )),
-            ShapeRadius::Length(lop) => lop.to_gecko_style_coord(coord),
+            ShapeRadius::Length(lp) => lp.to_gecko_style_coord(coord),
         }
     }
 
@@ -363,7 +363,7 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
 impl GeckoStyleCoordConvertible for ComputedMozLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
-            MozLength::LengthPercentageOrAuto(ref lopoa) => lopoa.to_gecko_style_coord(coord),
+            MozLength::LengthPercentageOrAuto(ref lpoa) => lpoa.to_gecko_style_coord(coord),
             MozLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
         }
     }
@@ -380,7 +380,7 @@ impl GeckoStyleCoordConvertible for ComputedMozLength {
 impl GeckoStyleCoordConvertible for ComputedMaxLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
-            MaxLength::LengthPercentageOrNone(ref lopon) => lopon.to_gecko_style_coord(coord),
+            MaxLength::LengthPercentageOrNone(ref lpon) => lpon.to_gecko_style_coord(coord),
             MaxLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
         }
     }
