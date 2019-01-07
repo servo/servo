@@ -32,16 +32,14 @@ fn to_number_or_percentage(
     value: &SvgLengthPercentageOrNumber<LengthPercentage, Number>,
 ) -> Result<NumberOrPercentage, ()> {
     Ok(match *value {
-        SvgLengthPercentageOrNumber::LengthPercentage(ref l) => {
-            match l.percentage {
-                Some(p) => {
-                    if l.unclamped_length().px() != 0. {
-                        return Err(());
-                    }
-                    NumberOrPercentage::Percentage(p)
+        SvgLengthPercentageOrNumber::LengthPercentage(ref l) => match l.percentage {
+            Some(p) => {
+                if l.unclamped_length().px() != 0. {
+                    return Err(());
                 }
-                None => NumberOrPercentage::Number(l.length().px())
-            }
+                NumberOrPercentage::Percentage(p)
+            },
+            None => NumberOrPercentage::Number(l.length().px()),
         },
         SvgLengthPercentageOrNumber::Number(ref n) => NumberOrPercentage::Number(*n),
     })

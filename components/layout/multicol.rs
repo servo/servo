@@ -158,15 +158,13 @@ impl Flow for MulticolFlow {
                     LengthPercentageOrAuto::Auto => None,
                     LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                         lp.maybe_to_used_value(None)
-                    }
+                    },
                 };
-                let size = size.or_else(|| {
-                    match style.max_block_size() {
-                        LengthPercentageOrNone::None => None,
-                        LengthPercentageOrNone::LengthPercentage(ref lp) => {
-                            lp.maybe_to_used_value(None)
-                        }
-                    }
+                let size = size.or_else(|| match style.max_block_size() {
+                    LengthPercentageOrNone::None => None,
+                    LengthPercentageOrNone::LengthPercentage(ref lp) => {
+                        lp.maybe_to_used_value(None)
+                    },
                 });
 
                 size.unwrap_or_else(|| {

@@ -698,16 +698,16 @@ impl generic::LineDirection for LineDirection {
                 // These percentage values can also be keywords.
                 let x = match *x {
                     OriginComponent::Center => true,
-                    OriginComponent::Length(LengthPercentage::Percentage(
-                        ComputedPercentage(val),
-                    )) => val == 0.5,
+                    OriginComponent::Length(LengthPercentage::Percentage(ComputedPercentage(
+                        val,
+                    ))) => val == 0.5,
                     _ => false,
                 };
                 let y = match *y {
                     OriginComponent::Side(Y::Top) => true,
-                    OriginComponent::Length(LengthPercentage::Percentage(
-                        ComputedPercentage(val),
-                    )) => val == 0.0,
+                    OriginComponent::Length(LengthPercentage::Percentage(ComputedPercentage(
+                        val,
+                    ))) => val == 0.0,
                     _ => false,
                 };
                 x && y

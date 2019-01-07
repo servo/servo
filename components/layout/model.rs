@@ -481,7 +481,6 @@ impl MaybeAuto {
         }
     }
 
-
     #[inline]
     pub fn map<F>(&self, mapper: F) -> MaybeAuto
     where
@@ -497,15 +496,12 @@ impl MaybeAuto {
 /// Receive an optional container size and return used value for width or height.
 ///
 /// `style_length`: content size as given in the CSS.
-pub fn style_length(
-    style_length: LengthPercentageOrAuto,
-    container_size: Option<Au>,
-) -> MaybeAuto {
+pub fn style_length(style_length: LengthPercentageOrAuto, container_size: Option<Au>) -> MaybeAuto {
     match style_length {
         LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
         LengthPercentageOrAuto::LengthPercentage(ref lp) => {
             MaybeAuto::from_option(lp.maybe_to_used_value(container_size))
-        }
+        },
     }
 }
 
@@ -574,8 +570,9 @@ impl SizeConstraint {
         max_size: LengthPercentageOrNone,
         border: Option<Au>,
     ) -> SizeConstraint {
-        let mut min_size =
-            min_size.maybe_to_used_value(container_size).unwrap_or(Au(0));
+        let mut min_size = min_size
+            .maybe_to_used_value(container_size)
+            .unwrap_or(Au(0));
 
         let mut max_size = match max_size {
             LengthPercentageOrNone::None => None,

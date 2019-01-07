@@ -71,10 +71,16 @@ impl generic::LineDirection for LineDirection {
             LineDirection::Vertical(Y::Top) if compat_mode != CompatMode::Modern => true,
             LineDirection::Corner(..) => false,
             #[cfg(feature = "gecko")]
-            LineDirection::MozPosition(Some(Position { ref vertical, ref horizontal }), None) => {
+            LineDirection::MozPosition(
+                Some(Position {
+                    ref vertical,
+                    ref horizontal,
+                }),
+                None,
+            ) => {
                 // `50% 0%` is the default value for line direction.
                 horizontal.as_percentage().map_or(false, |p| p.0 == 0.5) &&
-                vertical.as_percentage().map_or(false, |p| p.0 == 0.0)
+                    vertical.as_percentage().map_or(false, |p| p.0 == 0.0)
             },
             _ => false,
         }

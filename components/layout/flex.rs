@@ -28,9 +28,7 @@ use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
-use style::values::computed::{
-    LengthPercentage, LengthPercentageOrAuto, LengthPercentageOrNone,
-};
+use style::values::computed::{LengthPercentage, LengthPercentageOrAuto, LengthPercentageOrNone};
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The size of an axis. May be a specified size, a min/max
@@ -54,13 +52,13 @@ impl AxisSize {
         match size {
             LengthPercentageOrAuto::Auto => {
                 AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None))
-            }
+            },
             LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                 match lp.maybe_to_used_value(content_size) {
                     Some(length) => AxisSize::Definite(length),
                     None => AxisSize::Infinite,
                 }
-            }
+            },
         }
     }
 }
@@ -459,10 +457,9 @@ impl FlexFlow {
     // stripped out, and max replaced with union_nonbreaking_inline.
     fn inline_mode_bubble_inline_sizes(&mut self) {
         // FIXME(emilio): This doesn't handle at all writing-modes.
-        let fixed_width = !model::style_length(
-            self.block_flow.fragment.style().get_position().width,
-            None,
-        ).is_auto();
+        let fixed_width =
+            !model::style_length(self.block_flow.fragment.style().get_position().width, None)
+                .is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
@@ -486,10 +483,9 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out.
     fn block_mode_bubble_inline_sizes(&mut self) {
-        let fixed_width = !model::style_length(
-            self.block_flow.fragment.style().get_position().width,
-            None,
-        ).is_auto();
+        let fixed_width =
+            !model::style_length(self.block_flow.fragment.style().get_position().width, None)
+                .is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {

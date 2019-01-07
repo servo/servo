@@ -431,8 +431,11 @@ impl CandidateBSizeIterator {
             },
         };
 
-        let min_block_size =
-            fragment.style.min_block_size().maybe_to_used_value(block_container_block_size).unwrap_or(Au(0));
+        let min_block_size = fragment
+            .style
+            .min_block_size()
+            .maybe_to_used_value(block_container_block_size)
+            .unwrap_or(Au(0));
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
         let adjustment_for_box_sizing = match fragment.style.get_position().box_sizing {
@@ -2154,7 +2157,9 @@ impl Flow for BlockFlow {
         // rather than bubbling up children inline width.
         let consult_children = match self.fragment.style().get_position().width {
             LengthPercentageOrAuto::Auto => true,
-            LengthPercentageOrAuto::LengthPercentage(ref lp) => lp.maybe_to_used_value(None).is_none(),
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                lp.maybe_to_used_value(None).is_none()
+            },
         };
         self.bubble_inline_sizes_for_block(consult_children);
         self.fragment
@@ -2540,8 +2545,7 @@ impl Flow for BlockFlow {
             .base
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
-            self.fragment.style().logical_position().inline_start ==
-                LengthPercentageOrAuto::Auto &&
+            self.fragment.style().logical_position().inline_start == LengthPercentageOrAuto::Auto &&
             self.fragment.style().logical_position().inline_end == LengthPercentageOrAuto::Auto
         {
             self.base.position.start.i = inline_position
@@ -2553,8 +2557,7 @@ impl Flow for BlockFlow {
             .base
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
-            self.fragment.style().logical_position().block_start ==
-                LengthPercentageOrAuto::Auto &&
+            self.fragment.style().logical_position().block_start == LengthPercentageOrAuto::Auto &&
             self.fragment.style().logical_position().block_end == LengthPercentageOrAuto::Auto
         {
             self.base.position.start.b = block_position

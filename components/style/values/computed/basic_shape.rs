@@ -34,8 +34,7 @@ pub type BasicShape = generic::BasicShape<
 pub type InsetRect = generic::InsetRect<LengthPercentage, NonNegativeLengthPercentage>;
 
 /// A computed circle.
-pub type Circle =
-    generic::Circle<LengthPercentage, LengthPercentage, NonNegativeLengthPercentage>;
+pub type Circle = generic::Circle<LengthPercentage, LengthPercentage, NonNegativeLengthPercentage>;
 
 /// A computed ellipse.
 pub type Ellipse =
