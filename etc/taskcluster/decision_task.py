@@ -74,6 +74,7 @@ def main(task_for):
 
     elif task_for == "github-pull-request":
         CONFIG.treeherder_repository_name = "servo-prs"
+        CONFIG.index_read_only = True
 
         # We want the merge commit that GitHub creates for the PR.
         # The event does contain a `pull_request.merge_commit_sha` key, but it is wrong:
