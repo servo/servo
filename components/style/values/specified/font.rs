@@ -985,10 +985,10 @@ impl FontSize {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<FontSize, ParseError<'i>> {
-        if let Ok(lop) =
+        if let Ok(lp) =
             input.try(|i| LengthPercentage::parse_non_negative_quirky(context, i, allow_quirks))
         {
-            return Ok(FontSize::Length(lop));
+            return Ok(FontSize::Length(lp));
         }
 
         if let Ok(kw) = input.try(KeywordSize::parse) {

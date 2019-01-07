@@ -235,7 +235,7 @@ impl Parse for Transform {
 pub enum OriginComponent<S> {
     /// `center`
     Center,
-    /// `<lop>`
+    /// `<length-percentage>`
     Length(LengthPercentage),
     /// `<side>`
     Side(S),
@@ -306,8 +306,8 @@ where
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(OriginComponent::Center);
         }
-        if let Ok(lop) = input.try(|i| LengthPercentage::parse(context, i)) {
-            return Ok(OriginComponent::Length(lop));
+        if let Ok(lp) = input.try(|i| LengthPercentage::parse(context, i)) {
+            return Ok(OriginComponent::Length(lp));
         }
         let keyword = S::parse(context, input)?;
         Ok(OriginComponent::Side(keyword))

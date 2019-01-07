@@ -316,8 +316,8 @@ impl Parse for ShapeRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
-            return Ok(generic::ShapeRadius::Length(lop));
+        if let Ok(lp) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
+            return Ok(generic::ShapeRadius::Length(lp));
         }
 
         try_match_ident_ignore_ascii_case! { input,

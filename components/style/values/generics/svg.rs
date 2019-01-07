@@ -162,8 +162,8 @@ impl<LengthPercentageType: Parse, NumberType: Parse> Parse
             return Ok(SvgLengthPercentageOrNumber::Number(num));
         }
 
-        let lop = LengthPercentageType::parse(context, input)?;
-        Ok(SvgLengthPercentageOrNumber::LengthPercentage(lop))
+        let lp = LengthPercentageType::parse(context, input)?;
+        Ok(SvgLengthPercentageOrNumber::LengthPercentage(lp))
     }
 }
 
