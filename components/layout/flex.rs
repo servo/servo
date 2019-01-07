@@ -12,7 +12,7 @@ use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
-use crate::model::{AdjoiningMargins, CollapsibleMargins};
+use crate::model::{self, AdjoiningMargins, CollapsibleMargins};
 use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use crate::traversal::PreorderFlowTraversal;
 use app_units::{Au, MAX_AU};
@@ -52,18 +52,15 @@ impl AxisSize {
         max: LengthOrPercentageOrNone,
     ) -> AxisSize {
         match size {
-            LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(Au::from(length)),
-            LengthOrPercentageOrAuto::Percentage(percent) => match content_size {
-                Some(size) => AxisSize::Definite(size.scale_by(percent.0)),
-                None => AxisSize::Infinite,
-            },
-            LengthOrPercentageOrAuto::Calc(calc) => match calc.to_used_value(content_size) {
-                Some(length) => AxisSize::Definite(length),
-                None => AxisSize::Infinite,
-            },
             LengthOrPercentageOrAuto::Auto => {
                 AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None))
-            },
+            }
+            LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                match lp.maybe_to_used_value(content_size) {
+                    Some(length) => AxisSize::Definite(length),
+                    None => AxisSize::Infinite,
+                }
+            }
         }
     }
 }
@@ -461,10 +458,11 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out, and max replaced with union_nonbreaking_inline.
     fn inline_mode_bubble_inline_sizes(&mut self) {
-        let fixed_width = match self.block_flow.fragment.style().get_position().width {
-            LengthOrPercentageOrAuto::Length(_) => true,
-            _ => false,
-        };
+        // FIXME(emilio): This doesn't handle at all writing-modes.
+        let fixed_width = !model::style_length(
+            self.block_flow.fragment.style().get_position().width,
+            None,
+        ).is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
@@ -488,10 +486,10 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out.
     fn block_mode_bubble_inline_sizes(&mut self) {
-        let fixed_width = match self.block_flow.fragment.style().get_position().width {
-            LengthOrPercentageOrAuto::Length(_) => true,
-            _ => false,
-        };
+        let fixed_width = !model::style_length(
+            self.block_flow.fragment.style().get_position().width,
+            None,
+        ).is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {

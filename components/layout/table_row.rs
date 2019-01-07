@@ -430,25 +430,24 @@ impl Flow for TableRowFlow {
                 let child_base = kid.mut_base();
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
                     minimum_length: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Percentage(_) => {
-                            child_base.intrinsic_inline_sizes.minimum_inline_size
+                        LengthOrPercentageOrAuto::Auto => None,
+                        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                            lp.maybe_to_used_value(None)
                         },
-                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
-                    },
+                    }
+                    .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
                     percentage: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Length(_) => 0.0,
-                        LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
+                        LengthOrPercentageOrAuto::Auto => 0.0,
+                        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                            lp.as_percentage().map_or(0.0, |p| p.0)
+                        },
                     },
                     preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                     constrained: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Length(_) => true,
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Percentage(_) => false,
+                        LengthOrPercentageOrAuto::Auto => false,
+                        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                            lp.maybe_to_used_value(None).is_some()
+                        },
                     },
                 };
                 min_inline_size = min_inline_size + child_column_inline_size.minimum_length;
