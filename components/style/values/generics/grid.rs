@@ -482,11 +482,11 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
 
 /// Track list values. Can be <track-size> or <track-repeat>
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
-pub enum TrackListValue<LengthOrPercentage, Integer> {
+pub enum TrackListValue<LengthPercentage, Integer> {
     /// A <track-size> value.
-    TrackSize(TrackSize<LengthOrPercentage>),
+    TrackSize(TrackSize<LengthPercentage>),
     /// A <track-repeat> value.
-    TrackRepeat(TrackRepeat<LengthOrPercentage, Integer>),
+    TrackRepeat(TrackRepeat<LengthPercentage, Integer>),
 }
 
 /// The type of a `<track-list>` as determined during parsing.
@@ -515,7 +515,7 @@ pub enum TrackListType {
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
-pub struct TrackList<LengthOrPercentage, Integer> {
+pub struct TrackList<LengthPercentage, Integer> {
     /// The type of this `<track-list>` (auto, explicit or general).
     ///
     /// In order to avoid parsing the same value multiple times, this does a single traversal
@@ -523,7 +523,7 @@ pub struct TrackList<LengthOrPercentage, Integer> {
     #[css(skip)]
     pub list_type: TrackListType,
     /// A vector of `<track-size> | <track-repeat>` values.
-    pub values: Vec<TrackListValue<LengthOrPercentage, Integer>>,
+    pub values: Vec<TrackListValue<LengthPercentage, Integer>>,
     /// `<line-names>` accompanying `<track-size> | <track-repeat>` values.
     ///
     /// If there's no `<line-names>`, then it's represented by an empty vector.
@@ -531,7 +531,7 @@ pub struct TrackList<LengthOrPercentage, Integer> {
     /// length is always one value more than that of the `<track-size>`.
     pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
-    pub auto_repeat: Option<TrackRepeat<LengthOrPercentage, Integer>>,
+    pub auto_repeat: Option<TrackRepeat<LengthPercentage, Integer>>,
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {

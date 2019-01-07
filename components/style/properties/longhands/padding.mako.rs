@@ -16,10 +16,10 @@
     %>
     ${helpers.predefined_type(
         "padding-%s" % side[0],
-        "NonNegativeLengthOrPercentage",
-        "computed::NonNegativeLengthOrPercentage::zero()",
+        "NonNegativeLengthPercentage",
+        "computed::NonNegativeLengthPercentage::zero()",
         alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
-        animation_value_type="NonNegativeLengthOrPercentage",
+        animation_value_type="NonNegativeLengthPercentage",
         logical=side[1],
         logical_group="padding",
         spec=spec,

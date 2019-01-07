@@ -4,7 +4,7 @@
 
 //! Computed types for box properties.
 
-use crate::values::computed::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::computed::length::{LengthPercentage, NonNegativeLength};
 use crate::values::computed::{Context, Number, ToComputedValue};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
@@ -18,7 +18,7 @@ pub use crate::values::specified::box_::{OverscrollBehavior, ScrollSnapType};
 pub use crate::values::specified::box_::{TouchAction, TransitionProperty, WillChange};
 
 /// A computed value for the `vertical-align` property.
-pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;
+pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
 
 /// A computed value for the `animation-iteration-count` property.
 pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;

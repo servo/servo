@@ -35,7 +35,7 @@ ${helpers.predefined_type(
     ${helpers.predefined_type(
         "background-position-" + axis,
         "position::" + direction + "Position",
-        initial_value="computed::LengthOrPercentage::zero()",
+        initial_value="computed::LengthPercentage::zero()",
         initial_specified_value="SpecifiedValue::initial_specified_value()",
         spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
         animation_value_type="ComputedValue",

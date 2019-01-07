@@ -16,7 +16,7 @@ use crate::values::computed::transform::TransformOperation as ComputedTransformO
 use crate::values::computed::transform::Translate as ComputedTranslate;
 use crate::values::computed::transform::{DirectionVector, Matrix, Matrix3D};
 use crate::values::computed::Angle;
-use crate::values::computed::{Length, LengthOrPercentage};
+use crate::values::computed::{Length, LengthPercentage};
 use crate::values::computed::{Number, Percentage};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::transform::{self, Transform, TransformOperation};
@@ -1043,8 +1043,8 @@ impl Animate for ComputedTransformOperation {
             ) => Ok(TransformOperation::Translate(
                 fx.animate(tx, procedure)?,
                 Some(
-                    fy.unwrap_or(LengthOrPercentage::zero())
-                        .animate(&ty.unwrap_or(LengthOrPercentage::zero()), procedure)?,
+                    fy.unwrap_or(LengthPercentage::zero())
+                        .animate(&ty.unwrap_or(LengthPercentage::zero()), procedure)?,
                 ),
             )),
             (&TransformOperation::TranslateX(ref f), &TransformOperation::TranslateX(ref t)) => {
@@ -1383,15 +1383,15 @@ impl ComputeSquaredDistance for ComputedRotate {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-translate>
 impl ComputedTranslate {
-    fn resolve(&self) -> (LengthOrPercentage, LengthOrPercentage, Length) {
+    fn resolve(&self) -> (LengthPercentage, LengthPercentage, Length) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified translations default to 0px
         match *self {
             Translate::None => (
-                LengthOrPercentage::zero(),
-                LengthOrPercentage::zero(),
+                LengthPercentage::zero(),
+                LengthPercentage::zero(),
                 Length::zero(),
             ),
             Translate::Translate3D(tx, ty, tz) => (tx, ty, tz),

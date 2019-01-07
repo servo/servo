@@ -13,7 +13,7 @@ use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
 use crate::values::generics::size::Size;
-use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
+use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthPercentage};
 use crate::values::specified::{AllowQuirks, NonNegativeNumber, NonNegativeNumberOrPercentage};
 use cssparser::Parser;
 use std::fmt::{self, Write};
@@ -79,16 +79,16 @@ pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
 /// A specified value for a single side of a `border-image-width` property.
 pub type BorderImageSideWidth =
-    GenericBorderImageSideWidth<NonNegativeLengthOrPercentage, NonNegativeNumber>;
+    GenericBorderImageSideWidth<NonNegativeLengthPercentage, NonNegativeNumber>;
 
 /// A specified value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NonNegativeNumberOrPercentage>;
 
 /// A specified value for the `border-radius` property.
-pub type BorderRadius = GenericBorderRadius<NonNegativeLengthOrPercentage>;
+pub type BorderRadius = GenericBorderRadius<NonNegativeLengthPercentage>;
 
 /// A specified value for the `border-*-radius` longhand properties.
-pub type BorderCornerRadius = GenericBorderCornerRadius<NonNegativeLengthOrPercentage>;
+pub type BorderCornerRadius = GenericBorderCornerRadius<NonNegativeLengthPercentage>;
 
 /// A specified value for the `border-spacing` longhand properties.
 pub type BorderSpacing = GenericBorderSpacing<NonNegativeLength>;
@@ -178,7 +178,7 @@ impl Parse for BorderImageSideWidth {
             return Ok(GenericBorderImageSideWidth::Auto);
         }
 
-        if let Ok(len) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
+        if let Ok(len) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
             return Ok(GenericBorderImageSideWidth::Length(len));
         }
 
@@ -206,9 +206,9 @@ impl Parse for BorderRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let widths = Rect::parse_with(context, input, NonNegativeLengthOrPercentage::parse)?;
+        let widths = Rect::parse_with(context, input, NonNegativeLengthPercentage::parse)?;
         let heights = if input.try(|i| i.expect_delim('/')).is_ok() {
-            Rect::parse_with(context, input, NonNegativeLengthOrPercentage::parse)?
+            Rect::parse_with(context, input, NonNegativeLengthPercentage::parse)?
         } else {
             widths.clone()
         };
@@ -227,7 +227,7 @@ impl Parse for BorderCornerRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Size::parse_with(context, input, NonNegativeLengthOrPercentage::parse)
+        Size::parse_with(context, input, NonNegativeLengthPercentage::parse)
             .map(GenericBorderCornerRadius)
     }
 }

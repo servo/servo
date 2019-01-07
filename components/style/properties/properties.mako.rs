@@ -3017,7 +3017,7 @@ impl ComputedValuesInner {
 
     /// Get the logical computed inline size.
     #[inline]
-    pub fn content_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
+    pub fn content_inline_size(&self) -> computed::LengthPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() {
             position_style.height
@@ -3028,42 +3028,42 @@ impl ComputedValuesInner {
 
     /// Get the logical computed block size.
     #[inline]
-    pub fn content_block_size(&self) -> computed::LengthOrPercentageOrAuto {
+    pub fn content_block_size(&self) -> computed::LengthPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.width } else { position_style.height }
     }
 
     /// Get the logical computed min inline size.
     #[inline]
-    pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_inline_size(&self) -> computed::LengthPercentage {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
     }
 
     /// Get the logical computed min block size.
     #[inline]
-    pub fn min_block_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_block_size(&self) -> computed::LengthPercentage {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
     }
 
     /// Get the logical computed max inline size.
     #[inline]
-    pub fn max_inline_size(&self) -> computed::LengthOrPercentageOrNone {
+    pub fn max_inline_size(&self) -> computed::LengthPercentageOrNone {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.max_height } else { position_style.max_width }
     }
 
     /// Get the logical computed max block size.
     #[inline]
-    pub fn max_block_size(&self) -> computed::LengthOrPercentageOrNone {
+    pub fn max_block_size(&self) -> computed::LengthPercentageOrNone {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.max_width } else { position_style.max_height }
     }
 
     /// Get the logical computed padding for this writing mode.
     #[inline]
-    pub fn logical_padding(&self) -> LogicalMargin<computed::LengthOrPercentage> {
+    pub fn logical_padding(&self) -> LogicalMargin<computed::LengthPercentage> {
         let padding_style = self.get_padding();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             padding_style.padding_top.0,
@@ -3093,7 +3093,7 @@ impl ComputedValuesInner {
 
     /// Gets the logical computed margin from this style.
     #[inline]
-    pub fn logical_margin(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
+    pub fn logical_margin(&self) -> LogicalMargin<computed::LengthPercentageOrAuto> {
         let margin_style = self.get_margin();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             margin_style.margin_top,
@@ -3105,7 +3105,7 @@ impl ComputedValuesInner {
 
     /// Gets the logical position from this style.
     #[inline]
-    pub fn logical_position(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
+    pub fn logical_position(&self) -> LogicalMargin<computed::LengthPercentageOrAuto> {
         // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
         let position_style = self.get_position();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(

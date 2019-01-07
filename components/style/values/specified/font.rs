@@ -16,7 +16,7 @@ use crate::values::generics::font::{self as generics, FeatureTagValue, FontSetti
 use crate::values::generics::font::{KeywordSize, VariationValue};
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
-use crate::values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage};
+use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
 use crate::values::specified::{NoCalcLength, Number, Percentage};
 use crate::values::CustomIdent;
 use crate::Atom;
@@ -510,7 +510,7 @@ impl ToComputedValue for FontStretch {
 /// A specified font-size value
 pub enum FontSize {
     /// A length; e.g. 10px.
-    Length(LengthOrPercentage),
+    Length(LengthPercentage),
     /// A keyword value, along with a ratio and absolute offset.
     /// The ratio in any specified keyword value
     /// will be 1 (with offset 0), but we cascade keywordness even
@@ -531,8 +531,8 @@ pub enum FontSize {
     System(SystemFont),
 }
 
-impl From<LengthOrPercentage> for FontSize {
-    fn from(other: LengthOrPercentage) -> Self {
+impl From<LengthPercentage> for FontSize {
+    fn from(other: LengthPercentage) -> Self {
         FontSize::Length(other)
     }
 }
@@ -863,7 +863,7 @@ impl FontSize {
         };
         let mut info = None;
         let size = match *self {
-            FontSize::Length(LengthOrPercentage::Length(NoCalcLength::FontRelative(value))) => {
+            FontSize::Length(LengthPercentage::Length(NoCalcLength::FontRelative(value))) => {
                 if let FontRelativeLength::Em(em) = value {
                     // If the parent font was keyword-derived, this is too.
                     // Tack the em unit onto the factor
@@ -871,22 +871,22 @@ impl FontSize {
                 }
                 value.to_computed_value(context, base_size).into()
             },
-            FontSize::Length(LengthOrPercentage::Length(NoCalcLength::ServoCharacterWidth(
+            FontSize::Length(LengthPercentage::Length(NoCalcLength::ServoCharacterWidth(
                 value,
             ))) => value.to_computed_value(base_size.resolve(context)).into(),
-            FontSize::Length(LengthOrPercentage::Length(NoCalcLength::Absolute(ref l))) => {
+            FontSize::Length(LengthPercentage::Length(NoCalcLength::Absolute(ref l))) => {
                 context.maybe_zoom_text(l.to_computed_value(context).into())
             },
-            FontSize::Length(LengthOrPercentage::Length(ref l)) => {
+            FontSize::Length(LengthPercentage::Length(ref l)) => {
                 l.to_computed_value(context).into()
             },
-            FontSize::Length(LengthOrPercentage::Percentage(pc)) => {
+            FontSize::Length(LengthPercentage::Percentage(pc)) => {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
                 info = compose_keyword(pc.0);
                 base_size.resolve(context).scale_by(pc.0).into()
             },
-            FontSize::Length(LengthOrPercentage::Calc(ref calc)) => {
+            FontSize::Length(LengthPercentage::Calc(ref calc)) => {
                 let parent = context.style().get_parent_font().clone_font_size();
                 // if we contain em/% units and the parent was keyword derived, this is too
                 // Extract the ratio/offset and compose it
@@ -964,7 +964,7 @@ impl ToComputedValue for FontSize {
 
     #[inline]
     fn from_computed_value(computed: &computed::FontSize) -> Self {
-        FontSize::Length(LengthOrPercentage::Length(
+        FontSize::Length(LengthPercentage::Length(
             ToComputedValue::from_computed_value(&computed.size.0),
         ))
     }
@@ -986,7 +986,7 @@ impl FontSize {
         allow_quirks: AllowQuirks,
     ) -> Result<FontSize, ParseError<'i>> {
         if let Ok(lop) =
-            input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+            input.try(|i| LengthPercentage::parse_non_negative_quirky(context, i, allow_quirks))
         {
             return Ok(FontSize::Length(lop));
         }

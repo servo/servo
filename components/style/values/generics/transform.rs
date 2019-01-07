@@ -5,10 +5,10 @@
 //! Generic types for CSS values that are related to transformations.
 
 use crate::values::computed::length::Length as ComputedLength;
-use crate::values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
+use crate::values::computed::length::LengthPercentage as ComputedLengthPercentage;
 use crate::values::specified::angle::Angle as SpecifiedAngle;
 use crate::values::specified::length::Length as SpecifiedLength;
-use crate::values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
+use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercentage;
 use crate::values::{computed, CSSFloat};
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
@@ -105,7 +105,7 @@ impl<H, V, D> TransformOrigin<H, V, D> {
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// A single operation in the list of a `transform` value
-pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> {
+pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage> {
     /// Represents a 2D 2x3 matrix.
     Matrix(Matrix<Number>),
     /// Represents a 3D 4x4 matrix.
@@ -125,19 +125,19 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     SkewY(Angle),
     /// translate(x, y) or translate(x)
     #[css(comma, function)]
-    Translate(LengthOrPercentage, Option<LengthOrPercentage>),
+    Translate(LengthPercentage, Option<LengthPercentage>),
     /// translateX(x)
     #[css(function = "translateX")]
-    TranslateX(LengthOrPercentage),
+    TranslateX(LengthPercentage),
     /// translateY(y)
     #[css(function = "translateY")]
-    TranslateY(LengthOrPercentage),
+    TranslateY(LengthPercentage),
     /// translateZ(z)
     #[css(function = "translateZ")]
     TranslateZ(Length),
     /// translate3d(x, y, z)
     #[css(comma, function = "translate3d")]
-    Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+    Translate3D(LengthPercentage, LengthPercentage, Length),
     /// A 2D scaling factor.
     ///
     /// `scale(2)` is parsed as `Scale(Number::new(2.0), None)` and is equivalent to
@@ -192,8 +192,8 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
         from_list:
-            Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
-        to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
+            Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
+        to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
         progress: computed::Percentage,
     },
     /// A intermediate type for accumulation of mismatched transform lists.
@@ -201,8 +201,8 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
         from_list:
-            Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
-        to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
+            Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
+        to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
         count: Integer,
     },
 }
@@ -211,8 +211,8 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
 /// A value of the `transform` property
 pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 
-impl<Angle, Number, Length, Integer, LengthOrPercentage>
-    TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>
+impl<Angle, Number, Length, Integer, LengthPercentage>
+    TransformOperation<Angle, Number, Length, Integer, LengthPercentage>
 {
     /// Check if it is any rotate function.
     pub fn is_rotate(&self) -> bool {
@@ -263,13 +263,13 @@ impl ToAbsoluteLength for SpecifiedLength {
     }
 }
 
-impl ToAbsoluteLength for SpecifiedLengthOrPercentage {
+impl ToAbsoluteLength for SpecifiedLengthPercentage {
     // This returns Err(()) if there is any relative length or percentage. We use this when
     // parsing a transform list of DOMMatrix because we want to return a DOM Exception
     // if there is relative length.
     #[inline]
     fn to_pixel_length(&self, _containing_len: Option<Au>) -> Result<CSSFloat, ()> {
-        use self::SpecifiedLengthOrPercentage::*;
+        use self::SpecifiedLengthPercentage::*;
         match *self {
             Length(len) => len.to_computed_pixel_length_without_context(),
             Calc(ref calc) => calc.to_computed_pixel_length_without_context(),
@@ -285,7 +285,7 @@ impl ToAbsoluteLength for ComputedLength {
     }
 }
 
-impl ToAbsoluteLength for ComputedLengthOrPercentage {
+impl ToAbsoluteLength for ComputedLengthPercentage {
     #[inline]
     fn to_pixel_length(&self, containing_len: Option<Au>) -> Result<CSSFloat, ()> {
         match containing_len {
@@ -633,18 +633,18 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
 /// A value of the `Translate` property
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
-pub enum Translate<LengthOrPercentage, Length> {
+pub enum Translate<LengthPercentage, Length> {
     /// 'none'
     None,
     /// '<length-percentage>' or '<length-percentage> <length-percentage>'
-    Translate(LengthOrPercentage, LengthOrPercentage),
+    Translate(LengthPercentage, LengthPercentage),
     /// '<length-percentage> <length-percentage> <length>'
-    Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+    Translate3D(LengthPercentage, LengthPercentage, Length),
 }
 
 /// A trait to check if this is a zero length.
 /// An alternative way is use num_traits::Zero. However, in order to implement num_traits::Zero,
-/// we also have to implement Add, which may be complicated for LengthOrPercentage::Calc.
+/// we also have to implement Add, which may be complicated for LengthPercentage::Calc.
 /// We could do this if other types also need it. If so, we could drop this trait.
 pub trait IsZeroLength {
     /// Returns true if this is a zero length.

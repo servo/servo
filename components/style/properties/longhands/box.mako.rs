@@ -611,10 +611,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "shape-margin",
-    "NonNegativeLengthOrPercentage",
-    "computed::NonNegativeLengthOrPercentage::zero()",
+    "NonNegativeLengthPercentage",
+    "computed::NonNegativeLengthPercentage::zero()",
     products="gecko",
-    animation_value_type="NonNegativeLengthOrPercentage",
+    animation_value_type="NonNegativeLengthPercentage",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-margin-property",
 )}
