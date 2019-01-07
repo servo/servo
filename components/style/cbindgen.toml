@@ -50,6 +50,7 @@ include = [
   "ComputedTimingFunction",
   "Display",
   "DisplayMode",
+  "ExtremumLength",
   "FillRule",
   "FontDisplay",
   "FontFaceSourceListComponent",

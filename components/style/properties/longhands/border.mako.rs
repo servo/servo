@@ -88,7 +88,6 @@ ${helpers.single_keyword(
     "box-decoration-break",
     "slice clone",
     gecko_enum_prefix="StyleBoxDecorationBreak",
-    gecko_pref="layout.css.box-decoration-break.enabled",
     spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
     products="gecko",
     animation_value_type="discrete",
@@ -153,14 +152,15 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "border-image-slice",
     "BorderImageSlice",
-    initial_value="computed::NumberOrPercentage::Percentage(computed::Percentage(1.)).into()",
-    initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage::new(1.)).into()",
+    initial_value="computed::BorderImageSlice::hundred_percent()",
+    initial_specified_value="specified::BorderImageSlice::hundred_percent()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
     boxed=True,
 )}
 
+// FIXME(emilio): Why does this live here? ;_;
 #[cfg(feature = "gecko")]
 impl crate::values::computed::BorderImageWidth {
     pub fn to_gecko_rect(&self, sides: &mut crate::gecko_bindings::structs::nsStyleSides) {
@@ -177,7 +177,7 @@ impl crate::values::computed::BorderImageWidth {
                 l.to_gecko_style_coord(&mut sides.data_at_mut(${i}))
             },
             BorderImageSideWidth::Number(n) => {
-                sides.data_at_mut(${i}).set_value(CoordDataValue::Factor(n))
+                sides.data_at_mut(${i}).set_value(CoordDataValue::Factor(n.0))
             },
         }
         % endfor
@@ -191,6 +191,7 @@ impl crate::values::computed::BorderImageWidth {
         use crate::gecko::values::GeckoStyleCoordConvertible;
         use crate::values::computed::{LengthOrPercentage, Number};
         use crate::values::generics::border::BorderImageSideWidth;
+        use crate::values::generics::NonNegative;
 
         Some(
             crate::values::computed::BorderImageWidth::new(
@@ -201,13 +202,13 @@ impl crate::values::computed::BorderImageWidth {
                     },
                     eStyleUnit_Factor => {
                         BorderImageSideWidth::Number(
-                            Number::from_gecko_style_coord(&sides.data_at(${i}))
-                                .expect("sides[${i}] could not convert to Number"))
+                            NonNegative(Number::from_gecko_style_coord(&sides.data_at(${i}))
+                                .expect("sides[${i}] could not convert to Number")))
                     },
                     _ => {
                         BorderImageSideWidth::Length(
-                            LengthOrPercentage::from_gecko_style_coord(&sides.data_at(${i}))
-                                .expect("sides[${i}] could not convert to LengthOrPercentager"))
+                            NonNegative(LengthOrPercentage::from_gecko_style_coord(&sides.data_at(${i}))
+                                .expect("sides[${i}] could not convert to LengthOrPercentage")))
                     },
                 },
                 % endfor

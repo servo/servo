@@ -389,7 +389,6 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "scroll-behavior",
     "auto smooth",
-    gecko_pref="layout.css.scroll-behavior.property-enabled",
     products="gecko",
     spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
     animation_value_type="discrete",
@@ -427,7 +426,6 @@ ${helpers.single_keyword(
     "isolation",
     "auto isolate",
     products="gecko",
-    gecko_pref="layout.css.isolation.enabled",
     spec="https://drafts.fxtf.org/compositing/#isolation",
     flags="CREATES_STACKING_CONTEXT",
     animation_value_type="discrete",
@@ -559,6 +557,7 @@ ${helpers.predefined_type(
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     gecko_pref="layout.css.contain.enabled",
     spec="https://drafts.csswg.org/css-contain/#contain-property",
+    enabled_in="chrome",
 )}
 
 // Non-standard
@@ -626,7 +625,7 @@ ${helpers.predefined_type(
     "generics::basic_shape::ShapeSource::None",
     products="gecko",
     boxed=True,
-    animation_value_type="ComputedValue",
+    animation_value_type="basic_shape::FloatAreaShape",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}

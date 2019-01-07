@@ -12,7 +12,8 @@ use crate::properties::PropertyId;
 use crate::values::computed::length::CalcLengthOrPercentage;
 use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::Angle as ComputedAngle;
-use crate::values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use crate::values::computed::Image;
+use crate::values::specified::SVGPathData;
 use crate::values::CSSFloat;
 use app_units::Au;
 use euclid::{Point2D, Size2D};
@@ -339,23 +340,19 @@ trivial_to_animated_value!(ComputedAngle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
-
-impl ToAnimatedValue for ComputedBorderCornerRadius {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedBorderCornerRadius::new(
-            (animated.0).0.width.clamp_to_non_negative(),
-            (animated.0).0.height.clamp_to_non_negative(),
-        )
-    }
-}
+// Note: This implementation is for ToAnimatedValue of ShapeSource.
+//
+// SVGPathData uses Box<[T]>. If we want to derive ToAnimatedValue for all the
+// types, we have to do "impl ToAnimatedValue for Box<[T]>" first.
+// However, the general version of "impl ToAnimatedValue for Box<[T]>" needs to
+// clone |T| and convert it into |T::AnimatedValue|. However, for SVGPathData
+// that is unnecessary--moving |T| is sufficient. So here, we implement this
+// trait manually.
+trivial_to_animated_value!(SVGPathData);
+// FIXME: Bug 1514342, Image is not animatable, but we still need to implement
+// this to avoid adding this derive to generic::Image and all its arms. We can
+// drop this after landing Bug 1514342.
+trivial_to_animated_value!(Image);
 
 impl ToAnimatedZero for Au {
     #[inline]

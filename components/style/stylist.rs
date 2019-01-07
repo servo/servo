@@ -17,7 +17,7 @@ use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
 use crate::properties::{AnimationRules, PropertyDeclarationBlock};
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_collector::RuleCollector;
+use crate::rule_collector::{containing_shadow_ignoring_svg_use, RuleCollector};
 use crate::rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
 use crate::selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
@@ -1187,7 +1187,9 @@ impl Stylist {
             }
         }
 
-        if let Some(shadow) = element.containing_shadow() {
+        // Use the same rules to look for the containing host as we do for rule
+        // collection.
+        if let Some(shadow) = containing_shadow_ignoring_svg_use(element) {
             if let Some(data) = shadow.style_data() {
                 try_find_in!(data);
             }

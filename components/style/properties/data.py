@@ -388,12 +388,12 @@ class Shorthand(object):
             and allowed_in_keyframe_block != "False"
 
     def get_animatable(self):
-        animatable = False
+        if self.ident == "all":
+            return False
         for sub in self.sub_properties:
             if sub.animatable:
-                animatable = True
-                break
-        return animatable
+                return True
+        return False
 
     def get_transitionable(self):
         transitionable = False

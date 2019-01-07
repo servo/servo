@@ -717,6 +717,20 @@ impl NonNegativeLength {
     pub fn from_px(px_value: CSSFloat) -> Self {
         Length::from_px(px_value.max(0.)).into()
     }
+
+    /// Parses a non-negative length, optionally with quirks.
+    #[inline]
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(NonNegative(Length::parse_non_negative_quirky(
+            context,
+            input,
+            allow_quirks,
+        )?))
+    }
 }
 
 /// Either a NonNegativeLength or the `auto` keyword.
@@ -1246,17 +1260,6 @@ impl Parse for MozLength {
 }
 
 impl MozLength {
-    /// Parses, without quirks, and disallowing ExtremumLength values.
-    ///
-    /// Used for logical props in the block direction.
-    pub fn parse_disallow_keyword<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        let length = LengthOrPercentageOrAuto::parse_non_negative(context, input)?;
-        Ok(GenericMozLength::LengthOrPercentageOrAuto(length))
-    }
-
     /// Parses, with quirks.
     pub fn parse_quirky<'i, 't>(
         context: &ParserContext,
@@ -1298,17 +1301,6 @@ impl Parse for MaxLength {
 }
 
 impl MaxLength {
-    /// Parses, without quirks, and disallowing ExtremumLength values.
-    ///
-    /// Used for logical props in the block direction.
-    pub fn parse_disallow_keyword<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        let length = LengthOrPercentageOrNone::parse_non_negative(context, input)?;
-        Ok(GenericMaxLength::LengthOrPercentageOrNone(length))
-    }
-
     /// Parses, with quirks.
     pub fn parse_quirky<'i, 't>(
         context: &ParserContext,

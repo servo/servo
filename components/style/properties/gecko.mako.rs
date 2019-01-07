@@ -39,7 +39,6 @@ use crate::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::CSSPseudoElementType;
-use crate::gecko_bindings::structs::mozilla::CSSPseudoElementType_InheritingAnonBox;
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::gecko::values::convert_nscolor_to_rgba;
@@ -138,7 +137,7 @@ impl ComputedValues {
     #[inline]
     pub fn is_anon_box(&self) -> bool {
         let our_type = self.get_pseudo_type();
-        return our_type == CSSPseudoElementType_InheritingAnonBox ||
+        return our_type == CSSPseudoElementType::InheritingAnonBox ||
                our_type == CSSPseudoElementType::NonInheritingAnonBox;
     }
 
@@ -1687,8 +1686,8 @@ fn static_assert() {
 
     pub fn clone_border_image_slice(&self) -> longhands::border_image_slice::computed_value::T {
         use crate::gecko_bindings::structs::NS_STYLE_BORDER_IMAGE_SLICE_FILL;
-        use crate::values::computed::{BorderImageSlice, NumberOrPercentage};
-        type NumberOrPercentageRect = crate::values::generics::rect::Rect<NumberOrPercentage>;
+        use crate::values::computed::{BorderImageSlice, NonNegativeNumberOrPercentage};
+        type NumberOrPercentageRect = crate::values::generics::rect::Rect<NonNegativeNumberOrPercentage>;
 
         BorderImageSlice {
             offsets:

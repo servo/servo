@@ -108,7 +108,6 @@ ${helpers.single_keyword(
     color-burn hard-light soft-light difference exclusion hue
     saturation color luminosity""",
     gecko_constant_prefix="NS_STYLE_BLEND",
-    gecko_pref="layout.css.background-blend-mode.enabled",
     vector=True, products="gecko", animation_value_type="discrete",
     spec="https://drafts.fxtf.org/compositing/#background-blend-mode",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
