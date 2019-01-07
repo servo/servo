@@ -35,7 +35,7 @@ use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::LengthPercentageOrAuto;
 use style::values::CSSFloat;
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -203,7 +203,7 @@ impl TableWrapperFlow {
         // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
         // just use the shrink-to-fit inline size.
         let available_inline_size = match self.block_flow.fragment.style().content_inline_size() {
-            LengthOrPercentageOrAuto::Auto => {
+            LengthPercentageOrAuto::Auto => {
                 self.block_flow
                     .get_shrink_to_fit_inline_size(available_inline_size) -
                     table_border_padding

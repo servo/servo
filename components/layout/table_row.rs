@@ -29,7 +29,7 @@ use style::computed_values::border_spacing::T as BorderSpacing;
 use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{Color, LengthOrPercentageOrAuto};
+use style::values::computed::{Color, LengthPercentageOrAuto};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}
@@ -430,22 +430,22 @@ impl Flow for TableRowFlow {
                 let child_base = kid.mut_base();
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
                     minimum_length: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto => None,
-                        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                        LengthPercentageOrAuto::Auto => None,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                             lp.maybe_to_used_value(None)
                         },
                     }
                     .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
                     percentage: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto => 0.0,
-                        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                        LengthPercentageOrAuto::Auto => 0.0,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                             lp.as_percentage().map_or(0.0, |p| p.0)
                         },
                     },
                     preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                     constrained: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto => false,
-                        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                        LengthPercentageOrAuto::Auto => false,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                             lp.maybe_to_used_value(None).is_some()
                         },
                     },

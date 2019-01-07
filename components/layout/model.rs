@@ -11,8 +11,8 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrNone;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::LengthPercentageOrNone;
+use style::values::computed::{LengthPercentage, LengthPercentageOrAuto};
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]
@@ -135,8 +135,8 @@ impl MarginCollapseInfo {
             MarginCollapseState::AccumulatingCollapsibleTopMargin => {
                 may_collapse_through = may_collapse_through &&
                     match fragment.style().content_block_size() {
-                        LengthOrPercentageOrAuto::Auto => true,
-                        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                        LengthPercentageOrAuto::Auto => true,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                             lp.is_definitely_zero() ||
                             containing_block_size.is_none()
                         },
@@ -435,10 +435,10 @@ pub enum MaybeAuto {
 
 impl MaybeAuto {
     #[inline]
-    pub fn from_style(length: LengthOrPercentageOrAuto, containing_length: Au) -> MaybeAuto {
+    pub fn from_style(length: LengthPercentageOrAuto, containing_length: Au) -> MaybeAuto {
         match length {
-            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
-            LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+            LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                 MaybeAuto::Specified(lp.to_used_value(containing_length))
             },
         }
@@ -498,12 +498,12 @@ impl MaybeAuto {
 ///
 /// `style_length`: content size as given in the CSS.
 pub fn style_length(
-    style_length: LengthOrPercentageOrAuto,
+    style_length: LengthPercentageOrAuto,
     container_size: Option<Au>,
 ) -> MaybeAuto {
     match style_length {
-        LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
-        LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+        LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
             MaybeAuto::from_option(lp.maybe_to_used_value(container_size))
         }
     }
@@ -570,16 +570,16 @@ impl SizeConstraint {
     /// Create a `SizeConstraint` for an axis.
     pub fn new(
         container_size: Option<Au>,
-        min_size: LengthOrPercentage,
-        max_size: LengthOrPercentageOrNone,
+        min_size: LengthPercentage,
+        max_size: LengthPercentageOrNone,
         border: Option<Au>,
     ) -> SizeConstraint {
         let mut min_size =
             min_size.maybe_to_used_value(container_size).unwrap_or(Au(0));
 
         let mut max_size = match max_size {
-            LengthOrPercentageOrNone::None => None,
-            LengthOrPercentageOrNone::LengthOrPercentage(ref lp) => {
+            LengthPercentageOrNone::None => None,
+            LengthPercentageOrNone::LengthPercentage(ref lp) => {
                 lp.maybe_to_used_value(container_size)
             },
         };

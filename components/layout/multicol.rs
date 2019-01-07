@@ -19,7 +19,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::{LengthPercentageOrAuto, LengthPercentageOrNone};
 use style::values::generics::column::ColumnCount;
 use style::values::Either;
 
@@ -155,15 +155,15 @@ impl Flow for MulticolFlow {
             available_block_size: {
                 let style = &self.block_flow.fragment.style;
                 let size = match style.content_block_size() {
-                    LengthOrPercentageOrAuto::Auto => None,
-                    LengthOrPercentageOrAuto::LengthOrPercentage(ref lp) => {
+                    LengthPercentageOrAuto::Auto => None,
+                    LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                         lp.maybe_to_used_value(None)
                     }
                 };
                 let size = size.or_else(|| {
                     match style.max_block_size() {
-                        LengthOrPercentageOrNone::None => None,
-                        LengthOrPercentageOrNone::LengthOrPercentage(ref lp) => {
+                        LengthPercentageOrNone::None => None,
+                        LengthPercentageOrNone::LengthPercentage(ref lp) => {
                             lp.maybe_to_used_value(None)
                         }
                     }
