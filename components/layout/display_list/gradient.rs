@@ -9,7 +9,7 @@ use app_units::Au;
 use euclid::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
-use style::values::computed::{Angle, GradientItem, LengthOrPercentage, Percentage, Position};
+use style::values::computed::{Angle, GradientItem, LengthPercentage, Percentage, Position};
 use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
@@ -107,14 +107,14 @@ fn convert_gradient_stops(
     {
         let first = stop_items.first_mut().unwrap();
         if first.position.is_none() {
-            first.position = Some(LengthOrPercentage::new_percent(Percentage(0.)));
+            first.position = Some(LengthPercentage::new_percent(Percentage(0.)));
         }
     }
     // If the last color stop does not have a position, set its position to 100%.
     {
         let last = stop_items.last_mut().unwrap();
         if last.position.is_none() {
-            last.position = Some(LengthOrPercentage::new_percent(Percentage(1.0)));
+            last.position = Some(LengthPercentage::new_percent(Percentage(1.0)));
         }
     }
 
@@ -210,7 +210,7 @@ where
     Size2D::new(cmp(left_side, right_side), cmp(top_side, bottom_side))
 }
 
-fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
+fn position_to_offset(position: LengthPercentage, total_length: Au) -> f32 {
     if total_length == Au(0) {
         return 0.0;
     }
