@@ -15,7 +15,9 @@ use crate::gecko_bindings::bindings::Gecko_Atomize;
 use crate::gecko_bindings::bindings::Gecko_Atomize16;
 use crate::gecko_bindings::bindings::Gecko_ReleaseAtom;
 use crate::gecko_bindings::structs::{nsAtom, nsDynamicAtom, nsStaticAtom};
+use crate::gecko_bindings::structs::root::mozilla::detail::GkAtoms_Atoms_AtomsCount;
 use crate::gecko_bindings::structs::root::mozilla::detail::gGkAtoms;
+use crate::gecko_bindings::structs::root::mozilla::detail::kGkAtomsArrayOffset;
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
 use std::borrow::{Borrow, Cow};
@@ -57,11 +59,32 @@ pub struct Atom(usize);
 /// where `'a` is the lifetime of something that holds a strong reference to that atom.
 pub struct WeakAtom(nsAtom);
 
+/// The number of static atoms we have.
+const STATIC_ATOM_COUNT: usize = GkAtoms_Atoms_AtomsCount as usize;
+
+/// Returns the Gecko static atom array.
+///
+/// We have this rather than use rust-bindgen to generate
+/// mozilla::detail::gGkAtoms and then just reference gGkAtoms.mAtoms, so we
+/// avoid a problem with lld-link.exe on Windows.
+///
+/// https://bugzilla.mozilla.org/show_bug.cgi?id=1517685
+#[inline]
+fn static_atoms() -> &'static [nsStaticAtom; STATIC_ATOM_COUNT] {
+    unsafe {
+        let addr = &gGkAtoms as *const _ as usize + kGkAtomsArrayOffset as usize;
+        &*(addr as *const _)
+    }
+}
+
+/// Returns whether the specified address points to one of the nsStaticAtom
+/// objects in the Gecko static atom array.
 #[inline]
 fn valid_static_atom_addr(addr: usize) -> bool {
     unsafe {
-        let start = gGkAtoms.mAtoms.get_unchecked(0) as *const _;
-        let end = gGkAtoms.mAtoms.get_unchecked(gGkAtoms.mAtoms.len()) as *const _;
+        let atoms = static_atoms();
+        let start = atoms.get_unchecked(0) as *const _;
+        let end = atoms.get_unchecked(STATIC_ATOM_COUNT) as *const _;
         let in_range = addr >= start as usize && addr < end as usize;
         let aligned = addr % mem::align_of::<nsStaticAtom>() == 0;
         in_range && aligned
@@ -341,7 +364,7 @@ impl Atom {
     /// checking in release builds.
     #[inline]
     pub unsafe fn from_index(index: u16) -> Self {
-        let ptr = gGkAtoms.mAtoms.get_unchecked(index as usize) as *const _;
+        let ptr = static_atoms().get_unchecked(index as usize) as *const _;
         let handle = make_static_handle(ptr);
         let atom = Atom(handle);
         debug_assert!(valid_static_atom_addr(ptr as usize));
