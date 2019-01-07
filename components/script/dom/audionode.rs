@@ -241,6 +241,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::InvalidState);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
+                if value != self.ChannelCount() {
+                    return Err(Error::InvalidState);
+                }
+            },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -284,6 +289,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::InvalidState);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
+                if value != ChannelCountMode::Explicit {
+                    return Err(Error::InvalidState);
+                }
+            },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -301,14 +311,24 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation
-    fn SetChannelInterpretation(&self, value: ChannelInterpretation) {
+    fn SetChannelInterpretation(&self, value: ChannelInterpretation) -> ErrorResult {
         // Channel interpretation mode has no effect for nodes with no inputs.
         if self.number_of_inputs == 0 {
-            return;
+            return Ok(());
         }
+
+        match self.upcast::<EventTarget>().type_id() {
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
+                if value != ChannelInterpretation::Discrete {
+                    return Err(Error::InvalidState);
+                }
+            },
+            _ => (),
+        };
 
         self.channel_interpretation.set(value);
         self.message(AudioNodeMessage::SetChannelInterpretation(value.into()));
+        Ok(())
     }
 }
 
