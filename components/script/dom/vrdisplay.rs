@@ -688,12 +688,12 @@ impl VRDisplay {
 // XR stuff
 // XXXManishearth eventually we should share as much logic as possible
 impl VRDisplay {
-    pub fn xr_present(&self, session: &XRSession, ctx: &WebGLRenderingContext) {
+    pub fn xr_present(&self, session: &XRSession, ctx: Option<&WebGLRenderingContext>) {
         let layer_bounds = WebVRLayer::default();
         self.xr_session.set(Some(session));
         if self.presenting.get() {
             *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(Some(&ctx));
+            self.layer_ctx.set(ctx);
             return;
         }
 
@@ -709,7 +709,7 @@ impl VRDisplay {
 
         if let Ok(()) = receiver.recv().unwrap() {
             *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(Some(&ctx));
+            self.layer_ctx.set(ctx);
             self.init_present();
         }
     }

@@ -37,11 +37,13 @@ impl XRSession {
     }
 
     pub fn new(global: &GlobalScope, display: &VRDisplay) -> DomRoot<XRSession> {
-        reflect_dom_object(
+        let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(display)),
             global,
             XRSessionBinding::Wrap,
-        )
+        );
+        ret.display.xr_present(&ret, None);
+        ret
     }
 }
 
@@ -76,7 +78,7 @@ impl XRSessionMethods for XRSession {
         self.base_layer.set(layer);
         if let Some(layer) = layer {
             let layer = layer.downcast::<XRWebGLLayer>().unwrap();
-            self.display.xr_present(&self, &layer.Context());
+            self.display.xr_present(&self, Some(&layer.Context()));
         } else {
             // steps unknown
             // https://github.com/immersive-web/webxr/issues/453
