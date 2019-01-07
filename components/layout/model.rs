@@ -137,7 +137,8 @@ impl MarginCollapseInfo {
                     match fragment.style().content_block_size() {
                         LengthPercentageOrAuto::Auto => true,
                         LengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                            lp.is_definitely_zero() || containing_block_size.is_none()
+                            lp.is_definitely_zero() ||
+                                lp.maybe_to_used_value(containing_block_size).is_none()
                         },
                     };
 
