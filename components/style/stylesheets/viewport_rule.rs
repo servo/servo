@@ -18,7 +18,9 @@ use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use crate::str::CssStringWriter;
 use crate::stylesheets::{Origin, StylesheetInDocument};
 use crate::values::computed::{Context, ToComputedValue};
-use crate::values::specified::{self, LengthPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
+use crate::values::specified::{
+    self, LengthPercentageOrAuto, NoCalcLength, ViewportPercentageLength,
+};
 use app_units::Au;
 use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
@@ -158,7 +160,7 @@ impl FromMeta for ViewportLength {
         macro_rules! specified {
             ($value:expr) => {
                 ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Length($value)
+                    specified::LengthPercentage::Length($value),
                 ))
             };
         }
@@ -755,9 +757,10 @@ impl MaybeNew for ViewportConstraints {
                     match *$value {
                         ViewportLength::Specified(ref length) => match *length {
                             LengthPercentageOrAuto::Auto => None,
-                            LengthPercentageOrAuto::LengthPercentage(ref lop) => Some(lop
-                                .to_computed_value(&context)
-                                .to_used_value(initial_viewport.$dimension)),
+                            LengthPercentageOrAuto::LengthPercentage(ref lop) => Some(
+                                lop.to_computed_value(&context)
+                                    .to_used_value(initial_viewport.$dimension),
+                            ),
                         },
                         ViewportLength::ExtendToZoom => {
                             // $extend_to will be 'None' if 'extend-to-zoom' is 'auto'

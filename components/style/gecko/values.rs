@@ -149,7 +149,7 @@ impl GeckoStyleCoordConvertible for NumberOrPercentage {
 impl GeckoStyleCoordConvertible for LengthPercentage {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         if self.was_calc {
-            return coord.set_value(CoordDataValue::Calc((*self).into()))
+            return coord.set_value(CoordDataValue::Calc((*self).into()));
         }
         debug_assert!(self.percentage.is_none() || self.unclamped_length() == Length::zero());
         if let Some(p) = self.percentage {
@@ -161,7 +161,9 @@ impl GeckoStyleCoordConvertible for LengthPercentage {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
             CoordDataValue::Coord(coord) => Some(LengthPercentage::new(Au(coord).into(), None)),
-            CoordDataValue::Percent(p) => Some(LengthPercentage::new(Au(0).into(), Some(Percentage(p)))),
+            CoordDataValue::Percent(p) => {
+                Some(LengthPercentage::new(Au(0).into(), Some(Percentage(p))))
+            },
             CoordDataValue::Calc(calc) => Some(calc.into()),
             _ => None,
         }
@@ -192,7 +194,8 @@ impl GeckoStyleCoordConvertible for LengthPercentageOrAuto {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
             CoordDataValue::Auto => Some(LengthPercentageOrAuto::Auto),
-            _ => LengthPercentage::from_gecko_style_coord(coord).map(LengthPercentageOrAuto::LengthPercentage),
+            _ => LengthPercentage::from_gecko_style_coord(coord)
+                .map(LengthPercentageOrAuto::LengthPercentage),
         }
     }
 }
@@ -208,7 +211,8 @@ impl GeckoStyleCoordConvertible for LengthPercentageOrNone {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
             CoordDataValue::None => Some(LengthPercentageOrNone::None),
-            _ => LengthPercentage::from_gecko_style_coord(coord).map(LengthPercentageOrNone::LengthPercentage),
+            _ => LengthPercentage::from_gecko_style_coord(coord)
+                .map(LengthPercentageOrNone::LengthPercentage),
         }
     }
 }

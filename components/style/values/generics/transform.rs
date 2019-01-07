@@ -191,8 +191,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage> {
     #[allow(missing_docs)]
     #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
-        from_list:
-            Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
+        from_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
         to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
         progress: computed::Percentage,
     },
@@ -200,8 +199,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage> {
     #[allow(missing_docs)]
     #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
-        from_list:
-            Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
+        from_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
         to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthPercentage>>,
         count: Integer,
     },

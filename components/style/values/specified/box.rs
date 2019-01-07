@@ -278,8 +278,7 @@ impl Parse for VerticalAlign {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lp) =
-            input.try(|i| LengthPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+        if let Ok(lp) = input.try(|i| LengthPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
             return Ok(GenericVerticalAlign::Length(lp));
         }

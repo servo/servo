@@ -73,8 +73,7 @@ impl Parse for TrackSize<LengthPercentage> {
         }
 
         input.expect_function_matching("fit-content")?;
-        let lp =
-            input.parse_nested_block(|i| LengthPercentage::parse_non_negative(context, i))?;
+        let lp = input.parse_nested_block(|i| LengthPercentage::parse_non_negative(context, i))?;
         Ok(TrackSize::FitContent(lp))
     }
 }
