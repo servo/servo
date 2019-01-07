@@ -37,11 +37,11 @@ pub enum Image<Gradient, MozImageRect, ImageUrl> {
 /// A CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, Angle> {
+pub struct Gradient<LineDirection, Length, LengthPercentage, Position, Color, Angle> {
     /// Gradients can be linear or radial.
-    pub kind: GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle>,
+    pub kind: GradientKind<LineDirection, Length, LengthPercentage, Position, Angle>,
     /// The color stops and interpolation hints.
-    pub items: Vec<GradientItem<Color, LengthOrPercentage>>,
+    pub items: Vec<GradientItem<Color, LengthPercentage>>,
     /// True if this is a repeating gradient.
     pub repeating: bool,
     /// Compatibility mode.
@@ -61,12 +61,12 @@ pub enum CompatMode {
 
 /// A gradient kind.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle> {
+pub enum GradientKind<LineDirection, Length, LengthPercentage, Position, Angle> {
     /// A linear gradient.
     Linear(LineDirection),
     /// A radial gradient.
     Radial(
-        EndingShape<Length, LengthOrPercentage>,
+        EndingShape<Length, LengthPercentage>,
         Position,
         Option<Angle>,
     ),
@@ -74,11 +74,11 @@ pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle
 
 /// A radial gradient's ending shape.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub enum EndingShape<Length, LengthOrPercentage> {
+pub enum EndingShape<Length, LengthPercentage> {
     /// A circular gradient.
     Circle(Circle<Length>),
     /// An elliptic gradient.
-    Ellipse(Ellipse<LengthOrPercentage>),
+    Ellipse(Ellipse<LengthPercentage>),
 }
 
 /// A circle shape.
@@ -92,9 +92,9 @@ pub enum Circle<Length> {
 
 /// An ellipse shape.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub enum Ellipse<LengthOrPercentage> {
+pub enum Ellipse<LengthPercentage> {
     /// An ellipse pair of radii.
-    Radii(LengthOrPercentage, LengthOrPercentage),
+    Radii(LengthPercentage, LengthPercentage),
     /// An ellipse extent.
     Extent(ShapeExtent),
 }
@@ -115,21 +115,21 @@ pub enum ShapeExtent {
 /// A gradient item.
 /// <https://drafts.csswg.org/css-images-4/#color-stop-syntax>
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub enum GradientItem<Color, LengthOrPercentage> {
+pub enum GradientItem<Color, LengthPercentage> {
     /// A color stop.
-    ColorStop(ColorStop<Color, LengthOrPercentage>),
+    ColorStop(ColorStop<Color, LengthPercentage>),
     /// An interpolation hint.
-    InterpolationHint(LengthOrPercentage),
+    InterpolationHint(LengthPercentage),
 }
 
 /// A color stop.
 /// <https://drafts.csswg.org/css-images/#typedef-color-stop-list>
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub struct ColorStop<Color, LengthOrPercentage> {
+pub struct ColorStop<Color, LengthPercentage> {
     /// The color of this stop.
     pub color: Color,
     /// The position of this stop.
-    pub position: Option<LengthOrPercentage>,
+    pub position: Option<LengthPercentage>,
 }
 
 /// Specified values for a paint worklet.

@@ -8,9 +8,9 @@ use super::{Animate, Procedure, ToAnimatedZero};
 use crate::properties::animated_properties::ListAnimation;
 use crate::values::animated::color::Color as AnimatedColor;
 use crate::values::computed::url::ComputedUrl;
-use crate::values::computed::{LengthOrPercentage, Number, NumberOrPercentage};
+use crate::values::computed::{LengthPercentage, Number, NumberOrPercentage};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::svg::{SVGLength, SVGPaint, SvgLengthOrPercentageOrNumber};
+use crate::values::generics::svg::{SVGLength, SVGPaint, SvgLengthPercentageOrNumber};
 use crate::values::generics::svg::{SVGOpacity, SVGStrokeDashArray};
 
 /// Animated SVGPaint.
@@ -29,10 +29,10 @@ impl ToAnimatedZero for IntermediateSVGPaint {
 // FIXME: We need to handle calc here properly, see
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
 fn to_number_or_percentage(
-    value: &SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number>,
+    value: &SvgLengthPercentageOrNumber<LengthPercentage, Number>,
 ) -> Result<NumberOrPercentage, ()> {
     Ok(match *value {
-        SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref l) => {
+        SvgLengthPercentageOrNumber::LengthPercentage(ref l) => {
             match l.percentage {
                 Some(p) => {
                     if l.unclamped_length().px() != 0. {
@@ -43,11 +43,11 @@ fn to_number_or_percentage(
                 None => NumberOrPercentage::Number(l.length().px())
             }
         },
-        SvgLengthOrPercentageOrNumber::Number(ref n) => NumberOrPercentage::Number(*n),
+        SvgLengthPercentageOrNumber::Number(ref n) => NumberOrPercentage::Number(*n),
     })
 }
 
-impl Animate for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
+impl Animate for SvgLengthPercentageOrNumber<LengthPercentage, Number> {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let this = to_number_or_percentage(self)?;
@@ -55,20 +55,20 @@ impl Animate for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
 
         match (this, other) {
             (NumberOrPercentage::Number(ref this), NumberOrPercentage::Number(ref other)) => Ok(
-                SvgLengthOrPercentageOrNumber::Number(this.animate(other, procedure)?),
+                SvgLengthPercentageOrNumber::Number(this.animate(other, procedure)?),
             ),
             (
                 NumberOrPercentage::Percentage(ref this),
                 NumberOrPercentage::Percentage(ref other),
-            ) => Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                LengthOrPercentage::new_percent(this.animate(other, procedure)?),
+            ) => Ok(SvgLengthPercentageOrNumber::LengthPercentage(
+                LengthPercentage::new_percent(this.animate(other, procedure)?),
             )),
             _ => Err(()),
         }
     }
 }
 
-impl ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
+impl ComputeSquaredDistance for SvgLengthPercentageOrNumber<LengthPercentage, Number> {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         to_number_or_percentage(self)?.compute_squared_distance(&to_number_or_percentage(other)?)
     }

@@ -4,7 +4,7 @@
 
 //! Computed types for CSS values related to borders.
 
-use crate::values::computed::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
+use crate::values::computed::length::{NonNegativeLength, NonNegativeLengthPercentage};
 use crate::values::computed::{NonNegativeNumber, NonNegativeNumberOrPercentage};
 use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use crate::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
@@ -23,16 +23,16 @@ pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
 /// A computed value for a single side of a `border-image-width` property.
 pub type BorderImageSideWidth =
-    GenericBorderImageSideWidth<NonNegativeLengthOrPercentage, NonNegativeNumber>;
+    GenericBorderImageSideWidth<NonNegativeLengthPercentage, NonNegativeNumber>;
 
 /// A computed value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NonNegativeNumberOrPercentage>;
 
 /// A computed value for the `border-radius` property.
-pub type BorderRadius = GenericBorderRadius<NonNegativeLengthOrPercentage>;
+pub type BorderRadius = GenericBorderRadius<NonNegativeLengthPercentage>;
 
 /// A computed value for the `border-*-radius` longhand properties.
-pub type BorderCornerRadius = GenericBorderCornerRadius<NonNegativeLengthOrPercentage>;
+pub type BorderCornerRadius = GenericBorderCornerRadius<NonNegativeLengthPercentage>;
 
 /// A computed value for the `border-spacing` longhand property.
 pub type BorderSpacing = GenericBorderSpacing<NonNegativeLength>;
@@ -80,8 +80,8 @@ impl BorderCornerRadius {
     /// Returns `0 0`.
     pub fn zero() -> Self {
         GenericBorderCornerRadius(Size::new(
-            NonNegativeLengthOrPercentage::zero(),
-            NonNegativeLengthOrPercentage::zero(),
+            NonNegativeLengthPercentage::zero(),
+            NonNegativeLengthPercentage::zero(),
         ))
     }
 }
@@ -90,8 +90,8 @@ impl BorderRadius {
     /// Returns whether all the values are `0px`.
     pub fn all_zero(&self) -> bool {
         fn all(corner: &BorderCornerRadius) -> bool {
-            fn is_zero(l: &NonNegativeLengthOrPercentage) -> bool {
-                *l == NonNegativeLengthOrPercentage::zero()
+            fn is_zero(l: &NonNegativeLengthPercentage) -> bool {
+                *l == NonNegativeLengthPercentage::zero()
             }
             is_zero(corner.0.width()) && is_zero(corner.0.height())
         }

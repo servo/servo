@@ -104,11 +104,11 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     ToComputedValue,
     ToCss,
 )]
-pub enum BasicShape<H, V, LengthOrPercentage, NonNegativeLengthOrPercentage> {
-    Inset(#[css(field_bound)] InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage>),
-    Circle(#[css(field_bound)] Circle<H, V, NonNegativeLengthOrPercentage>),
-    Ellipse(#[css(field_bound)] Ellipse<H, V, NonNegativeLengthOrPercentage>),
-    Polygon(Polygon<LengthOrPercentage>),
+pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
+    Inset(#[css(field_bound)] InsetRect<LengthPercentage, NonNegativeLengthPercentage>),
+    Circle(#[css(field_bound)] Circle<H, V, NonNegativeLengthPercentage>),
+    Ellipse(#[css(field_bound)] Ellipse<H, V, NonNegativeLengthPercentage>),
+    Polygon(Polygon<LengthPercentage>),
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-inset>
@@ -125,9 +125,9 @@ pub enum BasicShape<H, V, LengthOrPercentage, NonNegativeLengthOrPercentage> {
     ToAnimatedValue,
     ToComputedValue,
 )]
-pub struct InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage> {
-    pub rect: Rect<LengthOrPercentage>,
-    pub round: Option<BorderRadius<NonNegativeLengthOrPercentage>>,
+pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
+    pub rect: Rect<LengthPercentage>,
+    pub round: Option<BorderRadius<NonNegativeLengthPercentage>>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
@@ -145,9 +145,9 @@ pub struct InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage> {
     ToAnimatedValue,
     ToComputedValue,
 )]
-pub struct Circle<H, V, NonNegativeLengthOrPercentage> {
+pub struct Circle<H, V, NonNegativeLengthPercentage> {
     pub position: Position<H, V>,
-    pub radius: ShapeRadius<NonNegativeLengthOrPercentage>,
+    pub radius: ShapeRadius<NonNegativeLengthPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-ellipse>
@@ -165,10 +165,10 @@ pub struct Circle<H, V, NonNegativeLengthOrPercentage> {
     ToAnimatedValue,
     ToComputedValue,
 )]
-pub struct Ellipse<H, V, NonNegativeLengthOrPercentage> {
+pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     pub position: Position<H, V>,
-    pub semiaxis_x: ShapeRadius<NonNegativeLengthOrPercentage>,
-    pub semiaxis_y: ShapeRadius<NonNegativeLengthOrPercentage>,
+    pub semiaxis_x: ShapeRadius<NonNegativeLengthPercentage>,
+    pub semiaxis_y: ShapeRadius<NonNegativeLengthPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#typedef-shape-radius>
@@ -186,8 +186,8 @@ pub struct Ellipse<H, V, NonNegativeLengthOrPercentage> {
     ToComputedValue,
     ToCss,
 )]
-pub enum ShapeRadius<NonNegativeLengthOrPercentage> {
-    Length(NonNegativeLengthOrPercentage),
+pub enum ShapeRadius<NonNegativeLengthPercentage> {
+    Length(NonNegativeLengthPercentage),
     #[animation(error)]
     ClosestSide,
     #[animation(error)]
@@ -208,13 +208,13 @@ pub enum ShapeRadius<NonNegativeLengthOrPercentage> {
     ToComputedValue,
     ToCss,
 )]
-pub struct Polygon<LengthOrPercentage> {
+pub struct Polygon<LengthPercentage> {
     /// The filling rule for a polygon.
     #[css(skip_if = "fill_is_default")]
     pub fill: FillRule,
     /// A collection of (x, y) coordinates to draw the polygon.
     #[css(iterable)]
-    pub coordinates: Vec<PolygonCoord<LengthOrPercentage>>,
+    pub coordinates: Vec<PolygonCoord<LengthPercentage>>,
 }
 
 /// Coordinates for Polygon.
@@ -228,7 +228,7 @@ pub struct Polygon<LengthOrPercentage> {
     ToComputedValue,
     ToCss,
 )]
-pub struct PolygonCoord<LengthOrPercentage>(pub LengthOrPercentage, pub LengthOrPercentage);
+pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercentage);
 
 // https://drafts.csswg.org/css-shapes/#typedef-fill-rule
 // NOTE: Basic shapes spec says that these are the only two values, however

@@ -18,7 +18,7 @@ use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use crate::str::CssStringWriter;
 use crate::stylesheets::{Origin, StylesheetInDocument};
 use crate::values::computed::{Context, ToComputedValue};
-use crate::values::specified::{self, LengthOrPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
+use crate::values::specified::{self, LengthPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
 use app_units::Au;
 use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
@@ -149,7 +149,7 @@ trait FromMeta: Sized {
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum ViewportLength {
-    Specified(LengthOrPercentageOrAuto),
+    Specified(LengthPercentageOrAuto),
     ExtendToZoom,
 }
 
@@ -157,8 +157,8 @@ impl FromMeta for ViewportLength {
     fn from_meta(value: &str) -> Option<ViewportLength> {
         macro_rules! specified {
             ($value:expr) => {
-                ViewportLength::Specified(LengthOrPercentageOrAuto::LengthOrPercentage(
-                    specified::LengthOrPercentage::Length($value)
+                ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length($value)
                 ))
             };
         }
@@ -186,7 +186,7 @@ impl ViewportLength {
     ) -> Result<Self, ParseError<'i>> {
         // we explicitly do not accept 'extend-to-zoom', since it is a UA
         // internal value for <META> viewport translation
-        LengthOrPercentageOrAuto::parse_non_negative(context, input).map(ViewportLength::Specified)
+        LengthPercentageOrAuto::parse_non_negative(context, input).map(ViewportLength::Specified)
     }
 }
 
@@ -468,10 +468,10 @@ impl ViewportRule {
         if !has_width && has_zoom {
             if has_height {
                 push_descriptor!(MinWidth(ViewportLength::Specified(
-                    LengthOrPercentageOrAuto::Auto
+                    LengthPercentageOrAuto::Auto
                 )));
                 push_descriptor!(MaxWidth(ViewportLength::Specified(
-                    LengthOrPercentageOrAuto::Auto
+                    LengthPercentageOrAuto::Auto
                 )));
             } else {
                 push_descriptor!(MinWidth(ViewportLength::ExtendToZoom));
@@ -754,8 +754,8 @@ impl MaybeNew for ViewportConstraints {
                 if let Some($value) = $value {
                     match *$value {
                         ViewportLength::Specified(ref length) => match *length {
-                            LengthOrPercentageOrAuto::Auto => None,
-                            LengthOrPercentageOrAuto::LengthOrPercentage(ref lop) => Some(lop
+                            LengthPercentageOrAuto::Auto => None,
+                            LengthPercentageOrAuto::LengthPercentage(ref lop) => Some(lop
                                 .to_computed_value(&context)
                                 .to_used_value(initial_viewport.$dimension)),
                         },

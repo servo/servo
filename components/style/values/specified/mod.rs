@@ -55,12 +55,12 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageLayer, MozImageRect};
-pub use self::length::{AbsoluteLength, CalcLengthOrPercentage, CharacterWidth};
+pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNumber};
-pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
-pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
+pub use self::length::{LengthPercentage, LengthPercentageOrAuto};
+pub use self::length::{LengthPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, ViewportPercentageLength};
-pub use self::length::{NonNegativeLengthOrPercentage, NonNegativeLengthOrPercentageOrAuto};
+pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::list::{QuotePair, Quotes};
@@ -567,20 +567,20 @@ impl Parse for PositiveInteger {
 }
 
 /// The specified value of a grid `<track-breadth>`
-pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
+pub type TrackBreadth = GenericTrackBreadth<LengthPercentage>;
 
 /// The specified value of a grid `<track-size>`
-pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
+pub type TrackSize = GenericTrackSize<LengthPercentage>;
 
 /// The specified value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
-pub type TrackList = GenericTrackList<LengthOrPercentage, Integer>;
+pub type TrackList = GenericTrackList<LengthPercentage, Integer>;
 
 /// The specified value of a `<grid-line>`.
 pub type GridLine = GenericGridLine<Integer>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
-pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage, Integer>;
+pub type GridTemplateComponent = GenericGridTemplateComponent<LengthPercentage, Integer>;
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
 /// rect(<top>, <left>, <bottom>, <right>) used by clip and image-region

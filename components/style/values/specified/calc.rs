@@ -52,7 +52,7 @@ pub enum CalcUnit {
     /// `<percentage>`
     Percentage,
     /// `<length> | <percentage>`
-    LengthOrPercentage,
+    LengthPercentage,
     /// `<angle>`
     Angle,
     /// `<time>`
@@ -67,7 +67,7 @@ pub enum CalcUnit {
 /// function work properly.
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
 #[allow(missing_docs)]
-pub struct CalcLengthOrPercentage {
+pub struct CalcLengthPercentage {
     pub clamping_mode: AllowedNumericType,
     pub absolute: Option<AbsoluteLength>,
     pub vw: Option<CSSFloat>,
@@ -81,7 +81,7 @@ pub struct CalcLengthOrPercentage {
     pub percentage: Option<computed::Percentage>,
 }
 
-impl ToCss for CalcLengthOrPercentage {
+impl ToCss for CalcLengthPercentage {
     /// <https://drafts.csswg.org/css-values/#calc-serialize>
     ///
     /// FIXME(emilio): Should this simplify away zeros?
@@ -148,7 +148,7 @@ impl ToCss for CalcLengthOrPercentage {
     }
 }
 
-impl SpecifiedValueInfo for CalcLengthOrPercentage {}
+impl SpecifiedValueInfo for CalcLengthPercentage {}
 
 impl CalcNode {
     /// Tries to parse a single element in the expression, that is, a
@@ -176,7 +176,7 @@ impl CalcNode {
                 &Token::Dimension {
                     value, ref unit, ..
                 },
-                CalcUnit::LengthOrPercentage,
+                CalcUnit::LengthPercentage,
             ) => {
                 return NoCalcLength::parse_dimension(context, value, unit)
                     .map(CalcNode::Length)
@@ -202,7 +202,7 @@ impl CalcNode {
                     .map(CalcNode::Time)
                     .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             },
-            (&Token::Percentage { unit_value, .. }, CalcUnit::LengthOrPercentage) |
+            (&Token::Percentage { unit_value, .. }, CalcUnit::LengthPercentage) |
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
                 return Ok(CalcNode::Percentage(unit_value));
             },
@@ -299,8 +299,8 @@ impl CalcNode {
     fn to_length_or_percentage(
         &self,
         clamping_mode: AllowedNumericType,
-    ) -> Result<CalcLengthOrPercentage, ()> {
-        let mut ret = CalcLengthOrPercentage {
+    ) -> Result<CalcLengthPercentage, ()> {
+        let mut ret = CalcLengthPercentage {
             clamping_mode: clamping_mode,
             ..Default::default()
         };
@@ -346,7 +346,7 @@ impl CalcNode {
     /// (this allows adding and substracting into the return value).
     fn add_length_or_percentage_to(
         &self,
-        ret: &mut CalcLengthOrPercentage,
+        ret: &mut CalcLengthPercentage,
         factor: CSSFloat,
     ) -> Result<(), ()> {
         match *self {
@@ -537,8 +537,8 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         clamping_mode: AllowedNumericType,
-    ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::LengthOrPercentage)?
+    ) -> Result<CalcLengthPercentage, ParseError<'i>> {
+        Self::parse(context, input, CalcUnit::LengthPercentage)?
             .to_length_or_percentage(clamping_mode)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
@@ -558,7 +558,7 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         clamping_mode: AllowedNumericType,
-    ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
+    ) -> Result<CalcLengthPercentage, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Length)?
             .to_length_or_percentage(clamping_mode)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))

@@ -5,13 +5,13 @@
 //! Animation implementation for various length-related types.
 
 use super::{Animate, Procedure, ToAnimatedValue};
-use crate::values::computed::length::LengthOrPercentage;
+use crate::values::computed::length::LengthPercentage;
 use crate::values::computed::MaxLength as ComputedMaxLength;
 use crate::values::computed::MozLength as ComputedMozLength;
 use crate::values::computed::Percentage;
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
-impl Animate for LengthOrPercentage {
+impl Animate for LengthPercentage {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let animate_percentage_half = |this: Option<Percentage>, other: Option<Percentage>| {
@@ -48,17 +48,17 @@ impl ToAnimatedValue for ComputedMaxLength {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use crate::values::computed::LengthOrPercentageOrNone;
+        use crate::values::computed::LengthPercentageOrNone;
         use crate::values::generics::length::MaxLength as GenericMaxLength;
         match animated {
-            GenericMaxLength::LengthOrPercentageOrNone(lopn) => {
+            GenericMaxLength::LengthPercentageOrNone(lopn) => {
                 let result = match lopn {
-                    LengthOrPercentageOrNone::LengthOrPercentage(len) => {
-                        LengthOrPercentageOrNone::LengthOrPercentage(len.clamp_to_non_negative())
+                    LengthPercentageOrNone::LengthPercentage(len) => {
+                        LengthPercentageOrNone::LengthPercentage(len.clamp_to_non_negative())
                     },
-                    LengthOrPercentageOrNone::None => lopn,
+                    LengthPercentageOrNone::None => lopn,
                 };
-                GenericMaxLength::LengthOrPercentageOrNone(result)
+                GenericMaxLength::LengthPercentageOrNone(result)
             },
             _ => animated,
         }
@@ -77,8 +77,8 @@ impl ToAnimatedValue for ComputedMozLength {
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         use crate::values::generics::length::MozLength as GenericMozLength;
         match animated {
-            GenericMozLength::LengthOrPercentageOrAuto(lopa) => {
-                GenericMozLength::LengthOrPercentageOrAuto(lopa.clamp_to_non_negative())
+            GenericMozLength::LengthPercentageOrAuto(lopa) => {
+                GenericMozLength::LengthPercentageOrAuto(lopa.clamp_to_non_negative())
             },
             _ => animated,
         }
