@@ -29,7 +29,6 @@ arrayvec = "0.4.6"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
-cfg-if = "0.1.0"
 cssparser = "0.25"
 crossbeam-channel = { version = "0.3", optional = true }
 new_debug_unreachable = "1.0"
