@@ -123,7 +123,7 @@ impl<V> ToAnimatedZero for Spacing<V> {
     ToAnimatedValue,
     ToCss,
 )]
-pub enum LineHeight<Number, LengthOrPercentage> {
+pub enum LineHeight<Number, LengthPercentage> {
     /// `normal`
     Normal,
     /// `-moz-block-height`
@@ -132,7 +132,7 @@ pub enum LineHeight<Number, LengthOrPercentage> {
     /// `<number>`
     Number(Number),
     /// `<length-or-percentage>`
-    Length(LengthOrPercentage),
+    Length(LengthPercentage),
 }
 
 impl<N, L> ToAnimatedZero for LineHeight<N, L> {

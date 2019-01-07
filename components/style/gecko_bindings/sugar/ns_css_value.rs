@@ -9,7 +9,7 @@ use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::{nsCSSUnit, nsCSSValue};
 use crate::gecko_bindings::structs::{nsCSSValueList, nsCSSValue_Array};
 use crate::gecko_string_cache::Atom;
-use crate::values::computed::{Angle, Length, LengthOrPercentage, Percentage};
+use crate::values::computed::{Angle, Length, LengthPercentage, Percentage};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
@@ -67,8 +67,8 @@ impl nsCSSValue {
         &*array
     }
 
-    /// Sets LengthOrPercentage value to this nsCSSValue.
-    pub unsafe fn set_lop(&mut self, lop: LengthOrPercentage) {
+    /// Sets LengthPercentage value to this nsCSSValue.
+    pub unsafe fn set_lop(&mut self, lop: LengthPercentage) {
         if lop.was_calc {
             return bindings::Gecko_CSSValue_SetCalc(self, lop.into())
         }
@@ -89,16 +89,16 @@ impl nsCSSValue {
         bindings::Gecko_CSSValue_SetPercentage(self, unit_value)
     }
 
-    /// Returns LengthOrPercentage value.
-    pub unsafe fn get_lop(&self) -> LengthOrPercentage {
+    /// Returns LengthPercentage value.
+    pub unsafe fn get_lop(&self) -> LengthPercentage {
         match self.mUnit {
             nsCSSUnit::eCSSUnit_Pixel => {
-                LengthOrPercentage::new(
+                LengthPercentage::new(
                     Length::new(bindings::Gecko_CSSValue_GetNumber(self)),
                     None,
                 )
             },
-            nsCSSUnit::eCSSUnit_Percent => LengthOrPercentage::new_percent(Percentage(
+            nsCSSUnit::eCSSUnit_Percent => LengthPercentage::new_percent(Percentage(
                 bindings::Gecko_CSSValue_GetPercentage(self),
             )),
             nsCSSUnit::eCSSUnit_Calc => {

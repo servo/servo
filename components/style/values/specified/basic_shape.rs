@@ -17,7 +17,7 @@ use crate::values::specified::image::Image;
 use crate::values::specified::position::{HorizontalPosition, Position, VerticalPosition};
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::SVGPathData;
-use crate::values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage};
+use crate::values::specified::{LengthPercentage, NonNegativeLengthPercentage};
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -35,26 +35,26 @@ pub type FloatAreaShape = generic::FloatAreaShape<BasicShape, Image>;
 pub type BasicShape = generic::BasicShape<
     HorizontalPosition,
     VerticalPosition,
-    LengthOrPercentage,
-    NonNegativeLengthOrPercentage,
+    LengthPercentage,
+    NonNegativeLengthPercentage,
 >;
 
 /// The specified value of `inset()`
-pub type InsetRect = generic::InsetRect<LengthOrPercentage, NonNegativeLengthOrPercentage>;
+pub type InsetRect = generic::InsetRect<LengthPercentage, NonNegativeLengthPercentage>;
 
 /// A specified circle.
 pub type Circle =
-    generic::Circle<HorizontalPosition, VerticalPosition, NonNegativeLengthOrPercentage>;
+    generic::Circle<HorizontalPosition, VerticalPosition, NonNegativeLengthPercentage>;
 
 /// A specified ellipse.
 pub type Ellipse =
-    generic::Ellipse<HorizontalPosition, VerticalPosition, NonNegativeLengthOrPercentage>;
+    generic::Ellipse<HorizontalPosition, VerticalPosition, NonNegativeLengthPercentage>;
 
 /// The specified value of `ShapeRadius`
-pub type ShapeRadius = generic::ShapeRadius<NonNegativeLengthOrPercentage>;
+pub type ShapeRadius = generic::ShapeRadius<NonNegativeLengthPercentage>;
 
 /// The specified value of `Polygon`
-pub type Polygon = generic::Polygon<LengthOrPercentage>;
+pub type Polygon = generic::Polygon<LengthPercentage>;
 
 #[cfg(feature = "gecko")]
 fn is_clip_path_path_enabled(context: &ParserContext) -> bool {
@@ -200,7 +200,7 @@ impl InsetRect {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let rect = Rect::parse_with(context, input, LengthOrPercentage::parse)?;
+        let rect = Rect::parse_with(context, input, LengthPercentage::parse)?;
         let round = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
             Some(BorderRadius::parse(context, input)?)
         } else {
@@ -316,7 +316,7 @@ impl Parse for ShapeRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
+        if let Ok(lop) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
             return Ok(generic::ShapeRadius::Length(lop));
         }
 
@@ -353,8 +353,8 @@ impl Polygon {
 
         let buf = input.parse_comma_separated(|i| {
             Ok(PolygonCoord(
-                LengthOrPercentage::parse(context, i)?,
-                LengthOrPercentage::parse(context, i)?,
+                LengthPercentage::parse(context, i)?,
+                LengthPercentage::parse(context, i)?,
             ))
         })?;
 

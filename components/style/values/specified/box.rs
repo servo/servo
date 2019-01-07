@@ -11,7 +11,7 @@ use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use crate::values::specified::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
 use crate::values::specified::{AllowQuirks, Number};
 use crate::values::{CustomIdent, KeyframesName};
 use crate::Atom;
@@ -271,7 +271,7 @@ impl Display {
 }
 
 /// A specified value for the `vertical-align` property.
-pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;
+pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
 
 impl Parse for VerticalAlign {
     fn parse<'i, 't>(
@@ -279,7 +279,7 @@ impl Parse for VerticalAlign {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(lop) =
-            input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+            input.try(|i| LengthPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
             return Ok(GenericVerticalAlign::Length(lop));
         }

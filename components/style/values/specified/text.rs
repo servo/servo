@@ -16,8 +16,8 @@ use crate::values::generics::text::LineHeight as GenericLineHeight;
 use crate::values::generics::text::MozTabSize as GenericMozTabSize;
 use crate::values::generics::text::Spacing;
 use crate::values::specified::length::{FontRelativeLength, Length};
-use crate::values::specified::length::{LengthOrPercentage, NoCalcLength};
-use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
+use crate::values::specified::length::{LengthPercentage, NoCalcLength};
+use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthPercentage};
 use crate::values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
@@ -34,10 +34,10 @@ pub type InitialLetter = GenericInitialLetter<Number, Integer>;
 pub type LetterSpacing = Spacing<Length>;
 
 /// A specified value for the `word-spacing` property.
-pub type WordSpacing = Spacing<LengthOrPercentage>;
+pub type WordSpacing = Spacing<LengthPercentage>;
 
 /// A specified value for the `line-height` property.
-pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthOrPercentage>;
+pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthPercentage>;
 
 impl Parse for InitialLetter {
     fn parse<'i, 't>(
@@ -70,7 +70,7 @@ impl Parse for WordSpacing {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Spacing::parse_with(context, input, |c, i| {
-            LengthOrPercentage::parse_quirky(c, i, AllowQuirks::Yes)
+            LengthPercentage::parse_quirky(c, i, AllowQuirks::Yes)
         })
     }
 }
@@ -83,7 +83,7 @@ impl Parse for LineHeight {
         if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
             return Ok(GenericLineHeight::Number(number));
         }
-        if let Ok(nlop) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
+        if let Ok(nlop) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
             return Ok(GenericLineHeight::Length(nlop));
         }
         let location = input.current_source_location();
@@ -118,15 +118,15 @@ impl ToComputedValue for LineHeight {
             },
             GenericLineHeight::Length(ref non_negative_lop) => {
                 let result = match non_negative_lop.0 {
-                    LengthOrPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
+                    LengthPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
                         context
                             .maybe_zoom_text(abs.to_computed_value(context).into())
                             .0
                     },
-                    LengthOrPercentage::Length(ref length) => length.to_computed_value(context),
-                    LengthOrPercentage::Percentage(ref p) => FontRelativeLength::Em(p.0)
+                    LengthPercentage::Length(ref length) => length.to_computed_value(context),
+                    LengthPercentage::Percentage(ref p) => FontRelativeLength::Em(p.0)
                         .to_computed_value(context, FontBaseSize::CurrentStyle),
-                    LengthOrPercentage::Calc(ref calc) => {
+                    LengthPercentage::Calc(ref calc) => {
                         let computed_calc =
                             calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
                         let font_relative_length =

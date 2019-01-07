@@ -8,8 +8,8 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::generics::svg as generic;
 use crate::values::specified::color::Color;
 use crate::values::specified::url::SpecifiedUrl;
-use crate::values::specified::LengthOrPercentage;
-use crate::values::specified::{NonNegativeLengthOrPercentage, NonNegativeNumber};
+use crate::values::specified::LengthPercentage;
+use crate::values::specified::{NonNegativeLengthPercentage, NonNegativeNumber};
 use crate::values::specified::{Number, Opacity};
 use crate::values::CustomIdent;
 use cssparser::Parser;
@@ -50,11 +50,11 @@ fn parse_context_value<'i, 't, T>(
 
 /// A value of <length> | <percentage> | <number> for stroke-dashoffset.
 /// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
-pub type SvgLengthOrPercentageOrNumber =
-    generic::SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number>;
+pub type SvgLengthPercentageOrNumber =
+    generic::SvgLengthPercentageOrNumber<LengthPercentage, Number>;
 
 /// <length> | <percentage> | <number> | context-value
-pub type SVGLength = generic::SVGLength<SvgLengthOrPercentageOrNumber>;
+pub type SVGLength = generic::SVGLength<SvgLengthPercentageOrNumber>;
 
 impl Parse for SVGLength {
     fn parse<'i, 't>(
@@ -62,25 +62,25 @@ impl Parse for SVGLength {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input
-            .try(|i| SvgLengthOrPercentageOrNumber::parse(context, i))
+            .try(|i| SvgLengthPercentageOrNumber::parse(context, i))
             .map(Into::into)
             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
 }
 
-impl From<SvgLengthOrPercentageOrNumber> for SVGLength {
-    fn from(length: SvgLengthOrPercentageOrNumber) -> Self {
+impl From<SvgLengthPercentageOrNumber> for SVGLength {
+    fn from(length: SvgLengthPercentageOrNumber) -> Self {
         generic::SVGLength::Length(length)
     }
 }
 
 /// A value of <length> | <percentage> | <number> for stroke-width/stroke-dasharray.
 /// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
-pub type NonNegativeSvgLengthOrPercentageOrNumber =
-    generic::SvgLengthOrPercentageOrNumber<NonNegativeLengthOrPercentage, NonNegativeNumber>;
+pub type NonNegativeSvgLengthPercentageOrNumber =
+    generic::SvgLengthPercentageOrNumber<NonNegativeLengthPercentage, NonNegativeNumber>;
 
 /// A non-negative version of SVGLength.
-pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthOrPercentageOrNumber>;
+pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthPercentageOrNumber>;
 
 impl Parse for SVGWidth {
     fn parse<'i, 't>(
@@ -88,20 +88,20 @@ impl Parse for SVGWidth {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input
-            .try(|i| NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i))
+            .try(|i| NonNegativeSvgLengthPercentageOrNumber::parse(context, i))
             .map(Into::into)
             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
 }
 
-impl From<NonNegativeSvgLengthOrPercentageOrNumber> for SVGWidth {
-    fn from(length: NonNegativeSvgLengthOrPercentageOrNumber) -> Self {
+impl From<NonNegativeSvgLengthPercentageOrNumber> for SVGWidth {
+    fn from(length: NonNegativeSvgLengthPercentageOrNumber) -> Self {
         generic::SVGLength::Length(length)
     }
 }
 
 /// [ <length> | <percentage> | <number> ]# | context-value
-pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeSvgLengthOrPercentageOrNumber>;
+pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeSvgLengthPercentageOrNumber>;
 
 impl Parse for SVGStrokeDashArray {
     fn parse<'i, 't>(
@@ -110,7 +110,7 @@ impl Parse for SVGStrokeDashArray {
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(values) = input.try(|i| {
             CommaWithSpace::parse(i, |i| {
-                NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i)
+                NonNegativeSvgLengthPercentageOrNumber::parse(context, i)
             })
         }) {
             Ok(generic::SVGStrokeDashArray::Values(values))
