@@ -167,7 +167,7 @@ struct ImageContext {
     /// The cache ID for this request.
     id: PendingImageId,
     /// Used to mark abort
-    aborted: Cell<bool>,
+    aborted: bool,
     /// The document associated with this request
     doc: Trusted<Document>,
     /// timing data for this resource
@@ -193,7 +193,7 @@ impl FetchResponseListener for ImageContext {
             if let Some(ref content_type) = metadata.content_type {
                 let mime: Mime = content_type.clone().into_inner().into();
                 if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
-                    self.aborted.set(true);
+                    self.aborted = true;
                 }
             }
         }
@@ -255,7 +255,7 @@ impl ResourceTimingListener for ImageContext {
 
 impl PreInvoke for ImageContext {
     fn should_invoke(&self) -> bool {
-        !self.aborted.get()
+        !self.aborted
     }
 }
 
@@ -301,7 +301,7 @@ impl HTMLImageElement {
             image_cache: window.image_cache(),
             status: Ok(()),
             id: id,
-            aborted: Cell::new(false),
+            aborted: false,
             doc: Trusted::new(&document),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url: img_url.clone(),
