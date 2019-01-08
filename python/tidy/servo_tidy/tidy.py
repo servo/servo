@@ -32,6 +32,8 @@ def wpt_path(*args):
 
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 WPT_MANIFEST_PATH = wpt_path("include.ini")
+# regex source https://stackoverflow.com/questions/6883049/
+URL_REGEX = re.compile('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 # Import wptmanifest only when we do have wpt in tree, i.e. we're not
 # inside a Firefox checkout.
@@ -261,8 +263,13 @@ def check_length(file_name, idx, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
+def contains_url(line):
+    return bool(URL_REGEX.search(line))
+
+
 def is_unsplittable(file_name, line):
     return (
+        contains_url(line) or
         file_name.endswith(".rs") and
         line.startswith("use ") and
         "{" not in line
