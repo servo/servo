@@ -34,6 +34,7 @@ impl XRView {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         session: &XRSession,
@@ -53,8 +54,10 @@ impl XRView {
         };
 
         let cx = global.get_cx();
-        create_typed_array(cx, proj, &ret.proj);
-        create_typed_array(cx, view, &ret.view);
+        unsafe {
+            create_typed_array(cx, proj, &ret.proj);
+            create_typed_array(cx, view, &ret.view);
+        }
         ret
     }
 
