@@ -59,6 +59,11 @@ config = {
     "check_ext": {}
 }
 
+# inline configs
+inline_config = {
+    "skip-check-length": False
+}
+
 COMMENTS = ["// ", "# ", " *", "/* "]
 
 # File patterns to include in the non-WPT tidy check.
@@ -251,9 +256,18 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
+    lint_name = "skip-check-length"
     if any(file_name.endswith(ext) for ext in (".yml", ".lock", ".json", ".html", ".toml")) or \
-       config["skip-check-length"]:
+       config[lint_name]:
         raise StopIteration
+
+    # skip this line
+    if inline_config[lint_name]:
+        inline_config[lint_name] = False
+        return
+
+    l = uncomment(line)
+    inline_config[lint_name] = l and l.endswith("tidy:%s" % lint_name)
 
     # Prefer shorter lines when shell scripting.
     max_length = 80 if file_name.endswith(".sh") else 120
