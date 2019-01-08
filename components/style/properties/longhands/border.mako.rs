@@ -69,7 +69,7 @@ ${helpers.gecko_keyword_conversion(
     type="crate::values::specified::BorderStyle",
 )}
 
-// FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
+// FIXME(#4126): when gfx supports painting it, make this Size2D<LengthPercentage>
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
     ${helpers.predefined_type(
         "border-" + corner + "-radius",
@@ -189,7 +189,7 @@ impl crate::values::computed::BorderImageWidth {
         use crate::gecko_bindings::structs::nsStyleUnit::{eStyleUnit_Factor, eStyleUnit_Auto};
         use crate::gecko_bindings::sugar::ns_style_coord::CoordData;
         use crate::gecko::values::GeckoStyleCoordConvertible;
-        use crate::values::computed::{LengthOrPercentage, Number};
+        use crate::values::computed::{LengthPercentage, Number};
         use crate::values::generics::border::BorderImageSideWidth;
         use crate::values::generics::NonNegative;
 
@@ -207,8 +207,8 @@ impl crate::values::computed::BorderImageWidth {
                     },
                     _ => {
                         BorderImageSideWidth::Length(
-                            NonNegative(LengthOrPercentage::from_gecko_style_coord(&sides.data_at(${i}))
-                                .expect("sides[${i}] could not convert to LengthOrPercentage")))
+                            NonNegative(LengthPercentage::from_gecko_style_coord(&sides.data_at(${i}))
+                                .expect("sides[${i}] could not convert to LengthPercentage")))
                     },
                 },
                 % endfor

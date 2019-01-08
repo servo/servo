@@ -26,8 +26,8 @@ use crate::values::computed::ExtremumLength;
     ToComputedValue,
     ToCss,
 )]
-pub enum MozLength<LengthOrPercentageOrAuto> {
-    LengthOrPercentageOrAuto(LengthOrPercentageOrAuto),
+pub enum MozLength<LengthPercentageOrAuto> {
+    LengthPercentageOrAuto(LengthPercentageOrAuto),
     #[animation(error)]
     ExtremumLength(ExtremumLength),
 }
@@ -47,8 +47,8 @@ pub enum MozLength<LengthOrPercentageOrAuto> {
     ToComputedValue,
     ToCss,
 )]
-pub enum MaxLength<LengthOrPercentageOrNone> {
-    LengthOrPercentageOrNone(LengthOrPercentageOrNone),
+pub enum MaxLength<LengthPercentageOrNone> {
+    LengthPercentageOrNone(LengthPercentageOrNone),
     #[animation(error)]
     ExtremumLength(ExtremumLength),
 }

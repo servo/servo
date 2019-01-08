@@ -7,7 +7,7 @@
 use super::CSSFloat;
 use crate::values::animated::transform::{Perspective, Scale3D, Translate3D};
 use crate::values::animated::ToAnimatedZero;
-use crate::values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
+use crate::values::computed::{Angle, Integer, Length, LengthPercentage, Number, Percentage};
 use crate::values::generics::transform as generic;
 use euclid::{Transform3D, Vector3D};
 use num_traits::Zero;
@@ -16,12 +16,12 @@ pub use crate::values::generics::transform::TransformStyle;
 
 /// A single operation in a computed CSS `transform`
 pub type TransformOperation =
-    generic::TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>;
+    generic::TransformOperation<Angle, Number, Length, Integer, LengthPercentage>;
 /// A computed CSS `transform`
 pub type Transform = generic::Transform<TransformOperation>;
 
 /// The computed value of a CSS `<transform-origin>`
-pub type TransformOrigin = generic::TransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;
+pub type TransformOrigin = generic::TransformOrigin<LengthPercentage, LengthPercentage, Length>;
 
 /// A vector to represent the direction vector (rotate axis) for Rotate3D.
 pub type DirectionVector = Vector3D<CSSFloat>;
@@ -31,8 +31,8 @@ impl TransformOrigin {
     #[inline]
     pub fn initial_value() -> Self {
         Self::new(
-            LengthOrPercentage::Percentage(Percentage(0.5)),
-            LengthOrPercentage::Percentage(Percentage(0.5)),
+            LengthPercentage::new_percent(Percentage(0.5)),
+            LengthPercentage::new_percent(Percentage(0.5)),
             Length::new(0.),
         )
     }
@@ -374,7 +374,7 @@ impl TransformOperation {
             generic::TransformOperation::Translate(ref x, None) => {
                 generic::TransformOperation::Translate3D(
                     x.clone(),
-                    LengthOrPercentage::zero(),
+                    LengthPercentage::zero(),
                     Length::zero(),
                 )
             },
@@ -383,15 +383,15 @@ impl TransformOperation {
             },
             generic::TransformOperation::TranslateY(ref y) => {
                 generic::TransformOperation::Translate3D(
-                    LengthOrPercentage::zero(),
+                    LengthPercentage::zero(),
                     y.clone(),
                     Length::zero(),
                 )
             },
             generic::TransformOperation::TranslateZ(ref z) => {
                 generic::TransformOperation::Translate3D(
-                    LengthOrPercentage::zero(),
-                    LengthOrPercentage::zero(),
+                    LengthPercentage::zero(),
+                    LengthPercentage::zero(),
                     z.clone(),
                 )
             },
@@ -576,7 +576,7 @@ impl Rotate {
 }
 
 /// A computed CSS `translate`
-pub type Translate = generic::Translate<LengthOrPercentage, Length>;
+pub type Translate = generic::Translate<LengthPercentage, Length>;
 
 impl Translate {
     /// Convert TransformOperation to Translate.

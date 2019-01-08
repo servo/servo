@@ -13,9 +13,9 @@ use style_traits::{CssWriter, ToCss};
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
 )]
-pub enum BorderImageSideWidth<LengthOrPercentage, Number> {
+pub enum BorderImageSideWidth<LengthPercentage, Number> {
     /// `<length-or-percentage>`
-    Length(LengthOrPercentage),
+    Length(LengthPercentage),
     /// `<number>`
     Number(Number),
     /// `auto`
@@ -98,15 +98,15 @@ impl<L> BorderSpacing<L> {
     ToAnimatedValue,
     ToComputedValue,
 )]
-pub struct BorderRadius<LengthOrPercentage> {
+pub struct BorderRadius<LengthPercentage> {
     /// The top left radius.
-    pub top_left: BorderCornerRadius<LengthOrPercentage>,
+    pub top_left: BorderCornerRadius<LengthPercentage>,
     /// The top right radius.
-    pub top_right: BorderCornerRadius<LengthOrPercentage>,
+    pub top_right: BorderCornerRadius<LengthPercentage>,
     /// The bottom right radius.
-    pub bottom_right: BorderCornerRadius<LengthOrPercentage>,
+    pub bottom_right: BorderCornerRadius<LengthPercentage>,
     /// The bottom left radius.
-    pub bottom_left: BorderCornerRadius<LengthOrPercentage>,
+    pub bottom_left: BorderCornerRadius<LengthPercentage>,
 }
 
 impl<L> BorderRadius<L> {

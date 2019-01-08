@@ -11,8 +11,8 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrNone;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::LengthPercentageOrNone;
+use style::values::computed::{LengthPercentage, LengthPercentageOrAuto};
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]
@@ -135,27 +135,20 @@ impl MarginCollapseInfo {
             MarginCollapseState::AccumulatingCollapsibleTopMargin => {
                 may_collapse_through = may_collapse_through &&
                     match fragment.style().content_block_size() {
-                        LengthOrPercentageOrAuto::Auto => true,
-                        LengthOrPercentageOrAuto::Length(l) => l.px() == 0.,
-                        LengthOrPercentageOrAuto::Percentage(v) => {
-                            v.0 == 0. || containing_block_size.is_none()
+                        LengthPercentageOrAuto::Auto => true,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                            lp.is_definitely_zero() ||
+                                lp.maybe_to_used_value(containing_block_size).is_none()
                         },
-                        LengthOrPercentageOrAuto::Calc(_) => false,
                     };
 
                 if may_collapse_through {
-                    match fragment.style().min_block_size() {
-                        LengthOrPercentage::Length(l) if l.px() == 0. => {
-                            FinalMarginState::MarginsCollapseThrough
-                        },
-                        LengthOrPercentage::Percentage(v) if v.0 == 0. => {
-                            FinalMarginState::MarginsCollapseThrough
-                        },
-                        _ => {
-                            // If the fragment has non-zero min-block-size, margins may not
-                            // collapse through it.
-                            FinalMarginState::BottomMarginCollapses
-                        },
+                    if fragment.style().min_block_size().is_definitely_zero() {
+                        FinalMarginState::MarginsCollapseThrough
+                    } else {
+                        // If the fragment has non-zero min-block-size, margins may not
+                        // collapse through it.
+                        FinalMarginState::BottomMarginCollapses
                     }
                 } else {
                     // If the fragment has an explicitly specified block-size, margins may not
@@ -442,16 +435,12 @@ pub enum MaybeAuto {
 
 impl MaybeAuto {
     #[inline]
-    pub fn from_style(length: LengthOrPercentageOrAuto, containing_length: Au) -> MaybeAuto {
+    pub fn from_style(length: LengthPercentageOrAuto, containing_length: Au) -> MaybeAuto {
         match length {
-            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
-            LengthOrPercentageOrAuto::Percentage(percent) => {
-                MaybeAuto::Specified(containing_length.scale_by(percent.0))
+            LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                MaybeAuto::Specified(lp.to_used_value(containing_length))
             },
-            LengthOrPercentageOrAuto::Calc(calc) => {
-                MaybeAuto::from_option(calc.to_used_value(Some(containing_length)))
-            },
-            LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(Au::from(length)),
         }
     }
 
@@ -485,6 +474,14 @@ impl MaybeAuto {
     }
 
     #[inline]
+    pub fn is_auto(&self) -> bool {
+        match *self {
+            MaybeAuto::Auto => true,
+            MaybeAuto::Specified(..) => false,
+        }
+    }
+
+    #[inline]
     pub fn map<F>(&self, mapper: F) -> MaybeAuto
     where
         F: FnOnce(Au) -> Au,
@@ -499,18 +496,11 @@ impl MaybeAuto {
 /// Receive an optional container size and return used value for width or height.
 ///
 /// `style_length`: content size as given in the CSS.
-pub fn style_length(
-    style_length: LengthOrPercentageOrAuto,
-    container_size: Option<Au>,
-) -> MaybeAuto {
-    match container_size {
-        Some(length) => MaybeAuto::from_style(style_length, length),
-        None => {
-            if let LengthOrPercentageOrAuto::Length(length) = style_length {
-                MaybeAuto::Specified(Au::from(length))
-            } else {
-                MaybeAuto::Auto
-            }
+pub fn style_length(style_length: LengthPercentageOrAuto, container_size: Option<Au>) -> MaybeAuto {
+    match style_length {
+        LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+            MaybeAuto::from_option(lp.maybe_to_used_value(container_size))
         },
     }
 }
@@ -576,31 +566,21 @@ impl SizeConstraint {
     /// Create a `SizeConstraint` for an axis.
     pub fn new(
         container_size: Option<Au>,
-        min_size: LengthOrPercentage,
-        max_size: LengthOrPercentageOrNone,
+        min_size: LengthPercentage,
+        max_size: LengthPercentageOrNone,
         border: Option<Au>,
     ) -> SizeConstraint {
-        let mut min_size = match container_size {
-            Some(container_size) => min_size.to_used_value(container_size),
-            None => {
-                if let LengthOrPercentage::Length(length) = min_size {
-                    Au::from(length)
-                } else {
-                    Au(0)
-                }
+        let mut min_size = min_size
+            .maybe_to_used_value(container_size)
+            .unwrap_or(Au(0));
+
+        let mut max_size = match max_size {
+            LengthPercentageOrNone::None => None,
+            LengthPercentageOrNone::LengthPercentage(ref lp) => {
+                lp.maybe_to_used_value(container_size)
             },
         };
 
-        let mut max_size = match container_size {
-            Some(container_size) => max_size.to_used_value(container_size),
-            None => {
-                if let LengthOrPercentageOrNone::Length(length) = max_size {
-                    Some(Au::from(length))
-                } else {
-                    None
-                }
-            },
-        };
         // Make sure max size is not smaller than min size.
         max_size = max_size.map(|x| max(x, min_size));
 
@@ -609,10 +589,7 @@ impl SizeConstraint {
             max_size = max_size.map(|x| max(x - border, Au(0)));
         }
 
-        SizeConstraint {
-            min_size: min_size,
-            max_size: max_size,
-        }
+        SizeConstraint { min_size, max_size }
     }
 
     /// Clamp the given size by the given min size and max size constraint.

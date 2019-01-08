@@ -12,8 +12,8 @@
 % for side in PHYSICAL_SIDES:
     ${helpers.predefined_type(
         side,
-        "LengthOrPercentageOrAuto",
-        "computed::LengthOrPercentageOrAuto::Auto",
+        "LengthPercentageOrAuto",
+        "computed::LengthPercentageOrAuto::Auto",
         spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
         animation_value_type="ComputedValue",
@@ -26,8 +26,8 @@
 % for side in LOGICAL_SIDES:
     ${helpers.predefined_type(
         "inset-%s" % side,
-        "LengthOrPercentageOrAuto",
-        "computed::LengthOrPercentageOrAuto::Auto",
+        "LengthPercentageOrAuto",
+        "computed::LengthPercentageOrAuto::Auto",
         spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
         alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
@@ -285,8 +285,8 @@ ${helpers.predefined_type(
         // servo versions (no keyword support)
         ${helpers.predefined_type(
             size,
-            "LengthOrPercentageOrAuto",
-            "computed::LengthOrPercentageOrAuto::Auto",
+            "LengthPercentageOrAuto",
+            "computed::LengthPercentageOrAuto::Auto",
             "parse_non_negative",
             spec=spec % size,
             logical_group="size",
@@ -296,8 +296,8 @@ ${helpers.predefined_type(
         )}
         ${helpers.predefined_type(
             "min-%s" % size,
-            "LengthOrPercentage",
-            "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
+            "LengthPercentage",
+            "computed::LengthPercentage::zero()",
             "parse_non_negative",
             spec=spec % ("min-%s" % size),
             logical_group="min-size",
@@ -308,8 +308,8 @@ ${helpers.predefined_type(
         )}
         ${helpers.predefined_type(
             "max-%s" % size,
-            "LengthOrPercentageOrNone",
-            "computed::LengthOrPercentageOrNone::None",
+            "LengthPercentageOrNone",
+            "computed::LengthPercentageOrNone::None",
             "parse_non_negative",
             spec=spec % ("max-%s" % size),
             logical_group="max-size",
@@ -408,24 +408,24 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "column-gap",
-    "length::NonNegativeLengthOrPercentageOrNormal",
+    "length::NonNegativeLengthPercentageOrNormal",
     "Either::Second(Normal)",
     alias="grid-column-gap" if product == "gecko" else "",
     extra_prefixes="moz",
     servo_pref="layout.columns.enabled",
     spec="https://drafts.csswg.org/css-align-3/#propdef-column-gap",
-    animation_value_type="NonNegativeLengthOrPercentageOrNormal",
+    animation_value_type="NonNegativeLengthPercentageOrNormal",
     servo_restyle_damage="reflow",
 )}
 
 // no need for -moz- prefixed alias for this property
 ${helpers.predefined_type(
     "row-gap",
-    "length::NonNegativeLengthOrPercentageOrNormal",
+    "length::NonNegativeLengthPercentageOrNormal",
     "Either::Second(Normal)",
     alias="grid-row-gap",
     products="gecko",
     spec="https://drafts.csswg.org/css-align-3/#propdef-row-gap",
-    animation_value_type="NonNegativeLengthOrPercentageOrNormal",
+    animation_value_type="NonNegativeLengthPercentageOrNormal",
     servo_restyle_damage="reflow",
 )}

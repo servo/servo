@@ -53,8 +53,8 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "text-indent",
-    "LengthOrPercentage",
-    "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
+    "LengthPercentage",
+    "computed::LengthPercentage::zero()",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
     allow_quirks=True,

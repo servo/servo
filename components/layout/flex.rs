@@ -12,7 +12,7 @@ use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
-use crate::model::{AdjoiningMargins, CollapsibleMargins};
+use crate::model::{self, AdjoiningMargins, CollapsibleMargins};
 use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use crate::traversal::PreorderFlowTraversal;
 use app_units::{Au, MAX_AU};
@@ -28,9 +28,7 @@ use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
-use style::values::computed::{
-    LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone,
-};
+use style::values::computed::{LengthPercentage, LengthPercentageOrAuto, LengthPercentageOrNone};
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The size of an axis. May be a specified size, a min/max
@@ -46,23 +44,20 @@ impl AxisSize {
     /// Generate a new available cross or main axis size from the specified size of the container,
     /// containing block size, min constraint, and max constraint
     pub fn new(
-        size: LengthOrPercentageOrAuto,
+        size: LengthPercentageOrAuto,
         content_size: Option<Au>,
-        min: LengthOrPercentage,
-        max: LengthOrPercentageOrNone,
+        min: LengthPercentage,
+        max: LengthPercentageOrNone,
     ) -> AxisSize {
         match size {
-            LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(Au::from(length)),
-            LengthOrPercentageOrAuto::Percentage(percent) => match content_size {
-                Some(size) => AxisSize::Definite(size.scale_by(percent.0)),
-                None => AxisSize::Infinite,
-            },
-            LengthOrPercentageOrAuto::Calc(calc) => match calc.to_used_value(content_size) {
-                Some(length) => AxisSize::Definite(length),
-                None => AxisSize::Infinite,
-            },
-            LengthOrPercentageOrAuto::Auto => {
+            LengthPercentageOrAuto::Auto => {
                 AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None))
+            },
+            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                match lp.maybe_to_used_value(content_size) {
+                    Some(length) => AxisSize::Definite(length),
+                    None => AxisSize::Infinite,
+                }
             },
         }
     }
@@ -74,7 +69,7 @@ impl AxisSize {
 /// is definite after flex size resolving.
 fn from_flex_basis(
     flex_basis: FlexBasis,
-    main_length: LengthOrPercentageOrAuto,
+    main_length: LengthPercentageOrAuto,
     containing_length: Au,
 ) -> MaybeAuto {
     let width = match flex_basis {
@@ -83,7 +78,7 @@ fn from_flex_basis(
     };
 
     match width.0 {
-        LengthOrPercentageOrAuto::Auto => MaybeAuto::from_style(main_length, containing_length),
+        LengthPercentageOrAuto::Auto => MaybeAuto::from_style(main_length, containing_length),
         other => MaybeAuto::from_style(other, containing_length),
     }
 }
@@ -144,7 +139,7 @@ impl FlexItem {
         let block = flow.as_mut_block();
         match direction {
             // TODO(stshine): the definition of min-{width, height} in style component
-            // should change to LengthOrPercentageOrAuto for automatic implied minimal size.
+            // should change to LengthPercentageOrAuto for automatic implied minimal size.
             // https://drafts.csswg.org/css-flexbox-1/#min-size-auto
             Direction::Inline => {
                 let basis = from_flex_basis(
@@ -228,18 +223,18 @@ impl FlexItem {
         let mut margin_count = 0;
         match direction {
             Direction::Inline => {
-                if margin.inline_start == LengthOrPercentageOrAuto::Auto {
+                if margin.inline_start == LengthPercentageOrAuto::Auto {
                     margin_count += 1;
                 }
-                if margin.inline_end == LengthOrPercentageOrAuto::Auto {
+                if margin.inline_end == LengthPercentageOrAuto::Auto {
                     margin_count += 1;
                 }
             },
             Direction::Block => {
-                if margin.block_start == LengthOrPercentageOrAuto::Auto {
+                if margin.block_start == LengthPercentageOrAuto::Auto {
                     margin_count += 1;
                 }
-                if margin.block_end == LengthOrPercentageOrAuto::Auto {
+                if margin.block_end == LengthPercentageOrAuto::Auto {
                     margin_count += 1;
                 }
             },
@@ -461,10 +456,10 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out, and max replaced with union_nonbreaking_inline.
     fn inline_mode_bubble_inline_sizes(&mut self) {
-        let fixed_width = match self.block_flow.fragment.style().get_position().width {
-            LengthOrPercentageOrAuto::Length(_) => true,
-            _ => false,
-        };
+        // FIXME(emilio): This doesn't handle at all writing-modes.
+        let fixed_width =
+            !model::style_length(self.block_flow.fragment.style().get_position().width, None)
+                .is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
@@ -488,10 +483,9 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out.
     fn block_mode_bubble_inline_sizes(&mut self) {
-        let fixed_width = match self.block_flow.fragment.style().get_position().width {
-            LengthOrPercentageOrAuto::Length(_) => true,
-            _ => false,
-        };
+        let fixed_width =
+            !model::style_length(self.block_flow.fragment.style().get_position().width, None)
+                .is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
@@ -821,7 +815,7 @@ impl FlexFlow {
                 // cross size of item should equal to the line size if any auto margin exists.
                 // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
                 if auto_margin_count > 0 {
-                    if margin.block_start == LengthOrPercentageOrAuto::Auto {
+                    if margin.block_start == LengthPercentageOrAuto::Auto {
                         margin_block_start = if free_space < Au(0) {
                             Au(0)
                         } else {
@@ -835,7 +829,7 @@ impl FlexFlow {
 
                 let self_align = block.fragment.style().get_position().align_self;
                 if self_align == AlignSelf::Stretch &&
-                    block.fragment.style().content_block_size() == LengthOrPercentageOrAuto::Auto
+                    block.fragment.style().content_block_size() == LengthPercentageOrAuto::Auto
                 {
                     free_space = Au(0);
                     block.base.block_container_explicit_block_size = Some(line.cross_size);
