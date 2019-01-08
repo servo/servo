@@ -1698,7 +1698,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "markup5ever 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "markup5ever 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.15.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2305,7 +2305,7 @@ dependencies = [
 
 [[package]]
 name = "markup5ever"
-version = "0.7.1"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "phf 0.7.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4798,7 +4798,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "markup5ever 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "markup5ever 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -5011,7 +5011,7 @@ dependencies = [
 "checksum mac 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
 "checksum mach 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "86dd2487cdfea56def77b88438a2c915fb45113c5319bfe7e14306ca4cd0b0e1"
 "checksum malloc_buf 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
-"checksum markup5ever 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c220b3a3d75543b76e5c1fcab6635a8430ab5f9bfa011d003c3787ae0abf4ffa"
+"checksum markup5ever 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)" = "897636f9850c3eef4905a5540683ed53dc9393860f0846cab2c2ddf9939862ff"
 "checksum matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "efd7622e3022e1a6eaa602c4cea8912254e5582c9c692e9167714182244801b1"
 "checksum memchr 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0a3eb002f0535929f1199681417029ebea04aadc0c7a4224b46be99c7f5d6a16"
 "checksum memmap 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2ffa2c986de11a9df78620c01eeaaf27d94d3ff02bf81bfcca953102dd0c6ff"
