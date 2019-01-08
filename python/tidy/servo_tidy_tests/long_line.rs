@@ -3,3 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 println!("really really loooooooooooooooooooooooooooooooooooooooooooong  lineeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+// tidy:skip-check-length
+println!("really really loooooooooooooooooooooooooooooooooooooooooooong  lineeeeeeeeeeeeeeeeeeeeeeeeeeeeeee but ignoreddddddddd");
