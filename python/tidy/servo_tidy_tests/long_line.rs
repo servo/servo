@@ -3,3 +3,4 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 println!("really really loooooooooooooooooooooooooooooooooooooooooooong  lineeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+let url = "http://www.should.skip/really-looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong-url-strings";
