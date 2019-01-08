@@ -13,57 +13,53 @@ test(() => {
 
 /* clipboard.write() */
 
-promise_test(() => {
+promise_test(async () => {
   const dt = new DataTransfer();
   dt.items.add("Howdy", "text/plain");
-  return navigator.clipboard.write(dt);
+  await navigator.clipboard.write(dt);
 }, "navigator.clipboard.write(DataTransfer) succeeds");
 
-promise_test(t => {
-  return promise_rejects(t, new TypeError(),
+promise_test(async t => {
+  await promise_rejects(t, new TypeError(),
                          navigator.clipboard.write());
 }, "navigator.clipboard.write() fails (expect DataTransfer)");
 
-promise_test(t => {
-  return promise_rejects(t, new TypeError(),
+promise_test(async t => {
+  await promise_rejects(t, new TypeError(),
                          navigator.clipboard.write(null));
 }, "navigator.clipboard.write(null) fails (expect DataTransfer)");
 
-promise_test(t => {
-  return promise_rejects(t, new TypeError(),
+promise_test(async t => {
+  await promise_rejects(t, new TypeError(),
                          navigator.clipboard.write("Bad string"));
 }, "navigator.clipboard.write(DOMString) fails (expect DataTransfer)");
 
 
 /* clipboard.writeText() */
 
-promise_test(() => {
-  return navigator.clipboard.writeText("New clipboard text");
+promise_test(async () => {
+  await navigator.clipboard.writeText("New clipboard text");
 }, "navigator.clipboard.writeText(DOMString) succeeds");
 
-promise_test(t => {
-  return promise_rejects(t, new TypeError(),
+promise_test(async t => {
+  await promise_rejects(t, new TypeError(),
                          navigator.clipboard.writeText());
 }, "navigator.clipboard.writeText() fails (expect DOMString)");
 
 
 /* clipboard.read() */
 
-promise_test(() => {
-  return navigator.clipboard.read()
-    .then(result => {
-      assert_true(result instanceof DataTransfer);
-    });
+promise_test(async () => {
+  const result = await navigator.clipboard.read();
+  assert_true(result instanceof DataTransfer);
 }, "navigator.clipboard.read() succeeds");
 
 
 /* clipboard.readText() */
 
-promise_test(() => {
-  return navigator.clipboard.readText()
-    .then(result => {
-      assert_equals(typeof result, "string");
-    });
+promise_test(async () => {
+  const result = await navigator.clipboard.readText();
+  assert_equals(typeof result, "string");
 }, "navigator.clipboard.readText() succeeds");
 
 </script>

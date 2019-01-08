@@ -1,0 +1,34 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+var testScenarios = [
+    {testDescription: "Test default context creation attributes",
+        canvasContextAttributes: {},
+        expectedContextAttributes: {alpha : true}},
+    {testDescription: "Test context creation attributes alpha: true",
+        canvasContextAttributes: {alpha: true},
+        expectedContextAttributes: {alpha : true}},
+    {testDescription: "Test context creation attributes alpha: false",
+        canvasContextAttributes: {alpha: false},
+        expectedContextAttributes: {alpha : false}},
+];
+
+function runTestScenario(testScenario) {
+    var t = test(function() {
+        var canvas = document. createElement('canvas');
+        var ctx = canvas.getContext('2d', testScenario.canvasContextAttributes);
+        var contextAttributes = ctx.getContextAttributes();
+        assert_equals(contextAttributes.alpha,
+            testScenario.expectedContextAttributes.alpha);
+    }, testScenario.testDescription);
+}
+
+function runAllTests() {
+    for (var i = 0; i < testScenarios.length; i++)
+        runTestScenario(testScenarios[i]);
+}
+
+runAllTests();
+</script>
