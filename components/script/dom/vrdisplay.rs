@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -34,7 +34,7 @@ use crate::dom::xrframe::XRFrame;
 use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
-use crate::task_source::TaskSourceName;
+use crate::task_source::{TaskSource, TaskSourceName};
 use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
 use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
@@ -347,35 +347,8 @@ impl VRDisplayMethods for VRDisplay {
             },
         };
 
-        // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
-        if self.presenting.get() {
-            *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(Some(&layer_ctx));
-            promise.resolve_native(&());
-            return promise;
-        }
-
-        // Request Present
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.webvr_thread()
-            .send(WebVRMsg::RequestPresent(
-                self.global().pipeline_id(),
-                self.display.borrow().display_id,
-                sender,
-            ))
-            .unwrap();
-        match receiver.recv().unwrap() {
-            Ok(()) => {
-                *self.layer.borrow_mut() = layer_bounds;
-                self.layer_ctx.set(Some(&layer_ctx));
-                self.init_present();
-                promise.resolve_native(&());
-            },
-            Err(e) => {
-                promise.reject_native(&e);
-            },
-        }
-
+        self.request_present(layer_bounds, Some(&layer_ctx),
+                             promise.clone(), |p| p.resolve_native(&()));
         promise
     }
 
@@ -462,6 +435,59 @@ impl VRDisplay {
         } else {
             self.stage_params.set(None);
         }
+    }
+
+    pub fn request_present<F>(&self, layer_bounds: WebVRLayer,
+                              ctx: Option<&WebGLRenderingContext>,
+                              promise: Rc<Promise>, resolve: F)
+        where F: FnOnce(Rc<Promise>) + Send + 'static {
+        // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
+        if self.presenting.get() {
+            *self.layer.borrow_mut() = layer_bounds;
+            self.layer_ctx.set(ctx);
+            resolve(promise);
+            return;
+        }
+
+        // Request Present
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::RequestPresent(
+                self.global().pipeline_id(),
+                self.display.borrow().display_id,
+                sender,
+            ))
+            .unwrap();
+        let promise = TrustedPromise::new(promise);
+        let this = Trusted::new(self);
+        let ctx = ctx.map(|c| Trusted::new(c));
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        thread::spawn(move || {
+            let _ = task_source.queue_with_canceller(
+                task!(vr_presenting: move || {
+                    let this = this.root();
+                    let promise = promise.root();
+                    let ctx = ctx.map(|c| c.root());
+                    match receiver.recv().unwrap() {
+                        Ok(()) => {
+                            *this.layer.borrow_mut() = layer_bounds;
+                            this.layer_ctx.set(ctx.as_ref().map(|c| &**c));
+                            this.init_present();
+                            resolve(promise);
+                        },
+                        Err(e) => {
+                            promise.reject_native(&e);
+                        },
+                    }
+                }),
+                &canceller,
+            );
+
+        });
     }
 
     pub fn handle_webvr_event(&self, event: &WebVRDisplayEvent) {
