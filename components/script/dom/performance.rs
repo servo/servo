@@ -240,19 +240,19 @@ impl Performance {
         // Step 4.
         // If the "add to performance entry buffer flag" is set, add the
         // new entry to the buffer.
-
         if add_to_performance_entries_buffer {
             self.entries
                 .borrow_mut()
                 .entries
                 .push(DomRoot::from_ref(entry));
-            return;
         }
+
         // Step 5.
         // If there is already a queued notification task, we just bail out.
         if self.pending_notification_observers_task.get() {
             return;
         }
+
         // Step 6.
         // Queue a new notification task.
         self.pending_notification_observers_task.set(true);
@@ -290,6 +290,7 @@ impl Performance {
             o.notify();
         }
     }
+
     fn now(&self) -> f64 {
         (time::precise_time_ns() - self.navigation_start_precise).to_ms()
     }
