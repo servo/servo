@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
 use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -26,10 +26,9 @@ pub struct FormData {
 }
 
 impl FormData {
-    fn new_inherited(opt_form: Option<&HTMLFormElement>) -> FormData {
-        let data = match opt_form {
-            Some(form) => form
-                .get_form_dataset(None)
+    fn new_inherited(form_datums: Option<Vec<FormDatum>>) -> FormData {
+        let data = match form_datums {
+            Some(data) => data
                 .iter()
                 .map(|datum| (LocalName::from(datum.name.as_ref()), datum.clone()))
                 .collect::<Vec<(LocalName, FormDatum)>>(),
@@ -42,20 +41,27 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<&HTMLFormElement>, global: &GlobalScope) -> DomRoot<FormData> {
+    pub fn new(form_datums: Option<Vec<FormDatum>>, global: &GlobalScope) -> DomRoot<FormData> {
         reflect_dom_object(
-            Box::new(FormData::new_inherited(form)),
+            Box::new(FormData::new_inherited(form_datums)),
             global,
             FormDataWrap,
         )
     }
 
+    // https://xhr.spec.whatwg.org/#dom-formdata
     pub fn Constructor(
         global: &GlobalScope,
         form: Option<&HTMLFormElement>,
     ) -> Fallible<DomRoot<FormData>> {
-        // TODO: Construct form data set for form if it is supplied
-        Ok(FormData::new(form, global))
+        if let Some(opt_form) = form {
+            return match opt_form.get_form_dataset(None) {
+                Some(form_datums) => Ok(FormData::new(Some(form_datums), global)),
+                None => Err(Error::InvalidState),
+            };
+        }
+
+        Ok(FormData::new(None, global))
     }
 }
 
