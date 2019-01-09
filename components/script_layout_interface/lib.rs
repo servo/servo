@@ -128,12 +128,6 @@ pub struct TrustedNodeAddress(pub *const c_void);
 #[allow(unsafe_code)]
 unsafe impl Send for TrustedNodeAddress {}
 
-pub fn is_image_data(uri: &str) -> bool {
-    static TYPES: &'static [&'static str] =
-        &["data:image/png", "data:image/gif", "data:image/jpeg"];
-    TYPES.iter().any(|&type_| uri.starts_with(type_))
-}
-
 /// Whether the pending image needs to be fetched or is waiting on an existing fetch.
 pub enum PendingImageState {
     Unrequested(ServoUrl),
