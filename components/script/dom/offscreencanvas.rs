@@ -120,7 +120,7 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options)
                 .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
-               _ => None,
+            _ => None,
         }
     }
 
