@@ -51,7 +51,7 @@ use crate::ServoArc;
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{is_image_data, LayoutElementType, LayoutNodeType};
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::collections::LinkedList;
@@ -2471,4 +2471,10 @@ impl Legalizer {
             .create_similar_anonymous_fragment(new_style, specific_fragment_info);
         FlowRef::new(Arc::new(constructor(fragment)))
     }
+}
+
+pub fn is_image_data(uri: &str) -> bool {
+    static TYPES: &'static [&'static str] =
+        &["data:image/png", "data:image/gif", "data:image/jpeg"];
+    TYPES.iter().any(|&type_| uri.starts_with(type_))
 }
