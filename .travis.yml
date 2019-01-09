@@ -20,7 +20,7 @@ matrix:
         - sudo add-apt-repository 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.9 main' -y
         - sudo apt-get update -q
         - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime -y
-        - curl -L https://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-x86_64-linux-gnu.tar.gz | tar xz
+        - curl -L https://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-1.14.3-20190108-1652.tar.gz | tar xz
         - sed -i "s;prefix=/root/gstreamer;prefix=$PWD/gstreamer;g" $PWD/gstreamer/lib/x86_64-linux-gnu/pkgconfig/*.pc
         - export PKG_CONFIG_PATH=$PWD/gstreamer/lib/x86_64-linux-gnu/pkgconfig
         - export GST_PLUGIN_SYSTEM_PATH=$PWD/gstreamer/lib/x86_64-linux-gnu/gstreamer-1.0
