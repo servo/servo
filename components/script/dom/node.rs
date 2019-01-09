@@ -334,6 +334,10 @@ impl Node {
         UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
     }
 
+    pub fn to_opaque(&self) -> OpaqueNode {
+        OpaqueNode(self.reflector().get_jsobject().get() as usize)
+    }
+
     pub fn as_custom_element(&self) -> Option<DomRoot<Element>> {
         self.downcast::<Element>().and_then(|element| {
             if element.get_custom_element_definition().is_some() {
@@ -639,7 +643,7 @@ impl Node {
     /// Returns the rendered bounding content box if the element is rendered,
     /// and none otherwise.
     pub fn bounding_content_box(&self) -> Option<Rect<Au>> {
-        window_from_node(self).content_box_query(self.to_trusted_node_address())
+        window_from_node(self).content_box_query(self)
     }
 
     pub fn bounding_content_box_or_zero(&self) -> Rect<Au> {
@@ -647,11 +651,11 @@ impl Node {
     }
 
     pub fn content_boxes(&self) -> Vec<Rect<Au>> {
-        window_from_node(self).content_boxes_query(self.to_trusted_node_address())
+        window_from_node(self).content_boxes_query(self)
     }
 
     pub fn client_rect(&self) -> Rect<i32> {
-        window_from_node(self).client_rect_query(self.to_trusted_node_address())
+        window_from_node(self).client_rect_query(self)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
@@ -668,7 +672,7 @@ impl Node {
             .downcast::<HTMLBodyElement>()
             .map_or(false, |e| e.is_the_html_body_element());
 
-        let scroll_area = window.scroll_area_query(self.to_trusted_node_address());
+        let scroll_area = window.scroll_area_query(self);
 
         match (
             document != window.Document(),
