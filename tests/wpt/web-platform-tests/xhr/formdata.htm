@@ -56,8 +56,8 @@
       formDataInEvent = e.formData;
     });
     let formData = new FormData(form);
-    assert_equals(formData.get('h1'), 'vh1');
-    assert_equals(formData.get('n1'), 'v1');
+    assert_equals(formDataInEvent.get('h1'), 'vh1');
+    assert_equals(formDataInEvent.get('n1'), 'v1');
     assert_not_equals(formData, formDataInEvent,
                       '"formData" attribute should be different from the ' +
                       'FromData object created by "new"');
