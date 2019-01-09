@@ -21,6 +21,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use style::context::QuirksMode;
+use style::dom::OpaqueNode;
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
@@ -111,16 +112,20 @@ pub enum NodesFromPointQueryType {
 
 #[derive(Debug, PartialEq)]
 pub enum QueryMsg {
-    ContentBoxQuery(TrustedNodeAddress),
-    ContentBoxesQuery(TrustedNodeAddress),
-    NodeScrollIdQuery(TrustedNodeAddress),
-    NodeGeometryQuery(TrustedNodeAddress),
-    NodeScrollGeometryQuery(TrustedNodeAddress),
-    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
-    OffsetParentQuery(TrustedNodeAddress),
-    StyleQuery(TrustedNodeAddress),
-    TextIndexQuery(TrustedNodeAddress, Point2D<f32>),
+    ContentBoxQuery(OpaqueNode),
+    ContentBoxesQuery(OpaqueNode),
+    NodeGeometryQuery(OpaqueNode),
+    NodeScrollGeometryQuery(OpaqueNode),
+    OffsetParentQuery(OpaqueNode),
+    TextIndexQuery(OpaqueNode, Point2D<f32>),
     NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
+
+    // FIXME(nox): The following queries use the TrustedNodeAddress to
+    // access actual DOM nodes, but those values can be constructed from
+    // garbage values such as `0xdeadbeef as *const _`, this is unsound.
+    NodeScrollIdQuery(TrustedNodeAddress),
+    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
+    StyleQuery(TrustedNodeAddress),
     ElementInnerTextQuery(TrustedNodeAddress),
 }
 

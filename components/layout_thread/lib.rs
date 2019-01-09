@@ -1471,32 +1471,23 @@ impl LayoutThread {
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.content_box_response = process_content_box_request(node, root_flow);
                 },
                 &QueryMsg::ContentBoxesQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
                 },
                 &QueryMsg::TextIndexQuery(node, point_in_node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    let opaque_node = node.opaque();
                     let point_in_node = Point2D::new(
                         Au::from_f32_px(point_in_node.x),
                         Au::from_f32_px(point_in_node.y),
                     );
-                    rw_data.text_index_response = TextIndexResponse(
-                        rw_data
-                            .indexable_text
-                            .text_index(opaque_node, point_in_node),
-                    );
+                    rw_data.text_index_response =
+                        TextIndexResponse(rw_data.indexable_text.text_index(node, point_in_node));
                 },
                 &QueryMsg::NodeGeometryQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.client_rect_response = process_node_geometry_request(node, root_flow);
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.scroll_area_response =
                         process_node_scroll_area_request(node, root_flow);
                 },
@@ -1511,7 +1502,6 @@ impl LayoutThread {
                         process_resolved_style_request(context, node, pseudo, property, root_flow);
                 },
                 &QueryMsg::OffsetParentQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
                 },
                 &QueryMsg::StyleQuery(node) => {
