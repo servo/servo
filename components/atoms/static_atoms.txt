@@ -30,6 +30,7 @@ error
 fantasy
 fetch
 file
+formdata
 fullscreenchange
 fullscreenerror
 gattserverdisconnected
