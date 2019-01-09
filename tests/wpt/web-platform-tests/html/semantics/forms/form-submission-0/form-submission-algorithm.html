@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/targetted-form.js"></script>
+<body>
+<script>
+test(() => {
+  let form = populateForm('<input name=n10 value=v10>');
+  let counter = 0;
+  form.addEventListener('formdata', e => {
+    ++counter;
+    form.submit();
+  });
+  form.submit();
+  assert_equals(counter, 1);
+  new FormData(form);
+  assert_equals(counter, 2);
+}, 'If constructing entry list flag of form is true, then return');
+
+let test10 = async_test('Cannot navigate (after constructing the entry list)');
+test10.step(() => {
+  let form = populateForm('<input name=n1 value=v1>');
+  form.onformdata = (e) => { e.target.remove(); };
+  let wasLoaded = false;
+  let iframe = form.previousSibling;
+  // Request to load '/common/dummy.xhtml', and immediately submit the form to
+  // the same frame. If the form submission is aborted, the first request
+  // will be completed.
+  iframe.onload = test10.step_func_done(() => {
+    wasLoaded = true;
+    assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') == -1);
+  });
+  iframe.src = '/common/dummy.xhtml';
+  assert_false(wasLoaded, 'Make sure the first loading is ongoing.');
+  form.submit();
+});
+</script>
+</body>

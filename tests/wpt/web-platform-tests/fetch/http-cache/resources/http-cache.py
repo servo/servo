@@ -46,7 +46,10 @@ def handle_test(uuid, request, response):
     now = time.time()
     for header in config.get('response_headers', []):
         if header[0].lower() in LOCATIONHDRS: # magic locations
-            header[1] = "%s&target=%s" % (request.url, header[1])
+            if (len(header[1]) > 0):
+                header[1] = "%s&target=%s" % (request.url, header[1])
+            else:
+                header[1] = request.url
         if header[0].lower() in DATEHDRS and isinstance(header[1], int):  # magic dates
             header[1] = http_date(now, header[1])
         response.headers.set(header[0], header[1])

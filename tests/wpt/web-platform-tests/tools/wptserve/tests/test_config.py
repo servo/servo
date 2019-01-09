@@ -1,3 +1,4 @@
+import json
 import logging
 import pickle
 
@@ -41,6 +42,16 @@ def test_logger_preserved():
 
     with config.ConfigBuilder(logger=logger) as c:
         assert c.logger is logger
+
+
+def test_as_dict():
+    with config.ConfigBuilder() as c:
+        assert c.as_dict() is not None
+
+
+def test_as_dict_is_json():
+    with config.ConfigBuilder() as c:
+        assert json.dumps(c.as_dict()) is not None
 
 
 def test_init_basic_prop():
