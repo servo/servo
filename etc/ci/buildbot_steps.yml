@@ -100,7 +100,7 @@ linux-rel-wpt:
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
     - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
     - ./mach test-wpt --release --product=servodriver --headless tests/wpt/mozilla/tests/mozilla/DOMParser.html tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html tests/wpt/mozilla/tests/css/img_simple.html tests/wpt/mozilla/tests/mozilla/secure.https.html
-    - ./mach test-wpt --processes 1 --release --product=servodriver bluetooth
+    - ./mach test-wpt --release --processes 1 --product=servodriver --log-raw test-bluetooth.log --log-errorsummary bluetooth-errorsummary.log bluetooth
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-css:
