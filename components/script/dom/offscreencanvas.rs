@@ -86,14 +86,10 @@ impl OffscreenCanvas {
     }
 
     #[allow(unsafe_code)]
-    fn get_or_init_2d_context(
-        &self,
-        cx: *mut JSContext,
-    ) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
+    fn get_or_init_2d_context(&self) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 OffscreenCanvasContext::OffscreenContext2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
-                _ => None,
             };
         }
         let size = self.get_size();
@@ -110,13 +106,13 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
     #[allow(unsafe_code)]
     unsafe fn GetContext(
         &self,
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         id: DOMString,
-        options: HandleValue,
+        _options: HandleValue,
     ) -> Option<OffscreenRenderingContext> {
         match &*id {
             "2d" => self
-                .get_or_init_2d_context(cx)
+                .get_or_init_2d_context()
                 .map(OffscreenRenderingContext::OffscreenCanvasRenderingContext2D),
             /*"webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options)
@@ -124,7 +120,7 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options)
                 .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
-            _ => None,
+               _ => None,
         }
     }
 

@@ -19,9 +19,9 @@ pub struct OffscreenCanvasRenderingContext2D {
 
 impl OffscreenCanvasRenderingContext2D {
     pub fn new_inherited(
-        global: &GlobalScope,
+        _global: &GlobalScope,
         canvas: Option<&OffscreenCanvas>,
-        size: Size2D<u64>,
+        _size: Size2D<u64>,
     ) -> OffscreenCanvasRenderingContext2D {
         OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
@@ -30,18 +30,18 @@ impl OffscreenCanvasRenderingContext2D {
     }
 
     pub fn new(
-        global: &GlobalScope,
+        _global: &GlobalScope,
         canvas: &OffscreenCanvas,
-        size: Size2D<u64>,
+        _size: Size2D<u64>,
     ) -> DomRoot<OffscreenCanvasRenderingContext2D> {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
-            global,
+            _global,
             Some(canvas),
-            size,
+            _size,
         ));
         reflect_dom_object(
             boxed,
-            global,
+            _global,
             OffscreenCanvasRenderingContext2DBinding::Wrap,
         )
     }
