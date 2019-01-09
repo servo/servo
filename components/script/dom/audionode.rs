@@ -237,9 +237,7 @@ impl AudioNodeMethods for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
-                if value != 1 {
-                    return Err(Error::InvalidState);
-                }
+                return Err(Error::InvalidState);
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
                 return Err(Error::InvalidState);
@@ -283,9 +281,7 @@ impl AudioNodeMethods for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
-                if value != ChannelCountMode::Explicit {
-                    return Err(Error::InvalidState);
-                }
+                return Err(Error::InvalidState);
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
                 return Err(Error::InvalidState);
