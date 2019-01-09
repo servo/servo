@@ -7,7 +7,6 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
-#![feature(associated_type_defaults)]
 
 #[macro_use]
 extern crate html5ever;
