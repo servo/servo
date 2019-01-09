@@ -14,6 +14,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
@@ -42,6 +43,10 @@ impl XRSession {
             global,
             XRSessionBinding::Wrap,
         )
+    }
+
+    pub fn xr_present(&self, p: Rc<Promise>) {
+        self.display.xr_present(self, None, Some(p));
     }
 }
 
@@ -76,7 +81,7 @@ impl XRSessionMethods for XRSession {
         self.base_layer.set(layer);
         if let Some(layer) = layer {
             let layer = layer.downcast::<XRWebGLLayer>().unwrap();
-            self.display.xr_present(&self, &layer.Context());
+            self.display.xr_present(&self, Some(&layer.Context()), None);
         } else {
             // steps unknown
             // https://github.com/immersive-web/webxr/issues/453

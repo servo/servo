@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -34,7 +34,7 @@ use crate::dom::xrframe::XRFrame;
 use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
-use crate::task_source::TaskSourceName;
+use crate::task_source::{TaskSource, TaskSourceName};
 use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
 use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
@@ -347,35 +347,9 @@ impl VRDisplayMethods for VRDisplay {
             },
         };
 
-        // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
-        if self.presenting.get() {
-            *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(Some(&layer_ctx));
-            promise.resolve_native(&());
-            return promise;
-        }
-
-        // Request Present
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.webvr_thread()
-            .send(WebVRMsg::RequestPresent(
-                self.global().pipeline_id(),
-                self.display.borrow().display_id,
-                sender,
-            ))
-            .unwrap();
-        match receiver.recv().unwrap() {
-            Ok(()) => {
-                *self.layer.borrow_mut() = layer_bounds;
-                self.layer_ctx.set(Some(&layer_ctx));
-                self.init_present();
-                promise.resolve_native(&());
-            },
-            Err(e) => {
-                promise.reject_native(&e);
-            },
-        }
-
+        self.request_present(layer_bounds, Some(&layer_ctx), Some(promise.clone()), |p| {
+            p.resolve_native(&())
+        });
         promise
     }
 
@@ -462,6 +436,64 @@ impl VRDisplay {
         } else {
             self.stage_params.set(None);
         }
+    }
+
+    pub fn request_present<F>(
+        &self,
+        layer_bounds: WebVRLayer,
+        ctx: Option<&WebGLRenderingContext>,
+        promise: Option<Rc<Promise>>,
+        resolve: F,
+    ) where
+        F: FnOnce(Rc<Promise>) + Send + 'static,
+    {
+        // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
+        if self.presenting.get() {
+            *self.layer.borrow_mut() = layer_bounds;
+            self.layer_ctx.set(ctx);
+            promise.map(resolve);
+            return;
+        }
+
+        // Request Present
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::RequestPresent(
+                self.global().pipeline_id(),
+                self.display.borrow().display_id,
+                sender,
+            ))
+            .unwrap();
+        let promise = promise.map(TrustedPromise::new);
+        let this = Trusted::new(self);
+        let ctx = ctx.map(|c| Trusted::new(c));
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        thread::spawn(move || {
+            let recv = receiver.recv().unwrap();
+            let _ = task_source.queue_with_canceller(
+                task!(vr_presenting: move || {
+                    let this = this.root();
+                    let promise = promise.map(|p| p.root());
+                    let ctx = ctx.map(|c| c.root());
+                    match recv {
+                        Ok(()) => {
+                            *this.layer.borrow_mut() = layer_bounds;
+                            this.layer_ctx.set(ctx.as_ref().map(|c| &**c));
+                            this.init_present();
+                            promise.map(resolve);
+                        },
+                        Err(e) => {
+                            promise.map(|p| p.reject_native(&e));
+                        },
+                    }
+                }),
+                &canceller,
+            );
+        });
     }
 
     pub fn handle_webvr_event(&self, event: &WebVRDisplayEvent) {
@@ -688,30 +720,19 @@ impl VRDisplay {
 // XR stuff
 // XXXManishearth eventually we should share as much logic as possible
 impl VRDisplay {
-    pub fn xr_present(&self, session: &XRSession, ctx: &WebGLRenderingContext) {
+    pub fn xr_present(
+        &self,
+        session: &XRSession,
+        ctx: Option<&WebGLRenderingContext>,
+        promise: Option<Rc<Promise>>,
+    ) {
         let layer_bounds = WebVRLayer::default();
         self.xr_session.set(Some(session));
-        if self.presenting.get() {
-            *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(Some(&ctx));
-            return;
-        }
-
-        // Request Present
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.webvr_thread()
-            .send(WebVRMsg::RequestPresent(
-                self.global().pipeline_id(),
-                self.display.borrow().display_id,
-                sender,
-            ))
-            .unwrap();
-
-        if let Ok(()) = receiver.recv().unwrap() {
-            *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(Some(&ctx));
-            self.init_present();
-        }
+        let session = Trusted::new(session);
+        self.request_present(layer_bounds, ctx, promise, move |p| {
+            let session = session.root();
+            p.resolve_native(&session);
+        });
     }
 
     pub fn xr_raf(&self, callback: Rc<XRFrameRequestCallback>) -> u32 {
