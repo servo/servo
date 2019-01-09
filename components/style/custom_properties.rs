@@ -11,14 +11,13 @@ use crate::properties::{CSSWideKeyword, CustomDeclarationValue};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet};
 use crate::Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
-use precomputed_hash::PrecomputedHash;
+use indexmap::IndexMap;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 use std::cmp;
 use std::fmt::{self, Write};
-use std::hash::Hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// The environment from which to get `env` function values.
@@ -131,7 +130,7 @@ impl ToCss for SpecifiedValue {
 ///
 /// The variable values are guaranteed to not have references to other
 /// properties.
-pub type CustomPropertiesMap = OrderedMap<Name, Arc<VariableValue>>;
+pub type CustomPropertiesMap = IndexMap<Name, Arc<VariableValue>>;
 
 /// Both specified and computed values are VariableValues, the difference is
 /// whether var() functions are expanded.
@@ -139,130 +138,6 @@ pub type SpecifiedValue = VariableValue;
 /// Both specified and computed values are VariableValues, the difference is
 /// whether var() functions are expanded.
 pub type ComputedValue = VariableValue;
-
-/// A map that preserves order for the keys, and that is easily indexable.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OrderedMap<K, V>
-where
-    K: PrecomputedHash + Hash + Eq + Clone,
-{
-    /// Key index.
-    index: Vec<K>,
-    /// Key-value map.
-    values: PrecomputedHashMap<K, V>,
-}
-
-impl<K, V> OrderedMap<K, V>
-where
-    K: Eq + PrecomputedHash + Hash + Clone,
-{
-    /// Creates a new ordered map.
-    pub fn new() -> Self {
-        OrderedMap {
-            index: Vec::new(),
-            values: PrecomputedHashMap::default(),
-        }
-    }
-
-    /// Insert a new key-value pair.
-    ///
-    /// TODO(emilio): Remove unused_mut when Gecko and Servo agree in whether
-    /// it's necessary.
-    #[allow(unused_mut)]
-    pub fn insert(&mut self, key: K, value: V) {
-        let OrderedMap {
-            ref mut index,
-            ref mut values,
-        } = *self;
-        match values.entry(key) {
-            Entry::Vacant(mut entry) => {
-                index.push(entry.key().clone());
-                entry.insert(value);
-            },
-            Entry::Occupied(mut entry) => {
-                entry.insert(value);
-            },
-        }
-    }
-
-    /// Get a value given its key.
-    pub fn get(&self, key: &K) -> Option<&V> {
-        let value = self.values.get(key);
-        debug_assert_eq!(value.is_some(), self.index.contains(key));
-        value
-    }
-
-    /// Get whether there's a value on the map for `key`.
-    pub fn contains_key(&self, key: &K) -> bool {
-        self.values.contains_key(key)
-    }
-
-    /// Get the key located at the given index.
-    pub fn get_key_at(&self, index: u32) -> Option<&K> {
-        self.index.get(index as usize)
-    }
-
-    /// Get an ordered map iterator.
-    pub fn iter<'a>(&'a self) -> OrderedMapIterator<'a, K, V> {
-        OrderedMapIterator {
-            inner: self,
-            pos: 0,
-        }
-    }
-
-    /// Get the count of items in the map.
-    pub fn len(&self) -> usize {
-        debug_assert_eq!(self.values.len(), self.index.len());
-        self.values.len()
-    }
-
-    /// Returns whether this map is empty.
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Remove an item given its key.
-    fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
-    where
-        K: Borrow<Q>,
-        Q: PrecomputedHash + Hash + Eq,
-    {
-        let index = self.index.iter().position(|k| k.borrow() == key)?;
-        self.index.remove(index);
-        self.values.remove(key)
-    }
-}
-
-/// An iterator for OrderedMap.
-///
-/// The iteration order is determined by the order that the values are
-/// added to the key-value map.
-pub struct OrderedMapIterator<'a, K, V>
-where
-    K: 'a + Eq + PrecomputedHash + Hash + Clone,
-    V: 'a,
-{
-    /// The OrderedMap itself.
-    inner: &'a OrderedMap<K, V>,
-    /// The position of the iterator.
-    pos: usize,
-}
-
-impl<'a, K, V> Iterator for OrderedMapIterator<'a, K, V>
-where
-    K: Eq + PrecomputedHash + Hash + Clone,
-{
-    type Item = (&'a K, &'a V);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let key = self.inner.index.get(self.pos)?;
-
-        self.pos += 1;
-        let value = &self.inner.values[key];
-
-        Some((key, value))
-    }
-}
 
 /// A struct holding information about the external references to that a custom
 /// property value may have.
@@ -933,7 +808,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
 
     // We have to clone the names so that we can mutably borrow the map
     // in the context we create for traversal.
-    let names = custom_properties_map.index.clone();
+    let names: Vec<_> = custom_properties_map.keys().cloned().collect();
     for name in names.into_iter() {
         let mut context = Context {
             count: 0,
