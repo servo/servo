@@ -1082,6 +1082,16 @@ interface ValidityState {
 };
 
 [Exposed=Window,
+ Constructor(DOMString type, optional FormDataEventInit eventInitDict)]
+interface FormDataEvent : Event {
+  readonly attribute FormData formData;
+};
+
+dictionary FormDataEventInit : EventInit {
+  required FormData formData;
+};
+
+[Exposed=Window,
  HTMLConstructor]
 interface HTMLDetailsElement : HTMLElement {
   [CEReactions] attribute boolean open;
@@ -1735,6 +1745,7 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onended;
   attribute OnErrorEventHandler onerror;
   attribute EventHandler onfocus;
+  attribute EventHandler onformdata;
   attribute EventHandler oninput;
   attribute EventHandler oninvalid;
   attribute EventHandler onkeydown;

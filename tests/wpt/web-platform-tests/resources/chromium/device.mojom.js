@@ -18,7 +18,7 @@
 
   var exports = mojo.internal.exposeNamespace('device.mojom');
   var string16$ =
-      mojo.internal.exposeNamespace('mojo.common.mojom');
+      mojo.internal.exposeNamespace('mojoBase.mojom');
   if (mojo.config.autoLoadMojomDeps) {
     mojo.internal.loadMojomIfNecessary(
         'mojo/public/mojom/base/string16.mojom', '../../../../mojo/public/mojom/base/string16.mojom.js');
@@ -35,6 +35,8 @@
   UsbOpenDeviceError.OK = 0;
   UsbOpenDeviceError.ACCESS_DENIED = UsbOpenDeviceError.OK + 1;
   UsbOpenDeviceError.ALREADY_OPEN = UsbOpenDeviceError.ACCESS_DENIED + 1;
+  UsbOpenDeviceError.MIN_VALUE = 0,
+  UsbOpenDeviceError.MAX_VALUE = 2,
 
   UsbOpenDeviceError.isKnownEnumValue = function(value) {
     switch (value) {
@@ -56,6 +58,8 @@
   var UsbTransferDirection = {};
   UsbTransferDirection.INBOUND = 0;
   UsbTransferDirection.OUTBOUND = UsbTransferDirection.INBOUND + 1;
+  UsbTransferDirection.MIN_VALUE = 0,
+  UsbTransferDirection.MAX_VALUE = 1,
 
   UsbTransferDirection.isKnownEnumValue = function(value) {
     switch (value) {
@@ -78,6 +82,8 @@
   UsbControlTransferType.CLASS = UsbControlTransferType.STANDARD + 1;
   UsbControlTransferType.VENDOR = UsbControlTransferType.CLASS + 1;
   UsbControlTransferType.RESERVED = UsbControlTransferType.VENDOR + 1;
+  UsbControlTransferType.MIN_VALUE = 0,
+  UsbControlTransferType.MAX_VALUE = 3,
 
   UsbControlTransferType.isKnownEnumValue = function(value) {
     switch (value) {
@@ -102,6 +108,8 @@
   UsbControlTransferRecipient.INTERFACE = UsbControlTransferRecipient.DEVICE + 1;
   UsbControlTransferRecipient.ENDPOINT = UsbControlTransferRecipient.INTERFACE + 1;
   UsbControlTransferRecipient.OTHER = UsbControlTransferRecipient.ENDPOINT + 1;
+  UsbControlTransferRecipient.MIN_VALUE = 0,
+  UsbControlTransferRecipient.MAX_VALUE = 3,
 
   UsbControlTransferRecipient.isKnownEnumValue = function(value) {
     switch (value) {
@@ -126,6 +134,8 @@
   UsbTransferType.ISOCHRONOUS = UsbTransferType.CONTROL + 1;
   UsbTransferType.BULK = UsbTransferType.ISOCHRONOUS + 1;
   UsbTransferType.INTERRUPT = UsbTransferType.BULK + 1;
+  UsbTransferType.MIN_VALUE = 0,
+  UsbTransferType.MAX_VALUE = 3,
 
   UsbTransferType.isKnownEnumValue = function(value) {
     switch (value) {
@@ -155,6 +165,8 @@
   UsbTransferStatus.BABBLE = UsbTransferStatus.DISCONNECT + 1;
   UsbTransferStatus.SHORT_PACKET = UsbTransferStatus.BABBLE + 1;
   UsbTransferStatus.PERMISSION_DENIED = UsbTransferStatus.SHORT_PACKET + 1;
+  UsbTransferStatus.MIN_VALUE = 0,
+  UsbTransferStatus.MAX_VALUE = 8,
 
   UsbTransferStatus.isKnownEnumValue = function(value) {
     switch (value) {
@@ -516,6 +528,8 @@
     this.subclassCode = 0;
     this.protocolCode = 0;
     this.vendorId = 0;
+    this.busNumber = 0;
+    this.portNumber = 0;
     this.productId = 0;
     this.deviceVersionMajor = 0;
     this.deviceVersionMinor = 0;
@@ -541,7 +555,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 72}
+      {version: 0, numBytes: 80}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -565,40 +579,42 @@
 
 
 
+
+
     // validate UsbDeviceInfo.manufacturerName
-    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 24, string16$.String16, true);
-    if (err !== validator.validationError.NONE)
-        return err;
-
-
-    // validate UsbDeviceInfo.productName
     err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 32, string16$.String16, true);
     if (err !== validator.validationError.NONE)
         return err;
 
 
-    // validate UsbDeviceInfo.serialNumber
+    // validate UsbDeviceInfo.productName
     err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 40, string16$.String16, true);
     if (err !== validator.validationError.NONE)
         return err;
 
 
+    // validate UsbDeviceInfo.serialNumber
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 48, string16$.String16, true);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
     // validate UsbDeviceInfo.webusbLandingPage
-    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 48, url$.Url, true);
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 56, url$.Url, true);
     if (err !== validator.validationError.NONE)
         return err;
 
 
 
     // validate UsbDeviceInfo.configurations
-    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 56, 8, new codec.PointerTo(UsbConfigurationInfo), false, [0], 0);
+    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 64, 8, new codec.PointerTo(UsbConfigurationInfo), false, [0], 0);
     if (err !== validator.validationError.NONE)
         return err;
 
     return validator.validationError.NONE;
   };
 
-  UsbDeviceInfo.encodedSize = codec.kStructHeaderSize + 64;
+  UsbDeviceInfo.encodedSize = codec.kStructHeaderSize + 72;
 
   UsbDeviceInfo.decode = function(decoder) {
     var packed;
@@ -613,6 +629,8 @@
     val.subclassCode = decoder.decodeStruct(codec.Uint8);
     val.protocolCode = decoder.decodeStruct(codec.Uint8);
     val.vendorId = decoder.decodeStruct(codec.Uint16);
+    val.busNumber = decoder.decodeStruct(codec.Uint32);
+    val.portNumber = decoder.decodeStruct(codec.Uint32);
     val.productId = decoder.decodeStruct(codec.Uint16);
     val.deviceVersionMajor = decoder.decodeStruct(codec.Uint8);
     val.deviceVersionMinor = decoder.decodeStruct(codec.Uint8);
@@ -640,6 +658,8 @@
     encoder.encodeStruct(codec.Uint8, val.subclassCode);
     encoder.encodeStruct(codec.Uint8, val.protocolCode);
     encoder.encodeStruct(codec.Uint16, val.vendorId);
+    encoder.encodeStruct(codec.Uint32, val.busNumber);
+    encoder.encodeStruct(codec.Uint32, val.portNumber);
     encoder.encodeStruct(codec.Uint16, val.productId);
     encoder.encodeStruct(codec.Uint8, val.deviceVersionMajor);
     encoder.encodeStruct(codec.Uint8, val.deviceVersionMinor);

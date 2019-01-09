@@ -79,7 +79,12 @@ class TypeData(object):
         return rv
 
     def __delitem__(self, key):
-        del self.data[key]
+        if key in self.data:
+            del self.data[key]
+        elif self.json_data is not None:
+            del self.json_data[from_os_path(key)]
+        else:
+            raise KeyError
 
     def __setitem__(self, key, value):
         self.data[key] = value
@@ -279,6 +284,11 @@ class Manifest(object):
                     if old_hash != file_hash:
                         new_type, manifest_items = source_file.manifest_items()
                         hash_changed = True
+                        if new_type != old_type:
+                            try:
+                                del self._data[old_type][rel_path]
+                            except KeyError:
+                                pass
                     else:
                         new_type, manifest_items = old_type, self._data[old_type][rel_path]
                     if old_type in reftest_types and new_type != old_type:
@@ -306,10 +316,7 @@ class Manifest(object):
                     _, old_type = self._path_hash[rel_path]
                     if old_type in reftest_types:
                         reftest_changes = True
-                    try:
-                        del self._path_hash[rel_path]
-                    except KeyError:
-                        pass
+                    del self._path_hash[rel_path]
                     try:
                         del self._data[old_type][rel_path]
                     except KeyError:

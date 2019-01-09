@@ -23,11 +23,17 @@
     mojo.internal.loadMojomIfNecessary(
         'device/usb/public/mojom/device.mojom', '../../../../../device/usb/public/mojom/device.mojom.js');
   }
-  var device_manager$ =
+  var device_enumeration_options$ =
       mojo.internal.exposeNamespace('device.mojom');
   if (mojo.config.autoLoadMojomDeps) {
     mojo.internal.loadMojomIfNecessary(
-        'device/usb/public/mojom/device_manager.mojom', '../../../../../device/usb/public/mojom/device_manager.mojom.js');
+        'device/usb/public/mojom/device_enumeration_options.mojom', '../../../../../device/usb/public/mojom/device_enumeration_options.mojom.js');
+  }
+  var device_manager_client$ =
+      mojo.internal.exposeNamespace('device.mojom');
+  if (mojo.config.autoLoadMojomDeps) {
+    mojo.internal.loadMojomIfNecessary(
+        'device/usb/public/mojom/device_manager_client.mojom', '../../../../../device/usb/public/mojom/device_manager_client.mojom.js');
   }
 
 
@@ -236,7 +242,7 @@
 
 
     // validate WebUsbService_GetPermission_Params.deviceFilters
-    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 0, 8, new codec.PointerTo(device_manager$.UsbDeviceFilter), false, [0], 0);
+    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 0, 8, new codec.PointerTo(device_enumeration_options$.UsbDeviceFilter), false, [0], 0);
     if (err !== validator.validationError.NONE)
         return err;
 
@@ -250,7 +256,7 @@
     var val = new WebUsbService_GetPermission_Params();
     var numberOfBytes = decoder.readUint32();
     var version = decoder.readUint32();
-    val.deviceFilters = decoder.decodeArrayPointer(new codec.PointerTo(device_manager$.UsbDeviceFilter));
+    val.deviceFilters = decoder.decodeArrayPointer(new codec.PointerTo(device_enumeration_options$.UsbDeviceFilter));
     return val;
   };
 
@@ -258,7 +264,7 @@
     var packed;
     encoder.writeUint32(WebUsbService_GetPermission_Params.encodedSize);
     encoder.writeUint32(0);
-    encoder.encodeArrayPointer(new codec.PointerTo(device_manager$.UsbDeviceFilter), val.deviceFilters);
+    encoder.encodeArrayPointer(new codec.PointerTo(device_enumeration_options$.UsbDeviceFilter), val.deviceFilters);
   };
   function WebUsbService_GetPermission_ResponseParams(values) {
     this.initDefaults_();

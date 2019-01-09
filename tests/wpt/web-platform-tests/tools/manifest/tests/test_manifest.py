@@ -353,13 +353,13 @@ def test_no_update():
     assert list(m) == [("testharness", test1.path, {test1}),
                        ("testharness", test2.path, {test2})]
 
-    s1_1 = SourceFileWithTest("test1", "1"*40, item.TestharnessTest)
+    s1_1 = SourceFileWithTest("test1", "1"*40, item.ManualTest)
 
-    m.update([(s1, True), (s2.rel_path, False)])
+    m.update([(s1_1, True), (s2.rel_path, False)])
 
     test1_1 = s1_1.manifest_items()[1][0]
 
-    assert list(m) == [("testharness", test1_1.path, {test1_1}),
+    assert list(m) == [("manual", test1_1.path, {test1_1}),
                        ("testharness", test2.path, {test2})]
 
 
@@ -371,10 +371,28 @@ def test_no_update_delete():
 
     m.update([(s1, True), (s2, True)])
 
-    s1_1 = SourceFileWithTest("test1", "1"*40, item.TestharnessTest)
+    test1 = s1.manifest_items()[1][0]
+
+    s1_1 = SourceFileWithTest("test1", "1"*40, item.ManualTest)
+
+    m.update([(s1_1.rel_path, False)])
+
+    assert list(m) == [("testharness", test1.path, {test1})]
+
+
+def test_update_from_json():
+    m = manifest.Manifest()
+
+    s1 = SourceFileWithTest("test1", "0"*40, item.TestharnessTest)
+    s2 = SourceFileWithTest("test2", "0"*40, item.TestharnessTest)
+
+    m.update([(s1, True), (s2, True)])
+
+    json_str = m.to_json()
+    m = manifest.Manifest.from_json("/", json_str)
 
     m.update([(s1, True)])
 
-    test1_1 = s1_1.manifest_items()[1][0]
+    test1 = s1.manifest_items()[1][0]
 
-    assert list(m) == [("testharness", test1_1.path, {test1_1})]
+    assert list(m) == [("testharness", test1.path, {test1})]
