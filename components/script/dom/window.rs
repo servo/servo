@@ -1571,31 +1571,31 @@ impl Window {
         &*self.layout_rpc
     }
 
-    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxQuery(content_box_request)) {
+    pub fn content_box_query(&self, node: &Node) -> Option<Rect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBoxQuery(node.to_opaque())) {
             return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
-    pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(content_boxes_request)) {
+    pub fn content_boxes_query(&self, node: &Node) -> Vec<Rect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node.to_opaque())) {
             return vec![];
         }
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
     }
 
-    pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node_geometry_request)) {
+    pub fn client_rect_query(&self, node: &Node) -> Rect<i32> {
+        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
     }
 
-    pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
+    pub fn scroll_area_query(&self, node: &Node) -> Rect<i32> {
+        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_scroll_area().client_rect
@@ -1652,14 +1652,13 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(
-        &self,
-        node: TrustedNodeAddress,
-    ) -> (Option<DomRoot<Element>>, Rect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node)) {
+    pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, Rect<Au>) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node.to_opaque())) {
             return (None, Rect::zero());
         }
 
+        // FIXME(nox): Layout can reply with a garbage value which doesn't
+        // actually correspond to an element, that's unsound.
         let response = self.layout_rpc.offset_parent();
         let js_runtime = self.js_runtime.borrow();
         let js_runtime = js_runtime.as_ref().unwrap();
@@ -1677,12 +1676,8 @@ impl Window {
         self.layout_rpc.style().0
     }
 
-    pub fn text_index_query(
-        &self,
-        node: TrustedNodeAddress,
-        point_in_node: Point2D<f32>,
-    ) -> TextIndexResponse {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
+    pub fn text_index_query(&self, node: &Node, point_in_node: Point2D<f32>) -> TextIndexResponse {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery(node.to_opaque(), point_in_node)) {
             return TextIndexResponse(None);
         }
         self.layout_rpc.text_index()

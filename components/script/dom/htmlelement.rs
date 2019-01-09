@@ -403,7 +403,7 @@ impl HTMLElementMethods for HTMLElement {
 
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (element, _) = window.offset_parent_query(node.to_trusted_node_address());
+        let (element, _) = window.offset_parent_query(node);
 
         element
     }
@@ -416,7 +416,7 @@ impl HTMLElementMethods for HTMLElement {
 
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.origin.y.to_nearest_px()
     }
@@ -429,7 +429,7 @@ impl HTMLElementMethods for HTMLElement {
 
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.origin.x.to_nearest_px()
     }
@@ -438,7 +438,7 @@ impl HTMLElementMethods for HTMLElement {
     fn OffsetWidth(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.size.width.to_nearest_px()
     }
@@ -447,7 +447,7 @@ impl HTMLElementMethods for HTMLElement {
     fn OffsetHeight(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.size.height.to_nearest_px()
     }
