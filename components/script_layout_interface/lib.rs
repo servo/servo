@@ -11,12 +11,9 @@
 #[macro_use]
 extern crate html5ever;
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate malloc_size_of_derive;
 
 pub mod message;
-pub mod reporter;
 pub mod rpc;
 pub mod wrapper_traits;
 

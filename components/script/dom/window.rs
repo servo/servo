@@ -69,7 +69,7 @@ use base64;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender, TryRecvError};
-use cssparser::{Parser, ParserInput};
+use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -94,7 +94,6 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
-use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
@@ -120,7 +119,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use style::error_reporting::ParseErrorReporter;
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::{ComputedValues, PropertyId};
@@ -2240,5 +2239,43 @@ impl Window {
             self.pipeline_id(),
             TaskSourceName::DOMManipulation,
         ));
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct CSSErrorReporter {
+    pub pipelineid: PipelineId,
+    // Arc+Mutex combo is necessary to make this struct Sync,
+    // which is necessary to fulfill the bounds required by the
+    // uses of the ParseErrorReporter trait.
+    #[ignore_malloc_size_of = "Arc is defined in libstd"]
+    pub script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
+}
+unsafe_no_jsmanaged_fields!(CSSErrorReporter);
+
+impl ParseErrorReporter for CSSErrorReporter {
+    fn report_error(&self, url: &ServoUrl, location: SourceLocation, error: ContextualParseError) {
+        if log_enabled!(log::Level::Info) {
+            info!(
+                "Url:\t{}\n{}:{} {}",
+                url.as_str(),
+                location.line,
+                location.column,
+                error
+            )
+        }
+
+        //TODO: report a real filename
+        let _ = self
+            .script_chan
+            .lock()
+            .unwrap()
+            .send(ConstellationControlMsg::ReportCSSError(
+                self.pipelineid,
+                "".to_owned(),
+                location.line,
+                location.column,
+                error.to_string(),
+            ));
     }
 }

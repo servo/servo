@@ -85,7 +85,6 @@ use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, Re
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_traits::DrawAPaintImageResult;
@@ -455,7 +454,6 @@ unsafe_no_jsmanaged_fields!(Instant);
 unsafe_no_jsmanaged_fields!(RelativePos);
 unsafe_no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 unsafe_no_jsmanaged_fields!(PathBuf);
-unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
 unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
