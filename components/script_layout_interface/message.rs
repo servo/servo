@@ -143,18 +143,18 @@ impl ReflowGoal {
     pub fn needs_display_list(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations => true,
-            ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
-                &QueryMsg::NodesFromPointQuery(..) |
-                &QueryMsg::TextIndexQuery(..) |
-                &QueryMsg::ElementInnerTextQuery(_) => true,
-                &QueryMsg::ContentBoxQuery(_) |
-                &QueryMsg::ContentBoxesQuery(_) |
-                &QueryMsg::NodeGeometryQuery(_) |
-                &QueryMsg::NodeScrollGeometryQuery(_) |
-                &QueryMsg::NodeScrollIdQuery(_) |
-                &QueryMsg::ResolvedStyleQuery(..) |
-                &QueryMsg::OffsetParentQuery(_) |
-                &QueryMsg::StyleQuery(_) => false,
+            ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
+                QueryMsg::NodesFromPointQuery(..) |
+                QueryMsg::TextIndexQuery(..) |
+                QueryMsg::ElementInnerTextQuery(_) => true,
+                QueryMsg::ContentBoxQuery(_) |
+                QueryMsg::ContentBoxesQuery(_) |
+                QueryMsg::NodeGeometryQuery(_) |
+                QueryMsg::NodeScrollGeometryQuery(_) |
+                QueryMsg::NodeScrollIdQuery(_) |
+                QueryMsg::ResolvedStyleQuery(..) |
+                QueryMsg::OffsetParentQuery(_) |
+                QueryMsg::StyleQuery(_) => false,
             },
         }
     }
@@ -164,18 +164,18 @@ impl ReflowGoal {
     pub fn needs_display(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations => true,
-            ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
-                &QueryMsg::NodesFromPointQuery(..) |
-                &QueryMsg::TextIndexQuery(..) |
-                &QueryMsg::ElementInnerTextQuery(_) => true,
-                &QueryMsg::ContentBoxQuery(_) |
-                &QueryMsg::ContentBoxesQuery(_) |
-                &QueryMsg::NodeGeometryQuery(_) |
-                &QueryMsg::NodeScrollGeometryQuery(_) |
-                &QueryMsg::NodeScrollIdQuery(_) |
-                &QueryMsg::ResolvedStyleQuery(..) |
-                &QueryMsg::OffsetParentQuery(_) |
-                &QueryMsg::StyleQuery(_) => false,
+            ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
+                QueryMsg::NodesFromPointQuery(..) |
+                QueryMsg::TextIndexQuery(..) |
+                QueryMsg::ElementInnerTextQuery(_) => true,
+                QueryMsg::ContentBoxQuery(_) |
+                QueryMsg::ContentBoxesQuery(_) |
+                QueryMsg::NodeGeometryQuery(_) |
+                QueryMsg::NodeScrollGeometryQuery(_) |
+                QueryMsg::NodeScrollIdQuery(_) |
+                QueryMsg::ResolvedStyleQuery(..) |
+                QueryMsg::OffsetParentQuery(_) |
+                QueryMsg::StyleQuery(_) => false,
             },
         }
     }
