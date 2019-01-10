@@ -1,5 +1,6 @@
 spec: https://webbluetoothcg.github.io/web-bluetooth/
 suggested_reviewers:
-  - jyasskin
+  - dougt
   - g-ortuno
-  - scheib
+  - odejesush
+  - reillyeon

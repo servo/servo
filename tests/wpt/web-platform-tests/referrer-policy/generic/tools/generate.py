@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import copy
 import os, sys, json
 from common_paths import *
 import spec_validator
@@ -142,20 +143,32 @@ def generate_test_source_files(spec_json, target):
             exclusion_dict[excluded_selection_path] = True
 
     for spec in specification:
+        # Used to make entries with expansion="override" override preceding
+        # entries with the same |selection_path|.
+        output_dict = {}
+
         for spec_test_expansion in spec['test_expansion']:
             expansion = expand_test_expansion_pattern(spec_test_expansion,
                                                       test_expansion_schema)
             for selection in permute_expansion(expansion):
                 selection_path = selection_pattern % selection
                 if not selection_path in exclusion_dict:
-                    subresource_path = \
-                        spec_json["subresource_path"][selection["subresource"]]
-                    generate_selection(selection,
-                                       spec,
-                                       subresource_path,
-                                       html_template)
+                    if selection_path in output_dict:
+                        if spec_test_expansion['expansion'] != 'override':
+                            print("Error: %s's expansion is default but overrides %s" % (selection['name'], output_dict[selection_path]['name']))
+                            sys.exit(1)
+                    output_dict[selection_path] = copy.deepcopy(selection)
                 else:
                     print('Excluding selection:', selection_path)
+
+        for selection_path in output_dict:
+            selection = output_dict[selection_path]
+            subresource_path = \
+                spec_json["subresource_path"][selection["subresource"]]
+            generate_selection(selection,
+                           spec,
+                           subresource_path,
+                           html_template)
 
 
 def main(target):
