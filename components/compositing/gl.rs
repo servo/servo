@@ -106,7 +106,7 @@ pub fn draw_img(
 
     gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
 
-    gl.delete_buffers(&render_target_info.texture_ids);
+    gl.delete_textures(&render_target_info.texture_ids);
     gl.delete_renderbuffers(&render_target_info.renderbuffer_ids);
     gl.delete_framebuffers(&render_target_info.framebuffer_ids);
 
