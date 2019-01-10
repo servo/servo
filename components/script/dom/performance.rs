@@ -26,6 +26,7 @@ use dom_struct::dom_struct;
 use metrics::ToMs;
 use std::cell::Cell;
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 
 const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
     "navigationStart",
@@ -139,6 +140,10 @@ pub struct Performance {
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: u64,
+    resource_timing_buffer_size_limit: Cell<usize>,
+    resource_timing_buffer_current_size: Cell<usize>,
+    resource_timing_buffer_pending_full_event: Cell<bool>,
+    resource_timing_secondary_entries: DomRefCell<VecDeque<DomRoot<PerformanceEntry>>>,
 }
 
 impl Performance {
@@ -149,6 +154,10 @@ impl Performance {
             observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
             navigation_start_precise,
+            resource_timing_buffer_size_limit: Cell::new(250),
+            resource_timing_buffer_current_size: Cell::new(0),
+            resource_timing_buffer_pending_full_event: Cell::new(false),
+            resource_timing_secondary_entries: DomRefCell::new(VecDeque::new()),
         }
     }
 
@@ -208,7 +217,13 @@ impl Performance {
     ///
     /// Algorithm spec:
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
+    /// Also this algorithm has been extented according to :
+    /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
     pub fn queue_entry(&self, entry: &PerformanceEntry, add_to_performance_entries_buffer: bool) {
+        if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry) {
+            return;
+        }
+
         // Steps 1-3.
         // Add the performance entry to the list of performance entries that have not
         // been notified to each performance observer owner, filtering the ones it's
@@ -278,6 +293,67 @@ impl Performance {
 
     fn now(&self) -> f64 {
         (time::precise_time_ns() - self.navigation_start_precise).to_ms()
+    }
+
+    fn can_add_resource_timing_entry(&self) -> bool {
+        self.resource_timing_buffer_current_size.get() <=
+            self.resource_timing_buffer_size_limit.get()
+    }
+    fn copy_secondary_resource_timing_buffer(&self) {
+        while self.can_add_resource_timing_entry() {
+            let entry = self
+                .resource_timing_secondary_entries
+                .borrow_mut()
+                .pop_front();
+            if let Some(ref entry) = entry {
+                self.queue_entry(entry, true);
+            } else {
+                break;
+            }
+        }
+    }
+    // `fire a buffer full event` paragraph of
+    // https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
+    fn fire_buffer_full_event(&self) {
+        while !self.resource_timing_secondary_entries.borrow().is_empty() {
+            let no_of_excess_entries_before = self.resource_timing_secondary_entries.borrow().len();
+
+            if !self.can_add_resource_timing_entry() {
+                self.upcast::<EventTarget>()
+                    .fire_event(atom!("resourcetimingbufferfull"));
+            }
+            self.copy_secondary_resource_timing_buffer();
+            let no_of_excess_entries_after = self.resource_timing_secondary_entries.borrow().len();
+            if no_of_excess_entries_before <= no_of_excess_entries_after {
+                self.resource_timing_secondary_entries.borrow_mut().clear();
+                break;
+            }
+        }
+        self.resource_timing_buffer_pending_full_event.set(false);
+    }
+    /// `add a PerformanceResourceTiming entry` paragraph of
+    /// https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
+    fn should_queue_resource_entry(&self, entry: &PerformanceEntry) -> bool {
+        // Step 1 is done in the args list.
+        if !self.resource_timing_buffer_pending_full_event.get() {
+            // Step 2.
+            if self.can_add_resource_timing_entry() {
+                // Step 2.a is done in `queue_entry`
+                // Step 2.b.
+                self.resource_timing_buffer_current_size
+                    .set(self.resource_timing_buffer_current_size.get() + 1);
+                // Step 2.c.
+                return true;
+            }
+            // Step 3.
+            self.resource_timing_buffer_pending_full_event.set(true);
+            self.fire_buffer_full_event();
+        }
+        // Steps 4 and 5.
+        self.resource_timing_secondary_entries
+            .borrow_mut()
+            .push_back(DomRoot::from_ref(entry));
+        false
     }
 }
 
@@ -407,4 +483,24 @@ impl PerformanceMethods for Performance {
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
+    // https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
+    fn ClearResourceTimings(&self) {
+        self.entries
+            .borrow_mut()
+            .clear_entries_by_name_and_type(None, Some(DOMString::from("resource")));
+        self.resource_timing_buffer_current_size.set(0);
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
+    fn SetResourceTimingBufferSize(&self, max_size: u32) {
+        self.resource_timing_buffer_size_limit
+            .set(max_size as usize);
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
+    event_handler!(
+        resourcetimingbufferfull,
+        GetOnresourcetimingbufferfull,
+        SetOnresourcetimingbufferfull
+    );
 }
