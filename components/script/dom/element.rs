@@ -3235,6 +3235,18 @@ impl Element {
         let root = node.GetRootNode();
         root.is::<Document>()
     }
+
+    // https://html.spec.whatwg.org/multipage/#cannot-navigate
+    pub fn cannot_navigate(&self) -> bool {
+        let document = document_from_node(self);
+
+        // Step 1.
+        !document.is_fully_active() ||
+            (
+                // Step 2.
+                !self.is::<HTMLAnchorElement>() && !self.is_connected()
+            )
+    }
 }
 
 impl Element {
