@@ -153,6 +153,10 @@ struct SerializationIterator {
 }
 
 fn rev_children_iter(n: &Node) -> impl Iterator<Item = DomRoot<Node>> {
+    if n.downcast::<Element>().map_or(false, |e| e.is_void()) {
+        return Node::new_document_node().rev_children();
+    }
+
     match n.downcast::<HTMLTemplateElement>() {
         Some(t) => t.Content().upcast::<Node>().rev_children(),
         None => n.rev_children(),
@@ -209,12 +213,6 @@ impl<'a> Serialize for &'a Node {
         traversal_scope: TraversalScope,
     ) -> io::Result<()> {
         let node = *self;
-
-        if let TraversalScope::ChildrenOnly(_) = traversal_scope {
-            if node.downcast::<Element>().map_or(false, |e| e.is_void()) {
-                return Ok(());
-            }
-        }
 
         let iter = SerializationIterator::new(node, traversal_scope != IncludeNode);
 
