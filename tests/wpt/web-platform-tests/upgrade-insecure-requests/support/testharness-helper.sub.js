@@ -39,7 +39,7 @@ function generateURL(host, protocol, resourceType) {
 }
 
 function generateRedirect(host, protocol, target) {
-  var url = "http://{{host}}:{{ports[https][0]}}/common/redirect.py?location=" + encodeURIComponent(target.url);
+  var url = new URL("http://{{host}}:{{ports[https][0]}}/common/redirect.py?location=" + encodeURIComponent(target.url));
   url.protocol = protocol == Protocol.INSECURE ? "http" : "https";
   url.hostname = host == Host.SAME_ORIGIN ? "{{host}}" : "{{domains[天気の良い日]}}";
   return {

@@ -10,13 +10,12 @@
 # of this repository" setting must also be enabled in the Azure DevOps project:
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#validate-contributions-from-forks
 
-trigger: none # disable builds for branches
-
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
 # more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
 - job: affected_macOS
   displayName: 'affected tests (Safari Technology Preview)'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
     vmImage: 'macOS-10.13'
   steps:
@@ -26,6 +25,7 @@ jobs:
 
 - job: affected_without_changes_macOS
   displayName: 'affected tests without changes (Safari Technology Preview)'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
     vmImage: 'macOS-10.13'
   steps:
@@ -39,6 +39,7 @@ jobs:
 # and all following jobs wait for it to finish and depend on its output.
 - job: decision
   displayName: './wpt test-jobs'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
     vmImage: 'ubuntu-16.04'
   steps:
@@ -121,3 +122,29 @@ jobs:
   - template: tools/ci/azure/tox_pytest.yml
     parameters:
       directory: tools/wpt/
+
+- job: all_macOS
+  displayName: 'all tests (Safari Technology Preview)'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/epochs/daily')
+  strategy:
+    parallel: 4 # chosen to make runtime ~2h
+  timeoutInMinutes: 360
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/pip_install.yml
+    parameters:
+      packages: virtualenv
+  - template: tools/ci/azure/install_fonts.yml
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/install_safari.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --channel preview safari
+    displayName: 'Run tests'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'results'
+    condition: succeededOrFailed()

@@ -42,16 +42,54 @@ function resolveWhen(t, dtlstransport, state) {
   });
 }
 
-promise_test(async t => {
+// Helper class to exchange ice candidates between
+// two local peer connections
+class CandidateChannel {
+  constructor(source, dest) {
+    source.addEventListener('icecandidate', event => {
+      const { candidate } = event;
+      if (candidate && this.activated
+          && this.destination.signalingState !== 'closed') {
+        this.destination.addIceCandidate(candidate);
+      } else {
+        this.queue.push(candidate);
+      }
+    });
+    this.destination = dest;
+    this.activated = false;
+    this.queue = [];
+  }
+  activate() {
+    this.activated = true;
+    for (const candidate of this.queue) {
+      this.destination.addIceCandidate(candidate);
+    }
+  }
+}
+
+function coupleCandidates(pc1, pc2) {
+  const ch1 = new CandidateChannel(pc1, pc2);
+  const ch2 = new CandidateChannel(pc2, pc1);
+  return [ch1, ch2];
+}
+
+async function setupConnections(t) {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
   pc1.addTrack(trackFactories.audio());
-  exchangeIceCandidates(pc1, pc2);
-
+  const channels = coupleCandidates(pc1, pc2);
   await doSignalingHandshake(pc1, pc2);
+  for (const channel of channels) {
+    channel.activate();
+  }
+  return [pc1, pc2];
+}
+
+promise_test(async t => {
+  const [pc1, pc2] = await setupConnections(t);
   const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
   const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
   assert_true(dtlsTransport1 instanceof RTCDtlsTransport);
@@ -61,15 +99,8 @@ promise_test(async t => {
 }, 'DTLS transport goes to connected state');
 
 promise_test(async t => {
-  const pc1 = new RTCPeerConnection();
-  t.add_cleanup(() => pc1.close());
-  const pc2 = new RTCPeerConnection();
-  t.add_cleanup(() => pc2.close());
+  const [pc1, pc2] = await setupConnections(t);
 
-  pc1.addTrack(trackFactories.audio());
-  exchangeIceCandidates(pc1, pc2);
-
-  await doSignalingHandshake(pc1, pc2);
   const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
   const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
   await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
@@ -79,15 +110,7 @@ promise_test(async t => {
 }, 'close() causes the local transport to close immediately');
 
 promise_test(async t => {
-  const pc1 = new RTCPeerConnection();
-  t.add_cleanup(() => pc1.close());
-  const pc2 = new RTCPeerConnection();
-  t.add_cleanup(() => pc2.close());
-
-  pc1.addTrack(trackFactories.audio());
-  exchangeIceCandidates(pc1, pc2);
-
-  await doSignalingHandshake(pc1, pc2);
+  const [pc1, pc2] = await setupConnections(t);
   const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
   const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
   await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),

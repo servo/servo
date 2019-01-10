@@ -38,6 +38,21 @@ gen-signedexchange \
   -o sxg-location.sxg \
   -miRecordSize 100
 
+# For check-cert-request.tentative.html
+gen-signedexchange \
+  -version 1b2 \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/check-cert-request.py \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o check-cert-request.sxg \
+  -miRecordSize 100
+
 # Request method is HEAD.
 gen-signedexchange \
   -version 1b2 \
@@ -146,6 +161,22 @@ gen-signedexchange \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
   -o sxg-inner-url-bom.sxg \
+  -miRecordSize 100
+
+# Response has Cache-Control: no-store header.
+gen-signedexchange \
+  -version 1b2 \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -responseHeader "Cache-Control: no-store" \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg-noncacheable.sxg \
   -miRecordSize 100
 
 rm -fr $tmpdir
