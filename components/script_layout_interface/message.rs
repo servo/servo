@@ -82,7 +82,7 @@ pub enum Msg {
     /// Creates a new layout thread.
     ///
     /// This basically exists to keep the script-layout dependency one-way.
-    CreateLayoutThread(NewLayoutThreadInfo),
+    CreateLayoutThread(LayoutThreadInit),
 
     /// Set the final Url.
     SetFinalUrl(ServoUrl),
@@ -214,7 +214,7 @@ pub struct ScriptReflow {
     pub dom_count: u32,
 }
 
-pub struct NewLayoutThreadInfo {
+pub struct LayoutThreadInit {
     pub id: PipelineId,
     pub url: ServoUrl,
     pub is_parent: bool,
