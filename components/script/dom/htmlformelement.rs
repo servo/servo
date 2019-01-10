@@ -317,7 +317,11 @@ impl HTMLFormElement {
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
-        // TODO: Step 1. If form cannot navigate , then return.
+        // Step 1
+        if self.upcast::<Element>().cannot_navigate() {
+            return;
+        }
+
         // Step 2
         if self.constructing_entry_list.get() {
             return;
@@ -342,6 +346,11 @@ impl HTMLFormElement {
             if event.DefaultPrevented() {
                 return;
             }
+
+            // Step 7-3
+            if self.upcast::<Element>().cannot_navigate() {
+                return;
+            }
         }
 
         // Step 8
@@ -353,7 +362,10 @@ impl HTMLFormElement {
             None => return,
         };
 
-        // TODO: Step 10. If form cannot navigate, then return.
+        // Step 10
+        if self.upcast::<Element>().cannot_navigate() {
+            return;
+        }
 
         // Step 11
         let mut action = submitter.action();
