@@ -445,7 +445,7 @@ promise_test(async t => {
   const controller = new AbortController();
   const signal = controller.signal;
 
-  const response = await fetch(`../resources/method.py`, { signal });
+  const response = await fetch(`../resources/empty.txt`, { signal });
 
   // Read whole response to ensure close signal has sent.
   await response.clone().text();

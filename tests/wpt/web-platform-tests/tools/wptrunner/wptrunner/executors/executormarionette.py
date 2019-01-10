@@ -158,10 +158,9 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
 
         for handle in handles:
             try:
-                self.dismiss_alert(lambda: self.marionette.switch_to_window(handle))
-                self.marionette.switch_to_window(handle)
                 self.logger.info("Closing window %s" % handle)
-                self.marionette.close()
+                self.marionette.switch_to_window(handle)
+                self.dismiss_alert(lambda: self.marionette.close())
             except errors.NoSuchWindowException:
                 # We might have raced with the previous test to close this
                 # window, skip it.

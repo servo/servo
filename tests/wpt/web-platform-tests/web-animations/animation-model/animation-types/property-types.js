@@ -1885,7 +1885,7 @@ const translateListType = {
         1000
       );
       testAnimationSamples(animation, idlName,
-        [{ time: 500,  expected: '200px calc(25% - 50.5px) 200px' }]);
+        [{ time: 500,  expected: 'calc(0% + 200px) calc(25% - 50.5px) 200px' }]);
     }, `${property} with combination of percentages and lengths`);
   },
   testAddition: function(property, setup) {
