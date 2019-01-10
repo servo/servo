@@ -204,6 +204,9 @@ pub struct HTMLMediaElement {
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Expected content length of the media asset being fetched or played.
     content_length: Cell<Option<u64>>,
+    /// Time of last timeupdate notification.
+    #[ignore_malloc_size_of = "Defined in time"]
+    next_timeupdate_event: Cell<Timespec>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -261,6 +264,7 @@ impl HTMLMediaElement {
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
             text_tracks_list: Default::default(),
             content_length: Cell::new(None),
+            next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
         }
     }
 
@@ -303,7 +307,16 @@ impl HTMLMediaElement {
 
     /// https://html.spec.whatwg.org/multipage/#time-marches-on
     fn time_marches_on(&self) {
-        // TODO: implement this.
+        // Step 6.
+        if time::get_time() > self.next_timeupdate_event.get() {
+            let window = window_from_node(self);
+            window
+                .task_manager()
+                .media_element_task_source()
+                .queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+            self.next_timeupdate_event
+                .set(time::get_time() + Duration::milliseconds(350));
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-pause-steps>
@@ -1173,6 +1186,7 @@ impl HTMLMediaElement {
                     .borrow_mut()
                     .add(self.playback_position.get(), position);
                 self.playback_position.set(position);
+                self.time_marches_on();
             },
             PlayerEvent::StateChanged(ref state) => match *state {
                 PlaybackState::Paused => {
@@ -1270,8 +1284,14 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
+            // XXX GStreamer is currently not very reliable playing OGG and most of
+            //     the media related WPTs uses OGG if we report that we are able to
+            //     play this type. So we report that we are unable to play it to force
+            //     the usage of other types.
+            //     https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/issues/520
             Ok(ref mime)
-                if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) =>
+                if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) ||
+                    (mime.subtype() == mime::OGG) =>
             {
                 CanPlayTypeResult::_empty
             },
