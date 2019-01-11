@@ -13,7 +13,7 @@
         // Apart from removing the `reftest-wait` class we need to get
         // the `load` event to signal that it's ok to take the reftest
         // screenshot. Video loading delays the document `load` event,
-        // so we garantee that we get this event by setting an invaid
+        // so we garantee that we get this event by setting an invalid
         // src attribute to the video tag.
         document.documentElement.classList.remove("reftest-wait");
       });
