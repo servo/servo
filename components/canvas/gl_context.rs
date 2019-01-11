@@ -8,7 +8,7 @@ use compositing::compositor_thread::{self, CompositorProxy};
 use euclid::Size2D;
 use gleam::gl;
 use offscreen_gl_context::{
-    ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher,
+    ColorAttachmentType, DrawBuffer, GLContext, GLContextAttributes, GLContextDispatcher,
 };
 use offscreen_gl_context::{GLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
@@ -207,7 +207,7 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn resize(&mut self, size: Size2D<u32>) -> Result<(), &'static str> {
+    pub fn resize(&mut self, size: Size2D<u32>) -> Result<DrawBuffer, &'static str> {
         match *self {
             GLContextWrapper::Native(ref mut ctx) => {
                 // FIXME(nox): Why are those i32 values?

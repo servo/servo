@@ -77,7 +77,7 @@ mime_guess = "2.0.0-alpha.6"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.2"
-offscreen_gl_context = {version = "0.21", features = ["serde"]}
+offscreen_gl_context = {version = "0.22", features = ["serde"]}
 parking_lot = "0.6"
 phf = "0.7.18"
 pixels = {path = "../pixels"}
