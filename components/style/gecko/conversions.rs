@@ -22,8 +22,8 @@ use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, Gradient, Image};
 use crate::values::computed::{Integer, LengthPercentage};
+use crate::values::computed::{Length, Percentage, TextAlign};
 use crate::values::computed::{LengthPercentageOrAuto, NonNegativeLengthPercentageOrAuto};
-use crate::values::computed::{Percentage, TextAlign};
 use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
@@ -35,6 +35,11 @@ use style_traits::values::specified::AllowedNumericType;
 
 impl From<LengthPercentage> for nsStyleCoord_CalcValue {
     fn from(other: LengthPercentage) -> nsStyleCoord_CalcValue {
+        debug_assert!(
+            other.was_calc ||
+                other.percentage.is_none() ||
+                other.unclamped_length() == Length::zero()
+        );
         let has_percentage = other.percentage.is_some();
         nsStyleCoord_CalcValue {
             mLength: other.unclamped_length().to_i32_au(),

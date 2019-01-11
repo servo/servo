@@ -263,11 +263,12 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                 let length = length.to_computed_value(context);
                 let p = Percentage(1. - length.percentage());
                 let l = -length.unclamped_length();
+                // We represent `<end-side> <length>` as `calc(100% - <length>)`.
                 ComputedLengthPercentage::with_clamping_mode(
                     l,
                     Some(p),
                     length.clamping_mode,
-                    length.was_calc,
+                    /* was_calc = */ true,
                 )
             },
             PositionComponent::Side(_, Some(ref length)) |
