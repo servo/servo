@@ -110,6 +110,13 @@ impl TextTrackMethods for TextTrack {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues
+    fn GetActiveCues(&self) -> Option<DomRoot<TextTrackCueList>> {
+        // XXX implement active cues logic
+        //      https://github.com/servo/servo/issues/22314
+        None
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue
     fn AddCue(&self, cue: &TextTrackCue) -> ErrorResult {
         // FIXME(#22314, dlrobertson) add Step 1 & 2
