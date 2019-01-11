@@ -3821,7 +3821,14 @@ impl AliasId {
     }
 }
 
-// NOTE(emilio): Callers are responsible to deal with prefs.
+/// Call the given macro with tokens like this for each longhand and shorthand properties
+/// that is enabled in content:
+///
+/// ```
+/// [CamelCaseName, SetCamelCaseName, PropertyId::Longhand(LonghandId::CamelCaseName)],
+/// ```
+///
+/// NOTE(emilio): Callers are responsible to deal with prefs.
 #[macro_export]
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
@@ -3844,6 +3851,14 @@ macro_rules! css_properties_accessors {
     }
 }
 
+/// Call the given macro with tokens like this for each longhand properties:
+///
+/// ```
+/// { snake_case_ident, true }
+/// ```
+///
+/// … where the boolean indicates whether the property value type
+/// is wrapped in a `Box<_>` in the corresponding `PropertyDeclaration` variant.
 #[macro_export]
 macro_rules! longhand_properties_idents {
     ($macro_name: ident) => {
