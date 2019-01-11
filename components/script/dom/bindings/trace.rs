@@ -488,7 +488,7 @@ unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
-unsafe_no_jsmanaged_fields!(Mutex<HTMLMediaElementFetchContext>);
+unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
