@@ -3861,7 +3861,6 @@ dependencies = [
  "bindgen 0.46.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.25.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs 0.8.12 (registry+https://github.com/rust-lang/crates.io-index)",

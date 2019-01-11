@@ -29,7 +29,6 @@ arrayvec = "0.4.6"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
-cfg-if = "0.1.0"
 cssparser = "0.25"
 crossbeam-channel = { version = "0.3", optional = true }
 new_debug_unreachable = "1.0"
@@ -39,7 +38,7 @@ fallible = { path = "../fallible" }
 fxhash = "0.2"
 hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.22", optional = true}
-indexmap = "1.0.2"
+indexmap = "1.0"
 itertools = "0.8"
 itoa = "0.4"
 lazy_static = "1"
