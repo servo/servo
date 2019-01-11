@@ -1501,11 +1501,16 @@ impl Element {
         };
         let value = &**attr.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        document_from_node(self)
-            .base_url()
-            .join(value)
-            .map(|parsed| USVString(parsed.into_string()))
-            .unwrap_or_else(|_| USVString(value.to_owned()))
+        USVString(value.to_owned())
+    }
+
+    pub fn set_url_attribute(&self, local_name: &LocalName, value: USVString) {
+        assert!(*local_name == local_name.to_ascii_lowercase());
+        let base_url = document_from_node(self).base_url();
+        self.set_attribute(
+            local_name,
+            AttrValue::from_resolved_url(&base_url, value.to_string()),
+        );
     }
 
     pub fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
