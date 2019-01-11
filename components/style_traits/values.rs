@@ -158,24 +158,6 @@ where
     }
 }
 
-#[macro_export]
-macro_rules! serialize_function {
-    ($dest: expr, $name: ident($( $arg: expr, )+)) => {
-        serialize_function!($dest, $name($($arg),+))
-    };
-    ($dest: expr, $name: ident($first_arg: expr $( , $arg: expr )*)) => {
-        {
-            $dest.write_str(concat!(stringify!($name), "("))?;
-            $first_arg.to_css($dest)?;
-            $(
-                $dest.write_str(", ")?;
-                $arg.to_css($dest)?;
-            )*
-            $dest.write_char(')')
-        }
-    }
-}
-
 /// Convenience wrapper to serialise CSS values separated by a given string.
 pub struct SequenceWriter<'a, 'b: 'a, W: 'b> {
     inner: &'a mut CssWriter<'b, W>,
