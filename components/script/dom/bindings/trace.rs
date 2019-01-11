@@ -38,7 +38,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
-use crate::dom::htmlmediaelement::MediaFrameRenderer;
+use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -103,7 +103,6 @@ use servo_media::audio::panner_node::{DistanceModel, PanningModel};
 use servo_media::audio::param::ParamType;
 use servo_media::player::Player;
 use servo_media::Backend;
-use servo_media::Error as ServoMediaError;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::cell::{Cell, RefCell, UnsafeCell};
@@ -484,11 +483,12 @@ unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
 unsafe_no_jsmanaged_fields!(NodeId);
 unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
-unsafe_no_jsmanaged_fields!(dyn Player<Error = ServoMediaError>);
+unsafe_no_jsmanaged_fields!(dyn Player);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
+unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
