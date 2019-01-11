@@ -19,7 +19,7 @@ interface TextTrack : EventTarget {
   attribute TextTrackMode mode;
 
   readonly attribute TextTrackCueList? cues;
-  // readonly attribute TextTrackCueList? activeCues;
+  readonly attribute TextTrackCueList? activeCues;
 
   [Throws]
   void addCue(TextTrackCue cue);
