@@ -1938,7 +1938,6 @@ impl HTMLMediaElementFetchContext {
         url: ServoUrl,
         offset: u64,
     ) -> (HTMLMediaElementFetchContext, ipc::IpcReceiver<()>) {
-        elem.generation_id.set(elem.generation_id.get() + 1);
         let mut fetch_canceller = FetchCanceller::new();
         let cancel_receiver = fetch_canceller.initialize();
         (
