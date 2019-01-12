@@ -42,6 +42,9 @@
 //!   fields in structs, because it makes it clear that the Box is being
 //!   measured as well as the thing it points to. E.g.
 //!   `<Box<_> as MallocSizeOf>::size_of(field, ops)`.
+//!
+//!   Note: WebRender has a reduced for of this crate, so that we can avoid
+//!   publishing this crate on crates.io.
 
 extern crate app_units;
 #[cfg(feature = "servo")]
