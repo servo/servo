@@ -582,12 +582,6 @@ impl Stylist {
             .append_stylesheet(Some(&self.device), sheet, guard)
     }
 
-    /// Appends a new stylesheet to the current set.
-    pub fn prepend_stylesheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
-        self.stylesheets
-            .prepend_stylesheet(Some(&self.device), sheet, guard)
-    }
-
     /// Remove a given stylesheet to the current set.
     pub fn remove_stylesheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
         self.stylesheets
