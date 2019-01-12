@@ -11,10 +11,17 @@
     loadImageInWindow(
       "https://{{host}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
       t.step_func_done(img => {
-        assert_header_equals(decodeImageData(extractImageData(img)).headers["sec-metadata"], {
-          "cause": undefined,
-          "destination": "image",
-          "site": "same-origin"
+        headers = decodeImageData(extractImageData(img)).headers;
+        got = {
+        "dest": headers["sec-fetch-dest"],
+        "mode": headers["sec-fetch-mode"],
+        "site": headers["sec-fetch-site"],
+        "user": headers["sec-fetch-user"]
+        };
+        assert_header_equals(got, {
+          "dest": "image",
+          "site": "same-origin",
+          "user": "?F"
         });
       }),
       [],
@@ -25,10 +32,17 @@
     loadImageInWindow(
       "https://{{hosts[][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
       t.step_func_done(img => {
-        assert_header_equals(decodeImageData(extractImageData(img)).headers["sec-metadata"], {
-          "cause": undefined,
-          "destination": "image",
-          "site": "same-site"
+        headers = decodeImageData(extractImageData(img)).headers;
+        got = {
+        "dest": headers["sec-fetch-dest"],
+        "mode": headers["sec-fetch-mode"],
+        "site": headers["sec-fetch-site"],
+        "user": headers["sec-fetch-user"]
+        };
+        assert_header_equals(got, {
+          "dest": "image",
+          "site": "same-site",
+          "user": "?F"
         });
       }),
       [],
@@ -39,10 +53,17 @@
     loadImageInWindow(
       "https://{{hosts[alt][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
       t.step_func_done(img => {
-        assert_header_equals(decodeImageData(extractImageData(img)).headers["sec-metadata"], {
-          "cause": undefined,
-          "destination": "image",
-          "site": "cross-site"
+        headers = decodeImageData(extractImageData(img)).headers;
+        got = {
+        "dest": headers["sec-fetch-dest"],
+        "mode": headers["sec-fetch-mode"],
+        "site": headers["sec-fetch-site"],
+        "user": headers["sec-fetch-user"]
+        };
+        assert_header_equals(got, {
+          "dest": "image",
+          "site": "cross-site",
+          "user": "?F"
         });
       }),
       [],

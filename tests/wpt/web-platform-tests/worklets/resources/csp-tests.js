@@ -24,7 +24,6 @@ function openWindowAndExpectResult(windowURL, scriptURL, type, expectation) {
 function runContentSecurityPolicyTests(workletType) {
   runSrcTests(workletType);
   runMixedContentTests(workletType);
-  runUpgradeInsecureRequestsTests(workletType);
 }
 
 // script-src and worker-src tests.
@@ -144,43 +143,5 @@ function runMixedContentTests(workletType) {
           kWindowURL, scriptConfig.URL, workletType, 'REJECTED');
       },
       scriptConfig.message + ' should be blocked because of mixed contents.');
-  }
-}
-
-// upgrade-insecure-requests tests.
-function runUpgradeInsecureRequestsTests(workletType) {
-  // |kToBeUpgradedURL| is expected to upgraded/loaded successfully with
-  // upgrade-insecure-requests is specified.
-  // This relies on some unintuitive cleverness due to WPT's test setup:
-  // 'Upgrade-Insecure-Requests' does not upgrade the port number, so we use
-  // URLs in the form `http://[host]:[https-port]`. If the upgrade fails, the
-  // load will fail, as we don't serve HTTP over the secure port.
-  const kHost = get_host_info().ORIGINAL_HOST;
-  const kPort = get_host_info().HTTPS_PORT;
-  const kToBeUpgradedURL =
-      `http://${kHost}:${kPort}/worklets/resources/empty-worklet-script-with-cors-header.js`;
-
-  const kScriptConfigs = [
-    {URL: kToBeUpgradedURL,
-     message: 'An insecure-origin worklet'},
-    {URL: '/common/redirect.py?location=' +
-          encodeURIComponent(kToBeUpgradedURL),
-     message: 'An insecure-origin-redirected worklet'},
-    {URL: 'import-insecure-origin-empty-worklet-script.sub.js',
-     message: 'A same-origin worklet importing an insecure-origin script'},
-    {URL: 'import-insecure-origin-redirected-empty-worklet-script.sub.js',
-     message: 'A same-origin worklet ' +
-              'importing an insecure-origin-redirected script'}
-  ];
-  for (const scriptConfig of kScriptConfigs) {
-    promise_test(t => {
-        const kWindowURL =
-          'resources/addmodule-window.html?pipe=header(' +
-          'Content-Security-Policy, upgrade-insecure-requests)';
-        return openWindowAndExpectResult(
-          kWindowURL, scriptConfig.URL, workletType, 'RESOLVED');
-      },
-      scriptConfig.message +
-      ' should not be blocked because of upgrade-insecure-requests.');
   }
 }

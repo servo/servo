@@ -9,24 +9,26 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webperftestharness.js"></script>
 <script src="resources/webperftestharnessextension.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script>
 setup({explicit_done: true});
 let d;
 let iframe;
 let iframeBody;
 let count = 0;
+const host = get_host_info();
 function onload_prep() {
     iframe = document.getElementById('frameContext');
     d = iframe.contentWindow.document;
     iframeBody = d.body;
 
-    const image = d.createElement('img');
+    const image = d.createElement('IMG');
     image.addEventListener('load', function() {
         step_timeout(onload_test, 0); });
     image.src = 'blue.png?id=cached';
     iframeBody.appendChild(image);
 
-    const image2 = d.createElement('img');
+    const image2 = d.createElement('IMG');
     image2.addEventListener('load', function() {
         step_timeout(onload_test, 0); });
     image2.src = 'blue.png?id=cached';
@@ -55,16 +57,16 @@ function onload_test() {
     start_crossorigin_test();
 }
 function start_crossorigin_test() {
-    const image3 = d.createElement('img');
+    const image3 = d.createElement('IMG');
     image3.addEventListener("load", function() { step_timeout(finish_crossorigin_test, 0); });
-    image3.src = 'http://{{domains[www1]}}:{{ports[http][1]}}{{location[path]}}/../resources/blue.png?id=cached';
+    image3.src = 'http://' + host.REMOTE_HOST + ':{{ports[http][1]}}{{location[path]}}/../resources/blue.png?id=cached';
     iframeBody.appendChild(image3);
 }
 function finish_crossorigin_test() {
     const context = new PerformanceContext(iframe.contentWindow.performance);
     const entries = context.getEntriesByType('resource');
     test_equals(entries.length, 1, 'There should be one entry in second test');
-    test_true(entries[0].name.startsWith('http://{{domains[www1]}}:{{ports[http][1]}}'), 'Entry name should start with cross-origin domain');
+    test_true(entries[0].name.startsWith('http://' + host.REMOTE_HOST + ':{{ports[http][1]}}'), 'Entry name should start with cross-origin domain');
     test_true(entries[0].name.endsWith('/resources/blue.png?id=cached'), 'Entry name should end with file name');
     test_equals(entries[0].requestStart, 0, 'requestStart should be 0 on the cross-origin request');
     done();
@@ -79,6 +81,10 @@ window.addEventListener('load', onload_prep);
 <div id="log"></div>
 <iframe id="frameContext" src="resources/inject_resource_test.html"></iframe>
 <img src="resources/blue.png?id=cached"></img>
-<img src="http://{{domains[www1]}}:{{ports[http][1]}}{{location[path]}}/../resources/blue.png?id=cached"></img>
+<script>
+    const img = document.createElement('IMG');
+    img.src = "http://" + host.REMOTE_HOST + ":{{ports[http][1]}}{{location[path]}}/../resources/blue.png?id=cached";
+    document.currentScript.parentNode.insertBefore(img, document.currentScript);
+</script>
 </body>
 </html>

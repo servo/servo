@@ -35,7 +35,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o sxg-location.sxg \
+  -o sxg/sxg-location.sxg \
   -miRecordSize 100
 
 # For check-cert-request.tentative.html
@@ -50,7 +50,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o check-cert-request.sxg \
+  -o sxg/check-cert-request.sxg \
   -miRecordSize 100
 
 # Request method is HEAD.
@@ -66,7 +66,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o sxg-head-request.sxg \
+  -o sxg/sxg-head-request.sxg \
   -miRecordSize 100
 
 # validityUrl is different origin from request URL.
@@ -81,13 +81,13 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o sxg-invalid-validity-url.sxg \
+  -o sxg/sxg-invalid-validity-url.sxg \
   -miRecordSize 100
 
 # certUrl is 404 and fallback URL is another signed exchange.
 gen-signedexchange \
   -version 1b2 \
-  -uri $inner_url_origin/signed-exchange/resources/sxg-location.sxg \
+  -uri $inner_url_origin/signed-exchange/resources/sxg/sxg-location.sxg \
   -status 200 \
   -content failure.html \
   -certificate $certfile \
@@ -96,7 +96,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o fallback-to-another-sxg.sxg \
+  -o sxg/fallback-to-another-sxg.sxg \
   -miRecordSize 100
 
 # Nested signed exchange.
@@ -104,7 +104,7 @@ gen-signedexchange \
   -version 1b2 \
   -uri "$inner_url_origin/signed-exchange/resources/inner-url.html?fallback-from-nested-sxg" \
   -status 200 \
-  -content sxg-location.sxg \
+  -content sxg/sxg-location.sxg \
   -responseHeader "$sxg_content_type" \
   -certificate $certfile \
   -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
@@ -112,7 +112,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o nested-sxg.sxg \
+  -o sxg/nested-sxg.sxg \
   -miRecordSize 100
 
 # Fallback URL has non-ASCII UTF-8 characters.
@@ -128,7 +128,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o sxg-utf8-inner-url.sxg \
+  -o sxg/sxg-utf8-inner-url.sxg \
   -miRecordSize 100
 
 # Fallback URL has invalid UTF-8 sequence.
@@ -144,7 +144,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o sxg-invalid-utf8-inner-url.sxg \
+  -o sxg/sxg-invalid-utf8-inner-url.sxg \
   -miRecordSize 100
 
 # Fallback URL has UTF-8 BOM.
@@ -160,7 +160,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o sxg-inner-url-bom.sxg \
+  -o sxg/sxg-inner-url-bom.sxg \
   -miRecordSize 100
 
 # Response has Cache-Control: no-store header.
@@ -176,7 +176,7 @@ gen-signedexchange \
   -privateKey $keyfile \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
-  -o sxg-noncacheable.sxg \
+  -o sxg/sxg-noncacheable.sxg \
   -miRecordSize 100
 
 rm -fr $tmpdir

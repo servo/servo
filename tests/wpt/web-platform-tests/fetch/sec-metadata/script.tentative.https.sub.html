@@ -10,9 +10,9 @@
     t.add_cleanup(_ => { header = null; });
 
     assert_header_equals(header, {
-      "cause": undefined,
-      "destination": "script",
-      "site": "same-origin"
+      "dest": "script",
+      "site": "same-origin",
+      "user":"?F"
     });
   }, "Same-origin script");
 </script>
@@ -24,9 +24,9 @@
     t.add_cleanup(_ => { header = null; });
 
     assert_header_equals(header, {
-      "cause": undefined,
-      "destination": "script",
-      "site": "same-site"
+      "dest": "script",
+      "site": "same-site",
+      "user":"?F"
     });
   }, "Same-site script");
 </script>
@@ -38,9 +38,9 @@
     t.add_cleanup(_ => { header = null; });
 
     assert_header_equals(header, {
-      "cause": undefined,
-      "destination": "script",
-      "site": "cross-site"
+      "dest": "script",
+      "site": "cross-site",
+      "user":"?F"
     });
   }, "Cross-site script");
 </script>

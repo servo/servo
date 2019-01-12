@@ -121,7 +121,9 @@ function assert_element_accepts_trusted_url_explicit_set(win, c, t, tag, attribu
 function assert_element_accepts_trusted_type_explicit_set(tag, attribute, value, expected) {
   let elem = document.createElement(tag);
   elem.setAttribute(attribute, value);
-  assert_equals(elem[attribute] + "", expected);
+  if (!/^on/.test(attribute)) { // "on" attributes are converted to functions.
+    assert_equals(elem[attribute] + "", expected);
+  }
   assert_equals(elem.getAttribute(attribute), expected);
 }
 

@@ -1,19 +1,33 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: User Timing Level 2 (https://w3c.github.io/user-timing/)
+// Source: User Timing Level 3 (https://w3c.github.io/user-timing/)
+
+dictionary PerformanceMarkOptions {
+    any detail = null;
+    DOMHighResTimeStamp startTime;
+};
+
+dictionary PerformanceMeasureOptions {
+    any detail = null;
+    (DOMString or DOMHighResTimeStamp) startTime;
+    DOMHighResTimeStamp duration;
+    (DOMString or DOMHighResTimeStamp) endTime;
+};
 
 partial interface Performance {
-    void mark(DOMString markName);
+    PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions);
     void clearMarks(optional DOMString markName);
-    void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
+    PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions, optional DOMString endMark);
     void clearMeasures(optional DOMString measureName);
 };
 
 [Exposed=(Window,Worker)]
 interface PerformanceMark : PerformanceEntry {
+  readonly attribute any detail;
 };
 
 [Exposed=(Window,Worker)]
 interface PerformanceMeasure : PerformanceEntry {
+  readonly attribute any detail;
 };

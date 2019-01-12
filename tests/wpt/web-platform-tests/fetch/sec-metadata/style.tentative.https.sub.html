@@ -14,7 +14,7 @@
       e.rel = "stylesheet";
       e.href = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"destination":"style", "site":"same-origin"};
+        let expected = {"dest":"style", "site":"same-origin", "user":"?F"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -34,7 +34,7 @@
       e.rel = "stylesheet";
       e.href = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"destination":"style", "site":"same-site"};
+        let expected = {"dest":"style", "site":"same-site", "user":"?F"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -54,7 +54,7 @@
       e.rel = "stylesheet";
       e.href = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"destination":"style", "site":"cross-site"};
+        let expected = {"dest":"style", "site":"cross-site", "user":"?F"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<script>
+  var bc = new BroadcastChannel("portal");
+  bc.onmessage = function(e) {
+    document.querySelector("portal").activate();
+    bc.close();
+  }
+</script>
+<body>
+  <portal src="portal-activate-event-portal.html"></portal>
+</body>

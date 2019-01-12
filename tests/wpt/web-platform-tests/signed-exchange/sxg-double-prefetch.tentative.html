@@ -14,9 +14,9 @@ function addPrefetch(url) {
 }
 promise_test(async (t) => {
   const sxg1_url =
-      get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg-location.sxg?1';
+      get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-location.sxg?1';
   const sxg2_url =
-      get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg-location.sxg?2';
+      get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-location.sxg?2';
   addPrefetch(sxg1_url);
   addPrefetch(sxg2_url);
   await new Promise(resolve => {

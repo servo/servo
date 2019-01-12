@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta http-equiv="Content-Security-Policy" content="form-action 'none'; script-src 'self' 'nonce-noncynonce'; connect-src 'self';">
+</head>
+
+<body>
+  <form action='/content-security-policy/support/postmessage-pass-to-opener.html'
+        id='form_id'
+        target="_blank">
+        <input type="submit" />
+  </form>
+
+  <p>
+    Test that "form-action 'none'" doesn't create a violation report if the event was prevented.
+  </p>
+</body>
+
+<script nonce='noncynonce'>
+  async_test(t => {
+    document.addEventListener('securitypolicyviolation', function(e) {
+      assert_unreached('Form submission was blocked.');
+    });
+
+    window.addEventListener('message', function(event) {
+      assert_unreached('Form submission was blocked.');
+    })
+
+    window.addEventListener("load", function() {
+      let form = document.getElementById("form_id");
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        setTimeout(() => {
+          t.done();
+        }, 0);
+      });
+      // clicking the input is used here as form.submit() will submit a form without an event and should also be blocked.
+      form.querySelector("input").click();
+    });
+  }, "The form submission should not be blocked by when javascript prevents the load.");
+</script>
+
+</html>

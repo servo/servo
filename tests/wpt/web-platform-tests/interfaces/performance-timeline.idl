@@ -30,8 +30,9 @@ interface PerformanceObserver {
 };
 
 dictionary PerformanceObserverInit {
-  required sequence<DOMString> entryTypes;
-  boolean buffered = false;
+  sequence<DOMString> entryTypes;
+  DOMString type;
+  boolean buffered;
 };
 
 [Exposed=(Window,Worker)]
