@@ -23,6 +23,7 @@ use std::cmp;
 pub mod color;
 pub mod effects;
 mod font;
+mod grid;
 mod length;
 mod svg;
 pub mod transform;
