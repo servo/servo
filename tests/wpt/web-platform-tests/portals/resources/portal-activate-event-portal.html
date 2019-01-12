@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Tests that the PortalActivateEvent is dispatched when a portal is activated</title>
+<script>
+  window.addEventListener("portalactivate", function(e) {
+    var bc = new BroadcastChannel("test");
+    bc.postMessage("passed");
+    bc.close();
+  });
+
+  var bc = new BroadcastChannel("portal");
+  bc.postMessage("loaded");
+  bc.close();
+</script>

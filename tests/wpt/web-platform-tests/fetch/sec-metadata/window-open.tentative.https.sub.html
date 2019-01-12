@@ -15,9 +15,9 @@
         return;
 
       assert_header_equals(e.data, {
-        "cause": "forced",
-        "destination": "document",
-        "site": "same-origin"
+        "dest": "document",
+        "site": "same-origin",
+        "user":"?F"
       });
       t.done();
     }));
@@ -31,9 +31,9 @@
         return;
 
       assert_header_equals(e.data, {
-        "cause": "forced",
-        "destination": "document",
-        "site": "same-site"
+        "dest": "document",
+        "site": "same-site",
+        "user":"?F"
       });
       t.done();
     }));
@@ -47,9 +47,9 @@
         return;
 
       assert_header_equals(e.data, {
-        "cause": "forced",
-        "destination": "document",
-        "site": "cross-site"
+        "dest": "document",
+        "site": "cross-site",
+        "user":"?F"
       });
       t.done();
     }));
@@ -66,9 +66,9 @@
           return;
 
         assert_header_equals(e.data, {
-          "cause": "user-activated",
-          "destination": "document",
-          "site": "same-origin"
+          "dest": "document",
+          "site": "same-origin",
+          "user": "?T"
         });
         t.done();
       }));
@@ -87,9 +87,9 @@
           return;
 
         assert_header_equals(e.data, {
-          "cause": "user-activated",
-          "destination": "document",
-          "site": "same-site"
+          "dest": "document",
+          "site": "same-site",
+          "user": "?T"
         });
         t.done();
       }));
@@ -108,9 +108,9 @@
           return;
 
         assert_header_equals(e.data, {
-          "cause": "user-activated",
-          "destination": "document",
-          "site": "cross-site"
+          "dest": "document",
+          "site": "cross-site",
+          "user": "?T"
         });
         t.done();
       }));

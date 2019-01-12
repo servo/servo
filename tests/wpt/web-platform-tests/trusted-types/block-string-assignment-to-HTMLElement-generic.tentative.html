@@ -15,9 +15,12 @@
     [ 'a', 'href' ],
     [ 'area', 'href' ],
     [ 'base', 'href' ],
+    [ 'button', 'formAction' ],
+    [ 'form', 'action' ],
     [ 'frame', 'src' ],
     [ 'iframe', 'src' ],
     [ 'img', 'src' ],
+    [ 'input', 'formAction' ],
     [ 'input', 'src' ],
     [ 'link', 'href' ],
     [ 'video', 'src' ],
@@ -71,14 +74,14 @@
   URLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.URL, RESULTS.URL);
-      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
+      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created");
   });
 
   scriptURLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
-      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
+      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created");
   });
 
