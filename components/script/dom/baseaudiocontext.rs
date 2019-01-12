@@ -22,6 +22,7 @@ use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErro
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
+use crate::dom::bindings::codegen::Bindings::ChannelSplitterNodeBinding::ChannelSplitterOptions;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
@@ -33,6 +34,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::biquadfilternode::BiquadFilterNode;
 use crate::dom::channelmergernode::ChannelMergerNode;
+use crate::dom::channelsplitternode::ChannelSplitterNode;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gainnode::GainNode;
@@ -358,6 +360,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let mut opts = ChannelMergerOptions::empty();
         opts.numberOfInputs = count;
         ChannelMergerNode::new(&self.global().as_window(), &self, &opts)
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter
+    fn CreateChannelSplitter(&self, count: u32) -> Fallible<DomRoot<ChannelSplitterNode>> {
+        let mut opts = ChannelSplitterOptions::empty();
+        opts.numberOfOutputs = count;
+        ChannelSplitterNode::new(&self.global().as_window(), &self, &opts)
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
