@@ -136,9 +136,14 @@ test(() => {
 test(() => {
   const buffer = new ArrayBuffer(10),
         view = new Uint8Array(buffer);
-  const { read, written } = new TextEncoder().encodeInto("", view);
+  let { read, written } = new TextEncoder().encodeInto("", view);
   assert_equals(read, 0);
   assert_equals(written, 0);
-  self.postMessage(buffer, "/", [buffer]);
-  assert_throws(new TypeError(), () => new TextEncoder().encodeInto("", view));
-}, "encodeInto() cannot operate on a detached buffer");
+  new MessageChannel().port1.postMessage(buffer, [buffer]);
+  ({ read, written } = new TextEncoder().encodeInto("", view));
+  assert_equals(read, 0);
+  assert_equals(written, 0);
+  ({ read, written } = new TextEncoder().encodeInto("test", view));
+  assert_equals(read, 0);
+  assert_equals(written, 0);
+}, "encodeInto() and a detached output buffer");

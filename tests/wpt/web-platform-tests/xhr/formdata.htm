@@ -61,6 +61,9 @@
     assert_not_equals(formData, formDataInEvent,
                       '"formData" attribute should be different from the ' +
                       'FromData object created by "new"');
+
+    formDataInEvent.append('later-key', 'later-value');
+    assert_false(formData.has('later-key'));
   }, 'Newly created FormData contains entries added to "formData" IDL ' +
      'attribute of FormDataEvent.');
 

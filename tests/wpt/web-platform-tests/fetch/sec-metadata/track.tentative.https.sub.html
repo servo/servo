@@ -29,7 +29,7 @@
       let el = createTrack();
       el.src = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=track-same-origin";
       el.onload = t.step_func(_ => {
-        expected = {"destination":"track", "site":"same-origin"};
+        expected = {"dest":"track", "site":"same-origin", "user":"?F"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=track-same-origin")
             .then(response => response.text())
             .then(text => assert_header_equals(text, expected))
@@ -46,7 +46,7 @@
       let el = createTrack();
       el.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=track-same-site";
       el.onload = t.step_func(_ => {
-        expected = {"destination":"track", "site":"same-site"};
+        expected = {"dest":"track", "site":"same-site", "user":"?F"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=track-same-site")
             .then(response => response.text())
             .then(text => assert_header_equals(text, expected))
@@ -65,7 +65,7 @@
       let el = createTrack();
       el.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=track-cross-site";
       el.onload = t.step_func(_ => {
-        expected = {"destination":"track", "site":"cross-site"};
+        expected = {"dest":"track", "site":"cross-site", "user":"?F"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=track-cross-site")
             .then(response => response.text())
             .then(text => assert_header_equals(text, expected))
