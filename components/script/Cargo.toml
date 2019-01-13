@@ -68,7 +68,7 @@ lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.3"
