@@ -326,6 +326,7 @@ class Longhand(object):
                 "Opacity",
                 "OutlineStyle",
                 "Overflow",
+                "OverflowAnchor",
                 "OverflowClipBox",
                 "OverflowWrap",
                 "OverscrollBehavior",

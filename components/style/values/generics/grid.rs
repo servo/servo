@@ -151,6 +151,7 @@ impl Parse for GridLine<specified::Integer> {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
+    Animate,
     Clone,
     Copy,
     Debug,
@@ -172,7 +173,9 @@ pub enum TrackKeyword {
 /// avoid re-implementing it for the computed type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub enum TrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
@@ -481,12 +484,14 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
 }
 
 /// Track list values. Can be <track-size> or <track-repeat>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub enum TrackListValue<LengthPercentage, Integer> {
     /// A <track-size> value.
-    TrackSize(TrackSize<LengthPercentage>),
+    TrackSize(#[animation(field_bound)] TrackSize<LengthPercentage>),
     /// A <track-repeat> value.
-    TrackRepeat(TrackRepeat<LengthPercentage, Integer>),
+    TrackRepeat(#[animation(field_bound)] TrackRepeat<LengthPercentage, Integer>),
 }
 
 /// The type of a `<track-list>` as determined during parsing.
@@ -692,13 +697,21 @@ impl ToCss for LineNameList {
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub enum GridTemplateComponent<L, I> {
     /// `none` value.
     None,
     /// The grid `<track-list>`
-    TrackList(#[compute(field_bound)] TrackList<L, I>),
+    TrackList(
+        #[animation(field_bound)]
+        #[compute(field_bound)]
+        TrackList<L, I>,
+    ),
     /// A `subgrid <line-name-list>?`
+    /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
+    #[animation(error)]
     Subgrid(LineNameList),
 }
 

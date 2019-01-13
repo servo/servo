@@ -383,7 +383,7 @@ ${helpers.predefined_type(
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
         boxed=True,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
-        animation_value_type="discrete",
+        animation_value_type="ComputedValue",
     )}
 
 % endfor

@@ -23,6 +23,7 @@ use std::cmp;
 pub mod color;
 pub mod effects;
 mod font;
+mod grid;
 mod length;
 mod svg;
 pub mod transform;
@@ -113,7 +114,8 @@ pub fn animate_multiplicative_factor(
 /// function has been specified through `#[animate(fallback)]`.
 ///
 /// Trait bounds for type parameter `Foo` can be opted out of with
-/// `#[animation(no_bound(Foo))]` on the type definition.
+/// `#[animation(no_bound(Foo))]` on the type definition, trait bounds for
+/// fields can be opted into with `#[animation(field_bound)]` on the field.
 pub trait Animate: Sized {
     /// Animate a value towards another one, given an animation procedure.
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>;

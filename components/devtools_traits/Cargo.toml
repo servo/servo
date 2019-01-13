@@ -15,7 +15,7 @@ bitflags = "1.0"
 http = "0.1"
 ipc-channel = "0.11"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 msg = {path = "../msg"}
 serde = "1.0"
 servo_url = {path = "../url"}

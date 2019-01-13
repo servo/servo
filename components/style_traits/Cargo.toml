@@ -19,7 +19,7 @@ cssparser = "0.25"
 bitflags = "1.0"
 euclid = "0.19"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 selectors = { path = "../selectors" }
 serde = {version = "1.0", optional = true}
 webrender_api = {git = "https://github.com/servo/webrender", optional = true}

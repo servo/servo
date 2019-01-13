@@ -125,6 +125,18 @@ ${helpers.predefined_type(
     servo_restyle_damage = "reflow",
 )}
 
+${helpers.predefined_type(
+    "overflow-anchor",
+    "OverflowAnchor",
+    "computed::OverflowAnchor::Auto",
+    initial_specified_value="specified::OverflowAnchor::Auto",
+    products="gecko",
+    needs_context=False,
+    gecko_pref="layout.css.scroll-anchoring.enabled",
+    spec="https://drafts.csswg.org/css-scroll-anchoring/#exclusion-api",
+    animation_value_type="discrete",
+)}
+
 <% transition_extra_prefixes = "moz:layout.css.prefixes.transitions webkit" %>
 
 ${helpers.predefined_type(
