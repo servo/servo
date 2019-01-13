@@ -88,7 +88,10 @@ fn derive_variant_arm(
         let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&result.ast());
         if field_attrs.field_bound {
             let ty = &this.ast().ty;
-            cg::add_predicate(where_clause, parse_quote!(#ty: crate::values::animated::Animate));
+            cg::add_predicate(
+                where_clause,
+                parse_quote!(#ty: crate::values::animated::Animate),
+            );
         }
         if field_attrs.constant {
             quote! {

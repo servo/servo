@@ -11,15 +11,19 @@
 // Animate for the computed types, instead of the generic types.
 
 use super::{Animate, Procedure, ToAnimatedZero};
-use crate::values::computed::{GridTemplateComponent, TrackList, TrackSize};
 use crate::values::computed::Integer;
 use crate::values::computed::LengthPercentage;
+use crate::values::computed::{GridTemplateComponent, TrackList, TrackSize};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::grid as generics;
 
 fn discrete<T: Clone>(from: &T, to: &T, procedure: Procedure) -> Result<T, ()> {
     if let Procedure::Interpolate { progress } = procedure {
-        Ok(if progress < 0.5 { from.clone() } else { to.clone() })
+        Ok(if progress < 0.5 {
+            from.clone()
+        } else {
+            to.clone()
+        })
     } else {
         Err(())
     }
@@ -28,31 +32,31 @@ fn discrete<T: Clone>(from: &T, to: &T, procedure: Procedure) -> Result<T, ()> {
 fn animate_with_discrete_fallback<T: Animate + Clone>(
     from: &T,
     to: &T,
-    procedure: Procedure
+    procedure: Procedure,
 ) -> Result<T, ()> {
-    from.animate(to, procedure).or_else(|_| discrete(from, to, procedure))
+    from.animate(to, procedure)
+        .or_else(|_| discrete(from, to, procedure))
 }
 
 impl Animate for TrackSize {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
-            (&generics::TrackSize::Breadth(ref from),
-             &generics::TrackSize::Breadth(ref to)) => {
+            (&generics::TrackSize::Breadth(ref from), &generics::TrackSize::Breadth(ref to)) => {
                 animate_with_discrete_fallback(from, to, procedure)
                     .map(generics::TrackSize::Breadth)
             },
-            (&generics::TrackSize::Minmax(ref from_min, ref from_max),
-             &generics::TrackSize::Minmax(ref to_min, ref to_max)) => {
-                Ok(generics::TrackSize::Minmax(
-                    animate_with_discrete_fallback(from_min, to_min, procedure)?,
-                    animate_with_discrete_fallback(from_max, to_max, procedure)?,
-                ))
-            },
-            (&generics::TrackSize::FitContent(ref from),
-             &generics::TrackSize::FitContent(ref to)) => {
-                animate_with_discrete_fallback(from, to, procedure)
-                    .map(generics::TrackSize::FitContent)
-            },
+            (
+                &generics::TrackSize::Minmax(ref from_min, ref from_max),
+                &generics::TrackSize::Minmax(ref to_min, ref to_max),
+            ) => Ok(generics::TrackSize::Minmax(
+                animate_with_discrete_fallback(from_min, to_min, procedure)?,
+                animate_with_discrete_fallback(from_max, to_max, procedure)?,
+            )),
+            (
+                &generics::TrackSize::FitContent(ref from),
+                &generics::TrackSize::FitContent(ref to),
+            ) => animate_with_discrete_fallback(from, to, procedure)
+                .map(generics::TrackSize::FitContent),
             (_, _) => discrete(self, other, procedure),
         }
     }
@@ -72,8 +76,11 @@ where
         // length of track_sizes is the same.
         // https://github.com/w3c/csswg-drafts/issues/3503
         match (&self.count, &other.count) {
-            (&generics::RepeatCount::Number(from),
-             &generics::RepeatCount::Number(to)) if from == to => (),
+            (&generics::RepeatCount::Number(from), &generics::RepeatCount::Number(to))
+                if from == to =>
+            {
+                ()
+            },
             (_, _) => return Err(()),
         }
 
@@ -83,7 +90,8 @@ where
         }
 
         let count = self.count;
-        let track_sizes = self.track_sizes
+        let track_sizes = self
+            .track_sizes
             .iter()
             .zip(other.track_sizes.iter())
             .map(|(a, b)| a.animate(b, procedure))
@@ -93,7 +101,11 @@ where
         // of |track_sizes|. Besides, <line-names> is always discrete.
         let line_names = discrete(&self.line_names, &other.line_names, procedure)?;
 
-        Ok(generics::TrackRepeat { count, line_names, track_sizes })
+        Ok(generics::TrackRepeat {
+            count,
+            line_names,
+            track_sizes,
+        })
     }
 }
 
@@ -122,7 +134,8 @@ impl Animate for TrackList {
 
         let list_type = self.list_type;
         let auto_repeat = self.auto_repeat.animate(&other.auto_repeat, procedure)?;
-        let values = self.values
+        let values = self
+            .values
             .iter()
             .zip(other.values.iter())
             .map(|(a, b)| a.animate(b, procedure))
@@ -131,7 +144,12 @@ impl Animate for TrackList {
         // of |track_sizes|. Besides, <line-names> is always discrete.
         let line_names = discrete(&self.line_names, &other.line_names, procedure)?;
 
-        Ok(TrackList { list_type, values, line_names, auto_repeat })
+        Ok(TrackList {
+            list_type,
+            values,
+            line_names,
+            auto_repeat,
+        })
     }
 }
 

@@ -174,14 +174,7 @@ pub enum TrackKeyword {
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
 #[derive(
-    Animate,
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
 )]
 pub enum TrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
@@ -492,14 +485,7 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
 
 /// Track list values. Can be <track-size> or <track-repeat>
 #[derive(
-    Animate,
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
 )]
 pub enum TrackListValue<LengthPercentage, Integer> {
     /// A <track-size> value.
@@ -712,20 +698,17 @@ impl ToCss for LineNameList {
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
 #[derive(
-    Animate,
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
 )]
 pub enum GridTemplateComponent<L, I> {
     /// `none` value.
     None,
     /// The grid `<track-list>`
-    TrackList(#[animation(field_bound)] #[compute(field_bound)] TrackList<L, I>),
+    TrackList(
+        #[animation(field_bound)]
+        #[compute(field_bound)]
+        TrackList<L, I>,
+    ),
     /// A `subgrid <line-name-list>?`
     /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
     #[animation(error)]
