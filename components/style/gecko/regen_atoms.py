@@ -130,6 +130,7 @@ RULE_TEMPLATE = '''
 '''[1:]
 
 MACRO_TEMPLATE = '''
+/// Returns a static atom by passing the literal string it represents.
 #[macro_export]
 macro_rules! atom {{
 {body}\
