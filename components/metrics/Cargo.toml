@@ -15,7 +15,7 @@ gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.11"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 msg = {path = "../msg"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}

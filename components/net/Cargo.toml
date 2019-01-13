@@ -33,7 +33,7 @@ ipc-channel = "0.11"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 matches = "0.1"
 mime = "0.3"
 mime_guess = "2.0.0-alpha.6"
