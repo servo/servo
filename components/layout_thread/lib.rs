@@ -45,7 +45,7 @@ use layout::display_list::items::{OpaqueNode, WebRenderImageInfo};
 use layout::display_list::{IndexableText, ToLayout, WebRenderDisplayListConverter};
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
-use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleDamage};
+use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
 use layout::parallel;
 use layout::query::{
