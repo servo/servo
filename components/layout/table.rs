@@ -7,9 +7,9 @@
 use crate::block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use crate::display_list::{
-    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionFlags,
+    StackingContextCollectionState,
 };
 use crate::flow::{
     BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils,

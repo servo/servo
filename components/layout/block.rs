@@ -27,9 +27,10 @@
 
 use crate::context::LayoutContext;
 use crate::display_list::items::DisplayListSection;
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
+use crate::display_list::{
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionFlags,
+    StackingContextCollectionState,
+};
 use crate::floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use crate::flow::{
     BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow,

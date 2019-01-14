@@ -75,7 +75,7 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::message::{Msg, LayoutThreadInit, NodesFromPointQueryType, Reflow};
+use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQueryType, Reflow};
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleResponse};

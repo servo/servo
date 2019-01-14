@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-pub use self::builder::BlockFlowDisplayListBuilding;
 pub use self::builder::BorderPaintingMode;
 pub use self::builder::DisplayListBuildState;
 pub use self::builder::FlexFlowDisplayListBuilding;
