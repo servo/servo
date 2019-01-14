@@ -102,7 +102,7 @@ use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
-use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -119,6 +119,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
+use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
@@ -247,7 +248,7 @@ pub struct Window {
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DomRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
+    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
@@ -389,7 +390,7 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Vector2D<f32>>) {
+    pub fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32>>) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
@@ -1601,11 +1602,7 @@ impl Window {
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
-        if let Some(scroll_offset) = self
-            .scroll_offsets
-            .borrow()
-            .get(&node.to_untrusted_node_address())
-        {
+        if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
             return *scroll_offset;
         }
         Vector2D::new(0.0, 0.0)
@@ -1620,10 +1617,9 @@ impl Window {
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
-        self.scroll_offsets.borrow_mut().insert(
-            node.to_untrusted_node_address(),
-            Vector2D::new(x_ as f32, y_ as f32),
-        );
+        self.scroll_offsets
+            .borrow_mut()
+            .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
 
         let NodeScrollIdResponse(scroll_id) = self.layout_rpc.node_scroll_id();
 

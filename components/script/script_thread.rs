@@ -146,6 +146,7 @@ use std::result::Result;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
+use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use time::{at_utc, get_time, precise_time_ns, Timespec};
 use url::percent_encoding::percent_decode;
@@ -1914,7 +1915,7 @@ impl ScriptThread {
             if node_address == UntrustedNodeAddress(ptr::null()) {
                 window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
             } else {
-                scroll_offsets.insert(node_address, -*scroll_offset);
+                scroll_offsets.insert(OpaqueNode(node_address.0 as usize), -*scroll_offset);
             }
         }
         window.set_scroll_offsets(scroll_offsets)
