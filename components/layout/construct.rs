@@ -419,8 +419,17 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 SpecificFragmentInfo::Media(Box::new(MediaFragmentInfo::new(data)))
             },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
+                let elem = node.as_element().unwrap();
+                let type_and_data = (
+                    elem.get_attr(&ns!(), &local_name!("type")),
+                    elem.get_attr(&ns!(), &local_name!("data")),
+                );
+                let object_data = match type_and_data {
+                    (None, Some(uri)) if is_image_data(uri) => ServoUrl::parse(uri).ok(),
+                    _ => None,
+                };
                 let image_info = Box::new(ImageFragmentInfo::new(
-                    node.object_data(),
+                    object_data,
                     None,
                     node,
                     &self.layout_context,
@@ -1976,7 +1985,15 @@ where
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => true,
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
-                self.has_object_data()
+                let elem = self.as_element().unwrap();
+                let type_and_data = (
+                    elem.get_attr(&ns!(), &local_name!("type")),
+                    elem.get_attr(&ns!(), &local_name!("data")),
+                );
+                match type_and_data {
+                    (None, Some(uri)) => is_image_data(uri),
+                    _ => false,
+                }
             },
             Some(LayoutNodeType::Element(_)) => false,
             None => self.get_pseudo_element_type().is_replaced_content(),
@@ -2004,44 +2021,6 @@ where
     fn get_construction_result(self) -> ConstructionResult {
         let mut layout_data = self.mutate_layout_data().unwrap();
         self.construction_result_mut(&mut *layout_data).get()
-    }
-}
-
-/// Methods for interacting with HTMLObjectElement nodes
-trait ObjectElement {
-    /// Returns true if this node has object data that is correct uri.
-    fn has_object_data(&self) -> bool;
-
-    /// Returns the "data" attribute value parsed as a URL
-    fn object_data(&self) -> Option<ServoUrl>;
-}
-
-impl<N> ObjectElement for N
-where
-    N: ThreadSafeLayoutNode,
-{
-    fn has_object_data(&self) -> bool {
-        let elem = self.as_element().unwrap();
-        let type_and_data = (
-            elem.get_attr(&ns!(), &local_name!("type")),
-            elem.get_attr(&ns!(), &local_name!("data")),
-        );
-        match type_and_data {
-            (None, Some(uri)) => is_image_data(uri),
-            _ => false,
-        }
-    }
-
-    fn object_data(&self) -> Option<ServoUrl> {
-        let elem = self.as_element().unwrap();
-        let type_and_data = (
-            elem.get_attr(&ns!(), &local_name!("type")),
-            elem.get_attr(&ns!(), &local_name!("data")),
-        );
-        match type_and_data {
-            (None, Some(uri)) if is_image_data(uri) => ServoUrl::parse(uri).ok(),
-            _ => None,
-        }
     }
 }
 
