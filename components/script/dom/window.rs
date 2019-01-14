@@ -69,7 +69,7 @@ use base64;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender, TryRecvError};
-use cssparser::{Parser, ParserInput};
+use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -94,7 +94,6 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
-use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
@@ -103,7 +102,7 @@ use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
-use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -120,7 +119,8 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use style::error_reporting::ParseErrorReporter;
+use style::dom::OpaqueNode;
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::{ComputedValues, PropertyId};
@@ -248,7 +248,7 @@ pub struct Window {
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DomRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
+    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
@@ -390,7 +390,7 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Vector2D<f32>>) {
+    pub fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32>>) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
@@ -1602,11 +1602,7 @@ impl Window {
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
-        if let Some(scroll_offset) = self
-            .scroll_offsets
-            .borrow()
-            .get(&node.to_untrusted_node_address())
-        {
+        if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
             return *scroll_offset;
         }
         Vector2D::new(0.0, 0.0)
@@ -1621,10 +1617,9 @@ impl Window {
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
-        self.scroll_offsets.borrow_mut().insert(
-            node.to_untrusted_node_address(),
-            Vector2D::new(x_ as f32, y_ as f32),
-        );
+        self.scroll_offsets
+            .borrow_mut()
+            .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
 
         let NodeScrollIdResponse(scroll_id) = self.layout_rpc.node_scroll_id();
 
@@ -2240,5 +2235,43 @@ impl Window {
             self.pipeline_id(),
             TaskSourceName::DOMManipulation,
         ));
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct CSSErrorReporter {
+    pub pipelineid: PipelineId,
+    // Arc+Mutex combo is necessary to make this struct Sync,
+    // which is necessary to fulfill the bounds required by the
+    // uses of the ParseErrorReporter trait.
+    #[ignore_malloc_size_of = "Arc is defined in libstd"]
+    pub script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
+}
+unsafe_no_jsmanaged_fields!(CSSErrorReporter);
+
+impl ParseErrorReporter for CSSErrorReporter {
+    fn report_error(&self, url: &ServoUrl, location: SourceLocation, error: ContextualParseError) {
+        if log_enabled!(log::Level::Info) {
+            info!(
+                "Url:\t{}\n{}:{} {}",
+                url.as_str(),
+                location.line,
+                location.column,
+                error
+            )
+        }
+
+        //TODO: report a real filename
+        let _ = self
+            .script_chan
+            .lock()
+            .unwrap()
+            .send(ConstellationControlMsg::ReportCSSError(
+                self.pipelineid,
+                url.to_string(),
+                location.line,
+                location.column,
+                error.to_string(),
+            ));
     }
 }

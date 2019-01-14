@@ -22,13 +22,8 @@ bitflags! {
     }
 }
 
-pub trait LayoutDamageComputation {
-    fn compute_layout_damage(self) -> SpecialRestyleDamage;
-    fn reflow_entire_document(self);
-}
-
-impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
-    fn compute_layout_damage(self) -> SpecialRestyleDamage {
+impl dyn Flow {
+    pub fn compute_layout_damage(&mut self) -> SpecialRestyleDamage {
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = self
             .base()
@@ -91,7 +86,7 @@ impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
         special_damage
     }
 
-    fn reflow_entire_document(self) {
+    pub fn reflow_entire_document(&mut self) {
         let self_base = self.mut_base();
         self_base
             .restyle_damage

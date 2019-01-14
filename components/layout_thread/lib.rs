@@ -45,7 +45,7 @@ use layout::display_list::items::{OpaqueNode, WebRenderImageInfo};
 use layout::display_list::{IndexableText, ToLayout, WebRenderDisplayListConverter};
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
-use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleDamage};
+use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
 use layout::parallel;
 use layout::query::{
@@ -75,7 +75,7 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::message::{Msg, NewLayoutThreadInfo, NodesFromPointQueryType, Reflow};
+use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQueryType, Reflow};
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleResponse};
@@ -842,7 +842,7 @@ impl LayoutThread {
         reports_chan.send(reports);
     }
 
-    fn create_layout_thread(&self, info: NewLayoutThreadInfo) {
+    fn create_layout_thread(&self, info: LayoutThreadInit) {
         LayoutThread::create(
             info.id,
             self.top_level_browsing_context_id,

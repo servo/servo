@@ -6,8 +6,9 @@
 
 use crate::block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
