@@ -28,7 +28,6 @@ use crate::flow_ref::FlowRef;
 use crate::fragment::SpecificFragmentInfo;
 use crate::fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo};
 use crate::inline::InlineFragmentNodeFlags;
-use crate::list_item::ListItemFlow;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
@@ -2801,34 +2800,6 @@ impl BlockFlow {
         }
 
         None
-    }
-}
-
-pub trait ListItemFlowDisplayListBuilding {
-    fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl ListItemFlowDisplayListBuilding for ListItemFlow {
-    fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState) {
-        // Draw the marker, if applicable.
-        for marker in &mut self.marker_fragments {
-            let stacking_relative_border_box = self
-                .block_flow
-                .base
-                .stacking_relative_border_box_for_display_list(marker);
-            marker.build_display_list(
-                state,
-                stacking_relative_border_box,
-                BorderPaintingMode::Separate,
-                DisplayListSection::Content,
-                self.block_flow.base.clip,
-                None,
-            );
-        }
-
-        // Draw the rest of the block.
-        self.block_flow
-            .build_display_list_for_block(state, BorderPaintingMode::Separate)
     }
 }
 
