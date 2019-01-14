@@ -581,230 +581,6 @@ impl<'a> DisplayListBuildState<'a> {
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
-pub trait FragmentDisplayListBuilding {
-    fn collect_stacking_contexts_for_blocklike_fragment(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-    ) -> bool;
-
-    fn create_stacking_context_for_inline_block(
-        &mut self,
-        base: &BaseFlow,
-        state: &mut StackingContextCollectionState,
-    ) -> bool;
-
-    /// Adds the display items necessary to paint the background of this fragment to the display
-    /// list if necessary.
-    fn build_display_list_for_background_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-    );
-
-    /// Same as build_display_list_for_background_if_applicable, but lets you
-    /// override the actual background used
-    fn build_display_list_for_background_if_applicable_with_background(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        background: &style_structs::Background,
-        background_color: RGBA,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-    );
-
-    /// Adds the display items necessary to paint a webrender image of this fragment to the
-    /// appropriate section of the display list.
-    fn build_display_list_for_webrender_image(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-        webrender_image: WebRenderImageInfo,
-        index: usize,
-    );
-
-    /// Calculates the webrender image for a paint worklet.
-    /// Returns None if the worklet is not registered.
-    /// If the worklet has missing image URLs, it passes them to the image cache for loading.
-    fn get_webrender_image_for_paint_worklet(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        paint_worklet: &PaintWorklet,
-        size: Size2D<Au>,
-    ) -> Option<WebRenderImageInfo>;
-
-    /// Adds the display items necessary to paint the background linear gradient of this fragment
-    /// to the appropriate section of the display list.
-    fn build_display_list_for_background_gradient(
-        &self,
-        state: &mut DisplayListBuildState,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-        gradient: &Gradient,
-        style: &ComputedValues,
-        index: usize,
-    );
-
-    /// Adds the display items necessary to paint the borders of this fragment to a display list if
-    /// necessary.
-    fn build_display_list_for_borders_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        inline_node_info: Option<InlineNodeBorderInfo>,
-        border_painting_mode: BorderPaintingMode,
-        bounds: Rect<Au>,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-    );
-
-    /// Add display item for image border.
-    ///
-    /// Returns `Some` if the addition was successful.
-    fn build_display_list_for_border_image(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        base: BaseDisplayItem,
-        bounds: Rect<Au>,
-        image: &ComputedImage,
-        border_width: SideOffsets2D<Au>,
-    ) -> Option<()>;
-
-    /// Adds the display items necessary to paint the outline of this fragment to the display list
-    /// if necessary.
-    fn build_display_list_for_outline_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        bounds: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Adds the display items necessary to paint the box shadow of this fragment to the display
-    /// list if necessary.
-    fn build_display_list_for_box_shadow_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Adds display items necessary to draw debug boxes around a scanned text fragment.
-    fn build_debug_borders_around_text_fragments(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        stacking_relative_border_box: Rect<Au>,
-        stacking_relative_content_box: Rect<Au>,
-        text_fragment: &ScannedTextFragmentInfo,
-        clip: Rect<Au>,
-    );
-
-    /// Adds display items necessary to draw debug boxes around this fragment.
-    fn build_debug_borders_around_fragment(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Adds the display items for this fragment to the given display list.
-    ///
-    /// Arguments:
-    ///
-    /// * `state`: The display building state, including the display list currently
-    ///   under construction and other metadata useful for constructing it.
-    /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
-    /// * `clip`: The region to clip the display items to.
-    /// * `overflow_content_size`: The size of content associated with this fragment
-    ///      that must have overflow handling applied to it. For a scrollable block
-    ///      flow, it is expected that this is the size of the child boxes.
-    fn build_display_list(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        border_painting_mode: BorderPaintingMode,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-        overflow_content_size: Option<Size2D<Au>>,
-    );
-
-    /// build_display_list, but don't update the restyle damage
-    ///
-    /// Must be paired with a self.restyle_damage.remove(REPAINT) somewhere
-    fn build_display_list_no_damage(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        border_painting_mode: BorderPaintingMode,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-        overflow_content_size: Option<Size2D<Au>>,
-    );
-
-    /// Builds the display items necessary to paint the selection and/or caret for this fragment,
-    /// if any.
-    fn build_display_items_for_selection_if_necessary(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-    );
-
-    /// Creates the text display item for one text fragment. This can be called multiple times for
-    /// one fragment if there are text shadows.
-    ///
-    /// `text_shadow` will be `Some` if this is rendering a shadow.
-    fn build_display_list_for_text_fragment(
-        &self,
-        state: &mut DisplayListBuildState,
-        text_fragment: &ScannedTextFragmentInfo,
-        stacking_relative_content_box: Rect<Au>,
-        text_shadows: &[SimpleShadow],
-        clip: Rect<Au>,
-    );
-
-    /// Creates the display item for a text decoration: underline, overline, or line-through.
-    fn build_display_list_for_text_decoration(
-        &self,
-        state: &mut DisplayListBuildState,
-        color: &RGBA,
-        stacking_relative_box: &LogicalRect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// A helper method that `build_display_list` calls to create per-fragment-type display items.
-    fn build_fragment_type_specific_display_items(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Creates a stacking context for associated fragment.
-    fn create_stacking_context(
-        &self,
-        id: StackingContextId,
-        base_flow: &BaseFlow,
-        context_type: StackingContextType,
-        established_reference_frame: Option<ClipScrollNodeIndex>,
-        parent_clipping_and_scrolling: ClippingAndScrolling,
-    ) -> StackingContext;
-
-    fn unique_id(&self) -> u64;
-
-    fn fragment_type(&self) -> FragmentType;
-}
-
 /// Get the border radius for the rectangle inside of a rounded border. This is useful
 /// for building the clip for the content inside the border.
 fn build_border_radius_for_inner_rect(
@@ -823,7 +599,7 @@ fn build_border_radius_for_inner_rect(
     border::inner_radii(radii, border_widths)
 }
 
-impl FragmentDisplayListBuilding for Fragment {
+impl Fragment {
     fn collect_stacking_contexts_for_blocklike_fragment(
         &mut self,
         state: &mut StackingContextCollectionState,
@@ -881,6 +657,8 @@ impl FragmentDisplayListBuilding for Fragment {
         true
     }
 
+    /// Adds the display items necessary to paint the background of this fragment to the display
+    /// list if necessary.
     fn build_display_list_for_background_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -902,6 +680,8 @@ impl FragmentDisplayListBuilding for Fragment {
         )
     }
 
+    /// Same as build_display_list_for_background_if_applicable, but lets you
+    /// override the actual background used
     fn build_display_list_for_background_if_applicable_with_background(
         &self,
         state: &mut DisplayListBuildState,
@@ -1028,6 +808,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Adds the display items necessary to paint a webrender image of this fragment to the
+    /// appropriate section of the display list.
     fn build_display_list_for_webrender_image(
         &self,
         state: &mut DisplayListBuildState,
@@ -1088,6 +870,9 @@ impl FragmentDisplayListBuilding for Fragment {
         });
     }
 
+    /// Calculates the webrender image for a paint worklet.
+    /// Returns None if the worklet is not registered.
+    /// If the worklet has missing image URLs, it passes them to the image cache for loading.
     fn get_webrender_image_for_paint_worklet(
         &self,
         state: &mut DisplayListBuildState,
@@ -1148,6 +933,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Adds the display items necessary to paint the background linear gradient of this fragment
+    /// to the appropriate section of the display list.
     fn build_display_list_for_background_gradient(
         &self,
         state: &mut DisplayListBuildState,
@@ -1220,6 +1007,8 @@ impl FragmentDisplayListBuilding for Fragment {
         });
     }
 
+    /// Adds the display items necessary to paint the box shadow of this fragment to the display
+    /// list if necessary.
     fn build_display_list_for_box_shadow_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -1269,6 +1058,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Adds the display items necessary to paint the borders of this fragment to a display list if
+    /// necessary.
     fn build_display_list_for_borders_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -1381,6 +1172,9 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Add display item for image border.
+    ///
+    /// Returns `Some` if the addition was successful.
     fn build_display_list_for_border_image(
         &self,
         state: &mut DisplayListBuildState,
@@ -1483,6 +1277,8 @@ impl FragmentDisplayListBuilding for Fragment {
         Some(())
     }
 
+    /// Adds the display items necessary to paint the outline of this fragment to the display list
+    /// if necessary.
     fn build_display_list_for_outline_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -1532,6 +1328,7 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Adds display items necessary to draw debug boxes around a scanned text fragment.
     fn build_debug_borders_around_text_fragments(
         &self,
         state: &mut DisplayListBuildState,
@@ -1594,6 +1391,7 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Adds display items necessary to draw debug boxes around this fragment.
     fn build_debug_borders_around_fragment(
         &self,
         state: &mut DisplayListBuildState,
@@ -1621,6 +1419,8 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Builds the display items necessary to paint the selection and/or caret for this fragment,
+    /// if any.
     fn build_display_items_for_selection_if_necessary(
         &self,
         state: &mut DisplayListBuildState,
@@ -1702,6 +1502,17 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Adds the display items for this fragment to the given display list.
+    ///
+    /// Arguments:
+    ///
+    /// * `state`: The display building state, including the display list currently
+    ///   under construction and other metadata useful for constructing it.
+    /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
+    /// * `clip`: The region to clip the display items to.
+    /// * `overflow_content_size`: The size of content associated with this fragment
+    ///      that must have overflow handling applied to it. For a scrollable block
+    ///      flow, it is expected that this is the size of the child boxes.
     fn build_display_list(
         &mut self,
         state: &mut DisplayListBuildState,
@@ -1729,6 +1540,9 @@ impl FragmentDisplayListBuilding for Fragment {
         state.current_clipping_and_scrolling = previous_clipping_and_scrolling;
     }
 
+    /// build_display_list, but don't update the restyle damage
+    ///
+    /// Must be paired with a self.restyle_damage.remove(REPAINT) somewhere
     fn build_display_list_no_damage(
         &self,
         state: &mut DisplayListBuildState,
@@ -1886,6 +1700,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(
         &self,
         state: &mut DisplayListBuildState,
@@ -2087,6 +1902,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Creates a stacking context for associated fragment.
     fn create_stacking_context(
         &self,
         id: StackingContextId,
@@ -2139,6 +1955,10 @@ impl FragmentDisplayListBuilding for Fragment {
         )
     }
 
+    /// Creates the text display item for one text fragment. This can be called multiple times for
+    /// one fragment if there are text shadows.
+    ///
+    /// `text_shadow` will be `Some` if this is rendering a shadow.
     fn build_display_list_for_text_fragment(
         &self,
         state: &mut DisplayListBuildState,
@@ -2290,6 +2110,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Creates the display item for a text decoration: underline, overline, or line-through.
     fn build_display_list_for_text_decoration(
         &self,
         state: &mut DisplayListBuildState,
