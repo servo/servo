@@ -3144,15 +3144,7 @@ impl FlexFlowDisplayListBuilding for FlexFlow {
     }
 }
 
-trait BaseFlowDisplayListBuilding {
-    fn build_display_items_for_debugging_tint(
-        &self,
-        state: &mut DisplayListBuildState,
-        node: OpaqueNode,
-    );
-}
-
-impl BaseFlowDisplayListBuilding for BaseFlow {
+impl BaseFlow {
     fn build_display_items_for_debugging_tint(
         &self,
         state: &mut DisplayListBuildState,
