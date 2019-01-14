@@ -64,6 +64,7 @@ pause
 play
 playing
 popstate
+postershown
 print
 progress
 radio
