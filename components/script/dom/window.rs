@@ -2268,7 +2268,7 @@ impl ParseErrorReporter for CSSErrorReporter {
             .unwrap()
             .send(ConstellationControlMsg::ReportCSSError(
                 self.pipelineid,
-                "".to_owned(),
+                url.to_string(),
                 location.line,
                 location.column,
                 error.to_string(),
