@@ -2045,23 +2045,7 @@ where
     }
 }
 
-// This must not be public because only the layout constructor can call these
-// methods.
-trait FlowConstructionUtils {
-    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
-    /// it's present.
-    fn add_new_child(&mut self, new_child: FlowRef);
-
-    /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
-    /// This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic --
-    /// inline-size) calculation, unless the global `bubble_inline-sizes_separately` flag is on.
-    ///
-    /// All flows must be finished at some point, or they will not have their intrinsic inline-
-    /// sizes properly computed. (This is not, however, a memory safety problem.)
-    fn finish(&mut self);
-}
-
-impl FlowConstructionUtils for FlowRef {
+impl FlowRef {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
         {
