@@ -22,7 +22,6 @@ use crate::display_list::items::{PopAllTextShadowsDisplayItem, PushTextShadowDis
 use crate::display_list::items::{StackingContext, StackingContextType, StickyFrameData};
 use crate::display_list::items::{TextOrientation, WebRenderImageInfo};
 use crate::display_list::ToLayout;
-use crate::flex::FlexFlow;
 use crate::flow::{BaseFlow, Flow, FlowFlags};
 use crate::flow_ref::FlowRef;
 use crate::fragment::SpecificFragmentInfo;
@@ -2787,18 +2786,6 @@ impl BlockFlow {
         }
 
         None
-    }
-}
-
-pub trait FlexFlowDisplayListBuilding {
-    fn build_display_list_for_flex(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl FlexFlowDisplayListBuilding for FlexFlow {
-    fn build_display_list_for_flex(&mut self, state: &mut DisplayListBuildState) {
-        // Draw the rest of the block.
-        self.as_mut_block()
-            .build_display_list_for_block(state, BorderPaintingMode::Separate)
     }
 }
 

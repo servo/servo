@@ -4,7 +4,6 @@
 
 pub use self::builder::BorderPaintingMode;
 pub use self::builder::DisplayListBuildState;
-pub use self::builder::FlexFlowDisplayListBuilding;
 pub use self::builder::IndexableText;
 pub use self::builder::StackingContextCollectionFlags;
 pub use self::builder::StackingContextCollectionState;
