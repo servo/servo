@@ -27,7 +27,7 @@ use crate::flow::{BaseFlow, Flow, FlowFlags};
 use crate::flow_ref::FlowRef;
 use crate::fragment::SpecificFragmentInfo;
 use crate::fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo};
-use crate::inline::{InlineFlow, InlineFragmentNodeFlags};
+use crate::inline::InlineFragmentNodeFlags;
 use crate::list_item::ListItemFlow;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
@@ -587,7 +587,7 @@ fn build_border_radius_for_inner_rect(
 }
 
 impl Fragment {
-    fn collect_stacking_contexts_for_blocklike_fragment(
+    pub fn collect_stacking_contexts_for_blocklike_fragment(
         &mut self,
         state: &mut StackingContextCollectionState,
     ) -> bool {
@@ -615,7 +615,7 @@ impl Fragment {
         }
     }
 
-    fn create_stacking_context_for_inline_block(
+    pub fn create_stacking_context_for_inline_block(
         &mut self,
         base: &BaseFlow,
         state: &mut StackingContextCollectionState,
@@ -1500,7 +1500,7 @@ impl Fragment {
     /// * `overflow_content_size`: The size of content associated with this fragment
     ///      that must have overflow handling applied to it. For a scrollable block
     ///      flow, it is expected that this is the size of the child boxes.
-    fn build_display_list(
+    pub fn build_display_list(
         &mut self,
         state: &mut DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
@@ -2804,111 +2804,6 @@ impl BlockFlow {
     }
 }
 
-pub trait InlineFlowDisplayListBuilding {
-    fn collect_stacking_contexts_for_inline(&mut self, state: &mut StackingContextCollectionState);
-    fn build_display_list_for_inline_fragment_at_index(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        index: usize,
-    );
-    fn build_display_list_for_inline(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl InlineFlowDisplayListBuilding for InlineFlow {
-    fn collect_stacking_contexts_for_inline(&mut self, state: &mut StackingContextCollectionState) {
-        self.base.stacking_context_id = state.current_stacking_context_id;
-        self.base.clipping_and_scrolling = Some(state.current_clipping_and_scrolling);
-        self.base.clip = state
-            .clip_stack
-            .last()
-            .cloned()
-            .unwrap_or_else(Rect::max_rect);
-
-        let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
-
-        for fragment in self.fragments.fragments.iter_mut() {
-            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
-
-            let abspos_containing_block = fragment.style.get_box().position != StylePosition::Static;
-            if abspos_containing_block {
-                state.containing_block_clipping_and_scrolling =
-                    state.current_clipping_and_scrolling;
-            }
-
-            // We clear this here, but it might be set again if we create a stacking context for
-            // this fragment.
-            fragment.established_reference_frame = None;
-
-            if !fragment.collect_stacking_contexts_for_blocklike_fragment(state) {
-                if !fragment.establishes_stacking_context() {
-                    fragment.stacking_context_id = state.current_stacking_context_id;
-                } else {
-                    fragment.create_stacking_context_for_inline_block(&self.base, state);
-                }
-            }
-
-            // Reset the containing block clipping and scrolling before each loop iteration,
-            // so we don't pollute subsequent fragments.
-            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
-        }
-    }
-
-    fn build_display_list_for_inline_fragment_at_index(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        index: usize,
-    ) {
-        let fragment = self.fragments.fragments.get_mut(index).unwrap();
-        let stacking_relative_border_box = self
-            .base
-            .stacking_relative_border_box_for_display_list(fragment);
-        fragment.build_display_list(
-            state,
-            stacking_relative_border_box,
-            BorderPaintingMode::Separate,
-            DisplayListSection::Content,
-            self.base.clip,
-            None,
-        );
-    }
-
-    fn build_display_list_for_inline(&mut self, state: &mut DisplayListBuildState) {
-        debug!(
-            "Flow: building display list for {} inline fragments",
-            self.fragments.len()
-        );
-
-        // We iterate using an index here, because we want to avoid doing a doing
-        // a double-borrow of self (one mutable for the method call and one immutable
-        // for the self.fragments.fragment iterator itself).
-        for index in 0..self.fragments.fragments.len() {
-            let (establishes_stacking_context, stacking_context_id) = {
-                let fragment = self.fragments.fragments.get(index).unwrap();
-                (
-                    self.base.stacking_context_id != fragment.stacking_context_id,
-                    fragment.stacking_context_id,
-                )
-            };
-
-            let parent_stacking_context_id = state.current_stacking_context_id;
-            if establishes_stacking_context {
-                state.current_stacking_context_id = stacking_context_id;
-            }
-
-            self.build_display_list_for_inline_fragment_at_index(state, index);
-
-            if establishes_stacking_context {
-                state.current_stacking_context_id = parent_stacking_context_id
-            }
-        }
-
-        if !self.fragments.fragments.is_empty() {
-            self.base
-                .build_display_items_for_debugging_tint(state, self.fragments.fragments[0].node);
-        }
-    }
-}
-
 pub trait ListItemFlowDisplayListBuilding {
     fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState);
 }
@@ -2950,7 +2845,7 @@ impl FlexFlowDisplayListBuilding for FlexFlow {
 }
 
 impl BaseFlow {
-    fn build_display_items_for_debugging_tint(
+    pub fn build_display_items_for_debugging_tint(
         &self,
         state: &mut DisplayListBuildState,
         node: OpaqueNode,
