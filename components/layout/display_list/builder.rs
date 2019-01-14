@@ -692,7 +692,7 @@ impl Fragment {
                 bounds,
                 bounds,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, CursorKind::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -823,7 +823,7 @@ impl Fragment {
                 placement.bounds,
                 placement.clip_rect,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, CursorKind::Default),
                 display_list_section,
             );
 
@@ -938,7 +938,7 @@ impl Fragment {
                 placement.bounds,
                 placement.clip_rect,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, CursorKind::Default),
                 display_list_section,
             );
 
@@ -1004,7 +1004,7 @@ impl Fragment {
                 bounds,
                 clip,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, CursorKind::Default),
                 display_list_section,
             );
             let border_radius = border::radii(absolute_bounds, style.get_border());
@@ -1088,7 +1088,7 @@ impl Fragment {
             bounds,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, CursorKind::Default),
             display_list_section,
         );
 
@@ -1287,7 +1287,7 @@ impl Fragment {
             bounds,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, CursorKind::Default),
             DisplayListSection::Outlines,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1318,7 +1318,7 @@ impl Fragment {
             stacking_relative_border_box,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, CursorKind::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1347,7 +1347,7 @@ impl Fragment {
             baseline,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, CursorKind::Default),
             DisplayListSection::Content,
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
@@ -1375,7 +1375,7 @@ impl Fragment {
             stacking_relative_border_box,
             clip,
             self.node,
-            self.style.get_cursor(CursorKind::Default),
+            get_cursor(&self.style, CursorKind::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1417,7 +1417,7 @@ impl Fragment {
                 stacking_relative_border_box,
                 clip,
                 self.node,
-                self.style.get_cursor(CursorKind::Default),
+                get_cursor(&self.style, CursorKind::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -1463,7 +1463,7 @@ impl Fragment {
             insertion_point_bounds,
             clip,
             self.node,
-            self.style.get_cursor(cursor),
+            get_cursor(&self.style, cursor),
             display_list_section,
         );
         state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -1645,9 +1645,7 @@ impl Fragment {
                 content_size,
                 content_size,
                 self.node,
-                self.style
-                    .get_cursor(CursorKind::Default)
-                    .or_else(|| Some(CursorKind::Default)),
+                get_cursor(&self.style, CursorKind::Default).or(Some(CursorKind::Default)),
                 DisplayListSection::Content,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -1698,7 +1696,7 @@ impl Fragment {
                 stacking_relative_content_box,
                 stacking_relative_border_box,
                 self.node,
-                self.style.get_cursor(CursorKind::Default),
+                get_cursor(&self.style, CursorKind::Default),
                 DisplayListSection::Content,
             )
         };
@@ -1974,7 +1972,7 @@ impl Fragment {
             stacking_relative_content_box,
             clip,
             self.node,
-            self.style().get_cursor(cursor),
+            get_cursor(&self.style, cursor),
             DisplayListSection::Content,
         );
 
@@ -2098,7 +2096,7 @@ impl Fragment {
             stacking_relative_box,
             clip,
             self.node,
-            self.style.get_cursor(CursorKind::Default),
+            get_cursor(&self.style, CursorKind::Default),
             DisplayListSection::Content,
         );
 
@@ -2828,30 +2826,24 @@ impl BaseFlow {
     }
 }
 
-trait ComputedValuesCursorUtility {
-    fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind>;
-}
-
-impl ComputedValuesCursorUtility for ComputedValues {
-    /// Gets the cursor to use given the specific ComputedValues.  `default_cursor` specifies
-    /// the cursor to use if `cursor` is `auto`. Typically, this will be `PointerCursor`, but for
-    /// text display items it may be `TextCursor` or `VerticalTextCursor`.
-    #[inline]
-    fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind> {
-        match (
-            self.get_inherited_ui().pointer_events,
-            &self.get_inherited_ui().cursor,
-        ) {
-            (PointerEvents::None, _) => None,
-            (
-                PointerEvents::Auto,
-                &Cursor {
-                    keyword: CursorKind::Auto,
-                    ..
-                },
-            ) => Some(default_cursor),
-            (PointerEvents::Auto, &Cursor { keyword, .. }) => Some(keyword),
-        }
+/// Gets the cursor to use given the specific ComputedValues.  `default_cursor` specifies
+/// the cursor to use if `cursor` is `auto`. Typically, this will be `PointerCursor`, but for
+/// text display items it may be `TextCursor` or `VerticalTextCursor`.
+#[inline]
+fn get_cursor(values: &ComputedValues, default_cursor: CursorKind) -> Option<CursorKind> {
+    match (
+        values.get_inherited_ui().pointer_events,
+        &values.get_inherited_ui().cursor,
+    ) {
+        (PointerEvents::None, _) => None,
+        (
+            PointerEvents::Auto,
+            &Cursor {
+                keyword: CursorKind::Auto,
+                ..
+            },
+        ) => Some(default_cursor),
+        (PointerEvents::Auto, &Cursor { keyword, .. }) => Some(keyword),
     }
 }
 
