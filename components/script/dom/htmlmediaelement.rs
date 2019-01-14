@@ -1119,6 +1119,63 @@ impl HTMLMediaElement {
                 //    an unsupported format, or can otherwise not be rendered at all"
                 if self.ready_state.get() < ReadyState::HaveMetadata {
                     self.queue_dedicated_media_source_failure_steps();
+                } else {
+                    // https://html.spec.whatwg.org/multipage/#reaches-the-end
+                    match self.direction_of_playback() {
+                        PlaybackDirection::Forwards => {
+                            // Step 1.
+                            if self.Loop() {
+                                self.seek(
+                                    self.earliest_possible_position(),
+                                    /* approximate_for_speed*/ false,
+                                );
+                            } else {
+                                // Step 2.
+                                // The **ended playback** condition is implemented inside of
+                                // the HTMLMediaElementMethods::Ended method
+
+                                // Step 3.
+                                let window = window_from_node(self);
+                                let this = Trusted::new(self);
+
+                                let _ = window.task_manager().media_element_task_source().queue(
+                                    task!(reaches_the_end_steps: move || {
+                                        let this = this.root();
+                                        // Step 3.1.
+                                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"));
+
+                                        // Step 3.2.
+                                        if this.Ended() && !this.Paused() {
+                                            // Step 3.2.1.
+                                            this.paused.set(true);
+
+                                            // Step 3.2.2.
+                                            this.upcast::<EventTarget>().fire_event(atom!("pause"));
+
+                                            // Step 3.2.3.
+                                            this.take_pending_play_promises(Err(Error::Abort));
+                                            this.fulfill_in_flight_play_promises(|| ());
+                                        }
+
+                                        // Step 3.3.
+                                        this.upcast::<EventTarget>().fire_event(atom!("ended"));
+                                    }),
+                                    window.upcast(),
+                                );
+                            }
+                        },
+
+                        PlaybackDirection::Backwards => {
+                            if self.playback_position.get() <= self.earliest_possible_position() {
+                                let window = window_from_node(self);
+
+                                window
+                                    .task_manager()
+                                    .media_element_task_source()
+                                    .queue_simple_event(self.upcast(), atom!("ended"), &window);
+                            }
+                        },
+                    }
                 }
             },
             PlayerEvent::Error => {
@@ -1260,6 +1317,38 @@ impl HTMLMediaElement {
                 _ => {},
             },
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#earliest-possible-position
+    fn earliest_possible_position(&self) -> f64 {
+        self.played
+            .borrow()
+            .start(0)
+            .unwrap_or_else(|_| self.playback_position.get())
+    }
+}
+
+// XXX Placeholder for [https://github.com/servo/servo/issues/22293]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+enum PlaybackDirection {
+    Forwards,
+    #[allow(dead_code)]
+    Backwards,
+}
+
+// XXX Placeholder implementations for:
+//
+// - https://github.com/servo/servo/issues/22293
+// - https://github.com/servo/servo/issues/22321
+impl HTMLMediaElement {
+    // https://github.com/servo/servo/issues/22293
+    fn direction_of_playback(&self) -> PlaybackDirection {
+        PlaybackDirection::Forwards
+    }
+
+    // https://github.com/servo/servo/pull/22321
+    fn Loop(&self) -> bool {
+        false
     }
 }
 
@@ -1512,6 +1601,20 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-seeking
     fn Seeking(&self) -> bool {
         self.seeking.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#ended-playback
+    fn Ended(&self) -> bool {
+        if self.ready_state.get() < ReadyState::HaveMetadata {
+            return false;
+        }
+
+        let playback_pos = self.playback_position.get();
+
+        match self.direction_of_playback() {
+            PlaybackDirection::Forwards => playback_pos >= self.Duration() && !self.Loop(),
+            PlaybackDirection::Backwards => playback_pos <= self.earliest_possible_position(),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
