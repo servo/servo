@@ -118,7 +118,7 @@ use net_traits::{
 };
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::message::{self, Msg, LayoutThreadInit, ReflowGoal};
+use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,

@@ -6,8 +6,9 @@
 
 use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
 use crate::flow::{
     EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow,
 };

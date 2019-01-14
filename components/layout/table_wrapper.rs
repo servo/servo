@@ -17,9 +17,7 @@ use crate::block::{
 use crate::block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
 use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{
-    BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags,
-};
+use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FlowFlags, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};

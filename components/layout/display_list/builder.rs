@@ -2344,81 +2344,6 @@ bitflags! {
     }
 }
 
-pub trait BlockFlowDisplayListBuilding {
-    fn collect_stacking_contexts_for_block(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        flags: StackingContextCollectionFlags,
-    );
-
-    fn transform_clip_to_coordinate_space(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        preserved_state: &mut SavedStackingContextCollectionState,
-    );
-    fn setup_clipping_for_block(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        preserved_state: &mut SavedStackingContextCollectionState,
-        stacking_context_type: Option<StackingContextType>,
-        established_reference_frame: Option<ClipScrollNodeIndex>,
-        flags: StackingContextCollectionFlags,
-    ) -> ClippingAndScrolling;
-    fn setup_clip_scroll_node_for_position(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        border_box: Rect<Au>,
-    );
-    fn setup_clip_scroll_node_for_overflow(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        border_box: Rect<Au>,
-    );
-    fn setup_clip_scroll_node_for_css_clip(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        preserved_state: &mut SavedStackingContextCollectionState,
-        stacking_relative_border_box: Rect<Au>,
-    );
-    fn create_pseudo_stacking_context_for_block(
-        &mut self,
-        stacking_context_type: StackingContextType,
-        parent_stacking_context_id: StackingContextId,
-        parent_clip_and_scroll_info: ClippingAndScrolling,
-        state: &mut StackingContextCollectionState,
-    );
-    fn create_real_stacking_context_for_block(
-        &mut self,
-        parent_stacking_context_id: StackingContextId,
-        parent_clipping_and_scrolling: ClippingAndScrolling,
-        established_reference_frame: Option<ClipScrollNodeIndex>,
-        state: &mut StackingContextCollectionState,
-    );
-    fn build_display_list_for_block(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        border_painting_mode: BorderPaintingMode,
-    );
-    fn build_display_list_for_block_no_damage(
-        &self,
-        state: &mut DisplayListBuildState,
-        border_painting_mode: BorderPaintingMode,
-    );
-    fn build_display_list_for_background_if_applicable_with_background(
-        &self,
-        state: &mut DisplayListBuildState,
-        background: &style_structs::Background,
-        background_color: RGBA,
-    );
-
-    fn stacking_context_type(
-        &self,
-        flags: StackingContextCollectionFlags,
-    ) -> Option<StackingContextType>;
-
-    fn is_reference_frame(&self, context_type: Option<StackingContextType>) -> bool;
-}
-
 /// This structure manages ensuring that modification to StackingContextCollectionState is
 /// only temporary. It's useful for moving recursively down the flow tree and ensuring
 /// that the state is restored for siblings. To use this structure, we must call
@@ -2498,7 +2423,7 @@ impl SavedStackingContextCollectionState {
     }
 }
 
-impl BlockFlowDisplayListBuilding for BlockFlow {
+impl BlockFlow {
     fn transform_clip_to_coordinate_space(
         &mut self,
         state: &mut StackingContextCollectionState,
@@ -2576,7 +2501,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
     }
 
-    fn collect_stacking_contexts_for_block(
+    pub fn collect_stacking_contexts_for_block(
         &mut self,
         state: &mut StackingContextCollectionState,
         flags: StackingContextCollectionFlags,
@@ -2970,7 +2895,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.collect_stacking_contexts_for_children(state);
     }
 
-    fn build_display_list_for_block_no_damage(
+    pub fn build_display_list_for_block_no_damage(
         &self,
         state: &mut DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
@@ -3005,7 +2930,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         state.processing_scrolling_overflow_element = false;
     }
 
-    fn build_display_list_for_block(
+    pub fn build_display_list_for_block(
         &mut self,
         state: &mut DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
@@ -3016,7 +2941,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.build_display_list_for_block_no_damage(state, border_painting_mode);
     }
 
-    fn build_display_list_for_background_if_applicable_with_background(
+    pub fn build_display_list_for_background_if_applicable_with_background(
         &self,
         state: &mut DisplayListBuildState,
         background: &style_structs::Background,
