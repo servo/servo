@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
@@ -51,6 +52,9 @@ pub struct HTMLVideoElement {
     generation_id: Cell<u32>,
     /// Poster frame fetch request canceller.
     poster_frame_canceller: DomRefCell<FetchCanceller>,
+    /// Load event blocker. Will block the load event while the poster frame
+    /// is being fetched.
+    load_blocker: DomRefCell<Option<LoadBlocker>>,
 }
 
 impl HTMLVideoElement {
@@ -65,6 +69,7 @@ impl HTMLVideoElement {
             video_height: Cell::new(DEFAULT_HEIGHT),
             generation_id: Cell::new(0),
             poster_frame_canceller: DomRefCell::new(Default::default()),
+            load_blocker: Default::default(),
         }
     }
 
@@ -97,6 +102,10 @@ impl HTMLVideoElement {
 
     pub fn set_video_height(&self, height: u32) {
         self.video_height.set(height);
+    }
+
+    pub fn allow_load_event(&self) {
+        LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
     }
 
     /// https://html.spec.whatwg.org/multipage/#poster-frame
@@ -164,7 +173,16 @@ impl HTMLVideoElement {
         };
 
         // Step 5.
-        self.htmlmediaelement.delay_load_event(true);
+        // This delay must be independent from the ones created by HTMLMediaElement during
+        // its media load algorithm, otherwise a code like
+        // <video poster="poster.png"></video>
+        // (which triggers no media load algorithm unless a explicit call to .load() is done)
+        // will block the document's load event forever.
+        let mut blocker = self.load_blocker.borrow_mut();
+        *blocker = Some(LoadBlocker::new(
+            &document_from_node(self),
+            LoadType::Image(poster_url.clone()),
+        ));
 
         let window = window_from_node(self);
         let context = Arc::new(Mutex::new(PosterFrameFetchContext::new(
@@ -308,6 +326,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
     }
 
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+        self.elem.root().allow_load_event();
         self.image_cache
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
     }
