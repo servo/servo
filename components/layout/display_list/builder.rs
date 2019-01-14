@@ -59,7 +59,6 @@ use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::Gradient;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
-use style::values::generics::ui::Cursor;
 use style::values::{Either, RGBA};
 use style_traits::cursor::CursorKind;
 use style_traits::CSSPixel;
@@ -2831,20 +2830,14 @@ impl BaseFlow {
 /// text display items it may be `TextCursor` or `VerticalTextCursor`.
 #[inline]
 fn get_cursor(values: &ComputedValues, default_cursor: CursorKind) -> Option<CursorKind> {
-    match (
-        values.get_inherited_ui().pointer_events,
-        &values.get_inherited_ui().cursor,
-    ) {
-        (PointerEvents::None, _) => None,
-        (
-            PointerEvents::Auto,
-            &Cursor {
-                keyword: CursorKind::Auto,
-                ..
-            },
-        ) => Some(default_cursor),
-        (PointerEvents::Auto, &Cursor { keyword, .. }) => Some(keyword),
+    let inherited_ui = values.get_inherited_ui();
+    if inherited_ui.pointer_events == PointerEvents::None {
+        return None;
     }
+    Some(match inherited_ui.cursor.keyword {
+        CursorKind::Auto => default_cursor,
+        keyword => keyword,
+    })
 }
 
 /// Adjusts `content_rect` as necessary for the given spread, and blur so that the resulting
