@@ -565,11 +565,11 @@ impl ClippingRegion {
         //
         //     http://www.inrg.csie.ntu.edu.tw/algorithm2014/presentation/D&C%20Lee-84.pdf
         for existing_complex_region in &mut self.complex {
-            if existing_complex_region.completely_encloses(&new_complex_region) {
+            if completely_encloses(&existing_complex_region, &new_complex_region) {
                 *existing_complex_region = new_complex_region;
                 return;
             }
-            if new_complex_region.completely_encloses(existing_complex_region) {
+            if completely_encloses(&new_complex_region, &existing_complex_region) {
                 return;
             }
         }
@@ -618,38 +618,32 @@ impl fmt::Debug for ClippingRegion {
     }
 }
 
-pub trait CompletelyEncloses {
-    fn completely_encloses(&self, other: &Self) -> bool;
-}
-
-impl CompletelyEncloses for ComplexClipRegion {
-    // TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
-    // the border radius ellipse.
-    fn completely_encloses(&self, other: &Self) -> bool {
-        let left = self.radii.top_left.width.max(self.radii.bottom_left.width);
-        let top = self.radii.top_left.height.max(self.radii.top_right.height);
-        let right = self
-            .radii
-            .top_right
-            .width
-            .max(self.radii.bottom_right.width);
-        let bottom = self
-            .radii
-            .bottom_left
-            .height
-            .max(self.radii.bottom_right.height);
-        let interior = LayoutRect::new(
-            LayoutPoint::new(self.rect.origin.x + left, self.rect.origin.y + top),
-            LayoutSize::new(
-                self.rect.size.width - left - right,
-                self.rect.size.height - top - bottom,
-            ),
-        );
-        interior.origin.x <= other.rect.origin.x &&
-            interior.origin.y <= other.rect.origin.y &&
-            interior.max_x() >= other.rect.max_x() &&
-            interior.max_y() >= other.rect.max_y()
-    }
+// TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
+// the border radius ellipse.
+fn completely_encloses(this: &ComplexClipRegion, other: &ComplexClipRegion) -> bool {
+    let left = this.radii.top_left.width.max(this.radii.bottom_left.width);
+    let top = this.radii.top_left.height.max(this.radii.top_right.height);
+    let right = this
+        .radii
+        .top_right
+        .width
+        .max(this.radii.bottom_right.width);
+    let bottom = this
+        .radii
+        .bottom_left
+        .height
+        .max(this.radii.bottom_right.height);
+    let interior = LayoutRect::new(
+        LayoutPoint::new(this.rect.origin.x + left, this.rect.origin.y + top),
+        LayoutSize::new(
+            this.rect.size.width - left - right,
+            this.rect.size.height - top - bottom,
+        ),
+    );
+    interior.origin.x <= other.rect.origin.x &&
+        interior.origin.y <= other.rect.origin.y &&
+        interior.max_x() >= other.rect.max_x() &&
+        interior.max_y() >= other.rect.max_y()
 }
 
 /// Metadata attached to each display item. This is useful for performing auxiliary threads with
