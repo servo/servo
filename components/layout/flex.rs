@@ -6,8 +6,9 @@
 
 use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
+use crate::display_list::{
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionState,
+};
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -1090,7 +1091,9 @@ impl Flow for FlexFlow {
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        self.build_display_list_for_flex(state);
+        // Draw the rest of the block.
+        self.as_mut_block()
+            .build_display_list_for_block(state, BorderPaintingMode::Separate)
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
