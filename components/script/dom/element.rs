@@ -1508,6 +1508,11 @@ impl Element {
             .unwrap_or_else(|_| USVString(value.to_owned()))
     }
 
+    pub fn set_url_attribute(&self, local_name: &LocalName, value: USVString) {
+        assert!(*local_name == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::String(value.to_string()));
+    }
+
     pub fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
         match self.get_attribute(&ns!(), local_name) {
             Some(x) => x.Value(),
