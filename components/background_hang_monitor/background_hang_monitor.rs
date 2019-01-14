@@ -22,7 +22,9 @@ pub struct HangMonitorRegister {
 
 impl HangMonitorRegister {
     /// Start a new hang monitor worker, and return a handle to register components for monitoring.
-    pub fn init(constellation_chan: IpcSender<HangAlert>) -> Box<BackgroundHangMonitorRegister> {
+    pub fn init(
+        constellation_chan: IpcSender<HangAlert>,
+    ) -> Box<dyn BackgroundHangMonitorRegister> {
         let (sender, port) = unbounded();
         let _ = thread::Builder::new().spawn(move || {
             let mut monitor = { BackgroundHangMonitorWorker::new(constellation_chan, port) };
@@ -63,7 +65,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
 }
 
 impl BackgroundHangMonitorClone for HangMonitorRegister {
-    fn clone_box(&self) -> Box<BackgroundHangMonitorRegister> {
+    fn clone_box(&self) -> Box<dyn BackgroundHangMonitorRegister> {
         Box::new(self.clone())
     }
 }
@@ -71,7 +73,7 @@ impl BackgroundHangMonitorClone for HangMonitorRegister {
 /// Messages sent from monitored components to the monitor.
 pub enum MonitoredComponentMsg {
     /// Register component for monitoring,
-    Register(Box<Sampler>, Duration, Duration),
+    Register(Box<dyn Sampler>, Duration, Duration),
     /// Unregister component for monitoring.
     Unregister,
     /// Notify start of new activity for a given component,
@@ -128,7 +130,7 @@ impl BackgroundHangMonitor for BackgroundHangMonitorChan {
 }
 
 struct MonitoredComponent {
-    sampler: Box<Sampler>,
+    sampler: Box<dyn Sampler>,
     last_activity: Instant,
     last_annotation: Option<HangAnnotation>,
     transient_hang_timeout: Duration,

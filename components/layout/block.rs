@@ -2569,7 +2569,7 @@ impl Flow for BlockFlow {
         self.collect_stacking_contexts_for_block(state, StackingContextCollectionFlags::empty());
     }
 
-    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
+    fn build_display_list(&mut self, state: &mut dyn DisplayListBuildState) {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
     }
 

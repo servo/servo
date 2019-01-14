@@ -453,14 +453,14 @@ pub trait BackgroundHangMonitorRegister: BackgroundHangMonitorClone + Send {
     ) -> Box<BackgroundHangMonitor>;
 }
 
-impl Clone for Box<BackgroundHangMonitorRegister> {
-    fn clone(&self) -> Box<BackgroundHangMonitorRegister> {
+impl Clone for Box<dyn BackgroundHangMonitorRegister> {
+    fn clone(&self) -> Box<dyn BackgroundHangMonitorRegister> {
         self.clone_box()
     }
 }
 
 pub trait BackgroundHangMonitorClone {
-    fn clone_box(&self) -> Box<BackgroundHangMonitorRegister>;
+    fn clone_box(&self) -> Box<dyn BackgroundHangMonitorRegister>;
 }
 
 /// Proxy methods to communicate with the background hang monitor

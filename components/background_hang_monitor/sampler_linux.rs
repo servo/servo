@@ -14,7 +14,7 @@ pub struct LinuxSampler {
 
 impl LinuxSampler {
     #[allow(unsafe_code, dead_code)]
-    pub fn new() -> Box<Sampler> {
+    pub fn new() -> Box<dyn Sampler> {
         let thread_id = unsafe { libc::pthread_self() };
         Box::new(LinuxSampler { thread_id })
     }

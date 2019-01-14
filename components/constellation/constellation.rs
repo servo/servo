@@ -207,7 +207,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
-    background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
+    background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.

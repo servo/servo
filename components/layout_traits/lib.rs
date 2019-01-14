@@ -33,7 +33,7 @@ pub trait LayoutThreadFactory {
         is_iframe: bool,
         chan: (Sender<Self::Message>, Receiver<Self::Message>),
         pipeline_port: IpcReceiver<LayoutControlMsg>,
-        background_hang_monitor: Box<BackgroundHangMonitorRegister>,
+        background_hang_monitor: Box<dyn BackgroundHangMonitorRegister>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,

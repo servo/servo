@@ -564,7 +564,7 @@ pub struct InitialScriptState {
     /// A channel on which messages can be sent to the constellation from script.
     pub script_to_constellation_chan: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
-    pub background_hang_monitor_register: Box<BackgroundHangMonitorRegister>,
+    pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.

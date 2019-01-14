@@ -6,10 +6,11 @@ use std::path::PathBuf;
 use std::sync::{Once, RwLock};
 
 lazy_static! {
-    static ref RES: RwLock<Option<Box<ResourceReaderMethods + Sync + Send>>> = RwLock::new(None);
+    static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> =
+        RwLock::new(None);
 }
 
-pub fn set(reader: Box<ResourceReaderMethods + Sync + Send>) {
+pub fn set(reader: Box<dyn ResourceReaderMethods + Sync + Send>) {
     *RES.write().unwrap() = Some(reader);
 }
 
@@ -67,7 +68,7 @@ pub trait ResourceReaderMethods {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf>;
 }
 
-fn resources_for_tests() -> Box<ResourceReaderMethods + Sync + Send> {
+fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
     use std::env;
     use std::fs::File;
     use std::io::Read;

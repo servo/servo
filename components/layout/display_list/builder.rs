@@ -632,7 +632,7 @@ impl Fragment {
     /// list if necessary.
     fn build_display_list_for_background_if_applicable(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         display_list_section: DisplayListSection,
         absolute_bounds: Rect<Au>,
@@ -655,7 +655,7 @@ impl Fragment {
     /// override the actual background used
     fn build_display_list_for_background_if_applicable_with_background(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         background: &style_structs::Background,
         background_color: RGBA,
@@ -783,7 +783,7 @@ impl Fragment {
     /// appropriate section of the display list.
     fn build_display_list_for_webrender_image(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         display_list_section: DisplayListSection,
         absolute_bounds: Rect<Au>,
@@ -846,7 +846,7 @@ impl Fragment {
     /// If the worklet has missing image URLs, it passes them to the image cache for loading.
     fn get_webrender_image_for_paint_worklet(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         paint_worklet: &PaintWorklet,
         size_in_au: Size2D<Au>,
@@ -908,7 +908,7 @@ impl Fragment {
     /// to the appropriate section of the display list.
     fn build_display_list_for_background_gradient(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         display_list_section: DisplayListSection,
         absolute_bounds: Rect<Au>,
         gradient: &Gradient,
@@ -982,7 +982,7 @@ impl Fragment {
     /// list if necessary.
     fn build_display_list_for_box_shadow_if_applicable(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         display_list_section: DisplayListSection,
         absolute_bounds: Rect<Au>,
@@ -1033,7 +1033,7 @@ impl Fragment {
     /// necessary.
     fn build_display_list_for_borders_if_applicable(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         inline_info: Option<InlineNodeBorderInfo>,
         border_painting_mode: BorderPaintingMode,
@@ -1148,7 +1148,7 @@ impl Fragment {
     /// Returns `Some` if the addition was successful.
     fn build_display_list_for_border_image(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         base: BaseDisplayItem,
         bounds: Rect<Au>,
@@ -1252,7 +1252,7 @@ impl Fragment {
     /// if necessary.
     fn build_display_list_for_outline_if_applicable(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         mut bounds: Rect<Au>,
         clip: Rect<Au>,
@@ -1302,7 +1302,7 @@ impl Fragment {
     /// Adds display items necessary to draw debug boxes around a scanned text fragment.
     fn build_debug_borders_around_text_fragments(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         style: &ComputedValues,
         stacking_relative_border_box: Rect<Au>,
         stacking_relative_content_box: Rect<Au>,
@@ -1365,7 +1365,7 @@ impl Fragment {
     /// Adds display items necessary to draw debug boxes around this fragment.
     fn build_debug_borders_around_fragment(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         clip: Rect<Au>,
     ) {
@@ -1394,7 +1394,7 @@ impl Fragment {
     /// if any.
     fn build_display_items_for_selection_if_necessary(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
@@ -1486,7 +1486,7 @@ impl Fragment {
     ///      flow, it is expected that this is the size of the child boxes.
     pub fn build_display_list(
         &mut self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
@@ -1516,7 +1516,7 @@ impl Fragment {
     /// Must be paired with a self.restyle_damage.remove(REPAINT) somewhere
     fn build_display_list_no_damage(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
@@ -1672,7 +1672,7 @@ impl Fragment {
     /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         clip: Rect<Au>,
     ) {
@@ -1680,7 +1680,7 @@ impl Fragment {
         let stacking_relative_content_box =
             self.stacking_relative_content_box(stacking_relative_border_box);
 
-        let create_base_display_item = |state: &mut DisplayListBuildState| {
+        let create_base_display_item = |state: &mut dyn DisplayListBuildState| {
             // Adjust the clipping region as necessary to account for `border-radius`.
             let radii =
                 build_border_radius_for_inner_rect(stacking_relative_border_box, &self.style);
@@ -1931,7 +1931,7 @@ impl Fragment {
     /// `text_shadow` will be `Some` if this is rendering a shadow.
     fn build_display_list_for_text_fragment(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         text_fragment: &ScannedTextFragmentInfo,
         stacking_relative_content_box: Rect<Au>,
         text_shadows: &[SimpleShadow],
@@ -2083,7 +2083,7 @@ impl Fragment {
     /// Creates the display item for a text decoration: underline, overline, or line-through.
     fn build_display_list_for_text_decoration(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         color: &RGBA,
         stacking_relative_box: &LogicalRect<Au>,
         clip: Rect<Au>,
@@ -2688,7 +2688,7 @@ impl BlockFlow {
 
     pub fn build_display_list_for_block_no_damage(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
     ) {
         let background_border_section = self.background_border_section();
@@ -2723,7 +2723,7 @@ impl BlockFlow {
 
     pub fn build_display_list_for_block(
         &mut self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
     ) {
         self.fragment
@@ -2734,7 +2734,7 @@ impl BlockFlow {
 
     pub fn build_display_list_for_background_if_applicable_with_background(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         background: &style_structs::Background,
         background_color: RGBA,
     ) {
@@ -2790,7 +2790,7 @@ impl BlockFlow {
 impl BaseFlow {
     pub fn build_display_items_for_debugging_tint(
         &self,
-        state: &mut DisplayListBuildState,
+        state: &mut dyn DisplayListBuildState,
         node: OpaqueNode,
     ) {
         if !opts::get().show_debug_parallel_layout {

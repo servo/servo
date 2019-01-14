@@ -16,7 +16,7 @@ pub struct MacOsSampler {
 
 impl MacOsSampler {
     #[allow(unsafe_code)]
-    pub fn new() -> Box<Sampler> {
+    pub fn new() -> Box<dyn Sampler> {
         let thread_id = unsafe { mach::mach_init::mach_thread_self() };
         Box::new(MacOsSampler { thread_id })
     }
