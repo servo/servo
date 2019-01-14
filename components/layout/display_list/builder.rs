@@ -65,25 +65,12 @@ use style::values::{Either, RGBA};
 use style_traits::cursor::CursorKind;
 use style_traits::CSSPixel;
 use style_traits::ToCss;
-use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
-use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect};
-use webrender_api::{LayoutSize, LayoutTransform, LayoutVector2D, LineStyle, NinePatchBorder};
-use webrender_api::{NinePatchBorderSource, NormalBorder, ScrollSensitivity, StickyOffsetBounds};
-
-trait RgbColor {
-    fn rgb(r: u8, g: u8, b: u8) -> Self;
-}
-
-impl RgbColor for ColorF {
-    fn rgb(r: u8, g: u8, b: u8) -> Self {
-        ColorF {
-            r: (r as f32) / (255.0 as f32),
-            g: (g as f32) / (255.0 as f32),
-            b: (b as f32) / (255.0 as f32),
-            a: 1.0 as f32,
-        }
-    }
-}
+use webrender_api::{
+    self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
+    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect, LayoutSize,
+    LayoutTransform, LayoutVector2D, LineStyle, NinePatchBorder, NinePatchBorderSource,
+    NormalBorder, ScrollSensitivity, StickyOffsetBounds,
+};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {
@@ -1340,7 +1327,7 @@ impl Fragment {
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
-                    ColorF::rgb(0, 0, 200),
+                    ColorU::new(0, 0, 200, 1).into(),
                     webrender_api::BorderStyle::Solid,
                 )),
             },
@@ -1371,7 +1358,7 @@ impl Fragment {
             webrender_api::LineDisplayItem {
                 orientation: webrender_api::LineOrientation::Horizontal,
                 wavy_line_thickness,
-                color: ColorF::rgb(0, 200, 0),
+                color: ColorU::new(0, 200, 0, 1).into(),
                 style: LineStyle::Dashed,
             },
         )));
@@ -1397,7 +1384,7 @@ impl Fragment {
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
-                    ColorF::rgb(0, 0, 200),
+                    ColorU::new(0, 0, 200, 1).into(),
                     webrender_api::BorderStyle::Solid,
                 )),
             },
