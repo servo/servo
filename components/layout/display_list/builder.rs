@@ -71,19 +71,6 @@ use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, L
 use webrender_api::{LayoutSize, LayoutTransform, LayoutVector2D, LineStyle, NinePatchBorder};
 use webrender_api::{NinePatchBorderSource, NormalBorder, ScrollSensitivity, StickyOffsetBounds};
 
-fn establishes_containing_block_for_absolute(
-    flags: StackingContextCollectionFlags,
-    positioning: StylePosition,
-    established_reference_frame: bool,
-) -> bool {
-    if established_reference_frame {
-        return true;
-    }
-
-    !flags.contains(StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK) &&
-        StylePosition::Static != positioning
-}
-
 trait RgbColor {
     fn rgb(r: u8, g: u8, b: u8) -> Self;
 }
@@ -2360,11 +2347,11 @@ impl BlockFlow {
             flags,
         );
 
-        if establishes_containing_block_for_absolute(
-            flags,
-            self.positioning(),
-            established_reference_frame.is_some(),
-        ) {
+        if established_reference_frame.is_some() ||
+            !flags.contains(
+                StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK,
+            ) && self.positioning() != StylePosition::Static
+        {
             state.containing_block_clipping_and_scrolling = state.current_clipping_and_scrolling;
         }
 
@@ -2842,11 +2829,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         for fragment in self.fragments.fragments.iter_mut() {
             state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
 
-            if establishes_containing_block_for_absolute(
-                StackingContextCollectionFlags::empty(),
-                fragment.style.get_box().position,
-                false,
-            ) {
+            if fragment.style.get_box().position != StylePosition::Static {
                 state.containing_block_clipping_and_scrolling =
                     state.current_clipping_and_scrolling;
             }
