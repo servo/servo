@@ -1015,7 +1015,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
 
         let node_style = node.style(self.style_context());
-        if is_empty && node_style.has_padding_or_border() {
+        if is_empty && has_padding_or_border(&node_style) {
             // An empty inline box needs at least one fragment to draw its background and borders.
             let info = SpecificFragmentInfo::UnscannedText(Box::new(
                 UnscannedTextFragmentInfo::new(Box::<str>::from(""), None),
@@ -2191,26 +2191,19 @@ where
     )
 }
 
-/// Convenience methods for computed CSS values
-trait ComputedValueUtils {
-    /// Returns true if this node has non-zero padding or border.
-    fn has_padding_or_border(&self) -> bool;
-}
+/// Returns true if this node has non-zero padding or border.
+fn has_padding_or_border(values: &ComputedValues) -> bool {
+    let padding = values.get_padding();
+    let border = values.get_border();
 
-impl ComputedValueUtils for ComputedValues {
-    fn has_padding_or_border(&self) -> bool {
-        let padding = self.get_padding();
-        let border = self.get_border();
-
-        !padding.padding_top.is_definitely_zero() ||
-            !padding.padding_right.is_definitely_zero() ||
-            !padding.padding_bottom.is_definitely_zero() ||
-            !padding.padding_left.is_definitely_zero() ||
-            border.border_top_width.px() != 0. ||
-            border.border_right_width.px() != 0. ||
-            border.border_bottom_width.px() != 0. ||
-            border.border_left_width.px() != 0.
-    }
+    !padding.padding_top.is_definitely_zero() ||
+        !padding.padding_right.is_definitely_zero() ||
+        !padding.padding_bottom.is_definitely_zero() ||
+        !padding.padding_left.is_definitely_zero() ||
+        border.border_top_width.px() != 0. ||
+        border.border_right_width.px() != 0. ||
+        border.border_bottom_width.px() != 0. ||
+        border.border_left_width.px() != 0.
 }
 
 /// Maintains a stack of anonymous boxes needed to ensure that the flow tree is *legal*. The tree
