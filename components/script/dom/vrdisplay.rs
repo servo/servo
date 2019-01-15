@@ -732,6 +732,12 @@ impl VRDisplay {
                                     .send_vr(WebVRCommand::Create(display_id))
                                     .unwrap();
                             }
+                            if let Some(ref api_sender) = api_sender {
+                                // shut down old vr compositor
+                                api_sender
+                                    .send_vr(WebVRCommand::Release(display_id))
+                                    .unwrap();
+                            }
                             context_id = update.context_id;
                         }
 
