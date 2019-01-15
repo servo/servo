@@ -9,6 +9,7 @@ use crate::IFrameLoadInfo;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
+use crate::WindowSizeType;
 use crate::WorkerGlobalScopeInit;
 use crate::WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
@@ -30,13 +31,31 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webrender_api::{DeviceIntPoint, DeviceIntSize};
 
+/// A particular iframe's size, associated with a browsing context.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct IFrameSize {
+    /// The child browsing context for this iframe.
+    pub id: BrowsingContextId,
+    /// The size of the iframe.
+    pub size: TypedSize2D<f32, CSSPixel>,
+}
+
+/// An iframe sizing operation.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct IFrameSizeMsg {
+    /// The iframe sizing data.
+    pub data: IFrameSize,
+    /// The kind of sizing operation.
+    pub type_: WindowSizeType,
+}
+
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Inform the constellation of the size of the iframe's viewport.
-    IFrameSizes(Vec<(BrowsingContextId, TypedSize2D<f32, CSSPixel>)>),
+    IFrameSizes(Vec<IFrameSizeMsg>),
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
     PendingPaintMetric(PipelineId, Epoch),
