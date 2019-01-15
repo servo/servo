@@ -28,6 +28,7 @@
   "dom.webrtc.enabled": false,
   "dom.webvr.enabled": false,
   "dom.webvr.event_polling_interval": 500,
+  "dom.webxr.enabled": false,
   "dom.webvr.test": false,
   "dom.worklet.timeout_ms": 10,
   "gfx.subpixel-text-antialiasing.enabled": true,
