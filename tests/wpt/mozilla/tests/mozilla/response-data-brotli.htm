@@ -9,34 +9,26 @@
   <body>
     <div id="log"></div>
     <script>
-      function request(input) {
-        var test = async_test();
-        test.step(function() {
-          var client = new XMLHttpRequest()
-
-          client.open("POST", "resources/brotli.py", false);
-
-          client.onreadystatechange = test.step_func(function () {
-              if (client.readyState === 4) {
-                  var len = parseInt(client.getResponseHeader('content-length'), 10);
-
-                  assert_equals(client.getResponseHeader('content-encoding'), 'br');
-                  assert_true(len < input.length);
-                  assert_equals(client.responseText, input);
-                  test.done();
-              }
+      async_test(function(test) {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/brotli.py?raw", false);
+        client.onerror = test.unreached_func();
+        client.onload = test.step_func(function () {
+          var input = client.responseText;
+          var client2 = new XMLHttpRequest()
+          client2.open("GET", "resources/brotli.py?pipe=trickle(1:d1)", false);
+          client2.onload = test.step_func_done(function() {
+            var len = parseInt(client2.getResponseHeader('content-length'), 10);
+            assert_equals(client2.getResponseHeader('content-encoding'), 'br');
+            assert_true(len < input.length);
+            assert_equals(client2.responseText, input);
           });
+          client2.onerror = test.unreached_func();
+          client2.send();
+        });
 
-          client.send(input);
-        }, document.title);
-      }
-
-      var wellCompressableData = '';
-      for (var i = 0; i < 500; i++) {
-          wellCompressableData += 'foofoofoofoofoofoofoo';
-      }
-
-      request(wellCompressableData);
+        client.send();
+      });
     </script>
   </body>
 </html>
