@@ -166,7 +166,9 @@ class ServoWebDriverBrowser(Browser):
                                    command=" ".join(self.command))
 
     def is_alive(self):
-        return self.proc.poll() is None
+        if self.runner:
+            return self.runner.is_running()
+        return False
 
     def cleanup(self):
         self.stop()
