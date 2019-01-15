@@ -437,8 +437,10 @@ impl VRDisplayMethods for VRDisplay {
         let display_id = self.display.borrow().display_id;
         let layer = self.layer.borrow();
         let msg = WebVRCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
-        self.layer_ctx.get().expect("SubmitFrame can only be called when there is a webgl layer")
-                            .send_vr_command(msg);
+        self.layer_ctx
+            .get()
+            .expect("SubmitFrame can only be called when there is a webgl layer")
+            .send_vr_command(msg);
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#dom-vrdisplay-getlayers
@@ -616,16 +618,19 @@ impl VRDisplay {
             depthFar: state.depthFar,
             baseLayer: state.baseLayer.clone(),
         };
-        self.pending_renderstate_updates.borrow_mut().push((new_state, promise))
+        self.pending_renderstate_updates
+            .borrow_mut()
+            .push((new_state, promise));
+
+        if let Some(ref wakeup) = *self.raf_wakeup_sender.borrow() {
+            let _ = wakeup.send(());
+        }
     }
 
     fn process_renderstate_queue(&self) {
         let mut updates = self.pending_renderstate_updates.borrow_mut();
-        if updates.is_empty() {
-            return;
-        }
 
-        debug_assert!(self.xr_session.get().is_some());
+        debug_assert!(updates.is_empty() || self.xr_session.get().is_some());
         for update in updates.drain(..) {
             if let Some(near) = update.0.depthNear {
                 self.depth_near.set(*near);
@@ -639,10 +644,6 @@ impl VRDisplay {
                 self.layer_ctx.set(Some(&layer.Context()));
             }
             update.1.resolve_native(&());
-        }
-
-        if let Some(ref wakeup) = *self.raf_wakeup_sender.borrow() {
-            let _ = wakeup.send(());
         }
     }
 
