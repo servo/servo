@@ -40,7 +40,12 @@ pub fn load_script(head: &HTMLHeadElement) {
             f.read_to_end(&mut contents).unwrap();
             let script_text = String::from_utf8_lossy(&contents);
             win.upcast::<GlobalScope>()
-                .evaluate_js_on_global_with_result(&script_text, rval.handle_mut());
+                .evaluate_script_on_global_with_result(
+                    &script_text,
+                    &file.to_string_lossy(),
+                    rval.handle_mut(),
+                    1,
+                );
         }
     }));
 }
