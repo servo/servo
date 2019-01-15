@@ -679,18 +679,6 @@ const gCSSProperties = {
       { type: 'discrete', options: [ [ '". . a b" ". .a b"', 'none' ] ] }
     ]
   },
-  'grid-template-columns': {
-    // https://drafts.csswg.org/css-template/#grid-template-columns
-    types: [
-      { type: 'discrete', options: [ [ '1px', '5px' ] ] }
-    ]
-  },
-  'grid-template-rows': {
-    // https://drafts.csswg.org/css-template/#grid-template-rows
-    types: [
-      { type: 'discrete', options: [ [ '1px', '5px' ] ] }
-    ]
-  },
   'height': {
     // https://drafts.csswg.org/css21/visudet.html#propdef-height
     types: [
