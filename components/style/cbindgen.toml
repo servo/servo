@@ -48,6 +48,7 @@ include = [
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",
   "ComputedTimingFunction",
+  "CursorKind",
   "Display",
   "DisplayMode",
   "ExtremumLength",

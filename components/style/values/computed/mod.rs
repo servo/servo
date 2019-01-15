@@ -28,7 +28,6 @@ use std::cell::RefCell;
 use std::cmp;
 use std::f32;
 use std::fmt::{self, Write};
-use style_traits::cursor::CursorKind;
 use style_traits::{CssWriter, ToCss};
 
 #[cfg(feature = "gecko")]
@@ -452,7 +451,6 @@ trivial_to_computed_value!(u8);
 trivial_to_computed_value!(u16);
 trivial_to_computed_value!(u32);
 trivial_to_computed_value!(Atom);
-trivial_to_computed_value!(CursorKind);
 #[cfg(feature = "servo")]
 trivial_to_computed_value!(Prefix);
 trivial_to_computed_value!(String);
