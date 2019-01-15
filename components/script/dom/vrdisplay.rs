@@ -437,7 +437,8 @@ impl VRDisplayMethods for VRDisplay {
         let display_id = self.display.borrow().display_id;
         let layer = self.layer.borrow();
         let msg = WebVRCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
-        self.layer_ctx.get().unwrap().send_vr_command(msg);
+        self.layer_ctx.get().expect("SubmitFrame can only be called when there is a webgl layer")
+                            .send_vr_command(msg);
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#dom-vrdisplay-getlayers
@@ -757,12 +758,12 @@ impl VRDisplay {
         let xr = self.global().as_window().Navigator().Xr();
         xr.deactivate_session();
         *self.frame_data_receiver.borrow_mut() = None;
-
-        let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
-        let display_id = self.display.borrow().display_id;
-        api_sender
-            .send_vr(WebVRCommand::Release(display_id))
-            .unwrap();
+        if let Some(api_sender) = self.api_sender() {
+            let display_id = self.display.borrow().display_id;
+            api_sender
+                .send_vr(WebVRCommand::Release(display_id))
+                .unwrap();
+        }
     }
 
     // Only called when the JSContext is destroyed while presenting.
