@@ -1415,6 +1415,16 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         self.media_element_load_algorithm();
     }
 
+    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
+    fn GetCrossOrigin(&self) {
+        self.cross_origin.get();
+    }
+
+    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        self.cross_origin.set(value);
+    }
+
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
     // Missing value default is user-agent defined.
     make_enumerated_getter!(Preload, "preload", "", "none" | "metadata" | "auto");
