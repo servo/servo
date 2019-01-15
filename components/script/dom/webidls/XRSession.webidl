@@ -26,6 +26,7 @@ interface XRSession : EventTarget {
 
   // FrozenArray<XRInputSource> getInputSources();
 
+  Promise<void> updateRenderState(optional XRRenderStateInit state);
   long requestAnimationFrame(XRFrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
 

@@ -13,7 +13,9 @@ use crate::dom::bindings::codegen::Bindings::VRLayerBinding::VRLayer;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -34,10 +36,11 @@ use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrsession::XRSession;
+use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use crate::task_source::{TaskSource, TaskSourceName};
-use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
+use canvas_traits::webgl::{webgl_channel, WebGLMsgSender, WebGLReceiver, WebVRCommand};
 use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -74,6 +77,10 @@ pub struct VRDisplay {
     raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<FrameRequestCallback>>)>>,
     #[ignore_malloc_size_of = "closures are hard"]
     xr_raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<XRFrameRequestCallback>>)>>,
+    /// When there isn't any layer_ctx the RAF thread needs to be "woken up"
+    raf_wakeup_sender: DomRefCell<Option<Sender<()>>>,
+    #[ignore_malloc_size_of = "Rc is hard"]
+    pending_renderstate_updates: DomRefCell<Vec<(XRRenderStateInit, Rc<Promise>)>>,
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_malloc_size_of = "closures are hard"]
@@ -88,6 +95,7 @@ pub struct VRDisplay {
 unsafe_no_jsmanaged_fields!(WebVRDisplayData);
 unsafe_no_jsmanaged_fields!(WebVRFrameData);
 unsafe_no_jsmanaged_fields!(WebVRLayer);
+unsafe_no_jsmanaged_fields!(VRFrameDataStatus);
 
 #[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq)]
 enum VRFrameDataStatus {
@@ -96,7 +104,18 @@ enum VRFrameDataStatus {
     Exit,
 }
 
-unsafe_no_jsmanaged_fields!(VRFrameDataStatus);
+#[derive(Clone, MallocSizeOf)]
+struct VRRAFUpdate {
+    depth_near: f64,
+    depth_far: f64,
+    /// WebGL API sender
+    api_sender: Option<WebGLMsgSender>,
+    /// Number uniquely identifying the WebGL context
+    /// so that we may setup/tear down VR compositors as things change
+    context_id: usize,
+}
+
+type VRRAFUpdateSender = Sender<Result<VRRAFUpdate, ()>>;
 
 impl VRDisplay {
     fn new_inherited(global: &GlobalScope, display: WebVRDisplayData) -> VRDisplay {
@@ -130,6 +149,8 @@ impl VRDisplay {
             next_raf_id: Cell::new(1),
             raf_callback_list: DomRefCell::new(vec![]),
             xr_raf_callback_list: DomRefCell::new(vec![]),
+            raf_wakeup_sender: DomRefCell::new(None),
+            pending_renderstate_updates: DomRefCell::new(vec![]),
             frame_data_status: Cell::new(VRFrameDataStatus::Waiting),
             frame_data_receiver: DomRefCell::new(None),
             running_display_raf: Cell::new(false),
@@ -567,6 +588,63 @@ impl VRDisplay {
             .fire(self.global().upcast::<EventTarget>());
     }
 
+    fn api_sender(&self) -> Option<WebGLMsgSender> {
+        self.layer_ctx.get().map(|c| c.webgl_sender())
+    }
+
+    fn context_id(&self) -> usize {
+        self.layer_ctx
+            .get()
+            .map(|c| &*c as *const WebGLRenderingContext as usize)
+            .unwrap_or(0)
+    }
+
+    fn vr_raf_update(&self) -> VRRAFUpdate {
+        VRRAFUpdate {
+            depth_near: self.depth_near.get(),
+            depth_far: self.depth_far.get(),
+            api_sender: self.api_sender(),
+            context_id: self.context_id(),
+        }
+    }
+
+    pub fn queue_renderstate(&self, state: &XRRenderStateInit, promise: Rc<Promise>) {
+        // can't clone dictionaries
+        let new_state = XRRenderStateInit {
+            depthNear: state.depthNear,
+            depthFar: state.depthFar,
+            baseLayer: state.baseLayer.clone(),
+        };
+        self.pending_renderstate_updates.borrow_mut().push((new_state, promise))
+    }
+
+    fn process_renderstate_queue(&self) {
+        let mut updates = self.pending_renderstate_updates.borrow_mut();
+        if updates.is_empty() {
+            return;
+        }
+
+        debug_assert!(self.xr_session.get().is_some());
+        for update in updates.drain(..) {
+            if let Some(near) = update.0.depthNear {
+                self.depth_near.set(*near);
+            }
+            if let Some(far) = update.0.depthFar {
+                self.depth_far.set(*far);
+            }
+            if let Some(ref layer) = update.0.baseLayer {
+                self.xr_session.get().unwrap().set_layer(&layer);
+                let layer = layer.downcast::<XRWebGLLayer>().unwrap();
+                self.layer_ctx.set(Some(&layer.Context()));
+            }
+            update.1.resolve_native(&());
+        }
+
+        if let Some(ref wakeup) = *self.raf_wakeup_sender.borrow() {
+            let _ = wakeup.send(());
+        }
+    }
+
     fn init_present(&self) {
         self.presenting.set(true);
         let xr = self.global().as_window().Navigator().Xr();
@@ -575,12 +653,17 @@ impl VRDisplay {
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
         let display_id = self.display.borrow().display_id;
-        let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
+        let mut api_sender = self.api_sender();
+        let mut context_id = self.context_id();
         let js_sender = self.global().script_chan();
         let address = Trusted::new(&*self);
-        let near_init = self.depth_near.get();
-        let far_init = self.depth_far.get();
+        let mut near = self.depth_near.get();
+        let mut far = self.depth_far.get();
         let pipeline_id = self.global().pipeline_id();
+
+        let (raf_sender, raf_receiver) = unbounded();
+        let (wakeup_sender, wakeup_receiver) = unbounded();
+        *self.raf_wakeup_sender.borrow_mut() = Some(wakeup_sender);
 
         // The render loop at native headset frame rate is implemented using a dedicated thread.
         // Every loop iteration syncs pose data with the HMD, submits the pixels to the display and waits for Vsync.
@@ -591,40 +674,68 @@ impl VRDisplay {
         thread::Builder::new()
             .name("WebVR_RAF".into())
             .spawn(move || {
-                let (raf_sender, raf_receiver) = unbounded();
-                let mut near = near_init;
-                let mut far = far_init;
-
                 // Initialize compositor
-                api_sender
-                    .send_vr(WebVRCommand::Create(display_id))
-                    .unwrap();
-                loop {
-                    // Run RAF callbacks on JavaScript thread
-                    let this = address.clone();
-                    let sender = raf_sender.clone();
-                    let task = Box::new(task!(handle_vrdisplay_raf: move || {
-                        this.root().handle_raf(&sender);
-                    }));
-                    // NOTE: WebVR spec doesn't specify what task source we should use. Is
-                    // dom-manipulation a good choice long term?
-                    js_sender
-                        .send(CommonScriptMsg::Task(
-                            WebVREvent,
-                            task,
-                            Some(pipeline_id),
-                            TaskSourceName::DOMManipulation,
-                        ))
+                if let Some(ref api_sender) = api_sender {
+                    api_sender
+                        .send_vr(WebVRCommand::Create(display_id))
                         .unwrap();
+                }
+                loop {
+                    if let Some(ref api_sender) = api_sender {
+                        // Run RAF callbacks on JavaScript thread
+                        let this = address.clone();
+                        let sender = raf_sender.clone();
+                        let task = Box::new(task!(handle_vrdisplay_raf: move || {
+                            this.root().handle_raf(&sender);
+                        }));
+                        // NOTE: WebVR spec doesn't specify what task source we should use. Is
+                        // dom-manipulation a good choice long term?
+                        js_sender
+                            .send(CommonScriptMsg::Task(
+                                WebVREvent,
+                                task,
+                                Some(pipeline_id),
+                                TaskSourceName::DOMManipulation,
+                            ))
+                            .unwrap();
 
-                    // Run Sync Poses in parallell on Render thread
-                    let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
-                    api_sender.send_vr(msg).unwrap();
+                        // Run Sync Poses in parallell on Render thread
+                        let msg =
+                            WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
+                        api_sender.send_vr(msg).unwrap();
+                    } else {
+                        let _ = wakeup_receiver.recv();
+                        let sender = raf_sender.clone();
+                        let this = address.clone();
+                        let task = Box::new(task!(flush_renderstate_queue: move || {
+                            let this = this.root();
+                            this.process_renderstate_queue();
+                            sender.send(Ok(this.vr_raf_update())).unwrap();
+                        }));
+                        js_sender
+                            .send(CommonScriptMsg::Task(
+                                WebVREvent,
+                                task,
+                                Some(pipeline_id),
+                                TaskSourceName::DOMManipulation,
+                            ))
+                            .unwrap();
+                    }
 
                     // Wait until both SyncPoses & RAF ends
-                    if let Ok(depth) = raf_receiver.recv().unwrap() {
-                        near = depth.0;
-                        far = depth.1;
+                    if let Ok(update) = raf_receiver.recv().unwrap() {
+                        near = update.depth_near;
+                        far = update.depth_far;
+                        if update.context_id != context_id {
+                            if let Some(ref api_sender) = update.api_sender {
+                                api_sender
+                                    .send_vr(WebVRCommand::Create(display_id))
+                                    .unwrap();
+                            }
+                            context_id = update.context_id;
+                        }
+
+                        api_sender = update.api_sender;
                     } else {
                         // Stop thread
                         // ExitPresent called or some error happened
@@ -677,7 +788,7 @@ impl VRDisplay {
         self.frame_data_status.set(status);
     }
 
-    fn handle_raf(&self, end_sender: &Sender<Result<(f64, f64), ()>>) {
+    fn handle_raf(&self, end_sender: &VRRAFUpdateSender) {
         self.frame_data_status.set(VRFrameDataStatus::Waiting);
 
         let now = self.global().as_window().Performance().Now();
@@ -717,12 +828,11 @@ impl VRDisplay {
             }
         }
 
+        self.process_renderstate_queue();
         match self.frame_data_status.get() {
             VRFrameDataStatus::Synced => {
                 // Sync succeeded. Notify RAF thread.
-                end_sender
-                    .send(Ok((self.depth_near.get(), self.depth_far.get())))
-                    .unwrap();
+                end_sender.send(Ok(self.vr_raf_update())).unwrap();
             },
             VRFrameDataStatus::Exit | VRFrameDataStatus::Waiting => {
                 // ExitPresent called or some error ocurred.

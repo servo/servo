@@ -5,9 +5,9 @@
 // https://immersive-web.github.io/webxr/#xrrenderstate-interface
 
 dictionary XRRenderStateInit {
-  double depthNear = 0.1;
-  double depthFar = 1000.0;
-  XRLayer? baseLayer = null;
+  double depthNear;
+  double depthFar;
+  XRLayer baseLayer;
 };
 
 [SecureContext, Exposed=Window] interface XRRenderState {

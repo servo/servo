@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
+use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
@@ -23,7 +24,6 @@ use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
-use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::dom::xrrenderstate::XRRenderState;
 use dom_struct::dom_struct;
 use std::rc::Rc;
@@ -58,6 +58,10 @@ impl XRSession {
     pub fn xr_present(&self, p: Rc<Promise>) {
         self.display.xr_present(self, None, Some(p));
     }
+
+    pub fn set_layer(&self, layer: &XRLayer) {
+        self.base_layer.set(Some(layer))
+    }
 }
 
 impl XRSessionMethods for XRSession {
@@ -69,8 +73,19 @@ impl XRSessionMethods for XRSession {
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
     fn RenderState(&self) -> DomRoot<XRRenderState> {
         // XXXManishearth maybe cache this
-        XRRenderState::new(&self.global(), *self.display.DepthNear(), *self.display.DepthFar(),
-                           self.base_layer.get().as_ref().map(|l| &**l))
+        XRRenderState::new(
+            &self.global(),
+            *self.display.DepthNear(),
+            *self.display.DepthFar(),
+            self.base_layer.get().as_ref().map(|l| &**l),
+        )
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
+    fn UpdateRenderState(&self, init: &XRRenderStateInit) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+        self.display.queue_renderstate(init, p.clone());
+        p
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
