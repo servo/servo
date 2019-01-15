@@ -14,8 +14,7 @@ use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMe
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -25,6 +24,7 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
+use crate::dom::xrrenderstate::XRRenderState;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -61,46 +61,16 @@ impl XRSession {
 }
 
 impl XRSessionMethods for XRSession {
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthnear
-    fn DepthNear(&self) -> Finite<f64> {
-        self.display.DepthNear()
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthfar
-    fn DepthFar(&self) -> Finite<f64> {
-        self.display.DepthFar()
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthnear
-    fn SetDepthNear(&self, d: Finite<f64>) {
-        self.display.SetDepthNear(d)
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-depthfar
-    fn SetDepthFar(&self, d: Finite<f64>) {
-        self.display.SetDepthFar(d)
-    }
-
     /// https://immersive-web.github.io/webxr/#dom-xrsession-mode
     fn Mode(&self) -> XRSessionMode {
         XRSessionMode::Immersive_vr
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-baselayer
-    fn SetBaseLayer(&self, layer: Option<&XRLayer>) {
-        self.base_layer.set(layer);
-        if let Some(layer) = layer {
-            let layer = layer.downcast::<XRWebGLLayer>().unwrap();
-            self.display.xr_present(&self, Some(&layer.Context()), None);
-        } else {
-            // steps unknown
-            // https://github.com/immersive-web/webxr/issues/453
-        }
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-baselayer
-    fn GetBaseLayer(&self) -> Option<DomRoot<XRLayer>> {
-        self.base_layer.get()
+    // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
+    fn RenderState(&self) -> DomRoot<XRRenderState> {
+        // XXXManishearth maybe cache this
+        XRRenderState::new(&self.global(), *self.display.DepthNear(), *self.display.DepthFar(),
+                           self.base_layer.get().as_ref().map(|l| &**l))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe

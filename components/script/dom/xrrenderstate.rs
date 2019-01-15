@@ -50,14 +50,17 @@ impl XRRenderState {
 }
 
 impl XRRenderStateMethods for XRRenderState {
+    /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-depthnear
     fn DepthNear(&self) -> Finite<f64> {
         Finite::wrap(self.depth_near.get())
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-depthfar
     fn DepthFar(&self) -> Finite<f64> {
         Finite::wrap(self.depth_far.get())
     }
 
+    /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-baselayer
     fn GetBaseLayer(&self) -> Option<DomRoot<XRLayer>> {
         self.layer.get()
     }
