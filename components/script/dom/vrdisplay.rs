@@ -651,6 +651,7 @@ impl VRDisplay {
         self.presenting.set(true);
         let xr = self.global().as_window().Navigator().Xr();
         xr.set_active_immersive_session(&self);
+        self.process_renderstate_queue();
         let (sync_sender, sync_receiver) = webgl_channel().unwrap();
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
