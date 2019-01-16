@@ -249,6 +249,10 @@ linker = "lld-link.exe"
 > 2. `cd to/the/path/servo`
 > 3. `python mach build -d`
 
+> If you got the error `Cannot run mach in a path on a case-sensitive file system on Windows`:
+> 1. Open Command Prompt or PowerShell as administrator.
+> 2. Disable case-sensitive for servo path, `fsutil.exe file SetCaseSensitiveInfo X:\path\to\servo disable`
+
 #### Cross-compilation for Android
 
 Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
