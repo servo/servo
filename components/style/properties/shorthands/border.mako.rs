@@ -399,3 +399,50 @@ pub fn parse_border<'i, 't>(
         </%helpers:shorthand>
     % endfor
 % endfor
+
+% for axis in ["block", "inline"]:
+    <%
+        spec = "https://drafts.csswg.org/css-logical/#propdef-border-%s" % (axis)
+    %>
+    <%helpers:shorthand
+        name="border-${axis}"
+        sub_properties="${' '.join(
+            'border-%s-%s-width' % (axis, side)
+            for side in ['start', 'end']
+        )} ${' '.join(
+            'border-%s-%s-style' % (axis, side)
+            for side in ['start', 'end']
+        )} ${' '.join(
+            'border-%s-%s-color' % (axis, side)
+            for side in ['start', 'end']
+        )}"
+        spec="${spec}">
+
+        use crate::properties::shorthands::border_${axis}_start;
+        pub fn parse_value<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<Longhands, ParseError<'i>> {
+            let start_value = border_${axis}_start::parse_value(context, input)?;
+            Ok(expanded! {
+                border_${axis}_start_width: start_value.border_${axis}_start_width.clone(),
+                border_${axis}_end_width: start_value.border_${axis}_start_width,
+                border_${axis}_start_style: start_value.border_${axis}_start_style.clone(),
+                border_${axis}_end_style: start_value.border_${axis}_start_style,
+                border_${axis}_start_color: start_value.border_${axis}_start_color.clone(),
+                border_${axis}_end_color: start_value.border_${axis}_start_color,
+            })
+        }
+
+        impl<'a> ToCss for LonghandsToSerialize<'a>  {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+                super::serialize_directional_border(
+                    dest,
+                    self.border_${axis}_start_width,
+                    self.border_${axis}_start_style,
+                    self.border_${axis}_start_color
+                )
+            }
+        }
+    </%helpers:shorthand>
+% endfor
