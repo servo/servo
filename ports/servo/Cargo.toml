@@ -60,9 +60,7 @@ osmesa-sys = "0.1.2"
 x11 = "2.0.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-winapi = "0.2"
-user32-sys = "0.2"
-gdi32-sys = "0.2"
+winapi = { version = "0.3", features = ["wingdi", "winuser"] }
 
 [target.'cfg(any(target_os = "macos", all(target_arch = "x86_64", target_os = "linux")))'.dependencies]
 osmesa-src = {git = "https://github.com/servo/osmesa-src"}

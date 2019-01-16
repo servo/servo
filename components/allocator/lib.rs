@@ -98,9 +98,9 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    use kernel32::{GetProcessHeap, HeapSize, HeapValidate};
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
+    use winapi::um::heapapi::{GetProcessHeap, HeapSize, HeapValidate};
 
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(mut ptr: *const c_void) -> usize {

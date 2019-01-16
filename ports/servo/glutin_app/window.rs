@@ -5,8 +5,6 @@
 //! A windowing implementation using winit.
 
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
-#[cfg(target_os = "windows")]
-use gdi32;
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
 use keyboard_types::{Key, KeyboardEvent, KeyState};
@@ -31,7 +29,7 @@ use std::thread;
 use std::time;
 use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
-use user32;
+use winapi;
 use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -159,8 +157,8 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 
 #[cfg(target_os = "windows")]
 fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-    let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
-    let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+    let hdc = unsafe { winapi::um::winuser::GetDC(::std::ptr::null_mut()) };
+    let ppi = unsafe { winapi::um::wingdi::GetDeviceCaps(hdc, winapi::um::wingdi::LOGPIXELSY) };
     TypedScale::new(ppi as f32 / 96.0)
 }
 
