@@ -61,6 +61,7 @@ pub struct VRDisplay {
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
     presenting: Cell<bool>,
+    has_raf_thread: Cell<bool>,
     left_eye_params: MutDom<VREyeParameters>,
     right_eye_params: MutDom<VREyeParameters>,
     capabilities: MutDom<VRDisplayCapabilities>,
@@ -130,6 +131,7 @@ impl VRDisplay {
             depth_near: Cell::new(0.01),
             depth_far: Cell::new(10000.0),
             presenting: Cell::new(false),
+            has_raf_thread: Cell::new(false),
             left_eye_params: MutDom::new(&*VREyeParameters::new(
                 display.left_eye_parameters.clone(),
                 &global,
@@ -652,6 +654,10 @@ impl VRDisplay {
         let xr = self.global().as_window().Navigator().Xr();
         xr.set_active_immersive_session(&self);
         self.process_renderstate_queue();
+        if self.has_raf_thread.get() {
+            return;
+        }
+        self.has_raf_thread.set(true);
         let (sync_sender, sync_receiver) = webgl_channel().unwrap();
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
@@ -760,6 +766,7 @@ impl VRDisplay {
         let xr = self.global().as_window().Navigator().Xr();
         xr.deactivate_session();
         *self.frame_data_receiver.borrow_mut() = None;
+        self.has_raf_thread.set(false);
         if let Some(api_sender) = self.api_sender() {
             let display_id = self.display.borrow().display_id;
             api_sender
