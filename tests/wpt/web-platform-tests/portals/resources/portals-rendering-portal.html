@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<body style="background-color: green">
+  <script>
+    window.requestAnimationFrame(function(ts) {
+      var bc = new BroadcastChannel('portal');
+      bc.postMessage('loaded');
+      bc.close();
+    });
+  </script>
+</body>

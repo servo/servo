@@ -2309,21 +2309,6 @@ IdlInterface.prototype.do_member_operation_asserts = function(memberHolderObject
     }
 }
 
-IdlInterface.prototype.add_iterable_members = function(member)
-{
-    this.members.push(new IdlInterfaceMember(
-        { type: "operation", name: "entries", idlType: "iterator", arguments: []}));
-    this.members.push(new IdlInterfaceMember(
-        { type: "operation", name: "keys", idlType: "iterator", arguments: []}));
-    this.members.push(new IdlInterfaceMember(
-        { type: "operation", name: "values", idlType: "iterator", arguments: []}));
-    this.members.push(new IdlInterfaceMember(
-        { type: "operation", name: "forEach", idlType: "void",
-          arguments:
-          [{ name: "callback", idlType: {idlType: "function"}},
-           { name: "thisValue", idlType: {idlType: "any"}, optional: true}]}));
-};
-
 IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, member) {
     var instanceName = memberHolderObject && memberHolderObject.constructor.name
         || member.name + " object";
@@ -2351,27 +2336,29 @@ IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, mem
 
 IdlInterface.prototype.test_member_iterable = function(member)
 {
-    var isPairIterator = member.idlType.length === 2;
     subsetTestByKey(this.name, test, function()
     {
-        var descriptor = Object.getOwnPropertyDescriptor(this.get_interface_object().prototype, Symbol.iterator);
-        assert_true(descriptor.writable, "property should be writable");
-        assert_true(descriptor.configurable, "property should be configurable");
-        assert_false(descriptor.enumerable, "property should not be enumerable");
-        assert_equals(this.get_interface_object().prototype[Symbol.iterator].name, isPairIterator ? "entries" : "values", "@@iterator function does not have the right name");
-    }.bind(this), "Testing Symbol.iterator property of iterable interface " + this.name);
+        var isPairIterator = member.idlType.length === 2;
+        var proto = this.get_interface_object().prototype;
+        var descriptor = Object.getOwnPropertyDescriptor(proto, Symbol.iterator);
 
-    if (isPairIterator) {
-        subsetTestByKey(this.name, test, function() {
-            assert_equals(this.get_interface_object().prototype[Symbol.iterator], this.get_interface_object().prototype["entries"], "entries method is not the same as @@iterator");
-        }.bind(this), "Testing pair iterable interface " + this.name);
-    } else {
-        subsetTestByKey(this.name, test, function() {
-            ["entries", "keys", "values", "forEach", Symbol.Iterator].forEach(function(property) {
-                assert_equals(this.get_interface_object().prototype[property], Array.prototype[property], property + " function is not the same as Array one");
+        assert_true(descriptor.writable, "@@iterator property should be writable");
+        assert_true(descriptor.configurable, "@@iterator property should be configurable");
+        assert_false(descriptor.enumerable, "@@iterator property should not be enumerable");
+        assert_equals(typeof descriptor.value, "function", "@@iterator property should be a function");
+        assert_equals(descriptor.value.length, 0, "@@iterator function object length should be 0");
+        assert_equals(descriptor.value.name, isPairIterator ? "entries" : "values", "@@iterator function object should have the right name");
+
+        if (isPairIterator) {
+            assert_equals(proto["entries"], proto[Symbol.iterator], "entries method should be the same as @@iterator method");
+        } else {
+            assert_equals(proto[Symbol.iterator], Array.prototype[Symbol.iterator], "@@iterator method should be the same as Array prototype's");
+            ["entries", "keys", "values", "forEach", Symbol.iterator].forEach(function(property) {
+                var propertyName = property === Symbol.iterator ? "@@iterator" : property;
+                assert_equals(proto[property], Array.prototype[property], propertyName + " method should be the same as Array prototype's");
             }.bind(this));
-        }.bind(this), "Testing value iterable interface " + this.name);
-    }
+        }
+    }.bind(this), this.name + " interface: iterable<" + member.idlType.map(function(t) { return t.idlType; }).join(", ") + ">");
 };
 
 IdlInterface.prototype.test_member_stringifier = function(member)
@@ -2437,19 +2424,6 @@ IdlInterface.prototype.test_member_stringifier = function(member)
 
 IdlInterface.prototype.test_members = function()
 {
-    for (var i = 0; i < this.members.length; i++)
-    {
-        var member = this.members[i];
-        switch (member.type) {
-        case "iterable":
-            this.add_iterable_members(member);
-            break;
-        // TODO: add setlike and maplike handling.
-        default:
-            break;
-        }
-    }
-
     for (var i = 0; i < this.members.length; i++)
     {
         var member = this.members[i];
