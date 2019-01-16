@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Async Clipboard basic tests</title>
+<title>Async Clipboard input type validation tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -46,6 +46,21 @@ promise_test(async t => {
                          navigator.clipboard.writeText());
 }, "navigator.clipboard.writeText() fails (expect DOMString)");
 
+/* clipboard.writeImageExperimental() */
+
+promise_test(async () => {
+  const fetched = await fetch(
+        'http://localhost:8001/clipboard-apis/resources/greenbox.png');
+  const image = await fetched.blob();
+
+  await navigator.clipboard.writeImageExperimental(image);
+}, "navigator.clipboard.writeImageExperimental(Blob) succeeds");
+
+promise_test(async t => {
+  await promise_rejects(t, new TypeError(),
+                        navigator.clipboard.writeImageExperimental());
+}, "navigator.clipboard.writeImageExperimental() fails (expect Blob)");
+
 
 /* clipboard.read() */
 
@@ -61,5 +76,12 @@ promise_test(async () => {
   const result = await navigator.clipboard.readText();
   assert_equals(typeof result, "string");
 }, "navigator.clipboard.readText() succeeds");
+
+/* clipboard.readImageExperimental() */
+
+promise_test(async () => {
+  const result = await navigator.clipboard.readImageExperimental();
+  assert_equals(typeof result, "object");
+}, "navigator.clipboard.readImageExperimental() succeeds");
 
 </script>
