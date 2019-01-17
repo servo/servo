@@ -23,6 +23,7 @@ use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
+use net_traits::ResourceAttribute;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -88,6 +89,11 @@ pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: &mut Request, target: Target, context: &FetchContext) {
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::FetchStart);
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
