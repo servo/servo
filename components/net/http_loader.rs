@@ -500,6 +500,11 @@ pub fn http_fetch(
     *done_chan = None;
     // Step 1
     let mut response: Option<Response> = None;
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::FetchStart);
 
     // Step 2
     // nothing to do, since actual_response is a function on response
@@ -568,6 +573,13 @@ pub fn http_fetch(
         // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
         // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
         //   (https://w3c.github.io/resource-timing/#dfn-starttime)
+        if request.redirect_count > 0 && request.headers.contains_key(header::LOCATION) {
+            context
+                .timing
+                .lock()
+                .unwrap()
+                .set_attribute(ResourceAttribute::FetchStart);
+        }
         context
             .timing
             .lock()

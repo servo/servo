@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{
     self, PerformanceResourceTimingMethods,
@@ -78,7 +77,7 @@ impl PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
                 DOMString::from("resource"),
-                fetch_start,
+                0.,
                 0.,
             ),
             initiator_type: initiator_type,
@@ -118,7 +117,7 @@ impl PerformanceResourceTiming {
             worker_start: 0.,
             redirect_start: 0.,
             redirect_end: 0.,
-            fetch_start: 0.,
+            fetch_start: resource_timing.fetch_start as f64,
             domain_lookup_start: 0.,
             domain_lookup_end: 0.,
             connect_start: 0.,
@@ -183,5 +182,10 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     fn ResponseStart(&self) -> DOMHighResTimeStamp {
         // TODO
         Finite::wrap(self.response_start)
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
+    fn FetchStart(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.fetch_start)
     }
 }
