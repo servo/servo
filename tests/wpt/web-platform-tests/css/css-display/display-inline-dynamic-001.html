@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-display/">
+<link rel="match" href="display-inline-dynamic-001-ref.html">
+<style>div::first-line { font-family:monospace; color:green; }</style>
+<p>Test passes if PASS is displayed in green below.</p>
+<div>P<span id="showme" style="display:none;">AS</span>S</div>
+<script>
+  document.body.offsetTop;
+  showme.style.display = "inline";
+</script>

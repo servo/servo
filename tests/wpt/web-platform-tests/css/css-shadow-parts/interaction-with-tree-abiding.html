@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Shadow Parts - Interaction with tree-abiding</title>
+    <meta href="mailto:fergal@chromium.org" rel="author" title="Fergal Daly">
+    <link href="http://www.google.com/" rel="author" title="Google">
+    <link href="https://drafts.csswg.org/css-shadow-parts/" rel="help">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/shadow-helper.js"></script>
+  </head>
+  <body>
+    <style>
+      #c-e::part(before-p)::before { color: green; }
+      #c-e::part(after-p)::after { color: green; }
+      #c-e::part(placeholder-p)::placeholder { color: green; }
+    </style>
+    <script>installCustomElement("custom-element", "custom-element-template");</script>
+    <template id="custom-element-template">
+      <style>
+        #before-i::before { content: "this text"; color: red; }
+        #after-i::after { content: "this text"; color: red; }
+        #placeholder-i::placeholder { color: red; }
+      </style>
+      <div>
+        The following text should be green:
+        <span id="before-i" part="before-p"></span>
+      </div>
+      <div>
+        The following text should be green:
+        <span id="after-i" part="after-p"></span>
+      </div>
+      <div>
+        The following text should be green:
+        <input id="placeholder-i" part="placeholder-p" placeholder="this text"></input>
+      </div>
+    </template>
+    <custom-element id="c-e"></custom-element>
+    <script>
+      "use strict";
+      const colorGreen = "rgb(0, 128, 0)";
+      test(function() {
+        const el = getElementByShadowIds(document, ["c-e", "before-i"]);
+        assert_equals(window.getComputedStyle(el, '::before').color, colorGreen);
+      }, "::before in selected host is styled");
+      test(function() {
+        const el = getElementByShadowIds(document, ["c-e", "after-i"]);
+        assert_equals(window.getComputedStyle(el, '::after').color, colorGreen);
+      }, "::after in selected host is styled");
+      test(function() {
+        const el = getElementByShadowIds(document, ["c-e", "placeholder-i"]);
+        assert_equals(window.getComputedStyle(el, '::placeholder').color, colorGreen);
+      }, "::placeholder in selected host is styled");
+    </script>
+  </body>
+</html>

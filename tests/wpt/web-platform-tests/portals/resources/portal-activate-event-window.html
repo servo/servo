@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <script>
-  var bc = new BroadcastChannel("portal");
-  bc.onmessage = function(e) {
-    document.querySelector("portal").activate();
-    bc.close();
+  window.onload = function(e) {
+    var test = (new URL(location)).searchParams.get("test");
+    var portal = document.createElement("portal");
+    portal.src = "portal-activate-event-portal.html" + location.search;
+    document.body.appendChild(portal);
+
+    var bc = new BroadcastChannel("portal-" + test);
+    bc.onmessage = function(e) {
+      document.querySelector("portal").activate();
+      bc.close();
+    }
   }
 </script>
 <body>
-  <portal src="portal-activate-event-portal.html"></portal>
 </body>
