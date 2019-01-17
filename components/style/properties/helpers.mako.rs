@@ -4,7 +4,7 @@
 
 <%!
     from data import Keyword, to_rust_ident, to_camel_case
-    from data import LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES, SYSTEM_FONT_LONGHANDS
+    from data import LOGICAL_CORNERS, PHYSICAL_CORNERS, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES, SYSTEM_FONT_LONGHANDS
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
@@ -842,12 +842,16 @@
     <%
         side = None
         size = None
+        corner = None
         maybe_side = [s for s in LOGICAL_SIDES if s in name]
         maybe_size = [s for s in LOGICAL_SIZES if s in name]
+        maybe_corner = [s for s in LOGICAL_CORNERS if s in name]
         if len(maybe_side) == 1:
             side = maybe_side[0]
         elif len(maybe_size) == 1:
             size = maybe_size[0]
+        elif len(maybe_corner) == 1:
+            corner = maybe_corner[0]
         def phys_ident(side, phy_side):
             return to_rust_ident(name.replace(side, phy_side).replace("inset-", ""))
     %>
@@ -857,6 +861,15 @@
             % for phy_side in PHYSICAL_SIDES:
                 PhysicalSide::${phy_side.title()} => {
                     ${caller.inner(physical_ident=phys_ident(side, phy_side))}
+                }
+            % endfor
+        }
+    % elif corner is not None:
+        use crate::logical_geometry::PhysicalCorner;
+        match wm.${to_rust_ident(corner)}_physical_corner() {
+            % for phy_corner in PHYSICAL_CORNERS:
+                PhysicalCorner::${to_camel_case(phy_corner)} => {
+                    ${caller.inner(physical_ident=phys_ident(corner, phy_corner))}
                 }
             % endfor
         }
