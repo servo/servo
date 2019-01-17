@@ -203,7 +203,7 @@ pub struct HTMLMediaElement {
     resource_url: DomRefCell<Option<ServoUrl>>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
-    played: Rc<DomRefCell<TimeRangesContainer>>,
+    played: DomRefCell<TimeRangesContainer>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
@@ -264,7 +264,7 @@ impl HTMLMediaElement {
             volume: Cell::new(1.0),
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
-            played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
+            played: DomRefCell::new(TimeRangesContainer::new()),
             text_tracks_list: Default::default(),
             next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
             current_fetch_context: DomRefCell::new(None),
@@ -1654,7 +1654,18 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-played
     fn Played(&self) -> DomRoot<TimeRanges> {
-        TimeRanges::new(self.global().as_window(), self.played.clone())
+        TimeRanges::new(self.global().as_window(), self.played.borrow().clone())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-buffered
+    fn Buffered(&self) -> DomRoot<TimeRanges> {
+        let mut buffered = TimeRangesContainer::new();
+        if let Ok(ranges) = self.player.buffered() {
+            for range in ranges {
+                let _ = buffered.add(range.start as f64, range.end as f64);
+            }
+        }
+        TimeRanges::new(self.global().as_window(), buffered)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding;
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -12,9 +11,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::fmt;
-use std::rc::Rc;
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 struct TimeRange {
     start: f64,
     end: f64,
@@ -57,7 +55,7 @@ pub enum TimeRangesError {
     OutOfRange,
 }
 
-#[derive(Debug, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
 pub struct TimeRangesContainer {
     ranges: Vec<TimeRange>,
 }
@@ -128,25 +126,18 @@ impl TimeRangesContainer {
 #[dom_struct]
 pub struct TimeRanges {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Rc"]
-    ranges: Rc<DomRefCell<TimeRangesContainer>>,
+    ranges: TimeRangesContainer,
 }
 
-//XXX(ferjm) We'll get warnings about unused methods until we use this
-//           on the media element implementation.
-#[allow(dead_code)]
 impl TimeRanges {
-    fn new_inherited(ranges: Rc<DomRefCell<TimeRangesContainer>>) -> TimeRanges {
+    fn new_inherited(ranges: TimeRangesContainer) -> TimeRanges {
         Self {
             reflector_: Reflector::new(),
             ranges,
         }
     }
 
-    pub fn new(
-        window: &Window,
-        ranges: Rc<DomRefCell<TimeRangesContainer>>,
-    ) -> DomRoot<TimeRanges> {
+    pub fn new(window: &Window, ranges: TimeRangesContainer) -> DomRoot<TimeRanges> {
         reflect_dom_object(
             Box::new(TimeRanges::new_inherited(ranges)),
             window,
@@ -158,13 +149,12 @@ impl TimeRanges {
 impl TimeRangesMethods for TimeRanges {
     // https://html.spec.whatwg.org/multipage/#dom-timeranges-length
     fn Length(&self) -> u32 {
-        self.ranges.borrow().len()
+        self.ranges.len()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-timeranges-start
     fn Start(&self, index: u32) -> Fallible<Finite<f64>> {
         self.ranges
-            .borrow()
             .start(index)
             .map(Finite::wrap)
             .map_err(|_| Error::IndexSize)
@@ -173,7 +163,6 @@ impl TimeRangesMethods for TimeRanges {
     // https://html.spec.whatwg.org/multipage/#dom-timeranges-end
     fn End(&self, index: u32) -> Fallible<Finite<f64>> {
         self.ranges
-            .borrow()
             .end(index)
             .map(Finite::wrap)
             .map_err(|_| Error::IndexSize)
