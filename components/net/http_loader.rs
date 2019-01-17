@@ -560,8 +560,6 @@ pub fn http_fetch(
             request.service_workers_mode = ServiceWorkersMode::None;
         }
 
-        // Substep 3
-        // TODO(#21258) maybe set fetch_start (if this is the last resource)
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
         //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
         //   secure_connection_start)
@@ -694,6 +692,13 @@ pub fn http_redirect_fetch(
         },
         Some(Ok(url)) => url,
     };
+
+    // Step 1 of https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::FetchStart);
 
     // Step 5
     if request.redirect_count >= 20 {
