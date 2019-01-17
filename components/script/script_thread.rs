@@ -100,6 +100,7 @@ use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
+use js::rust::ParentRuntime;
 use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use msg::constellation_msg::{
@@ -726,6 +727,13 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn runtime_handle() -> ParentRuntime {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.js_runtime.prepare_for_new_child()
+        })
+    }
+
     pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = &*root.get().unwrap();
@@ -1010,7 +1018,7 @@ impl ScriptThread {
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
     ) -> ScriptThread {
-        let runtime = unsafe { new_rt_and_cx() };
+        let runtime = new_rt_and_cx();
         let cx = runtime.cx();
 
         unsafe {

@@ -23,7 +23,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{new_child_runtime, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -272,11 +272,9 @@ impl DedicatedWorkerGlobalScope {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
-        let origin = GlobalScope::current()
-            .expect("No current global object")
-            .origin()
-            .immutable()
-            .clone();
+        let current_global = GlobalScope::current().expect("No current global object");
+        let origin = current_global.origin().immutable().clone();
+        let parent = current_global.runtime_handle();
 
         thread::Builder::new()
             .name(name)
@@ -327,7 +325,7 @@ impl DedicatedWorkerGlobalScope {
                 let url = metadata.final_url;
                 let source = String::from_utf8_lossy(&bytes);
 
-                let runtime = unsafe { new_rt_and_cx() };
+                let runtime = unsafe { new_child_runtime(parent) };
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER.route_ipc_receiver_to_crossbeam_sender(

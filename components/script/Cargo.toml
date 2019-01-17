@@ -63,6 +63,7 @@ indexmap = "1.0.2"
 ipc-channel = "0.11"
 itertools = "0.8"
 jstraceable_derive = {path = "../jstraceable_derive"}
+js = {package = "mozjs", version = "0.10.0"}
 keyboard-types = "0.4.4"
 lazy_static = "1"
 libc = "0.2"
@@ -114,9 +115,3 @@ webvr_traits = {path = "../webvr_traits"}
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = "0.1"
-
-[target.'cfg(target_os = "android")'.dependencies]
-js = {package = "mozjs", version = "0.9.5", features=["init_once"]}
-
-[target.'cfg(not(target_os = "android"))'.dependencies]
-js = {package = "mozjs", version = "0.9.5"}
