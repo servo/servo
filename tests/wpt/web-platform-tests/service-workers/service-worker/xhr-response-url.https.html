@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Service Worker: XHR responseURL uses the response url</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+const scope = 'resources/xhr-iframe.html';
+const script = 'resources/fetch-rewrite-worker.js';
+let iframe;
+
+// Test that XMLHttpRequest.responseURL uses the response URL from the service
+// worker.
+promise_test(async (t) => {
+  t.add_cleanup(async () => {
+    if (iframe)
+      iframe.remove();
+    await service_worker_unregister(t, scope);
+  });
+
+  // Set up a controlled iframe.
+  const registration =
+      await service_worker_unregister_and_register(t, script, scope);
+  await wait_for_state(t, registration.installing, 'activated');
+  iframe = await with_iframe(scope);
+
+  // Build the XHR URL. Set the |url| param to tell the service worker
+  // to respondWith(fetch(|url|)).
+  const target = new URL('resources/dummy.txt', window.location);
+  const url = `test?url=${encodeURIComponent(target)}`;
+
+  // Perform the XHR.
+  const xhr = await iframe.contentWindow.xhr(url);
+  assert_equals(xhr.responseURL, target.href);
+}, 'XHR responseURL should be the response URL');
+</script>

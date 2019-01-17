@@ -4,11 +4,29 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   async_test(function(t) {
-    var bc = new BroadcastChannel("test");
+    var bc = new BroadcastChannel("test-eventlistener");
     bc.onmessage = t.step_func_done(function(e) {
       assert_equals(e.data, "passed");
       bc.close();
     });
-    window.open("resources/portal-activate-event-window.html");
+    window.open("resources/portal-activate-event-window.html?test=eventlistener");
   }, "Tests that the PortalActivateEvent is dispatched when a portal is activated.");
+
+  async_test(function(t) {
+    var bc = new BroadcastChannel("test-eventhandler");
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    window.open("resources/portal-activate-event-window.html?test=eventhandler");
+  }, "Tests that the portalactivate event handler is dispatched when a portal is activated.");
+
+  async_test(function(t) {
+    var bc = new BroadcastChannel("test-bodyeventhandler");
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    window.open("resources/portal-activate-event-window.html?test=bodyeventhandler");
+  }, "Tests that the HTMLBodyElement has the portalactivate event handler.");
 </script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: tabindex - focus, click</title>
+<link rel="author" title="Intel" href="www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#the-tabindex-attribute">
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<h2>Test steps</h2>
+<p>Focus on the button below by "Tab" key, then press "Enter" key</p>
+
+<p><button type="button">Test tabIndex</button></p>
+
+<script>
+
+setup({explicit_done: true});
+setup({explicit_timeout: true});
+
+let button = document.querySelector("button");
+let focused = false;
+
+on_event(button, "focus", () => {
+  focused = !focused;
+});
+
+on_event(button, "click", () => {
+  test(() => {
+    assert_true(focused, "Focus on the button by Tab key");
+  }, "Check if click event will be fired when press the 'enter' key while the element is focused");
+  done();
+});
+
+</script>

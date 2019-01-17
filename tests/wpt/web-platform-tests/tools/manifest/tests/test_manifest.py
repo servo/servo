@@ -66,8 +66,7 @@ def sourcefile_strategy(draw):
 
 
 @h.given(hs.lists(sourcefile_strategy(),
-                  min_size=1, average_size=10, max_size=1000,
-                  unique_by=lambda x: x.rel_path))
+                  min_size=1, max_size=1000, unique_by=lambda x: x.rel_path))
 @h.example([SourceFileWithTest("a", "0"*40, item.ConformanceCheckerTest)])
 def test_manifest_to_json(s):
     m = manifest.Manifest()
@@ -83,8 +82,7 @@ def test_manifest_to_json(s):
 
 
 @h.given(hs.lists(sourcefile_strategy(),
-                  min_size=1, average_size=10,
-                  unique_by=lambda x: x.rel_path))
+                  min_size=1, unique_by=lambda x: x.rel_path))
 @h.example([SourceFileWithTest("a", "0"*40, item.TestharnessTest)])
 @h.example([SourceFileWithTest("a", "0"*40, item.RefTest, [("/aa", "==")])])
 def test_manifest_idempotent(s):

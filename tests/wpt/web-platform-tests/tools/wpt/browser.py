@@ -758,3 +758,32 @@ class WebKit(Browser):
 
     def version(self, binary=None, webdriver_binary=None):
         return None
+
+
+class Epiphany(Browser):
+    """Epiphany-specific interface."""
+
+    product = "epiphany"
+    requirements = "requirements_epiphany.txt"
+
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError
+
+    def find_binary(self, venv_path=None, channel=None):
+        return find_executable("epiphany")
+
+    def find_webdriver(self, channel=None):
+        return find_executable("WebKitWebDriver")
+
+    def install_webdriver(self, dest=None, channel=None):
+        raise NotImplementedError
+
+    def version(self, binary=None, webdriver_binary=None):
+        if binary is None:
+            return None
+        output = call(binary, "--version")
+        if output:
+            # Stable release output looks like: "Web 3.30.2"
+            # Tech Preview output looks like "Web 3.31.3-88-g97db4f40f"
+            return output.split()[1]
+        return None
