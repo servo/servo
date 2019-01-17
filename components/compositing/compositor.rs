@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
+use crate::compositor_thread::CompositorReceiver;
 use crate::compositor_thread::{InitialCompositorState, Msg};
 #[cfg(feature = "gl")]
 use crate::gl;
@@ -247,45 +247,6 @@ enum CompositeTarget {
 
     /// Compose to a PNG, write it to disk, and then exit the browser (used for reftests)
     PngFile,
-}
-
-#[derive(Clone)]
-pub struct RenderNotifier {
-    compositor_proxy: CompositorProxy,
-}
-
-impl RenderNotifier {
-    pub fn new(compositor_proxy: CompositorProxy) -> RenderNotifier {
-        RenderNotifier {
-            compositor_proxy: compositor_proxy,
-        }
-    }
-}
-
-impl webrender_api::RenderNotifier for RenderNotifier {
-    fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
-        Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
-    }
-
-    fn wake_up(&self) {
-        self.compositor_proxy
-            .recomposite(CompositingReason::NewWebRenderFrame);
-    }
-
-    fn new_frame_ready(
-        &self,
-        _document_id: webrender_api::DocumentId,
-        scrolled: bool,
-        composite_needed: bool,
-        _render_time_ns: Option<u64>,
-    ) {
-        if scrolled {
-            self.compositor_proxy
-                .send(Msg::NewScrollFrameReady(composite_needed));
-        } else {
-            self.wake_up();
-        }
-    }
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {
