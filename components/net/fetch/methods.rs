@@ -89,6 +89,11 @@ pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: &mut Request, target: Target, context: &FetchContext) {
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::FetchStart);
 }
 
 pub fn fetch_with_cors_cache(
