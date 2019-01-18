@@ -37,6 +37,8 @@ extern crate crossbeam_channel;
 #[macro_use]
 extern crate cssparser;
 #[macro_use]
+extern crate derive_more;
+#[macro_use]
 extern crate debug_unreachable;
 extern crate euclid;
 extern crate fallible;
