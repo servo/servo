@@ -3,6 +3,7 @@
 <link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <script src="common.js"></script>
 
 <style>
@@ -47,7 +48,7 @@ async_test(t => {
       animation.play();
 
       assert_equals(data, '0.4');
-      waitTwoAnimationFrames(t.step_func_done(() => {
+      waitForAsyncAnimationFrames(1).then(t.step_func_done(() => {
         assert_equals(getComputedStyle(target).opacity, '0.5');
       }));
     });

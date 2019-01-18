@@ -6,6 +6,7 @@
   background-color: #00ff00;
 }
 </style>
+<script src="/web-animations/testcommon.js"></script>
 <script src="../common.js"></script>
 
 <script id="iframe_worklet" type="text/worklet">
@@ -32,7 +33,7 @@ runInAnimationWorklet(
   const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
   const animation = new WorkletAnimation('iframe_animator', effect);
   animation.play();
-  waitTwoAnimationFrames( _ => {
+  waitForAnimationFrames(2).then(_ => {
     window.parent.postMessage(getComputedStyle(target).opacity, '*');
   });
  });

@@ -3,6 +3,7 @@
 <link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <script src="common.js"></script>
 
 <style>
@@ -17,8 +18,8 @@
 <script>
 'use strict';
 
-test(function() {
-  registerPassthroughAnimator();
+promise_test(async function() {
+  await registerPassthroughAnimator();
   let playFunc = function() {
     let effect = new KeyframeEffect(
         document.getElementById('target'),

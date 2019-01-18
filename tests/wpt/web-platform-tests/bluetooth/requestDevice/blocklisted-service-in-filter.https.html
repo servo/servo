@@ -10,16 +10,16 @@ const test_desc = 'Reject with SecurityError if requesting a blocklisted ' +
     'service.';
 const expected = new DOMException(
     'requestDevice() called with a filter containing a blocklisted UUID. ' +
-    'https://goo.gl/4NeimX',
+        'https://goo.gl/4NeimX',
     'SecurityError');
 
-bluetooth_test(() => setUpPreconnectedDevice({
-  knownServiceUUIDs: ['human_interface_device']
-})
-    .then(() => assert_promise_rejects_with_message(
-        requestDeviceWithTrustedClick({
-          filters: [{services: ['human_interface_device']}]
-        }),
-        expected, 'Requesting blocklisted service rejects.')),
+bluetooth_test(
+    () =>
+        setUpPreconnectedDevice({knownServiceUUIDs: ['human_interface_device']})
+            .then(
+                () => assert_promise_rejects_with_message(
+                    requestDeviceWithTrustedClick(
+                        {filters: [{services: ['human_interface_device']}]}),
+                    expected, 'Requesting blocklisted service rejects.')),
     test_desc);
 </script>

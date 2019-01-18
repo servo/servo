@@ -3,15 +3,9 @@
 <link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <script src="common.js"></script>
 
-<script id="worklet_code"  type="text/worklet">
-registerAnimator("test_animator", class {
-  animate(currentTime, effect) {
-    effect.localTime = currentTime;
-  }
-});
-</script>
 
 <script>
 // Creates a DOM structure like:
@@ -63,15 +57,14 @@ function createAndPlayTestAnimation(elements, timeline_orientation) {
     timeRange: 1000,
     orientation: timeline_orientation
   });
-  const animation = new WorkletAnimation('test_animator', effect, timeline);
+  const animation = new WorkletAnimation('passthrough', effect, timeline);
   animation.play();
 }
 
 setup(setupAndRegisterTests, {explicit_done: true});
 
 function setupAndRegisterTests() {
-  const worklet_code = document.getElementById('worklet_code').textContent;
-  runInAnimationWorklet(worklet_code).then(() => {
+  registerPassthroughAnimator().then(() => {
     // Note that block horizontal-tb is tested implicitly in the basic
     // ScrollTimeline tests (as it is the default).
     async_test(
@@ -104,7 +97,7 @@ function block_vertical_lr(t) {
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
   elements.scroller.scrollLeft = 0.25 * maxScroll;
 
-  waitForAnimationFrames(3, t.step_func_done(() => {
+  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -120,7 +113,7 @@ function block_vertical_rl(t) {
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
   elements.scroller.scrollLeft = 0.75 * maxScroll;
 
-  waitForAnimationFrames(3, t.step_func_done(() => {
+  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -136,7 +129,7 @@ function inline_horizontal_tb_rtl(t) {
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
   elements.scroller.scrollLeft = 0.75 * maxScroll;
 
-  waitForAnimationFrames(3, t.step_func_done(() => {
+  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -151,7 +144,7 @@ function inline_vertical_writing_mode_ltr(t) {
       elements.scroller.scrollHeight - elements.scroller.clientHeight;
   elements.scroller.scrollTop = 0.25 * maxScroll;
 
-  waitForAnimationFrames(3, t.step_func_done(() => {
+  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -167,7 +160,7 @@ function inline_vertical_writing_mode_rtl(t) {
       elements.scroller.scrollHeight - elements.scroller.clientHeight;
   elements.scroller.scrollTop = 0.75 * maxScroll;
 
-  waitForAnimationFrames(3, t.step_func_done(() => {
+  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));

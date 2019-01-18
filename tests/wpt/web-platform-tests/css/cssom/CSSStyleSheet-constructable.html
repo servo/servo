@@ -501,15 +501,18 @@ test(() => {
   span.shadowRoot.adoptedStyleSheets = [sheet];
   assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)");
 
+  document.adoptNode(span);
+  assert_equals(span.shadowRoot.adoptedStyleSheets.length, 1);
+  assert_equals(span.shadowRoot.adoptedStyleSheets[0], sheet);
+
   const iframe = document.createElement("iframe");
   document.body.appendChild(iframe);
   iframe.contentDocument.adoptNode(span);
   iframe.contentDocument.body.appendChild(span);
   assert_not_equals(span.shadowRoot, null);
-  assert_equals(span.shadowRoot.adoptedStyleSheets.length, 1);
-  assert_equals(span.shadowRoot.adoptedStyleSheets[0], sheet);
+  assert_equals(span.shadowRoot.adoptedStyleSheets.length, 0);
   assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
-}, 'Adopting a shadow host will move adoptedStyleSheets but it is not applied');
+}, 'Adopting a shadow host will empty adoptedStyleSheets if adopting to a different document');
 
 </script>
 

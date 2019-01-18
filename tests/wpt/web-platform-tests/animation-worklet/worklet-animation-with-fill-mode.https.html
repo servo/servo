@@ -3,6 +3,7 @@
 <link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <script src="common.js"></script>
 
 <style>
@@ -15,32 +16,20 @@
 
 <script>
 function CreateTest(target, effect, verify, test_name) {
-  async_test(t => {
-   runInAnimationWorklet(
-    document.getElementById('simple_animate').textContent
-   ).then(_ => {
-    const animation = new WorkletAnimation('test_animator', effect);
+  promise_test(async function() {
+    await registerConstantLocalTimeAnimator(2000);
+    const animation = new WorkletAnimation('constant_time', effect);
     animation.play();
 
-    waitTwoAnimationFrames(() => {
-      // waitTwoAnimationFrames guarantees a compositor frame that could update
-      // the opacity value in the worklet. Meanwhile, getComputedStyle needs an
-      // extra frame to fetch the updated value.
-      window.requestAnimationFrame(t.step_func_done(() => {
-        verify();
-        animation.cancel();
-      }));
-    });
-   });
+    await waitForAsyncAnimationFrames(1);
+    // waitTwoAnimationFrames guarantees a compositor frame that could update
+    // the opacity value in the worklet. Meanwhile, getComputedStyle needs an
+    // extra frame to fetch the updated value.
+    await waitForNextFrame();
+    verify();
+    animation.cancel();
   }, test_name);
 }
-</script>
-<script id="simple_animate" type="text/worklet">
-registerAnimator("test_animator", class {
-  animate(currentTime, effect) {
-    effect.localTime = 2000;
-  }
-});
 </script>
 
 <div id="target1" class='target'></div>
