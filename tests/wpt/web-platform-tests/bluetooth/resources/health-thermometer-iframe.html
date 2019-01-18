@@ -3,24 +3,24 @@
 let device, gatt;
 
 function requestDeviceWithOptionsAndConnect(options) {
-  return navigator.bluetooth.requestDevice(options)
-      .then(device => device.gatt.connect());
+  return navigator.bluetooth.requestDevice(options).then(
+      device => device.gatt.connect());
 }
 
 window.addEventListener('message', (messageEvent) => {
   switch (messageEvent.data.type) {
     case 'RequestDevice':
-      navigator.bluetooth.requestDevice({
-        filters: [{services: ['generic_access']}]
-      })
+      navigator.bluetooth
+          .requestDevice({filters: [{services: ['generic_access']}]})
           .then(device => {
             if (device.constructor.name === 'BluetoothDevice') {
               parent.postMessage('Success', '*');
             } else {
               parent.postMessage(
                   `FAIL: requestDevice in iframe returned ${device.name}`, '*');
-            }}).catch(err => parent.postMessage(`${err.name}: ${err.message}`,
-                '*'));
+            }
+          })
+          .catch(err => parent.postMessage(`${err.name}: ${err.message}`, '*'));
       break;
     case 'RequestAndConnect':
       requestDeviceWithOptionsAndConnect(messageEvent.data.options)
@@ -28,7 +28,8 @@ window.addEventListener('message', (messageEvent) => {
             gatt = _;
             device = gatt.device;
             parent.postMessage('Connected', '*');
-          }).catch(err => {
+          })
+          .catch(err => {
             parent.postMessage(`FAIL: ${err}`, '*');
           });
       break;
@@ -50,8 +51,8 @@ window.addEventListener('message', (messageEvent) => {
           .catch(err => parent.postMessage(`FAIL: ${err}`, '*'));
       break;
     default:
-      parent.postMessage(`FAIL: Bad message type: ${messageEvent.data.type}`,
-          '*');
+      parent.postMessage(
+          `FAIL: Bad message type: ${messageEvent.data.type}`, '*');
   }
 });
 </script>

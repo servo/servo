@@ -7,10 +7,12 @@
 const test_desc = 'Bluetooth IDL test';
 
 test(() => {
-  assert_throws(new TypeError(), () => new Bluetooth(),
-                'the constructor should not be callable with "new"');
-  assert_throws(new TypeError(), () => Bluetooth(),
-                'the constructor should not be callable');
+  assert_throws(
+      new TypeError(), () => new Bluetooth(),
+      'the constructor should not be callable with "new"');
+  assert_throws(
+      new TypeError(), () => Bluetooth(),
+      'the constructor should not be callable');
 
   // Bluetooth implements BluetoothDiscovery;
   assert_true('requestDevice' in navigator.bluetooth);

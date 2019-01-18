@@ -10,21 +10,23 @@ const test_desc = 'Returned device should always be the same.';
 let devices = [];
 let push = device => devices.push(device);
 
-bluetooth_test(() => setUpHealthThermometerAndHeartRateDevices()
-    .then(() => requestDeviceWithTrustedClick({
-      filters: [{services: [heart_rate.alias]}]
-    }))
-    .then(push)
-    .then(() => requestDeviceWithTrustedClick({
-      filters: [{services: [heart_rate.name]}]
-    }))
-    .then(push)
-    .then(() => requestDeviceWithTrustedClick({
-      filters: [{services: [heart_rate.uuid]}]
-    }))
-    .then(push)
-    .then(() => {
-      assert_equals(devices[0], devices[1]);
-      assert_equals(devices[1], devices[2]);
-    }), test_desc);
+bluetooth_test(
+    () => setUpHealthThermometerAndHeartRateDevices()
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [heart_rate.alias]}]}))
+              .then(push)
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [heart_rate.name]}]}))
+              .then(push)
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [heart_rate.uuid]}]}))
+              .then(push)
+              .then(() => {
+                assert_equals(devices[0], devices[1]);
+                assert_equals(devices[1], devices[2]);
+              }),
+    test_desc);
 </script>

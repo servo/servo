@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var saw_link_onerror = false;
+var t = async_test("Check if the stylesheet's error event is fired before the " +
+                   "pending parsing-blocking script is unblocked");
+</script>
+<link href="nonexistent.css" rel="stylesheet" id="style_test"
+      onload="t.unreached_func('Sheet should fail to load')"
+      onerror="t.step(function() { saw_link_onerror = true; })">
+<script>
+  t.step(function() {
+    assert_true(saw_link_onerror, "The pending parsing-blocking script should " +
+                                  "only run after the last element that " +
+                                  "contributes a script-blocking style " +
+                                  "sheet's error event is fired if the sheet " +
+                                  "fails to load.");
+  });
+  t.done();
+</script>
+</head>
+</html>
