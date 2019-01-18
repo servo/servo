@@ -370,6 +370,21 @@ def get_linux_distribution():
             raise Exception('unsupported version of %s: %s' % (distro, version))
 
         distro, version = 'Ubuntu', base_version
+    elif distro.lower() == 'elementary':
+        if version == '5.0':
+            base_version = '18.04'
+        elif version[0:3] == '0.4':
+            base_version = '16.04'
+        elif version[0:3] == '0.3':
+            base_version = '14.04'
+        elif version == '0.2':
+            base_version = '12.04'
+        elif version == '0.1':
+            base_version = '10.10'
+        else:
+            raise Exception('unsupported version of %s: %s' % (distro, version))
+
+        distro, version = 'Ubuntu', base_version
     elif distro.lower() not in [
         'centos',
         'centos linux',
