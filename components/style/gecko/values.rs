@@ -151,9 +151,9 @@ impl GeckoStyleCoordConvertible for LengthPercentage {
         if self.was_calc {
             return coord.set_value(CoordDataValue::Calc((*self).into()));
         }
-        debug_assert!(self.percentage.is_none() || self.unclamped_length() == Length::zero());
-        if let Some(p) = self.percentage {
-            return coord.set_value(CoordDataValue::Percent(p.0));
+        debug_assert!(!self.has_percentage || self.unclamped_length() == Length::zero());
+        if self.has_percentage {
+            return coord.set_value(CoordDataValue::Percent(self.percentage()));
         }
         coord.set_value(CoordDataValue::Coord(self.unclamped_length().to_i32_au()))
     }

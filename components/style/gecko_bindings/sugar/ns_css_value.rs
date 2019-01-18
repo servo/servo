@@ -72,9 +72,9 @@ impl nsCSSValue {
         if lp.was_calc {
             return bindings::Gecko_CSSValue_SetCalc(self, lp.into());
         }
-        debug_assert!(lp.percentage.is_none() || lp.unclamped_length() == Length::zero());
-        if let Some(p) = lp.percentage {
-            return self.set_percentage(p.0);
+        debug_assert!(!lp.has_percentage || lp.unclamped_length() == Length::zero());
+        if lp.has_percentage {
+            return self.set_percentage(lp.percentage());
         }
         self.set_px(lp.unclamped_length().px());
     }

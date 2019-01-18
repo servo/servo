@@ -68,5 +68,6 @@ include = [
   "OverflowClipBox",
   "Resize",
   "Overflow",
+  "LengthPercentage",
 ]
 item_types = ["enums", "structs", "typedefs"]
