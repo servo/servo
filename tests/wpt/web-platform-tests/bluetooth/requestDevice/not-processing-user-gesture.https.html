@@ -11,9 +11,11 @@ const expected = new DOMException(
     'Must be handling a user gesture to show a permission request.',
     'SecurityError');
 
-bluetooth_test(() => setUpHealthThermometerAndHeartRateDevices()
-    .then(() => assert_promise_rejects_with_message(
-        navigator.bluetooth.requestDevice({filters:[{services:['heart_rate']}]}),
-        expected, 'User gesture is required')),
+bluetooth_test(
+    () => setUpHealthThermometerAndHeartRateDevices().then(
+        () => assert_promise_rejects_with_message(
+            navigator.bluetooth.requestDevice(
+                {filters: [{services: ['heart_rate']}]}),
+            expected, 'User gesture is required')),
     test_desc);
 </script>

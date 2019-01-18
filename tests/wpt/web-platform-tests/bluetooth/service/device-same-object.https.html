@@ -8,10 +8,12 @@
 'use strict';
 const test_desc = '[SameObject] test for BluetoothRemoteGATTService device.';
 
-bluetooth_test(() => getHealthThermometerDevice({
-  filters: [{services: ['health_thermometer']}]
-})
-    .then(({device}) => device.gatt.getPrimaryService('health_thermometer'))
-    .then(service => assert_equals(service.device, service.device)),
+bluetooth_test(
+    () => getHealthThermometerDevice(
+              {filters: [{services: ['health_thermometer']}]})
+              .then(
+                  ({device}) =>
+                      device.gatt.getPrimaryService('health_thermometer'))
+              .then(service => assert_equals(service.device, service.device)),
     test_desc);
 </script>
