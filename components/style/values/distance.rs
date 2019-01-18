@@ -31,7 +31,7 @@ pub trait ComputeSquaredDistance {
 }
 
 /// A distance between two animatable values.
-#[derive(Clone, Copy, Debug)]
+#[derive(Add, Clone, Copy, Debug, From)]
 pub struct SquaredDistance {
     value: f64,
 }
@@ -111,24 +111,6 @@ impl SquaredDistance {
     #[inline]
     pub fn sqrt(self) -> f64 {
         self.value.sqrt()
-    }
-}
-
-impl From<SquaredDistance> for f64 {
-    #[inline]
-    fn from(distance: SquaredDistance) -> Self {
-        distance.value
-    }
-}
-
-impl Add for SquaredDistance {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        SquaredDistance {
-            value: self.value + rhs.value,
-        }
     }
 }
 
