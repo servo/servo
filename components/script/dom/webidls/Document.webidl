@@ -130,7 +130,6 @@ partial /*sealed*/ interface Document {
 
   // user interaction
   readonly attribute Window?/*Proxy?*/ defaultView;
-  readonly attribute Element? activeElement;
   boolean hasFocus();
   // [CEReactions]
   // attribute DOMString designMode;
@@ -197,17 +196,6 @@ partial interface Document {
       TouchList createTouchList(Touch... touches);
 };
 
-// https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-partial interface Document {
-  Element? elementFromPoint(double x, double y);
-  sequence<Element> elementsFromPoint(double x, double y);
-};
-
-// https://drafts.csswg.org/cssom/#extensions-to-the-document-interface
-partial interface Document {
-  [SameObject] readonly attribute StyleSheetList styleSheets;
-};
-
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Document {
   [LenientSetter] readonly attribute boolean fullscreenEnabled;
@@ -219,3 +207,5 @@ partial interface Document {
   attribute EventHandler onfullscreenchange;
   attribute EventHandler onfullscreenerror;
 };
+
+Document implements DocumentOrShadowRoot;
