@@ -7,6 +7,7 @@ function fetchNoCors(url, isOpaqueFiltered) {
       return fetch(url + urlQuery, {"mode": "no-cors"}).then(function(resp) {
         assert_equals(resp.status, 0, "Opaque filter: status is 0");
         assert_equals(resp.statusText, "", "Opaque filter: statusText is \"\"");
+        assert_equals(resp.url, "", "Opaque filter: url is \"\"");
         assert_equals(resp.type , "opaque", "Opaque filter: response's type is opaque");
         assert_equals(resp.headers.get("x-is-filtered"), null, "Header x-is-filtered is filtered");
       });

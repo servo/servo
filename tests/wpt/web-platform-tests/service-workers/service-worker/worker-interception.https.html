@@ -106,12 +106,6 @@ promise_test(function(t) {
     var service_worker = 'resources/worker-load-interceptor.js';
     var scope = 'resources/';
 
-    window.addEventListener('message', t.step_func(on_message), false);
-    function on_message(e) {
-      assert_equals(e.data.results, "This load was successfully intercepted.");
-      t.done();
-    }
-
     return service_worker_unregister_and_register(t, service_worker, scope)
       .then(function(r) {
           t.add_cleanup(function() {
