@@ -1,0 +1,19 @@
+<!doctype HTML>
+<html class="reftest-wait">
+  <title>CSS Test: Test for re-paint after stacking context changes opacity twice</title>
+  <link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+  <link rel="match" href="opacity-change-twice-stacking-context-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <div id="target" style="width: 100px; height: 100px; z-index: 1; opacity: 0; background: blue; position: absolute">
+  </div>
+  <script>
+    onload = () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        target.style.opacity = 1;
+        target.offsetHeight;
+        target.style.opacity = 0.9;
+        takeScreenshot();
+      }));
+    }
+  </script>
+</html>

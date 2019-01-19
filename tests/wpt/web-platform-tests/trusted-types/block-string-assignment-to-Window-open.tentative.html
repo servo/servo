@@ -15,9 +15,9 @@
     let p = createURL_policy(window, nb);
     let url = p.createURL(INPUTS.URL);
     let child_window = win.open(url, "", "");
+    t.add_cleanup(_ => child_window.close());
     child_window.onload = t.step_func_done(_ => {
       assert_equals(child_window.location.href, "" + url);
-      child_window.close();
     });
   }
 
@@ -25,15 +25,14 @@
     let p = createURL_policy(window, nb);
     assert_throws(new TypeError(), _ => {
       let child_window = win.open(url, "", "");
-      child_window.close();
     });
   }
 
   function testWindowDoesntThrow(t, url, expected, win) {
     let child_window = win.open(url, "", "");
+    t.add_cleanup(_ => child_window.close());
     child_window.onload = t.step_func_done(_ => {
       assert_equals(child_window.location.href, expected);
-      child_window.close();
     });
   }
 
