@@ -402,6 +402,7 @@ dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
 };
 
 [Exposed=Window] interface RTCDtlsTransport : EventTarget {
+    [SameObject]
     readonly        attribute RTCIceTransport iceTransport;
     readonly        attribute RTCDtlsTransportState state;
     sequence<ArrayBuffer> getRemoteCertificates();

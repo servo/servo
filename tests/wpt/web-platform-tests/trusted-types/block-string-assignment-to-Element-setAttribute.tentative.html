@@ -97,20 +97,14 @@
   URLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.URL, RESULTS.URL);
-
-      // Properties that actually parse the URLs will resort to the base URL
-      // when given a null or empty URL.
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
+      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
   scriptURLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
-
-      // Properties that actually parse the URLs will resort to the base URL
-      // when given a null or empty URL.
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
+      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
