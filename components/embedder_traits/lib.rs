@@ -7,6 +7,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 #[macro_use]
+extern crate num_derive;
+#[macro_use]
 extern crate serde;
 
 pub mod resources;
@@ -17,8 +19,49 @@ use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
-use style_traits::cursor::CursorKind;
 use webrender_api::{DeviceIntPoint, DeviceIntSize};
+
+/// A cursor for the window. This is different from a CSS cursor (see
+/// `CursorKind`) in that it has no `Auto` value.
+#[repr(u8)]
+#[derive(Copy, Clone, FromPrimitive, PartialEq, Eq, Deserialize, Serialize)]
+pub enum Cursor {
+    None,
+    Default,
+    Pointer,
+    ContextMenu,
+    Help,
+    Progress,
+    Wait,
+    Cell,
+    Crosshair,
+    Text,
+    VerticalText,
+    Alias,
+    Copy,
+    Move,
+    NoDrop,
+    NotAllowed,
+    Grab,
+    Grabbing,
+    EResize,
+    NResize,
+    NeResize,
+    NwResize,
+    SResize,
+    SeResize,
+    SwResize,
+    WResize,
+    EwResize,
+    NsResize,
+    NeswResize,
+    NwseResize,
+    ColResize,
+    RowResize,
+    AllScroll,
+    ZoomIn,
+    ZoomOut,
+}
 
 /// Used to wake up the event loop, provided by the servo port/embedder.
 pub trait EventLoopWaker: 'static + Send {
@@ -90,7 +133,7 @@ pub enum EmbedderMsg {
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(KeyboardEvent),
     /// Changes the cursor.
-    SetCursor(CursorKind),
+    SetCursor(Cursor),
     /// A favicon was detected
     NewFavicon(ServoUrl),
     /// <head> tag finished parsing

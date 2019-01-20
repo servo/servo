@@ -18,6 +18,7 @@ atomic_refcell = "0.1"
 bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 crossbeam-channel = "0.3"
+embedder_traits = {path = "../embedder_traits"}
 euclid = "0.19"
 fnv = "1.0"
 fxhash = "0.2"

@@ -163,6 +163,7 @@ pub enum UserSelect {
     Copy,
     Debug,
     Eq,
+    FromPrimitive,
     MallocSizeOf,
     Parse,
     PartialEq,
@@ -208,8 +209,12 @@ pub enum CursorKind {
     ZoomIn,
     ZoomOut,
     Auto,
+    #[cfg(feature = "gecko")]
     MozGrab,
+    #[cfg(feature = "gecko")]
     MozGrabbing,
+    #[cfg(feature = "gecko")]
     MozZoomIn,
+    #[cfg(feature = "gecko")]
     MozZoomOut,
 }

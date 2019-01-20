@@ -113,7 +113,7 @@ use compositing::compositor_thread::Msg as ToCompositorMsg;
 use compositing::SendableFrameTree;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy};
 use euclid::{Size2D, TypedScale, TypedSize2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
@@ -164,7 +164,6 @@ use std::process;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::thread;
-use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -2135,7 +2134,7 @@ where
             .send(ToCompositorMsg::PendingPaintMetric(pipeline_id, epoch))
     }
 
-    fn handle_set_cursor_msg(&mut self, cursor: CursorKind) {
+    fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
         self.embedder_proxy
             .send((None, EmbedderMsg::SetCursor(cursor)))
     }
