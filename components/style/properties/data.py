@@ -247,9 +247,9 @@ class Longhand(object):
                 assert not logical_side
                 logical_side = s
         assert logical_side
-        physical = PHYSICAL_SIDES if logical_side in LOGICAL_SIDES else \
-                   PHYSICAL_SIZES if logical_side in LOGICAL_SIZES else \
-                   LOGICAL_CORNERS
+        physical = PHYSICAL_SIDES if logical_side in LOGICAL_SIDES \
+            else PHYSICAL_SIZES if logical_side in LOGICAL_SIZES \
+            else LOGICAL_CORNERS
         return [self.name.replace(logical_side, physical_side).replace("inset-", "")
                 for physical_side in physical]
 
