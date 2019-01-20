@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: entries() trickier tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { testWithArea } from "./helpers/kvs-tests.js";
+import * as classAssert from "./helpers/class-assert.js";
+import {
+  assertAsyncIteratorEquals,
+  assertAsyncIteratorCustomEquals,
+  assertArrayCustomEquals,
+  assertEqualPostKeyRoundtripping
+} from "./helpers/equality-asserters.js";
+
+function assertEqualsArrayOrUndefined(actual, expected, label) {
+  if (expected === undefined) {
+    return assert_equals(actual, expected, label);
+  }
+  return assert_array_equals(actual, expected, label);
+}
+
+testWithArea(async area => {
+  await area.set(1, "value 1");
+  await area.set(2, "value 2");
+  await area.set(3, "value 3");
+
+  await assertAsyncIteratorCustomEquals(
+    area.entries(),
+    [[1, "value 1"], [2, "value 2"], [3, "value 3"]],
+    assert_array_equals
+  );
+}, "Using for-await-of to collect the results works");
+
+testWithArea(async area => {
+  // We're not testing every key type since this isn't a test of IndexedDB.
+  await area.set(1, "value 1");
+  await area.set(new Date(500), "value date 500");
+  await area.set(-1, "value -1");
+  await area.set(new Date(-20), "value date -20");
+  await area.set("aaa", "value aaa");
+  await area.set("a", "value a");
+  await area.set(-Infinity, "value -Infinity");
+
+  await assertAsyncIteratorCustomEquals(
+    area.entries(),
+    [
+      [-Infinity, "value -Infinity"],
+      [-1, "value -1"],
+      [1, "value 1"],
+      [new Date(-20), "value date -20"],
+      [new Date(500), "value date 500"],
+      ["a", "value a"],
+      ["aaa", "value aaa"]
+    ],
+    (actual, expected, label) => {
+      return assertArrayCustomEquals(actual, expected, assertEqualPostKeyRoundtripping, label);
+    }
+  );
+}, "Results are returned in IndexedDB order");
+
+testWithArea(async area => {
+  await area.set(1, "value 1");
+  await area.set(2, "value 2");
+  await area.set(3, "value 3");
+
+  const iter = area.entries();
+  const iterResults = [
+    await iter.next(),
+    await iter.next(),
+    await iter.next(),
+    await iter.next(),
+    await iter.next(),
+    await iter.next()
+  ];
+
+  classAssert.iterResultsCustom(
+    iterResults,
+    [
+      [[1, "value 1"], false],
+      [[2, "value 2"], false],
+      [[3, "value 3"], false],
+      [undefined, true],
+      [undefined, true],
+      [undefined, true]
+    ],
+    assertEqualsArrayOrUndefined
+  );
+}, "Manual testing of .next() calls, with awaiting");
+
+testWithArea(async area => {
+  area.set(1, "value 1");
+  area.set(2, "value 2");
+  area.set(3, "value 3");
+
+  const iter = area.entries();
+  const promises = [
+    iter.next(),
+    iter.next(),
+    iter.next(),
+    iter.next(),
+    iter.next(),
+    iter.next()
+  ];
+  const iterResults = await Promise.all(promises);
+
+  classAssert.iterResultsCustom(
+    iterResults,
+    [
+      [[1, "value 1"], false],
+      [[2, "value 2"], false],
+      [[3, "value 3"], false],
+      [undefined, true],
+      [undefined, true],
+      [undefined, true]
+    ],
+    assertEqualsArrayOrUndefined
+  );
+}, "Manual testing of .next() calls, no awaiting");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.set(15, "value 15");
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [30, "value 30"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Inserting an entry before the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.set(25, "value 25");
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [25, "value 25"], [30, "value 30"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Inserting an entry after the current entry must show up in iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.delete(10);
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [30, "value 30"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Deleting an entry before the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.delete(20);
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [30, "value 30"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Deleting the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.delete(30);
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Deleting an entry after the current entry must show up in iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.set(10, "value 10, but changed!!");
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [30, "value 30"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Modifying a value before the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.set(20, "value 20, but changed!!");
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [30, "value 30"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Modifying a value at the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const entry of area.entries()) {
+    seen.push(entry);
+    if (entry[0] === 20) {
+      await area.set(30, "value 30, but changed!!");
+    }
+  }
+
+  assertArrayCustomEquals(
+    seen,
+    [[10, "value 10"], [20, "value 20"], [30, "value 30, but changed!!"], [40, "value 40"]],
+    assert_array_equals
+  );
+}, "Modifying a value after the current entry must show up in iteration");
+</script>

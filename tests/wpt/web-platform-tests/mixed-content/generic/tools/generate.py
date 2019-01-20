@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import copy
 import os, sys, json
 from common_paths import *
 import spec_validator
@@ -67,10 +68,11 @@ def generate_selection(selection, spec, test_html_template_basename):
                                           test_html_template_basename)
     generated_disclaimer = disclaimer_template \
         % {'generating_script_filename': os.path.relpath(__file__,
-           test_root_directory),
+                                                         test_root_directory),
            'html_template_filename': os.path.relpath(html_template_filename,
-           test_root_directory)}
+                                                     test_root_directory)}
 
+    # Adjust the template for the test invoking JS. Indent it to look nice.
     selection['generated_disclaimer'] = generated_disclaimer.rstrip()
     test_description_template = \
         test_description_template.rstrip().replace("\n", "\n" + " " * 33)
@@ -104,6 +106,7 @@ def generate_selection(selection, spec, test_html_template_basename):
     # Write out the generated HTML file.
     write_file(test_filename, test_html_template % selection)
 
+
 def generate_test_source_files(spec_json, target):
     test_expansion_schema = spec_json['test_expansion_schema']
     specification = spec_json['specification']
@@ -116,33 +119,45 @@ def generate_test_source_files(spec_json, target):
     html_template = "test.%s.html.template" % target
 
     artifact_order = test_expansion_schema.keys() + ['name']
+    artifact_order.remove('expansion')
 
     # Create list of excluded tests.
     exclusion_dict = {}
     for excluded_pattern in spec_json['excluded_tests']:
         excluded_expansion = \
-            expand_pattern(excluded_pattern,
-                                          test_expansion_schema)
-        for excluded_selection in permute_expansion(excluded_expansion, artifact_order):
+            expand_pattern(excluded_pattern, test_expansion_schema)
+        for excluded_selection in permute_expansion(excluded_expansion,
+                                                    artifact_order):
             excluded_selection_path = selection_pattern % excluded_selection
             exclusion_dict[excluded_selection_path] = True
 
     for spec in specification:
+        # Used to make entries with expansion="override" override preceding
+        # entries with the same |selection_path|.
+        output_dict = {}
+
         for expansion_pattern in spec['test_expansion']:
-            expansion = expand_pattern(expansion_pattern,
-                                                      test_expansion_schema)
+            expansion = expand_pattern(expansion_pattern, test_expansion_schema)
             for selection in permute_expansion(expansion, artifact_order):
                 selection_path = selection_pattern % selection
                 if not selection_path in exclusion_dict:
-                    generate_selection(selection,
-                                       spec,
-                                       html_template)
+                    if selection_path in output_dict:
+                        if expansion_pattern['expansion'] != 'override':
+                            print("Error: %s's expansion is default but overrides %s" % (selection['name'], output_dict[selection_path]['name']))
+                            sys.exit(1)
+                    output_dict[selection_path] = copy.deepcopy(selection)
                 else:
                     print('Excluding selection:', selection_path)
 
+        for selection_path in output_dict:
+            selection = output_dict[selection_path]
+            generate_selection(selection,
+                               spec,
+                               html_template)
+
 
 def main(target, spec_filename):
-    spec_json = load_spec_json(spec_filename);
+    spec_json = load_spec_json(spec_filename)
     spec_validator.assert_valid_spec_json(spec_json)
     generate_test_source_files(spec_json, target)
 
