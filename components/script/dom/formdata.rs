@@ -18,34 +18,27 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use dom_struct::dom_struct;
 use html5ever::LocalName;
-use std::collections::btree_map::Entry::{Occupied, Vacant};
-use std::collections::BTreeMap;
-use std::iter;
 
 #[dom_struct]
 pub struct FormData {
     reflector_: Reflector,
-    data: DomRefCell<BTreeMap<LocalName, Vec<FormDatum>>>,
+    data: DomRefCell<Vec<(LocalName, FormDatum)>>,
 }
 
 impl FormData {
     fn new_inherited(opt_form: Option<&HTMLFormElement>) -> FormData {
-        let mut hashmap: BTreeMap<LocalName, Vec<FormDatum>> = BTreeMap::new();
-
-        if let Some(form) = opt_form {
-            for datum in form.get_form_dataset(None) {
-                match hashmap.entry(LocalName::from(datum.name.as_ref())) {
-                    Occupied(entry) => entry.into_mut().push(datum),
-                    Vacant(entry) => {
-                        entry.insert(vec![datum]);
-                    },
-                }
-            }
-        }
+        let data = match opt_form {
+            Some(form) => form
+                .get_form_dataset(None)
+                .iter()
+                .map(|datum| (LocalName::from(datum.name.as_ref()), datum.clone()))
+                .collect::<Vec<(LocalName, FormDatum)>>(),
+            None => Vec::new(),
+        };
 
         FormData {
             reflector_: Reflector::new(),
-            data: DomRefCell::new(hashmap),
+            data: DomRefCell::new(data),
         }
     }
 
@@ -75,13 +68,9 @@ impl FormDataMethods for FormData {
             value: FormDatumValue::String(DOMString::from(str_value.0)),
         };
 
-        let mut data = self.data.borrow_mut();
-        match data.entry(LocalName::from(name.0)) {
-            Occupied(entry) => entry.into_mut().push(datum),
-            Vacant(entry) => {
-                entry.insert(vec![datum]);
-            },
-        }
+        self.data
+            .borrow_mut()
+            .push((LocalName::from(name.0), datum));
     }
 
     #[allow(unrooted_must_root)]
@@ -93,27 +82,26 @@ impl FormDataMethods for FormData {
             value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(blob, filename))),
         };
 
-        let mut data = self.data.borrow_mut();
-
-        match data.entry(LocalName::from(name.0)) {
-            Occupied(entry) => entry.into_mut().push(datum),
-            Vacant(entry) => {
-                entry.insert(vec![datum]);
-            },
-        }
+        self.data
+            .borrow_mut()
+            .push((LocalName::from(name.0), datum));
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-delete
     fn Delete(&self, name: USVString) {
-        self.data.borrow_mut().remove(&LocalName::from(name.0));
+        self.data
+            .borrow_mut()
+            .retain(|(datum_name, _)| datum_name != &LocalName::from(name.0.clone()));
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
     fn Get(&self, name: USVString) -> Option<FileOrUSVString> {
         self.data
             .borrow()
-            .get(&LocalName::from(name.0))
-            .map(|entry| match entry[0].value {
+            .iter()
+            .filter(|(datum_name, _)| datum_name == &LocalName::from(name.0.clone()))
+            .next()
+            .map(|(_, datum)| match &datum.value {
                 FormDatumValue::String(ref s) => {
                     FileOrUSVString::USVString(USVString(s.to_string()))
                 },
@@ -125,51 +113,67 @@ impl FormDataMethods for FormData {
     fn GetAll(&self, name: USVString) -> Vec<FileOrUSVString> {
         self.data
             .borrow()
-            .get(&LocalName::from(name.0))
-            .map_or(vec![], |data| {
-                data.iter()
-                    .map(|item| match item.value {
-                        FormDatumValue::String(ref s) => {
-                            FileOrUSVString::USVString(USVString(s.to_string()))
-                        },
-                        FormDatumValue::File(ref b) => {
-                            FileOrUSVString::File(DomRoot::from_ref(&*b))
-                        },
-                    })
-                    .collect()
+            .iter()
+            .filter_map(|datum| {
+                if datum.0 != LocalName::from(name.0.clone()) {
+                    return None;
+                }
+
+                Some(match &datum.1.value {
+                    FormDatumValue::String(ref s) => {
+                        FileOrUSVString::USVString(USVString(s.to_string()))
+                    },
+                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+                })
             })
+            .collect()
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-has
     fn Has(&self, name: USVString) -> bool {
-        self.data.borrow().contains_key(&LocalName::from(name.0))
+        self.data
+            .borrow()
+            .iter()
+            .filter(|(datum_name, _0)| datum_name == &LocalName::from(name.0.clone()))
+            .count() >
+            0
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set(&self, name: USVString, str_value: USVString) {
-        self.data.borrow_mut().insert(
-            LocalName::from(name.0.clone()),
-            vec![FormDatum {
+        let mut data = self.data.borrow_mut();
+        let local_name = LocalName::from(name.0.clone());
+
+        data.retain(|(datum_name, _)| datum_name != &local_name);
+
+        data.push((
+            local_name,
+            FormDatum {
                 ty: DOMString::from("string"),
                 name: DOMString::from(name.0),
                 value: FormDatumValue::String(DOMString::from(str_value.0)),
-            }],
-        );
+            },
+        ));
     }
 
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
-        self.data.borrow_mut().insert(
+        let mut data = self.data.borrow_mut();
+        let local_name = LocalName::from(name.0.clone());
+
+        data.retain(|(datum_name, _)| datum_name != &local_name);
+
+        data.push((
             LocalName::from(name.0.clone()),
-            vec![FormDatum {
+            FormDatum {
                 ty: DOMString::from("file"),
                 name: DOMString::from(name.0),
                 value: FormDatumValue::File(DomRoot::from_ref(
                     &*self.create_an_entry(blob, filename),
                 )),
-            }],
-        );
+            },
+        ));
     }
 }
 
@@ -197,9 +201,8 @@ impl FormData {
     pub fn datums(&self) -> Vec<FormDatum> {
         self.data
             .borrow()
-            .values()
-            .flat_map(|value| value.iter())
-            .map(|value| value.clone())
+            .iter()
+            .map(|(_, datum)| datum.clone())
             .collect()
     }
 }
@@ -209,34 +212,21 @@ impl Iterable for FormData {
     type Value = FileOrUSVString;
 
     fn get_iterable_length(&self) -> u32 {
-        self.data
-            .borrow()
-            .values()
-            .map(|value| value.len())
-            .sum::<usize>() as u32
+        self.data.borrow().len() as u32
     }
 
     fn get_value_at_index(&self, n: u32) -> FileOrUSVString {
         let data = self.data.borrow();
-        let value = &data
-            .values()
-            .flat_map(|value| value.iter())
-            .nth(n as usize)
-            .unwrap()
-            .value;
-        match *value {
+        let datum = &data.get(n as usize).unwrap().1;
+        match &datum.value {
             FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-            FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+            FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
         }
     }
 
     fn get_key_at_index(&self, n: u32) -> USVString {
         let data = self.data.borrow();
-        let value = &data
-            .iter()
-            .flat_map(|(key, value)| iter::repeat(key).take(value.len()))
-            .nth(n as usize)
-            .unwrap();
-        USVString(value.to_string())
+        let key = &data.get(n as usize).unwrap().0;
+        USVString(key.to_string())
     }
 }
