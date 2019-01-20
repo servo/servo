@@ -10,12 +10,11 @@ use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
 use keyboard_types::{Key, KeyboardEvent, KeyState};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
-use servo::embedder_traits::EventLoopWaker;
+use servo::embedder_traits::{Cursor, EventLoopWaker};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::style_traits::cursor::CursorKind;
 use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScrollLocation};
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -617,47 +616,46 @@ impl Window {
         }
     }
 
-    pub fn set_cursor(&self, cursor: CursorKind) {
+    pub fn set_cursor(&self, cursor: Cursor) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
                 use winit::MouseCursor;
 
                 let winit_cursor = match cursor {
-                    CursorKind::Auto => MouseCursor::Default,
-                    CursorKind::Default => MouseCursor::Default,
-                    CursorKind::Pointer => MouseCursor::Hand,
-                    CursorKind::ContextMenu => MouseCursor::ContextMenu,
-                    CursorKind::Help => MouseCursor::Help,
-                    CursorKind::Progress => MouseCursor::Progress,
-                    CursorKind::Wait => MouseCursor::Wait,
-                    CursorKind::Cell => MouseCursor::Cell,
-                    CursorKind::Crosshair => MouseCursor::Crosshair,
-                    CursorKind::Text => MouseCursor::Text,
-                    CursorKind::VerticalText => MouseCursor::VerticalText,
-                    CursorKind::Alias => MouseCursor::Alias,
-                    CursorKind::Copy => MouseCursor::Copy,
-                    CursorKind::Move => MouseCursor::Move,
-                    CursorKind::NoDrop => MouseCursor::NoDrop,
-                    CursorKind::NotAllowed => MouseCursor::NotAllowed,
-                    CursorKind::Grab => MouseCursor::Grab,
-                    CursorKind::Grabbing => MouseCursor::Grabbing,
-                    CursorKind::EResize => MouseCursor::EResize,
-                    CursorKind::NResize => MouseCursor::NResize,
-                    CursorKind::NeResize => MouseCursor::NeResize,
-                    CursorKind::NwResize => MouseCursor::NwResize,
-                    CursorKind::SResize => MouseCursor::SResize,
-                    CursorKind::SeResize => MouseCursor::SeResize,
-                    CursorKind::SwResize => MouseCursor::SwResize,
-                    CursorKind::WResize => MouseCursor::WResize,
-                    CursorKind::EwResize => MouseCursor::EwResize,
-                    CursorKind::NsResize => MouseCursor::NsResize,
-                    CursorKind::NeswResize => MouseCursor::NeswResize,
-                    CursorKind::NwseResize => MouseCursor::NwseResize,
-                    CursorKind::ColResize => MouseCursor::ColResize,
-                    CursorKind::RowResize => MouseCursor::RowResize,
-                    CursorKind::AllScroll => MouseCursor::AllScroll,
-                    CursorKind::ZoomIn => MouseCursor::ZoomIn,
-                    CursorKind::ZoomOut => MouseCursor::ZoomOut,
+                    Cursor::Default => MouseCursor::Default,
+                    Cursor::Pointer => MouseCursor::Hand,
+                    Cursor::ContextMenu => MouseCursor::ContextMenu,
+                    Cursor::Help => MouseCursor::Help,
+                    Cursor::Progress => MouseCursor::Progress,
+                    Cursor::Wait => MouseCursor::Wait,
+                    Cursor::Cell => MouseCursor::Cell,
+                    Cursor::Crosshair => MouseCursor::Crosshair,
+                    Cursor::Text => MouseCursor::Text,
+                    Cursor::VerticalText => MouseCursor::VerticalText,
+                    Cursor::Alias => MouseCursor::Alias,
+                    Cursor::Copy => MouseCursor::Copy,
+                    Cursor::Move => MouseCursor::Move,
+                    Cursor::NoDrop => MouseCursor::NoDrop,
+                    Cursor::NotAllowed => MouseCursor::NotAllowed,
+                    Cursor::Grab => MouseCursor::Grab,
+                    Cursor::Grabbing => MouseCursor::Grabbing,
+                    Cursor::EResize => MouseCursor::EResize,
+                    Cursor::NResize => MouseCursor::NResize,
+                    Cursor::NeResize => MouseCursor::NeResize,
+                    Cursor::NwResize => MouseCursor::NwResize,
+                    Cursor::SResize => MouseCursor::SResize,
+                    Cursor::SeResize => MouseCursor::SeResize,
+                    Cursor::SwResize => MouseCursor::SwResize,
+                    Cursor::WResize => MouseCursor::WResize,
+                    Cursor::EwResize => MouseCursor::EwResize,
+                    Cursor::NsResize => MouseCursor::NsResize,
+                    Cursor::NeswResize => MouseCursor::NeswResize,
+                    Cursor::NwseResize => MouseCursor::NwseResize,
+                    Cursor::ColResize => MouseCursor::ColResize,
+                    Cursor::RowResize => MouseCursor::RowResize,
+                    Cursor::AllScroll => MouseCursor::AllScroll,
+                    Cursor::ZoomIn => MouseCursor::ZoomIn,
+                    Cursor::ZoomOut => MouseCursor::ZoomOut,
                     _ => MouseCursor::Default,
                 };
                 window.set_cursor(winit_cursor);

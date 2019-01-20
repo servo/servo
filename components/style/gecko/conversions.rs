@@ -36,9 +36,7 @@ use style_traits::values::specified::AllowedNumericType;
 impl From<LengthPercentage> for nsStyleCoord_CalcValue {
     fn from(other: LengthPercentage) -> nsStyleCoord_CalcValue {
         debug_assert!(
-            other.was_calc ||
-                !other.has_percentage ||
-                other.unclamped_length() == Length::zero()
+            other.was_calc || !other.has_percentage || other.unclamped_length() == Length::zero()
         );
         nsStyleCoord_CalcValue {
             mLength: other.unclamped_length().to_i32_au(),

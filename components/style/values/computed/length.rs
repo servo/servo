@@ -102,7 +102,8 @@ pub struct LengthPercentage {
 // like calc(0px + 5%) and such.
 impl PartialEq for LengthPercentage {
     fn eq(&self, other: &Self) -> bool {
-        self.length == other.length && self.percentage == other.percentage &&
+        self.length == other.length &&
+            self.percentage == other.percentage &&
             self.has_percentage == other.has_percentage
     }
 }
@@ -115,7 +116,8 @@ impl ComputeSquaredDistance for LengthPercentage {
         Ok(self
             .unclamped_length()
             .compute_squared_distance(&other.unclamped_length())? +
-            self.percentage.compute_squared_distance(&other.percentage)?)
+            self.percentage
+                .compute_squared_distance(&other.percentage)?)
     }
 }
 
@@ -216,7 +218,8 @@ impl LengthPercentage {
     /// percentages.
     pub fn maybe_to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
         if self.has_percentage {
-            let length = self.unclamped_length().px() + container_len?.scale_by(self.percentage.0).to_f32_px();
+            let length = self.unclamped_length().px() +
+                container_len?.scale_by(self.percentage.0).to_f32_px();
             return Some(Length::new(self.clamping_mode.clamp(length)));
         }
         Some(self.length())
@@ -431,8 +434,7 @@ impl ToComputedValue for specified::LengthPercentage {
             return specified::LengthPercentage::Percentage(p);
         }
 
-        if !computed.has_percentage  &&
-            computed.clamping_mode.clamp(length.px()) == length.px() {
+        if !computed.has_percentage && computed.clamping_mode.clamp(length.px()) == length.px() {
             return specified::LengthPercentage::Length(ToComputedValue::from_computed_value(
                 &length,
             ));

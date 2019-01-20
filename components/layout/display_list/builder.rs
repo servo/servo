@@ -31,6 +31,7 @@ use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
+use embedder_traits::Cursor;
 use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
@@ -60,8 +61,8 @@ use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::Gradient;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
+use style::values::specified::ui::CursorKind;
 use style::values::{Either, RGBA};
-use style_traits::cursor::CursorKind;
 use style_traits::ToCss;
 use webrender_api::{
     self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
@@ -379,7 +380,7 @@ impl<'a> DisplayListBuildState<'a> {
         bounds: Rect<Au>,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
-        cursor: Option<CursorKind>,
+        cursor: Option<Cursor>,
         section: DisplayListSection,
     ) -> BaseDisplayItem {
         let clipping_and_scrolling = if self.is_background_or_border_of_clip_scroll_node(section) {
@@ -691,7 +692,7 @@ impl Fragment {
                 bounds,
                 bounds,
                 self.node,
-                get_cursor(&style, CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -822,7 +823,7 @@ impl Fragment {
                 placement.bounds,
                 placement.clip_rect,
                 self.node,
-                get_cursor(&style, CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
 
@@ -937,7 +938,7 @@ impl Fragment {
                 placement.bounds,
                 placement.clip_rect,
                 self.node,
-                get_cursor(&style, CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
 
@@ -1003,7 +1004,7 @@ impl Fragment {
                 bounds,
                 clip,
                 self.node,
-                get_cursor(&style, CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
             let border_radius = border::radii(absolute_bounds, style.get_border());
@@ -1087,7 +1088,7 @@ impl Fragment {
             bounds,
             clip,
             self.node,
-            get_cursor(&style, CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             display_list_section,
         );
 
@@ -1286,7 +1287,7 @@ impl Fragment {
             bounds,
             clip,
             self.node,
-            get_cursor(&style, CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             DisplayListSection::Outlines,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1317,7 +1318,7 @@ impl Fragment {
             stacking_relative_border_box,
             clip,
             self.node,
-            get_cursor(&style, CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1346,7 +1347,7 @@ impl Fragment {
             baseline,
             clip,
             self.node,
-            get_cursor(&style, CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
@@ -1374,7 +1375,7 @@ impl Fragment {
             stacking_relative_border_box,
             clip,
             self.node,
-            get_cursor(&self.style, CursorKind::Default),
+            get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1416,7 +1417,7 @@ impl Fragment {
                 stacking_relative_border_box,
                 clip,
                 self.node,
-                get_cursor(&self.style, CursorKind::Default),
+                get_cursor(&self.style, Cursor::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -1447,7 +1448,7 @@ impl Fragment {
                 INSERTION_POINT_LOGICAL_WIDTH,
                 stacking_relative_border_box.size.height,
             );
-            cursor = CursorKind::Text;
+            cursor = Cursor::Text;
         } else {
             insertion_point_bounds = rect(
                 stacking_relative_border_box.origin.x,
@@ -1455,7 +1456,7 @@ impl Fragment {
                 stacking_relative_border_box.size.width,
                 INSERTION_POINT_LOGICAL_WIDTH,
             );
-            cursor = CursorKind::VerticalText;
+            cursor = Cursor::VerticalText;
         };
 
         let base = state.create_base_display_item(
@@ -1644,7 +1645,8 @@ impl Fragment {
                 content_size,
                 content_size,
                 self.node,
-                get_cursor(&self.style, CursorKind::Default).or(Some(CursorKind::Default)),
+                // FIXME(emilio): Why does this ignore pointer-events?
+                get_cursor(&self.style, Cursor::Default).or(Some(Cursor::Default)),
                 DisplayListSection::Content,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -1695,7 +1697,7 @@ impl Fragment {
                 stacking_relative_content_box,
                 stacking_relative_border_box,
                 self.node,
-                get_cursor(&self.style, CursorKind::Default),
+                get_cursor(&self.style, Cursor::Default),
                 DisplayListSection::Content,
             )
         };
@@ -1952,9 +1954,9 @@ impl Fragment {
         let (_orientation, cursor) = if self.style.writing_mode.is_vertical() {
             // TODO: Distinguish between 'sideways-lr' and 'sideways-rl' writing modes in CSS
             // Writing Modes Level 4.
-            (TextOrientation::SidewaysRight, CursorKind::VerticalText)
+            (TextOrientation::SidewaysRight, Cursor::VerticalText)
         } else {
-            (TextOrientation::Upright, CursorKind::Text)
+            (TextOrientation::Upright, Cursor::Text)
         };
 
         // Compute location of the baseline.
@@ -2096,7 +2098,7 @@ impl Fragment {
             stacking_relative_box,
             clip,
             self.node,
-            get_cursor(&self.style, CursorKind::Default),
+            get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
 
@@ -2830,14 +2832,49 @@ impl BaseFlow {
 /// the cursor to use if `cursor` is `auto`. Typically, this will be `PointerCursor`, but for
 /// text display items it may be `TextCursor` or `VerticalTextCursor`.
 #[inline]
-fn get_cursor(values: &ComputedValues, default_cursor: CursorKind) -> Option<CursorKind> {
+fn get_cursor(values: &ComputedValues, default_cursor: Cursor) -> Option<Cursor> {
     let inherited_ui = values.get_inherited_ui();
     if inherited_ui.pointer_events == PointerEvents::None {
         return None;
     }
+
     Some(match inherited_ui.cursor.keyword {
         CursorKind::Auto => default_cursor,
-        keyword => keyword,
+        CursorKind::None => Cursor::None,
+        CursorKind::Default => Cursor::Default,
+        CursorKind::Pointer => Cursor::Pointer,
+        CursorKind::ContextMenu => Cursor::ContextMenu,
+        CursorKind::Help => Cursor::Help,
+        CursorKind::Progress => Cursor::Progress,
+        CursorKind::Wait => Cursor::Wait,
+        CursorKind::Cell => Cursor::Cell,
+        CursorKind::Crosshair => Cursor::Crosshair,
+        CursorKind::Text => Cursor::Text,
+        CursorKind::VerticalText => Cursor::VerticalText,
+        CursorKind::Alias => Cursor::Alias,
+        CursorKind::Copy => Cursor::Copy,
+        CursorKind::Move => Cursor::Move,
+        CursorKind::NoDrop => Cursor::NoDrop,
+        CursorKind::NotAllowed => Cursor::NotAllowed,
+        CursorKind::Grab => Cursor::Grab,
+        CursorKind::Grabbing => Cursor::Grabbing,
+        CursorKind::EResize => Cursor::EResize,
+        CursorKind::NResize => Cursor::NResize,
+        CursorKind::NeResize => Cursor::NeResize,
+        CursorKind::NwResize => Cursor::NwResize,
+        CursorKind::SResize => Cursor::SResize,
+        CursorKind::SeResize => Cursor::SeResize,
+        CursorKind::SwResize => Cursor::SwResize,
+        CursorKind::WResize => Cursor::WResize,
+        CursorKind::EwResize => Cursor::EwResize,
+        CursorKind::NsResize => Cursor::NsResize,
+        CursorKind::NeswResize => Cursor::NeswResize,
+        CursorKind::NwseResize => Cursor::NwseResize,
+        CursorKind::ColResize => Cursor::ColResize,
+        CursorKind::RowResize => Cursor::RowResize,
+        CursorKind::AllScroll => Cursor::AllScroll,
+        CursorKind::ZoomIn => Cursor::ZoomIn,
+        CursorKind::ZoomOut => Cursor::ZoomOut,
     })
 }
 
