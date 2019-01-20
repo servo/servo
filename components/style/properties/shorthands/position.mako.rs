@@ -763,6 +763,15 @@
     }
 </%helpers:shorthand>
 
+// See https://github.com/w3c/csswg-drafts/issues/3525 for the quirks stuff.
+${helpers.four_sides_shorthand(
+    "inset",
+    "%s",
+    "specified::LengthPercentageOrAuto::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset",
+    allow_quirks=False,
+)}
+
 % for axis in ["block", "inline"]:
     <%
         spec = "https://drafts.csswg.org/css-logical/#propdef-inset-%s" % axis
