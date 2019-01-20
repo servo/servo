@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
-use base64;
-use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLChan;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
@@ -68,13 +64,17 @@ use crate::task_manager::TaskManager;
 use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
+use app_units::Au;
+use base64;
+use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender, TryRecvError};
-use cssparser::{Parser, ParserInput};
+use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vector2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
@@ -94,7 +94,6 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
-use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
@@ -103,7 +102,7 @@ use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
-use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -120,7 +119,8 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use style::error_reporting::ParseErrorReporter;
+use style::dom::OpaqueNode;
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::{ComputedValues, PropertyId};
@@ -216,7 +216,7 @@ pub struct Window {
     layout_rpc: Box<LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
-    window_size: Cell<Option<WindowSizeData>>,
+    window_size: Cell<WindowSizeData>,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -248,7 +248,7 @@ pub struct Window {
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DomRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
+    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
@@ -289,6 +289,10 @@ pub struct Window {
     /// Webrender API Sender
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_api_sender: RenderApiSender,
+
+    /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
+    /// It is used to avoid sending idle message more than once, which is unneccessary.
+    has_sent_idle_message: Cell<bool>,
 }
 
 impl Window {
@@ -386,7 +390,7 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Vector2D<f32>>) {
+    pub fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32>>) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
@@ -604,7 +608,7 @@ impl WindowMethods for Window {
                 // Step 1, prompt to unload.
                 if doc.prompt_to_unload(false) {
                     // Step 2, unload.
-                    doc.unload(false, false);
+                    doc.unload(false);
                     // Step 3, remove from the user interface
                     let _ = self.send_to_embedder(EmbedderMsg::CloseBrowser);
                     // Step 4, discard browsing context.
@@ -855,14 +859,13 @@ impl WindowMethods for Window {
         message: HandleValue,
         origin: DOMString,
     ) -> ErrorResult {
+        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
+        let source = source_global.as_window();
+
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
-            "/" => {
-                // TODO(#12715): Should be the origin of the incumbent settings
-                //               object, not self's.
-                Some(self.Document().origin().immutable().clone())
-            },
+            "/" => Some(source.Document().origin().immutable().clone()),
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
@@ -874,7 +877,7 @@ impl WindowMethods for Window {
         let data = StructuredCloneData::write(cx, message)?;
 
         // Step 9.
-        self.post_message(origin, data);
+        self.post_message(origin, &*source.window_proxy(), data);
         Ok(())
     }
 
@@ -958,7 +961,9 @@ impl WindowMethods for Window {
     fn InnerHeight(&self) -> i32 {
         self.window_size
             .get()
-            .and_then(|e| e.initial_viewport.height.to_i32())
+            .initial_viewport
+            .height
+            .to_i32()
             .unwrap_or(0)
     }
 
@@ -967,7 +972,9 @@ impl WindowMethods for Window {
     fn InnerWidth(&self) -> i32 {
         self.window_size
             .get()
-            .and_then(|e| e.initial_viewport.width.to_i32())
+            .initial_viewport
+            .width
+            .to_i32()
             .unwrap_or(0)
     }
 
@@ -1130,7 +1137,6 @@ impl WindowMethods for Window {
         mql
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(
         &self,
@@ -1142,6 +1148,12 @@ impl WindowMethods for Window {
 
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner.or_init(|| TestRunner::new(self.upcast()))
+    }
+
+    fn RunningAnimationCount(&self) -> u32 {
+        let (sender, receiver) = channel().unwrap();
+        let _ = self.layout_chan.send(Msg::GetRunningAnimations(sender));
+        receiver.recv().unwrap_or(0) as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-name
@@ -1239,10 +1251,7 @@ impl Window {
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
         let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
 
-        // Step 4
-        if self.window_size.get().is_none() {
-            return;
-        }
+        // TODO Step 4 - determine if a window has a viewport
 
         // Step 5
         //TODO remove scrollbar width
@@ -1316,9 +1325,7 @@ impl Window {
     }
 
     pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
-        self.window_size
-            .get()
-            .map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio)
+        self.window_size.get().device_pixel_ratio
     }
 
     fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
@@ -1356,18 +1363,13 @@ impl Window {
     /// Returns true if layout actually happened, false otherwise.
     #[allow(unsafe_code)]
     pub fn force_reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
+        self.Document().ensure_safe_to_run_script_or_layout();
         // Check if we need to unsuppress reflow. Note that this needs to be
         // *before* any early bailouts, or reflow might never be unsuppresed!
         match reason {
             ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
             _ => (),
         }
-
-        // If there is no window size, we have nothing to do.
-        let window_size = match self.window_size.get() {
-            Some(window_size) => window_size,
-            None => return false,
-        };
 
         let for_display = reflow_goal == ReflowGoal::Full;
         if for_display && self.suppress_reflow.get() {
@@ -1411,13 +1413,15 @@ impl Window {
             },
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
             stylesheets_changed,
-            window_size,
+            window_size: self.window_size.get(),
             reflow_goal,
             script_join_chan: join_chan,
             dom_count: self.Document().dom_count(),
         };
 
-        self.layout_chan.send(Msg::Reflow(reflow)).unwrap();
+        self.layout_chan
+            .send(Msg::Reflow(reflow))
+            .expect("Layout thread disconnected.");
 
         debug!("script: layout forked");
 
@@ -1498,19 +1502,18 @@ impl Window {
     /// may happen in the only case a query reflow may bail out, that is, if the
     /// viewport size is not present). See #11223 for an example of that.
     pub fn reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
+        self.Document().ensure_safe_to_run_script_or_layout();
         let for_display = reflow_goal == ReflowGoal::Full;
 
         let mut issued_reflow = false;
         if !for_display || self.Document().needs_reflow() {
             issued_reflow = self.force_reflow(reflow_goal, reason);
 
-            // If window_size is `None`, we don't reflow, so the document stays
-            // dirty. Otherwise, we shouldn't need a reflow immediately after a
+            // We shouldn't need a reflow immediately after a
             // reflow, except if we're waiting for a deferred paint.
             assert!(
                 !self.Document().needs_reflow() ||
                     (!for_display && self.Document().needs_paint()) ||
-                    self.window_size.get().is_none() ||
                     self.suppress_reflow.get()
             );
         } else {
@@ -1542,12 +1545,15 @@ impl Window {
                 elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
             });
 
-            let ready_state = document.ReadyState();
-
+            let has_sent_idle_message = self.has_sent_idle_message.get();
+            let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
             let pending_images = self.pending_layout_images.borrow().is_empty();
-            if ready_state == DocumentReadyState::Complete && !reftest_wait && pending_images {
+
+            if !has_sent_idle_message && is_ready_state_complete && !reftest_wait && pending_images
+            {
                 let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
+                self.has_sent_idle_message.set(true);
             }
         }
 
@@ -1565,42 +1571,38 @@ impl Window {
         &*self.layout_rpc
     }
 
-    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxQuery(content_box_request)) {
+    pub fn content_box_query(&self, node: &Node) -> Option<Rect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBoxQuery(node.to_opaque())) {
             return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
-    pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(content_boxes_request)) {
+    pub fn content_boxes_query(&self, node: &Node) -> Vec<Rect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node.to_opaque())) {
             return vec![];
         }
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
     }
 
-    pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node_geometry_request)) {
+    pub fn client_rect_query(&self, node: &Node) -> Rect<i32> {
+        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
     }
 
-    pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
+    pub fn scroll_area_query(&self, node: &Node) -> Rect<i32> {
+        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_scroll_area().client_rect
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
-        if let Some(scroll_offset) = self
-            .scroll_offsets
-            .borrow()
-            .get(&node.to_untrusted_node_address())
-        {
+        if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
             return *scroll_offset;
         }
         Vector2D::new(0.0, 0.0)
@@ -1615,10 +1617,9 @@ impl Window {
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
-        self.scroll_offsets.borrow_mut().insert(
-            node.to_untrusted_node_address(),
-            Vector2D::new(x_ as f32, y_ as f32),
-        );
+        self.scroll_offsets
+            .borrow_mut()
+            .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
 
         let NodeScrollIdResponse(scroll_id) = self.layout_rpc.node_scroll_id();
 
@@ -1646,14 +1647,13 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(
-        &self,
-        node: TrustedNodeAddress,
-    ) -> (Option<DomRoot<Element>>, Rect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node)) {
+    pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, Rect<Au>) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node.to_opaque())) {
             return (None, Rect::zero());
         }
 
+        // FIXME(nox): Layout can reply with a garbage value which doesn't
+        // actually correspond to an element, that's unsound.
         let response = self.layout_rpc.offset_parent();
         let js_runtime = self.js_runtime.borrow();
         let js_runtime = js_runtime.as_ref().unwrap();
@@ -1671,12 +1671,8 @@ impl Window {
         self.layout_rpc.style().0
     }
 
-    pub fn text_index_query(
-        &self,
-        node: TrustedNodeAddress,
-        point_in_node: Point2D<f32>,
-    ) -> TextIndexResponse {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
+    pub fn text_index_query(&self, node: &Node, point_in_node: Point2D<f32>) -> TextIndexResponse {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery(node.to_opaque(), point_in_node)) {
             return TextIndexResponse(None);
         }
         self.layout_rpc.text_index()
@@ -1739,16 +1735,16 @@ impl Window {
                 let old_url = doc.url().into_string();
                 let new_url = url.clone().into_string();
                 let task = task!(hashchange_event: move || {
-                        let this = this.root();
-                        let event = HashChangeEvent::new(
-                            &this,
-                            atom!("hashchange"),
-                            false,
-                            false,
-                            old_url,
-                            new_url);
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>());
-                    });
+                    let this = this.root();
+                    let event = HashChangeEvent::new(
+                        &this,
+                        atom!("hashchange"),
+                        false,
+                        false,
+                        old_url,
+                        new_url);
+                    event.upcast::<Event>().fire(this.upcast::<EventTarget>());
+                });
                 // FIXME(nox): Why are errors silenced here?
                 let _ = self.script_chan.send(CommonScriptMsg::Task(
                     ScriptThreadEventCategory::DomEvent,
@@ -1777,8 +1773,14 @@ impl Window {
             }
         }
 
-        // Step 7
+        // Step 8
         if doc.prompt_to_unload(false) {
+            if self.window_proxy().parent().is_some() {
+                // Step 10
+                // If browsingContext is a nested browsing context,
+                // then put it in the delaying load events mode.
+                self.window_proxy().start_delaying_load_events_mode();
+            }
             self.main_thread_script_chan()
                 .send(MainThreadScriptMsg::Navigate(
                     pipeline_id,
@@ -1795,10 +1797,10 @@ impl Window {
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
-        self.window_size.set(Some(size));
+        self.window_size.set(size);
     }
 
-    pub fn window_size(&self) -> Option<WindowSizeData> {
+    pub fn window_size(&self) -> WindowSizeData {
         self.window_size.get()
     }
 
@@ -2015,7 +2017,7 @@ impl Window {
         layout_chan: Sender<Msg>,
         pipelineid: PipelineId,
         parent_info: Option<PipelineId>,
-        window_size: Option<WindowSizeData>,
+        window_size: WindowSizeData,
         origin: MutableOrigin,
         navigation_start: u64,
         navigation_start_precise: u64,
@@ -2095,6 +2097,7 @@ impl Window {
             webrender_document,
             exists_mut_observer: Cell::new(false),
             webrender_api_sender,
+            has_sent_idle_message: Cell::new(false),
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }
@@ -2180,11 +2183,14 @@ impl Window {
     pub fn post_message(
         &self,
         target_origin: Option<ImmutableOrigin>,
+        source: &WindowProxy,
         serialize_with_transfer_result: StructuredCloneData,
     ) {
         let this = Trusted::new(self);
+        let source = Trusted::new(source);
         let task = task!(post_serialised_message: move || {
             let this = this.root();
+            let source = source.root();
 
             // Step 7.1.
             if let Some(target_origin) = target_origin {
@@ -2212,7 +2218,8 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
-                None
+                None,
+                Some(&*source),
             );
         });
         // FIXME(nox): Why are errors silenced here?
@@ -2228,5 +2235,43 @@ impl Window {
             self.pipeline_id(),
             TaskSourceName::DOMManipulation,
         ));
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct CSSErrorReporter {
+    pub pipelineid: PipelineId,
+    // Arc+Mutex combo is necessary to make this struct Sync,
+    // which is necessary to fulfill the bounds required by the
+    // uses of the ParseErrorReporter trait.
+    #[ignore_malloc_size_of = "Arc is defined in libstd"]
+    pub script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
+}
+unsafe_no_jsmanaged_fields!(CSSErrorReporter);
+
+impl ParseErrorReporter for CSSErrorReporter {
+    fn report_error(&self, url: &ServoUrl, location: SourceLocation, error: ContextualParseError) {
+        if log_enabled!(log::Level::Info) {
+            info!(
+                "Url:\t{}\n{}:{} {}",
+                url.as_str(),
+                location.line,
+                location.column,
+                error
+            )
+        }
+
+        //TODO: report a real filename
+        let _ = self
+            .script_chan
+            .lock()
+            .unwrap()
+            .send(ConstellationControlMsg::ReportCSSError(
+                self.pipelineid,
+                url.to_string(),
+                location.line,
+                location.column,
+                error.to_string(),
+            ));
     }
 }

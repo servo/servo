@@ -79,8 +79,62 @@ impl ops::Deref for ByteString {
 
 /// A string that is constructed from a UCS-2 buffer by replacing invalid code
 /// points with the replacement character.
-#[derive(Clone, Default, MallocSizeOf)]
+#[derive(Clone, Default, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct USVString(pub String);
+
+impl Borrow<str> for USVString {
+    #[inline]
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Deref for USVString {
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl DerefMut for USVString {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut str {
+        &mut self.0
+    }
+}
+
+impl AsRef<str> for USVString {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for USVString {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&**self, f)
+    }
+}
+
+impl PartialEq<str> for USVString {
+    fn eq(&self, other: &str) -> bool {
+        &**self == other
+    }
+}
+
+impl<'a> PartialEq<&'a str> for USVString {
+    fn eq(&self, other: &&'a str) -> bool {
+        &**self == *other
+    }
+}
+
+impl From<String> for USVString {
+    fn from(contents: String) -> USVString {
+        USVString(contents)
+    }
+}
 
 /// Returns whether `s` is a `token`, as defined by
 /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
@@ -680,10 +734,10 @@ fn parse_floating_point_number(input: &str) -> Result<f64, ()> {
     match input.trim().parse::<f64>() {
         Ok(val)
             if !(
-            // A valid number is the same as what rust considers to be valid,
-            // except for +1., NaN, and Infinity.
-            val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
-        ) =>
+                // A valid number is the same as what rust considers to be valid,
+                // except for +1., NaN, and Infinity.
+                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+            ) =>
         {
             // TODO(#19773): need consider `min`, `max`, `step`, when they are implemented
             Ok(val.round())

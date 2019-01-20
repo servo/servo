@@ -17,6 +17,7 @@ test_valid_value("stroke-dashoffset", "0");
 test_valid_value("stroke-dashoffset", "10px");
 test_valid_value("stroke-dashoffset", "-20%");
 test_valid_value("stroke-dashoffset", "30");
+test_valid_value("stroke-dashoffset", "40Q", "40q");
 test_valid_value("stroke-dashoffset", "calc(2em + 3ex)");
 
   ]]></script>

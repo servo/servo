@@ -9,19 +9,22 @@
 </head>
 <body>
 <script>
+  const nullPolicy = TrustedTypes.createPolicy('NullPolicy', {createScript: s => s});
+
   // TrustedURL Assignments
   const URLTestCases = [
     [ 'a', 'href' ],
     [ 'area', 'href' ],
     [ 'base', 'href' ],
+    [ 'button', 'formAction' ],
+    [ 'form', 'action' ],
     [ 'frame', 'src' ],
     [ 'iframe', 'src' ],
     [ 'img', 'src' ],
+    [ 'input', 'formAction' ],
     [ 'input', 'src' ],
     [ 'link', 'href' ],
     [ 'video', 'src' ],
-    [ 'object', 'data' ],
-    [ 'object', 'codeBase' ],
     [ 'source', 'src' ],
     [ 'track', 'src' ]
   ];
@@ -31,12 +34,15 @@
       assert_element_accepts_trusted_url_explicit_set(window, c, t, c[0], c[1], RESULTS.URL);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], nullPolicy.createScript('script'));
     }, c[0] + "." + c[1] + " accepts only TrustedURL");
   });
 
   // TrustedScriptURL Assignments
   const scriptURLTestCases = [
     [ 'embed', 'src' ],
+    [ 'object', 'data' ],
+    [ 'object', 'codeBase' ],
     [ 'script', 'src' ]
   ];
 
@@ -45,6 +51,7 @@
       assert_element_accepts_trusted_script_url_explicit_set(window, c, t, c[0], c[1], RESULTS.SCRIPTURL);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], nullPolicy.createScript('script'));
     }, c[0] + "." + c[1] + " accepts only TrustedScriptURL");
   });
 
@@ -58,28 +65,46 @@
       assert_element_accepts_trusted_html_explicit_set(window, c, t, c[0], c[1], RESULTS.HTML);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], nullPolicy.createScript('script'));
     }, c[0] + "." + c[1] + " accepts only TrustedHTML");
   });
 
+  // TrustedScript Assignments
+  const ScriptTestCases = [
+    [ 'div', 'onclick' ]
+  ];
+
+  ScriptTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_script_explicit_set(window, c, t, c[0], c[1], RESULTS.SCRIPT);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
+    }, c[0] + "." + c[1] + " accepts only TrustedScript");
+  });
+
+  test(t => {
+    let el = document.createElement('iframe');
+
+    assert_throws(new TypeError(), _ => {
+      el.setAttribute('SrC', INPUTS.URL);
+    });
+
+    assert_equals(el.src, '');
+  }, "`Element.prototype.setAttribute.SrC = string` throws.");
+
   // After default policy creation string and null assignments implicitly call createXYZ
-  let p = window.TrustedTypes.createPolicy("default", { createURL: createURLJS, createScriptURL: createScriptURLJS, createHTML: createHTMLJS }, true);
+  let p = window.TrustedTypes.createPolicy("default", { createURL: createURLJS, createScriptURL: createScriptURLJS, createHTML: createHTMLJS, createScript: createScriptJS }, true);
   URLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.URL, RESULTS.URL);
-
-      // Properties that actually parse the URLs will resort to the base URL
-      // when given a null or empty URL.
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
+      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
   scriptURLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
-
-      // Properties that actually parse the URLs will resort to the base URL
-      // when given a null or empty URL.
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
+      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
@@ -87,6 +112,13 @@
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.HTML, RESULTS.HTML);
       assert_element_accepts_trusted_type(c[0], c[1], null, "null");
+    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
+  });
+
+  ScriptTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_type_explicit_set(c[0], c[1], INPUTS.SCRIPT, RESULTS.SCRIPT);
+      assert_element_accepts_trusted_type_explicit_set(c[0], c[1], null, "null");
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
@@ -104,12 +136,14 @@
   }, "a.rel accepts null");
 
   test(t => {
-    let el = document.createElement('iframe');
+    let div = document.createElement('div');
+    let span = document.createElement('span');
 
-    assert_throws(new TypeError(), _ => {
-      el.setAttribute('SrC', INPUTS.URL);
-    });
+    div.setAttribute('src', INPUTS.URL);
+    let attr = div.getAttributeNode('src');
+    div.removeAttributeNode(attr);
+    span.setAttributeNode(attr);
 
-    assert_equals(el.src, '');
-  }, "`Element.prototype.setAttribute.SrC = string` throws.");
+    assert_equals(span.getAttribute('src'), INPUTS.URL);
+  }, "`span.src = setAttributeNode(div.src)` with string works.");
 </script>

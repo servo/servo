@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <object type="application/x-shockwave-flash"></object>
+  <!-- we rely on the report because we can't rely on the onload event for
+         "allowed" tests as it is not fired for object and embed -->
+   <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+
+</html>

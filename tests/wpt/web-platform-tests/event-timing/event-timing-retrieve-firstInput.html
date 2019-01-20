@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: firstInput entry should be buffered even without observer</title>
+<button id='button'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<script src=resources/event-timing-support.js></script>
+
+<script>
+  async_test(function(t) {
+    function testEntries() {
+      // First callback is not ensured to have the entry.
+      if (performance.getEntriesByType('firstInput').length === 0) {
+        t.step_timeout(testEntries, 10);
+        return;
+      }
+      assert_equals(performance.getEntriesByType('firstInput').length, 1,
+        "There should be a firstInput entry in the performance timeline");
+      const entry = performance.getEntriesByType('firstInput')[0];
+      assert_equals(entry.name, 'mousedown');
+      assert_equals(entry.entryType, 'firstInput');
+      assert_greater_than(entry.duration, 50,
+        "The first input was a long one.");
+      t.done();
+    }
+    clickAndBlockMain('button').then(wait).then(t.step_func(testEntries));
+  },
+  "Event Timing: check firstInput after onload, observer, click, click."
+  );
+</script>
+</html>

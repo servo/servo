@@ -25,7 +25,6 @@
 //!   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 //!   similar methods.
 
-use app_units::Au;
 use crate::block::{BlockFlow, FormattingContextType};
 use crate::context::LayoutContext;
 use crate::display_list::items::ClippingAndScrolling;
@@ -46,6 +45,7 @@ use crate::table_colgroup::TableColGroupFlow;
 use crate::table_row::TableRowFlow;
 use crate::table_rowgroup::TableRowGroupFlow;
 use crate::table_wrapper::TableWrapperFlow;
+use app_units::Au;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::StackingContextId;
@@ -67,7 +67,7 @@ use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::LengthPercentageOrAuto;
 use webrender_api::LayoutTransform;
 
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
@@ -342,14 +342,14 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             overflow.scroll.size.height = border_box.size.height;
         }
 
-        if !self.as_block().fragment.establishes_stacking_context() || self
-            .as_block()
-            .fragment
-            .style
-            .get_box()
-            .transform
-            .0
-            .is_empty()
+        if !self.as_block().fragment.establishes_stacking_context() ||
+            self.as_block()
+                .fragment
+                .style
+                .get_box()
+                .transform
+                .0
+                .is_empty()
         {
             overflow.translate(&position.origin.to_vector());
             return overflow;
@@ -466,10 +466,10 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     }
 
     fn contains_positioned_fragments(&self) -> bool {
-        self.contains_relatively_positioned_fragments() || self
-            .base()
-            .flags
-            .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+        self.contains_relatively_positioned_fragments() ||
+            self.base()
+                .flags
+                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
     }
 
     fn contains_relatively_positioned_fragments(&self) -> bool {
@@ -1068,13 +1068,13 @@ impl BaseFlow {
                         flags.insert(FlowFlags::IS_ABSOLUTELY_POSITIONED);
 
                         let logical_position = style.logical_position();
-                        if logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
-                            logical_position.inline_end == LengthOrPercentageOrAuto::Auto
+                        if logical_position.inline_start == LengthPercentageOrAuto::Auto &&
+                            logical_position.inline_end == LengthPercentageOrAuto::Auto
                         {
                             flags.insert(FlowFlags::INLINE_POSITION_IS_STATIC);
                         }
-                        if logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
-                            logical_position.block_end == LengthOrPercentageOrAuto::Auto
+                        if logical_position.block_start == LengthPercentageOrAuto::Auto &&
+                            logical_position.block_end == LengthPercentageOrAuto::Auto
                         {
                             flags.insert(FlowFlags::BLOCK_POSITION_IS_STATIC);
                         }
@@ -1161,13 +1161,13 @@ impl BaseFlow {
                 let logical_position = style.logical_position();
                 self.flags.set(
                     FlowFlags::INLINE_POSITION_IS_STATIC,
-                    logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
-                        logical_position.inline_end == LengthOrPercentageOrAuto::Auto,
+                    logical_position.inline_start == LengthPercentageOrAuto::Auto &&
+                        logical_position.inline_end == LengthPercentageOrAuto::Auto,
                 );
                 self.flags.set(
                     FlowFlags::BLOCK_POSITION_IS_STATIC,
-                    logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
-                        logical_position.block_end == LengthOrPercentageOrAuto::Auto,
+                    logical_position.block_start == LengthPercentageOrAuto::Auto &&
+                        logical_position.block_end == LengthPercentageOrAuto::Auto,
                 );
             }
         }
@@ -1406,10 +1406,10 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
                     return Some(kid.base().position.start.b + baseline_offset);
                 }
             }
-            if kid.is_block_like() && !kid
-                .base()
-                .flags
-                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+            if kid.is_block_like() &&
+                !kid.base()
+                    .flags
+                    .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
             {
                 if let Some(baseline_offset) = kid.baseline_offset_of_last_line_box_in_flow() {
                     return Some(kid.base().position.start.b + baseline_offset);

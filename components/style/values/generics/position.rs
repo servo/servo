@@ -15,6 +15,7 @@
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
 )]

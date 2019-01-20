@@ -122,7 +122,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
                     self.proc.wait()
                 else:
                     self.proc.kill()
-        except KeyboardInterrupt:
+        except:  # noqa
             self.proc.kill()
             raise
 
@@ -208,7 +208,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             for pref, value in test.environment.get('prefs', {}).iteritems():
                 command += ["--pref", "%s=%s" % (pref, value)]
 
-            command += ["--resolution", viewport_size or "800x600"]
+            command += ["--resolution", viewport_size or "600x600"]
 
             if self.browser.ca_certificate_path:
                 command += ["--certificate-path", self.browser.ca_certificate_path]

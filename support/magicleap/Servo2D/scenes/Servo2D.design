@@ -36,7 +36,7 @@
       <property id="scale"/>
       <property id="size">
         <property id="x" value="0.5"/>
-        <property id="y" value="0.44"/>
+        <property id="y" value="0.5"/>
       </property>
       <property id="texCoords">
         <property id="x">
@@ -140,7 +140,7 @@
       <property id="rotation"/>
       <property id="scale"/>
       <property id="scrollBarVisibilityMode" value="Off"/>
-      <property id="text" value="https://servo.org/"/>
+      <property id="text" value=""/>
       <property id="textPadding">
         <property id="top" value="0.003"/>
         <property id="right" value="0.003"/>
@@ -167,5 +167,33 @@
     <property id="position"/>
     <property id="rotation"/>
     <property id="scale"/>
+  </node>
+  <node name="bevel" nodeTypeId="lumin.quad">
+    <property id="color" value="0.4 0.302 0.702 1"/>
+    <property id="name" value="bevel"/>
+    <property id="position">
+      <property id="x" value="-0.26"/>
+      <property id="y" value="-0.17"/>
+      <property id="z" value="-0.01"/>
+    </property>
+    <property id="rotation"/>
+    <property id="scale"/>
+    <property id="size">
+      <property id="x" value="0.52"/>
+      <property id="y" value="0.52"/>
+    </property>
+    <property id="texCoords">
+      <property id="x">
+        <property id="y" value="1.0"/>
+      </property>
+      <property id="y">
+        <property id="x" value="1.0"/>
+        <property id="y" value="1.0"/>
+      </property>
+      <property id="z">
+        <property id="x" value="1.0"/>
+      </property>
+      <property id="w"/>
+    </property>
   </node>
 </design:rootNode>

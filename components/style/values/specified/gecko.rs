@@ -11,14 +11,14 @@ use crate::values::computed;
 use crate::values::computed::length::CSSPixelLength;
 use crate::values::generics::gecko::ScrollSnapPoint as GenericScrollSnapPoint;
 use crate::values::generics::rect::Rect;
-use crate::values::specified::length::LengthOrPercentage;
+use crate::values::specified::length::LengthPercentage;
 use cssparser::{Parser, Token};
 use std::fmt;
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// A specified type for scroll snap points.
-pub type ScrollSnapPoint = GenericScrollSnapPoint<LengthOrPercentage>;
+pub type ScrollSnapPoint = GenericScrollSnapPoint<LengthPercentage>;
 
 impl Parse for ScrollSnapPoint {
     fn parse<'i, 't>(
@@ -30,7 +30,7 @@ impl Parse for ScrollSnapPoint {
         }
         input.expect_function_matching("repeat")?;
         let length =
-            input.parse_nested_block(|i| LengthOrPercentage::parse_non_negative(context, i))?;
+            input.parse_nested_block(|i| LengthPercentage::parse_non_negative(context, i))?;
         Ok(GenericScrollSnapPoint::Repeat(length))
     }
 }

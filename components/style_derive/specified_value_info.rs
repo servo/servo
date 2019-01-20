@@ -5,16 +5,17 @@
 use crate::cg;
 use crate::parse::ParseVariantAttrs;
 use crate::to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
-use quote::Tokens;
+use proc_macro2::TokenStream;
+use quote::TokenStreamExt;
 use syn::{Data, DeriveInput, Fields, Ident, Type};
 
-pub fn derive(mut input: DeriveInput) -> Tokens {
+pub fn derive(mut input: DeriveInput) -> TokenStream {
     let css_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
     let mut types = vec![];
     let mut values = vec![];
 
-    let input_ident = input.ident;
-    let input_name = || cg::to_css_identifier(input_ident.as_ref());
+    let input_ident = &input.ident;
+    let input_name = || cg::to_css_identifier(&input_ident.to_string());
     if let Some(function) = css_attrs.function {
         values.push(function.explicit().unwrap_or_else(input_name));
     // If the whole value is wrapped in a function, value types of
@@ -39,17 +40,17 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                         continue;
                     }
                     if let Some(aliases) = parse_attrs.aliases {
-                        for alias in aliases.split(",") {
+                        for alias in aliases.split(',') {
                             values.push(alias.to_string());
                         }
                     }
                     if let Some(other_values) = info_attrs.other_values {
-                        for value in other_values.split(",") {
+                        for value in other_values.split(',') {
                             values.push(value.to_string());
                         }
                     }
                     let ident = &v.ident;
-                    let variant_name = || cg::to_css_identifier(ident.as_ref());
+                    let variant_name = || cg::to_css_identifier(&ident.to_string());
                     if info_attrs.starts_with_keyword {
                         values.push(variant_name());
                         continue;
@@ -60,10 +61,8 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                     }
                     if let Some(function) = css_attrs.function {
                         values.push(function.explicit().unwrap_or_else(variant_name));
-                    } else {
-                        if !derive_struct_fields(&v.fields, &mut types, &mut values) {
-                            values.push(variant_name());
-                        }
+                    } else if !derive_struct_fields(&v.fields, &mut types, &mut values) {
+                        values.push(variant_name());
                     }
                 }
             },
@@ -78,7 +77,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
 
     let info_attrs = cg::parse_input_attrs::<ValueInfoInputAttrs>(&input);
     if let Some(other_values) = info_attrs.other_values {
-        for value in other_values.split(",") {
+        for value in other_values.split(',') {
             values.push(value.to_string());
         }
     }
@@ -142,7 +141,7 @@ fn derive_struct_fields<'a>(
     types.extend(fields.filter_map(|field| {
         let info_attrs = cg::parse_field_attrs::<ValueInfoFieldAttrs>(field);
         if let Some(other_values) = info_attrs.other_values {
-            for value in other_values.split(",") {
+            for value in other_values.split(',') {
                 values.push(value.to_string());
             }
         }
@@ -152,7 +151,7 @@ fn derive_struct_fields<'a>(
                 .ident
                 .as_ref()
                 .expect("only named field should use represents_keyword");
-            values.push(cg::to_css_identifier(ident.as_ref()));
+            values.push(cg::to_css_identifier(&ident.to_string()));
             return None;
         }
         if let Some(if_empty) = css_attrs.if_empty {

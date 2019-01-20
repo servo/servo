@@ -4,12 +4,12 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::AtomicRef;
 use crate::HTMLCanvasData;
 use crate::HTMLMediaData;
 use crate::LayoutNodeType;
 use crate::OpaqueStyleAndLayoutData;
 use crate::SVGSVGData;
+use atomic_refcell::AtomicRef;
 use gfx_traits::{combine_id_with_fragment_type, ByteIndex, FragmentType};
 use html5ever::{LocalName, Namespace};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};

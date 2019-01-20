@@ -203,11 +203,12 @@ impl DissimilarOriginWindow {
             None => return warn!("postMessage called with no incumbent global"),
             Some(incumbent) => incumbent,
         };
-        let msg = ScriptMsg::PostMessage(
-            self.window_proxy.browsing_context_id(),
-            origin,
-            data.move_to_arraybuffer(),
-        );
+        let msg = ScriptMsg::PostMessage {
+            target: self.window_proxy.browsing_context_id(),
+            source: incumbent.pipeline_id(),
+            target_origin: origin,
+            data: data.move_to_arraybuffer(),
+        };
         let _ = incumbent.script_to_constellation_chan().send(msg);
     }
 }

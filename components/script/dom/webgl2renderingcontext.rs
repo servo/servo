@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
-use canvas_traits::webgl::WebGLVersion;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
@@ -31,6 +29,8 @@ use crate::dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::window::Window;
+/// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
+use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::jsapi::{JSContext, JSObject};

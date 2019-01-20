@@ -1,6 +1,7 @@
 import json
 import os
 import threading
+import time
 import traceback
 import urlparse
 import uuid
@@ -98,6 +99,10 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
             except errors.ScriptTimeoutException:
                 self.logger.debug("Script timed out")
                 pass
+            except errors.JavascriptException as e:
+                # This can happen if we navigate, but just keep going
+                self.logger.debug(e.message)
+                pass
             except IOError:
                 self.logger.debug("Socket closed")
                 break
@@ -153,10 +158,9 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
 
         for handle in handles:
             try:
-                self.dismiss_alert(lambda: self.marionette.switch_to_window(handle))
-                self.marionette.switch_to_window(handle)
                 self.logger.info("Closing window %s" % handle)
-                self.marionette.close()
+                self.marionette.switch_to_window(handle)
+                self.dismiss_alert(lambda: self.marionette.close())
             except errors.NoSuchWindowException:
                 # We might have raced with the previous test to close this
                 # window, skip it.
@@ -183,29 +187,43 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
             else:
                 break
 
-    def get_test_window(self, window_id, parent):
+    def get_test_window(self, window_id, parent, timeout=5):
+        """Find the test window amongst all the open windows.
+        This is assumed to be either the named window or the one after the parent in the list of
+        window handles
+
+        :param window_id: The DOM name of the Window
+        :param parent: The handle of the runner window
+        :param timeout: The time in seconds to wait for the window to appear. This is because in
+                        some implementations there's a race between calling window.open and the
+                        window being added to the list of WebDriver accessible windows."""
         test_window = None
-        if window_id:
-            try:
-                # Try this, it's in Level 1 but nothing supports it yet
-                win_s = self.parent.base.execute_script("return window['%s'];" % self.window_id)
-                win_obj = json.loads(win_s)
-                test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
-            except Exception:
-                pass
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            if window_id:
+                try:
+                    # Try this, it's in Level 1 but nothing supports it yet
+                    win_s = self.parent.base.execute_script("return window['%s'];" % self.window_id)
+                    win_obj = json.loads(win_s)
+                    test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
+                except Exception:
+                    pass
 
-        if test_window is None:
-            after = self.marionette.window_handles
-            if len(after) == 2:
-                test_window = next(iter(set(after) - set([parent])))
-            elif after[0] == parent and len(after) > 2:
-                # Hope the first one here is the test window
-                test_window = after[1]
-            else:
-                raise Exception("unable to find test window")
+            if test_window is None:
+                handles = self.marionette.window_handles
+                if len(handles) == 2:
+                    test_window = next(iter(set(handles) - set([parent])))
+                elif handles[0] == parent and len(handles) > 2:
+                    # Hope the first one here is the test window
+                    test_window = handles[1]
 
-        assert test_window != parent
-        return test_window
+            if test_window is not None:
+                assert test_window != parent
+                return test_window
+
+            time.sleep(0.1)
+
+        raise Exception("unable to find test window")
 
 
 class MarionettePrefsProtocolPart(PrefsProtocolPart):
@@ -292,7 +310,7 @@ class MarionetteStorageProtocolPart(StorageProtocolPart):
             let principal = ssm.createCodebasePrincipal(uri, {});
             let qms = Components.classes["@mozilla.org/dom/quota-manager-service;1"]
                                 .getService(Components.interfaces.nsIQuotaManagerService);
-            qms.clearStoragesForPrincipal(principal, "default", true);
+            qms.clearStoragesForPrincipal(principal, "default", null, true);
             """ % url
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             self.marionette.execute_script(script)
@@ -490,7 +508,7 @@ class MarionetteProtocol(Protocol):
         self.logger.debug("Marionette session started")
 
     def after_connect(self):
-        self.testharness.load_runner(self.executor.last_environment["protocol"])
+        pass
 
     def teardown(self):
         try:
@@ -623,8 +641,8 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
                                            timeout_multiplier,
                                            kwargs["e10s"],
                                            ccov)
-        self.script = open(os.path.join(here, "testharness_webdriver.js")).read()
-        self.script_resume = open(os.path.join(here, "testharness_webdriver_resume.js")).read()
+        with open(os.path.join(here, "testharness_webdriver_resume.js")) as f:
+            self.script_resume = f.read()
         self.close_after_done = close_after_done
         self.window_id = str(uuid.uuid4())
         self.debug = debug
@@ -633,6 +651,10 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
 
         if marionette is None:
             do_delayed_imports()
+
+    def setup(self, runner):
+        super(MarionetteTestharnessExecutor, self).setup(runner)
+        self.protocol.testharness.load_runner(self.last_environment["protocol"])
 
     def is_alive(self):
         return self.protocol.is_alive
@@ -673,29 +695,18 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
     def do_testharness(self, protocol, url, timeout):
         parent_window = protocol.testharness.close_old_windows(protocol)
 
-        if timeout is not None:
-            timeout_ms = str(timeout * 1000)
-        else:
-            timeout_ms = "null"
-
         if self.protocol.coverage.is_enabled:
             self.protocol.coverage.reset()
 
-        format_map = {"abs_url": url,
-                      "url": strip_server(url),
-                      "window_id": self.window_id,
-                      "timeout_multiplier": self.timeout_multiplier,
-                      "timeout": timeout_ms,
-                      "explicit_timeout": timeout is None}
+        format_map = {"url": strip_server(url)}
 
-        script = self.script % format_map
-
-        protocol.base.execute_script(script, async=True)
-        test_window = protocol.testharness.get_test_window(self.window_id, parent_window)
-
+        protocol.base.execute_script("window.open('about:blank', '%s', 'noopener')" % self.window_id)
+        test_window = protocol.testharness.get_test_window(self.window_id, parent_window,
+                                                           timeout=10*self.timeout_multiplier)
+        self.protocol.base.set_window(test_window)
         handler = CallbackHandler(self.logger, protocol, test_window)
+        protocol.marionette.navigate(url)
         while True:
-            self.protocol.base.set_window(test_window)
             result = protocol.base.execute_script(
                 self.script_resume % format_map, async=True)
             if result is None:
@@ -751,12 +762,14 @@ class MarionetteRefTestExecutor(RefTestExecutor):
     def teardown(self):
         try:
             self.implementation.teardown()
-            handle = self.protocol.marionette.window_handles[0]
-            self.protocol.marionette.switch_to_window(handle)
+            handles = self.protocol.marionette.window_handles
+            if handles:
+                self.protocol.marionette.switch_to_window(handles[0])
             super(self.__class__, self).teardown()
         except Exception as e:
             # Ignore errors during teardown
-            self.logger.warning(traceback.format_exc(e))
+            self.logger.warning("Exception during reftest teardown:\n%s" %
+                                traceback.format_exc(e))
 
     def is_alive(self):
         return self.protocol.is_alive

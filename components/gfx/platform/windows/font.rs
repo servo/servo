@@ -6,13 +6,13 @@
 // information for an approach that we'll likely need to take when the
 // renderer moves to a sandboxed process.
 
-use app_units::Au;
 use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use crate::font::{FontTableTag, FractionalPixel};
 use crate::platform::font_template::FontTemplateData;
 use crate::platform::windows::font_context::FontContextHandle;
 use crate::platform::windows::font_list::font_from_atom;
 use crate::text::glyph::GlyphId;
+use app_units::Au;
 use dwrote::{Font, FontFace, FontFile};
 use dwrote::{FontStretch, FontStyle};
 use servo_atoms::Atom;

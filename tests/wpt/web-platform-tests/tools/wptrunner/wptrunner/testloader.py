@@ -338,15 +338,17 @@ class EqualTimeChunker(TestChunker):
 
 
 class TestFilter(object):
-    def __init__(self, test_manifests, include=None, exclude=None, manifest_path=None):
-        if manifest_path is not None and include is None:
-            self.manifest = manifestinclude.get_manifest(manifest_path)
-        else:
+    def __init__(self, test_manifests, include=None, exclude=None, manifest_path=None, explicit=False):
+        if manifest_path is None or include or explicit:
             self.manifest = manifestinclude.IncludeManifest.create()
             self.manifest.set_defaults()
+        else:
+            self.manifest = manifestinclude.get_manifest(manifest_path)
+
+        if include or explicit:
+            self.manifest.set("skip", "true")
 
         if include:
-            self.manifest.set("skip", "true")
             for item in include:
                 self.manifest.add_include(test_manifests, item)
 
@@ -404,7 +406,7 @@ class ManifestLoader(object):
             download_from_github(manifest_path, tests_path)
         return manifest.load_and_update(tests_path, manifest_path, url_base,
                                         cache_root=cache_root, update=self.force_manifest_update,
-                                        meta_filters=self.meta_filters)
+                                        meta_filters=self.meta_filters, types=self.types)
 
 
 def iterfilter(filters, iter):

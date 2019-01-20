@@ -5,6 +5,7 @@
         <title>window.performance.timing attribute ordering on a simple navigation</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="/common/performance-timeline-utils.js"></script>
@@ -43,7 +44,7 @@
                         //
                         test_equals(performanceNamespace.navigation.type,
                                 performanceNamespace.navigation.TYPE_NAVIGATE,
-                                'window.performance.navigation.type == TYPE_NAVIGATE',{help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"});
+                                'window.performance.navigation.type == TYPE_NAVIGATE');
 
                         // navigiation must be non-0
                         test_timing_greater_than('navigationStart', 0);

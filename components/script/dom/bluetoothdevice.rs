@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg};
-use bluetooth_traits::{BluetoothRequest, BluetoothResponse, BluetoothServiceMsg};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
@@ -23,6 +21,8 @@ use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg};
+use bluetooth_traits::{BluetoothRequest, BluetoothResponse, BluetoothServiceMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
@@ -276,7 +276,6 @@ impl BluetoothDeviceMethods for BluetoothDevice {
         None
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
     fn WatchAdvertisements(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());

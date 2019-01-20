@@ -8,8 +8,6 @@ import sys
 from collections import OrderedDict
 from six import iteritems
 
-from ..manifest import manifest
-
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
@@ -162,9 +160,12 @@ def exclude_ignored(files, ignore_rules):
 
 
 def files_changed(revish, ignore_rules=None, include_uncommitted=False, include_new=False):
-    """Get and return files changed since current branch diverged from master,
-    excluding those that are located within any path matched by
-    `ignore_rules`."""
+    """Find files changed in certain revisions.
+
+    The function passes `revish` directly to `git diff`, so `revish` can have a
+    variety of forms; see `git diff --help` for details. Files in the diff that
+    are matched by `ignore_rules` are excluded.
+    """
     files = repo_files_changed(revish,
                                include_uncommitted=include_uncommitted,
                                include_new=include_new)
@@ -180,34 +181,28 @@ def _in_repo_root(full_path):
     return len(path_components) < 2
 
 
-def _init_manifest_cache():
-    c = {}
-
-    def load(manifest_path=None):
-        if manifest_path is None:
-            manifest_path = os.path.join(wpt_root, "MANIFEST.json")
-        if c.get(manifest_path):
-            return c[manifest_path]
-        # cache at most one path:manifest
-        c.clear()
-        wpt_manifest = manifest.load_and_update(wpt_root, manifest_path, "/",
-                                                update=True)
-        c[manifest_path] = wpt_manifest
-        return c[manifest_path]
-    return load
+def load_manifest(manifest_path=None, manifest_update=True):
+    # Delay import after localpaths sets up sys.path, because otherwise the
+    # import path will be "..manifest" and Python will treat it as a different
+    # manifest module.
+    from manifest import manifest
+    if manifest_path is None:
+        manifest_path = os.path.join(wpt_root, "MANIFEST.json")
+    return manifest.load_and_update(wpt_root, manifest_path, "/",
+                                    update=manifest_update)
 
 
-load_manifest = _init_manifest_cache()
-
-
-def affected_testfiles(files_changed, skip_tests, manifest_path=None):
+def affected_testfiles(files_changed, skip_dirs=None,
+                       manifest_path=None, manifest_update=True):
     """Determine and return list of test files that reference changed files."""
+    if skip_dirs is None:
+        skip_dirs = set(["conformance-checkers", "docs", "tools"])
     affected_testfiles = set()
     # Exclude files that are in the repo root, because
     # they are not part of any test.
     files_changed = [f for f in files_changed if not _in_repo_root(f)]
     nontests_changed = set(files_changed)
-    wpt_manifest = load_manifest(manifest_path)
+    wpt_manifest = load_manifest(manifest_path, manifest_update)
 
     test_types = ["testharness", "reftest", "wdspec"]
     support_files = {os.path.join(wpt_root, path)
@@ -232,7 +227,7 @@ def affected_testfiles(files_changed, skip_tests, manifest_path=None):
         rel_path = os.path.relpath(full_path, wpt_root)
         path_components = rel_path.split(os.sep)
         top_level_subdir = path_components[0]
-        if top_level_subdir in skip_tests:
+        if top_level_subdir in skip_dirs:
             continue
         repo_path = "/" + os.path.relpath(full_path, wpt_root).replace(os.path.sep, "/")
         if repo_path in rewrites:
@@ -271,7 +266,7 @@ def affected_testfiles(files_changed, skip_tests, manifest_path=None):
         # Walk top_level_subdir looking for test files containing either the
         # relative filepath or absolute filepath to the changed files.
         if root == wpt_root:
-            for dir_name in skip_tests:
+            for dir_name in skip_dirs:
                 dirs.remove(dir_name)
         for fname in fnames:
             test_full_path = os.path.join(root, fname)
@@ -303,6 +298,8 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("revish", default=None, help="Commits to consider. Defaults to the "
                         "commits on the current branch", nargs="?")
+    # TODO: Consolidate with `./wpt run --affected`:
+    # https://github.com/web-platform-tests/wpt/issues/14560
     parser.add_argument("--ignore-rules", nargs="*", type=set,
                         default=set(["resources/testharness*"]),
                         help="Rules for paths to exclude from lists of changes. Rules are paths "

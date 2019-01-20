@@ -543,7 +543,7 @@ class MachCommands(CommandBase):
             reported = set()
 
             proc = subprocess.Popen(
-                ["git", "log", "--merges", "--oneline", "-1"],
+                ["git", "log", "--oneline", "-1"],
                 stdout=subprocess.PIPE)
             (last_merge, _) = proc.communicate()
 
@@ -571,19 +571,19 @@ class MachCommands(CommandBase):
         if log_intermittents:
             with open(log_intermittents, "w") as intermittents_file:
                 for intermittent in intermittents:
-                    json.dump(intermittent, intermittents_file)
+                    json.dump(intermittent, intermittents_file, indent=4)
                     print("\n", end='', file=intermittents_file)
-
-        if len(actual_failures) == 0:
-            return 0
 
         output = open(log_filteredsummary, "w") if log_filteredsummary else sys.stdout
         for failure in actual_failures:
-            json.dump(failure, output)
+            json.dump(failure, output, indent=4)
             print("\n", end='', file=output)
 
         if output is not sys.stdout:
             output.close()
+
+        if len(actual_failures) == 0:
+            return 0
         return 1
 
     @Command('test-android-startup',
@@ -928,12 +928,13 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
 
         if not kwargs["no_run"]:
             p = create_parser_wpt()
-            args = ["--manifest-update"]
+            args = []
             if kwargs["release"]:
                 args.append("--release")
             args.append(test_path)
             wpt_kwargs = vars(p.parse_args(args))
             self.context.commands.dispatch("test-wpt", self.context, **wpt_kwargs)
+            self.context.commands.dispatch("update-manifest", self.context)
 
         if editor:
             proc.wait()

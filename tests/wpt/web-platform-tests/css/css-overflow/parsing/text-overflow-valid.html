@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing text-overflow with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-text-overflow">
+<meta name="assert" content="text-overflow supports the full grammar 'clip | ellipsis'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("text-overflow", 'clip');
+test_valid_value("text-overflow", 'ellipsis');
+</script>
+</body>
+</html>

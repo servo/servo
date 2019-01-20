@@ -238,6 +238,7 @@ impl EventSourceContext {
                 false,
                 data.handle(),
                 DOMString::from(self.origin.clone()),
+                None,
                 event_source.last_event_id.borrow().clone(),
             )
         };
@@ -343,19 +344,15 @@ impl FetchResponseListener for EventSourceContext {
                     FetchMetadata::Unfiltered(m) => m,
                     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 };
-                match meta.content_type {
-                    None => self.fail_the_connection(),
-                    Some(ct) => {
-                        if <ContentType as Into<Mime>>::into(ct.into_inner()) ==
-                            mime::TEXT_EVENT_STREAM
-                        {
-                            self.origin = meta.final_url.origin().ascii_serialization();
-                            self.announce_the_connection();
-                        } else {
-                            self.fail_the_connection()
-                        }
-                    },
+                let mime = match meta.content_type {
+                    None => return self.fail_the_connection(),
+                    Some(ct) => <ContentType as Into<Mime>>::into(ct.into_inner()),
+                };
+                if (mime.type_(), mime.subtype()) != (mime::TEXT, mime::EVENT_STREAM) {
+                    return self.fail_the_connection();
                 }
+                self.origin = meta.final_url.origin().ascii_serialization();
+                self.announce_the_connection();
             },
             Err(_) => {
                 self.reestablish_the_connection();

@@ -8,12 +8,14 @@
 //! computed values and need yet another intermediate representation. This
 //! module's raison d'être is to ultimately contain all these types.
 
-use app_units::Au;
 use crate::properties::PropertyId;
-use crate::values::computed::length::CalcLengthOrPercentage;
+use crate::values::computed::length::LengthPercentage;
 use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::Angle as ComputedAngle;
-use crate::values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use crate::values::computed::Image;
+use crate::values::specified::SVGPathData;
+use crate::values::CSSFloat;
+use app_units::Au;
 use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
 use std::cmp;
@@ -21,8 +23,10 @@ use std::cmp;
 pub mod color;
 pub mod effects;
 mod font;
+mod grid;
 mod length;
 mod svg;
+pub mod transform;
 
 /// The category a property falls into for ordering purposes.
 ///
@@ -86,6 +90,15 @@ pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Orderin
         .then_with(|| a.idl_name_sort_order().cmp(&b.idl_name_sort_order()))
 }
 
+/// A helper function to animate two multiplicative factor.
+pub fn animate_multiplicative_factor(
+    this: CSSFloat,
+    other: CSSFloat,
+    procedure: Procedure,
+) -> Result<CSSFloat, ()> {
+    Ok((this - 1.).animate(&(other - 1.), procedure)? + 1.)
+}
+
 /// Animate from one value to another.
 ///
 /// This trait is derivable with `#[derive(Animate)]`. The derived
@@ -101,7 +114,8 @@ pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Orderin
 /// function has been specified through `#[animate(fallback)]`.
 ///
 /// Trait bounds for type parameter `Foo` can be opted out of with
-/// `#[animation(no_bound(Foo))]` on the type definition.
+/// `#[animation(no_bound(Foo))]` on the type definition, trait bounds for
+/// fields can be opted into with `#[animation(field_bound)]` on the field.
 pub trait Animate: Sized {
     /// Animate a value towards another one, given an animation procedure.
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>;
@@ -323,28 +337,24 @@ macro_rules! trivial_to_animated_value {
 }
 
 trivial_to_animated_value!(Au);
-trivial_to_animated_value!(CalcLengthOrPercentage);
+trivial_to_animated_value!(LengthPercentage);
 trivial_to_animated_value!(ComputedAngle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
-
-impl ToAnimatedValue for ComputedBorderCornerRadius {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedBorderCornerRadius::new(
-            (animated.0).0.width.clamp_to_non_negative(),
-            (animated.0).0.height.clamp_to_non_negative(),
-        )
-    }
-}
+// Note: This implementation is for ToAnimatedValue of ShapeSource.
+//
+// SVGPathData uses Box<[T]>. If we want to derive ToAnimatedValue for all the
+// types, we have to do "impl ToAnimatedValue for Box<[T]>" first.
+// However, the general version of "impl ToAnimatedValue for Box<[T]>" needs to
+// clone |T| and convert it into |T::AnimatedValue|. However, for SVGPathData
+// that is unnecessary--moving |T| is sufficient. So here, we implement this
+// trait manually.
+trivial_to_animated_value!(SVGPathData);
+// FIXME: Bug 1514342, Image is not animatable, but we still need to implement
+// this to avoid adding this derive to generic::Image and all its arms. We can
+// drop this after landing Bug 1514342.
+trivial_to_animated_value!(Image);
 
 impl ToAnimatedZero for Au {
     #[inline]

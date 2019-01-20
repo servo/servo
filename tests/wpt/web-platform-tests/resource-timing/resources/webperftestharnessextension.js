@@ -49,45 +49,48 @@ function test_fail(msg, properties)
 
 function test_resource_entries(entries, expected_entries)
 {
-    // This is slightly convoluted so that we can sort the output.
-    var actual_entries = {};
-    var origin = window.location.protocol + "//" + window.location.host;
+    test(function() {
+        // This is slightly convoluted so that we can sort the output.
+        var actual_entries = {};
+        var origin = window.location.protocol + "//" + window.location.host;
 
-    for (var i = 0; i < entries.length; ++i) {
-        var entry = entries[i];
-        var found = false;
-        for (var expected_entry in expected_entries) {
-            if (entry.name == origin + expected_entry) {
-                found = true;
-                if (expected_entry in actual_entries) {
-                    test_fail(expected_entry + ' is not expected to have duplicate entries');
+        for (var i = 0; i < entries.length; ++i) {
+            var entry = entries[i];
+            var found = false;
+            for (var expected_entry in expected_entries) {
+                if (entry.name == origin + expected_entry) {
+                    found = true;
+                    if (expected_entry in actual_entries) {
+                        assert_unreached(expected_entry + ' is not expected to have duplicate entries');
+                    }
+                    actual_entries[expected_entry] = entry;
+                    break;
                 }
-                actual_entries[expected_entry] = entry;
-                break;
+            }
+            if (!found) {
+                assert_unreached(entries[i].name + ' is not expected to be in the Resource Timing buffer');
             }
         }
-        if (!found) {
-            test_fail(entries[i].name + ' is not expected to be in the Resource Timing buffer');
-        }
-    }
 
-    sorted_urls = [];
-    for (var i in actual_entries) {
-        sorted_urls.push(i);
-    }
-    sorted_urls.sort();
-    for (var i in sorted_urls) {
-        var url = sorted_urls[i];
-        test_equals(actual_entries[url].initiatorType,
-                    expected_entries[url],
-                    origin + url + ' is expected to have initiatorType ' + expected_entries[url]);
-    }
-    for (var j in expected_entries) {
-        if (!(j in actual_entries)) {
-            test_fail(origin + j + ' is expected to be in the Resource Timing buffer');
+        sorted_urls = [];
+        for (var i in actual_entries) {
+            sorted_urls.push(i);
         }
-    }
+        sorted_urls.sort();
+        for (var i in sorted_urls) {
+            var url = sorted_urls[i];
+            assert_equals(actual_entries[url].initiatorType,
+                        expected_entries[url],
+                        origin + url + ' is expected to have initiatorType ' + expected_entries[url]);
+        }
+        for (var j in expected_entries) {
+            if (!(j in actual_entries)) {
+                assert_unreached(origin + j + ' is expected to be in the Resource Timing buffer');
+            }
+        }
+    }, "Testing resource entries");
 }
+
 function performance_entrylist_checker(type)
 {
     var entryType = type;

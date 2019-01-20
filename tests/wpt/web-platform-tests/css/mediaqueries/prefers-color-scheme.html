@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme" />
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+
+<script type="text/javascript" src="resources/matchmedia-utils.js"></script>
+<script>
+query_should_be_css_parseable("(prefers-color-scheme)");
+query_should_be_css_parseable("(prefers-color-scheme: no-preference)");
+query_should_be_css_parseable("(prefers-color-scheme: light)");
+query_should_be_css_parseable("(prefers-color-scheme: dark)");
+
+query_should_not_be_css_parseable("(prefers-color-scheme: 0)");
+query_should_not_be_css_parseable("(prefers-color-scheme: none)");
+query_should_not_be_css_parseable("(prefers-color-scheme: 10px)");
+query_should_not_be_css_parseable("(prefers-color-scheme: dark 0)");
+query_should_not_be_css_parseable("(prefers-color-scheme: dark light)");
+query_should_not_be_css_parseable("(prefers-color-scheme: light/dark)");
+
+query_should_be_js_parseable("(prefers-color-scheme)");
+query_should_be_js_parseable("(prefers-color-scheme: no-preference)");
+query_should_be_js_parseable("(prefers-color-scheme: light)");
+query_should_be_js_parseable("(prefers-color-scheme: dark)");
+
+query_should_not_be_js_parseable("(prefers-color-scheme: 0)");
+query_should_not_be_js_parseable("(prefers-color-scheme: none)");
+query_should_not_be_js_parseable("(prefers-color-scheme: 10px)");
+query_should_not_be_js_parseable("(prefers-color-scheme: dark 0)");
+query_should_not_be_js_parseable("(prefers-color-scheme: dark light)");
+query_should_not_be_js_parseable("(prefers-color-scheme: light/dark)");
+
+test(() => {
+  let booleanContext = window.matchMedia("(prefers-color-scheme)");
+  let noPreference = window.matchMedia("(prefers-color-scheme: no-preference)");
+  assert_equals(booleanContext.matches, !noPreference.matches);
+}, "Check that no-preference evaluates to false in the boolean context");
+</script>

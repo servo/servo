@@ -6,7 +6,6 @@
 //!
 //! [attr]: https://dom.spec.whatwg.org/#interface-attr
 
-use app_units::Au;
 use crate::properties::PropertyDeclarationBlock;
 use crate::shared_lock::Locked;
 use crate::str::str_join;
@@ -14,6 +13,7 @@ use crate::str::{read_exponent, read_fraction, HTML_SPACE_CHARACTERS};
 use crate::str::{read_numbers, split_commas, split_html_space_chars};
 use crate::values::specified::Length;
 use crate::{Atom, LocalName, Namespace, Prefix};
+use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
@@ -543,12 +543,12 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
 /// Parses a [dimension value][dim]. If unparseable, `Auto` is returned.
 ///
 /// [dim]: https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
-// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
+// TODO: this function can be rewritten to return Result<LengthPercentage, _>
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     // Steps 1 & 2 are not relevant
 
     // Step 3
-    value = value.trim_left_matches(HTML_SPACE_CHARACTERS);
+    value = value.trim_start_matches(HTML_SPACE_CHARACTERS);
 
     // Step 4
     if value.is_empty() {

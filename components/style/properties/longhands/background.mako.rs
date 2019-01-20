@@ -15,7 +15,8 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
     allow_quirks=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER \
+           CAN_ANIMATE_ON_COMPOSITOR",
 )}
 
 ${helpers.predefined_type(
@@ -34,7 +35,7 @@ ${helpers.predefined_type(
     ${helpers.predefined_type(
         "background-position-" + axis,
         "position::" + direction + "Position",
-        initial_value="computed::LengthOrPercentage::zero()",
+        initial_value="computed::LengthPercentage::zero()",
         initial_specified_value="SpecifiedValue::initial_specified_value()",
         spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
         animation_value_type="ComputedValue",
@@ -107,7 +108,6 @@ ${helpers.single_keyword(
     color-burn hard-light soft-light difference exclusion hue
     saturation color luminosity""",
     gecko_constant_prefix="NS_STYLE_BLEND",
-    gecko_pref="layout.css.background-blend-mode.enabled",
     vector=True, products="gecko", animation_value_type="discrete",
     spec="https://drafts.fxtf.org/compositing/#background-blend-mode",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",

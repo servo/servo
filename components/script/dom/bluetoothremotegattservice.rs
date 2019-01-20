@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use bluetooth_traits::{BluetoothResponse, GATTType};
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
@@ -16,6 +15,7 @@ use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUI
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use bluetooth_traits::{BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -82,7 +82,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         self.uuid.clone()
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
     fn GetCharacteristic(&self, characteristic: BluetoothCharacteristicUUID) -> Rc<Promise> {
         get_gatt_children(
@@ -96,7 +95,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         )
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
     fn GetCharacteristics(
         &self,
@@ -113,7 +111,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         )
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
     fn GetIncludedService(&self, service: BluetoothServiceUUID) -> Rc<Promise> {
         get_gatt_children(
@@ -127,7 +124,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         )
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
     fn GetIncludedServices(&self, service: Option<BluetoothServiceUUID>) -> Rc<Promise> {
         get_gatt_children(

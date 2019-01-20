@@ -17,7 +17,11 @@ promise_test(t => {
   let slowURL = url + '&slow';
   let frame;
   return service_worker_unregister_and_register(t, script, scope)
-    .then(reg => wait_for_state(t, reg.installing, 'activated'))
+    .then(reg => {
+        t.add_cleanup(() => service_worker_unregister(t, scope));
+
+        return wait_for_state(t, reg.installing, 'activated');
+      })
     .then(_ => with_iframe(scope))
     .then(f => {
       frame = f;
@@ -39,7 +43,6 @@ promise_test(t => {
       assert_greater_than(slowURLTime, urlTime + 1000,
                   'Slow service worker request should measure increased delay.');
       frame.remove();
-      return service_worker_unregister_and_done(t, scope);
     })
 }, 'empty service worker fetch event included in performance timings');
 

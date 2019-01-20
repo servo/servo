@@ -1,5 +1,4 @@
 [package]
-
 name = "libservo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
@@ -21,6 +20,7 @@ googlevr = ["webvr/googlevr"]
 js_backtrace = ["script/js_backtrace"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 webrender_debugger = ["webrender/debugger"]
+no_static_freetype = ["webrender/no_static_freetype"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
@@ -72,5 +72,5 @@ webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
 
-[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios")))'.dependencies]
+[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

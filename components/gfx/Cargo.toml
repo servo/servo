@@ -63,5 +63,5 @@ servo-fontconfig = "0.2.1"
 xml5ever = {version = "0.12"}
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.6"
+dwrote = "0.7"
 truetype = "0.26"

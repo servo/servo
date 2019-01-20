@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: keys() trickier tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { testWithArea } from "./helpers/kvs-tests.js";
+import * as classAssert from "./helpers/class-assert.js";
+import {
+  assertAsyncIteratorEquals,
+  assertAsyncIteratorCustomEquals,
+  assertEqualPostKeyRoundtripping
+} from "./helpers/equality-asserters.js";
+
+testWithArea(async area => {
+  await area.set(1, "value 1");
+  await area.set(2, "value 2");
+  await area.set(3, "value 3");
+
+  await assertAsyncIteratorEquals(area.keys(), [1, 2, 3]);
+}, "Using for-await-of to collect the results works");
+
+testWithArea(async area => {
+  // We're not testing every key type since this isn't a test of IndexedDB.
+  await area.set(1, "value 1");
+  await area.set(new Date(500), "value date 500");
+  await area.set(-1, "value -1");
+  await area.set(new Date(-20), "value date -20");
+  await area.set("aaa", "value aaa");
+  await area.set("a", "value a");
+  await area.set(-Infinity, "value -Infinity");
+
+  await assertAsyncIteratorCustomEquals(
+    area.keys(),
+    [
+      -Infinity,
+      -1,
+      1,
+      new Date(-20),
+      new Date(500),
+      "a",
+      "aaa"
+    ],
+    assertEqualPostKeyRoundtripping
+  );
+}, "Results are returned in IndexedDB order");
+
+testWithArea(async area => {
+  await area.set(1, "value 1");
+  await area.set(2, "value 2");
+  await area.set(3, "value 3");
+
+  const iter = area.keys();
+  const iterResults = [
+    await iter.next(),
+    await iter.next(),
+    await iter.next(),
+    await iter.next(),
+    await iter.next(),
+    await iter.next()
+  ];
+
+  classAssert.iterResults(iterResults, [
+    [1, false],
+    [2, false],
+    [3, false],
+    [undefined, true],
+    [undefined, true],
+    [undefined, true]
+  ]);
+}, "Manual testing of .next() calls, with awaiting");
+
+testWithArea(async area => {
+  area.set(1, "value 1");
+  area.set(2, "value 2");
+  area.set(3, "value 3");
+
+  const iter = area.keys();
+  const promises = [
+    iter.next(),
+    iter.next(),
+    iter.next(),
+    iter.next(),
+    iter.next(),
+    iter.next()
+  ];
+  const iterResults = await Promise.all(promises);
+
+  classAssert.iterResults(iterResults, [
+    [1, false],
+    [2, false],
+    [3, false],
+    [undefined, true],
+    [undefined, true],
+    [undefined, true]
+  ]);
+}, "Manual testing of .next() calls, no awaiting");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.set(15, "value 15");
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 30, 40]);
+}, "Inserting an entry before the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.set(25, "value 25");
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 25, 30, 40]);
+}, "Inserting an entry after the current entry must show up in iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.delete(10);
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 30, 40]);
+}, "Deleting an entry before the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.delete(20);
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 30, 40]);
+}, "Deleting the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.delete(30);
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 40]);
+}, "Deleting an entry after the current entry must show up in iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.set(10, "value 10, but changed!!");
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 30, 40]);
+}, "Modifying a value before the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.set(20, "value 20, but changed!!");
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 30, 40]);
+}, "Modifying a value at the current entry must have no effect on iteration");
+
+testWithArea(async area => {
+  await area.set(10, "value 10");
+  await area.set(20, "value 20");
+  await area.set(30, "value 30");
+  await area.set(40, "value 40");
+
+  let seen = [];
+  for await (const key of area.keys()) {
+    seen.push(key);
+    if (key === 20) {
+      await area.set(30, "value 30, but changed!!");
+    }
+  }
+
+  assert_array_equals(seen, [10, 20, 30, 40]);
+}, "Modifying a value after the current entry must have no effect on iteration (since we're iterating keys)");
+</script>

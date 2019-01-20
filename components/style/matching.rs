@@ -469,11 +469,9 @@ trait PrivateMatchMethods: TElement {
         pseudo: Option<&PseudoElement>,
     ) -> ChildCascadeRequirement {
         debug!("accumulate_damage_for: {:?}", self);
-        debug_assert!(
-            !shared_context
-                .traversal_flags
-                .contains(TraversalFlags::Forgetful)
-        );
+        debug_assert!(!shared_context
+            .traversal_flags
+            .contains(TraversalFlags::Forgetful));
 
         let difference = self.compute_style_difference(old_values, new_values, pseudo);
 

@@ -513,29 +513,28 @@ impl ClippingRegion {
     /// This is a quick, not a precise, test; it can yield false positives.
     #[inline]
     pub fn might_intersect_point(&self, point: &LayoutPoint) -> bool {
-        self.main.contains(point) && self
-            .complex
-            .iter()
-            .all(|complex| complex.rect.contains(point))
+        self.main.contains(point) &&
+            self.complex
+                .iter()
+                .all(|complex| complex.rect.contains(point))
     }
 
     /// Returns true if this clipping region might intersect the given rectangle and false
     /// otherwise. This is a quick, not a precise, test; it can yield false positives.
     #[inline]
     pub fn might_intersect_rect(&self, rect: &LayoutRect) -> bool {
-        self.main.intersects(rect) && self
-            .complex
-            .iter()
-            .all(|complex| complex.rect.intersects(rect))
+        self.main.intersects(rect) &&
+            self.complex
+                .iter()
+                .all(|complex| complex.rect.intersects(rect))
     }
 
     /// Returns true if this clipping region completely surrounds the given rect.
     #[inline]
     pub fn does_not_clip_rect(&self, rect: &LayoutRect) -> bool {
-        self.main.contains(&rect.origin) && self.main.contains(&rect.bottom_right()) && self
-            .complex
-            .iter()
-            .all(|complex| {
+        self.main.contains(&rect.origin) &&
+            self.main.contains(&rect.bottom_right()) &&
+            self.complex.iter().all(|complex| {
                 complex.rect.contains(&rect.origin) && complex.rect.contains(&rect.bottom_right())
             })
     }
@@ -566,11 +565,11 @@ impl ClippingRegion {
         //
         //     http://www.inrg.csie.ntu.edu.tw/algorithm2014/presentation/D&C%20Lee-84.pdf
         for existing_complex_region in &mut self.complex {
-            if existing_complex_region.completely_encloses(&new_complex_region) {
+            if completely_encloses(&existing_complex_region, &new_complex_region) {
                 *existing_complex_region = new_complex_region;
                 return;
             }
-            if new_complex_region.completely_encloses(existing_complex_region) {
+            if completely_encloses(&new_complex_region, &existing_complex_region) {
                 return;
             }
         }
@@ -619,38 +618,32 @@ impl fmt::Debug for ClippingRegion {
     }
 }
 
-pub trait CompletelyEncloses {
-    fn completely_encloses(&self, other: &Self) -> bool;
-}
-
-impl CompletelyEncloses for ComplexClipRegion {
-    // TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
-    // the border radius ellipse.
-    fn completely_encloses(&self, other: &Self) -> bool {
-        let left = self.radii.top_left.width.max(self.radii.bottom_left.width);
-        let top = self.radii.top_left.height.max(self.radii.top_right.height);
-        let right = self
-            .radii
-            .top_right
-            .width
-            .max(self.radii.bottom_right.width);
-        let bottom = self
-            .radii
-            .bottom_left
-            .height
-            .max(self.radii.bottom_right.height);
-        let interior = LayoutRect::new(
-            LayoutPoint::new(self.rect.origin.x + left, self.rect.origin.y + top),
-            LayoutSize::new(
-                self.rect.size.width - left - right,
-                self.rect.size.height - top - bottom,
-            ),
-        );
-        interior.origin.x <= other.rect.origin.x &&
-            interior.origin.y <= other.rect.origin.y &&
-            interior.max_x() >= other.rect.max_x() &&
-            interior.max_y() >= other.rect.max_y()
-    }
+// TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
+// the border radius ellipse.
+fn completely_encloses(this: &ComplexClipRegion, other: &ComplexClipRegion) -> bool {
+    let left = this.radii.top_left.width.max(this.radii.bottom_left.width);
+    let top = this.radii.top_left.height.max(this.radii.top_right.height);
+    let right = this
+        .radii
+        .top_right
+        .width
+        .max(this.radii.bottom_right.width);
+    let bottom = this
+        .radii
+        .bottom_left
+        .height
+        .max(this.radii.bottom_right.height);
+    let interior = LayoutRect::new(
+        LayoutPoint::new(this.rect.origin.x + left, this.rect.origin.y + top),
+        LayoutSize::new(
+            this.rect.size.width - left - right,
+            this.rect.size.height - top - bottom,
+        ),
+    );
+    interior.origin.x <= other.rect.origin.x &&
+        interior.origin.y <= other.rect.origin.y &&
+        interior.max_x() >= other.rect.max_x() &&
+        interior.max_y() >= other.rect.max_y()
 }
 
 /// Metadata attached to each display item. This is useful for performing auxiliary threads with

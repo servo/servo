@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::StyleSheetBinding;
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -33,20 +30,6 @@ impl StyleSheet {
             href: href,
             title: title,
         }
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn new(
-        window: &Window,
-        type_: DOMString,
-        href: Option<DOMString>,
-        title: Option<DOMString>,
-    ) -> DomRoot<StyleSheet> {
-        reflect_dom_object(
-            Box::new(StyleSheet::new_inherited(type_, href, title)),
-            window,
-            StyleSheetBinding::Wrap,
-        )
     }
 }
 

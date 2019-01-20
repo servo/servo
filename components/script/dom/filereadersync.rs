@@ -97,14 +97,12 @@ impl FileReaderSyncMethods for FileReaderSync {
 
         // step 2
         rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        assert!(
-            ArrayBuffer::create(
-                cx,
-                CreateWith::Slice(&blob_contents),
-                array_buffer.handle_mut()
-            )
-            .is_ok()
-        );
+        assert!(ArrayBuffer::create(
+            cx,
+            CreateWith::Slice(&blob_contents),
+            array_buffer.handle_mut()
+        )
+        .is_ok());
 
         Ok(NonNull::new_unchecked(array_buffer.get()))
     }

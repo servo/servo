@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use brotli::Decompressor;
-use bytes::Bytes;
-use crate::connector::{create_http_client, Connector, WrappedBody, BUF_SIZE};
+use crate::connector::{create_http_client, Connector};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
+use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::methods::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, main_fetch,
@@ -20,7 +19,6 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
 };
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
-use flate2::read::{DeflateDecoder, GzDecoder};
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders};
 use headers_ext::{
@@ -49,7 +47,6 @@ use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::io::Cursor;
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
@@ -71,7 +68,7 @@ pub struct HttpState {
     pub http_cache: RwLock<HttpCache>,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
-    pub client: Client<Connector, WrappedBody>,
+    pub client: Client<Connector, Body>,
 }
 
 impl HttpState {
@@ -266,31 +263,6 @@ fn set_cookies_from_headers(
     }
 }
 
-impl Decoder {
-    fn from_http_response(response: &HyperResponse<Body>) -> Decoder {
-        if let Some(encoding) = response.headers().typed_get::<ContentEncoding>() {
-            if encoding.contains("gzip") {
-                Decoder::Gzip(None)
-            } else if encoding.contains("deflate") {
-                Decoder::Deflate(DeflateDecoder::new(Cursor::new(Bytes::new())))
-            } else if encoding.contains("br") {
-                Decoder::Brotli(Decompressor::new(Cursor::new(Bytes::new()), BUF_SIZE))
-            } else {
-                Decoder::Plain
-            }
-        } else {
-            Decoder::Plain
-        }
-    }
-}
-
-pub enum Decoder {
-    Gzip(Option<GzDecoder<Cursor<Bytes>>>),
-    Deflate(DeflateDecoder<Cursor<Bytes>>),
-    Brotli(Decompressor<Cursor<Bytes>>),
-    Plain,
-}
-
 fn prepare_devtools_request(
     request_id: String,
     url: ServoUrl,
@@ -367,7 +339,7 @@ fn auth_from_cache(
 }
 
 fn obtain_response(
-    client: &Client<Connector, WrappedBody>,
+    client: &Client<Connector, Body>,
     url: &ServoUrl,
     method: &Method,
     request_headers: &HeaderMap,
@@ -379,10 +351,7 @@ fn obtain_response(
     is_xhr: bool,
 ) -> Box<
     dyn Future<
-        Item = (
-            HyperResponse<WrappedBody>,
-            Option<ChromeToDevtoolsControlMsg>,
-        ),
+        Item = (HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>),
         Error = NetworkError,
     >,
 > {
@@ -423,7 +392,7 @@ fn obtain_response(
                 .replace("{", "%7B")
                 .replace("}", "%7D"),
         )
-        .body(WrappedBody::new(request_body.clone().into()));
+        .body(request_body.clone().into());
 
     let mut request = match request {
         Ok(request) => request,
@@ -474,11 +443,7 @@ fn obtain_response(
                     debug!("Not notifying devtools (no request_id)");
                     None
                 };
-                let decoder = Decoder::from_http_response(&res);
-                Ok((
-                    res.map(move |r| WrappedBody::new_with_decoder(r, decoder)),
-                    msg,
-                ))
+                Ok((Decoder::detect(res), msg))
             })
             .map_err(move |e| NetworkError::from_hyper_error(&e)),
     )
@@ -505,21 +470,11 @@ pub fn http_fetch(
     // nothing to do, since actual_response is a function on response
 
     // Step 3
-    if request.service_workers_mode != ServiceWorkersMode::None {
-        // Substep 1
-        if request.service_workers_mode == ServiceWorkersMode::All {
-            // TODO (handle fetch unimplemented)
-        }
+    if request.service_workers_mode == ServiceWorkersMode::All {
+        // TODO: Substep 1
+        // Set response to the result of invoking handle fetch for request.
 
         // Substep 2
-        if response.is_none() && request.is_subresource_request() && match request.origin {
-            Origin::Origin(ref origin) => *origin == request.url().origin(),
-            _ => false,
-        } {
-            // TODO (handle foreign fetch unimplemented)
-        }
-
-        // Substep 3
         if let Some(ref res) = response {
             // Subsubstep 1
             // TODO: transmit body for request
@@ -567,7 +522,7 @@ pub fn http_fetch(
 
         // Substep 2
         if request.redirect_mode == RedirectMode::Follow {
-            request.service_workers_mode = ServiceWorkersMode::Foreign;
+            request.service_workers_mode = ServiceWorkersMode::None;
         }
 
         // Substep 3
@@ -703,13 +658,13 @@ pub fn http_redirect_fetch(
         Some(Err(err)) => {
             return Response::network_error(NetworkError::Internal(
                 "Location URL parse failure: ".to_owned() + &err,
-            ))
+            ));
         },
         // Step 4
         Some(Ok(ref url)) if !matches!(url.scheme(), "http" | "https") => {
             return Response::network_error(NetworkError::Internal(
                 "Location URL not an HTTP(S) scheme".into(),
-            ))
+            ));
         },
         Some(Ok(url)) => url,
     };
@@ -768,7 +723,8 @@ pub fn http_redirect_fetch(
             ((*code == StatusCode::MOVED_PERMANENTLY || *code == StatusCode::FOUND) &&
                 request.method == Method::POST) ||
                 (*code == StatusCode::SEE_OTHER && request.method != Method::HEAD)
-        }) {
+        })
+    {
         request.method = Method::GET;
         request.body = None;
     }
@@ -802,7 +758,11 @@ fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<
     match *url_origin {
         ImmutableOrigin::Opaque(_) => Some(HyperOrigin::NULL),
         ImmutableOrigin::Tuple(ref scheme, ref host, ref port) => {
-            HyperOrigin::try_from_parts(&scheme, &host.to_string(), Some(port.clone())).ok()
+            let port = match (scheme.as_ref(), port) {
+                ("http", 80) | ("https", 443) => None,
+                _ => Some(*port),
+            };
+            HyperOrigin::try_from_parts(&scheme, &host.to_string(), port).ok()
         },
     }
 }
@@ -1084,10 +1044,11 @@ fn http_network_or_cache_fetch(
             }
         }
         // Substep 4
-        if revalidating_flag && forward_response
-            .status
-            .as_ref()
-            .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
+        if revalidating_flag &&
+            forward_response
+                .status
+                .as_ref()
+                .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
         {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
@@ -1204,6 +1165,13 @@ fn http_network_fetch(
         .as_ref()
         .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
 
+    if log_enabled!(log::Level::Info) {
+        info!("request for {} ({:?})", url, request.method);
+        for header in request.headers.iter() {
+            info!(" - {:?}", header);
+        }
+    }
+
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
     // since things like image fetches are classified differently by devtools
@@ -1263,14 +1231,15 @@ fn http_network_fetch(
     };
 
     let devtools_sender = context.devtools_chan.clone();
-    let meta_status = meta.status.clone();
-    let meta_headers = meta.headers.clone();
+    let meta_status = meta.status;
+    let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.lock().unwrap().cancelled() {
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
     }
 
     *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+    let res_body2 = res_body.clone();
 
     if let Some(ref sender) = devtools_sender {
         if let Some(m) = msg {
@@ -1290,8 +1259,8 @@ fn http_network_fetch(
         }
     }
 
-    let done_sender = done_sender.clone();
     let done_sender2 = done_sender.clone();
+    let done_sender3 = done_sender.clone();
     HANDLE.lock().unwrap().spawn(
         res.into_body()
             .map_err(|_| ())
@@ -1318,7 +1287,15 @@ fn http_network_fetch(
                 let _ = done_sender2.send(Data::Done);
                 future::ok(())
             })
-            .map_err(|_| ()),
+            .map_err(move |_| {
+                let mut body = res_body2.lock().unwrap();
+                let completed_body = match *body {
+                    ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),
+                    _ => vec![],
+                };
+                *body = ResponseBody::Done(completed_body);
+                let _ = done_sender3.send(Data::Done);
+            }),
     );
 
     // TODO these substeps aren't possible yet
@@ -1425,10 +1402,11 @@ fn cors_preflight_fetch(
     let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
 
     // Step 6
-    if cors_check(&request, &response).is_ok() && response
-        .status
-        .as_ref()
-        .map_or(false, |(status, _)| status.is_success())
+    if cors_check(&request, &response).is_ok() &&
+        response
+            .status
+            .as_ref()
+            .map_or(false, |(status, _)| status.is_success())
     {
         // Substep 1, 2
         let mut methods = if response
@@ -1441,7 +1419,7 @@ fn cors_preflight_fetch(
                 None => {
                     return Response::network_error(NetworkError::Internal(
                         "CORS ACAM check failed".into(),
-                    ))
+                    ));
                 },
             }
         } else {
@@ -1459,7 +1437,7 @@ fn cors_preflight_fetch(
                 None => {
                     return Response::network_error(NetworkError::Internal(
                         "CORS ACAH check failed".into(),
-                    ))
+                    ));
                 },
             }
         } else {

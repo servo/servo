@@ -11,8 +11,10 @@ from .utils import from_os_path, to_os_path
 
 try:
     import ujson as json
+    JSON_LIBRARY = 'ujson'
 except ImportError:
     import json
+    JSON_LIBRARY = 'json'
 
 CURRENT_VERSION = 5
 
@@ -77,7 +79,12 @@ class TypeData(object):
         return rv
 
     def __delitem__(self, key):
-        del self.data[key]
+        if key in self.data:
+            del self.data[key]
+        elif self.json_data is not None:
+            del self.json_data[from_os_path(key)]
+        else:
+            raise KeyError
 
     def __setitem__(self, key, value):
         self.data[key] = value
@@ -277,6 +284,11 @@ class Manifest(object):
                     if old_hash != file_hash:
                         new_type, manifest_items = source_file.manifest_items()
                         hash_changed = True
+                        if new_type != old_type:
+                            try:
+                                del self._data[old_type][rel_path]
+                            except KeyError:
+                                pass
                     else:
                         new_type, manifest_items = old_type, self._data[old_type][rel_path]
                     if old_type in reftest_types and new_type != old_type:
@@ -304,10 +316,7 @@ class Manifest(object):
                     _, old_type = self._path_hash[rel_path]
                     if old_type in reftest_types:
                         reftest_changes = True
-                    try:
-                        del self._path_hash[rel_path]
-                    except KeyError:
-                        pass
+                    del self._path_hash[rel_path]
                     try:
                         del self._data[old_type][rel_path]
                     except KeyError:
@@ -400,8 +409,16 @@ def load(tests_root, manifest, types=None, meta_filters=None):
     return _load(logger, tests_root, manifest, types, meta_filters)
 
 
+__load_cache = {}
+
+
 def _load(logger, tests_root, manifest, types=None, meta_filters=None):
     # "manifest" is a path or file-like object.
+    manifest_path = (manifest if isinstance(manifest, string_types)
+                     else manifest.name)
+    if manifest_path in __load_cache:
+        return __load_cache[manifest_path]
+
     if isinstance(manifest, string_types):
         if os.path.exists(manifest):
             logger.debug("Opening manifest at %s" % manifest)
@@ -418,12 +435,14 @@ def _load(logger, tests_root, manifest, types=None, meta_filters=None):
         except ValueError:
             logger.warning("%r may be corrupted", manifest)
             return None
-        return rv
+    else:
+        rv = Manifest.from_json(tests_root,
+                                json.load(manifest),
+                                types=types,
+                                meta_filters=meta_filters)
 
-    return Manifest.from_json(tests_root,
-                              json.load(manifest),
-                              types=types,
-                              meta_filters=meta_filters)
+    __load_cache[manifest_path] = rv
+    return rv
 
 
 def load_and_update(tests_root,
@@ -473,5 +492,12 @@ def write(manifest, manifest_path):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     with open(manifest_path, "wb") as f:
-        json.dump(manifest.to_json(), f, sort_keys=True, indent=1)
+        if JSON_LIBRARY == 'ujson':
+            # ujson does not support the separators flag.
+            json.dump(manifest.to_json(), f, sort_keys=True, indent=1)
+        else:
+            # Use ',' instead of the default ', ' separator to prevent trailing
+            # spaces: https://docs.python.org/2/library/json.html#json.dump
+            json.dump(manifest.to_json(), f,
+                      sort_keys=True, indent=1, separators=(',', ': '))
         f.write("\n")

@@ -18,8 +18,8 @@ function loadScripts(paths) {
 }
 
 function performChromiumSetup() {
-  // Make sure we are actually on Chromium.
-  if (!Mojo) {
+  // Make sure we are actually on Chromium with Mojo enabled.
+  if (typeof Mojo === 'undefined') {
     return;
   }
 
@@ -40,7 +40,7 @@ function performChromiumSetup() {
   }
   return loadScripts([
     `${prefix}/mojo_bindings.js`,
-    `${prefix}/mojo_layouttest_test.mojom.js`,
+    `${prefix}/mojo_web_test_helper_test.mojom.js`,
     `${prefix}/uuid.mojom.js`,
     `${prefix}/fake_bluetooth.mojom.js`,
     `${prefix}/fake_bluetooth_chooser.mojom.js`,
@@ -259,6 +259,13 @@ function requestDeviceWithTrustedClick() {
   let args = arguments;
   return callWithTrustedClick(
       () => navigator.bluetooth.requestDevice.apply(navigator.bluetooth, args));
+}
+
+// Calls requestLEScan() in a context that's 'allowed to show a popup'.
+function requestLEScanWithTrustedClick() {
+  let args = arguments;
+  return callWithTrustedClick(
+      () => navigator.bluetooth.requestLEScan.apply(navigator.bluetooth, args));
 }
 
 // errorUUID(alias) returns a UUID with the top 32 bits of

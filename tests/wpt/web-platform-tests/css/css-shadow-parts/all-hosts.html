@@ -20,15 +20,15 @@
     <custom-element id="c-e-1"></custom-element>
     The following text should be green:
     <custom-element id="c-e-2"></custom-element>
-    <script type="text/javascript">
+    <script>
       "use strict";
       const colorGreen = "rgb(0, 128, 0)";
       test(function() {
-        var el = getElementByShadowIds(document, ["c-e-1", "part"]);
+        const el = getElementByShadowIds(document, ["c-e-1", "part"]);
         assert_equals(window.getComputedStyle(el).color, colorGreen);
       }, "::part with host selector styles in first host");
       test(function() {
-        var el = getElementByShadowIds(document, ["c-e-2", "part"]);
+        const el = getElementByShadowIds(document, ["c-e-2", "part"]);
         assert_equals(window.getComputedStyle(el).color, colorGreen);
       }, "::part with host selector styles in second host");
     </script>

@@ -87,9 +87,11 @@ function assert_element_accepts_trusted_type(tag, attribute, value, expected) {
 
 function assert_throws_no_trusted_type(tag, attribute, value) {
   let elem = document.createElement(tag);
+  let prev = elem[attribute];
   assert_throws(new TypeError(), _ => {
     elem[attribute] = value;
   });
+  assert_equals(elem[attribute], prev);
 }
 
 function assert_element_accepts_trusted_html_explicit_set(win, c, t, tag, attribute, expected) {
@@ -119,20 +121,27 @@ function assert_element_accepts_trusted_url_explicit_set(win, c, t, tag, attribu
 function assert_element_accepts_trusted_type_explicit_set(tag, attribute, value, expected) {
   let elem = document.createElement(tag);
   elem.setAttribute(attribute, value);
-  assert_equals(elem[attribute] + "", expected);
+  if (!/^on/.test(attribute)) { // "on" attributes are converted to functions.
+    assert_equals(elem[attribute] + "", expected);
+  }
+  assert_equals(elem.getAttribute(attribute), expected);
 }
 
 function assert_throws_no_trusted_type_explicit_set(tag, attribute, value) {
   let elem = document.createElement(tag);
+  let prev = elem[attribute];
   assert_throws(new TypeError(), _ => {
     elem.setAttribute(attribute, value);
   });
+  assert_equals(elem[attribute], prev);
+  assert_equals(elem.getAttribute(attribute), null);
 }
 
 function assert_element_accepts_non_trusted_type_explicit_set(tag, attribute, value, expected) {
   let elem = document.createElement(tag);
   elem.setAttribute(attribute, value);
   assert_equals(elem[attribute] + "", expected);
+  assert_equals(elem.getAttribute(attribute), expected);
 }
 
 let namespace = 'http://www.w3.org/1999/xhtml';

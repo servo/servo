@@ -34,9 +34,10 @@ pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
-pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing};
+pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
-pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
+pub use self::box_::{Appearance, BreakBetween, BreakWithin};
+pub use self::box_::{Clear, Float, Overflow, OverflowAnchor};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
@@ -55,12 +56,12 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageLayer, MozImageRect};
-pub use self::length::{AbsoluteLength, CalcLengthOrPercentage, CharacterWidth};
+pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNumber};
-pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
-pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
+pub use self::length::{LengthPercentage, LengthPercentageOrAuto};
+pub use self::length::{LengthPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, ViewportPercentageLength};
-pub use self::length::{NonNegativeLengthOrPercentage, NonNegativeLengthOrPercentageOrAuto};
+pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::list::{QuotePair, Quotes};
@@ -138,7 +139,7 @@ fn parse_number_with_clamping_mode<'i, 't>(
             return Ok(Number {
                 value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
-            })
+            });
         },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
         ref t => return Err(location.new_unexpected_token_error(t.clone())),
@@ -150,46 +151,6 @@ fn parse_number_with_clamping_mode<'i, 't>(
         value: result.min(f32::MAX).max(f32::MIN),
         calc_clamping_mode: Some(clamping_mode),
     })
-}
-
-// The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
-// 17.6.2.1. Higher values override lower values.
-//
-// FIXME(emilio): Should move to border.rs
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Ord,
-    Parse,
-    PartialEq,
-    PartialOrd,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-)]
-pub enum BorderStyle {
-    None = -1,
-    Solid = 6,
-    Double = 7,
-    Dotted = 4,
-    Dashed = 5,
-    Hidden = -2,
-    Groove = 1,
-    Ridge = 3,
-    Inset = 0,
-    Outset = 2,
-}
-
-impl BorderStyle {
-    /// Whether this border style is either none or hidden.
-    pub fn none_or_hidden(&self) -> bool {
-        matches!(*self, BorderStyle::None | BorderStyle::Hidden)
-    }
 }
 
 /// A CSS `<number>` specified value.
@@ -399,6 +360,28 @@ impl Parse for NumberOrPercentage {
     }
 }
 
+/// A non-negative <number> | <percentage>.
+pub type NonNegativeNumberOrPercentage = NonNegative<NumberOrPercentage>;
+
+impl NonNegativeNumberOrPercentage {
+    /// Returns the `100%` value.
+    #[inline]
+    pub fn hundred_percent() -> Self {
+        NonNegative(NumberOrPercentage::Percentage(Percentage::hundred()))
+    }
+}
+
+impl Parse for NonNegativeNumberOrPercentage {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(NonNegative(NumberOrPercentage::parse_non_negative(
+            context, input,
+        )?))
+    }
+}
+
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, SpecifiedValueInfo, ToCss)]
 pub struct Opacity(Number);
@@ -585,20 +568,20 @@ impl Parse for PositiveInteger {
 }
 
 /// The specified value of a grid `<track-breadth>`
-pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
+pub type TrackBreadth = GenericTrackBreadth<LengthPercentage>;
 
 /// The specified value of a grid `<track-size>`
-pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
+pub type TrackSize = GenericTrackSize<LengthPercentage>;
 
 /// The specified value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
-pub type TrackList = GenericTrackList<LengthOrPercentage, Integer>;
+pub type TrackList = GenericTrackList<LengthPercentage, Integer>;
 
 /// The specified value of a `<grid-line>`.
 pub type GridLine = GenericGridLine<Integer>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
-pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage, Integer>;
+pub type GridTemplateComponent = GenericGridTemplateComponent<LengthPercentage, Integer>;
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
 /// rect(<top>, <left>, <bottom>, <right>) used by clip and image-region
@@ -848,7 +831,7 @@ impl Attr {
                             Some(ns) => ns,
                             None => {
                                 return Err(location
-                                    .new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                                    .new_custom_error(StyleParseErrorKind::UnspecifiedError));
                             },
                         };
                         Some((prefix, ns))

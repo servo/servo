@@ -22,11 +22,11 @@
 
 #![deny(missing_docs)]
 
-use arrayvec::ArrayVec;
 use crate::context::{StyleContext, ThreadLocalStyleContext};
 use crate::dom::{OpaqueNode, SendNode, TElement};
 use crate::scoped_tls::ScopedTLS;
 use crate::traversal::{DomTraversal, PerLevelTraversalData};
+use arrayvec::ArrayVec;
 use itertools::Itertools;
 use rayon;
 use smallvec::SmallVec;

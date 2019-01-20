@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::WebGLExtensions;
-use canvas_traits::webgl::WebGLVersion;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use canvas_traits::webgl::WebGLVersion;
 
 /// Trait implemented by WebGL extensions.
 pub trait WebGLExtension: Sized

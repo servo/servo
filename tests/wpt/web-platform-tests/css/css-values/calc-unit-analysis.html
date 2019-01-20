@@ -32,8 +32,7 @@ function run() {
            test_elt.style.setProperty(property, value);
            test_elt.style.removeProperty(property);
          },
-         description_to_name(description),
-         { assert: "invalid calc expression: " + description });
+         description_to_name(description));
   }
 
   function assert_valid_value(property, value, computes_to, description) {
@@ -46,27 +45,26 @@ function run() {
                          computes_to);
            test_elt.style.removeProperty(property);
          },
-         description_to_name(description),
-         { assert: "valid calc expression: " + description });
+         description_to_name(description));
   }
 
-  assert_invalid_value("margin-left", "calc(0)",
+  assert_invalid_value("margin-left", "calc(0)", // invalid calc expression
                        "unitless zero in calc() is a numeric type, not length");
   assert_valid_value("margin-left", "calc(0px)", "0px",
                      "0px in calc()");
-  assert_invalid_value("margin-left", "calc(1px + 2)",
+  assert_invalid_value("margin-left", "calc(1px + 2)", // invalid calc expression
                        "addition of length and number");
-  assert_invalid_value("margin-left", "calc(2 + 1px)",
+  assert_invalid_value("margin-left", "calc(2 + 1px)", // invalid calc expression
                        "addition of number and length");
-  assert_invalid_value("margin-left", "calc(1px - 2)",
+  assert_invalid_value("margin-left", "calc(1px - 2)", // invalid calc expression
                        "subtraction of length and number");
-  assert_invalid_value("margin-left", "calc(2 - 1px)",
+  assert_invalid_value("margin-left", "calc(2 - 1px)", // invalid calc expression
                        "subtraction of number and length");
   assert_valid_value("margin-left", "calc(2px * 2)", "4px",
                      "multiplication of length and number");
   assert_valid_value("margin-left", "calc(2 * 2px)", "4px",
                      "multiplication of number and length");
-  assert_invalid_value("margin-left", "calc(2px * 1px)",
+  assert_invalid_value("margin-left", "calc(2px * 1px)", // invalid calc expression
                        "multiplication of length and length");
 
 }

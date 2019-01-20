@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+<body>
+<script>
+  test(t => {
+    const p1 = TrustedTypes.createPolicy("policyHTMLAndScript", {
+      createHTML: s => s,
+      createScript: s => s
+    });
+    assert_throws(new TypeError(), _ => { p1.createScriptURL("foo"); });
+    assert_throws(new TypeError(), _ => { p1.createURL("foo"); });
+
+    const p2 = TrustedTypes.createPolicy("policyURLAndScriptURL", {
+      createURL: s => s,
+      createScriptURL: s => s
+    });
+    assert_throws(new TypeError(), _ => { p2.createHTML("foo"); });
+    assert_throws(new TypeError(), _ => { p2.createScript("foo"); });
+  }, "calling undefined callbacks throws");
+
+  test(t => {
+    const noopPolicy = {
+      createHTML: (s) => s,
+      createScriptURL: (s) => s,
+      createURL: (s) => s,
+      createScript: (s) => s,
+    };
+    policy = TrustedTypes.createPolicy(Math.random(), noopPolicy, true);
+    let el = document.createElement("div");
+
+    el.title = policy.createHTML(INPUTS.URL);
+    assert_equals(el.title, INPUTS.URL);
+
+    el.title = policy.createURL(INPUTS.HTML);
+    assert_equals(el.title, INPUTS.HTML);
+  }, "Attributes without type constraints will work as before.");
+
+  test(t => {
+    const policy = TrustedTypes.createPolicy("nullpolicy", null);
+    assert_throws(new TypeError(), _ => { policy.createScriptURL("foo"); });
+    assert_throws(new TypeError(), _ => { policy.createURL("foo"); });
+    assert_throws(new TypeError(), _ => { policy.createHTML("foo"); });
+    assert_throws(new TypeError(), _ => { policy.createScript("foo"); });
+  }, "TrustedTypes.createPolicy(.., null) creates empty policy.");
+
+
+  // testCases contains a list of policy functions and expected results (when
+  // called with a given default argument). They also use various helper
+  // variables (declared just below) to test side effects or interactions of
+  // global  vars/functions with policy callbacks.
+  let aGlobalVarForSideEffectTesting = "global";
+  var aGlobalObject = { "foo": "well," };
+  function aGlobalFunction(s) { return this.foo + " " + s; }
+  function anotherGlobalFunction(s) { return s + "#" + this.foo; }
+  var foo = "a global var named foo";
+
+  const stringTestCases = [
+    [ s => s, "whatever" ],
+    [ s => null, "null" ],
+    [ s => "well, " + s, "well, whatever" ],
+    [ s => { throw new Error() }, new Error() ],
+    [ s => { aGlobalVarForSideEffectTesting = s; return s }, "whatever" ],
+    [ s => aGlobalVarForSideEffectTesting + s, "whateverwhatever" ],
+    [ aGlobalFunction.bind(aGlobalObject), "well, whatever" ],
+    [ s => aGlobalFunction(s), "a global var named foo whatever" ],
+  ];
+
+  const urlTestCases = [
+    [ s => s, INPUTS.SCRIPTURL ],
+    [ s => null, "null" ],
+    [ s => s + "#duck", INPUTS.SCRIPTURL + "#duck" ],
+    [ s => { throw new Error() }, new Error() ],
+    [ s => s + "#" + aGlobalVarForSideEffectTesting,
+      INPUTS.SCRIPTURL + "#global" ],
+    [ anotherGlobalFunction.bind(aGlobalObject), INPUTS.SCRIPTURL + "#well," ],
+    [ s => anotherGlobalFunction(s),
+      INPUTS.SCRIPTURL + "#a global var named foo" ],
+  ];
+
+  function policyBuilder(trustedMethodName, trustedType, defaultArg) {
+    return function(name, fn) {
+      let options = {};
+      options[trustedMethodName] = fn;
+      let policy = window.TrustedTypes.createPolicy(name, options);
+      let result = policy[trustedMethodName](defaultArg);
+      assert_true(result instanceof trustedType);
+      return result;
+    }
+  }
+
+  const testCases = [
+    [TrustedHTML, "createHTML", "whatever", stringTestCases],
+    [TrustedScript, "createScript", "whatever", stringTestCases],
+    [TrustedURL, "createURL", INPUTS.SCRIPTURL, urlTestCases],
+    [TrustedScriptURL, "createScriptURL", INPUTS.SCRIPTURL, urlTestCases],
+  ];
+
+  // Iterate over all trusted types, iterate over all test cases.
+  // For each, build the suitable policy and check the result.
+  for (let [trusted_class, trusted_method, default_arg, test_cases] of testCases) {
+    aGlobalVarForSideEffectTesting = "global";
+    let builder = policyBuilder(trusted_method, trusted_class, default_arg);
+    for (let [index, [policy_fn, value]] of test_cases.entries()) {
+      let subtest_name = "TestPolicy" + trusted_class.name + index;
+      test(t => {
+        if (value instanceof Error) {
+          assert_throws(value, () => builder(subtest_name, policy_fn));
+        } else {
+          assert_equals("" + builder(subtest_name, policy_fn), value);
+        }
+      }, subtest_name + " (" + trusted_class.name + ": " +
+           policy_fn.toString() + ")");
+    }
+  }
+</script>

@@ -70,6 +70,7 @@
     "html-svg/struct-dom-17-f-novalid.html": "Element \u201crect\u201d is missing required attribute \u201cheight\u201d.",
     "html-svg/struct-dom-19-f-novalid.html": "Element \u201crect\u201d is missing required attribute \u201cheight\u201d.",
     "html-svg/struct-frag-05-t-novalid.html": "Bad value \u201chttp://www.example.org/notsvg\u201d for the attribute \u201cxmlns\u201d (only \u201chttp://www.w3.org/2000/svg\u201d permitted here).",
+    "html-svg/struct-image-07-t-novalid.html": "Attribute \u201cxml:base\u201d not allowed on element \u201cimage\u201d at this point.",
     "html-svg/struct-image-12-b-novalid.html": "Duplicate ID \u201cimageSVG\u201d.",
     "html-svg/struct-use-11-f-novalid.html": "Attribute \u201cfoo\u201d not allowed on element \u201ccircle\u201d at this point.",
     "html-svg/struct-use-12-f-novalid.html": "Element \u201cuse\u201d not allowed as child of element \u201cuse\u201d in this context. (Suppressing further errors from this subtree.)",

@@ -1,5 +1,3 @@
-cargo-features = ["rename-dependency"]
-
 [package]
 name = "net"
 version = "0.0.1"
@@ -24,6 +22,7 @@ crossbeam-channel = "0.3"
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"
+futures = "0.1"
 headers-core = "0.0.1"
 headers-ext = "0.0.3"
 http = "0.1"
@@ -33,9 +32,10 @@ hyper-openssl = "0.7"
 immeta = "0.4"
 ipc-channel = "0.11"
 lazy_static = "1"
+libflate = "0.1"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 matches = "0.1"
 mime = "0.3"
 mime_guess = "2.0.0-alpha.6"

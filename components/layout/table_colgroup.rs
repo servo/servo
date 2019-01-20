@@ -4,17 +4,17 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
+use app_units::Au;
 use euclid::Point2D;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::LengthPercentageOrAuto;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableColGroupFlow {}
@@ -31,10 +31,10 @@ pub struct TableColGroupFlow {
     /// The table column fragments
     pub cols: Vec<Fragment>,
 
-    /// The specified inline-sizes of table columns. (We use `LengthOrPercentageOrAuto` here in
+    /// The specified inline-sizes of table columns. (We use `LengthPercentageOrAuto` here in
     /// lieu of `ColumnInlineSize` because column groups do not establish minimum or preferred
     /// inline sizes.)
-    pub inline_sizes: Vec<LengthOrPercentageOrAuto>,
+    pub inline_sizes: Vec<LengthPercentageOrAuto>,
 }
 
 impl TableColGroupFlow {

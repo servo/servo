@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
@@ -25,6 +24,7 @@ use crate::dom::progressevent::ProgressEvent;
 use crate::task::TaskCanceller;
 use crate::task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 use crate::task_source::{TaskSource, TaskSourceName};
+use base64;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;

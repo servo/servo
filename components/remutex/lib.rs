@@ -43,7 +43,7 @@ impl ThreadId {
     }
 }
 
-thread_local!{ static THREAD_ID: ThreadId = ThreadId::new() }
+thread_local! { static THREAD_ID: ThreadId = ThreadId::new() }
 
 /// A type for atomic storage of thread ids.
 #[derive(Debug)]

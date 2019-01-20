@@ -1,0 +1,2 @@
+Set-Cookie: plugintypes-nourl-allowed={{$id:uuid()}}; Path=/content-security-policy/plugin-types/
+Content-Security-Policy: plugin-types application/x-shockwave-flash;  report-uri ../support/report.py?op=put&reportID={{$id}}

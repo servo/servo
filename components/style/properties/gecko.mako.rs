@@ -39,7 +39,6 @@ use crate::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::CSSPseudoElementType;
-use crate::gecko_bindings::structs::mozilla::CSSPseudoElementType_InheritingAnonBox;
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::gecko::values::convert_nscolor_to_rgba;
@@ -58,15 +57,14 @@ use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
 use crate::values::computed::{NonNegativeLength, Percentage, TransitionProperty};
+use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
 use crate::values::computed::effects::{BoxShadow, Filter, SimpleShadow};
-use crate::values::computed::outline::OutlineStyle;
 use crate::values::generics::column::ColumnCount;
 use crate::values::generics::position::ZIndex;
 use crate::values::generics::text::MozTabSize;
 use crate::values::generics::transform::TransformStyle;
 use crate::values::generics::url::UrlOrNone;
-use crate::computed_values::border_style;
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -139,7 +137,7 @@ impl ComputedValues {
     #[inline]
     pub fn is_anon_box(&self) -> bool {
         let our_type = self.get_pseudo_type();
-        return our_type == CSSPseudoElementType_InheritingAnonBox ||
+        return our_type == CSSPseudoElementType::InheritingAnonBox ||
                our_type == CSSPseudoElementType::NonInheritingAnonBox;
     }
 
@@ -333,13 +331,10 @@ impl ${style_struct.gecko_struct_name} {
     }
 </%def>
 
-<%def name="impl_simple_copy(ident, gecko_ffi_name, on_set=None, *kwargs)">
+<%def name="impl_simple_copy(ident, gecko_ffi_name, *kwargs)">
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
-        % if on_set:
-        self.${on_set}();
-        % endif
     }
 
     #[allow(non_snake_case)]
@@ -368,7 +363,7 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
-<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8', on_set=None)">
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8')">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use crate::properties::longhands::${ident}::computed_value::T as Keyword;
@@ -380,9 +375,6 @@ def set_gecko_property(ffi_name, expr):
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
-        % if on_set:
-        self.${on_set}();
-        % endif
     }
 </%def>
 
@@ -518,7 +510,7 @@ def set_gecko_property(ffi_name, expr):
     // set on mContextFlags, and the length field is set to the initial value.
 
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use crate::values::generics::svg::{SVGLength, SvgLengthOrPercentageOrNumber};
+        use crate::values::generics::svg::{SVGLength, SvgLengthPercentageOrNumber};
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
         let length = match v {
             SVGLength::Length(length) => {
@@ -534,9 +526,9 @@ def set_gecko_property(ffi_name, expr):
             }
         };
         match length {
-            SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) =>
-                self.gecko.${gecko_ffi_name}.set(lop),
-            SvgLengthOrPercentageOrNumber::Number(num) =>
+            SvgLengthPercentageOrNumber::LengthPercentage(lp) =>
+                self.gecko.${gecko_ffi_name}.set(lp),
+            SvgLengthPercentageOrNumber::Number(num) =>
                 self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(num.into())),
         }
     }
@@ -554,30 +546,28 @@ def set_gecko_property(ffi_name, expr):
     }
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::values::generics::svg::{SVGLength, SvgLengthOrPercentageOrNumber};
-        use crate::values::computed::LengthOrPercentage;
+        use crate::values::generics::svg::{SVGLength, SvgLengthPercentageOrNumber};
+        use crate::values::computed::LengthPercentage;
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
         if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
             return SVGLength::ContextValue;
         }
         let length = match self.gecko.${gecko_ffi_name}.as_value() {
             CoordDataValue::Factor(number) => {
-                SvgLengthOrPercentageOrNumber::Number(number)
+                SvgLengthPercentageOrNumber::Number(number)
             },
             CoordDataValue::Coord(coord) => {
-                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Length(Au(coord).into())
+                SvgLengthPercentageOrNumber::LengthPercentage(
+                    LengthPercentage::new(Au(coord).into(), None)
                 )
             },
             CoordDataValue::Percent(p) => {
-                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Percentage(Percentage(p))
+                SvgLengthPercentageOrNumber::LengthPercentage(
+                    LengthPercentage::new(Au(0).into(), Some(Percentage(p)))
                 )
             },
             CoordDataValue::Calc(calc) => {
-                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Calc(calc.into())
-                )
+                SvgLengthPercentageOrNumber::LengthPercentage(calc.into())
             },
             _ => unreachable!("Unexpected coordinate in ${ident}"),
         };
@@ -949,10 +939,10 @@ def set_gecko_property(ffi_name, expr):
 transform_functions = [
     ("Matrix3D", "matrix3d", ["number"] * 16),
     ("Matrix", "matrix", ["number"] * 6),
-    ("Translate", "translate", ["lop", "optional_lop"]),
-    ("Translate3D", "translate3d", ["lop", "lop", "length"]),
-    ("TranslateX", "translatex", ["lop"]),
-    ("TranslateY", "translatey", ["lop"]),
+    ("Translate", "translate", ["lp", "optional_lp"]),
+    ("Translate3D", "translate3d", ["lp", "lp", "length"]),
+    ("TranslateX", "translatex", ["lp"]),
+    ("TranslateY", "translatey", ["lp"]),
     ("TranslateZ", "translatez", ["length"]),
     ("Scale3D", "scale3d", ["number"] * 3),
     ("Scale", "scale", ["number", "optional_number"]),
@@ -1003,7 +993,7 @@ transform_functions = [
             # Note: This is an integer type, but we use it as a percentage value in Gecko, so
             #       need to cast it to f32.
             "integer_to_percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s as f32)",
-            "lop" : "%s.set_lop(%s)",
+            "lp" : "%s.set_length_percentage(%s)",
             "angle" : "%s.set_angle(%s)",
             "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
             # Note: We use nsCSSValueSharedList here, instead of nsCSSValueList_heap
@@ -1052,8 +1042,8 @@ transform_functions = [
         # %s is substituted with the call to GetArrayItem.
         css_value_getters = {
             "length" : "Length::new(bindings::Gecko_CSSValue_GetNumber(%s))",
-            "lop" : "%s.get_lop()",
-            "lopon" : "Either::Second(%s.get_lop())",
+            "lp" : "%s.get_length_percentage()",
+            "lpon" : "Either::Second(%s.get_length_percentage())",
             "lon" : "Either::First(%s.get_length())",
             "angle" : "%s.get_angle()",
             "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
@@ -1279,12 +1269,12 @@ pub fn clone_transform_from_list(
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> values::computed::TransformOrigin {
-        use crate::values::computed::{Length, LengthOrPercentage, TransformOrigin};
+        use crate::values::computed::{Length, LengthPercentage, TransformOrigin};
         TransformOrigin {
-            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[0])
-                .expect("clone for LengthOrPercentage failed"),
-            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[1])
-                .expect("clone for LengthOrPercentage failed"),
+            horizontal: LengthPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[0])
+                .expect("clone for LengthPercentage failed"),
+            vertical: LengthPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[1])
+                .expect("clone for LengthPercentage failed"),
             depth: if let Some(third) = self.gecko.${gecko_ffi_name}.get(2) {
                 Length::from_gecko_style_coord(third)
                     .expect("clone for Length failed")
@@ -1396,8 +1386,15 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
+        "Appearance": impl_simple,
+        "OverscrollBehavior": impl_simple,
+        "OverflowClipBox": impl_simple,
+        "ScrollSnapType": impl_simple,
+        "Float": impl_simple,
+        "Overflow": impl_simple,
         "BreakBetween": impl_simple,
         "BreakWithin": impl_simple,
+        "Resize": impl_simple,
         "Color": impl_color,
         "ColorOrAuto": impl_color,
         "GreaterThanOrEqualToOneNumber": impl_simple,
@@ -1405,23 +1402,24 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "length::LengthOrAuto": impl_style_coord,
         "length::LengthOrNormal": impl_style_coord,
         "length::NonNegativeLengthOrAuto": impl_style_coord,
-        "length::NonNegativeLengthOrPercentageOrNormal": impl_style_coord,
+        "length::NonNegativeLengthPercentageOrNormal": impl_style_coord,
         "FillRule": impl_simple,
         "FlexBasis": impl_style_coord,
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
-        "LengthOrPercentage": impl_style_coord,
-        "LengthOrPercentageOrAuto": impl_style_coord,
-        "LengthOrPercentageOrNone": impl_style_coord,
+        "LengthPercentage": impl_style_coord,
+        "LengthPercentageOrAuto": impl_style_coord,
+        "LengthPercentageOrNone": impl_style_coord,
         "MaxLength": impl_style_coord,
         "MozLength": impl_style_coord,
         "MozScriptMinSize": impl_absolute_length,
         "MozScriptSizeMultiplier": impl_simple,
-        "NonNegativeLengthOrPercentage": impl_style_coord,
+        "NonNegativeLengthPercentage": impl_style_coord,
         "NonNegativeNumber": impl_simple,
         "Number": impl_simple,
         "Opacity": impl_simple,
         "OverflowWrap": impl_simple,
+        "OverflowAnchor": impl_simple,
         "Perspective": impl_style_coord,
         "Position": impl_position,
         "RGBAColor": impl_rgba_color,
@@ -1515,9 +1513,6 @@ fn static_assert() {
 }
 
 
-<% border_style_keyword = Keyword("border-style",
-                                  "none solid double dotted dashed hidden groove ridge inset outset") %>
-
 <% skip_border_longhands = " ".join(["border-{0}-{1}".format(x.ident, y)
                                      for x in SIDES
                                      for y in ["color", "style", "width"]] +
@@ -1528,39 +1523,53 @@ fn static_assert() {
                   skip_longhands="${skip_border_longhands} border-image-source border-image-outset
                                   border-image-repeat border-image-width border-image-slice">
     % for side in SIDES:
-    <% impl_keyword("border_%s_style" % side.ident,
-                    "mBorderStyle[%s]" % side.index,
-                    border_style_keyword,
-                    on_set="update_border_%s" % side.ident) %>
+    pub fn set_border_${side.ident}_style(&mut self, v: BorderStyle) {
+        self.gecko.mBorderStyle[${side.index}] = v;
 
-    // This is needed because the initial mComputedBorder value is set to zero.
-    //
-    // In order to compute stuff, we start from the initial struct, and keep
-    // going down the tree applying properties.
-    //
-    // That means, effectively, that when we set border-style to something
-    // non-hidden, we should use the initial border instead.
-    //
-    // Servo stores the initial border-width in the initial struct, and then
-    // adjusts as needed in the fixup phase. This means that the initial struct
-    // is technically not valid without fixups, and that you lose pretty much
-    // any sharing of the initial struct, which is kind of unfortunate.
-    //
-    // Gecko has two fields for this, one that stores the "specified" border,
-    // and other that stores the actual computed one. That means that when we
-    // set border-style, border-width may change and we need to sync back to the
-    // specified one. This is what this function does.
-    //
-    // Note that this doesn't impose any dependency in the order of computation
-    // of the properties. This is only relevant if border-style is specified,
-    // but border-width isn't. If border-width is specified at some point, the
-    // two mBorder and mComputedBorder fields would be the same already.
-    //
-    // Once we're here, we know that we'll run style fixups, so it's fine to
-    // just copy the specified border here, we'll adjust it if it's incorrect
-    // later.
-    fn update_border_${side.ident}(&mut self) {
+        // This is needed because the initial mComputedBorder value is set to
+        // zero.
+        //
+        // In order to compute stuff, we start from the initial struct, and keep
+        // going down the tree applying properties.
+        //
+        // That means, effectively, that when we set border-style to something
+        // non-hidden, we should use the initial border instead.
+        //
+        // Servo stores the initial border-width in the initial struct, and then
+        // adjusts as needed in the fixup phase. This means that the initial
+        // struct is technically not valid without fixups, and that you lose
+        // pretty much any sharing of the initial struct, which is kind of
+        // unfortunate.
+        //
+        // Gecko has two fields for this, one that stores the "specified"
+        // border, and other that stores the actual computed one. That means
+        // that when we set border-style, border-width may change and we need to
+        // sync back to the specified one. This is what this function does.
+        //
+        // Note that this doesn't impose any dependency in the order of
+        // computation of the properties. This is only relevant if border-style
+        // is specified, but border-width isn't. If border-width is specified at
+        // some point, the two mBorder and mComputedBorder fields would be the
+        // same already.
+        //
+        // Once we're here, we know that we'll run style fixups, so it's fine to
+        // just copy the specified border here, we'll adjust it if it's
+        // incorrect later.
         self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
+    }
+
+    pub fn copy_border_${side.ident}_style_from(&mut self, other: &Self) {
+        self.gecko.mBorderStyle[${side.index}] = other.gecko.mBorderStyle[${side.index}];
+        self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
+    }
+
+    pub fn reset_border_${side.ident}_style(&mut self, other: &Self) {
+        self.copy_border_${side.ident}_style_from(other);
+    }
+
+    #[inline]
+    pub fn clone_border_${side.ident}_style(&self) -> BorderStyle {
+        self.gecko.mBorderStyle[${side.index}]
     }
 
     <% impl_color("border_%s_color" % side.ident, "mBorder%sColor" % side.name) %>
@@ -1676,8 +1685,8 @@ fn static_assert() {
 
     pub fn clone_border_image_slice(&self) -> longhands::border_image_slice::computed_value::T {
         use crate::gecko_bindings::structs::NS_STYLE_BORDER_IMAGE_SLICE_FILL;
-        use crate::values::computed::{BorderImageSlice, NumberOrPercentage};
-        type NumberOrPercentageRect = crate::values::generics::rect::Rect<NumberOrPercentage>;
+        use crate::values::computed::{BorderImageSlice, NonNegativeNumberOrPercentage};
+        type NumberOrPercentageRect = crate::values::generics::rect::Rect<NonNegativeNumberOrPercentage>;
 
         BorderImageSlice {
             offsets:
@@ -2170,50 +2179,26 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Outline"
                   skip_longhands="${skip_outline_longhands}">
 
-    #[allow(non_snake_case)]
     pub fn set_outline_style(&mut self, v: longhands::outline_style::computed_value::T) {
-        // FIXME(bholley): Align binary representations and ditch |match| for
-        // cast + static_asserts
-        let result = match v {
-            % for value in border_style_keyword.values_for('gecko'):
-                OutlineStyle::Other(border_style::T::${to_camel_case(value)}) =>
-                    structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
-            % endfor
-                OutlineStyle::Auto =>
-                    structs::${border_style_keyword.gecko_constant('auto')} ${border_style_keyword.maybe_cast("u8")},
-        };
-        ${set_gecko_property("mOutlineStyle", "result")}
-
+        self.gecko.mOutlineStyle = v;
         // NB: This is needed to correctly handling the initial value of
         // outline-width when outline-style changes, see the
         // update_border_${side.ident} comment for more details.
         self.gecko.mActualOutlineWidth = self.gecko.mOutlineWidth;
     }
 
-    #[allow(non_snake_case)]
     pub fn copy_outline_style_from(&mut self, other: &Self) {
+        // FIXME(emilio): Why doesn't this need to reset mActualOutlineWidth?
+        // Looks fishy.
         self.gecko.mOutlineStyle = other.gecko.mOutlineStyle;
     }
 
-    #[allow(non_snake_case)]
     pub fn reset_outline_style(&mut self, other: &Self) {
         self.copy_outline_style_from(other)
     }
 
-    #[allow(non_snake_case)]
     pub fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match ${get_gecko_property("mOutlineStyle")} ${border_style_keyword.maybe_cast("u32")} {
-            % for value in border_style_keyword.values_for('gecko'):
-            structs::${border_style_keyword.gecko_constant(value)} => {
-                OutlineStyle::Other(border_style::T::${to_camel_case(value)})
-            },
-            % endfor
-            structs::${border_style_keyword.gecko_constant('auto')} => OutlineStyle::Auto,
-            % if border_style_keyword.gecko_inexhaustive:
-            _ => panic!("Found unexpected value in style struct for outline_style property"),
-            % endif
-        }
+        self.gecko.mOutlineStyle.clone()
     }
 
     <% impl_non_negative_length("outline_width", "mActualOutlineWidth",
@@ -3025,20 +3010,18 @@ fn static_assert() {
     }
 </%def>
 
-<% skip_box_longhands= """display -moz-appearance overflow-y vertical-align
+<% skip_box_longhands= """display vertical-align
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
-                          transition-duration transition-delay
+                          clear transition-duration transition-delay
                           transition-timing-function transition-property
                           rotate scroll-snap-points-x scroll-snap-points-y
-                          scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
+                          scroll-snap-coordinate
                           perspective-origin -moz-binding will-change
-                          offset-path overscroll-behavior-x overscroll-behavior-y
-                          overflow-clip-box-inline overflow-clip-box-block
-                          perspective-origin -moz-binding will-change
-                          shape-outside contain touch-action translate
-                          scale""" %>
+                          offset-path perspective-origin -moz-binding
+                          will-change shape-outside contain touch-action
+                          translate scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -3071,11 +3054,6 @@ fn static_assert() {
         self.gecko.mDisplay
     }
 
-    ${impl_simple('_moz_appearance', 'mAppearance')}
-
-    <% float_keyword = Keyword("float", "Left Right None", gecko_enum_prefix="StyleFloat") %>
-    ${impl_keyword('float', 'mFloat', float_keyword)}
-
     <% clear_keyword = Keyword(
         "clear",
         "Left Right None Both",
@@ -3083,31 +3061,6 @@ fn static_assert() {
         gecko_inexhaustive=True,
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
-
-    <% resize_keyword = Keyword("resize", "None Both Horizontal Vertical") %>
-    ${impl_keyword('resize', 'mResize', resize_keyword)}
-
-    <% overflow_x = data.longhands_by_name["overflow-x"] %>
-    pub fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
-        use crate::properties::longhands::overflow_x::computed_value::T as BaseType;
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        self.gecko.mOverflowY = match v {
-            % for value in overflow_x.keyword.values_for('gecko'):
-                BaseType::${to_camel_case(value)} => structs::${overflow_x.keyword.gecko_constant(value)} as u8,
-            % endfor
-        };
-    }
-    ${impl_simple_copy('overflow_y', 'mOverflowY')}
-    pub fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
-        use crate::properties::longhands::overflow_x::computed_value::T as BaseType;
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match self.gecko.mOverflowY as u32 {
-            % for value in overflow_x.keyword.values_for('gecko'):
-            structs::${overflow_x.keyword.gecko_constant(value)} => BaseType::${to_camel_case(value)},
-            % endfor
-            x => panic!("Found unexpected value in style struct for overflow_y property: {}", x),
-        }
-    }
 
     pub fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
         use crate::values::generics::box_::VerticalAlign;
@@ -3132,7 +3085,7 @@ fn static_assert() {
     }
 
     pub fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
-        use crate::values::computed::LengthOrPercentage;
+        use crate::values::computed::LengthPercentage;
         use crate::values::generics::box_::VerticalAlign;
 
         let gecko = &self.gecko.mVerticalAlign;
@@ -3140,7 +3093,7 @@ fn static_assert() {
             CoordDataValue::Enumerated(value) => VerticalAlign::from_gecko_keyword(value),
             _ => {
                 VerticalAlign::Length(
-                    LengthOrPercentage::from_gecko_style_coord(gecko).expect(
+                    LengthPercentage::from_gecko_style_coord(gecko).expect(
                         "expected <length-percentage> for vertical-align",
                     ),
                 )
@@ -3418,19 +3371,6 @@ fn static_assert() {
 
     ${impl_animation_timing_function()}
 
-    <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "None Mandatory Proximity") %>
-    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword)}
-    ${impl_keyword('scroll_snap_type_x', 'mScrollSnapTypeX', scroll_snap_type_keyword)}
-
-    <% overscroll_behavior_keyword = Keyword("overscroll-behavior", "Auto Contain None",
-                                             gecko_enum_prefix="StyleOverscrollBehavior") %>
-    ${impl_keyword('overscroll_behavior_x', 'mOverscrollBehaviorX', overscroll_behavior_keyword)}
-    ${impl_keyword('overscroll_behavior_y', 'mOverscrollBehaviorY', overscroll_behavior_keyword)}
-
-    <% overflow_clip_box_keyword = Keyword("overflow-clip-box", "padding-box content-box") %>
-    ${impl_keyword('overflow_clip_box_inline', 'mOverflowClipBoxInline', overflow_clip_box_keyword)}
-    ${impl_keyword('overflow_clip_box_block', 'mOverflowClipBoxBlock', overflow_clip_box_keyword)}
-
     pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
         self.gecko.mPerspectiveOrigin[0].set(v.horizontal);
         self.gecko.mPerspectiveOrigin[1].set(v.vertical);
@@ -3447,11 +3387,11 @@ fn static_assert() {
 
     pub fn clone_perspective_origin(&self) -> longhands::perspective_origin::computed_value::T {
         use crate::properties::longhands::perspective_origin::computed_value::T;
-        use crate::values::computed::LengthOrPercentage;
+        use crate::values::computed::LengthPercentage;
         T {
-            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[0])
+            horizontal: LengthPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[0])
                 .expect("Expected length or percentage for horizontal value of perspective-origin"),
-            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[1])
+            vertical: LengthPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[1])
                 .expect("Expected length or percentage for vertical value of perspective-origin"),
         }
     }
@@ -3940,12 +3880,12 @@ fn static_assert() {
     pub fn clone_${shorthand}_size(&self) -> longhands::${shorthand}_size::computed_value::T {
         use crate::gecko_bindings::structs::nsStyleCoord_CalcValue as CalcValue;
         use crate::gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType as DimensionType;
-        use crate::values::computed::NonNegativeLengthOrPercentageOrAuto;
+        use crate::values::computed::NonNegativeLengthPercentageOrAuto;
         use crate::values::generics::background::BackgroundSize;
 
-        fn to_servo(value: CalcValue, ty: u8) -> NonNegativeLengthOrPercentageOrAuto {
+        fn to_servo(value: CalcValue, ty: u8) -> NonNegativeLengthPercentageOrAuto {
             if ty == DimensionType::eAuto as u8 {
-                NonNegativeLengthOrPercentageOrAuto::auto()
+                NonNegativeLengthPercentageOrAuto::auto()
             } else {
                 debug_assert_eq!(ty, DimensionType::eLengthPercentage as u8);
                 value.into()
@@ -4629,14 +4569,14 @@ fn static_assert() {
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
         use crate::values::generics::text::Spacing;
         match v {
-            Spacing::Value(lop) => self.gecko.mWordSpacing.set(lop),
+            Spacing::Value(lp) => self.gecko.mWordSpacing.set(lp),
             // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal
             Spacing::Normal => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
         }
     }
 
     pub fn clone_word_spacing(&self) -> longhands::word_spacing::computed_value::T {
-        use crate::values::computed::LengthOrPercentage;
+        use crate::values::computed::LengthPercentage;
         use crate::values::generics::text::Spacing;
         debug_assert!(
             matches!(self.gecko.mWordSpacing.as_value(),
@@ -4645,7 +4585,7 @@ fn static_assert() {
                      CoordDataValue::Percent(_) |
                      CoordDataValue::Calc(_)),
             "Unexpected computed value for word-spacing");
-        LengthOrPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing).map_or(Spacing::Normal, Spacing::Value)
+        LengthPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing).map_or(Spacing::Normal, Spacing::Value)
     }
 
     <%call expr="impl_coord_copy('word_spacing', 'mWordSpacing')"></%call>
@@ -5077,7 +5017,7 @@ clip-path
 
     pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use crate::values::generics::svg::{SVGStrokeDashArray, SvgLengthOrPercentageOrNumber};
+        use crate::values::generics::svg::{SVGStrokeDashArray, SvgLengthPercentageOrNumber};
 
         match v {
             SVGStrokeDashArray::Values(v) => {
@@ -5088,9 +5028,9 @@ clip-path
                 }
                 for (gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
                     match servo {
-                        SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) =>
-                            gecko.set(lop),
-                        SvgLengthOrPercentageOrNumber::Number(num) =>
+                        SvgLengthPercentageOrNumber::LengthPercentage(lp) =>
+                            gecko.set(lp),
+                        SvgLengthPercentageOrNumber::Number(num) =>
                             gecko.set_value(CoordDataValue::Factor(num.into())),
                     }
                 }
@@ -5120,8 +5060,9 @@ clip-path
 
     pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use crate::values::computed::LengthOrPercentage;
-        use crate::values::generics::svg::{SVGStrokeDashArray, SvgLengthOrPercentageOrNumber};
+        use crate::values::computed::LengthPercentage;
+        use crate::values::generics::NonNegative;
+        use crate::values::generics::svg::{SVGStrokeDashArray, SvgLengthPercentageOrNumber};
 
         if self.gecko.mContextFlags & CONTEXT_VALUE != 0 {
             debug_assert_eq!(self.gecko.mStrokeDasharray.len(), 0);
@@ -5131,16 +5072,16 @@ clip-path
         for gecko in self.gecko.mStrokeDasharray.iter() {
             match gecko.as_value() {
                 CoordDataValue::Factor(number) =>
-                    vec.push(SvgLengthOrPercentageOrNumber::Number(number.into())),
+                    vec.push(SvgLengthPercentageOrNumber::Number(number.into())),
                 CoordDataValue::Coord(coord) =>
-                    vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Length(Au(coord).into()).into())),
+                    vec.push(SvgLengthPercentageOrNumber::LengthPercentage(
+                        NonNegative(LengthPercentage::new(Au(coord).into(), None).into()))),
                 CoordDataValue::Percent(p) =>
-                    vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Percentage(Percentage(p)).into())),
+                    vec.push(SvgLengthPercentageOrNumber::LengthPercentage(
+                        NonNegative(LengthPercentage::new_percent(Percentage(p)).into()))),
                 CoordDataValue::Calc(calc) =>
-                    vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Calc(calc.into()).into())),
+                    vec.push(SvgLengthPercentageOrNumber::LengthPercentage(
+                        NonNegative(LengthPercentage::from(calc).clamp_to_non_negative()))),
                 _ => unreachable!(),
             }
         }
@@ -5410,7 +5351,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-count column-rule-width">
+                  skip_longhands="column-count column-rule-width column-rule-style">
 
     #[allow(unused_unsafe)]
     pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
@@ -5439,6 +5380,7 @@ clip-path
 
     <% impl_non_negative_length("column_rule_width", "mColumnRuleWidth",
                                 round_to_pixels=True) %>
+    ${impl_simple('column_rule_style', 'mColumnRuleStyle')}
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"

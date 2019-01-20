@@ -1,61 +1,100 @@
 version: 1
 policy:
   # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1#pull-requests
-  pullRequests: collaborators
+  pullRequests: public
+
+  # NOTE: when updating this consider whether the daily hook needs similar changes:
+# https://tools.taskcluster.net/hooks/project-servo/daily
 tasks:
-  - $if: 'tasks_for == "github-push"'
-    then:
-      $if: 'event.ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]'
+  $let:
+    task_common:
+      provisionerId: aws-provisioner-v1
+      created: {$fromNow: ''}
+      deadline: {$fromNow: '1 day'}
+      extra:
+        treeherder:
+          machine: {platform: Linux}
+          labels: [x64]
+          symbol: Decision
+      payload:
+        maxRunTime: {$eval: '20 * 60'}
+        # https://github.com/servo/taskcluster-bootstrap-docker-images#decision-task
+        image: "servobrowser/taskcluster-bootstrap:decision-task@sha256:28045b7ec0485ef363f8cb14f194008b47e9ede99f2ea40a1e945e921fce976e"
+        features:
+          taskclusterProxy: true
+        env:
+          GIT_URL: ${event.repository.clone_url}
+          TASK_FOR: ${tasks_for}
+        command:
+          - /bin/bash
+          - '--login'
+          - '-e'
+          - '-c'
+          - >-
+            git init repo &&
+            cd repo &&
+            git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
+            git reset --hard "$GIT_SHA" &&
+            python3 etc/taskcluster/decision_task.py
+  in:
+    - $if: "tasks_for == 'github-push'"
       then:
+        $let:
+          branch:
+            $if: "event.ref[:11] == 'refs/heads/'"
+            then: "${event.ref[11:]}"
+        in:
+          $if: "branch in ['auto', 'try', 'master'] || branch[:4] == 'try-'"
+          then:
+            $mergeDeep:
+              - {$eval: "task_common"}
+              - metadata:
+                  name: "Servo: GitHub push decision task"
+                  description: ""
+                  owner: ${event.pusher.name}@users.noreply.github.com
+                  source: ${event.compare}
+                workerType: servo-docker-worker
+                scopes:
+                  - "assume:repo:github.com/servo/servo:branch:${branch}"
+                routes:
+                  $let:
+                    treeherder_repo:
+                      $if: "branch[:4] == 'try-'"
+                      then: "servo-${branch}"
+                      else: "servo-try"
+                  in:
+                    - "tc-treeherder.v2._/${treeherder_repo}.${event.after}"
+                    - "tc-treeherder-staging.v2._/${treeherder_repo}.${event.after}"
+                payload:
+                  env:
+                    GIT_REF: ${event.ref}
+                    GIT_SHA: ${event.after}
+                    TASK_OWNER: ${event.pusher.name}@users.noreply.github.com
+                    TASK_SOURCE: ${event.compare}
+    - $if: >-
+        tasks_for == 'github-pull-request' &&
+        event['action'] in ['opened', 'reopened', 'synchronize']
+      then:
+        $mergeDeep:
+          - {$eval: "task_common"}
+          - metadata:
+              name: "Servo: GitHub PR decision task"
+              description: ""
+              owner: ${event.sender.login}@users.noreply.github.com
+              source: ${event.pull_request.url}
+            workerType: servo-docker-untrusted
+            scopes:
+              - "assume:repo:github.com/servo/servo:pull-request"
+            routes:
+              - "tc-treeherder.v2._/servo-prs.${event.pull_request.head.sha}"
+              - "tc-treeherder-staging.v2._/servo-prs.${event.pull_request.head.sha}"
+            payload:
+              env:
+                # We use the merge commit made by GitHub, not the PR’s branch
+                GIT_REF: refs/pull/${event.pull_request.number}/merge
+                # `event.pull_request.merge_commit_sha` is tempting but not what we want:
+                # https://github.com/servo/servo/pull/22597#issuecomment-451518810
+                GIT_SHA: FETCH_HEAD
+                TASK_OWNER: ${event.sender.login}@users.noreply.github.com
+                TASK_SOURCE: ${event.pull_request.url}
 
-        # NOTE: when updating this consider whether the daily hook needs similar changes:
-        # https://tools.taskcluster.net/hooks/project-servo/daily
-
-        taskGroupId: {$eval: as_slugid("decision_task")}
-        taskId: {$eval: as_slugid("decision_task")}
-        provisionerId: aws-provisioner-v1
-        workerType: servo-docker-worker
-        created: {$fromNow: ''}
-        deadline: {$fromNow: '1 day'}
-        metadata:
-          name: "Servo: GitHub push decision task"
-          description: ""
-          owner: &task_owner ${event.pusher.name}@users.noreply.github.com
-          source: &task_source ${event.compare}
-        scopes:
-          # Granted to role "repo:github.com/servo/servo:branch:*"
-          - "assume:project:servo:decision-task/trusted"
-        routes:
-          # len("refs/heads/") == 11, so event.ref[11:] is the branch name
-          - "tc-treeherder.v2.servo/servo-${event.ref[11:]}.${event.after}"
-          - "tc-treeherder-staging.v2.servo/servo-${event.ref[11:]}.${event.after}"
-        extra:
-          treeherder:
-            machine: {platform: Linux}
-            labels: [x64]
-            symbol: Decision
-
-        payload:
-          maxRunTime: {$eval: '20 * 60'}
-          # https://github.com/servo/taskcluster-bootstrap-docker-images#decision-task
-          image: "servobrowser/taskcluster-bootstrap:decision-task@sha256:28045b7ec0485ef363f8cb14f194008b47e9ede99f2ea40a1e945e921fce976e"
-          features:
-            taskclusterProxy: true
-          env:
-            GIT_URL: ${event.repository.clone_url}
-            GIT_REF: ${event.ref}
-            GIT_SHA: ${event.after}
-            TASK_FOR: ${tasks_for}
-            TASK_OWNER: *task_owner
-            TASK_SOURCE: *task_source
-          command:
-            - /bin/bash
-            - '--login'
-            - '-e'
-            - '-c'
-            - >-
-              git init repo &&
-              cd repo &&
-              git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
-              git reset --hard "$GIT_SHA" &&
-              python3 etc/taskcluster/decision_task.py

@@ -5,11 +5,12 @@
 //! Layout for elements with a CSS `display` property of `list-item`. These elements consist of a
 //! block and an extra inline fragment for the marker.
 
-use app_units::Au;
 use crate::block::BlockFlow;
 use crate::context::{with_thread_local_font_context, LayoutContext};
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
+use crate::display_list::items::DisplayListSection;
+use crate::display_list::{
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionState,
+};
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, OpaqueFlow};
 use crate::fragment::Overflow;
@@ -18,6 +19,7 @@ use crate::fragment::{
 };
 use crate::generated_content;
 use crate::inline::InlineFlow;
+use app_units::Au;
 use euclid::Point2D;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::computed_values::position::T as Position;
@@ -189,7 +191,25 @@ impl Flow for ListItemFlow {
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        self.build_display_list_for_list_item(state);
+        // Draw the marker, if applicable.
+        for marker in &mut self.marker_fragments {
+            let stacking_relative_border_box = self
+                .block_flow
+                .base
+                .stacking_relative_border_box_for_display_list(marker);
+            marker.build_display_list(
+                state,
+                stacking_relative_border_box,
+                BorderPaintingMode::Separate,
+                DisplayListSection::Content,
+                self.block_flow.base.clip,
+                None,
+            );
+        }
+
+        // Draw the rest of the block.
+        self.block_flow
+            .build_display_list_for_block(state, BorderPaintingMode::Separate)
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {

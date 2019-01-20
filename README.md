@@ -91,10 +91,12 @@ sudo apt install git curl autoconf libx11-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
 ```
 
-If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
+If you using a version prior to **Ubuntu 17.04**, **Linux Mint 19** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
 Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gstreamer`, or run `./mach bootstrap-gstreamer` to set it up.
 
-If you are using **Ubuntu 16.04** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
+If you are using **Ubuntu 16.04** or **Linux Mint 18.&#42;** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
+
+If you get an undefined symbol error on `gst_player_get_config` try removing `gir1.2-gst-plugins-bad-1.0` and all old versions of clang, see [#22016](https://github.com/servo/servo/issues/22016)
 
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround. You may also need to install gcc 4.9, clang 4.0, and cmake 3.2:
 
@@ -176,7 +178,8 @@ export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
 sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
     harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
-    python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang
+    python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang autoconf213 gstreamer-devel \
+    gstreamer-plugins-base-devel gstreamer-plugins-bad-devel
 ```
 #### On Arch Linux
 
@@ -245,6 +248,10 @@ linker = "lld-link.exe"
 > 1. You may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2017` in the Windows menu.)
 > 2. `cd to/the/path/servo`
 > 3. `python mach build -d`
+
+> If you got the error `Cannot run mach in a path on a case-sensitive file system on Windows`:
+> 1. Open Command Prompt or PowerShell as administrator.
+> 2. Disable case-sensitive for servo path, `fsutil.exe file SetCaseSensitiveInfo X:\path\to\servo disable`
 
 #### Cross-compilation for Android
 

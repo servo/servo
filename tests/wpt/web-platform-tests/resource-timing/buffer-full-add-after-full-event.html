@@ -72,6 +72,9 @@ promise_test(async () => {
     await loadRandomResource();
     await waitForEventToFire();
     await clearAndAddAnotherEntryToBuffer();
+    // Since we have no strict guarantees when an entry will be added to the
+    // buffer, waiting till next task to try to avoid flakiness.
+    await waitForNextTask();
     await testThatEntryWasAdded();
 }, "Test that entry was added to the buffer after a buffer full event");
 </script>

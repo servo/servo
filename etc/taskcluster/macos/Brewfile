@@ -9,7 +9,8 @@ brew "gst-libav"
 brew "gst-plugins-bad"
 brew "gst-plugins-good"
 brew "gst-rtsp-server"
-brew "htop"
 brew "llvm"
-brew "openssl@1.1"
 brew "yasm"
+
+# For sccache
+brew "openssl@1.1"

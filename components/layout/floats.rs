@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::{Au, MAX_AU};
 use crate::block::FormattingContextType;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::persistent_list::PersistentList;
+use app_units::{Au, MAX_AU};
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::float::T as StyleFloat;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::LengthPercentageOrAuto;
 
 /// The kind of float: left or right.
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -353,7 +353,7 @@ impl Floats {
                         info.ceiling,
                         info.max_inline_size,
                         MAX_AU,
-                    )
+                    );
                 },
                 FloatKind::Right => {
                     return LogicalRect::new(
@@ -362,7 +362,7 @@ impl Floats {
                         info.ceiling,
                         info.max_inline_size,
                         MAX_AU,
-                    )
+                    );
                 },
             }
         }
@@ -395,7 +395,7 @@ impl Floats {
                             info.max_inline_size,
                             MAX_AU,
                         ),
-                    }
+                    };
                 },
                 Some(rect) => {
                     assert_ne!(
@@ -542,16 +542,20 @@ impl SpeculatedFloatPlacement {
         let mut float_inline_size = base_flow.intrinsic_inline_sizes.preferred_inline_size;
         if float_inline_size == Au(0) {
             if flow.is_block_like() {
-                // Hack: If the size of the float is a percentage, then there's no way we can guess
-                // at its size now. So just pick an arbitrary nonzero value (in this case, 1px) so
-                // that the layout traversal logic will know that objects later in the document
+                // Hack: If the size of the float is not fixed, then there's no
+                // way we can guess at its size now. So just pick an arbitrary
+                // nonzero value (in this case, 1px) so that the layout
+                // traversal logic will know that objects later in the document
                 // might flow around this float.
-                if let LengthOrPercentageOrAuto::Percentage(percentage) =
-                    flow.as_block().fragment.style.content_inline_size()
-                {
-                    if percentage.0 > 0.0 {
-                        float_inline_size = Au::from_px(1)
-                    }
+                let inline_size = flow.as_block().fragment.style.content_inline_size();
+                let fixed = match inline_size {
+                    LengthPercentageOrAuto::Auto => false,
+                    LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                        lp.is_definitely_zero() || lp.maybe_to_used_value(None).is_some()
+                    },
+                };
+                if !fixed {
+                    float_inline_size = Au::from_px(1)
                 }
             }
         }

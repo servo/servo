@@ -84,7 +84,6 @@ impl TreeWalkerMethods for TreeWalker {
         match self.filter {
             Filter::None => None,
             Filter::Dom(ref nf) => Some(nf.clone()),
-            Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter"),
         }
     }
 
@@ -189,8 +188,8 @@ impl TreeWalkerMethods for TreeWalker {
                 // This can happen if the user set the current node to somewhere
                 // outside of the tree rooted at the original root.
                 {
-                    return Ok(None)
-                },
+                    return Ok(None);
+                }
                 Some(n) => node = n,
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
@@ -321,8 +320,8 @@ impl TreeWalker {
                             Some(ref parent)
                                 if self.is_root_node(&parent) || self.is_current_node(&parent) =>
                             {
-                                return Ok(None)
-                            },
+                                return Ok(None);
+                            }
                             // "5. Otherwise, set node to parent."
                             Some(parent) => node = parent,
                         }
@@ -434,7 +433,6 @@ impl TreeWalker {
         match self.filter {
             // Step 4.
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
-            Filter::Native(f) => Ok((f)(node)),
             Filter::Dom(ref callback) => {
                 // Step 5.
                 self.active.set(true);
@@ -479,6 +477,5 @@ impl<'a> Iterator for &'a TreeWalker {
 #[derive(JSTraceable)]
 pub enum Filter {
     None,
-    Native(fn(node: &Node) -> u16),
     Dom(Rc<NodeFilter>),
 }

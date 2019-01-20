@@ -9,6 +9,7 @@
 
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
+import shutil
 import gzip
 import itertools
 import locale
@@ -403,6 +404,55 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
+    def detach_volume(self, mounted_volume):
+        print("Detaching volume {}".format(mounted_volume))
+        try:
+            subprocess.check_call(['hdiutil', 'detach', mounted_volume])
+        except subprocess.CalledProcessError as e:
+            print("Could not detach volume {} : {}".format(mounted_volume, e.returncode))
+            sys.exit(1)
+
+    def detach_volume_if_attached(self, mounted_volume):
+        if os.path.exists(mounted_volume):
+            self.detach_volume(mounted_volume)
+
+    def mount_dmg(self, dmg_path):
+        print("Mounting dmg {}".format(dmg_path))
+        try:
+            subprocess.check_call(['hdiutil', 'attach', dmg_path])
+        except subprocess.CalledProcessError as e:
+            print("Could not mount Servo dmg : {}".format(e.returncode))
+            sys.exit(1)
+
+    def extract_nightly(self, nightlies_folder, destination_folder, destination_file):
+        print("Extracting to {} ...".format(destination_folder))
+        if is_macosx():
+            mounted_volume = path.join(path.sep, "Volumes", "Servo")
+            self.detach_volume_if_attached(mounted_volume)
+            self.mount_dmg(destination_file)
+            # Servo folder is always this one
+            servo_directory = path.join(path.sep, "Volumes", "Servo", "Servo.app", "Contents", "MacOS")
+            print("Copying files from {} to {}".format(servo_directory, destination_folder))
+            shutil.copytree(servo_directory, destination_folder)
+            self.detach_volume(mounted_volume)
+        else:
+            if is_windows():
+                command = 'msiexec /a {} /qn TARGETDIR={}'.format(
+                    os.path.join(nightlies_folder, destination_file), destination_folder)
+                if subprocess.call(command, stdout=PIPE, stderr=PIPE) != 0:
+                    print("Could not extract the nightly executable from the msi package.")
+                    sys.exit(1)
+            else:
+                with tarfile.open(os.path.join(nightlies_folder, destination_file), "r") as tar:
+                    tar.extractall(destination_folder)
+
+    def get_executable(self, destination_folder):
+        if is_windows():
+            return path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
+        if is_linux:
+            return path.join(destination_folder, "servo", "servo")
+        return path.join(destination_folder, "servo")
+
     def get_nightly_binary_path(self, nightly_date):
         if nightly_date is None:
             return
@@ -415,8 +465,7 @@ class CommandBase(object):
         if is_windows():
             os_prefix = "windows-msvc"
         if is_macosx():
-            print("The nightly flag is not supported on mac yet.")
-            sys.exit(1)
+            os_prefix = "mac"
         nightly_date = nightly_date.strip()
         # Fetch the filename to download from the build list
         repository_index = NIGHTLY_REPOSITORY_URL + "?list-type=2&prefix=nightly"
@@ -467,23 +516,12 @@ class CommandBase(object):
 
         # Extract the downloaded nightly version
         if os.path.isdir(destination_folder):
-            print("The nightly file {} has already been extracted.".format(
+            print("The nightly folder {} has already been extracted.".format(
                 destination_folder))
         else:
-            print("Extracting to {} ...".format(destination_folder))
-            if is_windows():
-                command = 'msiexec /a {} /qn TARGETDIR={}'.format(
-                    os.path.join(nightlies_folder, destination_file), destination_folder)
-                if subprocess.call(command, stdout=PIPE, stderr=PIPE) != 0:
-                    print("Could not extract the nightly executable from the msi package.")
-                    sys.exit(1)
-            else:
-                with tarfile.open(os.path.join(nightlies_folder, destination_file), "r") as tar:
-                    tar.extractall(destination_folder)
-        bin_folder = path.join(destination_folder, "servo")
-        if is_windows():
-            bin_folder = path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
-        return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
+            self.extract_nightly(nightlies_folder, destination_folder, destination_file)
+
+        return self.get_executable(destination_folder)
 
     def needs_gstreamer_env(self, target):
         try:
@@ -678,7 +716,7 @@ install them, let us know by filing a bug!")
     def add_manifest_path(self, args, android=False, libsimpleservo=False):
         if "--manifest-path" not in args:
             if libsimpleservo or android:
-                manifest = self.ports_libsimpleservo_manifest()
+                manifest = self.ports_libsimpleservo_manifest(android)
             else:
                 manifest = self.ports_servo_manifest()
             args.append("--manifest-path")
@@ -687,8 +725,12 @@ install them, let us know by filing a bug!")
     def ports_servo_manifest(self):
         return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")
 
-    def ports_libsimpleservo_manifest(self):
-        return path.join(self.context.topdir, "ports", "libsimpleservo", "Cargo.toml")
+    def ports_libsimpleservo_manifest(self, android=False):
+        if android:
+            api = "jniapi"
+        else:
+            api = "capi"
+        return path.join(self.context.topdir, "ports", "libsimpleservo", api, "Cargo.toml")
 
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""

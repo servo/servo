@@ -552,7 +552,7 @@ impl Actor for PageStyleActor {
                             m.insert("bottom".to_owned(), auto.clone());
                         }
                         if autoMargins.left {
-                            m.insert("left".to_owned(), auto.clone());
+                            m.insert("left".to_owned(), auto);
                         }
                         serde_json::value::Value::Object(m)
                     } else {

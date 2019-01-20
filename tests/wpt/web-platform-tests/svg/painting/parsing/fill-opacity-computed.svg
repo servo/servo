@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml"
      width="800px" height="800px">
-  <title>SVG Geometry Properties: getComputedValue().fillOpacity</title>
+  <title>SVG Painting: getComputedValue().fillOpacity</title>
   <metadata>
     <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#FillOpacity"/>
     <h:meta name="assert" content="fill-opacity computed value is clamped to the range [0,1]."/>

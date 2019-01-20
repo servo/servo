@@ -583,14 +583,12 @@ impl TaskOnce for MessageReceivedTask {
                     },
                     BinaryType::Arraybuffer => {
                         rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                        assert!(
-                            ArrayBuffer::create(
-                                cx,
-                                CreateWith::Slice(&data),
-                                array_buffer.handle_mut()
-                            )
-                            .is_ok()
-                        );
+                        assert!(ArrayBuffer::create(
+                            cx,
+                            CreateWith::Slice(&data),
+                            array_buffer.handle_mut()
+                        )
+                        .is_ok());
 
                         (*array_buffer).to_jsval(cx, message.handle_mut());
                     },
@@ -601,6 +599,7 @@ impl TaskOnce for MessageReceivedTask {
                 &global,
                 message.handle(),
                 Some(&ws.origin().ascii_serialization()),
+                None,
             );
         }
     }

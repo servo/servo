@@ -6,7 +6,9 @@
  * https://url.spec.whatwg.org/#interface-urlsearchparams
  */
 
-[Constructor(optional (USVString or URLSearchParams) init/* = ""*/), Exposed=(Window,Worker)]
+[Constructor(
+  optional (sequence<sequence<USVString>> or record<USVString, USVString> or USVString) init/* = ""*/
+), Exposed=(Window,Worker)]
 interface URLSearchParams {
   void append(USVString name, USVString value);
   void delete(USVString name);
@@ -14,6 +16,9 @@ interface URLSearchParams {
   sequence<USVString> getAll(USVString name);
   boolean has(USVString name);
   void set(USVString name, USVString value);
+
+  void sort();
+
   // Be careful with implementing iterable interface.
   // Search params might be mutated by URL::SetSearch while iterating (discussed in PR #10351).
   iterable<USVString, USVString>;

@@ -6,7 +6,7 @@
 [HTMLConstructor]
 interface HTMLIFrameElement : HTMLElement {
   [CEReactions]
-           attribute DOMString src;
+           attribute USVString src;
   // [CEReactions]
   //         attribute DOMString srcdoc;
 

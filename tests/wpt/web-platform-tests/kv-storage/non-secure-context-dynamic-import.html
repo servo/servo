@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: should not work in non-secure contexts when included via import()</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_false(self.isSecureContext, "This test must run in a non-secure context");
+}, "Prerequisite check");
+
+promise_test(t => {
+  return promise_rejects(t, "SecurityError", import("std:kv-storage"));
+});
+</script>

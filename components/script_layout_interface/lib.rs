@@ -7,17 +7,13 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
-#![feature(associated_type_defaults)]
 
 #[macro_use]
 extern crate html5ever;
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate malloc_size_of_derive;
 
 pub mod message;
-pub mod reporter;
 pub mod rpc;
 pub mod wrapper_traits;
 
@@ -128,12 +124,6 @@ pub struct TrustedNodeAddress(pub *const c_void);
 
 #[allow(unsafe_code)]
 unsafe impl Send for TrustedNodeAddress {}
-
-pub fn is_image_data(uri: &str) -> bool {
-    static TYPES: &'static [&'static str] =
-        &["data:image/png", "data:image/gif", "data:image/jpeg"];
-    TYPES.iter().any(|&type_| uri.starts_with(type_))
-}
 
 /// Whether the pending image needs to be fetched or is waiting on an existing fetch.
 pub enum PendingImageState {

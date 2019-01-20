@@ -1,7 +1,4 @@
-<script src='/resources/testharness.js'></script>
-<script src='/resources/testharnessreport.js'></script>
 <script>
-  setup({explicit_done: true})
   function process_test_result(passed, test_name) {
     if ({{GET[sendmessage]}}) {
       if (window.opener) {
@@ -10,10 +7,11 @@
         parent.postMessage(passed, "*");
       }
     } else {
-      test(function(t) {
-        assert_equals(passed, true);
+      let host = window.opener || parent;
+      host.test(function(t) {
+        host.assert_equals(passed, true);
       }, test_name);
-      done();
+      host.done();
     }
   }
 

@@ -4,11 +4,12 @@
 
 use crate::animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
 use crate::cg;
-use quote::Tokens;
+use proc_macro2::TokenStream;
+use quote::TokenStreamExt;
 use syn::{DeriveInput, Path};
 use synstructure;
 
-pub fn derive(mut input: DeriveInput) -> Tokens {
+pub fn derive(mut input: DeriveInput) -> TokenStream {
     let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
     let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();

@@ -152,7 +152,7 @@ pub fn Fetch(
 
     // Step 3
     if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
-        request_init.service_workers_mode = ServiceWorkersMode::Foreign;
+        request_init.service_workers_mode = ServiceWorkersMode::None;
     }
 
     // Step 4

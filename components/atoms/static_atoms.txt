@@ -1,6 +1,7 @@
 DOMContentLoaded
 abort
 activate
+addtrack
 beforeunload
 button
 canplay
@@ -39,6 +40,7 @@ input
 invalid
 keydown
 keypress
+kind
 left
 ltr
 load
@@ -62,15 +64,19 @@ pause
 play
 playing
 popstate
+postershown
 print
 progress
 radio
 range
+ratechange
 readystatechange
 reftest-wait
 rejectionhandled
+removetrack
 reset
 resize
+resourcetimingbufferfull
 right
 rtl
 sans-serif
@@ -86,6 +92,7 @@ seeked
 seeking
 select
 serif
+srclang
 statechange
 storage
 submit
@@ -99,6 +106,7 @@ transitionend
 unhandledrejection
 unload
 url
+volumechange
 waiting
 webglcontextcreationerror
 week

@@ -17,7 +17,6 @@ test(() => {
   assert_idl_attribute(event, "methodDetails");
   const { test } = event.methodDetails;
   assert_equals(test, "pass");
-  assert_equals(event.methodDetails, methodDetails);
 }, "Must have a methodDetails IDL attribute, which is initialized with to the methodName dictionary value");
 
 test(() => {

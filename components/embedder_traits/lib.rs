@@ -14,7 +14,7 @@ pub mod resources;
 use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
-use msg::constellation_msg::{InputMethodType, TopLevelBrowsingContextId};
+use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::CursorKind;
@@ -79,8 +79,8 @@ pub enum EmbedderMsg {
     ResizeTo(DeviceIntSize),
     // Show an alert message.
     Alert(String, IpcSender<()>),
-    /// Wether or not to follow a link
-    AllowNavigation(ServoUrl, IpcSender<bool>),
+    /// Wether or not to allow a pipeline to load a url.
+    AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningBrowser(IpcSender<bool>),
     /// A new browser was created by script
@@ -128,7 +128,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
             EmbedderMsg::Alert(..) => write!(f, "Alert"),
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
-            EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
+            EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),

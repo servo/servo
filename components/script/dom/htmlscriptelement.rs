@@ -12,7 +12,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
@@ -777,7 +777,10 @@ impl VirtualMethods for HTMLScriptElement {
         }
 
         if tree_in_doc && !self.parser_inserted.get() {
-            self.prepare();
+            let script = Trusted::new(self);
+            document_from_node(self).add_delayed_task(task!(ScriptDelayedInitialize: move || {
+                script.root().prepare();
+            }));
         }
     }
 
@@ -805,7 +808,7 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-type
     make_getter!(Type, "type");
@@ -819,9 +822,9 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
     fn Async(&self) -> bool {
-        self.non_blocking.get() || self
-            .upcast::<Element>()
-            .has_attribute(&local_name!("async"))
+        self.non_blocking.get() ||
+            self.upcast::<Element>()
+                .has_attribute(&local_name!("async"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async

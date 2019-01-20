@@ -57,10 +57,15 @@ impl URL {
 
     pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
         let mut url = self.url.borrow_mut();
-        url.as_mut_url()
-            .query_pairs_mut()
-            .clear()
-            .extend_pairs(pairs);
+
+        if pairs.is_empty() {
+            url.as_mut_url().set_query(None);
+        } else {
+            url.as_mut_url()
+                .query_pairs_mut()
+                .clear()
+                .extend_pairs(pairs);
+        }
     }
 }
 
@@ -278,5 +283,10 @@ impl URLMethods for URL {
     // https://url.spec.whatwg.org/#dom-url-username
     fn SetUsername(&self, value: USVString) {
         UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
+    }
+
+    // https://url.spec.whatwg.org/#dom-url-tojson
+    fn ToJSON(&self) -> USVString {
+        self.Href()
     }
 }

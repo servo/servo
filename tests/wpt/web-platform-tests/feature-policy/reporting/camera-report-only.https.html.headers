@@ -1,1 +1,1 @@
-Feature-Policy: camera-report-only 'none'
+Feature-Policy-Report-Only: camera 'none'

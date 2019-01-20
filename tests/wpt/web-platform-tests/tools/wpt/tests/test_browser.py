@@ -1,11 +1,16 @@
 import mock
 import subprocess
+import logging
 
 from tools.wpt import browser
 
+
+logger = logging.getLogger()
+
+
 @mock.patch('subprocess.check_output')
 def test_safari_version(mocked_check_output):
-    safari = browser.Safari()
+    safari = browser.Safari(logger)
 
     # Safari
     mocked_check_output.return_value = 'Included with Safari 12.1 (14607.1.11)'
@@ -17,7 +22,7 @@ def test_safari_version(mocked_check_output):
 
 @mock.patch('subprocess.check_output')
 def test_safari_version_errors(mocked_check_output):
-    safari = browser.Safari()
+    safari = browser.Safari(logger)
 
     # No webdriver_binary
     assert safari.version() is None

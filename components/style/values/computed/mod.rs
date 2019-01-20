@@ -43,7 +43,7 @@ pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderImageSlice, BorderImageWidth};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
-pub use self::box_::{Display, TransitionProperty};
+pub use self::box_::{Display, Overflow, OverflowAnchor, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
@@ -62,9 +62,9 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
-pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage};
-pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
-pub use self::length::{NonNegativeLengthOrPercentage, NonNegativeLengthOrPercentageOrAuto};
+pub use self::length::{Length, LengthOrNumber, LengthPercentage};
+pub use self::length::{LengthPercentageOrAuto, LengthPercentageOrNone, MaxLength, MozLength};
+pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::list::{QuotePair, Quotes};
@@ -543,6 +543,17 @@ pub enum NumberOrPercentage {
     Number(Number),
 }
 
+impl NumberOrPercentage {
+    fn clamp_to_non_negative(self) -> Self {
+        match self {
+            NumberOrPercentage::Percentage(p) => {
+                NumberOrPercentage::Percentage(p.clamp_to_non_negative())
+            },
+            NumberOrPercentage::Number(n) => NumberOrPercentage::Number(n.max(0.)),
+        }
+    }
+}
+
 impl ToComputedValue for specified::NumberOrPercentage {
     type ComputedValue = NumberOrPercentage;
 
@@ -569,6 +580,31 @@ impl ToComputedValue for specified::NumberOrPercentage {
                 specified::NumberOrPercentage::Number(ToComputedValue::from_computed_value(&number))
             },
         }
+    }
+}
+
+/// A non-negative <number-percentage>.
+pub type NonNegativeNumberOrPercentage = NonNegative<NumberOrPercentage>;
+
+impl NonNegativeNumberOrPercentage {
+    /// Returns the `100%` value.
+    #[inline]
+    pub fn hundred_percent() -> Self {
+        NonNegative(NumberOrPercentage::Percentage(Percentage::hundred()))
+    }
+}
+
+impl ToAnimatedValue for NonNegativeNumberOrPercentage {
+    type AnimatedValue = NumberOrPercentage;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        NonNegative(animated.clamp_to_non_negative())
     }
 }
 
@@ -653,20 +689,20 @@ impl ToCss for ClipRect {
 pub type ClipRectOrAuto = Either<ClipRect, Auto>;
 
 /// The computed value of a grid `<track-breadth>`
-pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
+pub type TrackBreadth = GenericTrackBreadth<LengthPercentage>;
 
 /// The computed value of a grid `<track-size>`
-pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
+pub type TrackSize = GenericTrackSize<LengthPercentage>;
 
 /// The computed value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
-pub type TrackList = GenericTrackList<LengthOrPercentage, Integer>;
+pub type TrackList = GenericTrackList<LengthPercentage, Integer>;
 
 /// The computed value of a `<grid-line>`.
 pub type GridLine = GenericGridLine<Integer>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
-pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage, Integer>;
+pub type GridTemplateComponent = GenericGridTemplateComponent<LengthPercentage, Integer>;
 
 impl ClipRectOrAuto {
     /// Return an auto (default for clip-rect and image-region) value

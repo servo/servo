@@ -8,8 +8,10 @@
 'use strict';
 const test_desc = 'An empty name device can be obtained by empty name filter.'
 
-bluetooth_test(() => setUpPreconnectedDevice({name: ''})
-    .then(() => requestDeviceWithTrustedClick({filters: [{name: ''}]}))
-    .then(device => assert_equals(device.name, '')),
+bluetooth_test(
+    () =>
+        setUpPreconnectedDevice({name: ''})
+            .then(() => requestDeviceWithTrustedClick({filters: [{name: ''}]}))
+            .then(device => assert_equals(device.name, '')),
     test_desc);
 </script>

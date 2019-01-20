@@ -14,8 +14,6 @@
 //! style system it's kind of pointless in the Stylo case, and only Servo forces
 //! the separation between the style system implementation and everything else.
 
-use app_units::Au;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::author_styles::AuthorStyles;
 use crate::context::{PostAnimationTasks, QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
@@ -24,7 +22,6 @@ use crate::dom::{LayoutIterator, NodeInfo, OpaqueNode, TDocument, TElement, TNod
 use crate::element_state::{DocumentState, ElementState};
 use crate::font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use crate::gecko::data::GeckoStyleSheet;
-use crate::gecko::global_style_data::GLOBAL_STYLE_DATA;
 use crate::gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::gecko::snapshot_helpers;
 use crate::gecko_bindings::bindings;
@@ -47,8 +44,8 @@ use crate::gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWThe
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
-use crate::gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::nsRestyleHint;
+use crate::gecko_bindings::structs::Document_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use crate::gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
 use crate::gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
@@ -59,6 +56,7 @@ use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
 use crate::gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
+use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
@@ -72,6 +70,8 @@ use crate::shared_lock::Locked;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
 use crate::CaseSensitivityExt;
+use app_units::Au;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::matching::VisitedHandlingMode;
@@ -107,9 +107,9 @@ fn elements_with_id<'a, 'le>(
     }
 }
 
-/// A simple wrapper over `nsIDocument`.
+/// A simple wrapper over `Document`.
 #[derive(Clone, Copy)]
-pub struct GeckoDocument<'ld>(pub &'ld structs::nsIDocument);
+pub struct GeckoDocument<'ld>(pub &'ld structs::Document);
 
 impl<'ld> TDocument for GeckoDocument<'ld> {
     type ConcreteNode = GeckoNode<'ld>;
@@ -121,7 +121,7 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 
     #[inline]
     fn is_html_document(&self) -> bool {
-        self.0.mType == structs::root::nsIDocument_Type::eHTML
+        self.0.mType == structs::Document_Type::eHTML
     }
 
     #[inline]
@@ -581,7 +581,7 @@ impl<'le> GeckoElement<'le> {
     #[inline(always)]
     fn attrs(&self) -> &[structs::AttrArray_InternalAttr] {
         unsafe {
-            let attrs = match self.0._base.mAttrs.mImpl.mPtr.as_ref() {
+            let attrs = match self.0.mAttrs.mImpl.mPtr.as_ref() {
                 Some(attrs) => attrs,
                 None => return &[],
             };
@@ -931,13 +931,14 @@ impl<'le> GeckoElement<'le> {
 
         debug_assert_eq!(to.is_some(), from.is_some());
 
-        combined_duration > 0.0f32 && from != to && from
-            .unwrap()
-            .animate(
-                to.as_ref().unwrap(),
-                Procedure::Interpolate { progress: 0.5 },
-            )
-            .is_ok()
+        combined_duration > 0.0f32 &&
+            from != to &&
+            from.unwrap()
+                .animate(
+                    to.as_ref().unwrap(),
+                    Procedure::Interpolate { progress: 0.5 },
+                )
+                .is_ok()
     }
 }
 
@@ -1241,10 +1242,8 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
-        self.as_node().owner_doc().0 as *const structs::nsIDocument == device
-            .pres_context()
-            .mDocument
-            .raw::<structs::nsIDocument>()
+        self.as_node().owner_doc().0 as *const structs::Document ==
+            device.pres_context().mDocument.mRawPtr
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
@@ -1499,9 +1498,6 @@ impl<'le> TElement for GeckoElement<'le> {
 
     /// Process various tasks that are a result of animation-only restyle.
     fn process_post_animation(&self, tasks: PostAnimationTasks) {
-        use crate::gecko_bindings::structs::nsChangeHint_nsChangeHint_Empty;
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree;
-
         debug_assert!(!tasks.is_empty(), "Should be involved a task");
 
         // If display style was changed from none to other, we need to resolve
@@ -1517,8 +1513,8 @@ impl<'le> TElement for GeckoElement<'le> {
             );
             unsafe {
                 self.note_explicit_hints(
-                    nsRestyleHint_eRestyle_Subtree,
-                    nsChangeHint_nsChangeHint_Empty,
+                    nsRestyleHint::eRestyle_Subtree,
+                    nsChangeHint::nsChangeHint_Empty,
                 );
             }
         }
@@ -1864,9 +1860,8 @@ impl<'le> TElement for GeckoElement<'le> {
                 .intersects(NonTSPseudoClass::Active.state_flag());
             if active {
                 let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0) };
-                let declarations: Option<
-                    &RawOffsetArc<Locked<PropertyDeclarationBlock>>,
-                > = declarations.and_then(|s| s.as_arc_opt());
+                let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+                    declarations.and_then(|s| s.as_arc_opt());
                 if let Some(decl) = declarations {
                     hints.push(ApplicableDeclarationBlock::from_declarations(
                         decl.clone_arc(),
@@ -2081,11 +2076,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             return false;
         }
 
-        debug_assert!(
-            self.as_node()
-                .parent_node()
-                .map_or(false, |p| p.is_document())
-        );
+        debug_assert!(self
+            .as_node()
+            .parent_node()
+            .map_or(false, |p| p.is_document()));
         unsafe { bindings::Gecko_IsRootElement(self.0) }
     }
 

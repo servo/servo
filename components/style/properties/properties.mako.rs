@@ -948,6 +948,10 @@ bitflags! {
         /// This property's getComputedStyle implementation requires layout
         /// to be flushed.
         const GETCS_NEEDS_LAYOUT_FLUSH = 1 << 6;
+        /// This property is a legacy shorthand.
+        ///
+        /// https://drafts.csswg.org/css-cascade/#legacy-shorthand
+        const IS_LEGACY_SHORTHAND = 1 << 7;
 
         /* The following flags are currently not used in Rust code, they
          * only need to be listed in corresponding properties so that
@@ -1461,17 +1465,24 @@ impl ShorthandId {
         None
     }
 
-    /// Returns PropertyFlags for given shorthand property.
-    pub fn flags(&self) -> PropertyFlags {
-        match *self {
+    /// Returns PropertyFlags for the given shorthand property.
+    #[inline]
+    pub fn flags(self) -> PropertyFlags {
+        const FLAGS: [u8; ${len(data.shorthands)}] = [
             % for property in data.shorthands:
-                ShorthandId::${property.camel_case} =>
-                    % for flag in property.flags:
-                        PropertyFlags::${flag} |
-                    % endfor
-                    PropertyFlags::empty(),
+                % for flag in property.flags:
+                    PropertyFlags::${flag}.bits |
+                % endfor
+                0,
             % endfor
-        }
+        ];
+        PropertyFlags::from_bits_truncate(FLAGS[self as usize])
+    }
+
+    /// Returns whether this property is a legacy shorthand.
+    #[inline]
+    pub fn is_legacy_shorthand(self) -> bool {
+        self.flags().contains(PropertyFlags::IS_LEGACY_SHORTHAND)
     }
 
     /// Returns the order in which this property appears relative to other
@@ -3006,7 +3017,7 @@ impl ComputedValuesInner {
 
     /// Get the logical computed inline size.
     #[inline]
-    pub fn content_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
+    pub fn content_inline_size(&self) -> computed::LengthPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() {
             position_style.height
@@ -3017,42 +3028,42 @@ impl ComputedValuesInner {
 
     /// Get the logical computed block size.
     #[inline]
-    pub fn content_block_size(&self) -> computed::LengthOrPercentageOrAuto {
+    pub fn content_block_size(&self) -> computed::LengthPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.width } else { position_style.height }
     }
 
     /// Get the logical computed min inline size.
     #[inline]
-    pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_inline_size(&self) -> computed::LengthPercentage {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
     }
 
     /// Get the logical computed min block size.
     #[inline]
-    pub fn min_block_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_block_size(&self) -> computed::LengthPercentage {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
     }
 
     /// Get the logical computed max inline size.
     #[inline]
-    pub fn max_inline_size(&self) -> computed::LengthOrPercentageOrNone {
+    pub fn max_inline_size(&self) -> computed::LengthPercentageOrNone {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.max_height } else { position_style.max_width }
     }
 
     /// Get the logical computed max block size.
     #[inline]
-    pub fn max_block_size(&self) -> computed::LengthOrPercentageOrNone {
+    pub fn max_block_size(&self) -> computed::LengthPercentageOrNone {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.max_width } else { position_style.max_height }
     }
 
     /// Get the logical computed padding for this writing mode.
     #[inline]
-    pub fn logical_padding(&self) -> LogicalMargin<computed::LengthOrPercentage> {
+    pub fn logical_padding(&self) -> LogicalMargin<computed::LengthPercentage> {
         let padding_style = self.get_padding();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             padding_style.padding_top.0,
@@ -3082,7 +3093,7 @@ impl ComputedValuesInner {
 
     /// Gets the logical computed margin from this style.
     #[inline]
-    pub fn logical_margin(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
+    pub fn logical_margin(&self) -> LogicalMargin<computed::LengthPercentageOrAuto> {
         let margin_style = self.get_margin();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             margin_style.margin_top,
@@ -3094,7 +3105,7 @@ impl ComputedValuesInner {
 
     /// Gets the logical position from this style.
     #[inline]
-    pub fn logical_position(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
+    pub fn logical_position(&self) -> LogicalMargin<computed::LengthPercentageOrAuto> {
         // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
         let position_style = self.get_position();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
@@ -3810,7 +3821,14 @@ impl AliasId {
     }
 }
 
-// NOTE(emilio): Callers are responsible to deal with prefs.
+/// Call the given macro with tokens like this for each longhand and shorthand properties
+/// that is enabled in content:
+///
+/// ```
+/// [CamelCaseName, SetCamelCaseName, PropertyId::Longhand(LonghandId::CamelCaseName)],
+/// ```
+///
+/// NOTE(emilio): Callers are responsible to deal with prefs.
 #[macro_export]
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
@@ -3833,6 +3851,14 @@ macro_rules! css_properties_accessors {
     }
 }
 
+/// Call the given macro with tokens like this for each longhand properties:
+///
+/// ```
+/// { snake_case_ident, true }
+/// ```
+///
+/// … where the boolean indicates whether the property value type
+/// is wrapped in a `Box<_>` in the corresponding `PropertyDeclaration` variant.
 #[macro_export]
 macro_rules! longhand_properties_idents {
     ($macro_name: ident) => {

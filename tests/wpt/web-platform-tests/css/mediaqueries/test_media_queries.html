@@ -33,13 +33,13 @@ function run() {
     function should_apply(q) {
       test(function() {
         assert_true(query_applies(q));
-      }, "subtest_" + ++testNum, {assert: q + " should apply"});
+      }, "subtest_" + ++testNum);
     }
 
     function should_not_apply(q) {
       test(function() {
         assert_false(query_applies(q));
-      }, "subtest_" + ++testNum, {assert: q + " should not apply"});
+      }, "subtest_" + ++testNum);
     }
 
     /*
@@ -68,13 +68,13 @@ function run() {
     function query_should_be_parseable(q) {
       test(function() {
         assert_true(query_is_parseable(q))
-      }, "subtest_" + ++testNum, {assert: "query " + q + " should be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     function query_should_not_be_parseable(q) {
       test(function() {
         assert_false(query_is_parseable(q))
-      }, "subtest_" + ++testNum, {assert: "query " + q + " should not be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     /*
@@ -88,13 +88,13 @@ function run() {
     function expression_should_be_parseable(e) {
       test(function() {
         assert_true(expression_is_parseable(e));
-      }, "subtest_" + ++testNum, {assert: "expression " + e + " should be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     function expression_should_not_be_parseable(e) {
       test(function() {
         assert_false(expression_is_parseable(e));
-      }, "subtest_" + ++testNum, {assert: "expression " + e + " should not be parseable"});
+      }, "subtest_" + ++testNum);
     }
 
     // The no-type syntax doesn't mix with the not and only keywords.
@@ -514,6 +514,30 @@ function run() {
     should_not_apply("(bogus)");
     should_not_apply("not all and (bogus)")
     should_not_apply("only all and (bogus)")
+
+    // Parsing tests for overflow-block from mediaqueries-4
+    expression_should_be_parseable("overflow-block")
+    expression_should_be_parseable("overflow-block: none")
+    expression_should_be_parseable("overflow-block: paged")
+    expression_should_be_parseable("overflow-block: scroll")
+    expression_should_be_parseable("overflow-block: optional-paged")
+    expression_should_not_be_parseable("overflow-block: some-random-invalid-thing")
+
+    // Sanity check for overflow-block
+    var any_overflow_block = query_applies("(overflow-block)");
+    var overflow_block_none = query_applies("(overflow-block: none)");
+    assert_not_equals(any_overflow_block, overflow_block_none, "overflow-block should be equivalent to not (overflow-block: none)");
+
+    // Parsing tests for overflow-inline from mediaqueries-4
+    expression_should_be_parseable("overflow-inline")
+    expression_should_be_parseable("overflow-inline: none")
+    expression_should_be_parseable("overflow-inline: scroll")
+    expression_should_not_be_parseable("overflow-inline: some-random-invalid-thing")
+
+    // Sanity check for overflow-inline
+    var any_overflow_inline = query_applies("(overflow-inline)");
+    var overflow_inline_none = query_applies("(overflow-inline: none)");
+    assert_not_equals(any_overflow_inline, overflow_inline_none, "overflow-inline should be equivalent to not (overflow-inline: none)");
 
     done();
 }

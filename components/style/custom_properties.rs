@@ -8,17 +8,17 @@
 
 use crate::hash::map::Entry;
 use crate::properties::{CSSWideKeyword, CustomDeclarationValue};
-use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet};
+use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
 use crate::Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
-use precomputed_hash::PrecomputedHash;
+use indexmap::IndexMap;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 use std::cmp;
 use std::fmt::{self, Write};
-use std::hash::Hash;
+use std::hash::BuildHasherDefault;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// The environment from which to get `env` function values.
@@ -131,7 +131,8 @@ impl ToCss for SpecifiedValue {
 ///
 /// The variable values are guaranteed to not have references to other
 /// properties.
-pub type CustomPropertiesMap = OrderedMap<Name, Arc<VariableValue>>;
+pub type CustomPropertiesMap =
+    IndexMap<Name, Arc<VariableValue>, BuildHasherDefault<PrecomputedHasher>>;
 
 /// Both specified and computed values are VariableValues, the difference is
 /// whether var() functions are expanded.
@@ -139,130 +140,6 @@ pub type SpecifiedValue = VariableValue;
 /// Both specified and computed values are VariableValues, the difference is
 /// whether var() functions are expanded.
 pub type ComputedValue = VariableValue;
-
-/// A map that preserves order for the keys, and that is easily indexable.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OrderedMap<K, V>
-where
-    K: PrecomputedHash + Hash + Eq + Clone,
-{
-    /// Key index.
-    index: Vec<K>,
-    /// Key-value map.
-    values: PrecomputedHashMap<K, V>,
-}
-
-impl<K, V> OrderedMap<K, V>
-where
-    K: Eq + PrecomputedHash + Hash + Clone,
-{
-    /// Creates a new ordered map.
-    pub fn new() -> Self {
-        OrderedMap {
-            index: Vec::new(),
-            values: PrecomputedHashMap::default(),
-        }
-    }
-
-    /// Insert a new key-value pair.
-    ///
-    /// TODO(emilio): Remove unused_mut when Gecko and Servo agree in whether
-    /// it's necessary.
-    #[allow(unused_mut)]
-    pub fn insert(&mut self, key: K, value: V) {
-        let OrderedMap {
-            ref mut index,
-            ref mut values,
-        } = *self;
-        match values.entry(key) {
-            Entry::Vacant(mut entry) => {
-                index.push(entry.key().clone());
-                entry.insert(value);
-            },
-            Entry::Occupied(mut entry) => {
-                entry.insert(value);
-            },
-        }
-    }
-
-    /// Get a value given its key.
-    pub fn get(&self, key: &K) -> Option<&V> {
-        let value = self.values.get(key);
-        debug_assert_eq!(value.is_some(), self.index.contains(key));
-        value
-    }
-
-    /// Get whether there's a value on the map for `key`.
-    pub fn contains_key(&self, key: &K) -> bool {
-        self.values.contains_key(key)
-    }
-
-    /// Get the key located at the given index.
-    pub fn get_key_at(&self, index: u32) -> Option<&K> {
-        self.index.get(index as usize)
-    }
-
-    /// Get an ordered map iterator.
-    pub fn iter<'a>(&'a self) -> OrderedMapIterator<'a, K, V> {
-        OrderedMapIterator {
-            inner: self,
-            pos: 0,
-        }
-    }
-
-    /// Get the count of items in the map.
-    pub fn len(&self) -> usize {
-        debug_assert_eq!(self.values.len(), self.index.len());
-        self.values.len()
-    }
-
-    /// Returns whether this map is empty.
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Remove an item given its key.
-    fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
-    where
-        K: Borrow<Q>,
-        Q: PrecomputedHash + Hash + Eq,
-    {
-        let index = self.index.iter().position(|k| k.borrow() == key)?;
-        self.index.remove(index);
-        self.values.remove(key)
-    }
-}
-
-/// An iterator for OrderedMap.
-///
-/// The iteration order is determined by the order that the values are
-/// added to the key-value map.
-pub struct OrderedMapIterator<'a, K, V>
-where
-    K: 'a + Eq + PrecomputedHash + Hash + Clone,
-    V: 'a,
-{
-    /// The OrderedMap itself.
-    inner: &'a OrderedMap<K, V>,
-    /// The position of the iterator.
-    pos: usize,
-}
-
-impl<'a, K, V> Iterator for OrderedMapIterator<'a, K, V>
-where
-    K: Eq + PrecomputedHash + Hash + Clone,
-{
-    type Item = (&'a K, &'a V);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let key = self.inner.index.get(self.pos)?;
-
-        self.pos += 1;
-        let value = &self.inner.values[key];
-
-        Some((key, value))
-    }
-}
 
 /// A struct holding information about the external references to that a custom
 /// property value may have.
@@ -283,18 +160,32 @@ impl VariableValue {
         }
     }
 
-    fn push(
+    fn push<'i>(
         &mut self,
+        input: &Parser<'i, '_>,
         css: &str,
         css_first_token_type: TokenSerializationType,
         css_last_token_type: TokenSerializationType,
-    ) {
+    ) -> Result<(), ParseError<'i>> {
+        /// Prevent values from getting terribly big since you can use custom
+        /// properties exponentially.
+        ///
+        /// This number (1MB) is somewhat arbitrary, but silly enough that no
+        /// sane page would hit it. We could limit by number of total
+        /// substitutions, but that was very easy to work around in practice
+        /// (just choose a larger initial value and boom).
+        const MAX_VALUE_LENGTH_IN_BYTES: usize = 1024 * 1024;
+
+        if self.css.len() + css.len() > MAX_VALUE_LENGTH_IN_BYTES {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
         // This happens e.g. between two subsequent var() functions:
         // `var(--a)var(--b)`.
         //
         // In that case, css_*_token_type is nonsensical.
         if css.is_empty() {
-            return;
+            return Ok(());
         }
 
         self.first_token_type.set_if_nothing(css_first_token_type);
@@ -307,21 +198,32 @@ impl VariableValue {
             self.css.push_str("/**/")
         }
         self.css.push_str(css);
-        self.last_token_type = css_last_token_type
+        self.last_token_type = css_last_token_type;
+        Ok(())
     }
 
-    fn push_from(
+    fn push_from<'i>(
         &mut self,
+        input: &Parser<'i, '_>,
         position: (SourcePosition, TokenSerializationType),
-        input: &Parser,
         last_token_type: TokenSerializationType,
-    ) {
-        self.push(input.slice_from(position.0), position.1, last_token_type)
+    ) -> Result<(), ParseError<'i>> {
+        self.push(
+            input,
+            input.slice_from(position.0),
+            position.1,
+            last_token_type,
+        )
     }
 
-    fn push_variable(&mut self, variable: &ComputedValue) {
+    fn push_variable<'i>(
+        &mut self,
+        input: &Parser<'i, '_>,
+        variable: &ComputedValue,
+    ) -> Result<(), ParseError<'i>> {
         debug_assert!(variable.references.is_empty());
         self.push(
+            input,
             &variable.css,
             variable.first_token_type,
             variable.last_token_type,
@@ -409,7 +311,7 @@ fn parse_declaration_value_block<'i, 't>(
             return Ok((
                 TokenSerializationType::nothing(),
                 TokenSerializationType::nothing(),
-            ))
+            ));
         },
     };
     let first_token_type = token.serialization_type();
@@ -623,7 +525,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
         if self.custom_properties.is_none() {
             self.custom_properties = Some(match self.inherited {
                 Some(inherited) => (**inherited).clone(),
-                None => CustomPropertiesMap::new(),
+                None => CustomPropertiesMap::default(),
             });
         }
 
@@ -727,6 +629,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     // title=Tarjan%27s_strongly_connected_components_algorithm&oldid=801728495
 
     /// Struct recording necessary information for each variable.
+    #[derive(Debug)]
     struct VarInfo {
         /// The name of the variable. It will be taken to save addref
         /// when the corresponding variable is popped from the stack.
@@ -741,6 +644,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     }
     /// Context struct for traversing the variable graph, so that we can
     /// avoid referencing all the fields multiple times.
+    #[derive(Debug)]
     struct Context<'a> {
         /// Number of variables visited. This is used as the order index
         /// when we visit a new unresolved variable.
@@ -906,7 +810,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
 
     // We have to clone the names so that we can mutably borrow the map
     // in the context we create for traversal.
-    let names = custom_properties_map.index.clone();
+    let names: Vec<_> = custom_properties_map.keys().cloned().collect();
     for name in names.into_iter() {
         let mut context = Context {
             count: 0,
@@ -941,7 +845,7 @@ fn substitute_references_in_value<'i>(
         environment,
     )?;
 
-    computed_value.push_from(position, &input, last_token_type);
+    computed_value.push_from(&input, position, last_token_type)?;
     Ok(computed_value)
 }
 
@@ -955,8 +859,8 @@ fn substitute_references_in_value<'i>(
 ///
 /// Return `Err(())` if `input` is invalid at computed-value time.
 /// or `Ok(last_token_type that was pushed to partial_computed_value)` otherwise.
-fn substitute_block<'i, 't>(
-    input: &mut Parser<'i, 't>,
+fn substitute_block<'i>(
+    input: &mut Parser<'i, '_>,
     position: &mut (SourcePosition, TokenSerializationType),
     partial_computed_value: &mut ComputedValue,
     custom_properties: &CustomPropertiesMap,
@@ -991,10 +895,11 @@ fn substitute_block<'i, 't>(
                 let is_env = name.eq_ignore_ascii_case("env");
 
                 partial_computed_value.push(
+                    input,
                     input.slice(position.0..before_this_token),
                     position.1,
                     last_token_type,
-                );
+                )?;
                 input.parse_nested_block(|input| {
                     // parse_var_function() / parse_env_function() ensure neither .unwrap() will fail.
                     let name = {
@@ -1014,7 +919,7 @@ fn substitute_block<'i, 't>(
 
                     if let Some(v) = value {
                         last_token_type = v.last_token_type;
-                        partial_computed_value.push_variable(v);
+                        partial_computed_value.push_variable(input, v)?;
                         // Skip over the fallback, as `parse_nested_block` would return `Err`
                         // if we don't consume all of `input`.
                         // FIXME: Add a specialized method to cssparser to do this with less work.
@@ -1036,7 +941,7 @@ fn substitute_block<'i, 't>(
                             custom_properties,
                             env,
                         )?;
-                        partial_computed_value.push_from(position, input, last_token_type);
+                        partial_computed_value.push_from(input, position, last_token_type)?;
                     }
                     Ok(())
                 })?;
@@ -1084,7 +989,7 @@ pub fn substitute<'i>(
     let mut input = ParserInput::new(input);
     let mut input = Parser::new(&mut input);
     let mut position = (input.position(), first_token_type);
-    let empty_map = CustomPropertiesMap::new();
+    let empty_map = CustomPropertiesMap::default();
     let custom_properties = match computed_values_map {
         Some(m) => &**m,
         None => &empty_map,
@@ -1096,6 +1001,6 @@ pub fn substitute<'i>(
         &custom_properties,
         env,
     )?;
-    substituted.push_from(position, &input, last_token_type);
+    substituted.push_from(&input, position, last_token_type)?;
     Ok(substituted.css)
 }

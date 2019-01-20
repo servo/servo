@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cookie::Cookie;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
@@ -101,8 +100,10 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
+use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
+use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -410,6 +411,13 @@ pub struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
     /// Number of redirects for the document load
     redirect_count: Cell<u16>,
+    /// Number of outstanding requests to prevent JS or layout from running.
+    script_and_layout_blockers: Cell<u32>,
+    /// List of tasks to execute as soon as last script/layout blocker is removed.
+    #[ignore_malloc_size_of = "Measuring trait objects is hard"]
+    delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
+    /// https://html.spec.whatwg.org/multipage/#completely-loaded
+    completely_loaded: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -501,6 +509,10 @@ impl Document {
         self.https_state.set(https_state);
     }
 
+    pub fn is_completely_loaded(&self) -> bool {
+        self.completely_loaded.get()
+    }
+
     pub fn is_fully_active(&self) -> bool {
         self.activity.get() == DocumentActivity::FullyActive
     }
@@ -530,30 +542,30 @@ impl Document {
                         .dom_manipulation_task_source()
                         .queue(
                             task!(fire_pageshow_event: move || {
-                            let document = document.root();
-                            let window = document.window();
-                            // Step 4.6.1
-                            if document.page_showing.get() {
-                                return;
-                            }
-                            // Step 4.6.2
-                            document.page_showing.set(true);
-                            // Step 4.6.4
-                            let event = PageTransitionEvent::new(
-                                window,
-                                atom!("pageshow"),
-                                false, // bubbles
-                                false, // cancelable
-                                true, // persisted
-                            );
-                            let event = event.upcast::<Event>();
-                            event.set_trusted(true);
-                            // FIXME(nox): Why are errors silenced here?
-                            let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                                document.upcast(),
-                                &event,
-                            );
-                        }),
+                                let document = document.root();
+                                let window = document.window();
+                                // Step 4.6.1
+                                if document.page_showing.get() {
+                                    return;
+                                }
+                                // Step 4.6.2
+                                document.page_showing.set(true);
+                                // Step 4.6.4
+                                let event = PageTransitionEvent::new(
+                                    window,
+                                    atom!("pageshow"),
+                                    false, // bubbles
+                                    false, // cancelable
+                                    true, // persisted
+                                );
+                                let event = event.upcast::<Event>();
+                                event.set_trusted(true);
+                                // FIXME(nox): Why are errors silenced here?
+                                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                                    document.upcast(),
+                                    &event,
+                                );
+                            }),
                             self.window.upcast(),
                         )
                         .unwrap();
@@ -603,11 +615,12 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        self.stylesheets.borrow().has_changed() || self.GetDocumentElement().map_or(false, |root| {
-            root.upcast::<Node>().has_dirty_descendants() ||
-                !self.pending_restyles.borrow().is_empty() ||
-                self.needs_paint()
-        })
+        self.stylesheets.borrow().has_changed() ||
+            self.GetDocumentElement().map_or(false, |root| {
+                root.upcast::<Node>().has_dirty_descendants() ||
+                    !self.pending_restyles.borrow().is_empty() ||
+                    self.needs_paint()
+            })
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
@@ -1729,7 +1742,11 @@ impl Document {
                 self.process_deferred_scripts();
             },
             LoadType::PageSource(_) => {
-                if self.has_browsing_context {
+                if self.has_browsing_context && self.is_fully_active() {
+                    // Note: if the document is not fully active, the layout thread will have exited already.
+                    // The underlying problem might actually be that layout exits while it should be kept alive.
+                    // See https://github.com/servo/servo/issues/22507
+
                     // Disarm the reflow timer and trigger the initial reflow.
                     self.reflow_timeout.set(None);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1824,7 +1841,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
-    pub fn unload(&self, recursive_flag: bool, recycle: bool) {
+    pub fn unload(&self, recursive_flag: bool) {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -1872,7 +1889,7 @@ impl Document {
             for iframe in self.iter_iframes() {
                 // TODO: handle the case of cross origin iframes.
                 let document = document_from_node(&*iframe);
-                document.unload(true, recycle);
+                document.unload(true);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -1893,7 +1910,21 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
-        if self.loader.borrow().is_blocked() {
+        // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+        let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
+            Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
+            None => false,
+        };
+
+        // Note: if the document is not fully active, the layout thread will have exited already,
+        // and this method will panic.
+        // The underlying problem might actually be that layout exits while it should be kept alive.
+        // See https://github.com/servo/servo/issues/22507
+        let not_ready_for_load = self.loader.borrow().is_blocked() ||
+            !self.is_fully_active() ||
+            is_in_delaying_load_events_mode;
+
+        if not_ready_for_load {
             // Step 6.
             return;
         }
@@ -1910,48 +1941,46 @@ impl Document {
             .dom_manipulation_task_source()
             .queue(
                 task!(fire_load_event: move || {
-                let document = document.root();
-                let window = document.window();
-                if !window.is_alive() {
-                    return;
-                }
+                    let document = document.root();
+                    let window = document.window();
+                    if !window.is_alive() {
+                        return;
+                    }
 
-                // Step 7.1.
-                document.set_ready_state(DocumentReadyState::Complete);
+                    // Step 7.1.
+                    document.set_ready_state(DocumentReadyState::Complete);
 
-                // Step 7.2.
-                if document.browsing_context().is_none() {
-                    return;
-                }
-                let event = Event::new(
-                    window.upcast(),
-                    atom!("load"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                );
-                event.set_trusted(true);
+                    // Step 7.2.
+                    if document.browsing_context().is_none() {
+                        return;
+                    }
+                    let event = Event::new(
+                        window.upcast(),
+                        atom!("load"),
+                        EventBubbles::DoesNotBubble,
+                        EventCancelable::NotCancelable,
+                    );
+                    event.set_trusted(true);
 
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-                update_with_current_time_ms(&document.load_event_start);
+                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
+                    update_with_current_time_ms(&document.load_event_start);
 
-                debug!("About to dispatch load for {:?}", document.url());
-                // FIXME(nox): Why are errors silenced here?
-                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                    document.upcast(),
-                    &event,
-                );
+                    debug!("About to dispatch load for {:?}", document.url());
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                        document.upcast(),
+                        &event,
+                    );
 
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
-                update_with_current_time_ms(&document.load_event_end);
+                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+                    update_with_current_time_ms(&document.load_event_end);
 
-                window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
+                    window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
 
-                document.notify_constellation_load();
-
-                if let Some(fragment) = document.url().fragment() {
-                    document.check_and_scroll_fragment(fragment);
-                }
-            }),
+                    if let Some(fragment) = document.url().fragment() {
+                        document.check_and_scroll_fragment(fragment);
+                    }
+                }),
                 self.window.upcast(),
             )
             .unwrap();
@@ -1964,30 +1993,30 @@ impl Document {
                 .dom_manipulation_task_source()
                 .queue(
                     task!(fire_pageshow_event: move || {
-                    let document = document.root();
-                    let window = document.window();
-                    if document.page_showing.get() || !window.is_alive() {
-                        return;
-                    }
+                        let document = document.root();
+                        let window = document.window();
+                        if document.page_showing.get() || !window.is_alive() {
+                            return;
+                        }
 
-                    document.page_showing.set(true);
+                        document.page_showing.set(true);
 
-                    let event = PageTransitionEvent::new(
-                        window,
-                        atom!("pageshow"),
-                        false, // bubbles
-                        false, // cancelable
-                        false, // persisted
-                    );
-                    let event = event.upcast::<Event>();
-                    event.set_trusted(true);
+                        let event = PageTransitionEvent::new(
+                            window,
+                            atom!("pageshow"),
+                            false, // bubbles
+                            false, // cancelable
+                            false, // persisted
+                        );
+                        let event = event.upcast::<Event>();
+                        event.set_trusted(true);
 
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                        document.upcast(),
-                        &event,
-                    );
-                }),
+                        // FIXME(nox): Why are errors silenced here?
+                        let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                            document.upcast(),
+                            &event,
+                        );
+                    }),
                     self.window.upcast(),
                 )
                 .unwrap();
@@ -2002,8 +2031,26 @@ impl Document {
         // Step 11.
         // TODO: ready for post-load tasks.
 
-        // Step 12.
-        // TODO: completely loaded.
+        // Step 12: completely loaded.
+        // https://html.spec.whatwg.org/multipage/#completely-loaded
+        // TODO: fully implement "completely loaded".
+        let document = Trusted::new(self);
+        if document.root().browsing_context().is_some() {
+            self.window
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(
+                    task!(completely_loaded: move || {
+                        let document = document.root();
+                        document.completely_loaded.set(true);
+                        // Note: this will, among others, result in the "iframe-load-event-steps" being run.
+                        // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+                        document.notify_constellation_load();
+                    }),
+                    self.window.upcast(),
+                )
+                .unwrap();
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
@@ -2586,26 +2633,32 @@ impl Document {
         let interactive_time =
             InteractiveMetrics::new(window.time_profiler_chan().clone(), url.clone());
 
+        let content_type = content_type.unwrap_or_else(|| {
+            match is_html_document {
+                // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+                IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
+                // https://dom.spec.whatwg.org/#concept-document-content-type
+                IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
+            }
+        });
+
+        let encoding = content_type
+            .get_param(mime::CHARSET)
+            .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
+            .unwrap_or(UTF_8);
+
         Document {
             node: Node::new_document_node(),
             window: Dom::from_ref(window),
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
-            content_type: match content_type {
-                Some(mime_data) => mime_data,
-                None => match is_html_document {
-                    // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
-                    // https://dom.spec.whatwg.org/#concept-document-content-type
-                    IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
-                },
-            },
+            content_type,
             last_modified: last_modified,
             url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
-            encoding: Cell::new(UTF_8),
+            encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
             id_map: DomRefCell::new(HashMap::new()),
@@ -2689,7 +2742,50 @@ impl Document {
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
+            completely_loaded: Cell::new(false),
+            script_and_layout_blockers: Cell::new(0),
+            delayed_tasks: Default::default(),
         }
+    }
+
+    /// Prevent any JS or layout from running until the corresponding call to
+    /// `remove_script_and_layout_blocker`. Used to isolate periods in which
+    /// the DOM is in an unstable state and should not be exposed to arbitrary
+    /// web content. Any attempts to invoke content JS or query layout during
+    /// that time will trigger a panic. `add_delayed_task` will cause the
+    /// provided task to be executed as soon as the last blocker is removed.
+    pub fn add_script_and_layout_blocker(&self) {
+        self.script_and_layout_blockers
+            .set(self.script_and_layout_blockers.get() + 1);
+    }
+
+    /// Terminate the period in which JS or layout is disallowed from running.
+    /// If no further blockers remain, any delayed tasks in the queue will
+    /// be executed in queue order until the queue is empty.
+    pub fn remove_script_and_layout_blocker(&self) {
+        assert!(self.script_and_layout_blockers.get() > 0);
+        self.script_and_layout_blockers
+            .set(self.script_and_layout_blockers.get() - 1);
+        while self.script_and_layout_blockers.get() == 0 && !self.delayed_tasks.borrow().is_empty()
+        {
+            let task = self.delayed_tasks.borrow_mut().remove(0);
+            task.run_box();
+        }
+    }
+
+    /// Enqueue a task to run as soon as any JS and layout blockers are removed.
+    pub fn add_delayed_task<T: 'static + TaskBox>(&self, task: T) {
+        self.delayed_tasks.borrow_mut().push(Box::new(task));
+    }
+
+    /// Assert that the DOM is in a state that will allow running content JS or
+    /// performing a layout operation.
+    pub fn ensure_safe_to_run_script_or_layout(&self) {
+        assert_eq!(
+            self.script_and_layout_blockers.get(),
+            0,
+            "Attempt to use script or layout while DOM not in a stable state"
+        );
     }
 
     // https://dom.spec.whatwg.org/#dom-document-document
@@ -2800,17 +2896,11 @@ impl Document {
     ///
     /// FIXME(emilio): This really needs to be somehow more in sync with layout.
     /// Feels like a hack.
-    ///
-    /// Also, shouldn't return an option, I'm quite sure.
-    pub fn device(&self) -> Option<Device> {
-        let window_size = self.window().window_size()?;
+    pub fn device(&self) -> Device {
+        let window_size = self.window().window_size();
         let viewport_size = window_size.initial_viewport;
         let device_pixel_ratio = window_size.device_pixel_ratio;
-        Some(Device::new(
-            MediaType::screen(),
-            viewport_size,
-            device_pixel_ratio,
-        ))
+        Device::new(MediaType::screen(), viewport_size, device_pixel_ratio)
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
@@ -3049,7 +3139,6 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
-    #[allow(unrooted_must_root)]
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
         let promise = Promise::new(self.global().r());
@@ -3108,7 +3197,6 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#exit-fullscreen
-    #[allow(unrooted_must_root)]
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
@@ -4177,7 +4265,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = window.window_size()?.initial_viewport;
+        let viewport = window.window_size().initial_viewport;
 
         if self.browsing_context().is_none() {
             return None;
@@ -4212,10 +4300,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = match window.window_size() {
-            Some(size) => size.initial_viewport,
-            None => return vec![],
-        };
+        let viewport = window.window_size().initial_viewport;
 
         if self.browsing_context().is_none() {
             return vec![];
@@ -4340,7 +4425,7 @@ impl DocumentMethods for Document {
             .clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
-        ServoParser::parse_html_script_input(self, self.url(), "text/html");
+        ServoParser::parse_html_script_input(self, self.url());
 
         // Step 15
         self.ready_state.set(DocumentReadyState::Loading);
@@ -4474,7 +4559,6 @@ impl DocumentMethods for Document {
         self.fullscreen_element.get()
     }
 
-    #[allow(unrooted_must_root)]
     // https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen
     fn ExitFullscreen(&self) -> Rc<Promise> {
         self.exit_fullscreen()

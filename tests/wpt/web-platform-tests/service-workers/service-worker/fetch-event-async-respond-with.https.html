@@ -9,6 +9,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, registration.installing, 'activated');
         })
       .then(function() {
@@ -27,7 +31,6 @@ promise_test(function(t) {
         })
       .then(function(message) {
           assert_equals(message, 'PASS');
-          return service_worker_unregister_and_done(t, scope);
         })
   }, 'Calling respondWith asynchronously throws an exception');
 </script>

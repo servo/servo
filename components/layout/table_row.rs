@@ -4,11 +4,11 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
 use crate::flow::{
     EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow,
 };
@@ -18,6 +18,7 @@ use crate::layout_debug;
 use crate::model::MaybeAuto;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
+use app_units::Au;
 use euclid::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};
@@ -29,7 +30,7 @@ use style::computed_values::border_spacing::T as BorderSpacing;
 use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{Color, LengthOrPercentageOrAuto};
+use style::values::computed::{Color, LengthPercentageOrAuto};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}
@@ -430,25 +431,24 @@ impl Flow for TableRowFlow {
                 let child_base = kid.mut_base();
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
                     minimum_length: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Percentage(_) => {
-                            child_base.intrinsic_inline_sizes.minimum_inline_size
+                        LengthPercentageOrAuto::Auto => None,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                            lp.maybe_to_used_value(None)
                         },
-                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
-                    },
+                    }
+                    .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
                     percentage: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Length(_) => 0.0,
-                        LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
+                        LengthPercentageOrAuto::Auto => 0.0,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                            lp.as_percentage().map_or(0.0, |p| p.0)
+                        },
                     },
                     preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                     constrained: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Length(_) => true,
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Percentage(_) => false,
+                        LengthPercentageOrAuto::Auto => false,
+                        LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                            lp.maybe_to_used_value(None).is_some()
+                        },
                     },
                 };
                 min_inline_size = min_inline_size + child_column_inline_size.minimum_length;

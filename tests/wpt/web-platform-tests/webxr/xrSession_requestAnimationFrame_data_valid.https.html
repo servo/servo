@@ -34,26 +34,26 @@
 
     let testFunction = function(session, testDeviceController) {
       testSession = session;
-      return session.requestFrameOfReference('eye-level')
-        .then((frameOfRef) => new Promise((resolve) => {
+      return session.requestReferenceSpace({ type: 'stationary', subtype: 'eye-level' })
+        .then((referenceSpace) => new Promise((resolve) => {
 
           function onFrame(time, xrFrame) {
             assert_true(xrFrame instanceof XRFrame);
 
-            assert_not_equals(xrFrame.views, null);
-            assert_equals(xrFrame.views.length, 2);
+            let viewerPose = xrFrame.getViewerPose(referenceSpace);
 
-            let devicePose = xrFrame.getDevicePose(frameOfRef);
-
-            assert_not_equals(devicePose, null);
+            assert_not_equals(viewerPose, null);
             for(let i = 0; i < identityMatrix.length; i++) {
-              assert_equals(devicePose.poseModelMatrix[i], identityMatrix[i]);
+              assert_equals(viewerPose.poseModelMatrix[i], identityMatrix[i]);
             }
 
-            assert_not_equals(devicePose.getViewMatrix(xrFrame.views[0]), null);
-            assert_equals(devicePose.getViewMatrix(xrFrame.views[0]).length, 16);
-            assert_not_equals(devicePose.getViewMatrix(xrFrame.views[1]), null);
-            assert_equals(devicePose.getViewMatrix(xrFrame.views[1]).length, 16);
+            assert_not_equals(viewerPose.views, null);
+            assert_equals(viewerPose.views.length, 2);
+
+            assert_not_equals(viewerPose.views[0].viewMatrix, null);
+            assert_equals(viewerPose.views[0].viewMatrix.length, 16);
+            assert_not_equals(viewerPose.views[1].viewMatrix, null);
+            assert_equals(viewerPose.views[1].viewMatrix.length, 16);
 
             // Test does not complete until the returned promise resolves.
             resolve();

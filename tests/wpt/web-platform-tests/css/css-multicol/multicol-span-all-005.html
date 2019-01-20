@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test: Test column-span:all with various display types</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+  <link rel="match" href="multicol-span-all-005-ref.html">
+  <meta name="assert" content="This test checks a column-span:all element should act like column-span: none if it's under different block formatting context.">
+
+  <style>
+  .column {
+    column-count: 3;
+    column-rule: 6px solid;
+    width: 400px;
+    outline: 1px solid black;
+  }
+  .spanner {
+    column-span: all;
+    outline: 1px solid blue;
+  }
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  </style>
+
+  <body>
+    <article class="column">
+      <div>block1</div>
+      <table class="spanner">
+        <tr>
+          <td>table as a spanner</td>
+        </tr>
+      </table>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <div class="spanner" style="display: grid;">grid as a spanner</div>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <div class="spanner" style="display: flex;">flex as a spanner</div>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <fieldset class="spanner">fieldset as a spanner</fieldset>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <details open class="spanner">details as a spanner</details>
+      <div>block2</div>
+    </article>
+    <br>
+
+  </body>
+</html>

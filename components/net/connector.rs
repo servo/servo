@@ -3,9 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::hosts::replace_host;
-use crate::http_loader::Decoder;
-use flate2::read::GzDecoder;
-use hyper::body::Payload;
 use hyper::client::connect::{Connect, Destination};
 use hyper::client::HttpConnector as HyperHttpConnector;
 use hyper::rt::Future;
@@ -13,9 +10,7 @@ use hyper::{Body, Client};
 use hyper_openssl::HttpsConnector;
 use openssl::ssl::{SslConnector, SslConnectorBuilder, SslMethod, SslOptions};
 use openssl::x509;
-use std::io::{Cursor, Read};
 use tokio::prelude::future::Executor;
-use tokio::prelude::{Async, Stream};
 
 pub const BUF_SIZE: usize = 32768;
 
@@ -47,105 +42,6 @@ impl Connect for HttpConnector {
 }
 
 pub type Connector = HttpsConnector<HttpConnector>;
-pub struct WrappedBody {
-    pub body: Body,
-    pub decoder: Decoder,
-}
-
-impl WrappedBody {
-    pub fn new(body: Body) -> Self {
-        Self::new_with_decoder(body, Decoder::Plain)
-    }
-
-    pub fn new_with_decoder(body: Body, decoder: Decoder) -> Self {
-        WrappedBody { body, decoder }
-    }
-}
-
-impl Payload for WrappedBody {
-    type Data = <Body as Payload>::Data;
-    type Error = <Body as Payload>::Error;
-    fn poll_data(&mut self) -> Result<Async<Option<Self::Data>>, Self::Error> {
-        self.body.poll_data()
-    }
-}
-
-impl Stream for WrappedBody {
-    type Item = <Body as Stream>::Item;
-    type Error = <Body as Stream>::Error;
-    fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
-        self.body.poll().map(|res| {
-            res.map(|maybe_chunk| {
-                if let Some(chunk) = maybe_chunk {
-                    match self.decoder {
-                        Decoder::Plain => Some(chunk),
-                        Decoder::Gzip(Some(ref mut decoder)) => {
-                            let mut buf = vec![0; BUF_SIZE];
-                            decoder.get_mut().get_mut().extend(chunk.as_ref());
-                            let len = decoder.read(&mut buf).ok()?;
-                            buf.truncate(len);
-                            Some(buf.into())
-                        },
-                        Decoder::Gzip(None) => {
-                            let mut buf = vec![0; BUF_SIZE];
-                            let mut decoder = GzDecoder::new(Cursor::new(chunk.into_bytes()));
-                            let len = decoder.read(&mut buf).ok()?;
-                            buf.truncate(len);
-                            self.decoder = Decoder::Gzip(Some(decoder));
-                            Some(buf.into())
-                        },
-                        Decoder::Deflate(ref mut decoder) => {
-                            let mut buf = vec![0; BUF_SIZE];
-                            decoder.get_mut().get_mut().extend(chunk.as_ref());
-                            let len = decoder.read(&mut buf).ok()?;
-                            buf.truncate(len);
-                            Some(buf.into())
-                        },
-                        Decoder::Brotli(ref mut decoder) => {
-                            let mut buf = vec![0; BUF_SIZE];
-                            decoder.get_mut().get_mut().extend(chunk.as_ref());
-                            let len = decoder.read(&mut buf).ok()?;
-                            buf.truncate(len);
-                            Some(buf.into())
-                        },
-                    }
-                } else {
-                    // Hyper is done downloading but we still have uncompressed data
-                    match self.decoder {
-                        Decoder::Gzip(Some(ref mut decoder)) => {
-                            let mut buf = vec![0; BUF_SIZE];
-                            let len = decoder.read(&mut buf).ok()?;
-                            if len == 0 {
-                                return None;
-                            }
-                            buf.truncate(len);
-                            Some(buf.into())
-                        },
-                        Decoder::Deflate(ref mut decoder) => {
-                            let mut buf = vec![0; BUF_SIZE];
-                            let len = decoder.read(&mut buf).ok()?;
-                            if len == 0 {
-                                return None;
-                            }
-                            buf.truncate(len);
-                            Some(buf.into())
-                        },
-                        Decoder::Brotli(ref mut decoder) => {
-                            let mut buf = vec![0; BUF_SIZE];
-                            let len = decoder.read(&mut buf).ok()?;
-                            if len == 0 {
-                                return None;
-                            }
-                            buf.truncate(len);
-                            Some(buf.into())
-                        },
-                        _ => None,
-                    }
-                }
-            })
-        })
-    }
-}
 
 pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
     // certs include multiple certificates. We could add all of them at once,
@@ -189,7 +85,7 @@ pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
 pub fn create_http_client<E>(
     ssl_connector_builder: SslConnectorBuilder,
     executor: E,
-) -> Client<Connector, WrappedBody>
+) -> Client<Connector, Body>
 where
     E: Executor<Box<dyn Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
 {
@@ -201,18 +97,11 @@ where
         .build(connector)
 }
 
-// The basic logic here is to prefer ciphers with ECDSA certificates, Forward
-// Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
+// Prefer Forward Secrecy over plain RSA, AES-GCM over AES-CBC, ECDSA over RSA.
 // A complete discussion of the issues involved in TLS configuration can be found here:
 // https://wiki.mozilla.org/Security/Server_Side_TLS
 const DEFAULT_CIPHERS: &'static str = concat!(
-    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
     "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:",
-    "DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:",
-    "ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:",
-    "ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:",
-    "ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:",
-    "DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:",
-    "ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:",
-    "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
+    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
+    "ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:AES256-SHA:AES128-SHA"
 );

@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use app_units::Au;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -55,6 +54,7 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
+use app_units::Au;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
@@ -332,6 +332,10 @@ impl Node {
 
     pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
         UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
+    }
+
+    pub fn to_opaque(&self) -> OpaqueNode {
+        OpaqueNode(self.reflector().get_jsobject().get() as usize)
     }
 
     pub fn as_custom_element(&self) -> Option<DomRoot<Element>> {
@@ -639,7 +643,7 @@ impl Node {
     /// Returns the rendered bounding content box if the element is rendered,
     /// and none otherwise.
     pub fn bounding_content_box(&self) -> Option<Rect<Au>> {
-        window_from_node(self).content_box_query(self.to_trusted_node_address())
+        window_from_node(self).content_box_query(self)
     }
 
     pub fn bounding_content_box_or_zero(&self) -> Rect<Au> {
@@ -647,11 +651,11 @@ impl Node {
     }
 
     pub fn content_boxes(&self) -> Vec<Rect<Au>> {
-        window_from_node(self).content_boxes_query(self.to_trusted_node_address())
+        window_from_node(self).content_boxes_query(self)
     }
 
     pub fn client_rect(&self) -> Rect<i32> {
-        window_from_node(self).client_rect_query(self.to_trusted_node_address())
+        window_from_node(self).client_rect_query(self)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
@@ -668,7 +672,7 @@ impl Node {
             .downcast::<HTMLBodyElement>()
             .map_or(false, |e| e.is_the_html_body_element());
 
-        let scroll_area = window.scroll_area_query(self.to_trusted_node_address());
+        let scroll_area = window.scroll_area_query(self);
 
         match (
             document != window.Document(),
@@ -1504,8 +1508,11 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &Node, document: &Document) {
+        document.add_script_and_layout_blocker();
+
         // Step 1.
         let old_doc = node.owner_doc();
+        old_doc.add_script_and_layout_blocker();
         // Step 2.
         node.remove_self();
         // Step 3.
@@ -1530,6 +1537,9 @@ impl Node {
                 vtable_for(&descendant).adopting_steps(&old_doc);
             }
         }
+
+        old_doc.remove_script_and_layout_blocker();
+        document.remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
@@ -1685,6 +1695,7 @@ impl Node {
         child: Option<&Node>,
         suppress_observers: SuppressObserver,
     ) {
+        node.owner_doc().add_script_and_layout_blocker();
         debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
 
@@ -1774,10 +1785,12 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
+        node.owner_doc().remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(node: Option<&Node>, parent: &Node) {
+        parent.owner_doc().add_script_and_layout_blocker();
         // Step 1.
         if let Some(node) = node {
             Node::adopt(node, &*parent.owner_doc());
@@ -1819,6 +1832,7 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
+        parent.owner_doc().remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
@@ -1839,10 +1853,10 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
-        assert!(
-            node.GetParentNode()
-                .map_or(false, |node_parent| &*node_parent == parent)
-        );
+        parent.owner_doc().add_script_and_layout_blocker();
+        assert!(node
+            .GetParentNode()
+            .map_or(false, |node_parent| &*node_parent == parent));
         let cached_index = {
             if parent.ranges.is_empty() {
                 None
@@ -1884,6 +1898,7 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
+        parent.owner_doc().remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-clone
@@ -2230,10 +2245,10 @@ impl NodeMethods for Node {
         // Step 4-5.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is::<Document>() => {
-                return Err(Error::HierarchyRequest)
+                return Err(Error::HierarchyRequest);
             },
             NodeTypeId::DocumentType if !self.is::<Document>() => {
-                return Err(Error::HierarchyRequest)
+                return Err(Error::HierarchyRequest);
             },
             NodeTypeId::Document(_) => return Err(Error::HierarchyRequest),
             _ => (),
@@ -2450,14 +2465,14 @@ impl NodeMethods for Node {
                 NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)
                     if !is_equal_processinginstruction(this, node) =>
                 {
-                    return false
-                },
+                    return false;
+                }
                 NodeTypeId::CharacterData(CharacterDataTypeId::Text) |
                 NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
                     if !is_equal_characterdata(this, node) =>
                 {
-                    return false
-                },
+                    return false;
+                }
                 // Step 4.
                 NodeTypeId::Element(..) if !is_equal_element_attrs(this, node) => return false,
                 _ => (),

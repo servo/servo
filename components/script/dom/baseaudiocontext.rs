@@ -22,6 +22,7 @@ use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErro
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
+use crate::dom::bindings::codegen::Bindings::ChannelSplitterNodeBinding::ChannelSplitterOptions;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
@@ -33,6 +34,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::biquadfilternode::BiquadFilterNode;
 use crate::dom::channelmergernode::ChannelMergerNode;
+use crate::dom::channelsplitternode::ChannelSplitterNode;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gainnode::GainNode;
@@ -62,7 +64,6 @@ pub enum BaseAudioContextOptions {
     OfflineAudioContext(OfflineAudioContextOptions),
 }
 
-#[must_root]
 #[derive(JSTraceable)]
 struct DecodeResolver {
     pub promise: Rc<Promise>,
@@ -147,7 +148,6 @@ impl BaseAudioContext {
         self.state.get() == AudioContextState::Suspended
     }
 
-    #[allow(unrooted_must_root)]
     fn push_pending_resume_promise(&self, promise: &Rc<Promise>) {
         self.pending_resume_promises
             .borrow_mut()
@@ -164,7 +164,6 @@ impl BaseAudioContext {
     /// Each call to this method must be followed by a call to
     /// `fulfill_in_flight_resume_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
-    #[allow(unrooted_must_root)]
     fn take_pending_resume_promises(&self, result: ErrorResult) {
         let pending_resume_promises =
             mem::replace(&mut *self.pending_resume_promises.borrow_mut(), vec![]);
@@ -244,8 +243,8 @@ impl BaseAudioContext {
                 )));
                 let _ = task_source.queue(
                     task!(resume_error: move || {
-                    this.root().fulfill_in_flight_resume_promises(|| {})
-                }),
+                        this.root().fulfill_in_flight_resume_promises(|| {})
+                    }),
                     window.upcast(),
                 );
             },
@@ -271,7 +270,6 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
-    #[allow(unrooted_must_root)]
     fn Resume(&self) -> Rc<Promise> {
         // Step 1.
         let promise = Promise::new(&self.global());
@@ -364,6 +362,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
         ChannelMergerNode::new(&self.global().as_window(), &self, &opts)
     }
 
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter
+    fn CreateChannelSplitter(&self, count: u32) -> Fallible<DomRoot<ChannelSplitterNode>> {
+        let mut opts = ChannelSplitterOptions::empty();
+        opts.numberOfOutputs = count;
+        ChannelSplitterNode::new(&self.global().as_window(), &self, &opts)
+    }
+
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
     fn CreateBuffer(
         &self,
@@ -397,7 +402,6 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-decodeaudiodata
-    #[allow(unrooted_must_root)]
     fn DecodeAudioData(
         &self,
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,

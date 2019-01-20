@@ -318,6 +318,10 @@ fn test_textinput_adjust_vertical() {
     textinput.adjust_vertical(2, Selection::NotSelected);
     assert_eq!(textinput.edit_point().line, 2);
     assert_eq!(textinput.edit_point().index, 1);
+
+    textinput.adjust_vertical(-1, Selection::Selected);
+    assert_eq!(textinput.edit_point().line, 1);
+    assert_eq!(textinput.edit_point().index, 1);
 }
 
 #[test]

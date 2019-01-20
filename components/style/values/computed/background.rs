@@ -4,20 +4,20 @@
 
 //! Computed types for CSS values related to backgrounds.
 
-use crate::values::computed::length::NonNegativeLengthOrPercentageOrAuto;
+use crate::values::computed::length::NonNegativeLengthPercentageOrAuto;
 use crate::values::generics::background::BackgroundSize as GenericBackgroundSize;
 
 pub use crate::values::specified::background::BackgroundRepeat;
 
 /// A computed value for the `background-size` property.
-pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthOrPercentageOrAuto>;
+pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthPercentageOrAuto>;
 
 impl BackgroundSize {
     /// Returns `auto auto`.
     pub fn auto() -> Self {
         GenericBackgroundSize::Explicit {
-            width: NonNegativeLengthOrPercentageOrAuto::auto(),
-            height: NonNegativeLengthOrPercentageOrAuto::auto(),
+            width: NonNegativeLengthPercentageOrAuto::auto(),
+            height: NonNegativeLengthPercentageOrAuto::auto(),
         }
     }
 }

@@ -32,6 +32,8 @@ def wpt_path(*args):
 
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 WPT_MANIFEST_PATH = wpt_path("include.ini")
+# regex source https://stackoverflow.com/questions/6883049/
+URL_REGEX = re.compile('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 # Import wptmanifest only when we do have wpt in tree, i.e. we're not
 # inside a Firefox checkout.
@@ -95,6 +97,7 @@ WEBIDL_STANDARDS = [
     "//svgwg.org/svg2-draft",
     "//wicg.github.io",
     "//webaudio.github.io",
+    "//immersive-web.github.io/",
     # Not a URL
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."
@@ -260,8 +263,13 @@ def check_length(file_name, idx, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
+def contains_url(line):
+    return bool(URL_REGEX.search(line))
+
+
 def is_unsplittable(file_name, line):
     return (
+        contains_url(line) or
         file_name.endswith(".rs") and
         line.startswith("use ") and
         "{" not in line
@@ -489,7 +497,7 @@ def check_manifest_dirs(config_file, print_text=True):
     p = parser.parse(lines)
     paths = rec_parse(wpt_path("web-platform-tests"), p)
     for idx, path in enumerate(paths):
-        if path.endswith("_mozilla") or path.endswith("_webgl"):
+        if '_mozilla' in path or '_webgl' in path:
             continue
         if not os.path.isdir(path):
             yield(config_file, idx + 1, "Path in manifest was not found: {}".format(path))

@@ -277,7 +277,6 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
     action_sender
 }
 
-#[allow(unrooted_must_root)]
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
 pub fn get_gatt_children<T, F>(
     attribute: &T,
@@ -426,7 +425,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 let manufacturer_id = match u16::from_str(key.as_ref()) {
                     Ok(id) => id,
                     Err(err) => {
-                        return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err)))
+                        return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err)));
                     },
                 };
 
@@ -530,7 +529,6 @@ impl From<BluetoothError> for Error {
 }
 
 impl BluetoothMethods for Bluetooth {
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
         let p = Promise::new(&self.global());
@@ -549,7 +547,6 @@ impl BluetoothMethods for Bluetooth {
         return p;
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
     fn GetAvailability(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());

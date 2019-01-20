@@ -4,7 +4,7 @@
 
 use crate::cg;
 use crate::to_css::CssVariantAttrs;
-use quote::Tokens;
+use proc_macro2::TokenStream;
 use syn::{DeriveInput, Path};
 use synstructure;
 
@@ -15,7 +15,7 @@ pub struct ParseVariantAttrs {
     pub condition: Option<Path>,
 }
 
-pub fn derive(input: DeriveInput) -> Tokens {
+pub fn derive(input: DeriveInput) -> TokenStream {
     let name = &input.ident;
     let s = synstructure::Structure::new(&input);
 
@@ -36,14 +36,14 @@ pub fn derive(input: DeriveInput) -> Tokens {
         let identifier = cg::to_css_identifier(
             &css_variant_attrs
                 .keyword
-                .unwrap_or(variant.ast().ident.as_ref().into()),
+                .unwrap_or_else(|| variant.ast().ident.to_string()),
         );
         let ident = &variant.ast().ident;
 
         saw_condition |= parse_attrs.condition.is_some();
         let condition = match parse_attrs.condition {
             Some(ref p) => quote! { if #p(context) },
-            None => quote!{},
+            None => quote! {},
         };
 
         let mut body = quote! {
@@ -56,7 +56,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
             None => return body,
         };
 
-        for alias in aliases.split(",") {
+        for alias in aliases.split(',') {
             body = quote! {
                 #body
                 #alias #condition => Ok(#name::#ident),

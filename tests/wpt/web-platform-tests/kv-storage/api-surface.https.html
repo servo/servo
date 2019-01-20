@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: API surface</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { storage, StorageArea } from "std:kv-storage";
+import * as classAssert from "./helpers/class-assert.js";
+import { testWithArea } from "./helpers/kvs-tests.js";
+
+test(() => {
+  classAssert.isConstructor(StorageArea);
+  classAssert.functionName(StorageArea, "StorageArea");
+  classAssert.functionLength(StorageArea, 1);
+  classAssert.hasClassPrototype(StorageArea);
+  classAssert.hasPrototypeConstructorLink(StorageArea);
+  classAssert.propertyKeys(StorageArea, ["length", "prototype", "name"], []);
+}, "StorageArea constructor");
+
+test(() => {
+  classAssert.propertyKeys(StorageArea.prototype, [
+    "constructor", "set", "get", "delete", "clear",
+    "keys", "values", "entries", "backingStore"
+  ], [
+    Symbol.asyncIterator
+  ]);
+
+  classAssert.methods(StorageArea.prototype, {
+    set: 2,
+    get: 1,
+    delete: 1,
+    clear: 0,
+    keys: 0,
+    values: 0,
+    entries: 0
+  });
+
+  classAssert.accessors(StorageArea.prototype, {
+    backingStore: ["get"]
+  });
+}, "StorageArea.prototype methods and properties");
+
+test(() => {
+  assert_equals(StorageArea.prototype[Symbol.asyncIterator], StorageArea.prototype.entries);
+}, "[Symbol.asyncIterator]() and entries() must be the same function");
+
+testWithArea(async area => {
+  classAssert.propertyKeys(area, [], []);
+}, "Instances don't have any properties");
+
+test(() => {
+  assert_equals(storage instanceof StorageArea, true, "instanceof");
+  assert_equals(storage.constructor, StorageArea, ".constructor property");
+  assert_equals(Object.getPrototypeOf(storage), StorageArea.prototype, "[[Prototype]]");
+}, "Built-in storage export is a StorageArea");
+
+testWithArea(async area => {
+  assert_false(Symbol.toStringTag in StorageArea.prototype,
+    "Symbol.toStringTag must not be in the prototype");
+  assert_equals(Object.prototype.toString.call(StorageArea.prototype), "[object Object]",
+    "The prototype must not be customized");
+
+  assert_equals(Object.prototype.toString.call(area), "[object Object]",
+    "A constructed StorageArea must not be customized");
+    assert_equals(Object.prototype.toString.call(storage), "[object Object]",
+    "The default storage area must not be customized");
+}, "No custom toStringTag");
+</script>

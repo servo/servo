@@ -5,17 +5,6 @@ env:
   SCCACHE_IDLE_TIMEOUT: "1200"
   GST_DEBUG: '3'
 
-mac-rel-wpt1:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach run -r -o output.png
-  - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
-  - bash ./etc/ci/lockfile_changed.sh
-
 mac-rel-wpt2:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -38,15 +27,6 @@ mac-rel-wpt4:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - ./mach test-wpt --release --pref dom.servoparser.async_html_tokenizer.enabled --processes=8 --log-raw test-async-parsing.log --log-errorsummary async-parsing-errorsummary.log --always-succeed domparsing html/syntax html/dom/documents html/dom/dynamic-markup-insertion
   - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --tracker-api default --reporter-api default
-
-mac-dev-unit:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
-  - python ./etc/memory_reports_over_time.py --test
-  - ./mach package --dev
-  - bash ./etc/ci/lockfile_changed.sh
 
 mac-rel-css1:
   - ./mach clean-nightlies --keep 3 --force
@@ -104,28 +84,6 @@ mac-rel-intermittent:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
-linux-dev:
-  env:
-    CCACHE: sccache
-    RUSTC_WRAPPER: sccache
-    CC: gcc-5
-    CXX: g++-5
-  commands:
-    - ./mach clean-nightlies --keep 3 --force
-    - ./mach clean-cargo-cache --keep 3 --force
-    - ./etc/ci/clean_build_artifacts.sh
-    - ./mach test-tidy --no-progress --all
-    - ./mach test-tidy --no-progress --self-test
-    - ./mach build --dev -p servo
-    - ./mach test-unit
-    - python ./etc/memory_reports_over_time.py --test
-    - ./mach package --dev
-    - ./mach build --libsimpleservo
-    - ./mach build --dev --no-default-features --features default-except-unstable -p servo
-    - bash ./etc/ci/lockfile_changed.sh
-    - bash ./etc/ci/check_no_panic.sh
-    - ./etc/ci/clean_build_artifacts.sh
-
 linux-rel-wpt:
   env:
     CCACHE: sccache
@@ -141,6 +99,8 @@ linux-rel-wpt:
     - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
     - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+    - ./mach test-wpt --release --product=servodriver --headless tests/wpt/mozilla/tests/mozilla/DOMParser.html tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html tests/wpt/mozilla/tests/css/img_simple.html tests/wpt/mozilla/tests/mozilla/secure.https.html
+    - ./mach test-wpt --release --processes 1 --product=servodriver --headless --log-raw test-bluetooth.log --log-errorsummary bluetooth-errorsummary.log bluetooth
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-css:
@@ -168,27 +128,10 @@ linux-nightly:
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
   - ./mach build --release -p servo
-  - ./mach package --release
-  - ./mach upload-nightly linux
   - ./mach test-perf
   - python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
   - aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
   - rm -rf ./python/_virtualenv
-  - ./etc/ci/clean_build_artifacts.sh
-
-android:
- env:
-   HOST_CC: gcc-5
-   HOST_CXX: g++-5
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - ./mach bootstrap-android --accept-all-licences --build
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --dev
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --dev
-  - bash ./etc/ci/lockfile_changed.sh
-  - python ./etc/ci/check_dynamic_symbols.py
   - ./etc/ci/clean_build_artifacts.sh
 
 android-mac:
@@ -198,19 +141,6 @@ android-mac:
   - ./mach bootstrap-android --accept-all-licences --build
   - ./mach build --android --dev
   - ./mach package --android --dev
-  - bash ./etc/ci/lockfile_changed.sh
-  - ./etc/ci/clean_build_artifacts.sh
-
-android-x86:
- env:
-   HOST_CC: gcc-5
-   HOST_CXX: g++-5
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - ./mach bootstrap-android --accept-all-licences --build --emulator-x86
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target i686-linux-android --release
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
@@ -318,16 +248,6 @@ arm64:
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
-windows-msvc-dev:
-  env:
-    CARGO_HOME: C:\buildbot\.cargo
-  commands:
-  - mach.bat clean-cargo-cache --keep 3 --force
-  - mach.bat clean-nightlies --keep 3 --force
-  - mach.bat build --dev
-  - mach.bat test-unit
-  - mach.bat package --dev
-
 windows-msvc-nightly:
   env:
     CARGO_HOME: C:\buildbot\.cargo
@@ -337,3 +257,11 @@ windows-msvc-nightly:
   - mach.bat build --release
   - mach.bat package --release
   - mach.bat upload-nightly windows-msvc
+
+# Moved to Taskcluster
+linux-dev: []
+mac-dev-unit: []
+windows-msvc-dev: []
+android: []
+android-x86: []
+mac-rel-wpt1: []

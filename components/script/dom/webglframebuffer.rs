@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{webgl_channel, WebGLError, WebGLResult};
-use canvas_traits::webgl::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -15,6 +13,8 @@ use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::WebGLTexture;
+use canvas_traits::webgl::{webgl_channel, WebGLError, WebGLResult};
+use canvas_traits::webgl::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -531,11 +531,7 @@ impl WebGLFramebuffer {
                     Some(WebGLFramebufferAttachment::Texture {
                         texture: ref att_texture,
                         ..
-                    })
-                        if texture.id() == att_texture.id() =>
-                    {
-                        true
-                    },
+                    }) if texture.id() == att_texture.id() => true,
                     _ => false,
                 }
             };

@@ -11,21 +11,19 @@
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 
-use app_units::Au;
 use crate::block::{
     AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput,
 };
 use crate::block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
 use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{
-    BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags,
-};
+use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FlowFlags, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::model::MaybeAuto;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use app_units::Au;
 use euclid::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{max, min};
@@ -35,7 +33,7 @@ use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::LengthPercentageOrAuto;
 use style::values::CSSFloat;
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -203,7 +201,7 @@ impl TableWrapperFlow {
         // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
         // just use the shrink-to-fit inline size.
         let available_inline_size = match self.block_flow.fragment.style().content_inline_size() {
-            LengthOrPercentageOrAuto::Auto => {
+            LengthPercentageOrAuto::Auto => {
                 self.block_flow
                     .get_shrink_to_fit_inline_size(available_inline_size) -
                     table_border_padding
@@ -795,18 +793,18 @@ impl ExcessInlineSizeDistributionInfo {
                 if !column_intrinsic_inline_size.constrained &&
                     column_intrinsic_inline_size.percentage == 0.0
                 {
-                    column_intrinsic_inline_size.preferred.to_f32_px() / self
-                        .preferred_inline_size_of_nonconstrained_columns_with_no_percentage
-                        .to_f32_px()
+                    column_intrinsic_inline_size.preferred.to_f32_px() /
+                        self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage
+                            .to_f32_px()
                 } else {
                     0.0
                 }
             } else if self.count_of_nonconstrained_columns_with_no_percentage > 0 {
                 1.0 / (self.count_of_nonconstrained_columns_with_no_percentage as CSSFloat)
             } else if self.preferred_inline_size_of_constrained_columns_with_no_percentage > Au(0) {
-                column_intrinsic_inline_size.preferred.to_f32_px() / self
-                    .preferred_inline_size_of_constrained_columns_with_no_percentage
-                    .to_f32_px()
+                column_intrinsic_inline_size.preferred.to_f32_px() /
+                    self.preferred_inline_size_of_constrained_columns_with_no_percentage
+                        .to_f32_px()
             } else if self.total_percentage > 0.0 {
                 column_intrinsic_inline_size.percentage / self.total_percentage
             } else {

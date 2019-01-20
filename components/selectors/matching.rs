@@ -261,10 +261,11 @@ where
     let iter = selector.iter_from(selector.len() - from_offset);
     debug_assert!(
         iter.clone().next().is_some() ||
-            (from_offset != selector.len() && matches!(
-                selector.combinator_at_parse_order(from_offset),
-                Combinator::SlotAssignment | Combinator::PseudoElement
-            )),
+            (from_offset != selector.len() &&
+                matches!(
+                    selector.combinator_at_parse_order(from_offset),
+                    Combinator::SlotAssignment | Combinator::PseudoElement
+                )),
         "Got the math wrong: {:?} | {:?} | {} {}",
         selector,
         selector.iter_raw_match_order().as_slice(),
@@ -410,6 +411,7 @@ fn next_element_for_combinator<E>(
     element: &E,
     combinator: Combinator,
     selector: &SelectorIter<E::Impl>,
+    context: &MatchingContext<E::Impl>,
 ) -> Option<E>
 where
     E: Element,
@@ -450,11 +452,18 @@ where
         },
         Combinator::SlotAssignment => {
             debug_assert!(
-                element
-                    .assigned_slot()
-                    .map_or(true, |s| s.is_html_slot_element())
+                context.current_host.is_some(),
+                "Should not be trying to match slotted rules in a non-shadow-tree context"
             );
-            element.assigned_slot()
+            debug_assert!(element
+                .assigned_slot()
+                .map_or(true, |s| s.is_html_slot_element()));
+            let scope = context.current_host?;
+            let mut current_slot = element.assigned_slot()?;
+            while current_slot.containing_shadow_host().unwrap().opaque() != scope {
+                current_slot = current_slot.assigned_slot()?;
+            }
+            Some(current_slot)
         },
         Combinator::PseudoElement => element.pseudo_element_originating_element(),
     }
@@ -511,7 +520,8 @@ where
         Combinator::PseudoElement => SelectorMatchingResult::NotMatchedGlobally,
     };
 
-    let mut next_element = next_element_for_combinator(element, combinator, &selector_iter);
+    let mut next_element =
+        next_element_for_combinator(element, combinator, &selector_iter, &context);
 
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
@@ -575,7 +585,7 @@ where
             visited_handling = VisitedHandlingMode::AllLinksUnvisited;
         }
 
-        next_element = next_element_for_combinator(&element, combinator, &selector_iter);
+        next_element = next_element_for_combinator(&element, combinator, &selector_iter, &context);
     }
 }
 
@@ -663,9 +673,9 @@ where
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
             // <slots> are never flattened tree slottables.
-            !element.is_html_slot_element() && element.assigned_slot().is_some() && context
-                .shared
-                .nest(|context| {
+            !element.is_html_slot_element() &&
+                element.assigned_slot().is_some() &&
+                context.shared.nest(|context| {
                     matches_complex_selector(selector.iter(), element, context, flags_setter)
                 })
         },

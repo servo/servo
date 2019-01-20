@@ -76,7 +76,7 @@ impl PromiseRejectionEvent {
             None => {
                 return Err(Error::Type(
                     "required member promise is undefined.".to_string(),
-                ))
+                ));
             },
         };
         let bubbles = EventBubbles::from(init.parent.bubbles);
@@ -95,7 +95,6 @@ impl PromiseRejectionEvent {
 }
 
 impl PromiseRejectionEventMethods for PromiseRejectionEvent {
-    #[allow(unrooted_must_root)]
     // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-promise
     fn Promise(&self) -> Rc<Promise> {
         self.promise.clone()

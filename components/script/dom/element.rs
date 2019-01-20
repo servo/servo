@@ -24,7 +24,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
@@ -128,6 +128,7 @@ use style::selector_parser::{
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::thread_state;
+use style::values::generics::NonNegative;
 use style::values::{computed, specified};
 use style::values::{CSSFloat, Either};
 use style::CaseSensitivityExt;
@@ -717,7 +718,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::Length(value)),
+                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(value),
+                )),
             ));
         }
 
@@ -742,8 +745,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match width {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Percentage(
-                    computed::Percentage(percentage),
+                let width_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
                 );
                 hints.push(from_declaration(
                     shared_lock,
@@ -751,10 +754,11 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value =
-                    specified::LengthOrPercentageOrAuto::Length(specified::NoCalcLength::Absolute(
+                let width_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
                         specified::AbsoluteLength::Px(length.to_f32_px()),
-                    ));
+                    )),
+                );
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value),
@@ -775,8 +779,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match height {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::LengthOrPercentageOrAuto::Percentage(
-                    computed::Percentage(percentage),
+                let height_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
                 );
                 hints.push(from_declaration(
                     shared_lock,
@@ -784,10 +788,11 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let height_value =
-                    specified::LengthOrPercentageOrAuto::Length(specified::NoCalcLength::Absolute(
+                let height_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
                         specified::AbsoluteLength::Px(length.to_f32_px()),
-                    ));
+                    )),
+                );
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value),
@@ -814,7 +819,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::Length(value)),
+                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(value),
+                )),
             ));
         }
 
@@ -836,7 +843,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             ));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Height(specified::LengthOrPercentageOrAuto::Length(value)),
+                PropertyDeclaration::Height(specified::LengthPercentageOrAuto::LengthPercentage(
+                    specified::LengthPercentage::Length(value),
+                )),
             ));
         }
 
@@ -847,8 +856,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         };
 
         if let Some(border) = border {
-            let width_value =
-                specified::BorderSideWidth::Length(specified::Length::from_px(border as f32));
+            let width_value = specified::BorderSideWidth::Length(NonNegative(
+                specified::Length::from_px(border as f32),
+            ));
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BorderTopWidth(width_value.clone()),
@@ -1097,7 +1107,6 @@ impl Element {
             local_name!("input") |
             local_name!("keygen") |
             local_name!("link") |
-            local_name!("menuitem") |
             local_name!("meta") |
             local_name!("param") |
             local_name!("source") |
@@ -1484,20 +1493,24 @@ impl Element {
         }
     }
 
-    pub fn get_url_attribute(&self, local_name: &LocalName) -> DOMString {
+    pub fn get_url_attribute(&self, local_name: &LocalName) -> USVString {
         assert!(*local_name == local_name.to_ascii_lowercase());
         let attr = match self.get_attribute(&ns!(), local_name) {
             Some(attr) => attr,
-            None => return DOMString::new(),
+            None => return USVString::default(),
         };
         let value = &**attr.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        let base = document_from_node(self).base_url();
-        let value = base
+        document_from_node(self)
+            .base_url()
             .join(value)
-            .map(|parsed| parsed.into_string())
-            .unwrap_or_else(|_| value.to_owned());
-        DOMString::from(value)
+            .map(|parsed| USVString(parsed.into_string()))
+            .unwrap_or_else(|_| USVString(value.to_owned()))
+    }
+
+    pub fn set_url_attribute(&self, local_name: &LocalName, value: USVString) {
+        assert!(*local_name == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::String(value.to_string()));
     }
 
     pub fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
@@ -1533,11 +1546,9 @@ impl Element {
 
     pub fn get_int_attribute(&self, local_name: &LocalName, default: i32) -> i32 {
         // TODO: Is this assert necessary?
-        assert!(
-            local_name
-                .chars()
-                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
-        );
+        assert!(local_name
+            .chars()
+            .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch));
         let attribute = self.get_attribute(&ns!(), local_name);
 
         match attribute {
@@ -1558,11 +1569,9 @@ impl Element {
     }
 
     pub fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
-        assert!(
-            local_name
-                .chars()
-                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
-        );
+        assert!(local_name
+            .chars()
+            .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch));
         let attribute = self.get_attribute(&ns!(), local_name);
         match attribute {
             Some(ref attribute) => match *attribute.value() {
@@ -2571,7 +2580,6 @@ impl ElementMethods for Element {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
-    #[allow(unrooted_must_root)]
     fn RequestFullscreen(&self) -> Rc<Promise> {
         let doc = document_from_node(self);
         doc.enter_fullscreen(self)
@@ -2841,10 +2849,11 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     fn is_empty(&self) -> bool {
         self.node.children().all(|node| {
-            !node.is::<Element>() && match node.downcast::<Text>() {
-                None => true,
-                Some(text) => text.upcast::<CharacterData>().data().is_empty(),
-            }
+            !node.is::<Element>() &&
+                match node.downcast::<Text>() {
+                    None => true,
+                    Some(text) => text.upcast::<CharacterData>().data().is_empty(),
+                }
         })
     }
 

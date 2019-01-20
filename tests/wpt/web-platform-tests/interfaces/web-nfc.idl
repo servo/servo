@@ -28,14 +28,16 @@ partial interface Navigator {
   [SecureContext, SameObject] readonly attribute NFC nfc;
 };
 
-typedef (DOMString or ArrayBuffer or NFCMessage) NFCPushMessage;
+typedef (DOMString or ArrayBuffer or NFCMessage) NFCMessageSource;
+
+[Constructor(), SecureContext, Exposed=Window]
+interface NFCWriter {
+  Promise<void> push(NFCMessageSource message, optional NFCPushOptions options);
+};
 
 [SecureContext]
 interface NFC {
-  Promise<void> push(NFCPushMessage message, optional NFCPushOptions options);
-  Promise<void> cancelPush(optional NFCPushTarget target = "any");
-  Promise<long> watch(MessageCallback callback, optional NFCWatchOptions options);
-  Promise<void> cancelWatch(optional long id);
+  Promise<void> watch(MessageCallback callback, optional NFCWatchOptions options);
 };
 
 callback MessageCallback = void (NFCMessage message);
@@ -44,6 +46,7 @@ dictionary NFCPushOptions {
   NFCPushTarget target = "any";
   unrestricted double timeout = Infinity;
   boolean ignoreRead = true;
+  AbortSignal? signal;
 };
 
 enum NFCPushTarget {
@@ -57,6 +60,7 @@ dictionary NFCWatchOptions {
   NFCRecordType recordType;
   USVString mediaType = "";
   NFCWatchMode mode = "web-nfc-only";
+  AbortSignal? signal;
 };
 
 enum NFCWatchMode {

@@ -7,13 +7,10 @@
 <body>
 <script>
 promise_test(async (t) => {
-  try {
-    const sxgUrl = get_host_info().HTTP_ORIGIN + '/signed-exchange/resources/sxg-location.sxg';
-    await openSXGInIframeAndWaitForMessage(t, sxgUrl);
-    assert_unreached('SXG should not have loaded');
-  } catch (e) {
-    assert_equals(e, 'timeout');
-  }
+  const sxgUrl = get_host_info().HTTP_ORIGIN + '/signed-exchange/resources/sxg/sxg-location.sxg';
+  const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
+  assert_equals(message.location, innerURLOrigin() + '/signed-exchange/resources/inner-url.html');
+  assert_true(message.is_fallback);
 }, 'Loading SignedHTTPExchange from non secure origin must fail');
 
 </script>

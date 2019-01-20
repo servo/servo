@@ -5,35 +5,98 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import os.path
-from decisionlib import *
+import decisionlib
+from decisionlib import CONFIG, SHARED
 
 
-def main(task_for, mock=False):
+def main(task_for):
+    if CONFIG.git_ref.startswith("refs/heads/"):
+        branch = CONFIG.git_ref[len("refs/heads/"):]
+        CONFIG.treeherder_repository_name = "servo-" + (
+            branch if not branch.startswith("try-") else "try"
+        )
+
     if task_for == "github-push":
-        if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
-            CONFIG.treeherder_repo_name = "servo/servo-" + CONFIG.git_ref.split("/")[-1]
+        # FIXME https://github.com/servo/servo/issues/22325 implement these:
+        magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
+            android_arm32_dev_from_macos = lambda: None
 
-            linux_tidy_unit()
-            android_arm32()
-            windows_unit()
-            macos_unit()
+        # FIXME https://github.com/servo/servo/issues/22187
+        # In-emulator testing is disabled for now. (Instead we only compile.)
+        # This local variable shadows the module-level function of the same name.
+        android_x86_wpt = android_x86_release
 
-            # These are disabled in a "real" decision task,
-            # but should still run when testing this Python code. (See `mock.py`.)
-            if mock:
-                windows_release()
-                linux_wpt()
-                linux_build_task("Indexed by task definition").find_or_create()
-                android_x86()
+        # Implemented but disabled for now:
+        linux_wpt = lambda: None  # Shadows the existing top-level function
+
+        all_tests = [
+            linux_tidy_unit_docs,
+            windows_unit,
+            macos_unit,
+            magicleap_dev,
+            android_arm32_dev,
+            android_arm32_release,
+            android_x86_wpt,
+            linux_arm32_dev,
+            linux_arm64_dev,
+            linux_wpt,
+            macos_wpt,
+        ]
+        by_branch_name = {
+            "auto": all_tests,
+            "try": all_tests,
+            "try-taskcluster": [
+                # Add functions here as needed, in your push to that branch
+            ],
+            "master": [
+                upload_docs,
+            ],
+
+            # The "try-*" keys match those in `servo_try_choosers` in Homu’s config:
+            # https://github.com/servo/saltfs/blob/master/homu/map.jinja
+
+            "try-mac": [macos_unit],
+            "try-linux": [linux_tidy_unit_docs],
+            "try-windows": [windows_unit],
+            "try-magicleap": [magicleap_dev],
+            "try-arm": [linux_arm32_dev, linux_arm64_dev],
+            "try-wpt": [linux_wpt],
+            "try-wpt-mac": [macos_wpt],
+            "try-wpt-android": [android_x86_wpt],
+            "try-android": [
+                android_arm32_dev,
+                android_arm32_dev_from_macos,
+                android_x86_wpt
+            ],
+        }
+        for function in by_branch_name.get(branch, []):
+            function()
+
+    elif task_for == "github-pull-request":
+        CONFIG.treeherder_repository_name = "servo-prs"
+        CONFIG.index_read_only = True
+
+        # We want the merge commit that GitHub creates for the PR.
+        # The event does contain a `pull_request.merge_commit_sha` key, but it is wrong:
+        # https://github.com/servo/servo/pull/22597#issuecomment-451518810
+        CONFIG.git_sha_is_current_head()
+
+        tidy_untrusted()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
         with_rust_nightly()
-        android_arm32()
+        linux_nightly()
 
-    else:  # pragma: no cover
-        raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
+
+# These are disabled in a "real" decision task,
+# but should still run when testing this Python code. (See `mock.py`.)
+def mocked_only():
+    windows_release()
+    android_x86_wpt()
+    linux_wpt()
+    decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
@@ -68,49 +131,129 @@ windows_sparse_checkout = [
 ]
 
 
-def linux_tidy_unit():
+def tidy_untrusted():
     return (
-        linux_build_task("Tidy + dev build + unit")
-        .with_treeherder("Linux x64")
+        decisionlib.DockerWorkerTask("Tidy")
+        .with_worker_type("servo-docker-untrusted")
+        .with_treeherder("Linux x64", "Tidy")
+        .with_max_run_time_minutes(60)
+        .with_dockerfile(dockerfile_path("build"))
+        .with_env(**build_env, **unix_build_env, **linux_build_env)
+        .with_repo()
+        .with_script("""
+            ./mach test-tidy --no-progress --all
+        """)
+        .create()
+    )
+
+
+def linux_tidy_unit_docs():
+    return (
+        linux_build_task("Tidy + dev build + unit tests + docs")
+        .with_treeherder("Linux x64", "Tidy+Unit+Doc")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
+            ./mach build --dev --libsimpleservo
+            ./mach build --dev --no-default-features --features default-except-unstable
             ./mach test-tidy --no-progress --self-test
+
             ./etc/memory_reports_over_time.py --test
             ./etc/taskcluster/mock.py
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
-        """).create()
+
+            ./mach doc
+            cd target/doc
+            git init
+            time git add .
+            git -c user.name="Taskcluster" -c user.email="" \
+                commit -q -m "Rebuild Servo documentation"
+            git bundle create docs.bundle HEAD
+        """)
+        .with_artifacts("/repo/target/doc/docs.bundle")
+        .find_or_create("docs." + CONFIG.git_sha)
+    )
+
+
+def upload_docs():
+    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.git_sha)
+    return (
+        linux_task("Upload docs to GitHub Pages")
+        .with_treeherder("Linux x64", "DocUpload")
+        .with_dockerfile(dockerfile_path("base"))
+        .with_curl_artifact_script(docs_build_task_id, "docs.bundle")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/doc.servo.org")
+        .with_env(PY="""if 1:
+            import urllib, json
+            url = "http://taskcluster/secrets/v1/secret/project/servo/doc.servo.org"
+            token = json.load(urllib.urlopen(url))["secret"]["token"]
+            open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
+        """)
+        .with_script("""
+            python -c "$PY"
+            git init --bare
+            git config credential.helper store
+            git fetch --quiet docs.bundle
+            git push --force https://github.com/servo/doc.servo.org FETCH_HEAD:gh-pages
+        """)
+        .create()
     )
 
 
 def macos_unit():
     return (
         macos_build_task("Dev build + unit tests")
-        .with_treeherder("macOS x64")
+        .with_treeherder("macOS x64", "Unit")
         .with_script("""
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
-        """).create()
+        """)
+        .find_or_create("macos_unit." + CONFIG.git_sha)
     )
 
 
 def with_rust_nightly():
-    return linux_build_task("Linux x64: with Rust Nightly").with_script("""
-        echo "nightly" > rust-toolchain
-        ./mach build --dev
-        ./mach test-unit
-    """).create()
+    modified_build_env = dict(build_env)
+    flags = modified_build_env.pop("RUSTFLAGS").split(" ")
+    flags.remove("-Dwarnings")
+    if flags:  # pragma: no cover
+        modified_build_env["RUSTFLAGS"] = " ".join(flags)
+
+    return (
+        linux_build_task("with Rust Nightly", build_env=modified_build_env)
+        .with_treeherder("Linux x64", "RustNightly")
+        .with_script("""
+            echo "nightly" > rust-toolchain
+            ./mach build --dev
+            ./mach test-unit
+        """)
+        .create()
+    )
 
 
-def android_arm32():
+def android_arm32_dev():
+    return (
+        android_build_task("Dev build")
+        .with_treeherder("Android ARMv7")
+        .with_script("""
+            ./mach build --android --dev
+            ./etc/ci/lockfile_changed.sh
+            python ./etc/ci/check_dynamic_symbols.py
+        """)
+        .find_or_create("android_arm32_dev." + CONFIG.git_sha)
+    )
+
+
+def android_arm32_release():
     return (
         android_build_task("Release build")
-        .with_treeherder("Android ARMv7")
+        .with_treeherder("Android ARMv7", "Release")
         .with_script("./mach build --android --release")
         .with_artifacts(
             "/repo/target/android/armv7-linux-androideabi/release/servoapp.apk",
@@ -120,10 +263,10 @@ def android_arm32():
     )
 
 
-def android_x86():
-    build_task = (
+def android_x86_release():
+    return (
         android_build_task("Release build")
-        .with_treeherder("Android x86")
+        .with_treeherder("Android x86", "Release")
         .with_script("./mach build --target i686-linux-android --release")
         .with_artifacts(
             "/repo/target/android/i686-linux-android/release/servoapp.apk",
@@ -131,8 +274,12 @@ def android_x86():
         )
         .find_or_create("build.android_x86_release." + CONFIG.git_sha)
     )
+
+
+def android_x86_wpt():
+    build_task = android_x86_release()
     return (
-        DockerWorkerTask("WPT")
+        linux_task("WPT")
         .with_treeherder("Android x86")
         .with_provisioner_id("proj-servo")
         .with_worker_type("docker-worker-kvm")
@@ -148,14 +295,14 @@ def android_x86():
                 /_mozilla/mozilla/DOMParser.html \
                 /_mozilla/mozilla/webgl/context_creation_error.html
         """)
-        .create()
+        .find_or_create("android_x86_release." + CONFIG.git_sha)
     )
 
 
 def windows_unit():
     return (
-        windows_build_task("Build + unit tests")
-        .with_treeherder("Windows x64", "debug")
+        windows_build_task("Dev build + unit tests")
+        .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -174,7 +321,7 @@ def windows_unit():
 def windows_release():
     return (
         windows_build_task("Release build")
-        .with_treeherder("Windows x64")
+        .with_treeherder("Windows x64", "Release")
         .with_script("mach build --release",
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
@@ -183,18 +330,35 @@ def windows_release():
     )
 
 
-def linux_wpt():
-    release_build_task = linux_release_build()
-    total_chunks = 2
-    for i in range(total_chunks):
-        this_chunk = i + 1
-        wpt_chunk(release_build_task, total_chunks, this_chunk)
-
-
-def linux_release_build():
+def linux_nightly():
     return (
-        linux_build_task("Release build")
-        .with_treeherder("Linux x64")
+        linux_build_task("Nightly build and upload")
+        .with_treeherder("Linux x64", "Nightly")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload")
+        .with_env(PY=r"""if 1:
+            import urllib, json
+            url = "http://taskcluster/secrets/v1/secret/project/servo/s3-upload"
+            secret = json.load(urllib.urlopen(url))["secret"]
+            open("/root/.aws/credentials", "w").write(secret["credentials_file"])
+        """)
+        # Not reusing the build made for WPT because it has debug assertions
+        .with_script("""
+            ./mach build --release
+            ./mach package --release
+            mkdir /root/.aws
+            python -c "$PY"
+            ./mach upload-nightly linux
+        """)
+        .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
+        .find_or_create("build.linux_x64_nightly" + CONFIG.git_sha)
+    )
+
+
+def linux_wpt():
+    release_build_task = (
+        linux_build_task("Release build, with debug assertions")
+        .with_treeherder("Linux x64", "Release+A")
         .with_script("""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
@@ -204,58 +368,101 @@ def linux_release_build():
                 target/release/build/osmesa-src-*/out/lib/gallium
         """)
         .with_artifacts("/target.tar.gz")
-        .find_or_create("build.linux_x64_release." + CONFIG.git_sha)
+        .find_or_create("build.linux_x64_release~assertions" + CONFIG.git_sha)
     )
+    def linux_run_task(name):
+        return linux_task(name).with_dockerfile(dockerfile_path("run"))
+    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
+               total_chunks=2, processes=24)
 
 
-def wpt_chunk(release_build_task, total_chunks, this_chunk):
-    task = (
-        linux_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
-        .with_treeherder("Linux x64", "WPT %s" % this_chunk)
-        .with_dockerfile(dockerfile_path("run"))
-        .with_repo()
-        .with_curl_artifact_script(release_build_task, "target.tar.gz")
-        .with_script("tar -xzf target.tar.gz")
-        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-        .with_max_run_time_minutes(60)
-        .with_env(TOTAL_CHUNKS=total_chunks, THIS_CHUNK=this_chunk)
+def macos_wpt():
+    build_task = (
+        macos_build_task("Release build")
+        .with_treeherder("macOS x64", "Release")
         .with_script("""
+            ./mach build --release
+            ./etc/ci/lockfile_changed.sh
+            tar -czf target.tar.gz \
+                target/release/servo \
+                target/release/build/osmesa-src-*/output \
+                target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
+                target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
+        """)
+        .with_artifacts("repo/target.tar.gz")
+        .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
+    )
+    def macos_run_task(name):
+        return macos_task(name).with_python2()
+    wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
+               total_chunks=6, processes=4, chunks=[1])
+
+
+def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
+               repo_dir, chunks="all"):
+    if chunks == "all":
+        chunks = [n + 1 for n in range(total_chunks)]
+    for this_chunk in chunks:
+        task = (
+            make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
+            .with_treeherder(platform, "WPT-%s" % this_chunk)
+            .with_repo()
+            .with_curl_artifact_script(build_task, "target.tar.gz")
+            .with_script("tar -xzf target.tar.gz")
+            .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+            .with_max_run_time_minutes(60)
+            .with_env(
+                TOTAL_CHUNKS=str(total_chunks),
+                THIS_CHUNK=str(this_chunk),
+                PROCESSES=str(processes),
+            )
+        )
+        if this_chunk == chunks[-1]:
+            task.name += " + extra"
+            task.extra["treeherder"]["symbol"] += "+"
+            task.with_script("""
+                ./mach test-wpt-failure
+                time ./mach test-wpt --release --binary-arg=--multiprocess \
+                    --processes $PROCESSES \
+                    --log-raw test-wpt-mp.log \
+                    --log-errorsummary wpt-mp-errorsummary.log \
+                    eventsource \
+                    | cat
+                time ./mach test-wpt --release --product=servodriver --headless  \
+                    tests/wpt/mozilla/tests/mozilla/DOMParser.html \
+                    tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
+                    tests/wpt/mozilla/tests/css/img_simple.html \
+                    tests/wpt/mozilla/tests/mozilla/secure.https.html \
+                    | cat
+            """)
+        # `test-wpt` is piped into `cat` so that stdout is not a TTY
+        # and wptrunner does not use "interactive mode" formatting:
+        # https://github.com/servo/servo/issues/22438
+        task.with_script("""
             ./mach test-wpt \
                 --release \
-                --processes 24 \
+                --processes $PROCESSES \
                 --total-chunks "$TOTAL_CHUNKS" \
                 --this-chunk "$THIS_CHUNK" \
                 --log-raw test-wpt.log \
                 --log-errorsummary wpt-errorsummary.log \
-                --always-succeed
-            ./mach filter-intermittents\
+                --always-succeed \
+                | cat
+            ./mach filter-intermittents \
                 wpt-errorsummary.log \
                 --log-intermittents intermittents.log \
                 --log-filteredsummary filtered-wpt-errorsummary.log \
-                --tracker-api default
+                --tracker-api default \
+                --reporter-api default
         """)
-        # FIXME: --reporter-api default
-        # IndexError: list index out of range
-        # File "/repo/python/servo/testing_commands.py", line 533, in filter_intermittents
-        #   pull_request = int(last_merge.split(' ')[4][1:])
-    )
-    if this_chunk == 1:
-        task.name += " + extra"
-        task.extra["treeherder"]["symbol"] += "+"
-        task.with_script("""
-            ./mach test-wpt-failure
-            ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
-                --log-raw test-wpt-mp.log \
-                --log-errorsummary wpt-mp-errorsummary.log \
-                eventsource
-        """)
-    task.with_artifacts(*[
-        "/repo/" + word
-        for script in task.scripts
-        for word in script.split()
-        if word.endswith(".log")
-    ])
-    task.create()
+        task.with_artifacts(*[
+            "%s/%s" % (repo_dir, word)
+            for script in task.scripts
+            for word in script.split()
+            if word.endswith(".log")
+        ])
+        platform_id = platform.replace(" ", "_").lower()
+        task.find_or_create("%s_wpt_%s.%s" % (platform_id, this_chunk, CONFIG.git_sha))
 
 
 def daily_tasks_setup():
@@ -272,7 +479,7 @@ def daily_tasks_setup():
         "expires": SHARED.from_now_json(log_artifacts_expire_in),
     })
 
-    # Unlike when reacting to a GitHub event,
+    # Unlike when reacting to a GitHub push event,
     # the commit hash is not known until we clone the repository.
     CONFIG.git_sha_is_current_head()
 
@@ -289,22 +496,32 @@ def dockerfile_path(name):
 
 
 def linux_task(name):
-    return DockerWorkerTask(name).with_worker_type("servo-docker-worker")
+    return (
+        decisionlib.DockerWorkerTask(name)
+        .with_worker_type("servo-docker-worker")
+        .with_treeherder_required()
+    )
 
 
 def windows_task(name):
-    return WindowsGenericWorkerTask(name).with_worker_type("servo-win2016")
+    return (
+        decisionlib.WindowsGenericWorkerTask(name)
+        .with_worker_type("servo-win2016")
+        .with_treeherder_required()
+    )
+
 
 
 def macos_task(name):
     return (
-        MacOsGenericWorkerTask(name)
+        decisionlib.MacOsGenericWorkerTask(name)
         .with_provisioner_id("proj-servo")
         .with_worker_type("macos")
+        .with_treeherder_required()
     )
 
 
-def linux_build_task(name):
+def linux_build_task(name, *, build_env=build_env):
     return (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
@@ -321,7 +538,6 @@ def linux_build_task(name):
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo()
-        .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
     )
 
 

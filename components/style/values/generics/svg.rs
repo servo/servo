@@ -142,28 +142,28 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
     ToComputedValue,
     ToCss,
 )]
-pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
+pub enum SvgLengthPercentageOrNumber<LengthPercentage, Number> {
     /// <length> | <percentage>
-    LengthOrPercentage(LengthOrPercentage),
+    LengthPercentage(LengthPercentage),
     /// <number>
     Number(Number),
 }
 
-/// Parsing the SvgLengthOrPercentageOrNumber. At first, we need to parse number
+/// Parsing the SvgLengthPercentageOrNumber. At first, we need to parse number
 /// since prevent converting to the length.
-impl<LengthOrPercentageType: Parse, NumberType: Parse> Parse
-    for SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
+impl<LengthPercentageType: Parse, NumberType: Parse> Parse
+    for SvgLengthPercentageOrNumber<LengthPercentageType, NumberType>
 {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(num) = input.try(|i| NumberType::parse(context, i)) {
-            return Ok(SvgLengthOrPercentageOrNumber::Number(num));
+            return Ok(SvgLengthPercentageOrNumber::Number(num));
         }
 
-        let lop = LengthOrPercentageType::parse(context, input)?;
-        Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop))
+        let lp = LengthPercentageType::parse(context, input)?;
+        Ok(SvgLengthPercentageOrNumber::LengthPercentage(lp))
     }
 }
 

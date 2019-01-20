@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline constructor - no document</title>
+<link rel="help" href="https://wicg.github.io/scroll-animations/#scrolltimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+'use strict';
+
+test(function() {
+  document.documentElement.remove();
+  assert_equals(document.scrollingElement, null);
+
+  const timeline = new ScrollTimeline({timeRange: 100});
+  assert_equals(timeline.scrollSource, null);
+  assert_equals(timeline.currentTime, null);
+}, 'The scrollSource can be null if the document.scrollingElement does not exist');
+</script>

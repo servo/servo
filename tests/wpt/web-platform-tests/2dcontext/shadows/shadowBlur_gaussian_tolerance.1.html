@@ -1,0 +1,191 @@
+<!DOCTYPE HTML>
+<title>Test of canvas shadowBlur Gaussian blur pixel values</title>
+<meta charset=UTF-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<h1>Test of canvas shadowBlur Gaussian blur pixel values</h1>
+<script>
+
+/**
+ * See https://en.wikipedia.org/wiki/Error_function#Approximation_with_elementary_functions
+ */
+function erf(x) {
+  if (x < 0) {
+    return -erf(-x);
+  }
+  var p = 0.3275911, a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429;
+  var t = 1 / (1 + p * x);
+  return 1 - Math.exp(-x * x) * t * (a1 + t * (a2 + t * (a3 + t * (a4 + t * a5))));
+}
+
+/**
+ * See https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function
+ * and https://en.wikipedia.org/wiki/Normal_distribution#Numerical_approximations_for_the_normal_CDF
+ */
+function standard_normal_distribution_cumulative(x) {
+  return 0.5 * (1 + erf(x / Math.SQRT2));
+}
+
+/**
+ * Verify a single pixel; helper for run_blur_test.
+ *   params - same as run_blur_test
+ *   row & col - relative to the corner of the rectangle being blurred
+ *   actual - actual color found there on the canvas
+ */
+function test_pixel(params, row, col, shadowOffset, actual) {
+  var expected_gaussian;
+  if (params.expected_sigma > 0) {
+    // Compute positions within a standard normal distribution (i.e.,
+    // where mean (μ) is and standard deviation (σ) is 1) in both
+    // dimensions.
+    // Add 0.5 because we want the middle of the pixel rather than the edge.
+    var pos_x = (col - shadowOffset + 0.5) / params.expected_sigma;
+    var pos_y = (row - shadowOffset + 0.5) / params.expected_sigma;
+
+    // Find the expected color value based on a Gaussian blur function.
+    // Since we're blurring the corner of a "very large" rectangle, we
+    // can, instead of sampling all of the pixels, use the cumulative
+    // form of the normal (Gaussian) distribution and pass it the
+    // position of the color transition (the edges of the rectangle),
+    // since we know everything above and to the left of that position
+    // is one color, and everything that is either below or to the right
+    // of that position is another color.
+    //
+    // NOTE: This assumes color-interpolation happens in sRGB rather
+    // than linearRGB.  The canvas spec doesn't appear to be clear on
+    // this point.  If it were linearRGB, we'd need to apply the
+    // correction after doing this calculation.  (No correction to the
+    // input is needed since the input is all 0 or 1.)
+    expected_gaussian = standard_normal_distribution_cumulative(-pos_x) *
+                        standard_normal_distribution_cumulative(-pos_y);
+  } else {
+    if (col >= shadowOffset || row >= shadowOffset) {
+      expected_gaussian = 0;
+    } else {
+      expected_gaussian = 1;
+    }
+  }
+  // TODO: maybe also compute expected value by triple box blur?
+
+  /*
+   * https://html.spec.whatwg.org/multipage/canvas.html#when-shadows-are-drawn
+   * describes how to draw shadows in canvas.  It says, among other things:
+   *
+   *   Perform a 2D Gaussian Blur on B, using σ as the standard deviation.
+   *
+   * without giving *any* allowance for error.
+   *
+   * However, other specifications that require Gaussian blurs allow some
+   * error; https://www.w3.org/TR/css-backgrounds-3/#shadow-blur allows up to
+   * 5%, and https://drafts.fxtf.org/filter-effects/#feGaussianBlurElement
+   * allows use of a triple box blur which is within 3%.
+   *
+   * Since expecting zero error is unreasonable, this test tests for the least
+   * restrictive of these bounds, the 5% error.
+   *
+   * Note that this allows 5% error in the color component, but there's no
+   * tolerance for error in the position; see comment below about sizes.
+   */
+
+  // Allow any rounding direction.
+  var min_b = Math.max(  0, Math.floor((expected_gaussian - 0.05) * 255));
+  var max_b = Math.min(255, Math.ceil ((expected_gaussian + 0.05) * 255));
+  var min_r = 255 - max_b;
+  var max_r = 255 - min_b;
+
+  var pos = "at row " + row + " col " + col + " ";
+
+  assert_true(min_r <= actual.r && actual.r <= max_r,
+              pos + "red component " + actual.r + " should be between " +
+              min_r + " and " + max_r + " (inclusive).");
+  assert_true(min_b <= actual.b && actual.b <= max_b,
+              pos + "blue component " + actual.b + " should be between " +
+              min_b + " and " + max_b + " (inclusive).");
+  assert_equals(actual.g, 0, pos + "green component should be 0");
+  assert_equals(actual.a, 255, pos + "alpha component should be 255");
+}
+
+/**
+ * Run a test of a single shadowBlur drawing operation.  Expects a
+ * parameters object containing:
+ *   name - name of test
+ *   canvas_width - width of canvas to create
+ *   canvas_height - height of canvas to create
+ *   shadowBlur - shadowBlur to use for the test drawing operation
+ *   expected_sigma - the standard deviation of the gaussian function
+ *     that shadowBlur is expected to produce
+ *   pixel_skip - how many pixels to skip when sampling results.  Should
+ *     be relatively prime with canvas_width.
+ */
+function run_blur_test(params) {
+  test(function() {
+    var canvas = document.createElement("canvas");
+    canvas.setAttribute("width", params.canvas_width);
+    canvas.setAttribute("height", params.canvas_height);
+    document.body.appendChild(canvas);
+    var cx = canvas.getContext("2d");
+
+    cx.fillStyle = "red";
+    cx.fillRect(0, 0, params.canvas_width, params.canvas_height);
+
+    // Fill a huge rect just to the top and left of the canvas, with its shadow
+    // blur centered at the middle of the canvas.
+    let edge = Math.floor(params.canvas_width / 2); // position of vertical
+    let big = Math.max(Math.ceil(params.expected_sigma * 1000),
+                       params.canvas_width,
+                       params.canvas_height);
+    cx.shadowBlur = params.shadowBlur;
+    cx.fillStyle = "green";
+    cx.shadowColor = "blue";
+    cx.shadowOffsetX = edge;
+    cx.shadowOffsetY = edge;
+    cx.fillRect(-big, -big, big, big);
+
+    var imageData =
+      cx.getImageData(0, 0, params.canvas_width, params.canvas_height);
+    for (var i = 0, i_max = params.canvas_width * params.canvas_height;
+         i < i_max;
+         i += params.pixel_skip) {
+      var row = Math.floor(i / params.canvas_width);
+      var col = i - row * params.canvas_width;
+
+      var actual = { r: imageData.data[i * 4],
+                     g: imageData.data[i * 4 + 1],
+                     b: imageData.data[i * 4 + 2],
+                     a: imageData.data[i * 4 + 3] };
+
+      test_pixel(params, row, col, edge, actual);
+    }
+  }, "shadowBlur Gaussian pixel values for " + params.name);
+}
+
+run_blur_test({
+  name: "no blur",
+  canvas_width: 4,
+  canvas_height: 4,
+  shadowBlur: 0,
+  expected_sigma: 0,
+  pixel_skip: 1
+});
+run_blur_test({
+  name: "small blur",
+  canvas_width: 20,
+  canvas_height: 20,
+  // Try to test something smaller than 8 due to historic change in
+  // https://www.w3.org/Bugs/Public/show_bug.cgi?id=10647 , but not too
+  // small, to avoid the error from rounding to individual pixels worth
+  // of box blur.
+  shadowBlur: 6,
+  expected_sigma: 3,
+  pixel_skip: 3
+});
+run_blur_test({
+  name: "large blur",
+  canvas_width: 100,
+  canvas_height: 100,
+  shadowBlur: 30,
+  expected_sigma: 15,
+  pixel_skip: 13
+});
+</script>

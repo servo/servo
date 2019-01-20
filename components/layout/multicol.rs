@@ -4,7 +4,6 @@
 
 //! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
-use app_units::Au;
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
@@ -12,6 +11,7 @@ use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FragmentationContext, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::ServoArc;
+use app_units::Au;
 use euclid::{Point2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{max, min};
@@ -19,7 +19,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::{LengthPercentageOrAuto, LengthPercentageOrNone};
 use style::values::generics::column::ColumnCount;
 use style::values::Either;
 
@@ -154,11 +154,20 @@ impl Flow for MulticolFlow {
             this_fragment_is_empty: true,
             available_block_size: {
                 let style = &self.block_flow.fragment.style;
-                if let LengthOrPercentageOrAuto::Length(length) = style.content_block_size() {
-                    Au::from(length)
-                } else if let LengthOrPercentageOrNone::Length(length) = style.max_block_size() {
-                    Au::from(length)
-                } else {
+                let size = match style.content_block_size() {
+                    LengthPercentageOrAuto::Auto => None,
+                    LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                        lp.maybe_to_used_value(None)
+                    },
+                };
+                let size = size.or_else(|| match style.max_block_size() {
+                    LengthPercentageOrNone::None => None,
+                    LengthPercentageOrNone::LengthPercentage(ref lp) => {
+                        lp.maybe_to_used_value(None)
+                    },
+                });
+
+                size.unwrap_or_else(|| {
                     // FIXME: do column balancing instead
                     // FIXME: (until column balancing) substract margins/borders/padding
                     LogicalSize::from_physical(
@@ -166,7 +175,7 @@ impl Flow for MulticolFlow {
                         ctx.shared_context().viewport_size(),
                     )
                     .block
-                }
+                })
             },
         });
 

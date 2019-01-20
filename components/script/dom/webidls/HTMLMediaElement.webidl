@@ -13,9 +13,9 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute MediaError? error;
 
   // network state
-  [CEReactions] attribute DOMString src;
+  [CEReactions] attribute USVString src;
   attribute MediaProvider? srcObject;
-  readonly attribute DOMString currentSrc;
+  readonly attribute USVString currentSrc;
   // [CEReactions] attribute DOMString crossOrigin;
   const unsigned short NETWORK_EMPTY = 0;
   const unsigned short NETWORK_IDLE = 1;
@@ -23,7 +23,7 @@ interface HTMLMediaElement : HTMLElement {
   const unsigned short NETWORK_NO_SOURCE = 3;
   readonly attribute unsigned short networkState;
   [CEReactions] attribute DOMString preload;
-  // readonly attribute TimeRanges buffered;
+  readonly attribute TimeRanges buffered;
   void load();
   CanPlayTypeResult canPlayType(DOMString type);
 
@@ -42,11 +42,11 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute unrestricted double duration;
   // Date getStartDate();
   readonly attribute boolean paused;
-  // attribute double defaultPlaybackRate;
-  // attribute double playbackRate;
+  [Throws] attribute double defaultPlaybackRate;
+  [Throws] attribute double playbackRate;
   readonly attribute TimeRanges played;
   // readonly attribute TimeRanges seekable;
-  // readonly attribute boolean ended;
+  readonly attribute boolean ended;
   [CEReactions] attribute boolean autoplay;
   // [CEReactions] attribute boolean loop;
   Promise<void> play();
@@ -54,13 +54,13 @@ interface HTMLMediaElement : HTMLElement {
 
   // controls
   // [CEReactions] attribute boolean controls;
-  // attribute double volume;
+  [Throws] attribute double volume;
   // attribute boolean muted;
   // [CEReactions] attribute boolean defaultMuted;
 
   // tracks
   // readonly attribute AudioTrackList audioTracks;
   // readonly attribute VideoTrackList videoTracks;
-  // readonly attribute TextTrackList textTracks;
-  // TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
+  readonly attribute TextTrackList textTracks;
+  TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
 };

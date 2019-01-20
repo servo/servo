@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script>
+let message = {
+  httpReferrer: '{{header_or_default(Referer, no-http-referrer)}}',
+  documentReferrer: document.referrer || 'no-document-referrer',
+};
+
+let broadcastChannel = new BroadcastChannel(new URL(location).searchParams.get('broadcastchannel'));
+try {
+  broadcastChannel.postMessage(message);
+} finally {
+  broadcastChannel.close();
+}
+</script>

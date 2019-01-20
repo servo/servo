@@ -16,7 +16,7 @@ pyflakes == 0.8.1
 
 # For buildbot checking
 voluptuous == 0.10.5
-PyYAML == 3.12
+PyYAML == 4.2b1
 
 # For test-webidl
 ply == 3.8

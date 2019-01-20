@@ -1,1 +1,1 @@
-Feature-Policy: picture-in-picture-report-only 'none'
+Feature-Policy-Report-Only: picture-in-picture 'none'

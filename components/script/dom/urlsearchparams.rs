@@ -5,8 +5,8 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWrap;
-use crate::dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::codegen::UnionTypes::USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -47,24 +47,46 @@ impl URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
     pub fn Constructor(
         global: &GlobalScope,
-        init: Option<USVStringOrURLSearchParams>,
+        init: Option<USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString>,
     ) -> Fallible<DomRoot<URLSearchParams>> {
         // Step 1.
         let query = URLSearchParams::new(global, None);
         match init {
-            Some(USVStringOrURLSearchParams::USVString(init)) => {
+            Some(USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringSequenceSequence(init)) => {
                 // Step 2.
-                *query.list.borrow_mut() = form_urlencoded::parse(init.0.as_bytes())
-                    .into_owned()
-                    .collect();
+
+                // Step 2-1.
+                if init.iter().any(|pair| pair.len() != 2) {
+                    return Err(Error::Type("Sequence initializer must only contain pair elements.".to_string()));
+                }
+
+                // Step 2-2.
+                *query.list.borrow_mut() =
+                    init.iter().map(|pair| (pair[0].to_string(), pair[1].to_string())).collect::<Vec<_>>();
             },
-            Some(USVStringOrURLSearchParams::URLSearchParams(init)) => {
+            Some(USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringUSVStringRecord(init)) => {
                 // Step 3.
-                *query.list.borrow_mut() = init.list.borrow().clone();
+                *query.list.borrow_mut() =
+                    (*init).iter().map(|(name, value)| (name.to_string(), value.to_string())).collect::<Vec<_>>();
+            },
+            Some(USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVString(init)) => {
+                // Step 4.
+                let init_bytes = match init.0.chars().next() {
+                    Some(first_char) if first_char == '?' => {
+                        let (_, other_bytes) = init.0.as_bytes().split_at(1);
+
+                        other_bytes
+                    },
+                    _ => init.0.as_bytes(),
+                };
+
+                *query.list.borrow_mut() =
+                    form_urlencoded::parse(init_bytes).into_owned().collect();
             },
             None => {},
         }
-        // Step 4.
+
+        // Step 5.
         Ok(query)
     }
 
@@ -146,6 +168,17 @@ impl URLSearchParamsMethods for URLSearchParams {
         self.update_steps();
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-sort
+    fn Sort(&self) {
+        // Step 1.
+        self.list
+            .borrow_mut()
+            .sort_by(|(a, _), (b, _)| a.encode_utf16().cmp(b.encode_utf16()));
+
+        // Step 2.
+        self.update_steps();
+    }
+
     // https://url.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
         DOMString::from(self.serialize_utf8())
@@ -160,9 +193,7 @@ impl URLSearchParams {
             .extend_pairs(&*list)
             .finish()
     }
-}
 
-impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlsearchparams-update
     fn update_steps(&self) {
         if let Some(url) = self.url.root() {

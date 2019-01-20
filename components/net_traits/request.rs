@@ -102,7 +102,6 @@ pub enum CacheMode {
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ServiceWorkersMode {
     All,
-    Foreign,
     None,
 }
 

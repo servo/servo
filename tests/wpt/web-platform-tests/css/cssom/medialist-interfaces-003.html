@@ -40,22 +40,21 @@
       mediaList = styleSheet.media;
     }
 
-
+    // First explicit example input (first column) and output (second column) in specification.
     test(function() {
         setupMedia('not screen and (min-WIDTH:5px) AND (max-width:40px )');
 
         assert_equals(mediaList.mediaText, "not screen and (max-width: 40px) and (min-width: 5px)");
 
-    }, "mediatest_mediaquery_serialize_1",
-    {  assert: ["First explicit example input (first column) and output (second column) in specification."] });
+    }, "mediatest_mediaquery_serialize_1");
 
+    // Second explicit example input (first column) and output (second column) in specification.
     test(function() {
         setupMedia('all and (color) and (color)	');
 
         assert_equals(mediaList.mediaText, "(color)");
 
-    }, "mediatest_mediaquery_serialize_2",
-    { assert: ["Second explicit example input (first column) and output (second column) in specification."] });
+    }, "mediatest_mediaquery_serialize_2");
 
   </script>
  </body>

@@ -4,15 +4,15 @@
 
 // FIXME(rust-lang/rust#26264): Remove GenericBackgroundSize.
 
-use app_units::Au;
 use crate::display_list::border;
 use crate::model::MaybeAuto;
+use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::properties::style_structs::Background;
-use style::values::computed::{BackgroundSize, LengthOrPercentageOrAuto};
+use style::values::computed::{BackgroundSize, LengthPercentageOrAuto};
 use style::values::generics::background::BackgroundSize as GenericBackgroundSize;
 use style::values::generics::NonNegative;
 use style::values::specified::background::BackgroundRepeatKeyword;
@@ -88,7 +88,7 @@ fn compute_background_image_size(
                 (
                     GenericBackgroundSize::Explicit {
                         width,
-                        height: NonNegative(LengthOrPercentageOrAuto::Auto),
+                        height: NonNegative(LengthPercentageOrAuto::Auto),
                     },
                     _,
                 ) => {
@@ -98,7 +98,7 @@ fn compute_background_image_size(
                 },
                 (
                     GenericBackgroundSize::Explicit {
-                        width: NonNegative(LengthOrPercentageOrAuto::Auto),
+                        width: NonNegative(LengthPercentageOrAuto::Auto),
                         height,
                     },
                     _,

@@ -17,11 +17,11 @@ extern crate serde;
 #[macro_use]
 extern crate url;
 
-use cookie::Cookie;
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::request::{Request, RequestInit};
 use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
+use cookie::Cookie;
 use headers_core::HeaderMapExt;
 use headers_ext::{ContentType, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap};
@@ -556,12 +556,10 @@ impl Metadata {
                 .as_mut()
                 .unwrap()
                 .typed_insert(ContentType::from(mime.clone()));
-            self.content_type = Some(Serde(ContentType::from(mime.clone())));
-            for (name, value) in mime.params() {
-                if mime::CHARSET == name {
-                    self.charset = Some(value.to_string());
-                }
+            if let Some(charset) = mime.get_param(mime::CHARSET) {
+                self.charset = Some(charset.to_string());
             }
+            self.content_type = Some(Serde(ContentType::from(mime.clone())));
         }
     }
 }

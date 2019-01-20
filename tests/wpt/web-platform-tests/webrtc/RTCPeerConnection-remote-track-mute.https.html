@@ -39,7 +39,7 @@ promise_test(async t => {
     });
   });
   await exchangeOfferAnswer(pc1, pc2);
-  await unmuteResolver.promise;
+  await unmuteResolver;
 }, 'ontrack: track goes from muted to unmuted');
 
 promise_test(async t => {

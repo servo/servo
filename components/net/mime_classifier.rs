@@ -404,9 +404,10 @@ impl Mp4Matcher {
         }
 
         let mp4 = [0x6D, 0x70, 0x34];
-        data[8..].starts_with(&mp4) || data[16..box_size]
-            .chunks(4)
-            .any(|chunk| chunk.starts_with(&mp4))
+        data[8..].starts_with(&mp4) ||
+            data[16..box_size]
+                .chunks(4)
+                .any(|chunk| chunk.starts_with(&mp4))
     }
 }
 impl MIMEChecker for Mp4Matcher {

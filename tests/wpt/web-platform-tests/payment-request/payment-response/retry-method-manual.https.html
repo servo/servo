@@ -164,16 +164,18 @@ function userIsShownErrorsFields(button) {
 function abortTheUpdate(button) {
   button.disabled = true;
   promise_test(async t => {
-    const { response, request } = await getPaymentRequestResponse({ requestShipping: true });
-    // causes "abort the update" to run
-    const shippingChangedPromise = new Promise(resolve => {
-      request.onshippingoptionchange = () => {
-        event.updateWith({ total: { amount: { currency: "USD", value: "INVALID" } }});
+    const { response, request } = await getPaymentRequestResponse({
+      requestShipping: true,
+    });
+    const shipOptionChangePromise = new Promise(resolve => {
+      request.onshippingoptionchange = event => {
+        // causes "abort the update" to run
+        event.updateWith({ total: "error!" });
         resolve();
       };
     });
     const retryPromise = response.retry();
-    await shippingChangedPromise;
+    await shipOptionChangePromise;
     await promise_rejects(
       t,
       new TypeError(),
@@ -265,7 +267,9 @@ function callingRetryReturnsUniquePromise(button){
   </li>
   <li>
     <p>
-      When shown the payment sheet, hit pay once. Then retry once.
+      When shown the payment sheet, hit pay once.
+      Then, change the shipping option.
+      Select to pay again.
     </p>
     <button onclick="abortTheUpdate(this);">
       When "abort the update" occurs because of an update error,

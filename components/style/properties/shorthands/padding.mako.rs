@@ -4,6 +4,6 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-${helpers.four_sides_shorthand("padding", "padding-%s", "specified::NonNegativeLengthOrPercentage::parse",
+${helpers.four_sides_shorthand("padding", "padding-%s", "specified::NonNegativeLengthPercentage::parse",
                                spec="https://drafts.csswg.org/css-box-3/#propdef-padding",
                                allow_quirks=True)}

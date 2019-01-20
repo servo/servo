@@ -4,15 +4,16 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
 use crate::flow::{Flow, FlowClass, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
 use crate::table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
+use app_units::Au;
 use euclid::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};

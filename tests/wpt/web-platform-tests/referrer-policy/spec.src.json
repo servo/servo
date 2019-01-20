@@ -242,8 +242,8 @@
         {
           "name": "same-origin-downgrade",
           "expansion": "default",
-          "source_protocol": "http",
-          "target_protocol": "https",
+          "source_protocol": "https",
+          "target_protocol": "http",
           "delivery_method": ["http-rp", "meta-referrer", "attr-referrer"],
           "redirection": "*",
           "origin": "same-origin",

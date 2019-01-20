@@ -17,7 +17,7 @@ use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
 use crate::properties::{AnimationRules, PropertyDeclarationBlock};
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_collector::RuleCollector;
+use crate::rule_collector::{containing_shadow_ignoring_svg_use, RuleCollector};
 use crate::rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
 use crate::selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
@@ -355,10 +355,7 @@ pub struct Stylist {
     stylesheets: StylistStylesheetSet,
 
     /// If true, the quirks-mode stylesheet is applied.
-    #[cfg_attr(
-        feature = "servo",
-        ignore_malloc_size_of = "defined in selectors"
-    )]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
 
     /// Selector maps for all of the style sheets in the stylist, after
@@ -583,12 +580,6 @@ impl Stylist {
     pub fn append_stylesheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
         self.stylesheets
             .append_stylesheet(Some(&self.device), sheet, guard)
-    }
-
-    /// Appends a new stylesheet to the current set.
-    pub fn prepend_stylesheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
-        self.stylesheets
-            .prepend_stylesheet(Some(&self.device), sheet, guard)
     }
 
     /// Remove a given stylesheet to the current set.
@@ -1024,7 +1015,7 @@ impl Stylist {
 
                 ViewportRule {
                     declarations: viewport_rule::Cascade::from_stylesheets(
-                        stylesheets.clone(),
+                        stylesheets,
                         guards,
                         &device,
                     )
@@ -1190,7 +1181,9 @@ impl Stylist {
             }
         }
 
-        if let Some(shadow) = element.containing_shadow() {
+        // Use the same rules to look for the containing host as we do for rule
+        // collection.
+        if let Some(shadow) = containing_shadow_ignoring_svg_use(element) {
             if let Some(data) = shadow.style_data() {
                 try_find_in!(data);
             }
@@ -1570,9 +1563,8 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         // Also, note that this call happens before we visit any of the simple
         // selectors in the next ComplexSelector, so we can use this to skip
         // looking at them.
-        self.passed_rightmost_selector =
-            self.passed_rightmost_selector ||
-                !matches!(combinator, None | Some(Combinator::PseudoElement));
+        self.passed_rightmost_selector = self.passed_rightmost_selector ||
+            !matches!(combinator, None | Some(Combinator::PseudoElement));
 
         true
     }
@@ -1589,9 +1581,8 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        self.needs_revalidation =
-            self.needs_revalidation ||
-                component_needs_revalidation(s, self.passed_rightmost_selector);
+        self.needs_revalidation = self.needs_revalidation ||
+            component_needs_revalidation(s, self.passed_rightmost_selector);
 
         match *s {
             Component::NonTSPseudoClass(ref p) => {
@@ -2024,10 +2015,10 @@ impl CascadeData {
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
 
                     // Don't let a prefixed keyframes animation override a non-prefixed one.
-                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() || self
-                        .animations
-                        .get(keyframes_rule.name.as_atom())
-                        .map_or(true, |rule| rule.vendor_prefix.is_some());
+                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
+                        self.animations
+                            .get(keyframes_rule.name.as_atom())
+                            .map_or(true, |rule| rule.vendor_prefix.is_some());
                     if needs_insertion {
                         let animation = KeyframesAnimation::from_keyframes(
                             &keyframes_rule.keyframes,

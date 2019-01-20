@@ -8,7 +8,7 @@ use crate::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The `width` value type.
 #[cfg(feature = "servo")]
-pub type Width = crate::values::computed::NonNegativeLengthOrPercentageOrAuto;
+pub type Width = crate::values::computed::NonNegativeLengthPercentageOrAuto;
 
 /// The `width` value type.
 #[cfg(feature = "gecko")]

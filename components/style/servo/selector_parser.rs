@@ -457,7 +457,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         parser: &mut CssParser<'i, 't>,
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
-        let pseudo_class = match_ignore_ascii_case!{ &name,
+        let pseudo_class = match_ignore_ascii_case! { &name,
             "lang" => {
                 Lang(parser.expect_ident_or_string()?.as_ref().into())
             }

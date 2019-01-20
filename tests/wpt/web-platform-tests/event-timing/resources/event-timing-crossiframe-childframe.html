@@ -1,0 +1,29 @@
+<!DOCType html>
+<html>
+<script src=event-timing-support.js></script>
+<button id='button_child_frame'>Generate a 'click' event</button>
+<img src=slow-image.py>
+<script>
+  const clickTimeMin = performance.now();
+  clickAndBlockMain('button_child_frame');
+  const processingStartMin = performance.now();
+  const observerPromise = new Promise((resolve, reject) => {
+    new PerformanceObserver((entryList) => {
+      resolve(entryList.getEntries().filter(entry => entry.name === 'mousedown'));
+    }).observe({ entryTypes: ['event'] });
+  });
+  window.addEventListener('load', e => {
+    observerPromise.then((observedEntries) => {
+      const onloadStart = performance.now();
+      const bufferedEntries = performance.getEntriesByType('event');
+      top.postMessage({
+        "bufferedEntries" : bufferedEntries,
+        "observedEntries": observedEntries,
+        "clickTimeMin": clickTimeMin,
+        "processingStartMin" : processingStartMin,
+        "onloadStart" : onloadStart,
+      }, '*');
+    });
+  });
+</script>
+</html>

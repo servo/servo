@@ -22,13 +22,8 @@ bitflags! {
     }
 }
 
-pub trait LayoutDamageComputation {
-    fn compute_layout_damage(self) -> SpecialRestyleDamage;
-    fn reflow_entire_document(self);
-}
-
-impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
-    fn compute_layout_damage(self) -> SpecialRestyleDamage {
+impl dyn Flow {
+    pub fn compute_layout_damage(&mut self) -> SpecialRestyleDamage {
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = self
             .base()
@@ -62,17 +57,18 @@ impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
                         .damage_for_parent(child_is_absolutely_positioned),
                 );
 
-                has_counter_affecting_children =
-                    has_counter_affecting_children || kid.base().flags.intersects(
+                has_counter_affecting_children = has_counter_affecting_children ||
+                    kid.base().flags.intersects(
                         FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN,
                     );
             }
         }
 
         let self_base = self.mut_base();
-        if self_base.flags.float_kind() != Float::None && self_base
-            .restyle_damage
-            .intersects(ServoRestyleDamage::REFLOW)
+        if self_base.flags.float_kind() != Float::None &&
+            self_base
+                .restyle_damage
+                .intersects(ServoRestyleDamage::REFLOW)
         {
             special_damage.insert(SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT);
         }
@@ -90,7 +86,7 @@ impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
         special_damage
     }
 
-    fn reflow_entire_document(self) {
+    pub fn reflow_entire_document(&mut self) {
         let self_base = self.mut_base();
         self_base
             .restyle_damage

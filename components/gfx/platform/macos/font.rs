@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::font::{
+    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
+};
+use crate::font::{GPOS, GSUB, KERN};
+use crate::platform::font_template::FontTemplateData;
+use crate::platform::macos::font_context::FontContextHandle;
+use crate::text::glyph::GlyphId;
 /// Implementation of Quartz (CoreGraphics) fonts.
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
@@ -13,13 +20,6 @@ use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
 use core_text::font_descriptor::kCTFontDefaultOrientation;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
-use crate::font::{
-    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
-};
-use crate::font::{GPOS, GSUB, KERN};
-use crate::platform::font_template::FontTemplateData;
-use crate::platform::macos::font_context::FontContextHandle;
-use crate::text::glyph::GlyphId;
 use servo_atoms::Atom;
 use std::ops::Range;
 use std::sync::Arc;
@@ -239,15 +239,14 @@ impl FontHandleMethods for FontHandle {
 
         let result = unsafe {
             self.ctfont
-                .get_glyphs_for_characters(&characters[0], &mut glyphs[0], count)
+                .get_glyphs_for_characters(characters.as_ptr(), glyphs.as_mut_ptr(), count)
         };
 
-        if !result {
+        if !result || glyphs[0] == 0 {
             // No glyph for this character
             return None;
         }
 
-        assert_ne!(glyphs[0], 0); // FIXME: error handling
         return Some(glyphs[0] as GlyphId);
     }
 

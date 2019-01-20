@@ -1,4 +1,4 @@
-// META: global=worker
+// META: global=worker,jsshell
 'use strict';
 
 const error1 = new Error('error1');

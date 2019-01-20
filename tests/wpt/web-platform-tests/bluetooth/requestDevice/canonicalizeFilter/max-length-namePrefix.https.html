@@ -9,10 +9,11 @@
 const test_desc = 'A device namePrefix of 248 bytes is valid.';
 const DEVICE_NAME = 'a'.repeat(248);
 
-bluetooth_test(() => setUpPreconnectedDevice({name: DEVICE_NAME})
-    .then(() => requestDeviceWithTrustedClick({
-      filters: [{namePrefix: DEVICE_NAME}]
-    }))
-    .then(device => assert_equals(device.name, DEVICE_NAME)),
+bluetooth_test(
+    () => setUpPreconnectedDevice({name: DEVICE_NAME})
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{namePrefix: DEVICE_NAME}]}))
+              .then(device => assert_equals(device.name, DEVICE_NAME)),
     test_desc);
 </script>

@@ -4,18 +4,19 @@
 // Source: Feature Policy (https://wicg.github.io/feature-policy/)
 
 [NoInterfaceObject]
-interface Policy {
+interface FeaturePolicy {
   boolean allowsFeature(DOMString feature, optional DOMString origin);
+  sequence<DOMString> features();
   sequence<DOMString> allowedFeatures();
   sequence<DOMString> getAllowlistForFeature(DOMString feature);
 };
 
 partial interface Document {
-    [SameObject] readonly attribute Policy policy;
+    [SameObject] readonly attribute FeaturePolicy featurePolicy;
 };
 
 partial interface HTMLIFrameElement {
-    [SameObject] readonly attribute Policy policy;
+    [SameObject] readonly attribute FeaturePolicy featurePolicy;
 };
 interface FeaturePolicyViolationReportBody : ReportBody {
   readonly attribute DOMString featureId;

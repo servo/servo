@@ -4,11 +4,12 @@
 
 use crate::cg;
 use darling::util::IdentList;
-use quote::Tokens;
-use syn::{DeriveInput, Path};
+use proc_macro2::TokenStream;
+use quote::TokenStreamExt;
+use syn::{DeriveInput, Path, WhereClause};
 use synstructure::{Structure, VariantInfo};
 
-pub fn derive(mut input: DeriveInput) -> Tokens {
+pub fn derive(mut input: DeriveInput) -> TokenStream {
     let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
     let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();
@@ -20,21 +21,24 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
             );
         }
     }
+    let (mut match_body, append_error_clause) = {
+        let s = Structure::new(&input);
+        let mut append_error_clause = s.variants().len() > 1;
+
+        let mut match_body = s.variants().iter().fold(quote!(), |body, variant| {
+            let arm = match derive_variant_arm(variant, &mut where_clause) {
+                Ok(arm) => arm,
+                Err(()) => {
+                    append_error_clause = true;
+                    return body;
+                },
+            };
+            quote! { #body #arm }
+        });
+        (match_body, append_error_clause)
+    };
+
     input.generics.where_clause = where_clause;
-
-    let s = Structure::new(&input);
-    let mut append_error_clause = s.variants().len() > 1;
-
-    let mut match_body = s.variants().iter().fold(quote!(), |body, variant| {
-        let arm = match derive_variant_arm(variant) {
-            Ok(arm) => arm,
-            Err(()) => {
-                append_error_clause = true;
-                return body;
-            },
-        };
-        quote! { #body #arm }
-    });
 
     if append_error_clause {
         let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
@@ -67,7 +71,10 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     }
 }
 
-fn derive_variant_arm(variant: &VariantInfo) -> Result<Tokens, ()> {
+fn derive_variant_arm(
+    variant: &VariantInfo,
+    where_clause: &mut Option<WhereClause>,
+) -> Result<TokenStream, ()> {
     let variant_attrs = cg::parse_variant_attrs_from_ast::<AnimationVariantAttrs>(&variant.ast());
     if variant_attrs.error {
         return Err(());
@@ -79,6 +86,13 @@ fn derive_variant_arm(variant: &VariantInfo) -> Result<Tokens, ()> {
     let iter = result_info.iter().zip(this_info.iter().zip(&other_info));
     computations.append_all(iter.map(|(result, (this, other))| {
         let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&result.ast());
+        if field_attrs.field_bound {
+            let ty = &this.ast().ty;
+            cg::add_predicate(
+                where_clause,
+                parse_quote!(#ty: crate::values::animated::Animate),
+            );
+        }
         if field_attrs.constant {
             quote! {
                 if #this != #other {
@@ -126,4 +140,5 @@ pub struct AnimationVariantAttrs {
 #[derive(Default, FromField)]
 pub struct AnimationFieldAttrs {
     pub constant: bool,
+    pub field_bound: bool,
 }

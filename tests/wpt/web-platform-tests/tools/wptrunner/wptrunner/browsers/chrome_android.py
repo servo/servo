@@ -1,6 +1,7 @@
 import subprocess
 
 from .base import Browser, ExecutorBrowser, require_arg
+from .base import get_timeout_multiplier   # noqa: F401
 from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
@@ -17,7 +18,8 @@ __wptrunner__ = {"product": "chrome_android",
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
-                 "env_options": "env_options"}
+                 "env_options": "env_options",
+                 "timeout_multiplier": "get_timeout_multiplier"}
 
 _wptserve_ports = set()
 

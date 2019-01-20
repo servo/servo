@@ -74,17 +74,17 @@ async_test(function(t) {
   t.done()
 }, "pick the first with activation behavior <input type=checkbox>")
 
-var globalCounter = 0 // sorry
 async_test(function(t) { // as above with <a>
-  var i = 0
+  window.hrefComplete = t.step_func(function(a) {
+    assert_equals(a, 'child');
+    t.done();
+  });
   var link = document.createElement("a")
-  link.href = "javascript:(function(){globalCounter--})()" // must not be triggered
+  link.href = "javascript:hrefComplete('link')" // must not be triggered
   dump.appendChild(link)
   var child = link.appendChild(document.createElement("a"))
-  child.href = "javascript:(function(){globalCounter++})()"
+  child.href = "javascript:hrefComplete('child')"
   child.dispatchEvent(new MouseEvent("click", {bubbles:true}))
-  assert_equals(globalCounter, 1)
-  t.done()
 }, "pick the first with activation behavior <a href>")
 
 async_test(function(t) {

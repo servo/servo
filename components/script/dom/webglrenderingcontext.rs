@@ -2,15 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(feature = "webgl_backtrace")]
-use backtrace::Backtrace;
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
-    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
-};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -55,6 +46,15 @@ use crate::dom::webgltexture::{TexParameterValue, WebGLTexture};
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
+#[cfg(feature = "webgl_backtrace")]
+use backtrace::Backtrace;
+use canvas_traits::webgl::WebGLError::*;
+use canvas_traits::webgl::{
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
+    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
+    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
+    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+};
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
@@ -157,6 +157,7 @@ pub struct WebGLRenderingContext {
     current_scissor: Cell<(i32, i32, u32, u32)>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
+    size: Cell<Size2D<u32>>,
     extension_manager: WebGLExtensions,
     capabilities: Capabilities,
     default_vao: DomOnceCell<WebGLVertexArrayObjectOES>,
@@ -211,6 +212,9 @@ impl WebGLRenderingContext {
                 current_program: MutNullableDom::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
+                // FIXME(#21718) The backend is allowed to choose a size smaller than
+                // what was requested
+                size: Cell::new(size),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
                 extension_manager: WebGLExtensions::new(webgl_version),
                 capabilities: Default::default(),
@@ -266,6 +270,9 @@ impl WebGLRenderingContext {
     pub fn recreate(&self, size: Size2D<u32>) {
         let (sender, receiver) = webgl_channel().unwrap();
         self.webgl_sender.send_resize(size, sender).unwrap();
+        // FIXME(#21718) The backend is allowed to choose a size smaller than
+        // what was requested
+        self.size.set(size);
 
         if let Err(msg) = receiver.recv().unwrap() {
             error!("Error resizing WebGLContext: {}", msg);
@@ -338,6 +345,10 @@ impl WebGLRenderingContext {
         if self.last_error.get().is_none() {
             self.last_error.set(Some(err));
         }
+    }
+
+    pub fn size(&self) -> Size2D<u32> {
+        self.size.get()
     }
 
     // Helper function for validating framebuffer completeness in
@@ -1913,9 +1924,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(&self, mask: u32) {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
-        if mask & !(constants::DEPTH_BUFFER_BIT |
-            constants::STENCIL_BUFFER_BIT |
-            constants::COLOR_BUFFER_BIT) !=
+        if mask &
+            !(constants::DEPTH_BUFFER_BIT |
+                constants::STENCIL_BUFFER_BIT |
+                constants::COLOR_BUFFER_BIT) !=
             0
         {
             return self.webgl_error(InvalidValue);

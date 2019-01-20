@@ -17,8 +17,6 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLPipeline;
 use crate::devtools;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
@@ -26,6 +24,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
@@ -83,6 +82,8 @@ use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::webdriver_handlers;
+use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
@@ -99,6 +100,7 @@ use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
+use js::rust::ParentRuntime;
 use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use msg::constellation_msg::{
@@ -117,7 +119,7 @@ use net_traits::{
 };
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
+use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
@@ -145,6 +147,7 @@ use std::result::Result;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
+use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use time::{at_utc, get_time, precise_time_ns, Timespec};
 use url::percent_encoding::percent_decode;
@@ -182,7 +185,7 @@ struct InProgressLoad {
     /// The opener, if this is an auxiliary.
     opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
-    window_size: Option<WindowSizeData>,
+    window_size: WindowSizeData,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
     /// The activity level of the document (inactive, active or fully active).
@@ -210,7 +213,7 @@ impl InProgressLoad {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         layout_chan: Sender<message::Msg>,
-        window_size: Option<WindowSizeData>,
+        window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
     ) -> InProgressLoad {
@@ -724,6 +727,13 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn runtime_handle() -> ParentRuntime {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.js_runtime.prepare_for_new_child()
+        })
+    }
+
     pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = &*root.get().unwrap();
@@ -935,7 +945,7 @@ impl ScriptThread {
                 return warn!(
                     "Paint worklet registered after pipeline {} closed.",
                     pipeline_id
-                )
+                );
             },
         };
         let _ = window
@@ -1008,7 +1018,7 @@ impl ScriptThread {
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
     ) -> ScriptThread {
-        let runtime = unsafe { new_rt_and_cx() };
+        let runtime = new_rt_and_cx();
         let cx = runtime.cx();
 
         unsafe {
@@ -1192,14 +1202,16 @@ impl ScriptThread {
                             } else if let Some(parent) =
                                 new_layout_info.parent_info.and_then(|pipeline_id| {
                                     self.documents.borrow().find_document(pipeline_id)
-                                }) {
+                                })
+                            {
                                 parent.origin().clone()
                             } else if let Some(creator) = new_layout_info
                                 .load_data
                                 .creator_pipeline_id
                                 .and_then(|pipeline_id| {
                                     self.documents.borrow().find_document(pipeline_id)
-                                }) {
+                                })
+                            {
                                 creator.origin().clone()
                             } else {
                                 MutableOrigin::new(ImmutableOrigin::new_opaque())
@@ -1314,6 +1326,10 @@ impl ScriptThread {
         // into this loop too, but for now it's only images.
         debug!("Issuing batched reflows.");
         for (_, document) in self.documents.borrow().iter() {
+            // Step 13
+            if !document.is_fully_active() {
+                continue;
+            }
             let window = document.window();
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
@@ -1396,6 +1412,7 @@ impl ScriptThread {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => {
                 match *inner_msg {
+                    StopDelayingLoadEventsMode(id) => Some(id),
                     NavigationResponse(id, _) => Some(id),
                     AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
                     Resize(id, ..) => Some(id),
@@ -1411,7 +1428,7 @@ impl ScriptThread {
                     ChangeFrameVisibilityStatus(id, ..) => Some(id),
                     NotifyVisibilityChange(id, ..) => Some(id),
                     Navigate(id, ..) => Some(id),
-                    PostMessage(id, ..) => Some(id),
+                    PostMessage { target: id, .. } => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
                     UpdateHistoryState(id, ..) => Some(id),
                     RemoveHistoryStates(id, ..) => Some(id),
@@ -1533,6 +1550,9 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
+            ConstellationControlMsg::StopDelayingLoadEventsMode(pipeline_id) => {
+                self.handle_stop_delaying_load_events_mode(pipeline_id)
+            },
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
                 match fetch_data {
                     FetchResponseMsg::ProcessResponse(metadata) => {
@@ -1581,9 +1601,19 @@ impl ScriptThread {
                 browsing_context_id,
                 visible,
             ),
-            ConstellationControlMsg::PostMessage(pipeline_id, origin, data) => {
-                self.handle_post_message_msg(pipeline_id, origin, data)
-            },
+            ConstellationControlMsg::PostMessage {
+                target: target_pipeline_id,
+                source: source_pipeline_id,
+                source_browsing_context,
+                target_origin: origin,
+                data,
+            } => self.handle_post_message_msg(
+                target_pipeline_id,
+                source_pipeline_id,
+                source_browsing_context,
+                origin,
+                data,
+            ),
             ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
@@ -1692,7 +1722,7 @@ impl ScriptThread {
                 return warn!(
                     "Received fire timer msg for a closed pipeline {}.",
                     pipeline_id
-                )
+                );
             },
         };
 
@@ -1852,7 +1882,7 @@ impl ScriptThread {
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.window_size = Some(size);
+            load.window_size = size;
             return;
         }
         warn!("resize sent to nonexistent pipeline");
@@ -1884,7 +1914,7 @@ impl ScriptThread {
                 return warn!(
                     "Set scroll state message sent to nonexistent pipeline: {:?}",
                     id
-                )
+                );
             },
         };
 
@@ -1893,7 +1923,7 @@ impl ScriptThread {
             if node_address == UntrustedNodeAddress(ptr::null()) {
                 window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
             } else {
-                scroll_offsets.insert(node_address, -*scroll_offset);
+                scroll_offsets.insert(OpaqueNode(node_address.0 as usize), -*scroll_offset);
             }
         }
         window.set_scroll_offsets(scroll_offsets)
@@ -1910,13 +1940,12 @@ impl ScriptThread {
             window_size,
             pipeline_port,
             content_process_shutdown_chan,
-            layout_threads,
         } = new_layout_info;
 
         let layout_pair = unbounded();
         let layout_chan = layout_pair.0.clone();
 
-        let msg = message::Msg::CreateLayoutThread(NewLayoutThreadInfo {
+        let msg = message::Msg::CreateLayoutThread(LayoutThreadInit {
             id: new_pipeline_id,
             url: load_data.url.clone(),
             is_parent: false,
@@ -1927,7 +1956,6 @@ impl ScriptThread {
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
-            layout_threads: layout_threads,
             paint_time_metrics: PaintTimeMetrics::new(
                 new_pipeline_id,
                 self.time_profiler_chan.clone(),
@@ -2071,19 +2099,53 @@ impl ScriptThread {
     fn handle_post_message_msg(
         &self,
         pipeline_id: PipelineId,
+        source_pipeline_id: PipelineId,
+        source_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
         data: Vec<u8>,
     ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
-            None => return warn!("postMessage after pipeline {} closed.", pipeline_id),
-            Some(window) => window.post_message(origin, StructuredCloneData::Vector(data)),
+            None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
+            Some(window) => {
+                // FIXME: synchronously talks to constellation.
+                // send the required info as part of postmessage instead.
+                let source = match self.remote_window_proxy(
+                    &*window.global(),
+                    source_browsing_context,
+                    source_pipeline_id,
+                    None,
+                ) {
+                    None => {
+                        return warn!(
+                            "postMessage after source pipeline {} closed.",
+                            source_pipeline_id,
+                        );
+                    },
+                    Some(source) => source,
+                };
+                // FIXME(#22512): enqueues a task; unnecessary delay.
+                window.post_message(origin, &*source, StructuredCloneData::Vector(data))
+            },
+        }
+    }
+
+    fn handle_stop_delaying_load_events_mode(&self, pipeline_id: PipelineId) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
+            match window.undiscarded_window_proxy() {
+                Some(window_proxy) => window_proxy.stop_delaying_load_events_mode(),
+                None => warn!(
+                    "Attempted to take {} of 'delaying-load-events-mode' after having been discarded.",
+                    pipeline_id
+                ),
+            };
         }
     }
 
     fn handle_unload_document(&self, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            document.unload(false, false);
+            document.unload(false);
         }
     }
 
@@ -2114,7 +2176,7 @@ impl ScriptThread {
                 return warn!(
                     "update history state after pipeline {} closed.",
                     pipeline_id
-                )
+                );
             },
             Some(window) => window.History().r().activate_state(history_state_id, url),
         }
@@ -2130,7 +2192,7 @@ impl ScriptThread {
                 return warn!(
                     "update history state after pipeline {} closed.",
                     pipeline_id
-                )
+                );
             },
             Some(window) => window.History().r().remove_states(history_states),
         }
@@ -2166,6 +2228,20 @@ impl ScriptThread {
                         status: Some((204...205, _)),
                         ..
                     }) => {
+                        // If we have an existing window that is being navigated:
+                        if let Some(window) = self.documents.borrow().find_window(id.clone()) {
+                            let window_proxy = window.window_proxy();
+                            // https://html.spec.whatwg.org/multipage/
+                            // #navigating-across-documents:delaying-load-events-mode-2
+                            if window_proxy.parent().is_some() {
+                                // The user agent must take this nested browsing context
+                                // out of the delaying load events mode
+                                // when this navigation algorithm later matures,
+                                // or when it terminates (whether due to having run all the steps,
+                                // or being canceled, or being aborted), whichever happens first.
+                                window_proxy.stop_delaying_load_events_mode();
+                            }
+                        }
                         self.script_sender
                             .send((id.clone(), ScriptMsg::AbortLoadUrl))
                             .unwrap();
@@ -2378,6 +2454,8 @@ impl ScriptThread {
         for pipeline_id in pipeline_ids {
             self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
         }
+
+        self.background_hang_monitor.unregister();
 
         debug!("Exited script thread.");
     }
@@ -2708,6 +2786,13 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        if window_proxy.parent().is_some() {
+            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+            // The user agent must take this nested browsing context
+            // out of the delaying load events mode
+            // when this navigation algorithm later matures.
+            window_proxy.stop_delaying_load_events_mode();
+        }
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
@@ -2774,6 +2859,21 @@ impl ScriptThread {
             .insert(incomplete.pipeline_id, &*document);
 
         window.init_document(&document);
+
+        // For any similar-origin iframe, ensure that the contentWindow/contentDocument
+        // APIs resolve to the new window/document as soon as parsing starts.
+        if let Some(frame) = window_proxy
+            .frame_element()
+            .and_then(|e| e.downcast::<HTMLIFrameElement>())
+        {
+            let parent_pipeline = frame.global().pipeline_id();
+            self.handle_update_pipeline_id(
+                parent_pipeline,
+                window_proxy.browsing_context_id(),
+                incomplete.pipeline_id,
+                UpdatePipelineIdReason::Navigation,
+            );
+        }
 
         self.script_sender
             .send((incomplete.pipeline_id, ScriptMsg::ActivateDocument))
@@ -3276,8 +3376,8 @@ impl ScriptThread {
     fn handle_webvr_events(&self, pipeline_id: PipelineId, events: Vec<WebVREvent>) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let vr = window.Navigator().Vr();
-            vr.handle_webvr_events(events);
+            let xr = window.Navigator().Xr();
+            xr.handle_webvr_events(events);
         }
     }
 

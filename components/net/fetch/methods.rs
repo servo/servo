@@ -191,7 +191,7 @@ pub fn main_fetch(
             },
             Referrer::ReferrerUrl(url) => {
                 request.headers.remove(header::REFERER);
-                let current_url = request.current_url().clone();
+                let current_url = request.current_url();
                 determine_request_referrer(
                     &mut request.headers,
                     request.referrer_policy.unwrap(),
@@ -253,10 +253,10 @@ pub fn main_fetch(
             Response::network_error(NetworkError::Internal("Non-http scheme".into()))
         } else if request.use_cors_preflight ||
             (request.unsafe_request &&
-                (!is_cors_safelisted_method(&request.method) || request
-                    .headers
-                    .iter()
-                    .any(|(name, value)| !is_cors_safelisted_request_header(&name, &value))))
+                (!is_cors_safelisted_method(&request.method) ||
+                    request.headers.iter().any(|(name, value)| {
+                        !is_cors_safelisted_request_header(&name, &value)
+                    })))
         {
             // Substep 1.
             request.response_tainting = ResponseTainting::CorsTainting;
@@ -372,10 +372,12 @@ pub fn main_fetch(
         // in the previous step.
         let not_network_error = !response_is_network_error && !internal_response.is_network_error();
         if not_network_error &&
-            (is_null_body_status(&internal_response.status) || match request.method {
-                Method::HEAD | Method::CONNECT => true,
-                _ => false,
-            }) {
+            (is_null_body_status(&internal_response.status) ||
+                match request.method {
+                    Method::HEAD | Method::CONNECT => true,
+                    _ => false,
+                })
+        {
             // when Fetch is used only asynchronously, we will need to make sure
             // that nothing tries to write to the body at this point
             let mut body = internal_response.body.lock().unwrap();
@@ -478,7 +480,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
             }
         }
     } else {
-        let body = response.body.lock().unwrap();
+        let body = response.actual_response().body.lock().unwrap();
         if let ResponseBody::Done(ref vec) = *body {
             // in case there was no channel to wait for, the body was
             // obtained synchronously via scheme_fetch for data/file/about/etc
@@ -785,7 +787,8 @@ pub fn should_be_blocked_due_to_nosniff(
         .get("x-content-type-options")
         .map_or(true, |val| {
             val.to_str().unwrap_or("").to_lowercase() != "nosniff"
-        }) {
+        })
+    {
         return false;
     }
 
@@ -850,12 +853,13 @@ fn should_be_blocked_due_to_mime_type(
     };
 
     // Step 2-3
-    destination.is_script_like() && match mime_type.type_() {
-        mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
-        mime::TEXT if mime_type.subtype() == mime::CSV => true,
-        // Step 4
-        _ => false,
-    }
+    destination.is_script_like() &&
+        match mime_type.type_() {
+            mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
+            mime::TEXT if mime_type.subtype() == mime::CSV => true,
+            // Step 4
+            _ => false,
+        }
 }
 
 /// <https://fetch.spec.whatwg.org/#block-bad-port>

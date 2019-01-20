@@ -4,21 +4,25 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+// The window.requestIdleCallback function is used to request callbacks during browser-defined idle time.
 test(function() {
   assert_equals(typeof window.requestIdleCallback, "function");
-}, "window.requestIdleCallback is defined", {assert: "The window.requestIdleCallback function is used to request callbacks during browser-defined idle time."});
+}, "window.requestIdleCallback is defined");
 
+// The window.cancelIdleCallback function is used to cancel callbacks scheduled via requestIdleCallback.
 test(function() {
   assert_equals(typeof window.cancelIdleCallback, "function");
-}, "window.cancelIdleCallback is defined", {assert: "The window.cancelIdleCallback function is used to cancel callbacks scheduled via requestIdleCallback."});
+}, "window.cancelIdleCallback is defined");
 
+// The requestIdleCallback method MUST return a long
 test(function() {
   assert_equals(typeof window.requestIdleCallback(function() {}), "number");
-}, "window.requestIdleCallback() returns a number", {assert: "The requestIdleCallback method MUST return a long"});
+}, "window.requestIdleCallback() returns a number");
 
+// The cancelIdleCallback method MUST return void
 test(function() {
   assert_equals(typeof window.cancelIdleCallback(1), "undefined");
-}, "window.cancelIdleCallback() returns undefined", {assert: "The cancelIdleCallback method MUST return void"});
+}, "window.cancelIdleCallback() returns undefined");
 
 async_test(function() {
   // Check whether requestIdleCallback schedules a callback which gets executed

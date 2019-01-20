@@ -11,7 +11,7 @@ use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use crate::values::specified::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
 use crate::values::specified::{AllowQuirks, Number};
 use crate::values::{CustomIdent, KeyframesName};
 use crate::Atom;
@@ -178,30 +178,6 @@ impl Display {
         }
     }
 
-    /// Whether `new_display` should be ignored, given a previous
-    /// `old_display` value.
-    ///
-    /// This is used to ignore `display: -moz-box` declarations after an
-    /// equivalent `display: -webkit-box` declaration, since the former
-    /// has a vastly different meaning. See bug 1107378 and bug 1407701.
-    ///
-    /// FIXME(emilio): This is a pretty decent hack, we should try to
-    /// remove it.
-    pub fn should_ignore_parsed_value(_old_display: Self, _new_display: Self) -> bool {
-        #[cfg(feature = "gecko")]
-        {
-            match (_old_display, _new_display) {
-                (Display::WebkitBox, Display::MozBox) |
-                (Display::WebkitInlineBox, Display::MozInlineBox) => {
-                    return true;
-                },
-                _ => {},
-            }
-        }
-
-        return false;
-    }
-
     /// Returns whether this "display" value is one of the types for
     /// ruby.
     #[cfg(feature = "gecko")]
@@ -242,10 +218,7 @@ impl Display {
             // Special handling for contents and list-item on the root
             // element for Gecko.
             #[cfg(feature = "gecko")]
-            Display::Contents | Display::ListItem if _is_root_element =>
-            {
-                Display::Block
-            },
+            Display::Contents | Display::ListItem if _is_root_element => Display::Block,
 
             // These are not changed by blockification.
             Display::None | Display::Block | Display::Flex | Display::ListItem | Display::Table => {
@@ -298,17 +271,16 @@ impl Display {
 }
 
 /// A specified value for the `vertical-align` property.
-pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;
+pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
 
 impl Parse for VerticalAlign {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) =
-            input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+        if let Ok(lp) = input.try(|i| LengthPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
-            return Ok(GenericVerticalAlign::Length(lop));
+            return Ok(GenericVerticalAlign::Length(lp));
         }
 
         try_match_ident_ignore_ascii_case! { input,
@@ -413,6 +385,7 @@ impl Parse for AnimationName {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum ScrollSnapType {
     None,
     Mandatory,
@@ -433,6 +406,7 @@ pub enum ScrollSnapType {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -453,6 +427,27 @@ pub enum OverscrollBehavior {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
+pub enum OverflowAnchor {
+    Auto,
+    None,
+}
+
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(u8)]
 pub enum OverflowClipBox {
     PaddingBox,
     ContentBox,
@@ -768,7 +763,9 @@ impl Parse for Contain {
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
                 _ => {
-                    return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
+                    return Err(
+                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
+                    );
                 },
             };
             result.insert(flag);
@@ -847,7 +844,7 @@ impl Parse for TransitionProperty {
                     location,
                     ident,
                     &["none"],
-                )?))
+                )?));
             },
         };
 
@@ -1155,10 +1152,11 @@ pub enum Appearance {
     TabScrollArrowBack,
     #[parse(condition = "in_ua_or_chrome_sheet")]
     TabScrollArrowForward,
-    /// A textfield or text area.
+    /// A multi-line text field, e.g. HTML <textarea>.
+    #[parse(aliases = "textfield-multiline")]
+    Textarea,
+    /// A single-line text field, e.g. HTML <input type=text>.
     Textfield,
-    /// A multiline text field.
-    TextfieldMultiline,
     /// A toolbar in an application window.
     #[parse(condition = "in_ua_or_chrome_sheet")]
     Toolbar,
@@ -1309,11 +1307,56 @@ pub enum Appearance {
 )]
 #[repr(u8)]
 pub enum BreakBetween {
-    Auto,
     Always,
+    Auto,
+    Page,
     Avoid,
     Left,
     Right,
+}
+
+impl BreakBetween {
+    /// Parse a legacy break-between value for `page-break-*`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[inline]
+    pub fn parse_legacy<'i>(input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        let break_value = match BreakBetween::from_ident(ident) {
+            Ok(v) => v,
+            Err(()) => {
+                return Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+            },
+        };
+        match break_value {
+            BreakBetween::Always => Ok(BreakBetween::Page),
+            BreakBetween::Auto | BreakBetween::Avoid | BreakBetween::Left | BreakBetween::Right => {
+                Ok(break_value)
+            },
+            BreakBetween::Page => {
+                Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+            },
+        }
+    }
+
+    /// Serialize a legacy break-between value for `page-break-*`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    pub fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            BreakBetween::Auto | BreakBetween::Avoid | BreakBetween::Left | BreakBetween::Right => {
+                self.to_css(dest)
+            },
+            BreakBetween::Page => dest.write_str("always"),
+            BreakBetween::Always => Ok(()),
+        }
+    }
 }
 
 /// A kind of break within a box.
@@ -1337,4 +1380,29 @@ pub enum BreakBetween {
 pub enum BreakWithin {
     Auto,
     Avoid,
+}
+
+/// The value for the `overflow-x` / `overflow-y` properties.
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum Overflow {
+    Visible,
+    Hidden,
+    Scroll,
+    Auto,
+    #[cfg(feature = "gecko")]
+    MozHiddenUnscrollable,
 }

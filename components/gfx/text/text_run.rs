@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use crate::font::{Font, FontHandleMethods, FontMetrics, ShapingFlags};
 use crate::font::{RunMetrics, ShapingOptions};
 use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::{ByteIndex, GlyphStore};
+use app_units::Au;
 use range::Range;
 use std::cell::Cell;
 use std::cmp::{max, Ordering};
@@ -293,9 +293,10 @@ impl<'a> TextRun {
         // TODO(Issue #98): using inter-char and inter-word spacing settings when measuring text
         self.natural_word_slices_in_range(range)
             .fold(Au(0), |advance, slice| {
-                advance + slice
-                    .glyphs
-                    .advance_for_byte_range(&slice.range, self.extra_word_spacing)
+                advance +
+                    slice
+                        .glyphs
+                        .advance_for_byte_range(&slice.range, self.extra_word_spacing)
             })
     }
 

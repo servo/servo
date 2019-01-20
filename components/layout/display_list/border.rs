@@ -4,8 +4,8 @@
 
 // FIXME(rust-lang/rust#26264): Remove GenericBorderImageSideWidth.
 
-use app_units::Au;
 use crate::display_list::ToLayout;
+use app_units::Au;
 use euclid::{Rect, SideOffsets2D, Size2D};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::Border;
@@ -14,6 +14,7 @@ use style::values::computed::{BorderCornerRadius, BorderImageWidth};
 use style::values::computed::{BorderImageSideWidth, LengthOrNumber};
 use style::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use style::values::generics::rect::Rect as StyleRect;
+use style::values::generics::NonNegative;
 use style::values::Either;
 use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF};
 use webrender_api::{LayoutSideOffsets, LayoutSize, NormalBorder};
@@ -163,7 +164,7 @@ fn side_image_width(
 ) -> f32 {
     match border_image_width {
         GenericBorderImageSideWidth::Length(v) => v.to_used_value(total_length).to_f32_px(),
-        GenericBorderImageSideWidth::Number(x) => border_width * x,
+        GenericBorderImageSideWidth::Number(x) => border_width * x.0,
         GenericBorderImageSideWidth::Auto => border_width,
     }
 }
@@ -181,15 +182,15 @@ pub fn image_width(
     )
 }
 
-fn resolve_percentage(value: NumberOrPercentage, length: i32) -> i32 {
-    match value {
+fn resolve_percentage(value: NonNegative<NumberOrPercentage>, length: i32) -> i32 {
+    match value.0 {
         NumberOrPercentage::Percentage(p) => (p.0 * length as f32).round() as i32,
         NumberOrPercentage::Number(n) => n.round() as i32,
     }
 }
 
 pub fn image_slice(
-    border_image_slice: &StyleRect<NumberOrPercentage>,
+    border_image_slice: &StyleRect<NonNegative<NumberOrPercentage>>,
     width: i32,
     height: i32,
 ) -> SideOffsets2D<i32> {

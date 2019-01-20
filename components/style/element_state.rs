@@ -144,7 +144,7 @@ bitflags! {
     /// Event-based document states.
     ///
     /// NB: Is important for this to remain in sync with Gecko's
-    /// dom/base/nsIDocument.h.
+    /// dom/base/Document.h.
     #[derive(MallocSizeOf)]
     pub struct DocumentState: u64 {
         /// RTL locale: specific to the XUL localedir attribute

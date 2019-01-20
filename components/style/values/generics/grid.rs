@@ -151,6 +151,7 @@ impl Parse for GridLine<specified::Integer> {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
+    Animate,
     Clone,
     Copy,
     Debug,
@@ -172,7 +173,9 @@ pub enum TrackKeyword {
 /// avoid re-implementing it for the computed type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub enum TrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
@@ -190,7 +193,7 @@ impl<L> TrackBreadth<L> {
     #[inline]
     pub fn is_fixed(&self) -> bool {
         match *self {
-            TrackBreadth::Breadth(ref _lop) => true,
+            TrackBreadth::Breadth(ref _lp) => true,
             _ => false,
         }
     }
@@ -278,9 +281,9 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 max.to_css(dest)?;
                 dest.write_str(")")
             },
-            TrackSize::FitContent(ref lop) => {
+            TrackSize::FitContent(ref lp) => {
                 dest.write_str("fit-content(")?;
-                lop.to_css(dest)?;
+                lp.to_css(dest)?;
                 dest.write_str(")")
             },
         }
@@ -308,7 +311,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
             TrackSize::Minmax(ref b1, ref b2) => {
                 TrackSize::Minmax(b1.to_computed_value(context), b2.to_computed_value(context))
             },
-            TrackSize::FitContent(ref lop) => TrackSize::FitContent(lop.to_computed_value(context)),
+            TrackSize::FitContent(ref lp) => TrackSize::FitContent(lp.to_computed_value(context)),
         }
     }
 
@@ -322,8 +325,8 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
                 ToComputedValue::from_computed_value(b1),
                 ToComputedValue::from_computed_value(b2),
             ),
-            TrackSize::FitContent(ref lop) => {
-                TrackSize::FitContent(ToComputedValue::from_computed_value(lop))
+            TrackSize::FitContent(ref lp) => {
+                TrackSize::FitContent(ToComputedValue::from_computed_value(lp))
             },
         }
     }
@@ -481,12 +484,14 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
 }
 
 /// Track list values. Can be <track-size> or <track-repeat>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
-pub enum TrackListValue<LengthOrPercentage, Integer> {
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
+pub enum TrackListValue<LengthPercentage, Integer> {
     /// A <track-size> value.
-    TrackSize(TrackSize<LengthOrPercentage>),
+    TrackSize(#[animation(field_bound)] TrackSize<LengthPercentage>),
     /// A <track-repeat> value.
-    TrackRepeat(TrackRepeat<LengthOrPercentage, Integer>),
+    TrackRepeat(#[animation(field_bound)] TrackRepeat<LengthPercentage, Integer>),
 }
 
 /// The type of a `<track-list>` as determined during parsing.
@@ -515,7 +520,7 @@ pub enum TrackListType {
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
-pub struct TrackList<LengthOrPercentage, Integer> {
+pub struct TrackList<LengthPercentage, Integer> {
     /// The type of this `<track-list>` (auto, explicit or general).
     ///
     /// In order to avoid parsing the same value multiple times, this does a single traversal
@@ -523,7 +528,7 @@ pub struct TrackList<LengthOrPercentage, Integer> {
     #[css(skip)]
     pub list_type: TrackListType,
     /// A vector of `<track-size> | <track-repeat>` values.
-    pub values: Vec<TrackListValue<LengthOrPercentage, Integer>>,
+    pub values: Vec<TrackListValue<LengthPercentage, Integer>>,
     /// `<line-names>` accompanying `<track-size> | <track-repeat>` values.
     ///
     /// If there's no `<line-names>`, then it's represented by an empty vector.
@@ -531,7 +536,7 @@ pub struct TrackList<LengthOrPercentage, Integer> {
     /// length is always one value more than that of the `<track-size>`.
     pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
-    pub auto_repeat: Option<TrackRepeat<LengthOrPercentage, Integer>>,
+    pub auto_repeat: Option<TrackRepeat<LengthPercentage, Integer>>,
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
@@ -692,13 +697,21 @@ impl ToCss for LineNameList {
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub enum GridTemplateComponent<L, I> {
     /// `none` value.
     None,
     /// The grid `<track-list>`
-    TrackList(#[compute(field_bound)] TrackList<L, I>),
+    TrackList(
+        #[animation(field_bound)]
+        #[compute(field_bound)]
+        TrackList<L, I>,
+    ),
     /// A `subgrid <line-name-list>?`
+    /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
+    #[animation(error)]
     Subgrid(LineNameList),
 }
 

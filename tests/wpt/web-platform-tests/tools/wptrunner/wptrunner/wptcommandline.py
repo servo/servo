@@ -137,6 +137,11 @@ scheme host and port.""")
     test_selection_group.add_argument("--tag", action="append", dest="tags",
                                       help="Labels applied to tests to include in the run. "
                                            "Labels starting dir: are equivalent to top-level directories.")
+    test_selection_group.add_argument("--default-exclude", action="store_true",
+                                      default=False,
+                                      help="Only run the tests explicitly given in arguments. "
+                                           "No tests will run if the list is empty, and the "
+                                           "program will exit with status code 0.")
 
     debugging_group = parser.add_argument_group("Debugging")
     debugging_group.add_argument('--debugger', const="__default__", nargs="?",
@@ -302,6 +307,10 @@ scheme host and port.""")
                              help="Number of seconds to wait for Sauce "
                                   "Connect tunnel to be available before "
                                   "aborting")
+    sauce_group.add_argument("--sauce-connect-arg", action="append",
+                             default=[], dest="sauce_connect_args",
+                             help="Command-line argument to forward to the "
+                                  "Sauce Connect binary (repeatable)")
 
     webkit_group = parser.add_argument_group("WebKit-specific")
     webkit_group.add_argument("--webkit-port", dest="webkit_port",

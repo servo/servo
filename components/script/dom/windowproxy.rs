@@ -45,7 +45,6 @@ use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
-use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::ptr;
@@ -94,6 +93,9 @@ pub struct WindowProxy {
 
     /// The parent browsing context's window proxy, if this is a nested browsing context
     parent: Option<Dom<WindowProxy>>,
+
+    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    delaying_load_events_mode: Cell<bool>,
 }
 
 impl WindowProxy {
@@ -118,6 +120,7 @@ impl WindowProxy {
             disowned: Cell::new(false),
             frame_element: frame_element.map(Dom::from_ref),
             parent: parent.map(Dom::from_ref),
+            delaying_load_events_mode: Cell::new(false),
             opener,
         }
     }
@@ -289,8 +292,7 @@ impl WindowProxy {
                 load_data: load_data,
                 pipeline_port: pipeline_receiver,
                 content_process_shutdown_chan: None,
-                window_size: None,
-                layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+                window_size: window.window_size(),
             };
             let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info, pipeline_sender);
             window.send_to_constellation(constellation_msg);
@@ -312,6 +314,26 @@ impl WindowProxy {
             }
         }
         None
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    pub fn is_delaying_load_events_mode(&self) -> bool {
+        self.delaying_load_events_mode.get()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    pub fn start_delaying_load_events_mode(&self) {
+        self.delaying_load_events_mode.set(true);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    pub fn stop_delaying_load_events_mode(&self) {
+        self.delaying_load_events_mode.set(false);
+        if let Some(document) = self.document() {
+            if !document.loader().events_inhibited() {
+                ScriptThread::mark_document_with_no_blocked_loads(&document);
+            }
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#disowned-its-opener

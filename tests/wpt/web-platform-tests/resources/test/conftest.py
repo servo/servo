@@ -27,7 +27,11 @@ def pytest_collect_file(path, parent):
         return
 
     # Tests are organized in directories by type
-    test_type = os.path.relpath(str(path), HERE).split(os.path.sep)[1]
+    test_type = os.path.relpath(str(path), HERE)
+    if os.path.sep not in test_type or ".." in test_type:
+        # HTML files in this directory are not tests
+        return
+    test_type = test_type.split(os.path.sep)[1]
 
     return HTMLItem(str(path), test_type, parent)
 

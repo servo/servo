@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-${helpers.four_sides_shorthand("margin", "margin-%s", "specified::LengthOrPercentageOrAuto::parse",
+${helpers.four_sides_shorthand("margin", "margin-%s", "specified::LengthPercentageOrAuto::parse",
                                spec="https://drafts.csswg.org/css-box/#propdef-margin",
                                allowed_in_page_rule=True,
                                allow_quirks=True)}

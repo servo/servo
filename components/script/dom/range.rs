@@ -758,11 +758,12 @@ impl RangeMethods for Range {
         let new_offset = reference_node.r().map_or(parent.len(), |node| node.index());
 
         // Step 11
-        let new_offset = new_offset + if node.type_id() == NodeTypeId::DocumentFragment {
-            node.len()
-        } else {
-            1
-        };
+        let new_offset = new_offset +
+            if node.type_id() == NodeTypeId::DocumentFragment {
+                node.len()
+            } else {
+                1
+            };
 
         // Step 12.
         Node::pre_insert(node, &parent, reference_node.r())?;
@@ -874,7 +875,7 @@ impl RangeMethods for Range {
         // Step 2.
         match new_parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => {
-                return Err(Error::InvalidNodeType)
+                return Err(Error::InvalidNodeType);
             },
             _ => (),
         }

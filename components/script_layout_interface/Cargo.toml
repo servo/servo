@@ -21,10 +21,9 @@ gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.22"
 ipc-channel = "0.11"
 libc = "0.2"
-log = "0.4"
 time = "0.1.17"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

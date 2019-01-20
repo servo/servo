@@ -9,7 +9,7 @@ use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::{nsCSSUnit, nsCSSValue};
 use crate::gecko_bindings::structs::{nsCSSValueList, nsCSSValue_Array};
 use crate::gecko_string_cache::Atom;
-use crate::values::computed::{Angle, Length, LengthOrPercentage, Percentage};
+use crate::values::computed::{Angle, Length, LengthPercentage, Percentage};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
@@ -67,13 +67,16 @@ impl nsCSSValue {
         &*array
     }
 
-    /// Sets LengthOrPercentage value to this nsCSSValue.
-    pub unsafe fn set_lop(&mut self, lop: LengthOrPercentage) {
-        match lop {
-            LengthOrPercentage::Length(px) => self.set_px(px.px()),
-            LengthOrPercentage::Percentage(pc) => self.set_percentage(pc.0),
-            LengthOrPercentage::Calc(calc) => bindings::Gecko_CSSValue_SetCalc(self, calc.into()),
+    /// Sets LengthPercentage value to this nsCSSValue.
+    pub unsafe fn set_length_percentage(&mut self, lp: LengthPercentage) {
+        if lp.was_calc {
+            return bindings::Gecko_CSSValue_SetCalc(self, lp.into());
         }
+        debug_assert!(lp.percentage.is_none() || lp.unclamped_length() == Length::zero());
+        if let Some(p) = lp.percentage {
+            return self.set_percentage(p.0);
+        }
+        self.set_px(lp.unclamped_length().px());
     }
 
     /// Sets a px value to this nsCSSValue.
@@ -86,18 +89,16 @@ impl nsCSSValue {
         bindings::Gecko_CSSValue_SetPercentage(self, unit_value)
     }
 
-    /// Returns LengthOrPercentage value.
-    pub unsafe fn get_lop(&self) -> LengthOrPercentage {
+    /// Returns LengthPercentage value.
+    pub unsafe fn get_length_percentage(&self) -> LengthPercentage {
         match self.mUnit {
             nsCSSUnit::eCSSUnit_Pixel => {
-                LengthOrPercentage::Length(Length::new(bindings::Gecko_CSSValue_GetNumber(self)))
+                LengthPercentage::new(Length::new(bindings::Gecko_CSSValue_GetNumber(self)), None)
             },
-            nsCSSUnit::eCSSUnit_Percent => LengthOrPercentage::Percentage(Percentage(
+            nsCSSUnit::eCSSUnit_Percent => LengthPercentage::new_percent(Percentage(
                 bindings::Gecko_CSSValue_GetPercentage(self),
             )),
-            nsCSSUnit::eCSSUnit_Calc => {
-                LengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
-            },
+            nsCSSUnit::eCSSUnit_Calc => bindings::Gecko_CSSValue_GetCalc(self).into(),
             _ => panic!("Unexpected unit"),
         }
     }

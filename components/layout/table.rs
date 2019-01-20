@@ -4,13 +4,12 @@
 
 //! CSS table formatting contexts.
 
-use app_units::Au;
 use crate::block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use crate::display_list::{
-    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionFlags,
+    StackingContextCollectionState,
 };
 use crate::flow::{
     BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils,
@@ -24,6 +23,7 @@ use crate::table_cell::TableCellFlow;
 use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use crate::table_row::{TableRowFlow, TableRowSizeData};
 use crate::table_wrapper::TableLayout;
+use app_units::Au;
 use euclid::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::{cmp, fmt};
@@ -33,7 +33,7 @@ use style::logical_geometry::LogicalSize;
 use style::properties::style_structs::Background;
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::LengthPercentageOrAuto;
 use style::values::CSSFloat;
 
 #[allow(unsafe_code)]
@@ -301,16 +301,16 @@ impl Flow for TableFlow {
                 self.column_intrinsic_inline_sizes
                     .push(ColumnIntrinsicInlineSize {
                         minimum_length: match *specified_inline_size {
-                            LengthOrPercentageOrAuto::Auto |
-                            LengthOrPercentageOrAuto::Calc(_) |
-                            LengthOrPercentageOrAuto::Percentage(_) => Au(0),
-                            LengthOrPercentageOrAuto::Length(length) => Au::from(length),
+                            LengthPercentageOrAuto::Auto => Au(0),
+                            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                                lp.maybe_to_used_value(None).unwrap_or(Au(0))
+                            },
                         },
                         percentage: match *specified_inline_size {
-                            LengthOrPercentageOrAuto::Auto |
-                            LengthOrPercentageOrAuto::Calc(_) |
-                            LengthOrPercentageOrAuto::Length(_) => 0.0,
-                            LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
+                            LengthPercentageOrAuto::Auto => 0.0,
+                            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                                lp.as_percentage().map_or(0.0, |p| p.0)
+                            },
                         },
                         preferred: Au(0),
                         constrained: false,
@@ -952,9 +952,8 @@ impl TableLikeFlow for BlockFlow {
                     row.mut_base().restyle_damage.remove(
                         ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW,
                     );
-                    current_block_offset =
-                        current_block_offset +
-                            border_spacing_for_row(&self.fragment, row, block_direction_spacing);
+                    current_block_offset = current_block_offset +
+                        border_spacing_for_row(&self.fragment, row, block_direction_spacing);
                     i += 1;
                 }
 
@@ -990,11 +989,12 @@ impl TableLikeFlow for BlockFlow {
             current_block_offset = current_block_offset + delta;
 
             // Take border, padding, and spacing into account.
-            let block_end_offset = self.fragment.border_padding.block_end + if has_rows {
-                block_direction_spacing
-            } else {
-                Au(0)
-            };
+            let block_end_offset = self.fragment.border_padding.block_end +
+                if has_rows {
+                    block_direction_spacing
+                } else {
+                    Au(0)
+                };
             current_block_offset = current_block_offset + block_end_offset;
 
             // Now that `current_block_offset` is at the block-end of the border box, compute the

@@ -52,8 +52,11 @@ promise_test(function(t) {
       })
       .then(
         function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, registration.scope);
+            });
+
           assert_unreached('register should fail');
-          service_worker_unregister_and_done(t, registration.scope);
         },
         function(error) {
           assert_equals(error.name, 'SecurityError',

@@ -31,6 +31,7 @@ include = ["cssparser"]
 
 [struct]
 derive_eq = true
+derive_neq = true
 
 [enum]
 derive_helper_methods = true
@@ -41,12 +42,15 @@ include = [
   "Appearance",
   "BreakBetween",
   "BreakWithin",
+  "BorderStyle",
+  "OutlineStyle",
   "ComputedFontStretchRange",
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",
   "ComputedTimingFunction",
   "Display",
   "DisplayMode",
+  "ExtremumLength",
   "FillRule",
   "FontDisplay",
   "FontFaceSourceListComponent",
@@ -56,5 +60,12 @@ include = [
   "PathCommand",
   "UnicodeRange",
   "UserSelect",
+  "Float",
+  "OverscrollBehavior",
+  "ScrollSnapType",
+  "OverflowAnchor",
+  "OverflowClipBox",
+  "Resize",
+  "Overflow",
 ]
 item_types = ["enums", "structs", "typedefs"]

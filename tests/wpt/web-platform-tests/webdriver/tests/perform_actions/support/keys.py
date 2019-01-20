@@ -442,7 +442,7 @@ ALL_EVENTS = {
         "value": u"\ue01d",
     },
     "NUMPAD4": {
-        "code": "PageDown",
+        "code": "Numpad4",
         "ctrl": False,
         "key": "4",
         "location": 3,
@@ -451,7 +451,7 @@ ALL_EVENTS = {
         "value": u"\ue01e",
     },
     "NUMPAD5": {
-        "code": "PageUp",
+        "code": "Numpad5",
         "ctrl": False,
         "key": "5",
         "location": 3,

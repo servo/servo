@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cg;
-use quote::Tokens;
-use syn::DeriveInput;
+use proc_macro2::{Span, TokenStream};
+use syn::{DeriveInput, Ident};
 use synstructure::BindStyle;
 
-pub fn derive(mut input: DeriveInput) -> Tokens {
+pub fn derive(mut input: DeriveInput) -> TokenStream {
     let mut where_clause = input.generics.where_clause.take();
     let (to_body, from_body) = {
         let params = input.generics.type_params().collect::<Vec<_>>();
@@ -79,7 +79,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     let computed_value_type = cg::fmap_trait_output(
         &input,
         &parse_quote!(crate::values::computed::ToComputedValue),
-        "ComputedValue".into(),
+        Ident::new("ComputedValue", Span::call_site()),
     );
 
     quote! {

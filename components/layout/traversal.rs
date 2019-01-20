@@ -201,9 +201,10 @@ where
 
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
-        if nonincremental_layout || tnode.restyle_damage() != RestyleDamage::empty() || node
-            .as_element()
-            .map_or(false, |el| el.has_dirty_descendants())
+        if nonincremental_layout ||
+            tnode.restyle_damage() != RestyleDamage::empty() ||
+            node.as_element()
+                .map_or(false, |el| el.has_dirty_descendants())
         {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {

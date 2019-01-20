@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Default passive document level wheel event listener manual test</title>
+<link rel="help" href="https://github.com/WICG/interventions/issues/64">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div>This is a manual test since there is no way to synthesize wheel events.
+Scroll by wheel in the middle of the page to run the test.</div>
+<script>
+function testWheelCancelable(test) {
+  document.addEventListener("wheel", test.step_func(event => {
+    assert_false(event.cancelable, "Wheel event must be non-cancelable.");
+    test.done();
+  }));
+}
+async_test(t => { testWheelCancelable(t); }, "Wheel events are " +
+    "non-cancelable since the event listener is treated as passive");
+</script>

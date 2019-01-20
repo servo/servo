@@ -1,1 +1,1 @@
-Feature-Policy: fullscreen-report-only 'none'
+Feature-Policy-Report-Only: fullscreen 'none'

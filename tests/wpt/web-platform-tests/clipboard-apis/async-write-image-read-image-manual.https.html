@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard writeImageExperimental -> readImageExperimental tests
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>
+  <p>The bottom image should display the same image as the top image.</p>
+  <p>Original Image:</p>
+  <image id='image-to-copy' width='20' height='20'
+        src="resources/greenbox.png"></image>
+  <p>Image after copy/paste:</p>
+  <image id='image-on-clipboard'></image>
+  <canvas id='canvas' width='20' height='20'></canvas>
+</p>
+
+<script>
+// Must compare a bitmap as opposed to simply blob data, because an encoded
+// image may have different contents depending on encoder.
+async function getBitmapString(blob) {
+  const imageBitmap = await createImageBitmap(blob);
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  ctx.drawImage(imageBitmap, 0,0);
+
+  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  return imageData.data.toString();
+};
+
+async function loadBlob(fileName) {
+  const fetched = await fetch(fileName);
+  return await fetched.blob();
+}
+
+promise_test(async t => {
+  const input = await loadBlob('resources/greenbox.png');
+
+  await navigator.clipboard.writeImageExperimental(input);
+  const output = await navigator.clipboard.readImageExperimental();
+
+  document.getElementById('image-on-clipboard').src =
+      window.URL.createObjectURL(output);
+
+  const comparableInput = await getBitmapString(input);
+  const comparableOutput = await getBitmapString(output);
+
+  assert_equals(comparableOutput, comparableInput);
+}, "Verify write and read clipboard (DOMString)");
+</script>
+<p>
+  Note: This is a manual test because it writes/reads to the shared system
+  clipboard and thus cannot be run async with other tests that might interact
+  with the clipboard.
+</p>
