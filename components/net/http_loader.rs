@@ -538,16 +538,6 @@ pub fn http_fetch(
             .unwrap()
             .set_attribute(ResourceAttribute::RequestStart);
 
-        if request.redirect_mode == RedirectMode::Manual ||
-            request.redirect_mode == RedirectMode::Follow
-        {
-            context
-                .timing
-                .lock()
-                .unwrap()
-                .set_attribute(ResourceAttribute::RedirectStart);
-        }
-
         let mut fetch_result = http_network_or_cache_fetch(
             request,
             authentication_fetch_flag,
@@ -742,6 +732,28 @@ pub fn http_redirect_fetch(
 
     // Step 15
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
+
+    // https://w3c.github.io/resource-timing/#dfn-step-fetch-start
+    // (Step 20)
+    // 1. If the current resource and the redirected resource are not from
+    //    the same origin as the current document, and the timing allow check
+    //    algorithm fails for either resource, set redirectStart and
+    //    redirectEnd to 0. Then, return to step 5 with the new resource.
+    // 2. If the value of redirectStart is not set, let it be the value of
+    //    fetchStart.
+    if !same_origin {
+        context
+            .timing
+            .lock()
+            .unwrap()
+            .set_attribute(ResourceAttribute::RedirectStart(0));
+    } else if self.redirect_start == 0 {
+        context
+            .timing
+            .lock()
+            .unwrap()
+            .set_attribute(ResourceAttribute::RedirectStart(self.fetch_start));
+    }
 
     main_fetch(
         request,
