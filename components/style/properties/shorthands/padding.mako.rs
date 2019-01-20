@@ -28,7 +28,8 @@ ${helpers.four_sides_shorthand("padding", "padding-%s", "specified::NonNegativeL
         ) -> Result<Longhands, ParseError<'i>> {
             let start_value = NonNegativeLengthPercentage::parse(context, input)?;
             let end_value =
-                input.try(|input| NonNegativeLengthPercentage::parse(context, input)).unwrap_or_else(|_| start_value.clone());
+                input.try(|input| NonNegativeLengthPercentage::parse(context, input))
+                    .unwrap_or_else(|_| start_value.clone());
 
             Ok(expanded! {
                 padding_${axis}_start: start_value,

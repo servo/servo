@@ -24,7 +24,7 @@ use webrender_api::{DeviceIntPoint, DeviceIntSize};
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
-#[derive(Copy, Clone, FromPrimitive, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, FromPrimitive, PartialEq, Serialize)]
 pub enum Cursor {
     None,
     Default,

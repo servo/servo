@@ -29,7 +29,8 @@ ${helpers.four_sides_shorthand("margin", "margin-%s", "specified::LengthPercenta
         ) -> Result<Longhands, ParseError<'i>> {
             let start_value = LengthPercentageOrAuto::parse(context, input)?;
             let end_value =
-                input.try(|input| LengthPercentageOrAuto::parse(context, input)).unwrap_or_else(|_| start_value.clone());
+                input.try(|input| LengthPercentageOrAuto::parse(context, input))
+                    .unwrap_or_else(|_| start_value.clone());
 
             Ok(expanded! {
                 margin_${axis}_start: start_value,

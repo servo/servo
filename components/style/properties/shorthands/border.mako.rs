@@ -376,7 +376,8 @@ pub fn parse_border<'i, 't>(
             ) -> Result<Longhands, ParseError<'i>> {
                 let start_value = border_${axis}_start_${prop}::parse(context, input)?;
                 let end_value =
-                    input.try(|input| border_${axis}_start_${prop}::parse(context, input)).unwrap_or_else(|_| start_value.clone());
+                    input.try(|input| border_${axis}_start_${prop}::parse(context, input))
+                        .unwrap_or_else(|_| start_value.clone());
 
                 Ok(expanded! {
                     border_${axis}_start_${prop}: start_value,

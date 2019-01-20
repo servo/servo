@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%!
-    from data import Keyword, to_rust_ident, to_camel_case
-    from data import LOGICAL_CORNERS, PHYSICAL_CORNERS, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES, SYSTEM_FONT_LONGHANDS
+    from data import Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
+    from data import LOGICAL_CORNERS, PHYSICAL_CORNERS, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
