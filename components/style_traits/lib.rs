@@ -81,7 +81,6 @@ pub enum CSSPixel {}
 //   / hidpi_ratio => DeviceIndependentPixel
 //     / desktop_zoom => CSSPixel
 
-pub mod cursor;
 pub mod specified_value_info;
 #[macro_use]
 pub mod values;
