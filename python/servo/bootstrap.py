@@ -309,7 +309,7 @@ def windows_msvc(context, force=False):
         print("Extracting {}...".format(full_spec), end='')
         try:
             extract(zip_path, deps_dir)
-        except BadZipfile as e:
+        except BadZipfile:
             print("\nError: %s.zip is not a valid zip file, redownload..." % full_spec)
             os.remove(zip_path)
             prepare_file(zip_path, full_spec)
