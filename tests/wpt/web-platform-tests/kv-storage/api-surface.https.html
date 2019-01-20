@@ -23,7 +23,9 @@ test(() => {
   classAssert.propertyKeys(StorageArea.prototype, [
     "constructor", "set", "get", "delete", "clear",
     "keys", "values", "entries", "backingStore"
-  ], []);
+  ], [
+    Symbol.asyncIterator
+  ]);
 
   classAssert.methods(StorageArea.prototype, {
     set: 2,
@@ -39,6 +41,10 @@ test(() => {
     backingStore: ["get"]
   });
 }, "StorageArea.prototype methods and properties");
+
+test(() => {
+  assert_equals(StorageArea.prototype[Symbol.asyncIterator], StorageArea.prototype.entries);
+}, "[Symbol.asyncIterator]() and entries() must be the same function");
 
 testWithArea(async area => {
   classAssert.propertyKeys(area, [], []);

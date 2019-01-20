@@ -83,7 +83,7 @@ function test_feature_availability_with_post_message_result(
 // tests the feature availability and posts the result back to the parent.
 // Otherwise, does nothing.
 function test_feature_in_iframe(feature_name, feature_promise_factory) {
-  if (location.hash.includes(feature_name)) {
+  if (location.hash.endsWith(`#${feature_name}`)) {
     feature_promise_factory().then(
         () => window.parent.postMessage('#OK', '*'),
         (e) => window.parent.postMessage('#' + e.name, '*'));

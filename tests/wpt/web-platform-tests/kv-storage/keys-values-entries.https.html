@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: keys()/values()/entries()</title>
+<!--
+  This file contains tests that are easy to generalize over all three methods.
+  See sibling files for more complicated tests which are not worth generalizing.
+-->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/IndexedDB/support-promises.js"></script>
+
+<script type="module">
+import { testWithArea } from "./helpers/kvs-tests.js";
+import * as classAssert from "./helpers/class-assert.js";
+import { assertAsyncIteratorEquals } from "./helpers/equality-asserters.js";
+// Also uses some global functions included via support-promises.js.
+
+const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async function*() {}).prototype);
+
+testWithArea(async area => {
+  const keysProto = Object.getPrototypeOf(area.keys());
+  const valuesProto = Object.getPrototypeOf(area.values());
+  const entriesProto = Object.getPrototypeOf(area.entries());
+
+  assert_equals(keysProto, valuesProto, "keys() and values() return values' must have the same [[Prototype]]");
+  assert_equals(valuesProto, entriesProto, "values() and entries () return values' must have the same [[Prototype]]");
+}, "keys()/values()/entries() all use the same prototype object");
+
+for (const method of ["keys", "values", "entries"]) {
+  testWithArea(async area => {
+    const iter = area[method]();
+    const proto = Object.getPrototypeOf(iter);
+    assert_equals(Object.getPrototypeOf(proto), AsyncIteratorPrototype,
+      "[[Prototype]] must be the async iterator prototype");
+    classAssert.propertyKeys(proto, ["next"], [], "must only have a next() method");
+  }, `${method}() return value is an async iterator of the expected shape`);
+
+  testWithArea(async area => {
+    const iter = area[method]();
+    const promise = iter.next();
+
+    await area.set(1, "value 1");
+
+    const iterResults = [
+      await promise,
+      await iter.next()
+    ];
+
+    classAssert.iterResults(iterResults, [
+      [undefined, true],
+      [undefined, true]
+    ]);
+  }, `${method}(): .next() on empty means forever done, even if you set more`);
+
+  testWithArea(async area => {
+    for await (const key of area[method]()) {
+      assert_unreached("Loop body must not be entered");
+    }
+  }, `${method}(): for-await-of loop body never executes`);
+
+  testWithArea(async (area, t) => {
+    await area.set(1, "value 1");
+
+    const iter = area[method]();
+
+    const { database, store, version } = area.backingStore;
+    await migrateNamedDatabase(t, database, version + 1, () => {});
+
+    const iterResultPromise1 = iter.next();
+    const iterResultPromise2 = iter.next();
+
+    await promise_rejects(t, "VersionError", iterResultPromise1, "first next()");
+    await promise_rejects(t, "VersionError", iterResultPromise2, "second next()");
+
+    const iterResultPromise3 = iter.next();
+
+    assert_not_equals(iterResultPromise1, iterResultPromise2,
+      "Two promises retrieved from synchronous next() calls must be different (1 vs 2)");
+    assert_not_equals(iterResultPromise1, iterResultPromise3,
+      "Two promises, one retrieved after waiting for the other, must be different (1 vs 3)");
+    assert_not_equals(iterResultPromise2, iterResultPromise3,
+      "Two promises, one retrieved after waiting for the other, must be different (2 vs 3)");
+
+    await promise_rejects(t, "VersionError", iterResultPromise2, "third next()");
+
+    const reason1 = await iterResultPromise1.catch(r => r);
+    const reason2 = await iterResultPromise2.catch(r => r);
+    const reason3 = await iterResultPromise3.catch(r => r);
+
+    assert_equals(reason1, reason2, "reasons must be the same (1 vs 2)");
+    assert_equals(reason2, reason3, "reasons must be the same (2 vs 3)");
+  }, `${method}(): error path: returns new rejected promises, each with the same reason`);
+}
+</script>

@@ -11,11 +11,13 @@ def assert_non_empty_string(obj, field):
         'Field "%s" must be a string' % field
     assert len(obj[field]) > 0, 'Field "%s" must not be empty' % field
 
+
 def assert_non_empty_list(obj, field):
     assert isinstance(obj[field], list), \
         '%s must be a list' % field
     assert len(obj[field]) > 0, \
         '%s list must not be empty' % field
+
 
 def assert_non_empty_dict(obj, field):
     assert isinstance(obj[field], dict), \
@@ -23,23 +25,27 @@ def assert_non_empty_dict(obj, field):
     assert len(obj[field]) > 0, \
         '%s dict must not be empty' % field
 
+
 def assert_contains(obj, field):
     assert field in obj, 'Must contain field "%s"' % field
+
 
 def assert_value_from(obj, field, items):
    assert obj[field] in items, \
         'Field "%s" must be from: %s' % (field, str(items))
+
 
 def assert_atom_or_list_items_from(obj, field, items):
     if isinstance(obj[field], basestring) or isinstance(obj[field], int):
         assert_value_from(obj, field, items)
         return
 
-    assert_non_empty_list(obj, field)
+    assert isinstance(obj[field], list), '%s must be a list' % field
     for allowed_value in obj[field]:
         assert allowed_value != '*', "Wildcard is not supported for lists!"
         assert allowed_value in items, \
             'Field "%s" must be from: %s' % (field, str(items))
+
 
 def assert_contains_only_fields(obj, expected_fields):
     for expected_field in expected_fields:
@@ -49,10 +55,21 @@ def assert_contains_only_fields(obj, expected_fields):
         assert actual_field in expected_fields, \
                 'Unexpected field "%s".' % actual_field
 
+
 def assert_value_unique_in(value, used_values):
     assert value not in used_values, 'Duplicate value "%s"!' % str(value)
     used_values[value] = True
 
+
+def assert_valid_artifact(exp_pattern, artifact_key, schema):
+    if isinstance(schema, list):
+        assert_atom_or_list_items_from(exp_pattern, artifact_key,
+                                       ["*"] + schema)
+        return
+
+    for sub_artifact_key, sub_schema in schema.iteritems():
+        assert_valid_artifact(exp_pattern[artifact_key], sub_artifact_key,
+                              sub_schema)
 
 def validate(spec_json, details):
     """ Validates the json specification for generating tests. """
@@ -102,13 +119,13 @@ def validate(spec_json, details):
             assert_non_empty_string(spec_exp, 'name')
             # The name is unique in same expansion group.
             assert_value_unique_in((spec_exp['expansion'], spec_exp['name']),
-                                     used_spec_names)
+                                   used_spec_names)
             assert_contains_only_fields(spec_exp, valid_test_expansion_fields)
 
             for artifact in test_expansion_schema:
                 details['test_expansion_field'] = artifact
-                assert_atom_or_list_items_from(
-                    spec_exp, artifact, ['*'] + test_expansion_schema[artifact])
+                assert_valid_artifact(spec_exp, artifact,
+                                      test_expansion_schema[artifact])
                 del details['test_expansion_field']
 
     # Validate the test_expansion schema members.
@@ -129,10 +146,10 @@ def validate(spec_json, details):
         details['object'] = excluded_test_expansion
         for artifact in test_expansion_schema:
             details['test_expansion_field'] = artifact
-            assert_atom_or_list_items_from(
+            assert_valid_artifact(
                 excluded_test_expansion,
                 artifact,
-                ['*'] + test_expansion_schema[artifact])
+                test_expansion_schema[artifact])
             del details['test_expansion_field']
 
     # Validate subresource paths.

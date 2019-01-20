@@ -1,5 +1,5 @@
 import { StorageArea, storage as defaultArea } from "std:kv-storage";
-import { assertArrayCustomEquals } from "./equality-asserters.js";
+import { assertAsyncIteratorEquals, assertAsyncIteratorCustomEquals } from "./equality-asserters.js";
 
 export function testWithArea(testFn, description) {
   promise_test(t => {
@@ -36,23 +36,24 @@ function testVariousMethodsInner(key, value, keyEqualityAsserter) {
 
     await assertPromiseEquals(area.get(key), value, "get()", "the set value");
 
-    const keysPromise = area.keys();
-    assertIsPromise(keysPromise, "keys()");
-    assertArrayCustomEquals(await keysPromise, [key], keyEqualityAsserter, "keys() must have the key");
+    const keysIter = area.keys();
+    await assertAsyncIteratorCustomEquals(keysIter, [key], keyEqualityAsserter, "keys() must have the key");
 
-    const valuesPromise = area.values();
-    assertIsPromise(valuesPromise);
-    assert_array_equals(await valuesPromise, [value], "values() must have the value");
+    const valuesIter = area.values();
+    await assertAsyncIteratorEquals(valuesIter, [value], "values() must have the value");
 
-    const entriesPromise = area.entries();
-    assertIsPromise(entriesPromise, "entries()");
-    const entries = await entriesPromise;
-    assert_true(Array.isArray(entries), "entries() must give an array");
-    assert_equals(entries.length, 1, "entries() must have only one value");
-    assert_true(Array.isArray(entries[0]), "entries() 0th element must be an array");
-    assert_equals(entries[0].length, 2, "entries() 0th element must have 2 elements");
-    keyEqualityAsserter(entries[0][0], key, "entries() 0th element's 0th element must be the key");
-    assert_equals(entries[0][1], value, "entries() 0th element's 1st element must be the value");
+    const entriesIter = area.entries();
+
+    const entry0 = await entriesIter.next();
+    assert_false(entry0.done, "entries() 0th iter-result must not be done");
+    assert_true(Array.isArray(entry0.value), "entries() 0th iter-result value must be an array");
+    assert_equals(entry0.value.length, 2, "entries() 0th iter-result value must have 2 elements");
+    keyEqualityAsserter(entry0.value[0], key, "entries() 0th iter-result value's 0th element must be the key");
+    assert_equals(entry0.value[1], value, "entries() 0th iter-result value's 1st element must be the value");
+
+    const entry1 = await entriesIter.next();
+    assert_true(entry1.done, "entries() 1st iter-result must be done");
+    assert_equals(entry1.value, undefined, "entries() 1st iter-result must have undefined value");
 
     await assertPromiseEquals(area.delete(key), undefined, "delete()", "undefined");
 

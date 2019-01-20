@@ -7,56 +7,73 @@
   <script>
   'use strict';
 
-  // The promise_factory must return a promise that runs the feature and
-  // resolves if feature usage is successful, otherwise rejects. Using
-  // getUserMedia is successful if at least one mic/camera is returned when
-  // mic/camera has been explicitly allowed by feature policy.
-  function promise_factory(allowed_features) {
-    return new Promise((resolve, reject) => {
-      navigator.mediaDevices.getUserMedia({video: true, audio: true}).then(
-          function(stream) {
-            // If microphone is allowed, there should be at least one microphone
-            // in the result. If camera is allowed, there should be at least one
-            // camera in the result.
-            if ((allowed_features.includes('microphone') &&
-                 stream.getAudioTracks().length == 0) ||
-                (allowed_features.includes('camera') &&
-                 stream.getVideoTracks().length == 0)) {
-                reject('Feature policy allowed feature but devices not ' +
-                    'present.');
-            } else {
-              // Otherwise the result is expected.
-              resolve();
-            }
-          },
-          function(error) { reject(error); });
-    });
-  };
+  async function gUM({audio, video}) {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({audio, video});
+      // getUserMedia must guarantee the number of tracks requested or fail.
+      if ((audio && stream.getAudioTracks().length == 0) ||
+          (video && stream.getVideoTracks().length == 0)) {
+        throw {name: `All requested devices must be present with ` +
+                     `audio ${audio} and video ${video}, or fail`};
+      }
+    } finally {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    }
+  }
 
-  var cross_domain = get_host_info().HTTPS_REMOTE_ORIGIN;
-  run_all_fp_tests_allow_self(
-      cross_domain,
-      'microphone',
-      'NotAllowedError',
-      function() {
-        return promise_factory('microphone');
-      });
+  async function must_disallow_gUM({audio, video}) {
+    try {
+      await gUM({audio, video});
+    } catch (e) {
+      if (e.name == 'NotAllowedError') {
+        return;
+      }
+      throw e;
+    }
+    throw {name: `audio ${audio} and video ${video} constraints must not be ` +
+                 `allowed.`};
+  }
 
+  const cross_domain = get_host_info().HTTPS_REMOTE_ORIGIN;
   run_all_fp_tests_allow_self(
-      cross_domain,
-      'camera',
-      'NotAllowedError',
-      function() {
-        return promise_factory('camera');
-      });
+    cross_domain,
+    'microphone',
+    'NotAllowedError',
+    async () => {
+      await gUM({audio: true});
+      if (window.location.href.includes(cross_domain)) {
+        await must_disallow_gUM({video: true});
+        await must_disallow_gUM({audio: true, video: true});
+      }
+    }
+  );
 
   run_all_fp_tests_allow_self(
     cross_domain,
-    'camera; microphone',
+    'camera',
     'NotAllowedError',
-    function() {
-      return promise_factory('camera; microphone');
-    });
+    async () => {
+      await gUM({video: true});
+      if (window.location.href.includes(cross_domain)) {
+        await must_disallow_gUM({audio: true});
+        await must_disallow_gUM({audio: true, video: true});
+      }
+    }
+  );
+
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'camera;microphone',
+    'NotAllowedError',
+    async () => {
+      await gUM({audio: true, video: true});
+      await gUM({audio: true});
+      await gUM({video: true});
+    }
+  );
   </script>
 </body>
 
