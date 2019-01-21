@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
@@ -763,7 +764,8 @@ impl RangeMethods for Range {
 
         // Step 11
         let new_offset = new_offset +
-            if node.type_id() == NodeTypeId::DocumentFragment {
+            if node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
+                node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) {
                 node.len()
             } else {
                 1
@@ -878,7 +880,7 @@ impl RangeMethods for Range {
 
         // Step 2.
         match new_parent.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => {
+            NodeTypeId::Document(_) | NodeTypeId::DocumentType | NodeTypeId::DocumentFragment(_) => {
                 return Err(Error::InvalidNodeType);
             },
             _ => (),
@@ -954,7 +956,7 @@ impl RangeMethods for Range {
         let node = self.StartContainer();
         let owner_doc = node.owner_doc();
         let element = match node.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) => None,
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
