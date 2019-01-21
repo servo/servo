@@ -633,16 +633,44 @@ macro_rules! handle_potential_webgl_error {
     };
 }
 
-macro_rules! impl_document_or_shadow_root {
+macro_rules! impl_document_or_shadow_root_helpers(
     () => (
+        /// <https://html.spec.whatwg.org/multipage/#concept-document-bc>
+        #[inline]
+        pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
+            if self.has_browsing_context {
+                self.window.undiscarded_window_proxy()
+            } else {
+                None
+            }
+        }
+
+        pub fn nodes_from_point(
+            &self,
+            client_point: &Point2D<f32>,
+            reflow_goal: NodesFromPointQueryType,
+        ) -> Vec<UntrustedNodeAddress> {
+            if !self
+                .window
+                .layout_reflow(QueryMsg::NodesFromPointQuery(*client_point, reflow_goal))
+            {
+                return vec![];
+            };
+
+            self.window.layout().nodes_from_point_response()
+        }
+    );
+);
+
+macro_rules! impl_document_or_shadow_root_methods(
+    ($struct:ident) => (
         #[allow(unsafe_code)]
         // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
         fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
             let x = *x as f32;
             let y = *y as f32;
             let point = &Point2D::new(x, y);
-            let window = window_from_node(self);
-            let viewport = window.window_size().initial_viewport;
+            let viewport = self.window.window_size().initial_viewport;
 
             if self.browsing_context().is_none() {
                 return None;
@@ -657,7 +685,7 @@ macro_rules! impl_document_or_shadow_root {
                 .first()
             {
                 Some(address) => {
-                    let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
+                    let js_runtime = unsafe { JS_GetRuntime(self.window.get_cx()) };
                     let node = unsafe { node::from_untrusted_node_address(js_runtime, *address) };
                     let parent_node = node.GetParentNode().unwrap();
                     let element_ref = node
@@ -676,8 +704,7 @@ macro_rules! impl_document_or_shadow_root {
             let x = *x as f32;
             let y = *y as f32;
             let point = &Point2D::new(x, y);
-            let window = window_from_node(self);
-            let viewport = window.window_size().initial_viewport;
+            let viewport = self.window.window_size().initial_viewport;
 
             if self.browsing_context().is_none() {
                 return vec![];
@@ -688,7 +715,7 @@ macro_rules! impl_document_or_shadow_root {
                 return vec![];
             }
 
-            let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
+            let js_runtime = unsafe { JS_GetRuntime(self.window.get_cx()) };
 
             // Step 1 and Step 3
             let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);
@@ -730,7 +757,7 @@ macro_rules! impl_document_or_shadow_root {
         // https://drafts.csswg.org/cssom/#dom-document-stylesheets
         fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
             self.stylesheet_list
-                .or_init(|| StyleSheetList::new(&self.window, Dom::from_ref(&self)))
+                .or_init(|| StyleSheetList::new(&self.window, DocumentOrShadowRoot::$struct(Dom::from_ref(self))))
         }
-    )
-}
+    );
+);
