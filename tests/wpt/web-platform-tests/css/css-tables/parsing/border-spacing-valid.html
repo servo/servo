@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Table Module Test: parsing border-spacing with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
+<meta name="assert" content="border-spacing supports the full grammar '<length>{1,2}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("border-spacing", "0px");
+test_valid_value("border-spacing", "10px 20px");
+test_valid_value("border-spacing", "calc(10px + 0.5em) calc(10px - 0.5em)");
+</script>
+</body>
+</html>

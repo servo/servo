@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Table Module: getComputedValue().borderSpacing</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
+<meta name="assert" content="border-spacing computed value is two absolute lengths.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+<script>
+test_computed_value("border-spacing", "10px 20px");
+test_computed_value("border-spacing", "0", "0px 0px");
+test_computed_value("border-spacing", "calc(10px + 0.5em) calc(10px - 0.5em)", "30px 0px");
+test_computed_value("border-spacing", "calc(10px - 0.5em) calc(10px + 0.5em)", "0px 30px");
+</script>
+</body>
+</html>

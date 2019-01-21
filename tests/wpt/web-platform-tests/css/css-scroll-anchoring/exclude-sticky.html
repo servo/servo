@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 400vh; margin: 0; }
+#sticky, #content { width: 200px; height: 100px; }
+#sticky { position: sticky; left: 100px; top: 50px; }
+#before { height: 50px; }
+#content { margin-top: 100px; }
+
+</style>
+<div id="sticky">sticky</div>
+<div id="before"></div>
+<div id="content">content</div>
+<script>
+
+// Tests that the anchor selection algorithm skips sticky-positioned elements.
+
+test(() => {
+  document.scrollingElement.scrollTop = 150;
+  document.querySelector("#before").style.height = "100px";
+  assert_equals(document.scrollingElement.scrollTop, 200);
+}, "Sticky-positioned headers shouldn't be chosen as scroll anchors (we should use 'content' instead)");
+
+</script>
