@@ -14,6 +14,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMe
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::conversions::{self, DerivedFrom};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -1559,7 +1560,7 @@ impl Node {
     ) -> ErrorResult {
         // Step 1.
         match parent.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment | NodeTypeId::Element(..) => (),
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => (),
             _ => return Err(Error::HierarchyRequest),
         }
 
@@ -1587,7 +1588,7 @@ impl Node {
                     return Err(Error::HierarchyRequest);
                 }
             },
-            NodeTypeId::DocumentFragment |
+            NodeTypeId::DocumentFragment(_) |
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
@@ -1598,7 +1599,7 @@ impl Node {
         if parent.is::<Document>() {
             match node.type_id() {
                 // Step 6.1
-                NodeTypeId::DocumentFragment => {
+                NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
                     if node.children().any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest);
@@ -1723,7 +1724,7 @@ impl Node {
             }
         }
         rooted_vec!(let mut new_nodes);
-        let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
+        let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
             // Step 3.
             new_nodes.extend(node.children().map(|kid| Dom::from_ref(&*kid)));
             // Step 4.
@@ -1809,7 +1810,7 @@ impl Node {
         // Step 3.
         rooted_vec!(let mut added_nodes);
         let added_nodes = if let Some(node) = node.as_ref() {
-            if let NodeTypeId::DocumentFragment = node.type_id() {
+            if let NodeTypeId::DocumentFragment(_) = node.type_id() {
                 added_nodes.extend(node.children().map(|child| Dom::from_ref(&*child)));
                 added_nodes.r()
             } else {
@@ -1935,7 +1936,7 @@ impl Node {
                 );
                 DomRoot::upcast::<Node>(doctype)
             },
-            NodeTypeId::DocumentFragment => {
+            NodeTypeId::DocumentFragment(_) => {
                 let doc_fragment = DocumentFragment::new(&document);
                 DomRoot::upcast::<Node>(doc_fragment)
             },
@@ -2068,7 +2069,7 @@ impl Node {
                 .GetDocumentElement()
                 .as_ref()
                 .map_or(ns!(), |elem| elem.locate_namespace(prefix)),
-            NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => ns!(),
+            NodeTypeId::DocumentType | NodeTypeId::DocumentFragment(_) => ns!(),
             _ => node
                 .GetParentElement()
                 .as_ref()
@@ -2088,7 +2089,7 @@ impl NodeMethods for Node {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => NodeConstants::COMMENT_NODE,
             NodeTypeId::Document(_) => NodeConstants::DOCUMENT_NODE,
             NodeTypeId::DocumentType => NodeConstants::DOCUMENT_TYPE_NODE,
-            NodeTypeId::DocumentFragment => NodeConstants::DOCUMENT_FRAGMENT_NODE,
+            NodeTypeId::DocumentFragment(_) => NodeConstants::DOCUMENT_FRAGMENT_NODE,
             NodeTypeId::Element(_) => NodeConstants::ELEMENT_NODE,
         }
     }
@@ -2103,7 +2104,7 @@ impl NodeMethods for Node {
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => DOMString::from("#comment"),
             NodeTypeId::DocumentType => self.downcast::<DocumentType>().unwrap().name().clone(),
-            NodeTypeId::DocumentFragment => DOMString::from("#document-fragment"),
+            NodeTypeId::DocumentFragment(_) => DOMString::from("#document-fragment"),
             NodeTypeId::Document(_) => DOMString::from("#document"),
         }
     }
@@ -2119,7 +2120,7 @@ impl NodeMethods for Node {
             NodeTypeId::CharacterData(..) |
             NodeTypeId::Element(..) |
             NodeTypeId::DocumentType |
-            NodeTypeId::DocumentFragment => Some(self.owner_doc()),
+            NodeTypeId::DocumentFragment(_) => Some(self.owner_doc()),
             NodeTypeId::Document(_) => None,
         }
     }
@@ -2188,7 +2189,7 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn GetTextContent(&self) -> Option<DOMString> {
         match self.type_id() {
-            NodeTypeId::DocumentFragment | NodeTypeId::Element(..) => {
+            NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
                 let content = Node::collect_text_contents(self.traverse_preorder());
                 Some(content)
             },
@@ -2204,7 +2205,7 @@ impl NodeMethods for Node {
     fn SetTextContent(&self, value: Option<DOMString>) {
         let value = value.unwrap_or_default();
         match self.type_id() {
-            NodeTypeId::DocumentFragment | NodeTypeId::Element(..) => {
+            NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
                 // Step 1-2.
                 let node = if value.is_empty() {
                     None
@@ -2237,7 +2238,7 @@ impl NodeMethods for Node {
     fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match self.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment | NodeTypeId::Element(..) => (),
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => (),
             _ => return Err(Error::HierarchyRequest),
         }
 
@@ -2267,7 +2268,7 @@ impl NodeMethods for Node {
         if self.is::<Document>() {
             match node.type_id() {
                 // Step 6.1
-                NodeTypeId::DocumentFragment => {
+                NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
                     if node.children().any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest);
@@ -2340,7 +2341,8 @@ impl NodeMethods for Node {
 
         // Step 12.
         rooted_vec!(let mut nodes);
-        let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
+        let nodes = if node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
+            node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) {
             nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
             nodes.r()
         } else {
@@ -2602,7 +2604,7 @@ impl NodeMethods for Node {
                 .unwrap()
                 .GetDocumentElement()
                 .and_then(|element| element.lookup_prefix(namespace)),
-            NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => None,
+            NodeTypeId::DocumentType | NodeTypeId::DocumentFragment(_) => None,
             _ => self
                 .GetParentElement()
                 .and_then(|element| element.lookup_prefix(namespace)),

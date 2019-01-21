@@ -27,7 +27,7 @@ pub struct DocumentFragment {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    fn new_inherited(document: &Document) -> DocumentFragment {
+    pub fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
         }
