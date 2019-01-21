@@ -279,6 +279,7 @@ pub mod dissimilaroriginlocation;
 pub mod dissimilaroriginwindow;
 pub mod document;
 pub mod documentfragment;
+pub mod documentorshadowroot;
 pub mod documenttype;
 pub mod domexception;
 pub mod domimplementation;

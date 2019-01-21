@@ -760,8 +760,11 @@ impl RangeMethods for Range {
 
         // Step 11
         let new_offset = new_offset +
-            if node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
-                node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) {
+            if node.type_id() ==
+                NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
+                node.type_id() ==
+                    NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
+            {
                 node.len()
             } else {
                 1
@@ -876,7 +879,9 @@ impl RangeMethods for Range {
 
         // Step 2.
         match new_parent.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentType | NodeTypeId::DocumentFragment(_) => {
+            NodeTypeId::Document(_) |
+            NodeTypeId::DocumentType |
+            NodeTypeId::DocumentFragment(_) => {
                 return Err(Error::InvalidNodeType);
             },
             _ => (),

@@ -1551,7 +1551,9 @@ impl Node {
     ) -> ErrorResult {
         // Step 1.
         match parent.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => (),
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
+                ()
+            },
             _ => return Err(Error::HierarchyRequest),
         }
 
@@ -2229,7 +2231,9 @@ impl NodeMethods for Node {
     fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match self.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => (),
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
+                ()
+            },
             _ => return Err(Error::HierarchyRequest),
         }
 
@@ -2332,8 +2336,10 @@ impl NodeMethods for Node {
 
         // Step 12.
         rooted_vec!(let mut nodes);
-        let nodes = if node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
-            node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) {
+        let nodes = if node.type_id() ==
+            NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
+            node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
+        {
             nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
             nodes.r()
         } else {
