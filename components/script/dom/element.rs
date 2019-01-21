@@ -2371,7 +2371,7 @@ impl ElementMethods for Element {
             NodeTypeId::Document(_) => return Err(Error::NoModificationAllowed),
 
             // Step 4.
-            NodeTypeId::DocumentFragment => {
+            NodeTypeId::DocumentFragment(_) => {
                 let body_elem = Element::create(
                     QualName::new(None, ns!(html), local_name!("body")),
                     None,

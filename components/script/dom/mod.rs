@@ -454,6 +454,7 @@ pub mod serviceworkercontainer;
 pub mod serviceworkerglobalscope;
 pub mod serviceworkerregistration;
 pub mod servoparser;
+pub mod shadowroot;
 pub mod storage;
 pub mod storageevent;
 pub mod stylepropertymapreadonly;
