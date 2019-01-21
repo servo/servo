@@ -42,6 +42,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::documentorshadowroot::DocumentOrShadowRoot;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::CustomElementCreationMode;
@@ -483,16 +484,6 @@ impl Document {
     #[inline]
     pub fn has_browsing_context(&self) -> bool {
         self.has_browsing_context
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#concept-document-bc>
-    #[inline]
-    pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
-        if self.has_browsing_context {
-            self.window.undiscarded_window_proxy()
-        } else {
-            None
-        }
     }
 
     #[inline]
@@ -2400,21 +2391,6 @@ impl Document {
         !self.has_browsing_context || !url_has_network_scheme(&self.url())
     }
 
-    pub fn nodes_from_point(
-        &self,
-        client_point: &Point2D<f32>,
-        reflow_goal: NodesFromPointQueryType,
-    ) -> Vec<UntrustedNodeAddress> {
-        if !self
-            .window
-            .layout_reflow(QueryMsg::NodesFromPointQuery(*client_point, reflow_goal))
-        {
-            return vec![];
-        };
-
-        self.window.layout().nodes_from_point_response()
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub fn lookup_custom_element_definition(
         &self,
@@ -3281,6 +3257,8 @@ impl Document {
             }
         }
     }
+
+    impl_document_or_shadow_root_helpers!();
 }
 
 impl Element {
@@ -3311,7 +3289,7 @@ impl ProfilerMetadataFactory for Document {
 
 impl DocumentMethods for Document {
     // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
-    impl_document_or_shadow_root!();
+    impl_document_or_shadow_root_methods!(Document);
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> DomRoot<DOMImplementation> {
