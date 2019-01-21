@@ -11,47 +11,11 @@
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow"
 >
     use crate::properties::longhands::overflow_x::parse as parse_overflow;
-    % if product == "gecko":
-        use crate::properties::longhands::overflow_x::SpecifiedValue;
-    % endif
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        % if product == "gecko":
-            use crate::gecko_bindings::structs;
-            let moz_kw_enabled = unsafe {
-                structs::StaticPrefs_sVarCache_layout_css_overflow_moz_scrollbars_enabled
-            };
-            if moz_kw_enabled {
-                let moz_kw_found = input.try(|input| {
-                    try_match_ident_ignore_ascii_case! { input,
-                        "-moz-scrollbars-horizontal" => {
-                            Ok(expanded! {
-                                overflow_x: SpecifiedValue::Scroll,
-                                overflow_y: SpecifiedValue::Hidden,
-                            })
-                        }
-                        "-moz-scrollbars-vertical" => {
-                            Ok(expanded! {
-                                overflow_x: SpecifiedValue::Hidden,
-                                overflow_y: SpecifiedValue::Scroll,
-                            })
-                        }
-                        "-moz-scrollbars-none" => {
-                            Ok(expanded! {
-                                overflow_x: SpecifiedValue::Hidden,
-                                overflow_y: SpecifiedValue::Hidden,
-                            })
-                        }
-                    }
-                });
-                if moz_kw_found.is_ok() {
-                    return moz_kw_found
-                }
-            }
-        % endif
         let overflow_x = parse_overflow(context, input)?;
         let overflow_y =
             input.try(|i| parse_overflow(context, i)).unwrap_or(overflow_x);
