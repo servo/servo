@@ -17,6 +17,8 @@ pub mod origin;
 
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash:: {Hasher};
 use std::fmt;
 use std::net::IpAddr;
 use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
@@ -163,6 +165,12 @@ impl ServoUrl {
 
 impl fmt::Display for ServoUrl {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        if self.0.to_string().len() > 40 {
+            let hasher = DefaultHasher::new();
+            let truncated : String = self.0.to_string().chars().take(40).collect();
+            let result = format!("{}{}",truncated,hasher.finish().to_string());
+            return result.fmt(formatter);
+        }
         self.0.fmt(formatter)
     }
 }
