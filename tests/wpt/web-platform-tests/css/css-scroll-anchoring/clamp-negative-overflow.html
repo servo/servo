@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style type="text/css">
+        #scroller {
+            overflow: scroll;
+            width: 500px;
+            height: 500px;
+        }
+        #anchor {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin-top: 100px;
+            margin-bottom: 1000px;
+            background-color: blue;
+        }
+        #positioned {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            top: -200px;
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+    <div id="scroller">
+        <div id="anchor">
+            <div id="positioned">
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        test(() => {
+            let scroller = document.querySelector('#scroller');
+            let positioned = document.querySelector('#positioned');
+
+            // Scroll down to select #anchor as an anchor node
+            scroller.scrollTop = 20;
+
+            // Move #positioned downwards, which will move the unclamped scrollable
+            // overflow rect of #anchor downards as well
+            positioned.style.top = '-180px';
+            // To trigger the bug that this regression tests in Gecko, we need
+            // to not take Gecko's relative positioning fast path. To do
+            // this, change the 'left' of #positioned from 'auto' to '0px'.
+            positioned.style.left = '0px';
+
+            // The implementation should clamp the scrollable overflow rect
+            // before the start-edge of the anchor node, and not apply an
+            // adjustment
+            assert_equals(scroller.scrollTop, 20);
+        }, 'scrollable overflow before the start-edge of the anchor node should be clamped');
+    </script>
+</body>
+</html>

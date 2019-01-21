@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#scroller {
+    height: 200px;
+    overflow: scroll;
+}
+#before { height: 50px; }
+#table {
+    display: table;
+    overflow-anchor: none;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 500px;
+}
+
+</style>
+<div id="scroller">
+    <div id="before"></div>
+    <div id="table">content</div>
+</div>
+<script>
+
+// Tests that the anchor exclusion API works with tables
+
+test(() => {
+  let scroller = document.querySelector('#scroller');
+  let before = document.querySelector('#before');
+
+  // Scroll down so that #table is the only element in view
+  scroller.scrollTop = 50;
+
+  // Expand #before so that we might perform a scroll adjustment
+  before.style.height = "100px";
+
+  // We shouldn't have selected #table as an anchor as it is
+  // 'overflow-anchor: none'
+  assert_equals(scroller.scrollTop, 50);
+}, "A table with 'overflow-anchor: none' shouldn't generate any scroll anchor candidates.");
+
+</script>
