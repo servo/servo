@@ -17,6 +17,8 @@ pub mod origin;
 
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash:: {Hash, Hasher};
 use std::fmt;
 use std::net::IpAddr;
 use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
@@ -163,6 +165,16 @@ impl ServoUrl {
 
 impl fmt::Display for ServoUrl {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        //changes for bug 22485
+        if self.0.to_string().as_bytes().len() > 40 {
+            let mut hasher = DefaultHasher::new();
+            let hashed_url : String = self.0.to_string();
+            (*hashed_url).hash(&mut hasher);
+            let mut base : String = self.0.to_string();
+            base.truncate(40);
+            base.push_str(&hasher.finish().to_string());
+            return (base).fmt(formatter);
+        }
         self.0.fmt(formatter)
     }
 }
