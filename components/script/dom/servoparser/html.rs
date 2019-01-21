@@ -248,7 +248,7 @@ impl<'a> Serialize for &'a Node {
                         serializer.write_processing_instruction(&pi.target(), &data)?;
                     },
 
-                    NodeTypeId::DocumentFragment => {},
+                    NodeTypeId::DocumentFragment(_) => {},
 
                     NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
                     NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
