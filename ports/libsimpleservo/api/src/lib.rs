@@ -7,14 +7,17 @@ extern crate log;
 
 pub mod gl_glue;
 
+pub use servo::script_traits::MouseButton;
+
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods,
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::EmbedderMsg;
 use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
-use servo::script_traits::{MouseButton, TouchEventType, TouchId};
+use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::prefs::{PrefValue, PREFS};
 use servo::servo_url::ServoUrl;
@@ -309,11 +312,8 @@ impl ServoGlue {
     pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
         let delta = TypedVector2D::new(dx, dy);
         let scroll_location = webrender_api::ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(
-            scroll_location,
-            TypedPoint2D::new(x, y),
-            TouchEventType::Up,
-        );
+        let event =
+            WindowEvent::Scroll(scroll_location, TypedPoint2D::new(x, y), TouchEventType::Up);
         self.process_event(event)
     }
 
@@ -398,8 +398,7 @@ impl ServoGlue {
 
     /// Perform a click.
     pub fn click(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
-        let mouse_event =
-            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x, y));
+        let mouse_event = MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x, y));
         let event = WindowEvent::MouseWindowEventClass(mouse_event);
         self.process_event(event)
     }

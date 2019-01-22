@@ -112,6 +112,7 @@ use webrender::{RendererKind, ShaderPrecacheFlags};
 use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
 
 pub use gleam::gl;
+pub use keyboard_types;
 pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
