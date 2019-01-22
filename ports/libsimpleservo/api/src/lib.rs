@@ -81,6 +81,8 @@ pub trait HostTrait {
     fn on_animating_changed(&self, animating: bool);
     /// Servo finished shutting down.
     fn on_shutdown_complete(&self);
+    /// A text input is focused.
+    fn on_ime_state_changed(&self, show: bool);
 }
 
 pub struct ServoGlue {
