@@ -200,7 +200,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
 ) {
     debug!("scrollStart");
     call(&env, |s| {
-        s.scroll_start(dx as i32, dy as i32, x as u32, y as u32)
+        s.scroll_start(dx as f32, dy as f32, x as i32, y as i32)
     });
 }
 
@@ -215,7 +215,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
 ) {
     debug!("scrollEnd");
     call(&env, |s| {
-        s.scroll_end(dx as i32, dy as i32, x as u32, y as u32)
+        s.scroll_end(dx as f32, dy as f32, x as i32, y as i32)
     });
 }
 
@@ -229,7 +229,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scroll(
     y: jint,
 ) {
     debug!("scroll");
-    call(&env, |s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| s.scroll(dx as f32, dy as f32, x as i32, y as i32));
 }
 
 #[no_mangle]
@@ -321,7 +321,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
     debug!("click");
-    call(&env, |s| s.click(x as u32, y as u32));
+    call(&env, |s| s.click(x as f32, y as f32));
 }
 
 pub struct WakeupCallback {
