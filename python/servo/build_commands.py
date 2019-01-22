@@ -211,6 +211,11 @@ class MachCommands(CommandBase):
             print("Please specify either --target or --android.")
             sys.exit(1)
 
+        # https://github.com/servo/servo/issues/22069
+        if debug_mozjs and magicleap:
+            print("Please specify either --debug-mozjs or --magicleap.")
+            sys.exit(1)
+
         if android:
             target = self.config["android"]["target"]
 
