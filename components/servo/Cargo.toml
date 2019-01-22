@@ -51,6 +51,7 @@ euclid = "0.19"
 gfx = {path = "../gfx"}
 gleam = "0.6"
 ipc-channel = "0.11"
+keyboard-types = "0.4"
 layout_thread = {path = "../layout_thread"}
 log = "0.4"
 msg = {path = "../msg"}

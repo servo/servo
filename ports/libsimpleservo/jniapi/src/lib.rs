@@ -455,8 +455,7 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_ime_state_changed(&self, _show: bool) {
-    }
+    fn on_ime_state_changed(&self, _show: bool) {}
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
