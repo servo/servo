@@ -102,8 +102,12 @@ t1.step(() => {
     e.formData.append('h1', 'vh1');
   });
   let iframe = form.previousSibling;
-  iframe.onload = t1.step_func_done(() => {
+  iframe.onload = t1.step_func(() => {
+    // The initial about:blank load event can be fired before the form navigation occurs.
+    // See https://github.com/whatwg/html/issues/490 for more information.
+    if (iframe.contentWindow.location.href == "about:blank") { return; }
     assert_true(iframe.contentWindow.location.search.indexOf('n1=v1&h1=vh1') != -1);
+    t1.done();
   });
   form.submit();
 });
