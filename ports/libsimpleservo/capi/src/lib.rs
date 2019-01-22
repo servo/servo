@@ -40,6 +40,7 @@ pub struct CHostCallbacks {
     pub on_history_changed: extern "C" fn(can_go_back: bool, can_go_forward: bool),
     pub on_animating_changed: extern "C" fn(animating: bool),
     pub on_shutdown_complete: extern "C" fn(),
+    pub on_ime_state_changed: extern "C" fn(show: bool),
 }
 
 /// Servo options
@@ -329,5 +330,10 @@ impl HostTrait for HostCallbacks {
     fn on_shutdown_complete(&self) {
         debug!("on_shutdown_complete");
         (self.0.on_shutdown_complete)();
+    }
+
+    fn on_ime_state_changed(&self, show: bool) {
+        debug!("on_ime_state_changed");
+        (self.0.on_ime_state_changed)(show);
     }
 }
