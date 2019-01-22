@@ -278,12 +278,12 @@ impl ServoGlue {
     /// Start scrolling.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll_start(&mut self, dx: i32, dy: i32, x: u32, y: u32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx as f32, dy as f32);
+    pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+        let delta = TypedVector2D::new(dx, dy);
         let scroll_location = webrender_api::ScrollLocation::Delta(delta);
         let event = WindowEvent::Scroll(
             scroll_location,
-            TypedPoint2D::new(x as i32, y as i32),
+            TypedPoint2D::new(x, y),
             TouchEventType::Down,
         );
         self.process_event(event)
@@ -292,12 +292,12 @@ impl ServoGlue {
     /// Scroll.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll(&mut self, dx: i32, dy: i32, x: u32, y: u32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx as f32, dy as f32);
+    pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+        let delta = TypedVector2D::new(dx, dy);
         let scroll_location = webrender_api::ScrollLocation::Delta(delta);
         let event = WindowEvent::Scroll(
             scroll_location,
-            TypedPoint2D::new(x as i32, y as i32),
+            TypedPoint2D::new(x, y),
             TouchEventType::Move,
         );
         self.process_event(event)
@@ -306,12 +306,12 @@ impl ServoGlue {
     /// End scrolling.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll_end(&mut self, dx: i32, dy: i32, x: u32, y: u32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx as f32, dy as f32);
+    pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+        let delta = TypedVector2D::new(dx, dy);
         let scroll_location = webrender_api::ScrollLocation::Delta(delta);
         let event = WindowEvent::Scroll(
             scroll_location,
-            TypedPoint2D::new(x as i32, y as i32),
+            TypedPoint2D::new(x, y),
             TouchEventType::Up,
         );
         self.process_event(event)
@@ -376,9 +376,9 @@ impl ServoGlue {
     }
 
     /// Perform a click.
-    pub fn click(&mut self, x: u32, y: u32) -> Result<(), &'static str> {
+    pub fn click(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
         let mouse_event =
-            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x as f32, y as f32));
+            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x, y));
         let event = WindowEvent::MouseWindowEventClass(mouse_event);
         self.process_event(event)
     }
