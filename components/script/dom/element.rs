@@ -76,6 +76,7 @@ use crate::dom::node::{NodeDamage, NodeFlags, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::servoparser::ServoParser;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
@@ -170,6 +171,10 @@ pub struct Element {
     custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     custom_element_state: Cell<CustomElementState>,
+    /// https://dom.spec.whatwg.org/#dom-element-shadowroot
+    /// XXX This is currently not exposed to web content. Only for
+    ///     internal use.
+    shadow_root: MutNullableDom<ShadowRoot>,
 }
 
 impl fmt::Debug for Element {
@@ -297,6 +302,7 @@ impl Element {
             custom_element_reaction_queue: Default::default(),
             custom_element_definition: Default::default(),
             custom_element_state: Cell::new(CustomElementState::Uncustomized),
+            shadow_root: Default::default(),
         }
     }
 
@@ -435,6 +441,53 @@ impl Element {
             box_.clone_overflow_x() == overflow_x::computed_value::T::Hidden ||
                 box_.clone_overflow_y() == overflow_y::computed_value::T::Hidden
         })
+    }
+
+    fn is_shadow_host(&self) -> bool {
+        self.shadow_root.get().is_some()
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-element-attachshadow
+    /// XXX This is not exposed to web content yet. It is meant to be used
+    ///     for UA widgets only.
+    pub fn attach_shadow(&self) -> Fallible<DomRoot<ShadowRoot>> {
+        // Step 1.
+        if self.namespace != ns!(html) {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 2.
+        match self.local_name() {
+            &local_name!("article") |
+            &local_name!("aside") |
+            &local_name!("blockquote") |
+            &local_name!("body") |
+            &local_name!("div") |
+            &local_name!("footer") |
+            &local_name!("h1") |
+            &local_name!("h2") |
+            &local_name!("h3") |
+            &local_name!("h4") |
+            &local_name!("h5") |
+            &local_name!("h6") |
+            &local_name!("header") |
+            &local_name!("main") |
+            &local_name!("nav") |
+            &local_name!("p") |
+            &local_name!("section") |
+            &local_name!("span") => {},
+            _ => return Err(Error::NotSupported),
+        };
+
+        // Step 3.
+        if self.is_shadow_host() {
+            return Err(Error::InvalidState);
+        }
+
+        // Steps 4, 5 and 6.
+        Ok(self
+            .shadow_root
+            .or_init(|| ShadowRoot::new(self, &*self.node.owner_doc())))
     }
 }
 
