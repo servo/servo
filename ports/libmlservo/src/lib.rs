@@ -7,45 +7,25 @@ use egl::egl::EGLDisplay;
 use egl::egl::EGLSurface;
 use egl::egl::MakeCurrent;
 use egl::egl::SwapBuffers;
-use egl::eglext::eglGetProcAddress;
-use keyboard_types::Key;
-use keyboard_types::KeyState;
-use keyboard_types::KeyboardEvent;
 use log::info;
 use log::warn;
-use servo::compositing::windowing::AnimationState;
-use servo::compositing::windowing::EmbedderCoordinates;
-use servo::compositing::windowing::MouseWindowEvent;
-use servo::compositing::windowing::WindowEvent;
-use servo::compositing::windowing::WindowMethods;
-use servo::embedder_traits::resources::Resource;
-use servo::embedder_traits::resources::ResourceReaderMethods;
-use servo::embedder_traits::EmbedderMsg;
-use servo::embedder_traits::EventLoopWaker;
-use servo::euclid::TypedPoint2D;
-use servo::euclid::TypedRect;
 use servo::euclid::TypedScale;
-use servo::euclid::TypedSize2D;
 use servo::gl;
-use servo::gl::Gl;
-use servo::gl::GlesFns;
-use servo::msg::constellation_msg::TraversalDirection;
-use servo::script_traits::MouseButton;
-use servo::script_traits::TouchEventType;
+use servo::keyboard_types::Key;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::DevicePixel;
 use servo::webrender_api::DevicePoint;
 use servo::webrender_api::LayoutPixel;
-use servo::webrender_api::ScrollLocation;
-use servo::BrowserId;
-use servo::Servo;
+use simpleservo::{
+    self, deinit, gl_glue, EventLoopWaker, HostTrait, InitOptions, MouseButton, ServoGlue, SERVO,
+};
 use smallvec::SmallVec;
+use std::cell::Cell;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::io::Write;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
@@ -90,7 +70,10 @@ pub enum MLKeyType {
 pub struct MLLogger(extern "C" fn(MLLogLevel, *const c_char));
 
 #[repr(transparent)]
-pub struct MLHistoryUpdate(extern "C" fn(MLApp, bool, *const c_char, bool));
+pub struct MLHistoryUpdate(extern "C" fn(MLApp, bool, bool));
+
+#[repr(transparent)]
+pub struct MLURLUpdate(extern "C" fn(MLApp, *const c_char));
 
 #[repr(transparent)]
 pub struct MLKeyboard(extern "C" fn(MLApp, bool));
@@ -101,6 +84,16 @@ pub struct MLApp(*mut c_void);
 
 const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
+fn call<F>(f: F) -> Result<(), &'static str>
+where
+    F: FnOnce(&mut ServoGlue) -> Result<(), &'static str>,
+{
+    SERVO.with(|s| match s.borrow_mut().as_mut() {
+        Some(ref mut s) => (f)(s),
+        None => Err("Servo is not available in this thread"),
+    })
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn init_servo(
     ctxt: EGLContext,
@@ -109,150 +102,73 @@ pub unsafe extern "C" fn init_servo(
     app: MLApp,
     logger: MLLogger,
     history_update: MLHistoryUpdate,
+    url_update: MLURLUpdate,
     keyboard: MLKeyboard,
     url: *const c_char,
     width: u32,
     height: u32,
     hidpi: f32,
 ) -> *mut ServoInstance {
-    // Servo initialization goes here!
-    servo::embedder_traits::resources::set(Box::new(ResourceReaderInstance::new()));
     let _ = log::set_boxed_logger(Box::new(logger));
     log::set_max_level(LOG_LEVEL);
-    let gl = GlesFns::load_with(|symbol| {
-        let cstr = CString::new(symbol).expect("Failed to convert GL symbol to a char*");
-        eglGetProcAddress(cstr.as_ptr() as _) as _
-    });
 
+    let gl = gl_glue::egl::init().expect("EGL initialization failure");
     info!("OpenGL version {}", gl.get_string(gl::VERSION));
-    let window = Rc::new(WindowInstance {
-        ctxt: ctxt,
-        surf: surf,
-        disp: disp,
-        gl: gl,
+
+    let url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
+    let opts = InitOptions {
+        args: None,
+        url: Some(url.to_string()),
         width: width,
         height: height,
-        hidpi: hidpi,
+        density: hidpi,
+        enable_subpixel_text_antialiasing: false,
+        vr_pointer: None,
+    };
+    let wakeup = Box::new(EventLoopWakerInstance);
+    let shut_down_complete = Rc::new(Cell::new(false));
+    let callbacks = Box::new(HostCallbacks {
+        app,
+        ctxt,
+        surf,
+        disp,
+        shut_down_complete: shut_down_complete.clone(),
+        history_update,
+        url_update,
+        keyboard,
     });
-
     info!("Starting servo");
-    let mut servo = Servo::new(window);
-    let browser_id = BrowserId::new();
-
-    let blank_url = ServoUrl::parse("about:blank").expect("Failed to parse about:blank!");
-    let url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
-    let url = ServoUrl::parse(url).unwrap_or(blank_url);
-    servo.handle_events(vec![WindowEvent::NewBrowser(url, browser_id)]);
+    simpleservo::init(opts, gl, wakeup, callbacks).expect("error initializing Servo");
 
     let result = Box::new(ServoInstance {
-        app: app,
-        browser_id: browser_id,
-        history_update: history_update,
-        keyboard: keyboard,
         scroll_state: ScrollState::TriggerUp,
         scroll_scale: TypedScale::new(SCROLL_SCALE / hidpi),
-        servo: servo,
+        shut_down_complete,
     });
     Box::into_raw(result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
-    // Servo heartbeat goes here!
-    if let Some(servo) = servo.as_mut() {
-        servo.servo.handle_events(vec![]);
-        for (browser_id, event) in servo.servo.get_events() {
-            match event {
-                // Respond to any messages with a response channel
-                // to avoid deadlocking the constellation
-                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
-                    if let Some(_browser_id) = browser_id {
-                        let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, true);
-                        servo.servo.handle_events(vec![window_event]);
-                    }
-                },
-                EmbedderMsg::GetSelectedBluetoothDevice(_, sender) => {
-                    let _ = sender.send(None);
-                },
-                EmbedderMsg::AllowUnload(sender) => {
-                    let _ = sender.send(true);
-                },
-                EmbedderMsg::Alert(_, sender) => {
-                    let _ = sender.send(());
-                },
-                EmbedderMsg::AllowOpeningBrowser(sender) => {
-                    let _ = sender.send(false);
-                },
-                // Update the history UI
-                EmbedderMsg::HistoryChanged(urls, index) => {
-                    if let Some(url) = urls.get(index) {
-                        if let Ok(cstr) = CString::new(url.as_str()) {
-                            let can_go_back = index > 0;
-                            let can_go_fwd = (index + 1) < urls.len();
-                            (servo.history_update.0)(
-                                servo.app,
-                                can_go_back,
-                                cstr.as_ptr(),
-                                can_go_fwd,
-                            );
-                        }
-                    }
-                },
-                EmbedderMsg::ShowIME(..) => (servo.keyboard.0)(servo.app, true),
-                EmbedderMsg::HideIME => (servo.keyboard.0)(servo.app, false),
-                // Ignore most messages for now
-                EmbedderMsg::ChangePageTitle(..) |
-                EmbedderMsg::BrowserCreated(..) |
-                EmbedderMsg::LoadStart |
-                EmbedderMsg::LoadComplete |
-                EmbedderMsg::CloseBrowser |
-                EmbedderMsg::Status(..) |
-                EmbedderMsg::SelectFiles(..) |
-                EmbedderMsg::MoveTo(..) |
-                EmbedderMsg::ResizeTo(..) |
-                EmbedderMsg::Keyboard(..) |
-                EmbedderMsg::SetCursor(..) |
-                EmbedderMsg::NewFavicon(..) |
-                EmbedderMsg::HeadParsed |
-                EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::Shutdown |
-                EmbedderMsg::Panic(..) => {},
-            }
-        }
-    }
+pub unsafe extern "C" fn heartbeat_servo(_servo: *mut ServoInstance) {
+    let _ = call(|s| s.perform_updates());
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn keyboard_servo(
-    servo: *mut ServoInstance,
+    _servo: *mut ServoInstance,
     key_code: char,
     key_type: MLKeyType,
 ) {
-    if let Some(servo) = servo.as_mut() {
-        let key = match key_type {
-            MLKeyType::kCharacter => Key::Character([key_code].iter().collect()),
-            MLKeyType::kBackspace => Key::Backspace,
-            MLKeyType::kEnter => Key::Enter,
-            _ => return,
-        };
-
-        let key_down = KeyboardEvent {
-            state: KeyState::Down,
-            key: key,
-            ..KeyboardEvent::default()
-        };
-
-        let key_up = KeyboardEvent {
-            state: KeyState::Up,
-            ..key_down.clone()
-        };
-
-        // TODO: can the ML1 generate separate press and release events?
-        servo.servo.handle_events(vec![
-            WindowEvent::Keyboard(key_down),
-            WindowEvent::Keyboard(key_up),
-        ]);
-    }
+    let key = match key_type {
+        MLKeyType::kCharacter => Key::Character([key_code].iter().collect()),
+        MLKeyType::kBackspace => Key::Backspace,
+        MLKeyType::kEnter => Key::Enter,
+        _ => return,
+    };
+    // TODO: can the ML1 generate separate press and release events?
+    let key2 = key.clone();
+    let _ = call(move |s| s.key_down(key2));
+    let _ = call(move |s| s.key_up(key));
 }
 
 // Some magic numbers.
@@ -269,41 +185,31 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
     // Servo's cursor was moved
     if let Some(servo) = servo.as_mut() {
         let point = DevicePoint::new(x, y);
-        let (new_state, window_events) = match servo.scroll_state {
-            ScrollState::TriggerUp => (
-                ScrollState::TriggerUp,
-                vec![WindowEvent::MouseWindowMoveEventClass(point)],
-            ),
+        match servo.scroll_state {
+            ScrollState::TriggerUp => {
+                servo.scroll_state = ScrollState::TriggerUp;
+                let _ = call(|s| s.move_mouse(x, y));
+            },
             ScrollState::TriggerDown(start)
                 if (start - point).square_length() < DRAG_CUTOFF_SQUARED =>
             {
                 return;
             }
-            ScrollState::TriggerDown(start) => (
-                ScrollState::TriggerDragging(start, point),
-                vec![
-                    WindowEvent::MouseWindowMoveEventClass(point),
-                    WindowEvent::Scroll(
-                        ScrollLocation::Delta((point - start) * servo.scroll_scale),
-                        start.to_i32(),
-                        TouchEventType::Down,
-                    ),
-                ],
-            ),
-            ScrollState::TriggerDragging(start, prev) => (
-                ScrollState::TriggerDragging(start, point),
-                vec![
-                    WindowEvent::MouseWindowMoveEventClass(point),
-                    WindowEvent::Scroll(
-                        ScrollLocation::Delta((point - prev) * servo.scroll_scale),
-                        start.to_i32(),
-                        TouchEventType::Move,
-                    ),
-                ],
-            ),
-        };
-        servo.scroll_state = new_state;
-        servo.servo.handle_events(window_events);
+            ScrollState::TriggerDown(start) => {
+                servo.scroll_state = ScrollState::TriggerDragging(start, point);
+                let _ = call(|s| s.move_mouse(x, y));
+                let delta = (point - start) * servo.scroll_scale;
+                let start = start.to_i32();
+                let _ = call(|s| s.scroll_start(delta.x, delta.y, start.x, start.y));
+            },
+            ScrollState::TriggerDragging(start, prev) => {
+                servo.scroll_state = ScrollState::TriggerDragging(start, point);
+                let _ = call(|s| s.move_mouse(x, y));
+                let delta = (point - prev) * servo.scroll_scale;
+                let start = start.to_i32();
+                let _ = call(|s| s.scroll(delta.x, delta.y, start.x, start.y));
+            },
+        }
     }
 }
 
@@ -312,83 +218,54 @@ pub unsafe extern "C" fn trigger_servo(servo: *mut ServoInstance, x: f32, y: f32
     // Servo was triggered
     if let Some(servo) = servo.as_mut() {
         let point = DevicePoint::new(x, y);
-        let (new_state, window_events) = match servo.scroll_state {
-            ScrollState::TriggerUp if down => (
-                ScrollState::TriggerDown(point),
-                vec![WindowEvent::MouseWindowEventClass(
-                    MouseWindowEvent::MouseDown(MouseButton::Left, point),
-                )],
-            ),
-            ScrollState::TriggerDown(start) if !down => (
-                ScrollState::TriggerUp,
-                vec![
-                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(
-                        MouseButton::Left,
-                        start,
-                    )),
-                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(
-                        MouseButton::Left,
-                        start,
-                    )),
-                    WindowEvent::MouseWindowMoveEventClass(point),
-                ],
-            ),
-            ScrollState::TriggerDragging(start, prev) if !down => (
-                ScrollState::TriggerUp,
-                vec![
-                    WindowEvent::Scroll(
-                        ScrollLocation::Delta((point - prev) * servo.scroll_scale),
-                        start.to_i32(),
-                        TouchEventType::Up,
-                    ),
-                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(
-                        MouseButton::Left,
-                        point,
-                    )),
-                    WindowEvent::MouseWindowMoveEventClass(point),
-                ],
-            ),
+        match servo.scroll_state {
+            ScrollState::TriggerUp if down => {
+                servo.scroll_state = ScrollState::TriggerDown(point);
+                let _ = call(|s| s.mouse_down(x, y, MouseButton::Left));
+            },
+            ScrollState::TriggerDown(start) if !down => {
+                servo.scroll_state = ScrollState::TriggerUp;
+                let _ = call(|s| s.mouse_up(start.x, start.y, MouseButton::Left));
+                let _ = call(|s| s.click(start.x, start.y));
+                let _ = call(|s| s.move_mouse(start.x, start.y));
+            },
+            ScrollState::TriggerDragging(start, prev) if !down => {
+                servo.scroll_state = ScrollState::TriggerUp;
+                let delta = (point - prev) * servo.scroll_scale;
+                let start = start.to_i32();
+                let _ = call(|s| s.scroll_end(delta.x, delta.y, start.x, start.y));
+                let _ = call(|s| s.mouse_up(x, y, MouseButton::Left));
+            },
             _ => return,
-        };
-        servo.scroll_state = new_state;
-        servo.servo.handle_events(window_events);
+        }
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn traverse_servo(servo: *mut ServoInstance, delta: i32) {
+pub unsafe extern "C" fn traverse_servo(_servo: *mut ServoInstance, delta: i32) {
     // Traverse the session history
-    if let Some(servo) = servo.as_mut() {
-        let window_event = if delta == 0 {
-            WindowEvent::Reload(servo.browser_id)
-        } else if delta < 0 {
-            WindowEvent::Navigation(servo.browser_id, TraversalDirection::Back(-delta as usize))
-        } else {
-            WindowEvent::Navigation(
-                servo.browser_id,
-                TraversalDirection::Forward(delta as usize),
-            )
-        };
-        servo.servo.handle_events(vec![window_event]);
+    if delta == 0 {
+        let _ = call(|s| s.reload());
+    } else if delta < 0 {
+        let _ = call(|s| s.go_back());
+    } else {
+        let _ = call(|s| s.go_forward());
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn navigate_servo(servo: *mut ServoInstance, text: *const c_char) {
-    if let Some(servo) = servo.as_mut() {
-        let text = CStr::from_ptr(text)
-            .to_str()
-            .expect("Failed to convert text to UTF-8");
-        let url = ServoUrl::parse(text).unwrap_or_else(|_| {
-            let mut search = ServoUrl::parse("https://duckduckgo.com")
-                .expect("Failed to parse search URL")
-                .into_url();
-            search.query_pairs_mut().append_pair("q", text);
-            ServoUrl::from_url(search)
-        });
-        let window_event = WindowEvent::LoadUrl(servo.browser_id, url);
-        servo.servo.handle_events(vec![window_event]);
-    }
+pub unsafe extern "C" fn navigate_servo(_servo: *mut ServoInstance, text: *const c_char) {
+    let text = CStr::from_ptr(text)
+        .to_str()
+        .expect("Failed to convert text to UTF-8");
+    let url = ServoUrl::parse(text).unwrap_or_else(|_| {
+        let mut search = ServoUrl::parse("https://duckduckgo.com")
+            .expect("Failed to parse search URL")
+            .into_url();
+        search.query_pairs_mut().append_pair("q", text);
+        ServoUrl::from_url(search)
+    });
+    let _ = call(|s| s.load_uri(url.as_str()));
 }
 
 // Some magic numbers for shutdown
@@ -398,44 +275,68 @@ const SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
 #[no_mangle]
 pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
     if let Some(servo) = servo.as_mut() {
-        let mut servo = Box::from_raw(servo);
+        let servo = Box::from_raw(servo);
         let finish = Instant::now() + SHUTDOWN_DURATION;
-        servo.servo.handle_events(vec![WindowEvent::Quit]);
-        'outer: loop {
-            for (_, msg) in servo.servo.get_events() {
-                if let EmbedderMsg::Shutdown = msg {
-                    break 'outer;
-                }
-            }
+        let _ = call(|s| s.request_shutdown());
+        while !servo.shut_down_complete.get() {
+            let _ = call(|s| s.perform_updates());
             if Instant::now() > finish {
                 warn!("Incomplete shutdown.");
-                break 'outer;
             }
             thread::sleep(SHUTDOWN_POLL_INTERVAL);
-            servo.servo.handle_events(vec![]);
         }
-        servo.servo.deinit();
+        deinit();
+    }
+}
+
+struct HostCallbacks {
+    ctxt: EGLContext,
+    surf: EGLSurface,
+    disp: EGLDisplay,
+    shut_down_complete: Rc<Cell<bool>>,
+    history_update: MLHistoryUpdate,
+    url_update: MLURLUpdate,
+    app: MLApp,
+    keyboard: MLKeyboard,
+}
+
+impl HostTrait for HostCallbacks {
+    fn flush(&self) {
+        SwapBuffers(self.disp, self.surf);
+    }
+
+    fn make_current(&self) {
+        MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
+    }
+
+    fn on_load_started(&self) {}
+    fn on_load_ended(&self) {}
+    fn on_title_changed(&self, _title: String) {}
+    fn on_url_changed(&self, url: String) {
+        if let Ok(cstr) = CString::new(url.as_str()) {
+            (self.url_update.0)(self.app, cstr.as_ptr());
+        }
+    }
+
+    fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {
+        (self.history_update.0)(self.app, can_go_back, can_go_forward);
+    }
+
+    fn on_animating_changed(&self, _animating: bool) {}
+
+    fn on_shutdown_complete(&self) {
+        self.shut_down_complete.set(true);
+    }
+
+    fn on_ime_state_changed(&self, show: bool) {
+        (self.keyboard.0)(self.app, show)
     }
 }
 
 pub struct ServoInstance {
-    app: MLApp,
-    browser_id: BrowserId,
-    history_update: MLHistoryUpdate,
-    keyboard: MLKeyboard,
-    servo: Servo<WindowInstance>,
     scroll_state: ScrollState,
     scroll_scale: TypedScale<f32, DevicePixel, LayoutPixel>,
-}
-
-struct WindowInstance {
-    ctxt: EGLContext,
-    surf: EGLSurface,
-    disp: EGLDisplay,
-    gl: Rc<Gl>,
-    width: u32,
-    height: u32,
-    hidpi: f32,
+    shut_down_complete: Rc<Cell<bool>>,
 }
 
 #[derive(Clone, Copy)]
@@ -445,51 +346,7 @@ enum ScrollState {
     TriggerDragging(DevicePoint, DevicePoint),
 }
 
-impl WindowMethods for WindowInstance {
-    fn present(&self) {
-        SwapBuffers(self.disp, self.surf);
-    }
-
-    fn prepare_for_composite(&self) -> bool {
-        MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
-        true
-    }
-
-    fn gl(&self) -> Rc<Gl> {
-        self.gl.clone()
-    }
-
-    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
-        Box::new(EventLoopWakerInstance::new())
-    }
-
-    fn get_coordinates(&self) -> EmbedderCoordinates {
-        EmbedderCoordinates {
-            hidpi_factor: TypedScale::new(self.hidpi),
-            screen: TypedSize2D::new(self.width as i32, self.height as i32),
-            screen_avail: TypedSize2D::new(self.width as i32, self.height as i32),
-            window: (
-                TypedSize2D::new(self.width as i32, self.height as i32),
-                TypedPoint2D::new(0, 0),
-            ),
-            framebuffer: TypedSize2D::new(self.width as i32, self.height as i32),
-            viewport: TypedRect::new(
-                TypedPoint2D::new(0, 0),
-                TypedSize2D::new(self.width as i32, self.height as i32),
-            ),
-        }
-    }
-
-    fn set_animation_state(&self, _state: AnimationState) {}
-}
-
 struct EventLoopWakerInstance;
-
-impl EventLoopWakerInstance {
-    fn new() -> EventLoopWakerInstance {
-        EventLoopWakerInstance
-    }
-}
 
 impl EventLoopWaker for EventLoopWakerInstance {
     fn clone(&self) -> Box<EventLoopWaker + Send> {
@@ -497,47 +354,6 @@ impl EventLoopWaker for EventLoopWakerInstance {
     }
 
     fn wake(&self) {}
-}
-
-struct ResourceReaderInstance;
-
-impl ResourceReaderInstance {
-    fn new() -> ResourceReaderInstance {
-        ResourceReaderInstance
-    }
-}
-
-impl ResourceReaderMethods for ResourceReaderInstance {
-    fn read(&self, res: Resource) -> Vec<u8> {
-        Vec::from(match res {
-            Resource::Preferences => &include_bytes!("../../../resources/prefs.json")[..],
-            Resource::HstsPreloadList => {
-                &include_bytes!("../../../resources/hsts_preload.json")[..]
-            },
-            Resource::SSLCertificates => &include_bytes!("../../../resources/certs")[..],
-            Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
-            Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
-            Resource::UserAgentCSS => &include_bytes!("../../../resources/user-agent.css")[..],
-            Resource::ServoCSS => &include_bytes!("../../../resources/servo.css")[..],
-            Resource::PresentationalHintsCSS => {
-                &include_bytes!("../../../resources/presentational-hints.css")[..]
-            },
-            Resource::QuirksModeCSS => &include_bytes!("../../../resources/quirks-mode.css")[..],
-            Resource::RippyPNG => &include_bytes!("../../../resources/rippy.png")[..],
-            Resource::DomainList => &include_bytes!("../../../resources/public_domains.txt")[..],
-            Resource::BluetoothBlocklist => {
-                &include_bytes!("../../../resources/gatt_blocklist.txt")[..]
-            },
-        })
-    }
-
-    fn sandbox_access_files(&self) -> Vec<PathBuf> {
-        vec![]
-    }
-
-    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
-        vec![]
-    }
 }
 
 impl log::Log for MLLogger {
