@@ -4,9 +4,10 @@
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{self, ShadowRootMode};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
@@ -35,8 +36,7 @@ pub struct ShadowRoot {
 }
 
 impl ShadowRoot {
-    #[allow(dead_code)]
-    pub fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
+    fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
         ShadowRoot {
             document_fragment: DocumentFragment::new_inherited(document),
             has_browsing_context: true,
@@ -44,6 +44,14 @@ impl ShadowRoot {
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
         }
+    }
+
+    pub fn new(host: &Element, document: &Document) -> DomRoot<ShadowRoot> {
+        reflect_dom_object(
+            Box::new(ShadowRoot::new_inherited(host, document)),
+            document.window(),
+            ShadowRootBinding::Wrap,
+        )
     }
 
     pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {
