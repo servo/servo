@@ -357,6 +357,27 @@ impl ServoGlue {
         self.process_event(event)
     }
 
+    /// Register a mouse movement.
+    pub fn move_mouse(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
+        let point = TypedPoint2D::new(x, y);
+        let event = WindowEvent::MouseWindowMoveEventClass(point);
+        self.process_event(event)
+    }
+
+    /// Register a mouse button press.
+    pub fn mouse_down(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
+        let point = TypedPoint2D::new(x, y);
+        let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(button, point));
+        self.process_event(event)
+    }
+
+    /// Register a mouse button release.
+    pub fn mouse_up(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
+        let point = TypedPoint2D::new(x, y);
+        let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(button, point));
+        self.process_event(event)
+    }
+
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
@@ -381,6 +402,24 @@ impl ServoGlue {
             MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x, y));
         let event = WindowEvent::MouseWindowEventClass(mouse_event);
         self.process_event(event)
+    }
+
+    pub fn key_down(&mut self, key: Key) -> Result<(), &'static str> {
+        let key_event = KeyboardEvent {
+            state: KeyState::Down,
+            key,
+            ..KeyboardEvent::default()
+        };
+        self.process_event(WindowEvent::Keyboard(key_event))
+    }
+
+    pub fn key_up(&mut self, key: Key) -> Result<(), &'static str> {
+        let key_event = KeyboardEvent {
+            state: KeyState::Up,
+            key,
+            ..KeyboardEvent::default()
+        };
+        self.process_event(WindowEvent::Keyboard(key_event))
     }
 
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
