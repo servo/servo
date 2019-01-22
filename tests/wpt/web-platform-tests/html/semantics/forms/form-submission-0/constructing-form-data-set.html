@@ -103,6 +103,8 @@ t1.step(() => {
   });
   let iframe = form.previousSibling;
   iframe.onload = t1.step_func_done(() => {
+    // FIXME: https://github.com/whatwg/html/issues/490
+    if (iframe.contentWindow.location.href == "about:blank") { return; }
     assert_true(iframe.contentWindow.location.search.indexOf('n1=v1&h1=vh1') != -1);
   });
   form.submit();
