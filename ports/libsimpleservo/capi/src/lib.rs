@@ -192,19 +192,19 @@ pub extern "C" fn go_forward() {
 #[no_mangle]
 pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll_start");
-    call(|s| s.scroll_start(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll_start(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
 pub extern "C" fn scroll_end(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll_end");
-    call(|s| s.scroll_end(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll_end(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
 pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll");
-    call(|s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
@@ -252,7 +252,7 @@ pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
 #[no_mangle]
 pub extern "C" fn click(x: i32, y: i32) {
     debug!("click");
-    call(|s| s.click(x as u32, y as u32));
+    call(|s| s.click(x as f32, y as f32));
 }
 
 pub struct WakeupCallback(extern "C" fn());
