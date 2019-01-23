@@ -81,6 +81,8 @@ interface Element : Node {
   void insertAdjacentText(DOMString where_, DOMString data);
   [CEReactions, Throws]
   void insertAdjacentHTML(DOMString position, DOMString html);
+
+  [Throws, Pref="dom.shadowdom.enabled"] ShadowRoot attachShadow();
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface

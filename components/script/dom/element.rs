@@ -2640,6 +2640,13 @@ impl ElementMethods for Element {
         let doc = document_from_node(self);
         doc.enter_fullscreen(self)
     }
+
+    // XXX Hidden under dom.shadowdom.enabled pref. Only exposed to be able
+    //     to test partial Shadow DOM support for UA widgets.
+    // https://dom.spec.whatwg.org/#dom-element-attachshadow
+    fn AttachShadow(&self) -> Fallible<DomRoot<ShadowRoot>> {
+        self.attach_shadow()
+    }
 }
 
 impl VirtualMethods for Element {
