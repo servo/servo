@@ -23,6 +23,7 @@ use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, No
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -118,6 +119,9 @@ pub struct Node {
 
     /// The document that this node belongs to.
     owner_doc: MutNullableDom<Document>,
+
+    /// The shadow root this node belongs to.
+    owner_shadow_root: MutNullableDom<ShadowRoot>,
 
     /// The live list of children return by .childNodes.
     child_list: MutNullableDom<NodeList>,
@@ -272,6 +276,9 @@ impl Node {
         for node in new_child.traverse_preorder() {
             node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
+            if parent_in_shadow_tree {
+                node.set_owner_shadow_root(&*self.owner_shadow_root());
+            }
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
             vtable_for(&&*node).bind_to_tree(parent_in_doc);
@@ -884,6 +891,14 @@ impl Node {
 
     pub fn set_owner_doc(&self, document: &Document) {
         self.owner_doc.set(Some(document));
+    }
+
+    pub fn owner_shadow_root(&self) -> DomRoot<ShadowRoot> {
+        self.owner_shadow_root.get().unwrap()
+    }
+
+    pub fn set_owner_shadow_root(&self, shadow_root: &ShadowRoot) {
+        self.owner_shadow_root.set(Some(shadow_root));
     }
 
     pub fn is_in_html_doc(&self) -> bool {
@@ -1511,6 +1526,7 @@ impl Node {
             next_sibling: Default::default(),
             prev_sibling: Default::default(),
             owner_doc: MutNullableDom::new(doc),
+            owner_shadow_root: Default::default(),
             child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
