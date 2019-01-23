@@ -484,6 +484,9 @@ impl Element {
             return Err(Error::InvalidState);
         }
 
+        self.upcast::<Node>()
+            .set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
+
         // Steps 4, 5 and 6.
         Ok(self
             .shadow_root
