@@ -183,7 +183,7 @@ impl HTMLCollection {
 
         let filter = HtmlDocumentFilter {
             ascii_lower_qualified_name: qualified_name.to_ascii_lowercase(),
-            qualified_name: qualified_name,
+            qualified_name,
         };
         HTMLCollection::create(window, root, Box::new(filter))
     }
@@ -282,7 +282,13 @@ impl HTMLCollection {
         after
             .following_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(&element, &self.root))
+            .filter(move |element: &DomRoot<Element>| {
+                if element.upcast::<Node>().is_in_shadow_tree() &&
+                    element.upcast::<Node>().owner_shadow_root() != self.root.owner_shadow_root() {
+                    return false;
+                }
+                self.filter.filter(&element, &self.root)
+            })
     }
 
     pub fn elements_iter<'a>(&'a self) -> impl Iterator<Item = DomRoot<Element>> + 'a {
@@ -298,7 +304,13 @@ impl HTMLCollection {
         before
             .preceding_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(&element, &self.root))
+            .filter(move |element: &DomRoot<Element>| {
+                if element.upcast::<Node>().is_in_shadow_tree() &&
+                    element.upcast::<Node>().owner_shadow_root() != self.root.owner_shadow_root() {
+                    return false;
+                }
+                self.filter.filter(&element, &self.root)
+            })
     }
 
     pub fn root_node(&self) -> DomRoot<Node> {
