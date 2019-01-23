@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Event: gotPointercapture is fired first.</title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/wiki/PointerEvents/TestAssertions">
+        <meta name="assert" content="When the setPointerCapture method is invoked, if the provided pointerId value does not match any of the active pointers, a DOMException with the name NotFountError must be thrown." />
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- /resources/testharness.js -->
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("setPointerCapture: DOMException NotFoundError"); // set up test harness
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var INVALID_POINTERID = -39548;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                target0.style["touchAction"] = "none";
+                var listener = document.getElementById("complete-notice");
+
+                on_event(target0, "pointerdown", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    test_pointerEvent.step(function() {
+                      assert_throws("NotFoundError", function(){ listener.setPointerCapture(INVALID_POINTERID); },
+                                    "It should not be possible to capture an invalid pointer id");
+                    });
+                    test_pointerEvent.done(); // complete test
+                });
+
+                // Inject mouse inputs.
+                new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerDown()
+                    .pointerUp()
+                    .send();
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: DOMException NotFoundError</h1>
+        <h4>Test Description:
+            When the setPointerCapture method is invoked, if the provided pointerId value does not match any of the active pointers, a DOMException with the name NotFoundError must be thrown.
+        </h4>
+        <br />
+        <div id="target0">
+            Use the mouse, touch or pen to contact this box.
+        </div>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>
