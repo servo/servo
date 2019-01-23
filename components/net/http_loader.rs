@@ -747,12 +747,12 @@ pub fn http_redirect_fetch(
             .lock()
             .unwrap()
             .set_attribute(ResourceAttribute::RedirectStart(0));
-    } else if self.redirect_start == 0 {
+    } else if request.redirect_start == 0 {
         context
             .timing
             .lock()
             .unwrap()
-            .set_attribute(ResourceAttribute::RedirectStart(self.fetch_start));
+            .set_attribute(ResourceAttribute::RedirectStart(request.fetch_start));
     }
 
     main_fetch(
