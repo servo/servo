@@ -746,14 +746,10 @@ pub fn http_redirect_fetch(
             .timing
             .lock()
             .unwrap()
-            .set_attribute(ResourceAttribute::RedirectStart(0));
-    } else if request.redirect_start == 0 {
-        context
-            .timing
-            .lock()
-            .unwrap()
-            .set_attribute(ResourceAttribute::RedirectStart(request.fetch_start));
+            .set_attribute(ResourceAttribute::RedirectStart);
     }
+    // TODO If the value of redirectStart is not set,
+    //      set the redirect_start to fetch_start
 
     main_fetch(
         request,
