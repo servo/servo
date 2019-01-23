@@ -772,46 +772,18 @@ ${helpers.four_sides_shorthand(
     allow_quirks=False,
 )}
 
-% for axis in ["block", "inline"]:
-    <%
-        spec = "https://drafts.csswg.org/css-logical/#propdef-inset-%s" % axis
-    %>
-    <%helpers:shorthand
-        name="inset-${axis}"
-        sub_properties="${' '.join(
-            'inset-%s-%s' % (axis, side)
-            for side in ['start', 'end']
-        )}"
-        spec="${spec}">
+${helpers.two_properties_shorthand(
+    "inset-block",
+    "inset-block-start",
+    "inset-block-end",
+    "specified::LengthPercentageOrAuto::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset-block"
+)}
 
-        use crate::parser::Parse;
-        use crate::values::specified::length::LengthPercentageOrAuto;
-        pub fn parse_value<'i, 't>(
-            context: &ParserContext,
-            input: &mut Parser<'i, 't>,
-        ) -> Result<Longhands, ParseError<'i>> {
-            let start_value = LengthPercentageOrAuto::parse(context, input)?;
-            let end_value =
-                input.try(|input| LengthPercentageOrAuto::parse(context, input))
-                    .unwrap_or_else(|_| start_value.clone());
-
-            Ok(expanded! {
-                inset_${axis}_start: start_value,
-                inset_${axis}_end: end_value,
-            })
-        }
-
-        impl<'a> ToCss for LonghandsToSerialize<'a>  {
-            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-                self.inset_${axis}_start.to_css(dest)?;
-
-                if self.inset_${axis}_end != self.inset_${axis}_start {
-                    dest.write_str(" ")?;
-                    self.inset_${axis}_end.to_css(dest)?;
-                }
-
-                Ok(())
-            }
-        }
-    </%helpers:shorthand>
-% endfor
+${helpers.two_properties_shorthand(
+    "inset-inline",
+    "inset-inline-start",
+    "inset-inline-end",
+    "specified::LengthPercentageOrAuto::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset-inline"
+)}

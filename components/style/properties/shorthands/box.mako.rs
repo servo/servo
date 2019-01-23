@@ -4,76 +4,28 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand
-    name="overflow"
-    flags="SHORTHAND_IN_GETCS"
-    sub_properties="overflow-x overflow-y"
-    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow"
->
-    use crate::properties::longhands::overflow_x::parse as parse_overflow;
+${helpers.two_properties_shorthand(
+    "overflow",
+    "overflow-x",
+    "overflow-y",
+    "specified::Overflow::parse",
+    flags="SHORTHAND_IN_GETCS",
+    needs_context=False,
+    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow",
+)}
 
-    pub fn parse_value<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Longhands, ParseError<'i>> {
-        let overflow_x = parse_overflow(context, input)?;
-        let overflow_y =
-            input.try(|i| parse_overflow(context, i)).unwrap_or(overflow_x);
-        Ok(expanded! {
-            overflow_x: overflow_x,
-            overflow_y: overflow_y,
-        })
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.overflow_x.to_css(dest)?;
-            if self.overflow_x != self.overflow_y {
-                dest.write_char(' ')?;
-                self.overflow_y.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
-</%helpers:shorthand>
-
-<%helpers:shorthand
-    name="overflow-clip-box"
-    sub_properties="overflow-clip-box-block overflow-clip-box-inline"
-    enabled_in="ua"
-    gecko_pref="layout.css.overflow-clip-box.enabled"
+${helpers.two_properties_shorthand(
+    "overflow-clip-box",
+    "overflow-clip-box-block",
+    "overflow-clip-box-inline",
+    "specified::OverflowClipBox::parse",
+    enabled_in="ua",
+    needs_context=False,
+    gecko_pref="layout.css.overflow-clip-box.enabled",
     spec="Internal, may be standardized in the future "
-         "(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)"
-    products="gecko"
->
-    use crate::values::specified::OverflowClipBox;
-    pub fn parse_value<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Longhands, ParseError<'i>> {
-        let block_value = OverflowClipBox::parse(input)?;
-        let inline_value =
-            input.try(|input| OverflowClipBox::parse(input)).unwrap_or(block_value);
-
-        Ok(expanded! {
-          overflow_clip_box_block: block_value,
-          overflow_clip_box_inline: inline_value,
-        })
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.overflow_clip_box_block.to_css(dest)?;
-
-            if self.overflow_clip_box_block != self.overflow_clip_box_inline {
-                dest.write_str(" ")?;
-                self.overflow_clip_box_inline.to_css(dest)?;
-            }
-
-            Ok(())
-        }
-    }
-</%helpers:shorthand>
+         "(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)",
+    products="gecko",
+)}
 
 macro_rules! try_parse_one {
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
@@ -381,36 +333,16 @@ macro_rules! try_parse_one {
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="overscroll-behavior" products="gecko"
-                    gecko_pref="layout.css.overscroll-behavior.enabled"
-                    sub_properties="overscroll-behavior-x overscroll-behavior-y"
-                    spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties">
-    pub fn parse_value<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Longhands, ParseError<'i>> {
-        use crate::values::specified::OverscrollBehavior;
-        let behavior_x = OverscrollBehavior::parse(input)?;
-        let behavior_y = input.try(OverscrollBehavior::parse).unwrap_or(behavior_x);
-        Ok(expanded! {
-            overscroll_behavior_x: behavior_x,
-            overscroll_behavior_y: behavior_y,
-        })
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a> {
-        // Serializes into the single keyword value if both overscroll-behavior-x and overscroll-behavior-y are same.
-        // Otherwise into two values separated by a space.
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.overscroll_behavior_x.to_css(dest)?;
-            if self.overscroll_behavior_y != self.overscroll_behavior_x {
-                dest.write_str(" ")?;
-                self.overscroll_behavior_y.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
-</%helpers:shorthand>
+${helpers.two_properties_shorthand(
+    "overscroll-behavior",
+    "overscroll-behavior-x",
+    "overscroll-behavior-y",
+    "specified::OverscrollBehavior::parse",
+    needs_context=False,
+    products="gecko",
+    gecko_pref="layout.css.overscroll-behavior.enabled",
+    spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
+)}
 
 <%helpers:shorthand
     name="page-break-before"
