@@ -182,6 +182,9 @@ bitflags! {
 
         /// Whether this element has already handled the stored snapshot.
         const HANDLED_SNAPSHOT = 1 << 8;
+
+        // Whether this node participates in a shadow tree.
+        const IS_IN_SHADOW_TREE = 1 << 9;
     }
 }
 
@@ -265,8 +268,10 @@ impl Node {
         self.children_count.set(self.children_count.get() + 1);
 
         let parent_in_doc = self.is_in_doc();
+        let parent_in_shadow_tree = self.is_in_shadow_tree();
         for node in new_child.traverse_preorder() {
             node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
+            node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
             vtable_for(&&*node).bind_to_tree(parent_in_doc);
@@ -453,6 +458,10 @@ impl Node {
 
     pub fn is_in_doc(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_DOC)
+    }
+
+    pub fn is_in_shadow_tree(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
     }
 
     /// Returns the type ID of this node.
