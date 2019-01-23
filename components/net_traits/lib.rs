@@ -458,7 +458,7 @@ pub enum ResourceAttribute {
     RedirectCount(u16),
     RequestStart,
     ResponseStart,
-    RedirectStart(u64),
+    RedirectStart,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -487,7 +487,7 @@ impl ResourceFetchTiming {
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
             ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
             ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
-            ResourceAttribute::RedirectStart(val) => self.redirect_start = val,
+            ResourceAttribute::RedirectStart => self.redirect_start = precise_time_ns(),
         }
     }
 }
