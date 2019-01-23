@@ -284,7 +284,8 @@ impl HTMLCollection {
             .filter_map(DomRoot::downcast)
             .filter(move |element: &DomRoot<Element>| {
                 if element.upcast::<Node>().is_in_shadow_tree() &&
-                    element.upcast::<Node>().owner_shadow_root() != self.root.owner_shadow_root() {
+                    element.upcast::<Node>().owner_shadow_root() != self.root.owner_shadow_root()
+                {
                     return false;
                 }
                 self.filter.filter(&element, &self.root)
@@ -306,7 +307,8 @@ impl HTMLCollection {
             .filter_map(DomRoot::downcast)
             .filter(move |element: &DomRoot<Element>| {
                 if element.upcast::<Node>().is_in_shadow_tree() &&
-                    element.upcast::<Node>().owner_shadow_root() != self.root.owner_shadow_root() {
+                    element.upcast::<Node>().owner_shadow_root() != self.root.owner_shadow_root()
+                {
                     return false;
                 }
                 self.filter.filter(&element, &self.root)
