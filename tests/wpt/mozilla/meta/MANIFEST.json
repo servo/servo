@@ -1,5 +1,11 @@
 {
  "items": {
+  "conformancechecker": {
+   "mozilla/partial_shadow_dom.html": []
+  },
+  "manual": {
+   "mozilla/partial_shadow_dom.html": []
+  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -7001,6 +7007,7 @@
      {}
     ]
    ],
+   "mozilla/partial_shadow_dom.html": [],
    "mozilla/remove_link_styles.html": [
     [
      "/_mozilla/mozilla/remove_link_styles.html",
@@ -7326,7 +7333,11 @@
      ],
      {}
     ]
-   ]
+   ],
+   "mozilla/partial_shadow_dom.html": []
+  },
+  "stub": {
+   "mozilla/partial_shadow_dom.html": []
   },
   "support": {
    "bluetooth/bluetooth-helpers.js": [
@@ -10409,6 +10420,7 @@
      {}
     ]
    ],
+   "mozilla/partial_shadow_dom.html": [],
    "mozilla/poster.png": [
     [
      {}
@@ -13031,6 +13043,12 @@
      {}
     ]
    ],
+   "mozilla/partial_shadow_dom.html": [
+    [
+     "/_mozilla/mozilla/partial_shadow_dom.html",
+     {}
+    ]
+   ],
    "mozilla/postmessage_closed.html": [
     [
      "/_mozilla/mozilla/postmessage_closed.html",
@@ -13377,6 +13395,12 @@
      {}
     ]
    ]
+  },
+  "visual": {
+   "mozilla/partial_shadow_dom.html": []
+  },
+  "wdspec": {
+   "mozilla/partial_shadow_dom.html": []
   }
  },
  "paths": {
@@ -19702,6 +19726,10 @@
   ],
   "mozilla/parentnodes.html": [
    "5aff666995fe6cd1d4e84e63a9f6019d04387f8e",
+   "testharness"
+  ],
+  "mozilla/partial_shadow_dom.html": [
+   "d97f1422d20161e989f200d44be6e379f79410bd",
    "testharness"
   ],
   "mozilla/poster.png": [
