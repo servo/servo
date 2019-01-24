@@ -7,5 +7,5 @@ WINDOWS_MSVC = {
     "llvm": "7.0.0",
     "moztools": "3.2",
     "ninja": "1.7.1",
-    "openssl": "1.1.0e-vs2015",
+    "openssl": "1.1.0e-vs2015"
 }
