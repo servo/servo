@@ -50,8 +50,10 @@ promise_test(async t => {
 
   // Verify the request is enqueued:
   const state = await navigator.locks.query();
-  assert_equals(state.held.filter(lock => lock.name === res).length, 1);
-  assert_equals(state.pending.filter(lock => lock.name === res).length, 1);
+  assert_equals(state.held.filter(lock => lock.name === res).length, 1,
+                'Number of held locks');
+  assert_equals(state.pending.filter(lock => lock.name === res).length, 1,
+                'Number of pending locks');
 
   const rejected = promise_rejects(
     t, 'AbortError', promise, 'Request should reject with AbortError');
@@ -76,8 +78,10 @@ promise_test(async t => {
 
   // Verify the request is enqueued:
   const state = await navigator.locks.query();
-  assert_equals(state.held.filter(lock => lock.name === res).length, 1);
-  assert_equals(state.pending.filter(lock => lock.name === res).length, 1);
+  assert_equals(state.held.filter(lock => lock.name === res).length, 1,
+                'Number of held locks');
+  assert_equals(state.pending.filter(lock => lock.name === res).length, 1,
+                'Number of pending locks');
 
   const rejected = promise_rejects(
     t, 'AbortError', promise, 'Request should reject with AbortError');

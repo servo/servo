@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-transform with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-transform">
+<meta name="assert" content="text-transform supports only the grammar 'none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-transform", "none full-width");
+test_invalid_value("text-transform", "capitalize none");
+
+test_invalid_value("text-transform", "capitalize full-width lowercase");
+test_invalid_value("text-transform", "uppercase full-size-kana uppercase");
+test_invalid_value("text-transform", "full-width full-size-kana full-width");
+test_invalid_value("text-transform", "full-size-kana capitalize full-size-kana");
+</script>
+</body>
+</html>

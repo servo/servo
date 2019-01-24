@@ -28,6 +28,17 @@
 "use strict";
 const ABUSIVE_AMOUNT = 100000;
 
+const applePay = {
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+};
+
 const basicCard = Object.freeze({
   supportedMethods: "basic-card",
 });
@@ -42,7 +53,7 @@ const evilAmount = Object.freeze({
   value: "1".repeat(ABUSIVE_AMOUNT),
 });
 
-const defaultMethods = Object.freeze([basicCard]);
+const defaultMethods = Object.freeze([basicCard, applePay]);
 
 const defaultTotal = Object.freeze({
   label: "label",
