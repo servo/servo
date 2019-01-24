@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing word-break with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-word-break">
+<meta name="assert" content="word-break supports the full grammar 'normal | keep-all | break-all'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("word-break", "normal");
+test_valid_value("word-break", "keep-all");
+test_valid_value("word-break", "break-all");
+</script>
+</body>
+</html>

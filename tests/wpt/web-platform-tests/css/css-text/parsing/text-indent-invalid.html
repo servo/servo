@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-indent with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-indent">
+<meta name="assert" content="text-indent supports only the grammar '[ <length-percentage> ] && hanging? && each-line?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-indent", "auto");
+test_invalid_value("text-indent", "hanging");
+test_invalid_value("text-indent", "each-line");
+test_invalid_value("text-indent", "10");
+
+test_invalid_value("text-indent", "10px hanging 20px");
+test_invalid_value("text-indent", "hanging 20% hanging");
+test_invalid_value("text-indent", "each-line each-line");
+</script>
+</body>
+</html>

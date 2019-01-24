@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<title>Referrer of SignedHTTPExchange</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+(() => {
+  const SAME_ORIGIN = get_host_info().HTTPS_ORIGIN;
+  const REMOTE_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+  const SAME_ORIGIN_SXG = 'sxg-referrer-same-origin.sxg';
+  const REMOTE_ORIGIN_SXG = 'sxg-referrer-remote-origin.sxg';
+  const TEST_CASES = [
+    // Physical origin = same origin. Logical origin = same origin.
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer',
+      expectedReferrer: ''
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer-when-downgrade',
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'same-origin',
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'unsafe-url',
+      expectedReferrer: document.location.href
+    },
+
+    // Physical origin = same origin. Logical origin = remote origin.
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer',
+      expectedReferrer: ''
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer-when-downgrade',
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'same-origin',
+      expectedReferrer: ''
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'unsafe-url',
+      expectedReferrer: document.location.href
+    },
+
+    // Physical origin = remote origin. Logical origin = same origin.
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer',
+      expectedReferrer: ''
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer-when-downgrade',
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'same-origin',
+      expectedReferrer: ''
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: SAME_ORIGIN_SXG,
+      referrerPolicy: 'unsafe-url',
+      expectedReferrer: document.location.href
+    },
+
+    // Physical origin = remote origin. Logical origin = remote origin.
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer',
+      expectedReferrer: ''
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer-when-downgrade',
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'same-origin',
+      expectedReferrer: ''
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: REMOTE_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'unsafe-url',
+      expectedReferrer: document.location.href
+    },
+
+    // Referrer-Policy header in outer SXG response.
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,no-referrer)',
+      referrerPolicy: undefined,
+      expectedReferrer: ''
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG +
+           '?pipe=header(Referrer-Policy,no-referrer-when-downgrade)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,same-origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,strict-origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG +
+           '?pipe=header(Referrer-Policy,strict-origin-when-cross-origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,unsafe-url)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+  ];
+  for (const i in TEST_CASES) {
+    const test_case = TEST_CASES[i];
+    promise_test(async (t) => {
+      const sxgUrl = test_case.origin + '/signed-exchange/resources/sxg/' +
+                     test_case.sxg;
+      const message =
+          await openSXGInIframeAndWaitForMessage(
+              t, sxgUrl, test_case.referrerPolicy);
+      assert_false(message.is_fallback);
+      assert_equals(message.referrer, test_case.expectedReferrer);
+
+      const invalidSxgUrl =
+          test_case.origin + '/signed-exchange/resources/sxg/invalid-' +
+          test_case.sxg;
+      const fallbackMessage =
+          await openSXGInIframeAndWaitForMessage(
+                t, invalidSxgUrl, test_case.referrerPolicy);
+      assert_true(fallbackMessage.is_fallback);
+      assert_equals(fallbackMessage.referrer, test_case.expectedReferrer);
+    }, 'Referrer of SignedHTTPExchange test : ' + JSON.stringify(test_case));
+  }
+})();
+</script>
+</body>

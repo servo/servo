@@ -21,7 +21,7 @@ jobs:
   steps:
   - template: tools/ci/azure/affected_tests.yml
     parameters:
-      artifactName: 'results'
+      artifactName: 'affected-tests'
 
 - job: affected_without_changes_macOS
   displayName: 'affected tests without changes (Safari Technology Preview)'
@@ -33,7 +33,7 @@ jobs:
     parameters:
       checkoutCommit: 'HEAD^1'
       affectedRange: 'HEAD@{1}'
-      artifactName: 'results-without-changes'
+      artifactName: 'affected-tests-without-changes'
 
 # The decision jobs runs `./wpt test-jobs` to determine which jobs to run,
 # and all following jobs wait for it to finish and depend on its output.
