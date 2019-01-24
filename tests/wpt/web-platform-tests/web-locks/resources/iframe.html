@@ -38,6 +38,15 @@ self.addEventListener('message', e => {
       held.delete(e.data.lock_id);
       respond({ack: 'release', lock_id: e.data.lock_id});
       break;
+
+    case 'client_id':
+      navigator.locks.request(e.data.name, async lock => {
+        const lock_state = await navigator.locks.query();
+        const held_lock =
+            lock_state.held.filter(l => l.name === lock.name)[0];
+        respond({ack: 'client_id', client_id: held_lock.clientId});
+      });
+      break;
   }
 });
 </script>

@@ -3,7 +3,16 @@
 "use strict";
 const defaultMethods = Object.freeze([
   { supportedMethods: "basic-card" },
-  { supportedMethods: "https://apple.com/apple-pay" },
+  {
+    supportedMethods: "https://apple.com/apple-pay",
+    data: {
+      version: 3,
+      merchantIdentifier: "merchant.com.example",
+      countryCode: "US",
+      merchantCapabilities: ["supports3DS"],
+      supportedNetworks: ["visa"],
+    }
+  },
 ]);
 
 const defaultDetails = Object.freeze({
