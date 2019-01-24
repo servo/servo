@@ -42,7 +42,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documentorshadowroot::DocumentOrShadowRoot;
+use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, DocumentOrShadowRootImpl};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::CustomElementCreationMode;
@@ -113,7 +113,6 @@ use euclid::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use keyboard_types::{Key, KeyState, Modifiers};
 use metrics::{
@@ -132,7 +131,7 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
-use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
+use script_layout_interface::message::{Msg, ReflowGoal};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
@@ -266,6 +265,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 #[dom_struct]
 pub struct Document {
     node: Node,
+    document_or_shadow_root: DocumentOrShadowRootImpl,
     window: Dom<Window>,
     implementation: MutNullableDom<DOMImplementation>,
     #[ignore_malloc_size_of = "type from external crate"]
@@ -484,6 +484,11 @@ impl Document {
     #[inline]
     pub fn has_browsing_context(&self) -> bool {
         self.has_browsing_context
+    }
+
+    #[inline]
+    pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
+        self.document_or_shadow_root.browsing_context()
     }
 
     #[inline]
@@ -2623,10 +2628,12 @@ impl Document {
             .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
             .unwrap_or(UTF_8);
 
+        let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         Document {
             node: Node::new_document_node(),
+            document_or_shadow_root: DocumentOrShadowRootImpl::new(window, has_browsing_context),
             window: Dom::from_ref(window),
-            has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
+            has_browsing_context,
             implementation: Default::default(),
             content_type,
             last_modified: last_modified,
@@ -2675,7 +2682,7 @@ impl Document {
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),
-            scripting_enabled: has_browsing_context == HasBrowsingContext::Yes,
+            scripting_enabled: has_browsing_context,
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DomRefCell::new(vec![]),
             running_animation_callbacks: Cell::new(false),
@@ -3247,8 +3254,6 @@ impl Document {
             }
         }
     }
-
-    impl_document_or_shadow_root_helpers!();
 }
 
 impl Element {
@@ -3278,8 +3283,15 @@ impl ProfilerMetadataFactory for Document {
 }
 
 impl DocumentMethods for Document {
-    // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
-    impl_document_or_shadow_root_methods!(Document);
+    // https://drafts.csswg.org/cssom/#dom-document-stylesheets
+    fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
+        self.stylesheet_list.or_init(|| {
+            StyleSheetList::new(
+                &self.window,
+                DocumentOrShadowRoot::Document(Dom::from_ref(self)),
+            )
+        })
+    }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> DomRoot<DOMImplementation> {
@@ -3289,6 +3301,15 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-url
     fn URL(&self) -> USVString {
         USVString(String::from(self.url().as_str()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
+    fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
+        self.document_or_shadow_root.get_active_element(
+            self.get_focused_element(),
+            self.GetBody(),
+            self.GetDocumentElement(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
@@ -4218,6 +4239,18 @@ impl DocumentMethods for Document {
         GetOnreadystatechange,
         SetOnreadystatechange
     );
+
+    // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
+    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
+        self.document_or_shadow_root
+            .element_from_point(x, y, self.GetDocumentElement())
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
+    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
+        self.document_or_shadow_root
+            .elements_from_point(x, y, self.GetDocumentElement())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
     fn Open(
