@@ -32,7 +32,7 @@ interface Node : EventTarget {
   readonly attribute Document? ownerDocument;
 
   [Pure]
-  Node getRootNode();
+  Node getRootNode(optional GetRootNodeOptions options);
 
   [Pure]
   readonly attribute Node? parentNode;
@@ -91,4 +91,8 @@ interface Node : EventTarget {
   Node replaceChild(Node node, Node child);
   [CEReactions, Throws]
   Node removeChild(Node child);
+};
+
+dictionary GetRootNodeOptions {
+  boolean composed = false;
 };

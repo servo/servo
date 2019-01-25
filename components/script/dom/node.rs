@@ -10,9 +10,12 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{
+    GetRootNodeOptions, NodeConstants, NodeMethods,
+};
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -274,14 +277,23 @@ impl Node {
         let parent_in_doc = self.is_in_doc();
         let parent_in_shadow_tree = self.is_in_shadow_tree();
         for node in new_child.traverse_preorder() {
-            node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
-            node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             if parent_in_shadow_tree {
-                node.set_owner_shadow_root(&*self.owner_shadow_root());
+                if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
+                    node.set_owner_shadow_root(&*shadow_root);
+                } else {
+                    node.set_owner_shadow_root(&*self.owner_shadow_root());
+                }
             }
+            let is_connected = if let Some(element) = node.downcast::<Element>() {
+                element.is_connected()
+            } else {
+                false
+            };
+            node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc || is_connected);
+            node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&&*node).bind_to_tree(parent_in_doc);
+            vtable_for(&&*node).bind_to_tree(is_connected);
         }
     }
 
@@ -2144,7 +2156,13 @@ impl NodeMethods for Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-getrootnode
-    fn GetRootNode(&self) -> DomRoot<Node> {
+    fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
+        if options.composed {
+            if let Some(shadow_root) = self.owner_shadow_root.get() {
+                // shadow-including root.
+                return shadow_root.Host().upcast::<Node>().GetRootNode(options);
+            }
+        }
         self.inclusive_ancestors().last().unwrap()
     }
 
