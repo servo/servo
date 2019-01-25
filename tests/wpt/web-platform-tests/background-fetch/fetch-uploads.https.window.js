@@ -44,3 +44,21 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
   assert_equals(uploaded, uploadData.length);
 }, 'Progress event includes uploaded bytes');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const uploadRequest1 =
+      new Request('resources/upload.py', {method: 'POST', body: 'upload1'});
+  const uploadRequest2 =
+      new Request('resources/upload.py', {method: 'POST', body: 'upload2'});
+
+  await backgroundFetch.fetch(uniqueId(), [uploadRequest1, uploadRequest2]);
+
+  const {type, eventRegistration, results} = await getMessageFromServiceWorker();
+  assert_equals(type, 'backgroundfetchsuccess');
+  assert_equals(results.length, 2);
+  assert_equals(eventRegistration.result, 'success');
+  assert_equals(eventRegistration.failureReason, '');
+
+  assert_array_equals([results[0].text, results[1].text].sort(),
+                      ['upload1', 'upload2']);
+}, 'Duplicate upload requests work and can be distinguished.');

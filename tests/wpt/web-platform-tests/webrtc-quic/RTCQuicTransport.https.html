@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="../webrtc/RTCIceTransport-extension-helper.js"></script>
 <script src="RTCQuicTransport-helper.js"></script>
+<script src="../webrtc/dictionary-helper.js"></script>
 <script>
 'use strict';
 
@@ -21,6 +22,7 @@
 //   makeStandaloneQuicTransport
 //   makeAndStartTwoQuicTransports
 //   makeTwoConnectedQuicTransports
+//   sleep
 
 test(t => {
   const iceTransport = makeIceTransport(t);
@@ -173,6 +175,94 @@ test(t => {
   const new_key = quicTransport.getKey();
   assert_not_equals(update_key, new Uint8Array(new_key));
 }, 'Cannot mutate key retrieved from getKey().');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      makeAndStartTwoQuicTransports(t);
+  const stats = await localQuicTransport.getStats();
+  assert_number_field(stats, 'timestamp');
+  assert_unsigned_int_field(stats, 'bytesSent');
+  assert_unsigned_int_field(stats, 'packetsSent');
+  assert_unsigned_int_field(stats, 'streamBytesSent');
+  assert_unsigned_int_field(stats, 'streamBytesReceived');
+  assert_unsigned_int_field(stats, 'numOutgoingStreamsCreated');
+  assert_unsigned_int_field(stats, 'numIncomingStreamsCreated');
+  assert_unsigned_int_field(stats, 'bytesReceived');
+  assert_unsigned_int_field(stats, 'packetsReceived');
+  assert_unsigned_int_field(stats, 'packetsProcessed');
+  assert_unsigned_int_field(stats, 'bytesRetransmitted');
+  assert_unsigned_int_field(stats, 'packetsRetransmitted');
+  assert_unsigned_int_field(stats, 'packetsLost');
+  assert_unsigned_int_field(stats, 'packetsDropped');
+  assert_unsigned_int_field(stats, 'cryptoRetransmitCount');
+  assert_unsigned_int_field(stats, 'minRttUs');
+  assert_unsigned_int_field(stats, 'smoothedRttUs');
+  assert_unsigned_int_field(stats, 'maxPacketSize');
+  assert_unsigned_int_field(stats, 'maxReceivedPacketSize');
+  assert_unsigned_int_field(stats, 'estimatedBandwidthBps');
+  assert_unsigned_int_field(stats, 'packetsReordered');
+  assert_unsigned_int_field(stats, 'blockedFramesReceived');
+  assert_unsigned_int_field(stats, 'blockedFramesSent');
+  assert_unsigned_int_field(stats, 'connectivityProbingPacketsReceived');
+}, 'Stats returned by getStats() are present.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write({ finish: true });
+  const remoteWatcher = new EventWatcher(t, remoteQuicTransport, 'quicstream');
+  await remoteWatcher.wait_for('quicstream');
+  const localStats = await localQuicTransport.getStats();
+  const remoteStats = await remoteQuicTransport.getStats();
+  assert_equals(localStats.numOutgoingStreamsCreated, 1);
+  assert_equals(localStats.numIncomingStreamsCreated, 0);
+  assert_equals(remoteStats.numOutgoingStreamsCreated, 0);
+  assert_equals(remoteStats.numIncomingStreamsCreated, 1);
+}, 'getStats() returns proper stream counts after creating streams.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      makeAndStartTwoQuicTransports(t);
+  const stats1 = await localQuicTransport.getStats();
+  await new Promise(resolve => t.step_timeout(resolve, 20));
+  const stats2 = await localQuicTransport.getStats();
+  assert_greater_than(stats2.timestamp, stats1.timestamp);
+}, 'Two separate stats returned by getStats() give different timestamps.');
+
+promise_test(async t => {
+  const quicTransport = makeStandaloneQuicTransport(t);
+  const promise = quicTransport.getStats();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'getStats() promises immediately rejected with InvalidStateError ' +
+    `if called before 'connecting'.`);
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const promise = localQuicTransport.getStats();
+  localQuicTransport.stop();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'getStats() promises rejected  with InvalidStateError if stop() ' +
+   'is called before being fulfilled.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const promise = localQuicTransport.getStats();
+  localQuicTransport.transport.stop();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'getStats() promises rejected  with InvalidStateError if ' +
+   'RTCIceTransport calls stop() before being fulfilled.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  localQuicTransport.transport.stop();
+  const promise = localQuicTransport.getStats();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'getStats() promises immediately rejected if called after' +
+   `'closed' state.`);
 
 </script>
 

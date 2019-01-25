@@ -26,7 +26,7 @@ def test_new_window_opens_about_blank(session):
     value = assert_success(response)
     assert value["type"] == "window"
 
-    session.handle = value["handle"]
+    session.window_handle = value["handle"]
     assert session.url == "about:blank"
 
 
@@ -35,7 +35,7 @@ def test_new_window_sets_no_window_name(session):
     value = assert_success(response)
     assert value["type"] == "window"
 
-    session.handle = value["handle"]
+    session.window_handle = value["handle"]
     assert window_name(session) == ""
 
 
@@ -44,5 +44,5 @@ def test_new_window_sets_no_opener(session):
     value = assert_success(response)
     assert value["type"] == "window"
 
-    session.handle = value["handle"]
+    session.window_handle = value["handle"]
     assert opener(session) is None

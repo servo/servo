@@ -200,6 +200,7 @@ interface IDBTransaction : EventTarget {
   readonly attribute DOMException error;
 
   IDBObjectStore objectStore(DOMString name);
+  void commit();
   void abort();
 
   // Event handlers:

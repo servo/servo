@@ -11,6 +11,7 @@ RUN apt-get -qqy update \
     ca-certificates \
     dbus-x11 \
     earlyoom \
+    fluxbox \
     gdebi \
     git \
     locales \
