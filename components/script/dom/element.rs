@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -483,9 +483,6 @@ impl Element {
         if self.is_shadow_host() {
             return Err(Error::InvalidState);
         }
-
-        self.upcast::<Node>()
-            .set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
 
         // Steps 4, 5 and 6.
         Ok(self
@@ -3295,7 +3292,9 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#connected>
     pub fn is_connected(&self) -> bool {
         let node = self.upcast::<Node>();
-        let root = node.GetRootNode();
+        let mut options = GetRootNodeOptions::empty();
+        options.composed = true; // shadow included.
+        let root = node.GetRootNode(&options);
         root.is::<Document>()
     }
 }
