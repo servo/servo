@@ -412,6 +412,5 @@ def test_serve():
 
 # The following commands are slow running and used implicitly in other CI
 # jobs, so we skip them here:
-# wpt check-stability
 # wpt manifest
 # wpt lint

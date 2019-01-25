@@ -479,7 +479,7 @@ class PackedResultList(object):
         prop = prop_intern.get((packed & 0xF000) >> 12)
 
         value_idx = (packed & 0x0F00) >> 8
-        if value_idx is 0:
+        if value_idx == 0:
             value = self.raw_data[idx]
         else:
             value = status_intern.get(value_idx)

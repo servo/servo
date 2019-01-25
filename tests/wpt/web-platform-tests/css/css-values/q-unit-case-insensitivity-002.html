@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: case-insensitivity of Q unit (quarter-millimeter)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#absolute-lengths">
+  <link rel="help" href="https://www.w3.org/TR/CSS22/syndata.html#characters">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+  <meta content="This test checks that 'Q' unit is case-insensitive." name="assert">
+  <meta name="flags" content="">
+
+  <style>
+  div#test-overlapping-green
+    {
+      background-color: green;
+      height: 105.83333q;
+      width: 1px;
+      width: 105.83333Q;
+    }
+
+    /*
+
+    25.4mm == 96px
+    Therefore, 26.45833mm == 100px
+    So, 26.45833 * 4 (Q per mm) == 105.83333Q == 100px
+
+    */
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      bottom: 100px;
+      height: 100px;
+      position: relative;
+      width: 100px;
+      z-index: -1;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="test-overlapping-green"></div>
+
+  <div id="reference-overlapped-red"></div>

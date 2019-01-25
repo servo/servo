@@ -64,6 +64,12 @@
     assert_equals(pc.iceConnectionState, 'new');
   }, 'Initial iceConnectionState should be new');
 
+  test(t => {
+    const pc = new RTCPeerConnection();
+    pc.close();
+    assert_equals(pc.iceConnectionState, 'closed');
+  }, 'Closing the connection should set iceConnectionState to closed');
+
   /*
     4.4.4 RTCIceConnectionState Enum
       checking
@@ -106,6 +112,35 @@
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    let had_checking = false;
+
+    const onIceConnectionStateChange = t.step_func(() => {
+      const {iceConnectionState} = pc1;
+      if (iceConnectionState === 'checking') {
+        had_checking = true;
+      } else if (iceConnectionState === 'connected' ||
+                 iceConnectionState === 'completed') {
+        assert_true(had_checking, 'state should pass checking before' +
+                                  ' reaching connected or completed');
+        t.done();
+      }
+    });
+
+    pc1.createDataChannel('test');
+
+    pc1.addEventListener('iceconnectionstatechange', onIceConnectionStateChange);
+
+    exchangeIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+  }, 'connection with one data channel should eventually have connected or ' +
+     'completed connection state');
+
+async_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
 
     t.add_cleanup(() => pc2.close());
 
@@ -116,19 +151,22 @@
         const iceTransport = pc1.sctp.transport.transport;
 
         assert_equals(iceTransport.state, 'checking',
-          'Expect ICE transport to be in checking state when iceConnectionState is checking');
+          'Expect ICE transport to be in checking state when' +
+          ' iceConnectionState is checking');
 
       } else if(iceConnectionState === 'connected') {
         const iceTransport = pc1.sctp.transport.transport;
 
         assert_equals(iceTransport.state, 'connected',
-          'Expect ICE transport to be in connected state when iceConnectionState is connected');
+          'Expect ICE transport to be in connected state when' +
+          ' iceConnectionState is connected');
 
       } else if(iceConnectionState === 'completed') {
         const iceTransport = pc1.sctp.transport.transport;
 
         assert_equals(iceTransport.state, 'completed',
-          'Expect ICE transport to be in connected state when iceConnectionState is completed');
+          'Expect ICE transport to be in connected state when' +
+          ' iceConnectionState is completed');
       }
     });
 
@@ -141,7 +179,8 @@
 
     exchangeIceCandidates(pc1, pc2);
     doSignalingHandshake(pc1, pc2);
-  }, 'connection with one data channel should eventually have connected connection state');
+  }, 'connection with one data channel should eventually ' +
+     'have connected connection state');
 
   /*
     TODO
