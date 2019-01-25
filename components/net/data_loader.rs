@@ -50,7 +50,7 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
             .into_iter()
             .filter(|&b| b != b' ')
             .collect::<Vec<u8>>();
-        match base64::decode(&bytes) {
+        match base64::decode_config(&bytes, base64::STANDARD.decode_allow_trailing_bits(true)) {
             Err(..) => return Err(DecodeError::NonBase64DataUri),
             Ok(data) => bytes = data,
         }
