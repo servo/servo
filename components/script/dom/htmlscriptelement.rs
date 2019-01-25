@@ -771,12 +771,12 @@ impl VirtualMethods for HTMLScriptElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, is_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(is_connected);
         }
 
-        if tree_in_doc && !self.parser_inserted.get() {
+        if is_connected && !self.parser_inserted.get() {
             let script = Trusted::new(self);
             document_from_node(self).add_delayed_task(task!(ScriptDelayedInitialize: move || {
                 script.root().prepare();

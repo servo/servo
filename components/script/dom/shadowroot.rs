@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{self, ShadowRootMode};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -12,6 +13,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, DocumentOrShadowRootImpl};
 use crate::dom::element::Element;
+use crate::dom::node::{Node, NodeFlags};
 use crate::dom::stylesheetlist::StyleSheetList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -28,10 +30,15 @@ pub struct ShadowRoot {
 }
 
 impl ShadowRoot {
+    #[allow(unrooted_must_root)]
     fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
         let has_browsing_context = true;
+        let document_fragment = DocumentFragment::new_inherited(document);
+        document_fragment
+            .upcast::<Node>()
+            .set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
         ShadowRoot {
-            document_fragment: DocumentFragment::new_inherited(document),
+            document_fragment,
             document_or_shadow_root: DocumentOrShadowRootImpl::new(
                 document.window(),
                 has_browsing_context,
