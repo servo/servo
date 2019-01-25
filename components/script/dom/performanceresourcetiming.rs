@@ -178,7 +178,8 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
         // TODO
         Finite::wrap(self.request_start)
     }
-    
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart
     fn RedirectStart(&self) -> DOMHighResTimeStamp {
         // TODO
         Finite::wrap(self.redirect_start)
