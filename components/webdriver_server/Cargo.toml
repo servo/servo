@@ -11,7 +11,7 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
-base64 = "0.9"
+base64 = "0.10"
 cookie = "0.11"
 crossbeam-channel = "0.3"
 euclid = "0.19"
