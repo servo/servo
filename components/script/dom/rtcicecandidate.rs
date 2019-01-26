@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{self, RTCIceCandidateMethods};
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
+use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
+    self, RTCIceCandidateMethods,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
@@ -23,18 +25,35 @@ pub struct RTCIceCandidate {
 }
 
 impl RTCIceCandidate {
-    pub fn new_inherited(candidate: DOMString, sdp_m_id: Option<DOMString>,
-                         sdp_m_line_index: Option<u16>, username_fragment: Option<DOMString>) -> RTCIceCandidate {
+    pub fn new_inherited(
+        candidate: DOMString,
+        sdp_m_id: Option<DOMString>,
+        sdp_m_line_index: Option<u16>,
+        username_fragment: Option<DOMString>,
+    ) -> RTCIceCandidate {
         RTCIceCandidate {
             reflector: Reflector::new(),
-            candidate, sdp_m_id, sdp_m_line_index, username_fragment
+            candidate,
+            sdp_m_id,
+            sdp_m_line_index,
+            username_fragment,
         }
     }
 
-    pub fn new(global: &GlobalScope, candidate: DOMString, sdp_m_id: Option<DOMString>,
-               sdp_m_line_index: Option<u16>, username_fragment: Option<DOMString>) -> DomRoot<RTCIceCandidate> {
+    pub fn new(
+        global: &GlobalScope,
+        candidate: DOMString,
+        sdp_m_id: Option<DOMString>,
+        sdp_m_line_index: Option<u16>,
+        username_fragment: Option<DOMString>,
+    ) -> DomRoot<RTCIceCandidate> {
         reflect_dom_object(
-            Box::new(RTCIceCandidate::new_inherited(candidate, sdp_m_id, sdp_m_line_index, username_fragment)),
+            Box::new(RTCIceCandidate::new_inherited(
+                candidate,
+                sdp_m_id,
+                sdp_m_line_index,
+                username_fragment,
+            )),
             global,
             RTCIceCandidateBinding::Wrap,
         )
@@ -45,14 +64,19 @@ impl RTCIceCandidate {
         config: &RTCIceCandidateInit,
     ) -> Fallible<DomRoot<RTCIceCandidate>> {
         if config.sdpMid.is_none() && config.sdpMLineIndex.is_none() {
-            return Err(Error::Type(format!("one of sdpMid and sdpMLineIndex must be set")));
+            return Err(Error::Type(format!(
+                "one of sdpMid and sdpMLineIndex must be set"
+            )));
         }
-        Ok(RTCIceCandidate::new(&window.global(), config.candidate.clone(),
-                                config.sdpMid.clone(), config.sdpMLineIndex,
-                                config.usernameFragment.clone()))
+        Ok(RTCIceCandidate::new(
+            &window.global(),
+            config.candidate.clone(),
+            config.sdpMid.clone(),
+            config.sdpMLineIndex,
+            config.usernameFragment.clone(),
+        ))
     }
 }
-
 
 impl RTCIceCandidateMethods for RTCIceCandidate {
     /// https://www.w3.org/TR/webrtc/#dom-rtcicecandidate-candidate
