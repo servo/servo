@@ -439,6 +439,7 @@ pub mod radionodelist;
 pub mod range;
 pub mod request;
 pub mod response;
+pub mod rtcpeerconnection;
 pub mod screen;
 pub mod serviceworker;
 pub mod serviceworkercontainer;
