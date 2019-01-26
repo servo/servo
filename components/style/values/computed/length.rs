@@ -457,6 +457,7 @@ impl IsZeroLength for LengthPercentage {
 #[derive(
     Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero, ToCss,
 )]
+#[repr(C, u8)]
 pub enum LengthPercentageOrAuto {
     LengthPercentage(LengthPercentage),
     Auto,

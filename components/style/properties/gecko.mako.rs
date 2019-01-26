@@ -772,11 +772,12 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_split_style_coord(ident, gecko_ffi_name, index)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        v.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${index}));
+        self.gecko.${gecko_ffi_name}.${index} = v;
     }
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        self.gecko.${gecko_ffi_name}.data_at_mut(${index}).copy_from(&other.gecko.${gecko_ffi_name}.data_at(${index}));
+        self.gecko.${gecko_ffi_name}.${index} =
+            other.gecko.${gecko_ffi_name}.${index};
     }
     #[allow(non_snake_case)]
     pub fn reset_${ident}(&mut self, other: &Self) {
@@ -785,9 +786,7 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::properties::longhands::${ident}::computed_value::T;
-        T::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}.data_at(${index}))
-            .expect("clone for ${ident} failed")
+        self.gecko.${gecko_ffi_name}.${index}
     }
 </%def>
 
