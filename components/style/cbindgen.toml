@@ -7,6 +7,8 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
  *      a. Alternatively, you can clone `https://github.com/eqrion/cbindgen` and use a tagged release
  *   2. Run `rustup run nightly cbindgen toolkit/library/rust/ --lockfile Cargo.lock --crate style -o layout/style/ServoStyleConsts.h`
  */
+#include "nsCoord.h"
+#include "Units.h"
 class nsAtom;
 namespace mozilla {
   namespace css {
@@ -27,7 +29,7 @@ namespaces = ["mozilla"]
 
 [parse]
 parse_deps = true
-include = ["cssparser"]
+include = ["cssparser", "style_traits"]
 
 [struct]
 derive_eq = true
@@ -71,3 +73,20 @@ include = [
   "LengthPercentage",
 ]
 item_types = ["enums", "structs", "typedefs"]
+
+[export.body]
+"LengthPercentage" = """
+  // Defined in nsStyleCoord.h
+  static inline StyleLengthPercentage Zero();
+  inline bool HasPercent() const;
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline CSSCoord LengthInCSSPixels() const;
+  inline float Percentage() const;
+  inline CSSCoord ResolveToCSSPixels(CSSCoord aPercentageBasisInCSSPixels) const;
+  template<typename T> inline CSSCoord ResolveToCSSPixelsWith(T aPercentageGetter) const;
+  inline nscoord Resolve(nscoord aPercentageBasis) const;
+  template<typename T> inline nscoord ResolveWith(T aPercentageGetter) const;
+"""
