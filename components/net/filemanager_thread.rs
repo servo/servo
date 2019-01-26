@@ -5,7 +5,7 @@
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crossbeam_channel::Sender;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
-use headers_ext::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
+use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::{self, IpcSender};
 use mime::{self, Mime};
