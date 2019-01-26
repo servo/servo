@@ -19,16 +19,13 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
 };
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
-use headers_core::HeaderMapExt;
-use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders};
-use headers_ext::{
-    AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod,
-    Authorization,
-};
-use headers_ext::{AccessControlAllowOrigin, AccessControlMaxAge, Basic};
-use headers_ext::{CacheControl, ContentEncoding, ContentLength};
-use headers_ext::{
-    Host, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
+use headers::authorization::Basic;
+use headers::{
+    AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
+    AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestHeaders,
+    AccessControlRequestMethod, Authorization, CacheControl, ContentEncoding, ContentLength,
+    Header, HeaderMapExt, Host, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma,
+    Referer, UserAgent,
 };
 use http::header::{self, HeaderName, HeaderValue};
 use http::uri::Authority;
@@ -1524,11 +1521,16 @@ fn cors_preflight_fetch(
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
 fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
-    // Step 1
-    let origin = response.headers.typed_get::<AccessControlAllowOrigin>();
-
-    // Step 2
-    let origin = origin.ok_or(())?;
+    // Steps 1-2.
+    // FIXME(nox): https://github.com/hyperium/headers/pull/36
+    let mut values = response
+        .headers
+        .get_all(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+        .into_iter();
+    let origin = AccessControlAllowOrigin::decode(&mut values).map_err(|_| ())?;
+    if values.next().is_some() {
+        return Err(());
+    }
 
     // Step 3
     if request.credentials_mode != CredentialsMode::Include &&

@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::fetch;
-use headers_core::HeaderMapExt;
-use headers_ext::ContentType;
+use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};
 use net_traits::request::{Origin, Request};

@@ -9,8 +9,9 @@
 
 use crate::fetch::methods::{Data, DoneChannel};
 use crossbeam_channel::{unbounded, Sender};
-use headers_core::HeaderMapExt;
-use headers_ext::{CacheControl, ContentRange, Expires, LastModified, Pragma, Range, Vary};
+use headers::{
+    CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
+};
 use http::header::HeaderValue;
 use http::{header, HeaderMap};
 use hyper::{Method, StatusCode};

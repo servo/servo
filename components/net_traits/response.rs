@@ -6,8 +6,7 @@
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
 use crate::{FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use crate::{ResourceFetchTiming, ResourceTimingType};
-use headers_core::HeaderMapExt;
-use headers_ext::{AccessControlExposeHeaders, ContentType};
+use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
 use servo_arc::Arc;

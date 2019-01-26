@@ -14,11 +14,10 @@ use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEve
 use flate2::write::{DeflateEncoder, GzEncoder};
 use flate2::Compression;
 use futures::{self, Future, Stream};
-use headers_core::HeaderMapExt;
-use headers_ext::{
-    AccessControlAllowOrigin, Authorization, Basic, ContentLength, Date, Host, Origin,
+use headers::{
+    AccessControlAllowOrigin, Authorization, Basic, ContentLength, Date, HeaderMapExt, Host,
+    Origin, StrictTransportSecurity, UserAgent,
 };
-use headers_ext::{StrictTransportSecurity, UserAgent};
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
 use http::{Method, StatusCode};

@@ -23,7 +23,7 @@ use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
 use euclid::Length;
-use headers_ext::ContentType;
+use headers::ContentType;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
