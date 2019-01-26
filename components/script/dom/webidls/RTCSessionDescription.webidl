@@ -7,8 +7,8 @@
 [Constructor(RTCSessionDescriptionInit descriptionInitDict),
  Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCSessionDescription {
-    // readonly attribute RTCSdpType type;
-    // readonly attribute DOMString  sdp;
+    readonly attribute RTCSdpType type;
+    readonly attribute DOMString  sdp;
     // [Default] object toJSON();
 };
 
