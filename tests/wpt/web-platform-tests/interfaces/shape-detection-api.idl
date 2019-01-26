@@ -34,7 +34,7 @@ enum LandmarkType {
 [Exposed=(Window,Worker),
  Constructor(optional BarcodeDetectorOptions barcodeDetectorOptions)]
 interface BarcodeDetector {
-  readonly attribute FrozenArray<BarcodeFormat> supportedFormats;
+  static Promise<sequence<BarcodeFormat>> getSupportedFormats();
 
   Promise<sequence<DetectedBarcode>> detect(ImageBitmapSource image);
 };

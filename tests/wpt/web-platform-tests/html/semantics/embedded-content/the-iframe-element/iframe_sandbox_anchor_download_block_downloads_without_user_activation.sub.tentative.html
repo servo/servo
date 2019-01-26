@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>&lt;a download&gt; triggered download in sandbox is blocked.</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-iframe-sandbox">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-iframe-element">
+<script src="/resources/testharness.js"></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="support/iframe_sandbox_download_helper.js"></script>
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+    const token = "{{$id:uuid()}}";
+    var iframe = document.createElement("iframe");
+    iframe.srcdoc = "<a>Download</a>";
+    iframe.sandbox = "allow-same-origin";
+    iframe.onload = t.step_func(function () {
+        iframe.contentWindow.addEventListener(
+            "unload", t.unreached_func("Unexpected navigation."));
+        var anchor = iframe.contentDocument.getElementsByTagName('a')[0];
+        anchor.href = "support/download_stash.py?token=" + token;
+        anchor.download = null;
+        anchor.click();
+        AssertDownloadFailure(t, token, DownloadVerifyDelay());
+    });
+
+    document.body.appendChild(iframe);
+}, "<a download> triggered download in sandbox is blocked.");
+</script>
+</body>
