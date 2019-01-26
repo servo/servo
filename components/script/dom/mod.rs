@@ -440,6 +440,7 @@ pub mod range;
 pub mod request;
 pub mod response;
 pub mod rtcpeerconnection;
+pub mod rtcsessiondescription;
 pub mod screen;
 pub mod serviceworker;
 pub mod serviceworkercontainer;
