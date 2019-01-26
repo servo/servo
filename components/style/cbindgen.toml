@@ -9,11 +9,15 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
  */
 #include "nsCoord.h"
 #include "Units.h"
+#include "mozilla/gfx/Types.h"
 class nsAtom;
 namespace mozilla {
+  class WritingMode;
+  enum LogicalSide : uint8_t;
   namespace css {
     struct URLValue;
   }
+
   // Work-around weird cbindgen renaming.
   typedef css::URLValue StyleURLValue;
   typedef nsAtom StylensAtom;
@@ -71,13 +75,17 @@ include = [
   "Resize",
   "Overflow",
   "LengthPercentage",
+  "NonNegativeLengthPercentage",
+  "LengthPercentageOrAuto",
+  "Rect",
+  "IntersectionObserverRootMargin",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
 [export.body]
 "LengthPercentage" = """
   // Defined in nsStyleCoord.h
-  static inline StyleLengthPercentage Zero();
+  static constexpr inline StyleLengthPercentage Zero();
   inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
@@ -89,4 +97,24 @@ item_types = ["enums", "structs", "typedefs"]
   template<typename T> inline CSSCoord ResolveToCSSPixelsWith(T aPercentageGetter) const;
   inline nscoord Resolve(nscoord aPercentageBasis) const;
   template<typename T> inline nscoord ResolveWith(T aPercentageGetter) const;
+"""
+
+"LengthPercentageOrAuto" = """
+  inline const StyleLengthPercentage& AsLengthPercentage() const;
+  inline bool HasPercent() const;
+  inline bool ConvertsToLength() const;
+"""
+
+"Rect" = """
+  // Defined in nsStyleCoord.h
+  template<typename Predicate> inline bool All(Predicate) const;
+  template<typename Predicate> inline bool Any(Predicate) const;
+
+  // Defined in WritingModes.h
+  inline const T& Get(mozilla::Side) const;
+  inline const T& Get(mozilla::WritingMode, mozilla::LogicalSide) const;
+  inline const T& GetIStart(mozilla::WritingMode) const;
+  inline const T& GetBStart(mozilla::WritingMode) const;
+  inline const T& GetIEnd(mozilla::WritingMode) const;
+  inline const T& GetBEnd(mozilla::WritingMode) const;
 """
