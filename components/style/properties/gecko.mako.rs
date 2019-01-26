@@ -1396,7 +1396,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "MozLength": impl_style_coord,
         "MozScriptMinSize": impl_absolute_length,
         "MozScriptSizeMultiplier": impl_simple,
-        "NonNegativeLengthPercentage": impl_style_coord,
+        "NonNegativeLengthPercentage": impl_simple,
         "NonNegativeNumber": impl_simple,
         "Number": impl_simple,
         "Opacity": impl_simple,
