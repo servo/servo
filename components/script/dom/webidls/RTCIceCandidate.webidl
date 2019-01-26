@@ -8,9 +8,9 @@
 [Constructor(optional RTCIceCandidateInit candidateInitDict),
  Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCIceCandidate {
-    // readonly attribute DOMString               candidate;
-    // readonly attribute DOMString?              sdpMid;
-    // readonly attribute unsigned short?         sdpMLineIndex;
+    readonly attribute DOMString               candidate;
+    readonly attribute DOMString?              sdpMid;
+    readonly attribute unsigned short?         sdpMLineIndex;
     // readonly attribute DOMString?              foundation;
     // readonly attribute RTCIceComponent?        component;
     // readonly attribute unsigned long?          priority;
@@ -21,7 +21,7 @@ interface RTCIceCandidate {
     // readonly attribute RTCIceTcpCandidateType? tcpType;
     // readonly attribute DOMString?              relatedAddress;
     // readonly attribute unsigned short?         relatedPort;
-    // readonly attribute DOMString?              usernameFragment;
+    readonly attribute DOMString?              usernameFragment;
     // RTCIceCandidateInit toJSON();
 };
 
