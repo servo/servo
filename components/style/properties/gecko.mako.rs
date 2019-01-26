@@ -1389,7 +1389,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "FlexBasis": impl_style_coord,
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
-        "LengthPercentage": impl_style_coord,
+        "LengthPercentage": impl_simple,
         "LengthPercentageOrAuto": impl_style_coord,
         "LengthPercentageOrNone": impl_style_coord,
         "MaxLength": impl_style_coord,
