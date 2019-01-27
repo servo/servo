@@ -656,6 +656,7 @@ impl TestBindingMethods for TestBinding {
     fn PassTypedArray(&self, _: CustomAutoRooterGuard<typedarray::Int8Array>) {}
     fn PassTypedArray2(&self, _: CustomAutoRooterGuard<typedarray::ArrayBuffer>) {}
     fn PassTypedArray3(&self, _: CustomAutoRooterGuard<typedarray::ArrayBufferView>) {}
+    fn PassTypedArray4(&self, _: CustomAutoRooterGuard<typedarray::DataView>) {}
     fn PassUnion(&self, _: HTMLElementOrLong) {}
     fn PassUnion2(&self, _: EventOrString) {}
     fn PassUnion3(&self, _: BlobOrString) {}
