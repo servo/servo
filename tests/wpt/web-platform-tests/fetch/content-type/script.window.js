@@ -24,7 +24,7 @@ function runScriptTest(testData, singleHeader) {
     document.head.appendChild(script);
     if (testData.executes) {
       script.onload = t.step_func_done(() => {
-        assert_equals(self.stringFromExecutedScript, testData.encoding === "windows-1252" ? "â‚¬" : "€");
+        assert_equals(self.stringFromExecutedScript, "a");
       });
       script.onerror = t.unreached_func();
     } else {
@@ -43,6 +43,6 @@ function getURL(input, singleHeader) {
   input.forEach(val => {
     url += "value=" + encodeURIComponent(val) + "&";
   });
-  url += "&content=" + encodeURIComponent("self.stringFromExecutedScript = \"€\"");
+  url += "&content=" + encodeURIComponent("self.stringFromExecutedScript = \"a\"");
   return url;
 }
