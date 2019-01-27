@@ -8,9 +8,8 @@
       "Requesting immersive session outside of a user gesture rejects",
       (t) => {
         return XRTest.simulateDeviceConnection({ supportsImmersive:true })
-          .then( (controller) => { return navigator.xr.requestDevice() })
-          .then( (device) => promise_rejects(
-            t, 'SecurityError', device.requestSession({ immersive: true })));
+          .then( (controller) => promise_rejects(
+            t, 'SecurityError', navigator.xr.requestSession({ mode: 'immersive-vr' })));
       });
   </script>
 </body>

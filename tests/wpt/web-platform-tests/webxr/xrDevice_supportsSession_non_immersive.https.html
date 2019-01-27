@@ -5,18 +5,12 @@
   <script src="resources/webxr_util.js"></script>
   <script>
     xr_promise_test(
-      "supportsSession resolves when non-immersive options supported",
+      "supportsSessionMode resolves when inline options supported",
       (t) => {
       return XRTest.simulateDeviceConnection({ supportsImmersive:true })
-        .then( (controller) => { return navigator.xr.requestDevice() })
-        .then( (device) => {
-          // Non-immersive sessions without a outputContext should not be supported.
-          promise_rejects(t, 'NotSupportedError', device.supportsSession());
-
-          // Non-immersive sessions with an outputContext should be supported.
-          return device.supportsSession({
-              outputContext: getOutputContext()
-          });
+        .then( (controller) => {
+          // Inline sessions should be supported.
+          return navigator.xr.supportsSessionMode('inline');
         });
     });
   </script>

@@ -11,7 +11,7 @@
     let watcherDone = new Event("watcherdone");
     const fakeDeviceInitParams = { supportsImmersive:true };
 
-    const immersiveSessionOptions = { immersive: true };
+    const immersiveSessionOptions = { mode: 'immersive-vr' };
     const nonImmersiveSessionOptions = { outputContext: getOutputContext() };
 
     let testFunction = function(session, testDeviceController, t) {

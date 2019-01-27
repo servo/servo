@@ -10,26 +10,25 @@
       "Test prevention of multiple simultaneous immersive sessions",
       (t) => {
       return XRTest.simulateDeviceConnection({ supportsImmersive:true })
-        .then( (controller) => { return navigator.xr.requestDevice() })
-        .then( (device) => new Promise((resolve) => {
+        .then( (controller) => new Promise((resolve) => {
           XRTest.simulateUserActivation( () => {
-            resolve(device.requestSession({ immersive: true })
+            resolve(navigator.xr.requestSession({ mode: 'immersive-vr' })
               .then( (session) => new Promise((resolve) => {
                 XRTest.simulateUserActivation( () => {
-                  // Requesting a second immersive session from a device that already
-                  // has an active immersive session should fail. Immersive sessions
+                  // Requesting a second immersive session when another immersive
+                  // session is active should fail. Immersive sessions
                   // should take up the users entire view, and therefore it should
                   // be impossible for a user to be engaged with more than one.
                   resolve(promise_rejects(
                     t,
                     "InvalidStateError",
-                    device.requestSession({ immersive: true })
+                    navigator.xr.requestSession({ mode: 'immersive-vr' })
                   ).then( () => {
                       // End the immersive session and try again. Now the immersive
                       // session creation should succeed.
                       return session.end().then( () => new Promise((resolve) => {
                         XRTest.simulateUserActivation( () => {
-                          resolve(device.requestSession({ immersive: true }));
+                          resolve(navigator.xr.requestSession({ mode: 'immersive-vr' }));
                         });
                       }));
                     }));
