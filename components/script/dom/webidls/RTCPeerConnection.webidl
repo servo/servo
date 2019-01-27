@@ -17,7 +17,7 @@ interface RTCPeerConnection : EventTarget {
     // readonly attribute RTCSessionDescription? remoteDescription;
     // readonly attribute RTCSessionDescription? currentRemoteDescription;
     // readonly attribute RTCSessionDescription? pendingRemoteDescription;
-    // Promise<void>                      addIceCandidate(RTCIceCandidateInit candidate);
+    Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate);
     // readonly attribute RTCSignalingState      signalingState;
     // readonly attribute RTCIceGatheringState   iceGatheringState;
     // readonly attribute RTCIceConnectionState  iceConnectionState;
