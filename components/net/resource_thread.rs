@@ -398,6 +398,7 @@ pub struct CoreResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
+    fetch_pool: rayon::ThreadPool,
 }
 
 impl CoreResourceManager {
@@ -407,11 +408,16 @@ impl CoreResourceManager {
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
     ) -> CoreResourceManager {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(16)
+            .build()
+            .unwrap();
         CoreResourceManager {
             user_agent: user_agent,
             devtools_chan: devtools_channel,
             swmanager_chan: None,
             filemanager: FileManager::new(embedder_proxy),
+            fetch_pool: pool,
         }
     }
 
@@ -446,42 +452,39 @@ impl CoreResourceManager {
             _ => ResourceTimingType::Resource,
         };
 
-        thread::Builder::new()
-            .name(format!("fetch thread for {}", request_builder.url))
-            .spawn(move || {
-                let mut request = request_builder.build();
-                // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
-                // todo load context / mimesniff in fetch
-                // todo referrer policy?
-                // todo service worker stuff
-                let context = FetchContext {
-                    state: http_state,
-                    user_agent: ua,
-                    devtools_chan: dc,
-                    filemanager: filemanager,
-                    cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(
-                        cancel_chan,
-                    ))),
-                    timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
-                };
+        self.fetch_pool.spawn(move || {
+            let mut request = request_builder.build();
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+            // todo load context / mimesniff in fetch
+            // todo referrer policy?
+            // todo service worker stuff
+            let context = FetchContext {
+                state: http_state,
+                user_agent: ua,
+                devtools_chan: dc,
+                filemanager: filemanager,
+                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(
+                    cancel_chan,
+                ))),
+                timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
+            };
 
-                match res_init_ {
-                    Some(res_init) => {
-                        let response = Response::from_init(res_init, timing_type);
-                        http_redirect_fetch(
-                            &mut request,
-                            &mut CorsCache::new(),
-                            response,
-                            true,
-                            &mut sender,
-                            &mut None,
-                            &context,
-                        );
-                    },
-                    None => fetch(&mut request, &mut sender, &context),
-                };
-            })
-            .expect("Thread spawning failed");
+            match res_init_ {
+                Some(res_init) => {
+                    let response = Response::from_init(res_init, timing_type);
+                    http_redirect_fetch(
+                        &mut request,
+                        &mut CorsCache::new(),
+                        response,
+                        true,
+                        &mut sender,
+                        &mut None,
+                        &context,
+                    );
+                },
+                None => fetch(&mut request, &mut sender, &context),
+            };
+        });
     }
 
     fn websocket_connect(
