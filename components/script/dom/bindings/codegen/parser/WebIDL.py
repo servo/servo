@@ -2098,7 +2098,8 @@ class IDLType(IDLObject):
 
     def isArrayBufferView(self):
         return False
-
+    def isDataView(self):
+        return False
     def isSharedArrayBuffer(self):
         return False
 
@@ -2125,7 +2126,9 @@ class IDLType(IDLObject):
                                        self.isArrayBufferView() or
                                        self.isSharedArrayBuffer() or
                                        self.isTypedArray() or
-                                       self.isReadableStream())
+                                       self.isReadableStream() or
+                                       self.isDataView()
+                                      )
 
     def isDictionary(self):
         return False
@@ -2326,6 +2329,9 @@ class IDLNullableType(IDLParametrizedType):
 
     def isArrayBufferView(self):
         return self.inner.isArrayBufferView()
+
+    def isDataView(self):
+        return self.inner.isDataView()
 
     def isSharedArrayBuffer(self):
         return self.inner.isSharedArrayBuffer()
@@ -2706,6 +2712,9 @@ class IDLTypedefType(IDLType):
     def isArrayBufferView(self):
         return self.inner.isArrayBufferView()
 
+    def isDataView(self):
+        return self.inner.isDataView()
+
     def isSharedArrayBuffer(self):
         return self.inner.isSharedArrayBuffer()
 
@@ -3012,6 +3021,7 @@ class IDLBuiltinType(IDLType):
         # Funny stuff
         'ArrayBuffer',
         'ArrayBufferView',
+        'DataView',
         'SharedArrayBuffer',
         'Int8Array',
         'Uint8Array',
@@ -3048,6 +3058,7 @@ class IDLBuiltinType(IDLType):
         Types.void: IDLType.Tags.void,
         Types.ArrayBuffer: IDLType.Tags.interface,
         Types.ArrayBufferView: IDLType.Tags.interface,
+        Types.DataView: IDLType.Tags.interface,
         Types.SharedArrayBuffer: IDLType.Tags.interface,
         Types.Int8Array: IDLType.Tags.interface,
         Types.Uint8Array: IDLType.Tags.interface,
@@ -3098,6 +3109,9 @@ class IDLBuiltinType(IDLType):
     def isArrayBufferView(self):
         return self._typeTag == IDLBuiltinType.Types.ArrayBufferView
 
+    def isDataView(self):
+        return self._typeTag == IDLBuiltinType.Types.DataView
+
     def isSharedArrayBuffer(self):
         return self._typeTag == IDLBuiltinType.Types.SharedArrayBuffer
 
@@ -3116,7 +3130,8 @@ class IDLBuiltinType(IDLType):
                 self.isArrayBufferView() or
                 self.isSharedArrayBuffer() or
                 self.isTypedArray() or
-                self.isReadableStream())
+                self.isReadableStream() or
+                self.isDataView())
 
     def isNonCallbackInterface(self):
         # All the interfaces we can be are non-callback
@@ -3267,6 +3282,9 @@ BuiltinTypes = {
     IDLBuiltinType.Types.ArrayBufferView:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "ArrayBufferView",
                        IDLBuiltinType.Types.ArrayBufferView),
+    IDLBuiltinType.Types.DataView:
+        IDLBuiltinType(BuiltinLocation("<builtin type>"), "DataView",
+                       IDLBuiltinType.Types.DataView),
     IDLBuiltinType.Types.SharedArrayBuffer:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedArrayBuffer",
                        IDLBuiltinType.Types.SharedArrayBuffer),
