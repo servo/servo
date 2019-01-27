@@ -9,8 +9,8 @@
 interface RTCPeerConnection : EventTarget {
     Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options);
     Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options);
-    // Promise<void>                      setLocalDescription(RTCSessionDescriptionInit description);
-    // readonly attribute RTCSessionDescription? localDescription;
+    Promise<void>                      setLocalDescription(RTCSessionDescriptionInit description);
+    readonly attribute RTCSessionDescription? localDescription;
     // readonly attribute RTCSessionDescription? currentLocalDescription;
     // readonly attribute RTCSessionDescription? pendingLocalDescription;
     // Promise<void>                      setRemoteDescription(RTCSessionDescriptionInit description);
