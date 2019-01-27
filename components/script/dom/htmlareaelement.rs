@@ -16,7 +16,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlanchorelement::follow_hyperlink;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -332,18 +332,10 @@ impl Activatable for HTMLAreaElement {
     }
 
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        // Step 1
-        let doc = document_from_node(self);
-        if !doc.is_fully_active() {
-            return;
-        }
-        // Step 2
-        // TODO : We should be choosing a browsing context and navigating to it.
-        // Step 3
         let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
             true => Some(ReferrerPolicy::NoReferrer),
             false => None,
         };
-        follow_hyperlink(self.upcast::<Element>(), None, referrer_policy);
+        follow_hyperlink(self.as_element(), None, referrer_policy);
     }
 }

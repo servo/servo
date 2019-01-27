@@ -541,7 +541,7 @@ impl Activatable for HTMLAnchorElement {
         // hyperlink"
         // https://html.spec.whatwg.org/multipage/#the-a-element
         // "The activation behaviour of a elements *that create hyperlinks*"
-        self.upcast::<Element>().has_attribute(&local_name!("href"))
+        self.as_element().has_attribute(&local_name!("href"))
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
@@ -553,16 +553,12 @@ impl Activatable for HTMLAnchorElement {
 
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
     fn activation_behavior(&self, event: &Event, target: &EventTarget) {
-        //Step 1. If the node document is not fully active, abort.
-        let doc = document_from_node(self);
-        if !doc.is_fully_active() {
-            return;
-        }
-        //TODO: Step 2. Check if browsing context is specified and act accordingly.
-        //Step 3. Handle <img ismap/>.
-        let element = self.upcast::<Element>();
+        let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;
+
+        // Step 1: If the target of the click event is an img element with an ismap attribute
+        // specified, then server-side image map processing must be performed.
         if let Some(element) = target.downcast::<Element>() {
             if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
                 let target_node = element.upcast::<Node>();
@@ -575,15 +571,14 @@ impl Activatable for HTMLAnchorElement {
             }
         }
 
-        // Step 4.
-        //TODO: Download the link is `download` attribute is set.
-
         // https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-delivery
         let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
             true => Some(ReferrerPolicy::NoReferrer),
             false => None,
         };
 
+        // Step 2.
+        //TODO: Download the link is `download` attribute is set.
         follow_hyperlink(element, ismap_suffix, referrer_policy);
     }
 
@@ -604,7 +599,10 @@ pub fn follow_hyperlink(
     hyperlink_suffix: Option<String>,
     referrer_policy: Option<ReferrerPolicy>,
 ) {
-    // Step 1: TODO: If subject cannot navigate, then return.
+    // Step 1: If subject cannot navigate, then return.
+    if subject.cannot_navigate() {
+        return;
+    }
     // Step 2, done in Step 7.
 
     let document = document_from_node(subject);
@@ -631,13 +629,15 @@ pub fn follow_hyperlink(
         Some(name) => source.choose_browsing_context(name.Value(), noopener),
         None => (Some(window.window_proxy()), false),
     };
+
+    // Step 8.
     let chosen = match maybe_chosen {
         Some(proxy) => proxy,
         None => return,
     };
+
     if let Some(target_document) = chosen.document() {
         let target_window = target_document.window();
-
         // Step 9, dis-owning target's opener, if necessary
         // will have been done as part of Step 7 above
         // in choose_browsing_context/create_auxiliary_browsing_context.
