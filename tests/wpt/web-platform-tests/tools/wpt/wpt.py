@@ -43,6 +43,9 @@ def load_commands():
 def parse_args(argv, commands):
     parser = argparse.ArgumentParser()
     parser.add_argument("--venv", action="store", help="Path to an existing virtualenv to use")
+    parser.add_argument("--skip-venv-setup", action="store_true",
+                        dest="skip_venv_setup",
+                        help="Whether to use the virtualenv as-is. Must set --venv as well")
     parser.add_argument("--debug", action="store_true", help="Run the debugger in case of an exception")
     subparsers = parser.add_subparsers(dest="command")
     for command, props in iteritems(commands):
@@ -77,15 +80,19 @@ def import_command(prog, command, props):
     return script, parser
 
 
-def setup_virtualenv(path, props):
+def setup_virtualenv(path, skip_venv_setup, props):
+    if skip_venv_setup and path is None:
+        raise ValueError("Must set --venv when --skip-venv-setup is used")
+    should_skip_setup = path is not None and skip_venv_setup
     if path is None:
         path = os.path.join(wpt_root, "_venv")
-    venv = virtualenv.Virtualenv(path)
-    venv.start()
-    for name in props["install"]:
-        venv.install(name)
-    for path in props["requirements"]:
-        venv.install_requirements(path)
+    venv = virtualenv.Virtualenv(path, should_skip_setup)
+    if not should_skip_setup:
+        venv.start()
+        for name in props["install"]:
+            venv.install(name)
+        for path in props["requirements"]:
+            venv.install_requirements(path)
     return venv
 
 
@@ -105,7 +112,7 @@ def main(prog=None, argv=None):
     props = commands[command]
     venv = None
     if props["virtualenv"]:
-        venv = setup_virtualenv(main_args.venv, props)
+        venv = setup_virtualenv(main_args.venv, main_args.skip_venv_setup, props)
     script, parser = import_command(prog, command, props)
     if parser:
         if props["parse_known"]:

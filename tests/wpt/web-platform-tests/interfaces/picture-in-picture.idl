@@ -9,6 +9,7 @@ partial interface HTMLVideoElement {
   attribute EventHandler onenterpictureinpicture;
   attribute EventHandler onleavepictureinpicture;
 
+  [CEReactions] attribute boolean autoPictureInPicture;
   [CEReactions] attribute boolean disablePictureInPicture;
 };
 

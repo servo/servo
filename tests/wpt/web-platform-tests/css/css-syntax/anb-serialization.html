@@ -1,0 +1,62 @@
+<!doctype html>
+<title>An+B Serialization</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+foo { color: blue; }
+
+</style>
+
+<meta name="author" title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#serializing-anb">
+
+<script>
+
+function roundtripANB(str) {
+    const rule = document.styleSheets[0].cssRules[0];
+    rule.selectorText = "foo";
+    rule.selectorText = `:nth-child(${str})`;
+    // Check for parse error.
+    if(rule.selectorText == "foo") return "parse error";
+    return rule.selectorText.slice(11, -1);
+}
+function testANB(input, expected) {
+    test(()=>{
+        assert_equals(roundtripANB(input), expected);
+    }, `"${input}" becomes "${expected}"`);
+}
+
+/* A is 0, or omitted */
+testANB("1", "1");
+testANB("+1", "1");
+testANB("-1", "-1");
+testANB("0n + 0", "0");
+testANB("0n + 1", "1");
+testANB("0n - 1", "-1");
+
+/* A is 1 */
+testANB("1n", "n");
+testANB("1n - 0", "n");
+testANB("1n + 1", "n+1");
+testANB("1n - 1", "n-1");
+
+/* A is -1 */
+testANB("-1n", "-n");
+testANB("-1n - 0", "-n");
+testANB("-1n + 1", "-n+1");
+testANB("-1n - 1", "-n-1");
+
+/* A is implied via + or - */
+testANB("+n+1", "n+1");
+testANB("-n-1", "-n-1");
+
+/* B is 0 */
+testANB("n + 0", "n");
+testANB("n - 0", "n");
+
+/* A & B both nonzero */
+testANB("2n + 2", "2n+2");
+testANB("-2n - 2", "-2n-2");
+
+</script>

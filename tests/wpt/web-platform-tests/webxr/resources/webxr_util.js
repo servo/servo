@@ -26,7 +26,6 @@ function xr_promise_test(name, func, properties) {
 // Requires a webglCanvas on the page.
 function xr_session_promise_test(
     name, func, fakeDeviceInit, sessionOptions, properties) {
-  let testDevice;
   let testDeviceController;
   let testSession;
 
@@ -44,16 +43,12 @@ function xr_session_promise_test(
           XRTest.simulateDeviceConnection(fakeDeviceInit)
               .then((controller) => {
                 testDeviceController = controller;
-                return navigator.xr.requestDevice();
-              })
-              .then((device) => {
-                testDevice = device;
                 return gl.makeXRCompatible();
               })
               .then(() => new Promise((resolve, reject) => {
                       // Perform the session request in a user gesture.
                       XRTest.simulateUserActivation(() => {
-                        testDevice.requestSession(sessionOptions)
+                        navigator.xr.requestSession(sessionOptions)
                             .then((session) => {
                               testSession = session;
                               // Session must have a baseLayer or frame requests
@@ -74,7 +69,7 @@ function xr_session_promise_test(
               .then(() => {
                 // Cleanup system state.
                 testSession.end().catch(() => {});
-                XRTest.simulateDeviceDisconnection(testDevice);
+                XRTest.simulateDeviceDisconnection();
               }),
       properties);
 }
@@ -97,7 +92,6 @@ function getOutputContext() {
 //                that API object.
 function forEachWebxrObject(callback) {
   callback(window.navigator.xr, 'navigator.xr');
-  callback(window.XRDevice, 'XRDevice');
   callback(window.XRSession, 'XRSession');
   callback(window.XRSessionCreationOptions, 'XRSessionCreationOptions');
   callback(window.XRFrameRequestCallback, 'XRFrameRequestCallback');
