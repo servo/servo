@@ -22,9 +22,8 @@ use crate::request::{Request, RequestInit};
 use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
 use cookie::Cookie;
-use headers_core::HeaderMapExt;
-use headers_ext::{ContentType, ReferrerPolicy as ReferrerPolicyHeader};
-use http::{Error as HttpError, HeaderMap};
+use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
+use http::{header, Error as HttpError, HeaderMap};
 use hyper::Error as HyperError;
 use hyper::StatusCode;
 use hyper_serde::Serde;
@@ -655,4 +654,64 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
     }
 
     url::percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
+}
+
+// https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
+pub fn extract_mime_type(headers: &HeaderMap) -> Option<Mime> {
+    // Steps 1-2.
+    // NOTE: We can't own a MIME type essence or a charset param, so we just
+    // compare the essences between the temporary and current MIME type in
+    // the loop.
+
+    // Step 3.
+    let mut mime_type = None::<Mime>;
+
+    // Step 4.
+    let values = headers.get_all(header::CONTENT_TYPE);
+
+    // Step 5.
+    // NOTE: Unapplicable, we use an iterator.
+
+    // Step 6.
+    for value in values {
+        // Steps 6.1-6.2.
+        let value = match value.to_str() {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+        let temporary_mime_type = value.parse().ok().filter(|mime_type: &Mime| {
+            (mime_type.type_(), mime_type.subtype()) != (mime::STAR, mime::STAR)
+        });
+        let mut temporary = match temporary_mime_type {
+            Some(mime_type) => mime_type,
+            None => continue,
+        };
+
+        // If we haven't extracted a MIME type yet, there is nothing
+        // to compare essence with.
+        if let Some(old) = mime_type.take() {
+            // Step 6.4.
+            // NOTE: There is nothing more to do if the essences don't match.
+
+            // Step 6.5.
+            if (temporary.type_(), temporary.subtype()) == (old.type_(), old.subtype()) {
+                if temporary.get_param(mime::CHARSET).is_none() {
+                    // FIXME(nox): We shouldn't have to check whether the former
+                    // MIME type had a charset param all the time.
+                    if let Some(charset) = old.get_param(mime::CHARSET) {
+                        // FIXME(nox): https://github.com/hyperium/mime/issues/109
+                        temporary = format!("{}; charset={}", temporary, charset)
+                            .parse()
+                            .unwrap();
+                    }
+                }
+            }
+        }
+
+        // Step 3.
+        mime_type = Some(temporary);
+    }
+
+    // Steps 7-8.
+    mime_type
 }
