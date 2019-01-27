@@ -441,6 +441,7 @@ pub mod request;
 pub mod response;
 pub mod rtcicecandidate;
 pub mod rtcpeerconnection;
+pub mod rtcpeerconnectioniceevent;
 pub mod rtcsessiondescription;
 pub mod screen;
 pub mod serviceworker;

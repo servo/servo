@@ -22,11 +22,14 @@ use servo_media::webrtc::MediaStream as BackendMediaStream;
 use servo_media::webrtc::{IceCandidate, WebRtcController, WebRtcSignaller};
 use servo_media::ServoMedia;
 
+use std::cell::Cell;
+
 #[dom_struct]
 pub struct RTCPeerConnection {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
     controller: DomRefCell<Option<WebRtcController>>,
+    closed: Cell<bool>,
 }
 
 struct RTCSignaller {
@@ -70,6 +73,7 @@ impl RTCPeerConnection {
         RTCPeerConnection {
             eventtarget: EventTarget::new_inherited(),
             controller: DomRefCell::new(None),
+            closed: Cell::new(false),
         }
     }
 
