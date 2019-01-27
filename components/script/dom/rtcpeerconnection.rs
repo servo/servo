@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandi
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
-    RTCConfiguration, RTCOfferOptions,
+    RTCAnswerOptions, RTCConfiguration, RTCOfferOptions,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
@@ -46,11 +46,13 @@ pub struct RTCPeerConnection {
     #[ignore_malloc_size_of = "defined in servo-media"]
     controller: DomRefCell<Option<WebRtcController>>,
     closed: Cell<bool>,
-    /// Helps track state changes between the time createOffer
+    /// Helps track state changes between the time createOffer/createAnswer
     /// is called and resolved
-    offer_generation: Cell<u32>,
+    offer_answer_generation: Cell<u32>,
     #[ignore_malloc_size_of = "promises are hard"]
     offer_promises: DomRefCell<Vec<Rc<Promise>>>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    answer_promises: DomRefCell<Vec<Rc<Promise>>>,
 }
 
 struct RTCSignaller {
@@ -95,8 +97,9 @@ impl RTCPeerConnection {
             eventtarget: EventTarget::new_inherited(),
             controller: DomRefCell::new(None),
             closed: Cell::new(false),
-            offer_generation: Cell::new(0),
+            offer_answer_generation: Cell::new(0),
             offer_promises: DomRefCell::new(vec![]),
+            answer_promises: DomRefCell::new(vec![]),
         }
     }
 
@@ -171,7 +174,7 @@ impl RTCPeerConnection {
     }
 
     fn create_offer(&self) {
-        let generation = self.offer_generation.get();
+        let generation = self.offer_answer_generation.get();
         let (task_source, canceller) = self
             .global()
             .as_window()
@@ -183,7 +186,7 @@ impl RTCPeerConnection {
                 let _ = task_source.queue_with_canceller(
                     task!(offer_created: move || {
                         let this = this.root();
-                        if this.offer_generation.get() != generation {
+                        if this.offer_answer_generation.get() != generation {
                             // the state has changed since we last created the offer,
                             // create a fresh one
                             this.create_offer();
@@ -199,6 +202,41 @@ impl RTCPeerConnection {
             })
             .into(),
         );
+    }
+
+    fn create_answer(&self) {
+        let generation = self.offer_answer_generation.get();
+        let (task_source, canceller) = self
+            .global()
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        let this = Trusted::new(self);
+        self.controller
+            .borrow_mut()
+            .as_ref()
+            .unwrap()
+            .create_answer(
+                (move |desc: SessionDescription| {
+                    let _ = task_source.queue_with_canceller(
+                        task!(answer_created: move || {
+                            let this = this.root();
+                            if this.offer_answer_generation.get() != generation {
+                                // the state has changed since we last created the offer,
+                                // create a fresh one
+                                this.create_answer();
+                            } else {
+                                let init: RTCSessionDescriptionInit = desc.into();
+                                for promise in this.answer_promises.borrow_mut().drain(..) {
+                                    promise.resolve_native(&init);
+                                }
+                            }
+                        }),
+                        &canceller,
+                    );
+                })
+                .into(),
+            );
     }
 }
 
@@ -257,6 +295,18 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         }
         self.offer_promises.borrow_mut().push(p.clone());
         self.create_offer();
+        p
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-createoffer
+    fn CreateAnswer(&self, _options: &RTCAnswerOptions) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+        if self.closed.get() {
+            p.reject_error(Error::InvalidState);
+            return p;
+        }
+        self.answer_promises.borrow_mut().push(p.clone());
+        self.create_answer();
         p
     }
 }
