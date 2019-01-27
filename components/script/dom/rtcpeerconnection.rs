@@ -15,16 +15,17 @@ use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
+use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::window::Window;
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -53,6 +54,7 @@ pub struct RTCPeerConnection {
     offer_promises: DomRefCell<Vec<Rc<Promise>>>,
     #[ignore_malloc_size_of = "promises are hard"]
     answer_promises: DomRefCell<Vec<Rc<Promise>>>,
+    local_description: MutNullableDom<RTCSessionDescription>,
 }
 
 struct RTCSignaller {
@@ -100,6 +102,7 @@ impl RTCPeerConnection {
             offer_answer_generation: Cell::new(0),
             offer_promises: DomRefCell::new(vec![]),
             answer_promises: DomRefCell::new(vec![]),
+            local_description: Default::default(),
         }
     }
 
@@ -309,6 +312,43 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         self.create_answer();
         p
     }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-localdescription
+    fn GetLocalDescription(&self) -> Option<DomRoot<RTCSessionDescription>> {
+        self.local_description.get()
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setlocaldescription
+    fn SetLocalDescription(&self, desc: &RTCSessionDescriptionInit) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+        let this = Trusted::new(self);
+        let desc: SessionDescription = desc.into();
+        let trusted_promise = TrustedPromise::new(p.clone());
+        let (task_source, canceller) = self
+            .global()
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        self.controller
+            .borrow_mut()
+            .as_ref()
+            .unwrap()
+            .set_local_description(desc.clone(), (move || {
+                    let _ = task_source.queue_with_canceller(
+                        task!(local_description_set: move || {
+                            // XXXManishearth spec actually asks for an intricate
+                            // dance between pending/current local/remote descriptions
+                            let this = this.root();
+                            let desc = desc.into();
+                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), &desc).unwrap();
+                            this.local_description.set(Some(&desc));
+                            trusted_promise.root().resolve_native(&())
+                        }),
+                        &canceller,
+                    );
+            }).into());
+        p
+    }
 }
 
 impl From<SessionDescription> for RTCSessionDescriptionInit {
@@ -322,6 +362,21 @@ impl From<SessionDescription> for RTCSessionDescriptionInit {
         RTCSessionDescriptionInit {
             type_,
             sdp: desc.sdp.into(),
+        }
+    }
+}
+
+impl<'a> From<&'a RTCSessionDescriptionInit> for SessionDescription {
+    fn from(desc: &'a RTCSessionDescriptionInit) -> Self {
+        let type_ = match desc.type_ {
+            RTCSdpType::Answer => SdpType::Answer,
+            RTCSdpType::Offer => SdpType::Offer,
+            RTCSdpType::Pranswer => SdpType::Pranswer,
+            RTCSdpType::Rollback => SdpType::Rollback,
+        };
+        SessionDescription {
+            type_,
+            sdp: desc.sdp.to_string(),
         }
     }
 }
