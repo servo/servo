@@ -36,6 +36,7 @@ fullscreenerror
 gattserverdisconnected
 hashchange
 hidden
+icecandidate
 image
 input
 invalid
@@ -54,6 +55,7 @@ message
 monospace
 month
 mouseover
+negotiationneeded
 none
 number
 onchange

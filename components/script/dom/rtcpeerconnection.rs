@@ -3,15 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCConfiguration;
+use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
+    self, RTCPeerConnectionMethods,
+};
 use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::rtcicecandidate::RTCIceCandidate;
+use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
 use crate::dom::window::Window;
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -109,11 +115,53 @@ impl RTCPeerConnection {
         })
     }
 
-    fn on_ice_candidate(&self, _candidate: IceCandidate) {
-        // todo
+    fn on_ice_candidate(&self, candidate: IceCandidate) {
+        if self.closed.get() {
+            return;
+        }
+        let candidate = RTCIceCandidate::new(
+            &self.global(),
+            candidate.candidate.into(),
+            None,
+            Some(candidate.sdp_mline_index as u16),
+            None,
+        );
+        let event = RTCPeerConnectionIceEvent::new(
+            &self.global(),
+            atom!("icecandidate"),
+            Some(&candidate),
+            None,
+            true,
+        );
+        event
+            .upcast::<Event>()
+            .fire(self.upcast());
     }
 
     fn on_negotiation_needed(&self) {
-        // todo
+        if self.closed.get() {
+            return;
+        }
+        let event = Event::new(
+            &self.global(),
+            atom!("negotiationneeded"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event
+            .upcast::<Event>()
+            .fire(self.upcast());
     }
+}
+
+impl RTCPeerConnectionMethods for RTCPeerConnection {
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-icecandidate
+    event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onnegotiationneeded
+    event_handler!(
+        negotiationneeded,
+        GetOnnegotiationneeded,
+        SetOnnegotiationneeded
+    );
 }
