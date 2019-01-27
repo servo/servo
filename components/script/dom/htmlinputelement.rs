@@ -1422,9 +1422,9 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(tree_connected);
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();

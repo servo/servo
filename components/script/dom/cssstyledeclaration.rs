@@ -246,7 +246,7 @@ impl CSSStyleDeclaration {
             },
             CSSStyleOwner::Element(ref el) => {
                 let node = el.upcast::<Node>();
-                if !node.is_in_doc() {
+                if !node.is_connected() {
                     // TODO: Node should be matched against the style rules of this window.
                     // Firefox is currently the only browser to implement this.
                     return DOMString::new();
