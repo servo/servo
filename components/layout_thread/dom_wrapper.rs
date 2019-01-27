@@ -260,8 +260,8 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         None
     }
 
-    fn is_in_document(&self) -> bool {
-        unsafe { self.node.get_flag(NodeFlags::IS_IN_DOC) }
+    fn is_connected(&self) -> bool {
+        unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
     }
 }
 
@@ -488,7 +488,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     unsafe fn set_dirty_descendants(&self) {
-        debug_assert!(self.as_node().is_in_document());
+        debug_assert!(self.as_node().is_connected());
         self.as_node()
             .node
             .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)

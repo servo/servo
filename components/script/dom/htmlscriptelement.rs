@@ -373,7 +373,7 @@ impl HTMLScriptElement {
         }
 
         // Step 5.
-        if !self.upcast::<Node>().is_in_doc() {
+        if !self.upcast::<Node>().is_connected() {
             return;
         }
 
@@ -753,7 +753,7 @@ impl VirtualMethods for HTMLScriptElement {
         match *attr.local_name() {
             local_name!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
+                    if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
                         self.prepare();
                     }
                 }
@@ -766,7 +766,7 @@ impl VirtualMethods for HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
+        if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
             self.prepare();
         }
     }

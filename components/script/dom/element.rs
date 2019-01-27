@@ -9,6 +9,7 @@ use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentBinding::DocumentFragmentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -1201,7 +1202,13 @@ impl Element {
     }
 
     pub fn root_element(&self) -> DomRoot<Element> {
-        if self.node.is_in_doc() {
+        if self.node.is_in_shadow_tree() {
+            self.upcast::<Node>()
+                .owner_shadow_root()
+                .upcast::<DocumentFragment>()
+                .GetFirstElementChild()
+                .unwrap()
+        } else if self.node.is_in_doc() {
             self.upcast::<Node>()
                 .owner_doc()
                 .GetDocumentElement()
@@ -2717,7 +2724,7 @@ impl VirtualMethods for Element {
                         None
                     }
                 });
-                if node.is_in_doc() {
+                if node.is_connected() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
                         AttributeMutation::Set(old_value) => {
@@ -2763,16 +2770,16 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(tree_connected);
         }
 
         if let Some(f) = self.as_maybe_form_control() {
             f.bind_form_control_to_tree();
         }
 
-        if !tree_in_doc {
+        if !tree_connected {
             return;
         }
 
@@ -2791,7 +2798,7 @@ impl VirtualMethods for Element {
             f.unbind_form_control_from_tree();
         }
 
-        if !context.tree_in_doc {
+        if !context.tree_connected {
             return;
         }
 

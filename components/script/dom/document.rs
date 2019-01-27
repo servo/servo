@@ -680,7 +680,7 @@ impl Document {
     }
 
     pub fn content_and_heritage_changed(&self, node: &Node) {
-        if node.is_in_doc() {
+        if node.is_connected() {
             node.note_dirty_descendants();
         }
 
@@ -749,7 +749,7 @@ impl Document {
             "Adding named element to document {:p}: {:p} id={}",
             self, element, id
         );
-        assert!(element.upcast::<Node>().is_in_doc());
+        assert!(element.upcast::<Node>().is_connected());
         assert!(!id.is_empty());
 
         let root = self.GetDocumentElement().expect(
@@ -2481,12 +2481,12 @@ impl LayoutDocumentHelpers for LayoutDom<Document> {
         let mut elements = (*self.unsafe_get())
             .pending_restyles
             .borrow_mut_for_layout();
-        // Elements were in a document when they were adding to this list, but that
+        // Elements were in a document when they were added to this list, but that
         // may no longer be true when the next layout occurs.
         let result = elements
             .drain()
             .map(|(k, v)| (k.to_layout(), v))
-            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_IN_DOC))
+            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED))
             .collect();
         result
     }

@@ -1967,7 +1967,7 @@ impl VirtualMethods for HTMLMediaElement {
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        if context.tree_in_doc {
+        if context.tree_connected {
             let task = MediaElementMicrotask::PauseIfNotInDocumentTask {
                 elem: DomRoot::from_ref(self),
             };
@@ -2019,7 +2019,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 }
             },
             &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
-                if !elem.upcast::<Node>().is_in_doc() {
+                if !elem.upcast::<Node>().is_connected() {
                     elem.internal_pause_steps();
                 }
             },
