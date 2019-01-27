@@ -1648,12 +1648,12 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(tree_connected);
         }
         let document = document_from_node(self);
-        if tree_in_doc {
+        if tree_connected {
             document.register_responsive_image(self);
         }
 

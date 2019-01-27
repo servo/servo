@@ -82,8 +82,8 @@ impl VirtualMethods for HTMLSourceElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        self.super_type().unwrap().bind_to_tree(tree_in_doc);
+    fn bind_to_tree(&self, tree_connected: bool) {
+        self.super_type().unwrap().bind_to_tree(tree_connected);
         let parent = self.upcast::<Node>().GetParentNode().unwrap();
         if let Some(media) = parent.downcast::<HTMLMediaElement>() {
             media.handle_source_child_insertion();

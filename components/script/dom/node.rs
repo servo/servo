@@ -190,8 +190,11 @@ bitflags! {
         /// Whether this element has already handled the stored snapshot.
         const HANDLED_SNAPSHOT = 1 << 8;
 
-        // Whether this node participates in a shadow tree.
+        /// Whether this node participates in a shadow tree.
         const IS_IN_SHADOW_TREE = 1 << 9;
+
+        /// Specifies whether this node's shadow-including root is a document.
+        const IS_CONNECTED = 1 << 10;
     }
 }
 
@@ -289,8 +292,9 @@ impl Node {
             } else {
                 false
             };
-            node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc || is_connected);
+            node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
+            node.set_flag(NodeFlags::IS_CONNECTED, is_connected);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
             vtable_for(&&*node).bind_to_tree(is_connected);
@@ -483,6 +487,10 @@ impl Node {
         self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
     }
 
+    pub fn is_connected(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
     /// Returns the type ID of this node.
     pub fn type_id(&self) -> NodeTypeId {
         match *self.eventtarget.type_id() {
@@ -541,7 +549,7 @@ impl Node {
 
     // FIXME(emilio): This and the function below should move to Element.
     pub fn note_dirty_descendants(&self) {
-        debug_assert!(self.is_in_doc());
+        debug_assert!(self.is_connected());
 
         for ancestor in self.inclusive_ancestors() {
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
@@ -574,7 +582,7 @@ impl Node {
 
     pub fn dirty(&self, damage: NodeDamage) {
         self.rev_version();
-        if !self.is_in_doc() {
+        if !self.is_connected() {
             return;
         }
 
@@ -908,8 +916,8 @@ impl Node {
         self.owner_doc().is_html_document()
     }
 
-    pub fn is_in_doc_with_browsing_context(&self) -> bool {
-        self.is_in_doc() && self.owner_doc().browsing_context().is_some()
+    pub fn is_connected_with_browsing_context(&self) -> bool {
+        self.is_connected() && self.owner_doc().browsing_context().is_some()
     }
 
     pub fn children(&self) -> impl Iterator<Item = DomRoot<Node>> {
@@ -2896,8 +2904,8 @@ pub struct UnbindContext<'a> {
     prev_sibling: Option<&'a Node>,
     /// The next sibling of the inclusive ancestor that was removed.
     pub next_sibling: Option<&'a Node>,
-    /// Whether the tree is in a document.
-    pub tree_in_doc: bool,
+    /// Whether the tree is connected.
+    pub tree_connected: bool,
 }
 
 impl<'a> UnbindContext<'a> {
@@ -2913,7 +2921,7 @@ impl<'a> UnbindContext<'a> {
             parent: parent,
             prev_sibling: prev_sibling,
             next_sibling: next_sibling,
-            tree_in_doc: parent.is_in_doc(),
+            tree_connected: parent.is_connected(),
         }
     }
 
