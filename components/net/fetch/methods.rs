@@ -23,7 +23,7 @@ use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use net_traits::{self, FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
@@ -794,7 +794,7 @@ pub fn should_be_blocked_due_to_nosniff(
 
     // Step 4
     // Note: an invalid MIME type will produce a `None`.
-    let content_type_header = response_headers.typed_get::<ContentType>();
+    let content_type_header = net_traits::extract_mime_type(&response_headers);
 
     /// <https://html.spec.whatwg.org/multipage/#scriptingLanguages>
     #[inline]
@@ -826,13 +826,12 @@ pub fn should_be_blocked_due_to_nosniff(
     match content_type_header {
         // Step 6
         Some(ref ct) if destination.is_script_like() => {
-            !is_javascript_mime_type(&ct.clone().into())
+            !is_javascript_mime_type(ct)
         },
 
         // Step 7
         Some(ref ct) if destination == Destination::Style => {
-            let m: mime::Mime = ct.clone().into();
-            m.type_() != mime::TEXT && m.subtype() != mime::CSS
+            ct.type_() != mime::TEXT && ct.subtype() != mime::CSS
         },
 
         None if destination == Destination::Style || destination.is_script_like() => true,
@@ -847,8 +846,8 @@ fn should_be_blocked_due_to_mime_type(
     response_headers: &HeaderMap,
 ) -> bool {
     // Step 1
-    let mime_type: mime::Mime = match response_headers.typed_get::<ContentType>() {
-        Some(header) => header.into(),
+    let mime_type = match net_traits::extract_mime_type(response_headers) {
+        Some(header) => header,
         None => return false,
     };
 
