@@ -4,7 +4,7 @@
 
 //! Generic types for CSS values related to backgrounds.
 
-use crate::values::IsAuto;
+use crate::values::generics::length::LengthPercentageOrAuto;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -22,13 +22,13 @@ use style_traits::{CssWriter, ToCss};
     ToAnimatedZero,
     ToComputedValue,
 )]
-pub enum BackgroundSize<LengthPercentageOrAuto> {
+pub enum BackgroundSize<LengthPercentage> {
     /// `<width> <height>`
     Explicit {
         /// Explicit width.
-        width: LengthPercentageOrAuto,
+        width: LengthPercentageOrAuto<LengthPercentage>,
         /// Explicit height.
-        height: LengthPercentageOrAuto,
+        height: LengthPercentageOrAuto<LengthPercentage>,
     },
     /// `cover`
     #[animation(error)]
@@ -38,9 +38,9 @@ pub enum BackgroundSize<LengthPercentageOrAuto> {
     Contain,
 }
 
-impl<LengthPercentageOrAuto> ToCss for BackgroundSize<LengthPercentageOrAuto>
+impl<LengthPercentage> ToCss for BackgroundSize<LengthPercentage>
 where
-    LengthPercentageOrAuto: ToCss + IsAuto,
+    LengthPercentage: ToCss,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where

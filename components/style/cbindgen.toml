@@ -99,7 +99,7 @@ item_types = ["enums", "structs", "typedefs"]
   template<typename T> inline nscoord ResolveWith(T aPercentageGetter) const;
 """
 
-"LengthPercentageOrAuto" = """
+"GenericLengthPercentageOrAuto" = """
   inline const StyleLengthPercentage& AsLengthPercentage() const;
   inline bool HasPercent() const;
   inline bool ConvertsToLength() const;

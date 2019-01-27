@@ -6,14 +6,16 @@
 
 use crate::parser::{Parse, ParserContext};
 use crate::values::generics::background::BackgroundSize as GenericBackgroundSize;
-use crate::values::specified::length::NonNegativeLengthPercentageOrAuto;
+use crate::values::specified::length::{
+    NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto,
+};
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A specified value for the `background-size` property.
-pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthPercentageOrAuto>;
+pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthPercentage>;
 
 impl Parse for BackgroundSize {
     fn parse<'i, 't>(

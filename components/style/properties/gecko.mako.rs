@@ -1390,7 +1390,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "LengthOrNormal": impl_style_coord,
         "LengthPercentage": impl_simple,
         "LengthPercentageOrAuto": impl_style_coord,
-        "LengthPercentageOrNone": impl_style_coord,
         "MaxLength": impl_style_coord,
         "MozLength": impl_style_coord,
         "MozScriptMinSize": impl_absolute_length,
@@ -3831,11 +3830,11 @@ fn static_assert() {
             BackgroundSize::Explicit { width: explicit_width, height: explicit_height } => {
                 let mut w_type = nsStyleImageLayers_Size_DimensionType::eAuto;
                 let mut h_type = nsStyleImageLayers_Size_DimensionType::eAuto;
-                if let Some(w) = explicit_width.0.to_calc_value() {
+                if let Some(w) = explicit_width.to_calc_value() {
                     width = w;
                     w_type = nsStyleImageLayers_Size_DimensionType::eLengthPercentage;
                 }
-                if let Some(h) = explicit_height.0.to_calc_value() {
+                if let Some(h) = explicit_height.to_calc_value() {
                     height = h;
                     h_type = nsStyleImageLayers_Size_DimensionType::eLengthPercentage;
                 }
