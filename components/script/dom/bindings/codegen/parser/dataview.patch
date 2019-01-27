@@ -1,0 +1,13 @@
+diff --git a/components/script/dom/bindings/codegen/parser/WebIDL.py b/components/script/dom/bindings/codegen/parser/WebIDL.py
+index 59ec481c97..7348db73cb 100644
+--- a/components/script/dom/bindings/codegen/parser/WebIDL.py
++++ b/components/script/dom/bindings/codegen/parser/WebIDL.py
+@@ -3131,7 +3131,7 @@ class IDLBuiltinType(IDLType):
+                 self.isSharedArrayBuffer() or
+                 self.isTypedArray() or
+                 self.isReadableStream() or
+-                seld.isDataView())
++                self.isDataView())
+ 
+     def isNonCallbackInterface(self):
+         # All the interfaces we can be are non-callback
