@@ -7,7 +7,7 @@
 [Constructor(optional RTCConfiguration configuration),
  Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCPeerConnection : EventTarget {
-    // Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options);
+    Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options);
     // Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options);
     // Promise<void>                      setLocalDescription(RTCSessionDescriptionInit description);
     // readonly attribute RTCSessionDescription? localDescription;
@@ -74,4 +74,15 @@ dictionary RTCIceServer {
 enum RTCIceCredentialType {
     "password",
     "oauth"
+};
+
+dictionary RTCOfferAnswerOptions {
+    boolean voiceActivityDetection = true;
+};
+
+dictionary RTCOfferOptions : RTCOfferAnswerOptions {
+    boolean iceRestart = false;
+};
+
+dictionary RTCAnswerOptions : RTCOfferAnswerOptions {
 };

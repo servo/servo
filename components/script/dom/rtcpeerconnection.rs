@@ -4,17 +4,21 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
-use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCConfiguration;
+use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
+use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
-    self, RTCPeerConnectionMethods,
+    RTCConfiguration, RTCOfferOptions,
 };
+use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
+    RTCSdpType, RTCSessionDescriptionInit,
+};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::error::Error;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -28,7 +32,9 @@ use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 
 use servo_media::webrtc::MediaStream as BackendMediaStream;
-use servo_media::webrtc::{IceCandidate, WebRtcController, WebRtcSignaller};
+use servo_media::webrtc::{
+    IceCandidate, SdpType, SessionDescription, WebRtcController, WebRtcSignaller,
+};
 use servo_media::ServoMedia;
 
 use std::cell::Cell;
@@ -40,6 +46,11 @@ pub struct RTCPeerConnection {
     #[ignore_malloc_size_of = "defined in servo-media"]
     controller: DomRefCell<Option<WebRtcController>>,
     closed: Cell<bool>,
+    /// Helps track state changes between the time createOffer
+    /// is called and resolved
+    offer_generation: Cell<u32>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    offer_promises: DomRefCell<Vec<Rc<Promise>>>,
 }
 
 struct RTCSignaller {
@@ -84,6 +95,8 @@ impl RTCPeerConnection {
             eventtarget: EventTarget::new_inherited(),
             controller: DomRefCell::new(None),
             closed: Cell::new(false),
+            offer_generation: Cell::new(0),
+            offer_promises: DomRefCell::new(vec![]),
         }
     }
 
@@ -156,6 +169,37 @@ impl RTCPeerConnection {
             .upcast::<Event>()
             .fire(self.upcast());
     }
+
+    fn create_offer(&self) {
+        let generation = self.offer_generation.get();
+        let (task_source, canceller) = self
+            .global()
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        let this = Trusted::new(self);
+        self.controller.borrow_mut().as_ref().unwrap().create_offer(
+            (move |desc: SessionDescription| {
+                let _ = task_source.queue_with_canceller(
+                    task!(offer_created: move || {
+                        let this = this.root();
+                        if this.offer_generation.get() != generation {
+                            // the state has changed since we last created the offer,
+                            // create a fresh one
+                            this.create_offer();
+                        } else {
+                            let init: RTCSessionDescriptionInit = desc.into();
+                            for promise in this.offer_promises.borrow_mut().drain(..) {
+                                promise.resolve_native(&init);
+                            }
+                        }
+                    }),
+                    &canceller,
+                );
+            })
+            .into(),
+        );
+    }
 }
 
 impl RTCPeerConnectionMethods for RTCPeerConnection {
@@ -190,13 +234,44 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         // XXXManishearth this should be enqueued
         // https://www.w3.org/TR/webrtc/#enqueue-an-operation
 
-        self.controller.borrow_mut().as_ref().unwrap().add_ice_candidate(IceCandidate {
-            sdp_mline_index: candidate.sdpMLineIndex.unwrap() as u32,
-            candidate: candidate.candidate.to_string()
-        });
+        self.controller
+            .borrow_mut()
+            .as_ref()
+            .unwrap()
+            .add_ice_candidate(IceCandidate {
+                sdp_mline_index: candidate.sdpMLineIndex.unwrap() as u32,
+                candidate: candidate.candidate.to_string(),
+            });
 
         // XXXManishearth add_ice_candidate should have a callback
         p.resolve_native(&());
         p
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-createoffer
+    fn CreateOffer(&self, _options: &RTCOfferOptions) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+        if self.closed.get() {
+            p.reject_error(Error::InvalidState);
+            return p;
+        }
+        self.offer_promises.borrow_mut().push(p.clone());
+        self.create_offer();
+        p
+    }
+}
+
+impl From<SessionDescription> for RTCSessionDescriptionInit {
+    fn from(desc: SessionDescription) -> Self {
+        let type_ = match desc.type_ {
+            SdpType::Answer => RTCSdpType::Answer,
+            SdpType::Offer => RTCSdpType::Offer,
+            SdpType::Pranswer => RTCSdpType::Pranswer,
+            SdpType::Rollback => RTCSdpType::Rollback,
+        };
+        RTCSessionDescriptionInit {
+            type_,
+            sdp: desc.sdp.into(),
+        }
     }
 }
