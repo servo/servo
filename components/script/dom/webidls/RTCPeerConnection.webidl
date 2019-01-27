@@ -27,8 +27,8 @@ interface RTCPeerConnection : EventTarget {
     // RTCConfiguration                   getConfiguration();
     // void                               setConfiguration(RTCConfiguration configuration);
     // void                               close();
-    //          attribute EventHandler           onnegotiationneeded;
-    //          attribute EventHandler           onicecandidate;
+             attribute EventHandler           onnegotiationneeded;
+             attribute EventHandler           onicecandidate;
     //          attribute EventHandler           onicecandidateerror;
     //          attribute EventHandler           onsignalingstatechange;
     //          attribute EventHandler           oniceconnectionstatechange;
