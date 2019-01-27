@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCConfiguration;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     self, RTCPeerConnectionMethods,
@@ -13,9 +14,11 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::error::Error;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
 use crate::dom::window::Window;
@@ -29,6 +32,7 @@ use servo_media::webrtc::{IceCandidate, WebRtcController, WebRtcSignaller};
 use servo_media::ServoMedia;
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct RTCPeerConnection {
@@ -164,4 +168,35 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         GetOnnegotiationneeded,
         SetOnnegotiationneeded
     );
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addicecandidate
+    fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+        if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
+            p.reject_error(Error::Type(format!(
+                "one of sdpMid and sdpMLineIndex must be set"
+            )));
+            return p;
+        }
+
+        // XXXManishearth add support for sdpMid
+        if candidate.sdpMLineIndex.is_none() {
+            p.reject_error(Error::Type(format!(
+                "servo only supports sdpMLineIndex right now"
+            )));
+            return p;
+        }
+
+        // XXXManishearth this should be enqueued
+        // https://www.w3.org/TR/webrtc/#enqueue-an-operation
+
+        self.controller.borrow_mut().as_ref().unwrap().add_ice_candidate(IceCandidate {
+            sdp_mline_index: candidate.sdpMLineIndex.unwrap() as u32,
+            candidate: candidate.candidate.to_string()
+        });
+
+        // XXXManishearth add_ice_candidate should have a callback
+        p.resolve_native(&());
+        p
+    }
 }
