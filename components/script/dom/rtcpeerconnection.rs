@@ -55,6 +55,7 @@ pub struct RTCPeerConnection {
     #[ignore_malloc_size_of = "promises are hard"]
     answer_promises: DomRefCell<Vec<Rc<Promise>>>,
     local_description: MutNullableDom<RTCSessionDescription>,
+    remote_description: MutNullableDom<RTCSessionDescription>,
 }
 
 struct RTCSignaller {
@@ -103,6 +104,7 @@ impl RTCPeerConnection {
             offer_promises: DomRefCell::new(vec![]),
             answer_promises: DomRefCell::new(vec![]),
             local_description: Default::default(),
+            remote_description: Default::default(),
         }
     }
 
@@ -318,8 +320,14 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         self.local_description.get()
     }
 
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-remotedescription
+    fn GetRemoteDescription(&self) -> Option<DomRoot<RTCSessionDescription>> {
+        self.remote_description.get()
+    }
+
     /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setlocaldescription
     fn SetLocalDescription(&self, desc: &RTCSessionDescriptionInit) -> Rc<Promise> {
+        // XXXManishearth validate the current state
         let p = Promise::new(&self.global());
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
@@ -342,6 +350,39 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                             let desc = desc.into();
                             let desc = RTCSessionDescription::Constructor(&this.global().as_window(), &desc).unwrap();
                             this.local_description.set(Some(&desc));
+                            trusted_promise.root().resolve_native(&())
+                        }),
+                        &canceller,
+                    );
+            }).into());
+        p
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setremotedescription
+    fn SetRemoteDescription(&self, desc: &RTCSessionDescriptionInit) -> Rc<Promise> {
+        // XXXManishearth validate the current state
+        let p = Promise::new(&self.global());
+        let this = Trusted::new(self);
+        let desc: SessionDescription = desc.into();
+        let trusted_promise = TrustedPromise::new(p.clone());
+        let (task_source, canceller) = self
+            .global()
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        self.controller
+            .borrow_mut()
+            .as_ref()
+            .unwrap()
+            .set_remote_description(desc.clone(), (move || {
+                    let _ = task_source.queue_with_canceller(
+                        task!(remote_description_set: move || {
+                            // XXXManishearth spec actually asks for an intricate
+                            // dance between pending/current local/remote descriptions
+                            let this = this.root();
+                            let desc = desc.into();
+                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), &desc).unwrap();
+                            this.remote_description.set(Some(&desc));
                             trusted_promise.root().resolve_native(&())
                         }),
                         &canceller,
