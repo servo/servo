@@ -1100,7 +1100,7 @@ pub trait FormControl: DomObject {
         let form_id = elem.get_string_attribute(&local_name!("form"));
         let node = elem.upcast::<Node>();
 
-        if self.is_listed() && !form_id.is_empty() && node.is_in_doc() {
+        if self.is_listed() && !form_id.is_empty() && node.is_connected() {
             let doc = document_from_node(node);
             doc.register_form_id_listener(form_id, self);
         }

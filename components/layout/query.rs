@@ -1050,7 +1050,7 @@ fn inner_text_collection_steps<N: LayoutNode>(
 
         // Step 3.
         let display = style.get_box().display;
-        if !child.is_in_document() || display == Display::None {
+        if !child.is_connected() || display == Display::None {
             continue;
         }
 

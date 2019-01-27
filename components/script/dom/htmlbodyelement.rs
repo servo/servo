@@ -149,12 +149,12 @@ impl VirtualMethods for HTMLBodyElement {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(tree_connected);
         }
 
-        if !tree_in_doc {
+        if !tree_connected {
             return;
         }
 

@@ -459,7 +459,7 @@ impl HTMLElementMethods for HTMLElement {
         let element = self.upcast::<Element>();
 
         // Step 1.
-        let element_not_rendered = !node.is_in_doc() || !element.has_css_layout_box();
+        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
         if element_not_rendered {
             return node.GetTextContent().unwrap();
         }

@@ -183,7 +183,7 @@ impl VirtualMethods for HTMLLinkElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if !self.upcast::<Node>().is_in_doc() || mutation.is_removal() {
+        if !self.upcast::<Node>().is_connected() || mutation.is_removal() {
             return;
         }
 
@@ -222,12 +222,12 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(tree_connected);
         }
 
-        if tree_in_doc {
+        if tree_connected {
             let element = self.upcast();
 
             let rel = get_attr(element, &local_name!("rel"));

@@ -185,14 +185,14 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        self.super_type().unwrap().bind_to_tree(tree_in_doc);
+    fn bind_to_tree(&self, tree_connected: bool) {
+        self.super_type().unwrap().bind_to_tree(tree_connected);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // Handles the case when:
         // "The element is not on the stack of open elements of an HTML parser or XML parser,
         // and it becomes connected or disconnected."
-        if tree_in_doc && !self.in_stack_of_open_elements.get() {
+        if tree_connected && !self.in_stack_of_open_elements.get() {
             self.parse_own_css();
         }
     }
@@ -214,7 +214,7 @@ impl VirtualMethods for HTMLStyleElement {
             s.unbind_from_tree(context);
         }
 
-        if context.tree_in_doc {
+        if context.tree_connected {
             if let Some(s) = self.stylesheet.borrow_mut().take() {
                 document_from_node(self).remove_stylesheet(self.upcast(), &s)
             }
