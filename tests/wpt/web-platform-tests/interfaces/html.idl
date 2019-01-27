@@ -3,8 +3,6 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: HTML Standard (https://html.spec.whatwg.org/)
 
-// Example interface manually removed here, see https://github.com/tidoust/reffy/issues/129.
-
 [Exposed=Window,
  LegacyUnenumerableNamedProperties]
 interface HTMLAllCollection {
@@ -1524,6 +1522,7 @@ interface Window : EventTarget {
   void postMessage(any message, optional WindowPostMessageOptions options);
 };
 Window includes GlobalEventHandlers;
+Window includes WindowEventHandlers;
 
 dictionary WindowPostMessageOptions : PostMessageOptions {
   USVString targetOrigin = "/";
@@ -1817,7 +1816,7 @@ interface mixin NavigatorID {
   [Exposed=Window] readonly attribute DOMString vendorSub; // constant ""
 };
 
-partial interface NavigatorID {
+partial interface mixin NavigatorID {
   [Exposed=Window] boolean taintEnabled(); // constant false
   [Exposed=Window] readonly attribute DOMString oscpu;
 };
@@ -2450,8 +2449,7 @@ partial interface Window {
   [Replaceable, SameObject] readonly attribute External external;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
+[Exposed=Window]
 interface External {
   void AddSearchProvider();
   void IsSearchProviderInstalled();

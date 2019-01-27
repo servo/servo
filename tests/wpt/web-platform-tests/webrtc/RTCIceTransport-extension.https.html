@@ -177,6 +177,7 @@ test(t => {
 
 const candidate1 = new RTCIceCandidate({
   candidate: 'candidate:1 1 udp 2113929471 203.0.113.100 10100 typ host',
+  sdpMid: '',
 });
 
 test(() => {
@@ -191,7 +192,7 @@ test(() => {
   const iceTransport = new RTCIceTransport();
   assert_throws('OperationError',
     () => iceTransport.addRemoteCandidate(
-      new RTCIceCandidate({ candidate: 'invalid' })));
+      new RTCIceCandidate({ candidate: 'invalid', sdpMid: '' })));
   assert_array_equals(iceTransport.getRemoteCandidates(), []);
 }, 'addRemoteCandidate() throws on invalid candidate');
 
