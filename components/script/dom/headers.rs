@@ -13,8 +13,9 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use http::header::{self, HeaderMap as HyperHeaders, HeaderName, HeaderValue};
+use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
 use mime::{self, Mime};
+use net_traits;
 use std::cell::Cell;
 use std::result::Result;
 use std::str::{self, FromStr};
@@ -260,11 +261,10 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
+    // FIXME(nox): We should probably just keep the `Option<Mime>` value here.
     pub fn extract_mime_type(&self) -> Vec<u8> {
-        self.header_list
-            .borrow()
-            .get(header::CONTENT_TYPE)
-            .map_or(vec![], |v| v.as_bytes().to_owned())
+        net_traits::extract_mime_type(&self.header_list.borrow())
+            .map_or(vec![], |mime_type| mime_type.to_string().into())
     }
 
     pub fn sort_header_list(&self) -> Vec<(String, String)> {
