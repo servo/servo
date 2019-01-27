@@ -90,15 +90,15 @@ pub trait VirtualMethods {
         }
     }
 
-    /// Called when a Node is appended to a tree, where 'tree_in_doc' indicates
+    /// Called when a Node is appended to a tree, where 'tree_connected' indicates
     /// whether the tree is part of a Document.
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(tree_connected);
         }
     }
 
-    /// Called when a Node is removed from a tree, where 'tree_in_doc'
+    /// Called when a Node is removed from a tree, where 'tree_connected'
     /// indicates whether the tree is part of a Document.
     /// Implements removing steps:
     /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>

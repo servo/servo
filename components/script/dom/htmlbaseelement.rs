@@ -63,8 +63,8 @@ impl HTMLBaseElement {
 
     /// Update the cached base element in response to binding or unbinding from
     /// a tree.
-    pub fn bind_unbind(&self, tree_in_doc: bool) {
-        if !tree_in_doc {
+    pub fn bind_unbind(&self, tree_connected: bool) {
+        if !tree_connected {
             return;
         }
 
@@ -119,13 +119,13 @@ impl VirtualMethods for HTMLBaseElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        self.super_type().unwrap().bind_to_tree(tree_in_doc);
-        self.bind_unbind(tree_in_doc);
+    fn bind_to_tree(&self, tree_connected: bool) {
+        self.super_type().unwrap().bind_to_tree(tree_connected);
+        self.bind_unbind(tree_connected);
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
-        self.bind_unbind(context.tree_in_doc);
+        self.bind_unbind(context.tree_connected);
     }
 }

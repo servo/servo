@@ -175,12 +175,12 @@ impl VirtualMethods for HTMLMetaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_connected: bool) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(tree_connected);
         }
 
-        if tree_in_doc {
+        if tree_connected {
             self.process_attributes();
         }
     }
@@ -208,7 +208,7 @@ impl VirtualMethods for HTMLMetaElement {
             s.unbind_from_tree(context);
         }
 
-        if context.tree_in_doc {
+        if context.tree_connected {
             self.process_referrer_attribute();
 
             if let Some(s) = self.stylesheet.borrow_mut().take() {
