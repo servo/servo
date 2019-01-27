@@ -13,7 +13,7 @@
     ${helpers.predefined_type(
         side,
         "LengthPercentageOrAuto",
-        "computed::LengthPercentageOrAuto::Auto",
+        "computed::LengthPercentageOrAuto::auto()",
         spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
         animation_value_type="ComputedValue",
@@ -27,7 +27,7 @@
     ${helpers.predefined_type(
         "inset-%s" % side,
         "LengthPercentageOrAuto",
-        "computed::LengthPercentageOrAuto::Auto",
+        "computed::LengthPercentageOrAuto::auto()",
         spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
         alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
@@ -270,24 +270,12 @@ ${helpers.predefined_type(
             animation_value_type="MozLength",
             servo_restyle_damage="reflow",
         )}
-        ${helpers.predefined_type(
-            "max-%s" % size,
-            "MaxLength",
-            "computed::MaxLength::none()",
-            logical=logical,
-            logical_group="max-size",
-            allow_quirks=not logical,
-            spec=spec % size,
-            animation_value_type="MaxLength",
-            servo_restyle_damage="reflow",
-        )}
     % else:
         // servo versions (no keyword support)
         ${helpers.predefined_type(
             size,
-            "LengthPercentageOrAuto",
-            "computed::LengthPercentageOrAuto::Auto",
-            "parse_non_negative",
+            "NonNegativeLengthPercentageOrAuto",
+            "computed::NonNegativeLengthPercentageOrAuto::auto()",
             spec=spec % size,
             logical_group="size",
             allow_quirks=not logical,
@@ -296,9 +284,8 @@ ${helpers.predefined_type(
         )}
         ${helpers.predefined_type(
             "min-%s" % size,
-            "LengthPercentage",
-            "computed::LengthPercentage::zero()",
-            "parse_non_negative",
+            "NonNegativeLengthPercentage",
+            "computed::NonNegativeLengthPercentage::zero()",
             spec=spec % ("min-%s" % size),
             logical_group="min-size",
             animation_value_type="ComputedValue",
@@ -306,19 +293,18 @@ ${helpers.predefined_type(
             allow_quirks=not logical,
             servo_restyle_damage="reflow",
         )}
-        ${helpers.predefined_type(
-            "max-%s" % size,
-            "LengthPercentageOrNone",
-            "computed::LengthPercentageOrNone::None",
-            "parse_non_negative",
-            spec=spec % ("max-%s" % size),
-            logical_group="max-size",
-            animation_value_type="ComputedValue",
-            logical=logical,
-            allow_quirks=not logical,
-            servo_restyle_damage="reflow",
-        )}
     % endif
+    ${helpers.predefined_type(
+        "max-%s" % size,
+        "MaxLength",
+        "computed::MaxLength::none()",
+        logical=logical,
+        logical_group="max-size",
+        allow_quirks=not logical,
+        spec=spec % size,
+        animation_value_type="MaxLength",
+        servo_restyle_damage="reflow",
+    )}
 % endfor
 
 ${helpers.single_keyword(

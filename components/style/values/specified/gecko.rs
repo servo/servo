@@ -5,8 +5,8 @@
 //! Specified types for legacy Gecko-only properties.
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::{self, LengthPercentage};
 use crate::values::computed::length::CSSPixelLength;
+use crate::values::computed::{self, LengthPercentage};
 use crate::values::generics::gecko::ScrollSnapPoint as GenericScrollSnapPoint;
 use crate::values::generics::rect::Rect;
 use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercentage;
@@ -28,8 +28,8 @@ impl Parse for ScrollSnapPoint {
         }
         input.expect_function_matching("repeat")?;
         // FIXME(emilio): This won't clamp properly when animating.
-        let length =
-            input.parse_nested_block(|i| SpecifiedLengthPercentage::parse_non_negative(context, i))?;
+        let length = input
+            .parse_nested_block(|i| SpecifiedLengthPercentage::parse_non_negative(context, i))?;
         Ok(GenericScrollSnapPoint::Repeat(length))
     }
 }
@@ -49,9 +49,9 @@ fn parse_pixel_or_percent<'i, 't>(
                 _ => Err(()),
             }
         },
-        Token::Percentage { unit_value, .. } => Ok(
-            LengthPercentage::new_percent(computed::Percentage(unit_value))
-        ),
+        Token::Percentage { unit_value, .. } => Ok(LengthPercentage::new_percent(
+            computed::Percentage(unit_value),
+        )),
         _ => Err(()),
     };
     value.map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
