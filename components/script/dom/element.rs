@@ -2782,6 +2782,16 @@ impl VirtualMethods for Element {
             return;
         }
 
+        if self.is_shadow_host() {
+            let shadow_root = self.shadow_root.get().unwrap();
+            let shadow_root = shadow_root.upcast::<Node>();
+            shadow_root.set_flag(NodeFlags::IS_CONNECTED, tree_connected);
+            for node in shadow_root.children() {
+                node.set_flag(NodeFlags::IS_CONNECTED, tree_connected);
+                node.bind_to_tree(tree_connected);
+            }
+        }
+
         let doc = document_from_node(self);
         if let Some(ref value) = *self.id_attribute.borrow() {
             doc.register_named_element(self, value.clone());
@@ -2799,6 +2809,16 @@ impl VirtualMethods for Element {
 
         if !context.tree_connected {
             return;
+        }
+
+        if self.is_shadow_host() {
+            let shadow_root = self.shadow_root.get().unwrap();
+            let shadow_root = shadow_root.upcast::<Node>();
+            shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
+            for node in shadow_root.children() {
+                node.set_flag(NodeFlags::IS_CONNECTED, false);
+                node.unbind_from_tree(context);
+            }
         }
 
         let doc = document_from_node(self);
