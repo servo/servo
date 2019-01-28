@@ -640,6 +640,10 @@ impl Node {
         parent.ancestors().any(|ancestor| &*ancestor == self)
     }
 
+    fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
+        node.shadow_including_inclusive_ancestors().any(|ancestor| &*ancestor == self)
+    }
+
     pub fn following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetNextSibling(),
@@ -905,6 +909,20 @@ impl Node {
         }
     }
 
+    /// https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor
+    pub fn shadow_including_inclusive_ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> {
+        SimpleNodeIterator {
+            current: Some(DomRoot::from_ref(self)),
+            next_node: |n| {
+                if let Some(shadow_root) = n.downcast::<ShadowRoot>() {
+                    Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()))
+                } else {
+                    n.GetParentNode()
+                }
+            },
+        }
+    }
+
     pub fn owner_doc(&self) -> DomRoot<Document> {
         self.owner_doc.get().unwrap()
     }
@@ -1085,6 +1103,19 @@ impl Node {
             node.get_cssom_stylesheet()
         } else {
             None
+        }
+    }
+
+    /// https://dom.spec.whatwg.org/#retarget
+    pub fn retarget(&self, a: &Node, b: &Node) -> DomRoot<Node> {
+        let mut a = DomRoot::from_ref(&*a);
+        loop {
+            let a_root = a.GetRootNode(&GetRootNodeOptions::empty());
+            if !a_root.is::<ShadowRoot>() || a_root.is_shadow_including_inclusive_ancestor_of(b) {
+                return DomRoot::from_ref(&a);
+            }
+
+            a = DomRoot::from_ref(a_root.downcast::<ShadowRoot>().unwrap().Host().upcast::<Node>());
         }
     }
 }
