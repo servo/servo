@@ -36,6 +36,7 @@ public class ServoSurface {
     private Surface mASurface;
     private int mWidth;
     private int mHeight;
+    private long mVRExternalContext;
     private Servo mServo;
     private Client mClient = null;
     private String mServoArgs;
@@ -62,6 +63,10 @@ public class ServoSurface {
 
     public void setActivity(Activity activity) {
         mActivity = activity;
+    }
+
+    public void setVRExternalContext(long context) {
+        mVRExternalContext = context;
     }
 
     public void runLoop() {
@@ -253,6 +258,7 @@ public class ServoSurface {
               options.logStr = mServoLog;
               options.enableLogs = true;
               options.enableSubpixelTextAntialiasing = false;
+              options.VRExternalContext = mVRExternalContext;
 
               mServo = new Servo(options, this, mSurface, mClient, mActivity);
             });

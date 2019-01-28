@@ -66,7 +66,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         // debug!() will only show in a debug build. Use info!() if logs
         // should show up in adb logcat with a release build.
         let filters = [
-            "simpleservo",
+            "servo",
+            "simpleservo::api",
+            "simpleservo::jniapi",
             "simpleservo::gl_glue::egl",
             // Show JS errors by default.
             "script::dom::bindings::error",
@@ -686,6 +688,9 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         get_non_null_field(env, opts, "enableSubpixelTextAntialiasing", "Z")?
             .z()
             .map_err(|_| "enableSubpixelTextAntialiasing not a boolean")?;
+    let vr_pointer = get_non_null_field(env, opts, "VRExternalContext", "J")?
+        .j()
+        .map_err(|_| "height not an int")? as *mut c_void;
     let opts = InitOptions {
         args,
         url,
@@ -693,6 +698,11 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         height,
         density,
         enable_subpixel_text_antialiasing,
+        vr_pointer: if vr_pointer.is_null() {
+            None
+        } else {
+            Some(vr_pointer)
+        },
     };
     Ok((opts, log, log_str))
 }
