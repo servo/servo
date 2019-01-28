@@ -599,7 +599,7 @@ pub fn follow_hyperlink(
     hyperlink_suffix: Option<String>,
     referrer_policy: Option<ReferrerPolicy>,
 ) {
-    // Step 1: If subject cannot navigate, then return.
+    // Step 1.
     if subject.cannot_navigate() {
         return;
     }
