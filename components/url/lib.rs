@@ -174,7 +174,7 @@ impl fmt::Debug for ServoUrl {
         if self.0.as_str().len() > 40 {
             let hasher = DefaultHasher::new();
             let truncated: String = self.0.as_str().chars().take(40).collect();
-            let result = format!("{}... ({:x})", truncated, hasher.finish().to_string());
+            let result = format!("{}... ({:x})", truncated, hasher.finish());
             return result.fmt(formatter);
         }
         self.0.fmt(formatter)
