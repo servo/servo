@@ -16,7 +16,7 @@ extern crate serde;
 pub mod print_tree;
 
 use range::RangeIndex;
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -75,7 +75,7 @@ pub enum FragmentType {
 /// The next ID that will be used for a special scroll root id.
 ///
 /// A special scroll root is a scroll root that is created for generated content.
-static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicUsize = AtomicUsize::new(0);
 
 /// If none of the bits outside this mask are set, the scroll root is a special scroll root.
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.

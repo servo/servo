@@ -144,12 +144,12 @@ mod synchronized_heartbeat {
     use heartbeats_simple::HeartbeatPowContext as HeartbeatContext;
     use profile_traits::time::ProfilerCategory;
     use std::collections::HashMap;
-    use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     static mut HBS: Option<*mut HashMap<ProfilerCategory, Heartbeat>> = None;
 
     // unfortunately can't encompass the actual hashmap in a Mutex (Heartbeat isn't Send/Sync), so we'll use a spinlock
-    static HBS_SPINLOCK: AtomicBool = ATOMIC_BOOL_INIT;
+    static HBS_SPINLOCK: AtomicBool = AtomicBool::new(false);
 
     pub fn lock_and_work<F, R>(work: F) -> R
     where

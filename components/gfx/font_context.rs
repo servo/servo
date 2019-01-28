@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 
@@ -26,7 +26,7 @@ static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
 /// An epoch for the font context cache. The cache is flushed if the current epoch does not match
 /// this one.
-static FONT_CACHE_EPOCH: AtomicUsize = ATOMIC_USIZE_INIT;
+static FONT_CACHE_EPOCH: AtomicUsize = AtomicUsize::new(0);
 
 pub trait FontSource {
     fn get_font_instance(

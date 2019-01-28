@@ -13,12 +13,12 @@ use std::cell::RefCell;
 use std::fs::File;
 use std::io::Write;
 #[cfg(debug_assertions)]
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 
 #[cfg(debug_assertions)]
-static DEBUG_ID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+static DEBUG_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub struct Scope;
 
