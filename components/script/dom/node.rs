@@ -551,7 +551,7 @@ impl Node {
     pub fn note_dirty_descendants(&self) {
         debug_assert!(self.is_connected());
 
-        for ancestor in self.inclusive_ancestors() {
+        for ancestor in self.shadow_including_inclusive_ancestors() {
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
                 return;
             }
