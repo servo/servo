@@ -24,10 +24,6 @@ enum NFCRecordType {
   "opaque"
 };
 
-partial interface Navigator {
-  [SecureContext, SameObject] readonly attribute NFC nfc;
-};
-
 typedef (DOMString or ArrayBuffer or NFCMessage) NFCMessageSource;
 
 [Constructor(), SecureContext, Exposed=Window]
@@ -35,12 +31,32 @@ interface NFCWriter {
   Promise<void> push(NFCMessageSource message, optional NFCPushOptions options);
 };
 
-[SecureContext]
-interface NFC {
-  Promise<void> watch(MessageCallback callback, optional NFCWatchOptions options);
+[Constructor(optional NFCReaderOptions options), SecureContext, Exposed=Window]
+interface NFCReader : EventTarget {
+  attribute EventHandler onreading;
+  attribute EventHandler onerror;
+
+  void start();
+  void stop();
 };
 
-callback MessageCallback = void (NFCMessage message);
+[Constructor(DOMString type, NFCReadingEventInit readingEventInitDict), SecureContext, Exposed=Window]
+interface NFCReadingEvent : Event {
+  readonly attribute NFCMessage message;
+};
+
+dictionary NFCReadingEventInit : EventInit {
+  required NFCMessage message;
+};
+
+[Constructor(DOMString type, NFCErrorEventInit errorEventInitDict), SecureContext, Exposed=Window]
+interface NFCErrorEvent : Event {
+  readonly attribute DOMException error;
+};
+
+dictionary NFCErrorEventInit : EventInit {
+  required DOMException error;
+};
 
 dictionary NFCPushOptions {
   NFCPushTarget target = "any";
@@ -55,15 +71,14 @@ enum NFCPushTarget {
   "any"
 };
 
-dictionary NFCWatchOptions {
+dictionary NFCReaderOptions {
   USVString url = "";
   NFCRecordType recordType;
   USVString mediaType = "";
-  NFCWatchMode mode = "web-nfc-only";
-  AbortSignal? signal;
+  NFCAccept accept = "web-nfc-only";
 };
 
-enum NFCWatchMode {
+enum NFCAccept {
   "web-nfc-only",
   "any"
 };
