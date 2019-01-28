@@ -13,7 +13,7 @@ interface MediaDevices : EventTarget {
 
 partial interface Navigator {
     // [SameObject, SecureContext]
-    // readonly        attribute MediaDevices mediaDevices;
+    readonly        attribute MediaDevices mediaDevices;
 };
 
 partial interface MediaDevices {
