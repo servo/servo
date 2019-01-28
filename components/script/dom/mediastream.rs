@@ -3,30 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding;
-use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_media::webrtc::MediaStream as BackendMediaStream;
 
 #[dom_struct]
 pub struct MediaStream {
     eventtarget: EventTarget,
+    #[ignore_malloc_size_of = "defined in servo-media"]
+    tracks: Vec<Box<BackendMediaStream>>,
 }
 
 impl MediaStream {
-    pub fn new_inherited() -> MediaStream {
+    pub fn new_inherited(tracks: Vec<Box<BackendMediaStream>>) -> MediaStream {
         MediaStream {
             eventtarget: EventTarget::new_inherited(),
+            tracks,
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<MediaStream> {
+    pub fn new(global: &GlobalScope, tracks: Vec<Box<BackendMediaStream>>) -> DomRoot<MediaStream> {
         reflect_dom_object(
-            Box::new(MediaStream::new_inherited()),
+            Box::new(MediaStream::new_inherited(tracks)),
             global,
             MediaStreamBinding::Wrap,
         )

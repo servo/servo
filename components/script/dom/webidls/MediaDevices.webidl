@@ -18,7 +18,7 @@ partial interface Navigator {
 
 partial interface MediaDevices {
     // MediaTrackSupportedConstraints getSupportedConstraints();
-    // Promise<MediaStream> getUserMedia(optional MediaStreamConstraints constraints);
+    Promise<MediaStream> getUserMedia(optional MediaStreamConstraints constraints);
 };
 
 
