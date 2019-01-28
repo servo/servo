@@ -279,6 +279,7 @@ impl Node {
 
         let parent_in_doc = self.is_in_doc();
         let parent_in_shadow_tree = self.is_in_shadow_tree();
+        let parent_is_connected = self.is_connected();
         for node in new_child.traverse_preorder() {
             if parent_in_shadow_tree {
                 if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
@@ -287,11 +288,12 @@ impl Node {
                     node.set_owner_shadow_root(&*self.owner_shadow_root());
                 }
             }
-            let is_connected = if let Some(element) = node.downcast::<Element>() {
-                element.is_connected()
-            } else {
-                false
-            };
+            let mut is_connected = parent_is_connected;
+            if !is_connected {
+                if let Some(element) = node.downcast::<Element>() {
+                    is_connected = element.is_connected();
+                }
+            }
             node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, is_connected);
