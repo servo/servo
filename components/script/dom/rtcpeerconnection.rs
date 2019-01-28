@@ -22,6 +22,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::mediastream::MediaStream;
 use crate::dom::promise::Promise;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
@@ -389,6 +390,15 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                     );
             }).into());
         p
+    }
+
+    // https://w3c.github.io/webrtc-pc/#legacy-interface-extensions
+    fn AddStream(&self, stream: &MediaStream) {
+        let mut tracks = stream.get_tracks();
+
+        for track in tracks.drain(..) {
+            self.controller.borrow().as_ref().unwrap().add_stream(track);
+        }
     }
 }
 

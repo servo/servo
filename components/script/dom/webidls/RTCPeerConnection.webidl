@@ -34,6 +34,9 @@ interface RTCPeerConnection : EventTarget {
     //          attribute EventHandler           oniceconnectionstatechange;
     //          attribute EventHandler           onicegatheringstatechange;
     //          attribute EventHandler           onconnectionstatechange;
+
+    // removed from spec, but still shipped by browsers
+    void addStream (MediaStream stream);
 };
 
 dictionary RTCConfiguration {
