@@ -18,7 +18,7 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
-use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{RwLock, RwLockReadGuard};
 use url::{self, Url};
 
@@ -490,7 +490,7 @@ fn args_fail(msg: &str) -> ! {
     process::exit(1)
 }
 
-static MULTIPROCESS: AtomicBool = ATOMIC_BOOL_INIT;
+static MULTIPROCESS: AtomicBool = AtomicBool::new(false);
 
 #[inline]
 pub fn multiprocess() -> bool {
