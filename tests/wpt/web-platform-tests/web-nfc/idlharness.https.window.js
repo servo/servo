@@ -7,7 +7,7 @@
 
 idl_test(
   ['web-nfc'],
-  ['html'],
+  ['html', 'dom'],
   idl_array => {
     idl_array.add_objects({
       Navigator: ['navigator'],
