@@ -389,6 +389,7 @@ pub mod imagedata;
 pub mod inputevent;
 pub mod keyboardevent;
 pub mod location;
+pub mod mediadevices;
 pub mod mediaerror;
 pub mod medialist;
 pub mod mediaquerylist;
