@@ -643,7 +643,8 @@ impl Node {
     }
 
     fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
-        node.shadow_including_inclusive_ancestors().any(|ancestor| &*ancestor == self)
+        node.shadow_including_inclusive_ancestors()
+            .any(|ancestor| &*ancestor == self)
     }
 
     pub fn following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
@@ -1117,7 +1118,13 @@ impl Node {
                 return DomRoot::from_ref(&a);
             }
 
-            a = DomRoot::from_ref(a_root.downcast::<ShadowRoot>().unwrap().Host().upcast::<Node>());
+            a = DomRoot::from_ref(
+                a_root
+                    .downcast::<ShadowRoot>()
+                    .unwrap()
+                    .Host()
+                    .upcast::<Node>(),
+            );
         }
     }
 }
