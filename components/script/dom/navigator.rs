@@ -167,6 +167,7 @@ impl NavigatorMethods for Navigator {
 
     /// https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
-        self.mediadevices.or_init(|| MediaDevices::new(&self.global()))
+        self.mediadevices
+            .or_init(|| MediaDevices::new(&self.global()))
     }
 }
