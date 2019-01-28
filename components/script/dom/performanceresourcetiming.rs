@@ -116,7 +116,7 @@ impl PerformanceResourceTiming {
             initiator_type: initiator_type,
             next_hop: next_hop,
             worker_start: 0.,
-            redirect_start: 0.,
+            redirect_start: resource_timing.redirect_start as f64,
             redirect_end: 0.,
             fetch_start: 0.,
             domain_lookup_start: 0.,
