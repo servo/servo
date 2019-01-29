@@ -22,7 +22,7 @@ interface RTCIceCandidate {
     // readonly attribute DOMString?              relatedAddress;
     // readonly attribute unsigned short?         relatedPort;
     readonly attribute DOMString?              usernameFragment;
-    // RTCIceCandidateInit toJSON();
+    RTCIceCandidateInit toJSON();
 };
 
 dictionary RTCIceCandidateInit {

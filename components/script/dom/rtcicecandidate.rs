@@ -98,4 +98,14 @@ impl RTCIceCandidateMethods for RTCIceCandidate {
     fn GetUsernameFragment(&self) -> Option<DOMString> {
         self.username_fragment.clone()
     }
+
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-tojson
+    fn ToJSON(&self) -> RTCIceCandidateInit {
+        RTCIceCandidateInit {
+            candidate: self.candidate.clone(),
+            sdpMid: self.sdp_m_id.clone(),
+            sdpMLineIndex: self.sdp_m_line_index.clone(),
+            usernameFragment: self.username_fragment.clone(),
+        }
+    }
 }
