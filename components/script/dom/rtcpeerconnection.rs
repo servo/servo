@@ -7,11 +7,12 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandi
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
-    RTCAnswerOptions, RTCConfiguration, RTCOfferOptions,
+    RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCOfferOptions,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
 };
+use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -35,7 +36,7 @@ use dom_struct::dom_struct;
 
 use servo_media::webrtc::MediaStream as BackendMediaStream;
 use servo_media::webrtc::{
-    IceCandidate, SdpType, SessionDescription, WebRtcController, WebRtcSignaller,
+    BundlePolicy, IceCandidate, SdpType, SessionDescription, WebRtcController, WebRtcSignaller,
 };
 use servo_media::ServoMedia;
 
@@ -109,7 +110,7 @@ impl RTCPeerConnection {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<RTCPeerConnection> {
+    pub fn new(global: &GlobalScope, config: &RTCConfiguration) -> DomRoot<RTCPeerConnection> {
         let this = reflect_dom_object(
             Box::new(RTCPeerConnection::new_inherited()),
             global,
@@ -117,14 +118,34 @@ impl RTCPeerConnection {
         );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
+        if let Some(ref servers) = config.iceServers {
+            if let Some(ref server) = servers.get(0) {
+                let server = match server.urls {
+                    StringOrStringSequence::String(ref s) => Some(s.clone()),
+                    StringOrStringSequence::StringSequence(ref s) => s.get(0).cloned(),
+                };
+                if let Some(server) = server {
+                    let policy = match config.bundlePolicy {
+                        RTCBundlePolicy::Balanced => BundlePolicy::Balanced,
+                        RTCBundlePolicy::Max_compat => BundlePolicy::MaxCompat,
+                        RTCBundlePolicy::Max_bundle => BundlePolicy::MaxBundle,
+                    };
+                    this.controller
+                        .borrow()
+                        .as_ref()
+                        .unwrap()
+                        .configure(server.to_string(), policy);
+                }
+            }
+        }
         this
     }
 
     pub fn Constructor(
         window: &Window,
-        _config: &RTCConfiguration,
+        config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(&window.global()))
+        Ok(RTCPeerConnection::new(&window.global(), config))
     }
 
     fn make_signaller(&self) -> Box<WebRtcSignaller> {
@@ -159,9 +180,7 @@ impl RTCPeerConnection {
             None,
             true,
         );
-        event
-            .upcast::<Event>()
-            .fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast());
     }
 
     fn on_negotiation_needed(&self) {
@@ -174,9 +193,7 @@ impl RTCPeerConnection {
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
         );
-        event
-            .upcast::<Event>()
-            .fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast());
     }
 
     fn create_offer(&self) {
