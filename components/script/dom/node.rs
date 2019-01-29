@@ -108,6 +108,9 @@ pub struct Node {
     /// The parent of this node.
     parent_node: MutNullableDom<Node>,
 
+    /// The parent of this node, ignoring shadow roots.
+    composed_parent_node: MutNullableDom<Node>,
+
     /// The first child of this node.
     first_child: MutNullableDom<Node>,
 
@@ -240,6 +243,7 @@ impl Node {
     /// Fails unless `new_child` is disconnected from the tree.
     fn add_child(&self, new_child: &Node, before: Option<&Node>) {
         assert!(new_child.parent_node.get().is_none());
+        assert!(new_child.composed_parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
         match before {
@@ -275,6 +279,11 @@ impl Node {
         }
 
         new_child.parent_node.set(Some(self));
+        if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
+            new_child.composed_parent_node.set(Some(shadow_root.Host().upcast::<Node>()));
+        } else {
+            new_child.composed_parent_node.set(Some(self));
+        }
         self.children_count.set(self.children_count.get() + 1);
 
         let parent_in_doc = self.is_in_doc();
@@ -341,6 +350,7 @@ impl Node {
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
         child.parent_node.set(None);
+        child.composed_parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
         for node in child.traverse_preorder() {
@@ -599,7 +609,7 @@ impl Node {
 
         match self.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => self
-                .parent_node
+                .composed_parent_node
                 .get()
                 .unwrap()
                 .downcast::<Element>()
@@ -1581,6 +1591,7 @@ impl Node {
             eventtarget: EventTarget::new_inherited(),
 
             parent_node: Default::default(),
+            composed_parent_node: Default::default(),
             first_child: Default::default(),
             last_child: Default::default(),
             next_sibling: Default::default(),
