@@ -9,7 +9,7 @@
 interface RTCSessionDescription {
     readonly attribute RTCSdpType type;
     readonly attribute DOMString  sdp;
-    // [Default] object toJSON();
+    [Default] object toJSON();
 };
 
 dictionary RTCSessionDescriptionInit {
