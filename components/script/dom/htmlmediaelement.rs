@@ -71,6 +71,8 @@ use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
 use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
 use webrender_api::{RenderApiSender, Transaction};
+use net_traits::request::RequestMode;
+use net_traits::request::CorsSettings;
 
 pub struct MediaFrameRenderer {
     api: RenderApi,
@@ -159,6 +161,8 @@ pub struct HTMLMediaElement {
     src_object: MutNullableDom<Blob>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-currentsrc>
     current_src: DomRefCell<String>,
+    /// <https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin>
+    cross_origin: DomRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#fire-loadeddata>
@@ -242,6 +246,7 @@ impl HTMLMediaElement {
             ready_state: Cell::new(ReadyState::HaveNothing),
             src_object: Default::default(),
             current_src: DomRefCell::new("".to_owned()),
+            cross_origin: DomRefCell::new("".to_owned()),
             generation_id: Cell::new(0),
             fired_loadeddata_event: Cell::new(false),
             error: Default::default(),
@@ -282,6 +287,14 @@ impl HTMLMediaElement {
             )) => media_type_id,
             _ => unreachable!(),
         }
+    }
+
+    fn cors_settings(&self) -> Option<CorsSettings> {
+        return match self.CrossOrigin().as_ref() {
+            "anonymous" => Some(CorsSettings::Anonymous),
+            "use-credentials" => Some(CorsSettings::UseCredentials),
+            _ => None
+        };
     }
 
     fn play_media(&self) {
@@ -645,7 +658,7 @@ impl HTMLMediaElement {
             return;
         }
 
-        // FIXME(nox): Handle CORS setting from crossorigin attribute.
+        let cors_settings = self.cors_settings();
         let document = document_from_node(self);
         let destination = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
@@ -661,7 +674,14 @@ impl HTMLMediaElement {
             url: self.resource_url.borrow().as_ref().unwrap().clone(),
             headers,
             destination,
-            credentials_mode: CredentialsMode::Include,
+            mode: match cors_settings {
+                Some(_) => RequestMode::CorsMode,
+                None => RequestMode::NoCors
+            },
+            credentials_mode: match cors_settings {
+                Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+                _ => CredentialsMode::Include
+            },
             use_url_credentials: true,
             origin: document.origin().immutable().clone(),
             pipeline_id: Some(self.global().pipeline_id()),
@@ -1415,16 +1435,6 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         self.media_element_load_algorithm();
     }
 
-    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
-    fn GetCrossOrigin(&self) {
-        self.cross_origin.get();
-    }
-
-    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
-    fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        self.cross_origin.set(value);
-    }
-
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
     // Missing value default is user-agent defined.
     make_enumerated_getter!(Preload, "preload", "", "none" | "metadata" | "auto");
@@ -1435,6 +1445,13 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn CurrentSrc(&self) -> USVString {
         USVString(self.current_src.borrow().clone())
     }
+
+    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
+    fn CrossOrigin(&self) -> DOMString {
+        DOMString::from_string(self.cross_origin.borrow().clone())
+    }
+    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
+    make_setter!(SetCrossOrigin, "crossorigin");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-load
     fn Load(&self) {
