@@ -87,6 +87,7 @@ use crate::dom::progressevent::ProgressEvent;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::servoparser::ServoParser;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::stylesheetlist::StyleSheetList;
 use crate::dom::text::Text;
@@ -3623,7 +3624,7 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-importnode
     fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<DomRoot<Node>> {
         // Step 1.
-        if node.is::<Document>() {
+        if node.is::<Document>() || node.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
         }
 
@@ -3645,9 +3646,14 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        Node::adopt(node, self);
+        if node.is::<ShadowRoot>() {
+            return Err(Error::HierarchyRequest);
+        }
 
         // Step 3.
+        Node::adopt(node, self);
+
+        // Step 4.
         Ok(DomRoot::from_ref(node))
     }
 
