@@ -11,7 +11,6 @@ use crate::values::CSSFloat;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use std::iter::{Cloned, Peekable};
-use std::ops::AddAssign;
 use std::slice;
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -491,6 +490,7 @@ impl IsAbsolute {
 
 /// The path coord type.
 #[derive(
+    AddAssign,
     Animate,
     Clone,
     ComputeSquaredDistance,
@@ -510,14 +510,6 @@ impl CoordPair {
     #[inline]
     pub fn new(x: CSSFloat, y: CSSFloat) -> Self {
         CoordPair(x, y)
-    }
-}
-
-impl AddAssign for CoordPair {
-    #[inline]
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-        self.1 += other.1;
     }
 }
 

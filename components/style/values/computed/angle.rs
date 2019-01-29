@@ -9,13 +9,12 @@ use crate::values::CSSFloat;
 use num_traits::Zero;
 use std::f64::consts::PI;
 use std::fmt::{self, Write};
-use std::ops::Add;
 use std::{f32, f64};
 use style_traits::{CssWriter, ToCss};
 
 /// A computed angle in degrees.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToAnimatedZero)]
+#[derive(Add, Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToAnimatedZero)]
 pub struct Angle(CSSFloat);
 
 impl ToCss for Angle {
@@ -63,15 +62,6 @@ impl Angle {
     #[inline]
     pub fn degrees(&self) -> CSSFloat {
         self.0
-    }
-}
-
-impl Add for Angle {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Angle(self.0 + rhs.0)
     }
 }
 
