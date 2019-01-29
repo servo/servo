@@ -79,22 +79,22 @@ impl RTCIceCandidate {
 }
 
 impl RTCIceCandidateMethods for RTCIceCandidate {
-    /// https://www.w3.org/TR/webrtc/#dom-rtcicecandidate-candidate
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-candidate
     fn Candidate(&self) -> DOMString {
         self.candidate.clone()
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcicecandidate-sdpmid
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-sdpmid
     fn GetSdpMid(&self) -> Option<DOMString> {
         self.sdp_m_id.clone()
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcicecandidate-sdpmlineindex
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-sdpmlineindex
     fn GetSdpMLineIndex(&self) -> Option<u16> {
         self.sdp_m_line_index.clone()
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcicecandidate-usernamefragment
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-usernamefragment
     fn GetUsernameFragment(&self) -> Option<DOMString> {
         self.username_fragment.clone()
     }

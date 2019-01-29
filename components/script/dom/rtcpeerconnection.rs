@@ -264,17 +264,17 @@ impl RTCPeerConnection {
 }
 
 impl RTCPeerConnectionMethods for RTCPeerConnection {
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-icecandidate
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onnegotiationneeded
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-onnegotiationneeded
     event_handler!(
         negotiationneeded,
         GetOnnegotiationneeded,
         SetOnnegotiationneeded
     );
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addicecandidate
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate
     fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
@@ -293,7 +293,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         }
 
         // XXXManishearth this should be enqueued
-        // https://www.w3.org/TR/webrtc/#enqueue-an-operation
+        // https://w3c.github.io/webrtc-pc/#enqueue-an-operation
 
         self.controller
             .borrow_mut()
@@ -309,7 +309,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         p
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-createoffer
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer
     fn CreateOffer(&self, _options: &RTCOfferOptions) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         if self.closed.get() {
@@ -321,7 +321,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         p
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-createoffer
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer
     fn CreateAnswer(&self, _options: &RTCAnswerOptions) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         if self.closed.get() {
@@ -333,17 +333,17 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         p
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-localdescription
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-localdescription
     fn GetLocalDescription(&self) -> Option<DomRoot<RTCSessionDescription>> {
         self.local_description.get()
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-remotedescription
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-remotedescription
     fn GetRemoteDescription(&self) -> Option<DomRoot<RTCSessionDescription>> {
         self.remote_description.get()
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setlocaldescription
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setlocaldescription
     fn SetLocalDescription(&self, desc: &RTCSessionDescriptionInit) -> Rc<Promise> {
         // XXXManishearth validate the current state
         let p = Promise::new(&self.global());
@@ -376,7 +376,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         p
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setremotedescription
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setremotedescription
     fn SetRemoteDescription(&self, desc: &RTCSessionDescriptionInit) -> Rc<Promise> {
         // XXXManishearth validate the current state
         let p = Promise::new(&self.global());
