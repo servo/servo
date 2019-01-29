@@ -123,3 +123,32 @@ class WptreportFormatter(BaseFormatter):
             "min": data["min_expected"],
             "max": data["max_expected"]
         }
+
+    def lsan_leak(self, data):
+        if "lsan_leaks" not in self.results:
+            self.results["lsan_leaks"] = []
+        lsan_leaks = self.results["lsan_leaks"]
+        lsan_leaks.append({"frames": data["frames"],
+                           "scope": data["scope"],
+                           "allowed_match": data.get("allowed_match")})
+
+    def find_or_create_mozleak(self, data):
+        if "mozleak" not in self.results:
+            self.results["mozleak"] = {}
+        scope = data["scope"]
+        if scope not in self.results["mozleak"]:
+            self.results["mozleak"][scope] = {"objects": [], "total": []}
+        return self.results["mozleak"][scope]
+
+    def mozleak_object(self, data):
+        scope_data = self.find_or_create_mozleak(data)
+        scope_data["objects"].append({"process": data["process"],
+                                      "name": data["name"],
+                                      "allowed": data.get("allowed", False),
+                                      "bytes": data["bytes"]})
+
+    def mozleak_total(self, data):
+        scope_data = self.find_or_create_mozleak(data)
+        scope_data["total"].append({"bytes": data["bytes"],
+                                    "threshold": data.get("threshold", 0),
+                                    "process": data["process"]})

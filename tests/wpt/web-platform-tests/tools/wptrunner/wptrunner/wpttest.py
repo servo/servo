@@ -243,6 +243,26 @@ class Test(object):
         return None
 
     @property
+    def mozleak_allowed(self):
+        mozleak_allowed = set()
+        for meta in self.itermeta():
+            mozleak_allowed |= meta.leak_allowed
+            if atom_reset in mozleak_allowed:
+                mozleak_allowed.remove(atom_reset)
+                break
+        return mozleak_allowed
+
+    @property
+    def mozleak_threshold(self):
+        rv = {}
+        for meta in self.itermeta(None):
+            threshold = meta.leak_threshold
+            for key, value in threshold.iteritems():
+                if key not in rv:
+                    rv[key] = value
+        return rv
+
+    @property
     def tags(self):
         tags = set()
         for meta in self.itermeta():

@@ -9,8 +9,8 @@
 <script nonce="abc">
     window.addEventListener('load', t.step_func(function() {
         verifyPreloadAndRTSupport();
-        verifyNumberOfDownloads("resources/dummy.js?from-header&without-nonce", 0);
-        verifyNumberOfDownloads("resources/dummy.js?from-header&with-nonce", 1);
+        verifyNumberOfResourceTimingEntries("resources/dummy.js?from-header&without-nonce", 0);
+        verifyNumberOfResourceTimingEntries("resources/dummy.js?from-header&with-nonce", 1);
         t.done();
     }));
 </script>
