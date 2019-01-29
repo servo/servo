@@ -9,7 +9,6 @@ use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentBinding::DocumentFragmentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -1202,13 +1201,7 @@ impl Element {
     }
 
     pub fn root_element(&self) -> DomRoot<Element> {
-        if self.node.is_in_shadow_tree() {
-            self.upcast::<Node>()
-                .owner_shadow_root()
-                .upcast::<DocumentFragment>()
-                .GetFirstElementChild()
-                .unwrap()
-        } else if self.node.is_in_doc() {
+        if self.node.is_in_doc() {
             self.upcast::<Node>()
                 .owner_doc()
                 .GetDocumentElement()
