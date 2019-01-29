@@ -38,7 +38,17 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
 )]
 #[repr(u8)]
 /// A computed value for the `float` property.
@@ -97,7 +107,17 @@ impl ToComputedValue for SpecifiedFloat {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
 )]
 /// A computed value for the `clear` property.
 pub enum Clear {
