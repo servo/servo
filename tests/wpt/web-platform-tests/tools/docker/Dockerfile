@@ -66,9 +66,13 @@ WORKDIR /home/test
 RUN sudo echo ""
 
 RUN mkdir -p /home/test/artifacts
+RUN mkdir -p /home/test/bin
+
+ENV PATH="/home/test/bin:${PATH}"
 
 WORKDIR /home/test/
 
 COPY .bashrc /home/test/.bashrc
 
 COPY start.sh /home/test/start.sh
+COPY retry.py /home/test/bin/retry

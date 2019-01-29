@@ -595,6 +595,7 @@ class ExecuteAsyncScriptRun(object):
             if self.protocol.is_alive:
                 self.result = False, ("INTERNAL-ERROR", None)
             else:
+                self.logger.info("Browser not responding, setting status to CRASH")
                 self.result = False, ("CRASH", None)
         return self.result
 
@@ -608,15 +609,21 @@ class ExecuteAsyncScriptRun(object):
             # This can happen on a crash
             # Also, should check after the test if the firefox process is still running
             # and otherwise ignore any other result and set it to crash
+            self.logger.info("IOError on command, setting status to CRASH")
+            self.result = False, ("CRASH", None)
+        except errors.NoSuchWindowException:
+            self.logger.info("NoSuchWindowException on command, setting status to CRASH")
             self.result = False, ("CRASH", None)
         except Exception as e:
-            message = getattr(e, "message", "")
-            if message:
-                message += "\n"
-            message += traceback.format_exc(e)
-            self.logger.warning(message)
-            self.result = False, ("INTERNAL-ERROR", None)
-
+            if isinstance(e, errors.JavascriptException) and e.message.startswith("Document was unloaded"):
+                message = "Document unloaded; maybe test navigated the top-level-browsing context?"
+            else:
+                message = getattr(e, "message", "")
+                if message:
+                    message += "\n"
+                message += traceback.format_exc(e)
+                self.logger.warning(traceback.format_exc())
+            self.result = False, ("INTERNAL-ERROR", message)
         finally:
             self.result_flag.set()
 
