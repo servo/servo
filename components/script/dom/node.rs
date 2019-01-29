@@ -280,7 +280,9 @@ impl Node {
 
         new_child.parent_node.set(Some(self));
         if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
-            new_child.composed_parent_node.set(Some(shadow_root.Host().upcast::<Node>()));
+            new_child
+                .composed_parent_node
+                .set(Some(shadow_root.Host().upcast::<Node>()));
         } else {
             new_child.composed_parent_node.set(Some(self));
         }
@@ -2518,8 +2520,11 @@ impl NodeMethods for Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-clonenode
-    fn CloneNode(&self, deep: bool) -> DomRoot<Node> {
-        Node::clone(
+    fn CloneNode(&self, deep: bool) -> Fallible<DomRoot<Node>> {
+        if deep && self.is::<ShadowRoot>() {
+            return Err(Error::NotSupported);
+        }
+        Ok(Node::clone(
             self,
             None,
             if deep {
@@ -2527,7 +2532,7 @@ impl NodeMethods for Node {
             } else {
                 CloneChildrenFlag::DoNotCloneChildren
             },
-        )
+        ))
     }
 
     // https://dom.spec.whatwg.org/#dom-node-isequalnode

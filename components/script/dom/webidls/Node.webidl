@@ -58,7 +58,7 @@ interface Node : EventTarget {
   [CEReactions]
   void normalize();
 
-  [CEReactions]
+  [CEReactions, Throws]
   Node cloneNode(optional boolean deep = false);
   [Pure]
   boolean isEqualNode(Node? node);
