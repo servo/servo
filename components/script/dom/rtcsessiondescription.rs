@@ -15,6 +15,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{JSContext, JSObject};
+use js::jsval::UndefinedValue;
+use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct RTCSessionDescription {
@@ -65,5 +69,17 @@ impl RTCSessionDescriptionMethods for RTCSessionDescription {
     /// https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-sdp
     fn Sdp(&self) -> DOMString {
         self.sdp.clone()
+    }
+
+    #[allow(unsafe_code)]
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-tojson
+    unsafe fn ToJSON(&self, cx: *mut JSContext) -> NonNull<JSObject> {
+        let init = RTCSessionDescriptionInit {
+            type_: self.ty,
+            sdp: self.sdp.clone(),
+        };
+        rooted!(in(cx) let mut jsval = UndefinedValue());
+        init.to_jsval(cx, jsval.handle_mut());
+        NonNull::new(jsval.to_object()).unwrap()
     }
 }
