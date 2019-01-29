@@ -606,3 +606,98 @@ def test_update_wptreport_1():
 
     assert len(updated) == 1
     assert updated[0][1].get("lsan-allowed") == ["baz"]
+
+
+def test_update_leak_total_0():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, "")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 100,
+                                          "threshold": 0,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("leak-threshold") == ['default:51200']
+
+
+def test_update_leak_total_1():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, "")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 100,
+                                          "threshold": 1000,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    assert not updated
+
+
+def test_update_leak_total_2():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, """
+leak-total: 110""")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 100,
+                                          "threshold": 110,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    assert not updated
+
+
+def test_update_leak_total_3():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, """
+leak-total: 100""")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 1000,
+                                          "threshold": 100,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("leak-threshold") == ['default:51200']
+
+
+def test_update_leak_total_4():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, """
+leak-total: 110""")]
+
+    log_0 = suite_log([
+        ("lsan_leak", {"scope": "path/to/",
+                       "frames": ["foo", "bar"]}),
+        ("mozleak_total", {"scope": "path/to/",
+                           "process": "default",
+                           "bytes": 100,
+                           "threshold": 110,
+                           "objects": []})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.has_key("leak-threshold") is False

@@ -28,12 +28,10 @@ enum XREnvironmentBlendMode {
   readonly attribute XRSessionMode mode;
   readonly attribute XRPresentationContext? outputContext;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
-
-  attribute double depthNear;
-  attribute double depthFar;
-  attribute XRLayer? baseLayer;
+  readonly attribute XRRenderState renderState;
 
   // Methods
+  void updateRenderState(optional XRRenderStateInit state);
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceOptions options);
 
   FrozenArray<XRInputSource> getInputSources();
@@ -62,6 +60,18 @@ enum XRSessionMode {
 dictionary XRSessionCreationOptions {
   XRSessionMode mode = "inline";
   XRPresentationContext? outputContext = null;
+};
+
+dictionary XRRenderStateInit {
+  double depthNear;
+  double depthFar;
+  XRLayer? baseLayer;
+};
+
+[SecureContext, Exposed=Window] interface XRRenderState {
+  readonly attribute double depthNear;
+  readonly attribute double depthFar;
+  readonly attribute XRLayer? baseLayer;
 };
 
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);

@@ -56,7 +56,8 @@ def main(product, commit_range, wpt_args):
         "--no-pause",
         "--no-restart-on-unexpected",
         "--install-fonts",
-        "--no-headless"
+        "--no-headless",
+        "--verify-log-full"
     ]
     wpt_args += browser_specific_args.get(product, [])
 

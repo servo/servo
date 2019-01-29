@@ -17,7 +17,9 @@ handlersListPromise.then(({ shadowedHandlers, notShadowedHandlers }) => {
   add_completion_callback(() => {
     const log_elem = document.getElementById("log");
     const frame_elem = document.querySelector("frame");
-    frame_elem.contentDocument.body.innerHTML = log_elem.innerHTML;
+    if (log_elem) {
+      frame_elem.contentDocument.body.innerHTML = log_elem.innerHTML;
+    }
   });
 
   done();
