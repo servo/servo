@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Background Test: A background image on table cells with collapsed borders should fill the table</title>
+    <link rel="author" title="schenney" href="mailto:schenney@chromium.org">
+    <link rel="help" href="http://www.w3.org/TR/css3-background">
+    <link rel="match" href="reference/background-image-table-cells-zoomed-ref.html">
+    <style>
+      body {
+      	zoom: 121%;
+      }
+      .test-table {
+        display: table;
+        width: 600px;
+        border-collapse: collapse;
+        border-spacing: 0;
+        background-color: red;
+      }
+      .test-row {
+        padding: 0px;
+        border: 0px;
+        display: table-row;
+      }
+      .test-cell {
+        display: table-cell;
+        padding: 0px;
+        height: 50px;
+        border: 0px;
+        background: url("support/50x50-green.png");
+        background-size: 100% 100%;
+      }
+
+  </style>
+</head>
+
+<body>
+  <div class="test-table">
+    <div class="test-row">
+      <div class="test-cell"></div>
+      <div class="test-cell"></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -11,16 +11,16 @@
 <script>
     window.addEventListener("load", t.step_func(function() {
         verifyPreloadAndRTSupport();
-        verifyNumberOfDownloads('resources/square.png?1x', 1);
-        verifyNumberOfDownloads('resources/square.png?2x', 0);
-        verifyNumberOfDownloads('resources/square.png?3x', 0);
-        verifyNumberOfDownloads('resources/square.png?base', 0);
-        verifyNumberOfDownloads('resources/square.png?200', 0);
-        verifyNumberOfDownloads('resources/square.png?400', 1);
-        verifyNumberOfDownloads('resources/square.png?800', 0);
-        verifyNumberOfDownloads('resources/square.png?150', 0);
-        verifyNumberOfDownloads('resources/square.png?300', 1);
-        verifyNumberOfDownloads('resources/square.png?600', 0);
+        verifyNumberOfDownloads('resources/square.png?from-header&1x', 1);
+        verifyNumberOfDownloads('resources/square.png?from-header&2x', 0);
+        verifyNumberOfDownloads('resources/square.png?from-header&3x', 0);
+        verifyNumberOfDownloads('resources/square.png?from-header&base', 0);
+        verifyNumberOfDownloads('resources/square.png?from-header&200', 0);
+        verifyNumberOfDownloads('resources/square.png?from-header&400', 1);
+        verifyNumberOfDownloads('resources/square.png?from-header&800', 0);
+        verifyNumberOfDownloads('resources/square.png?from-header&150', 0);
+        verifyNumberOfDownloads('resources/square.png?from-header&300', 1);
+        verifyNumberOfDownloads('resources/square.png?from-header&600', 0);
         t.done();
     }));
 </script>

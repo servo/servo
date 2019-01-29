@@ -14,7 +14,7 @@ test = false
 doctest = false
 
 [dependencies]
-base64 = "0.9"
+base64 = "0.10.1"
 brotli = "3"
 bytes = "0.4"
 cookie_rs = {package = "cookie", version = "0.11"}

@@ -26,10 +26,10 @@ impl Animate for LengthPercentage {
         let length = self
             .unclamped_length()
             .animate(&other.unclamped_length(), procedure)?;
-        let percentage = animate_percentage_half(self.percentage, other.percentage)?;
-        let is_calc = self.was_calc ||
-            other.was_calc ||
-            self.percentage.is_some() != other.percentage.is_some();
+        let percentage =
+            animate_percentage_half(self.specified_percentage(), other.specified_percentage())?;
+        let is_calc =
+            self.was_calc || other.was_calc || self.has_percentage != other.has_percentage;
         Ok(Self::with_clamping_mode(
             length,
             percentage,

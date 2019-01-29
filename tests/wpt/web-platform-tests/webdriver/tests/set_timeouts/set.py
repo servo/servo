@@ -48,11 +48,6 @@ def test_script_parameter_empty_no_change(session):
     assert session.timeouts._get()["script"] == original["script"]
 
 
-def test_key_invalid(session):
-    response = set_timeouts(session, {"foo": 1000})
-    assert_error(response, "invalid argument")
-
-
 @pytest.mark.parametrize("typ", ["implicit", "pageLoad", "script"])
 @pytest.mark.parametrize("value", [0, 2.0, 2**53 - 1])
 def test_positive_integer(session, typ, value):

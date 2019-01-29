@@ -24,6 +24,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use embedder_traits::Cursor;
 use euclid::{Length, Point2D, Rect, TypedScale, TypedSize2D, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
@@ -50,7 +51,6 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style_traits::cursor::CursorKind;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webrender_api::{
@@ -775,7 +775,7 @@ pub enum ConstellationMsg {
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
-    SetCursor(CursorKind),
+    SetCursor(Cursor),
 }
 
 impl fmt::Debug for ConstellationMsg {

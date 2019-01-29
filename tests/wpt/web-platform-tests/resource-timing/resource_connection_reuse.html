@@ -41,7 +41,7 @@ function onload_test() {
         test_equals(entry.fetchStart, entry.connectStart, 'connectStart and fetchStart should be the same');
         test_equals(entry.fetchStart, entry.connectEnd, 'connectEnd and fetchStart should be the same');
         if(!window.isSecureConnection) {
-            test_equals(entry.secureConnectionStart, 0, 'secureConnectStart should be zero');
+            test_equals(entry.secureConnectionStart, 0, 'secureConnectionStart should be zero');
         }
         test_equals(entry.fetchStart, entry.domainLookupStart, 'domainLookupStart and fetchStart should be the same')
         test_equals(entry.fetchStart, entry.domainLookupEnd, 'domainLookupEnd and fetchStart should be the same')

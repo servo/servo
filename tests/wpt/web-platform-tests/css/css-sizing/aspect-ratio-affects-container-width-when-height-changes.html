@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes">
+<p>There should be a green square below, and no red.</p>
+<div id="container" style="height:200px;">
+  <div style="height:100%;" data-expected-height="100">
+    <div style="float:left; height:100%; background:red;" data-expected-width="100" data-expected-height="100">
+      <!-- The image is a 1x1 transparent one. -->
+      <img style="display:block; height:100%; background:green;" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-expected-width="100" data-expected-height="100">
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  test(()=> {
+      document.body.offsetTop;
+      document.getElementById("container").style.height = "100px";
+      checkLayout("#container");
+  }, "Changing height should affect the descendant widths, due to aspect ratio");
+</script>

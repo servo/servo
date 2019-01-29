@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import Keyword, Method, PHYSICAL_SIDES, ALL_SIDES, maybe_moz_logical_alias %>
+<% from data import Keyword, Method, ALL_CORNERS, PHYSICAL_SIDES, ALL_SIDES, maybe_moz_logical_alias %>
 
 <% data.new_style_struct("Border", inherited=False,
                    additional_methods=[Method("border_" + side + "_has_nonzero_width",
@@ -70,17 +70,27 @@ ${helpers.gecko_keyword_conversion(
 )}
 
 // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthPercentage>
-% for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
+% for corner in ALL_CORNERS:
+    <%
+        corner_name = corner[0]
+        is_logical = corner[1]
+        if is_logical:
+            prefixes = None
+        else:
+            prefixes = "webkit"
+    %>
     ${helpers.predefined_type(
-        "border-" + corner + "-radius",
+        "border-%s-radius" % corner_name,
         "BorderCornerRadius",
         "computed::BorderCornerRadius::zero()",
         "parse",
-        extra_prefixes="webkit",
-        spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
+        extra_prefixes=prefixes,
+        spec=maybe_logical_spec(corner, "radius"),
         boxed=True,
         flags="APPLIES_TO_FIRST_LETTER",
         animation_value_type="BorderCornerRadius",
+        logical_group="border-radius",
+        logical=is_logical,
     )}
 % endfor
 

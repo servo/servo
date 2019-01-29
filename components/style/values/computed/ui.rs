@@ -10,6 +10,7 @@ use crate::values::computed::Number;
 use crate::values::generics::ui as generics;
 use crate::values::{Auto, Either};
 
+pub use crate::values::specified::ui::CursorKind;
 pub use crate::values::specified::ui::{MozForceBrokenImageIcon, UserSelect};
 
 /// auto | <color>

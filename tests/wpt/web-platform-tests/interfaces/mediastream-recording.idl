@@ -18,7 +18,7 @@ interface MediaRecorder : EventTarget {
   readonly attribute unsigned long videoBitsPerSecond;
   readonly attribute unsigned long audioBitsPerSecond;
 
-  void start(optional long timeslice);
+  void start(optional unsigned long timeslice);
   void stop();
   void pause();
   void resume();

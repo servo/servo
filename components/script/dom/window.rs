@@ -509,12 +509,9 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         return Err(Error::InvalidCharacter);
     }
 
-    match base64::decode(&input) {
-        Ok(data) => Ok(DOMString::from(
-            data.iter().map(|&b| b as char).collect::<String>(),
-        )),
-        Err(..) => Err(Error::InvalidCharacter),
-    }
+    let data = base64::decode_config(&input, base64::STANDARD.decode_allow_trailing_bits(true))
+        .map_err(|_| Error::InvalidCharacter)?;
+    Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 
 impl WindowMethods for Window {

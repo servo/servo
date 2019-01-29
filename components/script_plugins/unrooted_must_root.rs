@@ -100,6 +100,10 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
 }
 
 impl LintPass for UnrootedPass {
+    fn name(&self) -> &'static str {
+        "ServoUnrootedPass"
+    }
+
     fn get_lints(&self) -> LintArray {
         lint_array!(UNROOTED_MUST_ROOT)
     }

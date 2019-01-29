@@ -127,6 +127,18 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndWidth;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end-style;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndStyle;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-color;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockColor;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-style;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStyle;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-width;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockWidth;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStart;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlock;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-color;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStartColor;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-width;
@@ -139,14 +151,18 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndWidth;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-style;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndStyle;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStart;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-color;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineColor;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-style;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStyle;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-width;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineWidth;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInline;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString content;
 
@@ -300,10 +316,14 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBlockStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-block-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBlockEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-block;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBlock;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-inline-start;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginInlineStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-inline-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginInlineEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-inline;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginInline;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBottom;
@@ -318,10 +338,14 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBlockStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-block-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBlockEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-block;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBlock;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-inline-start;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingInlineStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-inline-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingInlineEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-inline;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingInline;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString outline;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString outlineColor;
@@ -354,10 +378,14 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetBlockStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-block-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetBlockEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-block;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetBlock;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-inline-start;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetInlineStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-inline-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetInlineEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-inline;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetInline;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString height;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString minHeight;
@@ -454,4 +482,14 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationFillMode;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-delay;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationDelay;
+
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-end-end-radius;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderEndEndRadius;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-start-end-radius;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderStartEndRadius;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-start-start-radius;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderStartStartRadius;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-end-start-radius;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderEndStartRadius;
+
 };

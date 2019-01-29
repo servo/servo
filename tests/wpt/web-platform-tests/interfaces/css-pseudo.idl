@@ -6,6 +6,7 @@
 [Exposed=Window]
 interface CSSPseudoElement {
     readonly attribute CSSOMString type;
+    readonly attribute Element element;
     readonly attribute CSSStyleDeclaration style;
 };
 

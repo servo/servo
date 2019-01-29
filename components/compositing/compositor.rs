@@ -13,6 +13,7 @@ use crate::windowing::{
 use crate::CompositionPipeline;
 use crate::SendableFrameTree;
 use crossbeam_channel::Sender;
+use embedder_traits::Cursor;
 use euclid::{TypedPoint2D, TypedScale, TypedVector2D};
 use gfx_traits::Epoch;
 #[cfg(feature = "gl")]
@@ -21,6 +22,7 @@ use ipc_channel::ipc;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
+use num_traits::FromPrimitive;
 #[cfg(feature = "gl")]
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
@@ -36,7 +38,6 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
@@ -742,7 +743,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
 
-            if let Some(cursor) = CursorKind::from_u8(item.tag.1 as _).ok() {
+            if let Some(cursor) = Cursor::from_u8(item.tag.1 as _) {
                 let msg = ConstellationMsg::SetCursor(cursor);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending event to constellation failed ({:?}).", e);

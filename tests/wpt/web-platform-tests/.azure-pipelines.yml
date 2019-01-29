@@ -6,9 +6,13 @@
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/index
 #
-# In addition to this configuration file, the "Build pull requests from forks
-# of this repository" setting must also be enabled in the Azure DevOps project:
-# https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#validate-contributions-from-forks
+# In addition to this configuration file, some setup in the Azure DevOps
+# project is required:
+#  - The "Build pull requests from forks of this repository" setting must be
+#    enabled: https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#validate-contributions-from-forks
+#  - A scheduled build needs to be set up for the the epochs/daily branch.
+#  - To get results from scheduled builds into wpt.fyi, a service connection
+#    named wpt.fyi with URL https://wpt.fyi is needed.
 
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
@@ -21,7 +25,7 @@ jobs:
   steps:
   - template: tools/ci/azure/affected_tests.yml
     parameters:
-      artifactName: 'results'
+      artifactName: 'affected-tests'
 
 - job: affected_without_changes_macOS
   displayName: 'affected tests without changes (Safari Technology Preview)'
@@ -33,7 +37,7 @@ jobs:
     parameters:
       checkoutCommit: 'HEAD^1'
       affectedRange: 'HEAD@{1}'
-      artifactName: 'results-without-changes'
+      artifactName: 'affected-tests-without-changes'
 
 # The decision jobs runs `./wpt test-jobs` to determine which jobs to run,
 # and all following jobs wait for it to finish and depend on its output.
@@ -125,7 +129,7 @@ jobs:
 
 - job: all_macOS
   displayName: 'all tests (Safari Technology Preview)'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/epochs/daily')
+  condition: eq(variables['Build.Reason'], 'Schedule')
   strategy:
     parallel: 4 # chosen to make runtime ~2h
   timeoutInMinutes: 360
@@ -148,3 +152,20 @@ jobs:
     inputs:
       artifactName: 'results'
     condition: succeededOrFailed()
+
+# The InvokeRESTAPI task can only run in a server job.
+- job: all_post
+  displayName: 'all tests (wpt.fyi hook)'
+  dependsOn: all_macOS
+  pool: server
+  steps:
+  - task: InvokeRESTAPI@1
+    displayName: 'Invoke wpt.fyi hook'
+    inputs:
+      serviceConnection: wpt.fyi
+      urlSuffix: /api/checks/azure/$(Build.BuildId)
+  - task: InvokeRESTAPI@1
+    displayName: 'Invoke staging.wpt.fyi hook'
+    inputs:
+      serviceConnection: staging.wpt.fyi
+      urlSuffix: /api/checks/azure/$(Build.BuildId)

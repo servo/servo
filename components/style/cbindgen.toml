@@ -48,6 +48,7 @@ include = [
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",
   "ComputedTimingFunction",
+  "CursorKind",
   "Display",
   "DisplayMode",
   "ExtremumLength",
@@ -67,5 +68,6 @@ include = [
   "OverflowClipBox",
   "Resize",
   "Overflow",
+  "LengthPercentage",
 ]
 item_types = ["enums", "structs", "typedefs"]

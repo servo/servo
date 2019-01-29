@@ -76,6 +76,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "certutil_binary": kwargs["certutil_binary"],
             "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "e10s": kwargs["gecko_e10s"],
+            "lsan_dir": kwargs["lsan_dir"],
             "stackfix_dir": kwargs["stackfix_dir"],
             "binary_args": kwargs["binary_args"],
             "timeout_multiplier": get_timeout_multiplier(test_type,
@@ -181,7 +182,7 @@ class FirefoxBrowser(Browser):
 
     def __init__(self, logger, binary, prefs_root, test_type, extra_prefs=None, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
-                 ca_certificate_path=None, e10s=False, stackfix_dir=None,
+                 ca_certificate_path=None, e10s=False, lsan_dir=None, stackfix_dir=None,
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  stylo_threads=1, chaos_mode_flags=None, config=None, headless=None, **kwargs):
         Browser.__init__(self, logger)
@@ -210,6 +211,7 @@ class FirefoxBrowser(Browser):
             self.init_timeout = self.init_timeout * timeout_multiplier
 
         self.asan = asan
+        self.lsan_dir = lsan_dir
         self.lsan_allowed = None
         self.lsan_max_stack_depth = None
         self.leak_check = leak_check
@@ -243,7 +245,7 @@ class FirefoxBrowser(Browser):
         env = test_environment(xrePath=os.path.dirname(self.binary),
                                debugger=self.debug_info is not None,
                                log=self.logger,
-                               lsanPath=self.prefs_root)
+                               lsanPath=self.lsan_dir)
 
         env["STYLO_THREADS"] = str(self.stylo_threads)
         if self.chaos_mode_flags is not None:
