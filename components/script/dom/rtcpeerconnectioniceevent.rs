@@ -75,12 +75,12 @@ impl RTCPeerConnectionIceEvent {
 }
 
 impl RTCPeerConnectionIceEventMethods for RTCPeerConnectionIceEvent {
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnectioniceevent-candidate
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-candidate
     fn GetCandidate(&self) -> Option<DomRoot<RTCIceCandidate>> {
         self.candidate.as_ref().map(|x| DomRoot::from_ref(&**x))
     }
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnectioniceevent-url
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-url
     fn GetUrl(&self) -> Option<DOMString> {
         self.url.clone()
     }
