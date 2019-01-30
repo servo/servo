@@ -128,7 +128,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                 });
                 let fields = children.flat_map(|child| {
                     child
-                        .traverse_preorder()
+                        .traverse_preorder(/* shadow including */ false)
                         .filter(|descendant| match descendant.type_id() {
                             NodeTypeId::Element(ElementTypeId::HTMLElement(
                                 HTMLElementTypeId::HTMLButtonElement,

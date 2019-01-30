@@ -364,7 +364,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Steps 14-15
         for candidate in document
             .upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ true)
             .filter_map(DomRoot::downcast::<Element>)
         {
             let is = candidate.get_is();

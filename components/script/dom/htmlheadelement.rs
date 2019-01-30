@@ -55,7 +55,7 @@ impl HTMLHeadElement {
 
         let node = self.upcast::<Node>();
         let candidates = node
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ false)
             .filter_map(DomRoot::downcast::<Element>)
             .filter(|elem| elem.is::<HTMLMetaElement>())
             .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
