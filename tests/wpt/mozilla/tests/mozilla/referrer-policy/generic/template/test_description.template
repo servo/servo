@@ -1,5 +1,0 @@
-The referrer URL is %(referrer_url)s when a
-document served over %(source_protocol)s requires an %(target_protocol)s
-sub-resource via %(subresource)s using the %(delivery_method)s
-delivery method with %(redirection)s and when
-the target request is %(origin)s.
