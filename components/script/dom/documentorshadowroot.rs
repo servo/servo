@@ -13,7 +13,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
-use crate::dom::windowproxy::WindowProxy;
 use euclid::Point2D;
 use js::jsapi::JS_GetRuntime;
 use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
@@ -55,25 +54,13 @@ impl DocumentOrShadowRoot {
 #[must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct DocumentOrShadowRootImpl {
-    has_browsing_context: bool,
     window: Dom<Window>,
 }
 
 impl DocumentOrShadowRootImpl {
-    pub fn new(window: &Window, has_browsing_context: bool) -> Self {
+    pub fn new(window: &Window) -> Self {
         Self {
-            has_browsing_context,
             window: Dom::from_ref(window),
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#concept-document-bc>
-    #[inline]
-    pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
-        if self.has_browsing_context {
-            self.window.undiscarded_window_proxy()
-        } else {
-            None
         }
     }
 
@@ -99,13 +86,14 @@ impl DocumentOrShadowRootImpl {
         x: Finite<f64>,
         y: Finite<f64>,
         document_element: Option<DomRoot<Element>>,
+        has_browsing_context: bool,
     ) -> Option<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let viewport = self.window.window_size().initial_viewport;
 
-        if self.browsing_context().is_none() {
+        if has_browsing_context {
             return None;
         }
 
@@ -138,13 +126,14 @@ impl DocumentOrShadowRootImpl {
         x: Finite<f64>,
         y: Finite<f64>,
         document_element: Option<DomRoot<Element>>,
+        has_browsing_context: bool,
     ) -> Vec<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let viewport = self.window.window_size().initial_viewport;
 
-        if self.browsing_context().is_none() {
+        if has_browsing_context {
             return vec![];
         }
 

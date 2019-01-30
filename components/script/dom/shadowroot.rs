@@ -23,7 +23,7 @@ use dom_struct::dom_struct;
 pub struct ShadowRoot {
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRootImpl,
-    has_browsing_context: bool,
+    document: Dom<Document>,
     host: Dom<Element>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     window: Dom<Window>,
@@ -32,18 +32,14 @@ pub struct ShadowRoot {
 impl ShadowRoot {
     #[allow(unrooted_must_root)]
     fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
-        let has_browsing_context = true;
         let document_fragment = DocumentFragment::new_inherited(document);
         document_fragment
             .upcast::<Node>()
             .set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
         ShadowRoot {
             document_fragment,
-            document_or_shadow_root: DocumentOrShadowRootImpl::new(
-                document.window(),
-                has_browsing_context,
-            ),
-            has_browsing_context,
+            document_or_shadow_root: DocumentOrShadowRootImpl::new(document.window()),
+            document: Dom::from_ref(document),
             host: Dom::from_ref(host),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
@@ -85,14 +81,24 @@ impl ShadowRootMethods for ShadowRoot {
     fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
         // XXX return the result of running the retargeting algorithm with context object
         // and the original result as input
-        self.document_or_shadow_root.element_from_point(x, y, None)
+        self.document_or_shadow_root.element_from_point(
+            x,
+            y,
+            None,
+            self.document.has_browsing_context(),
+        )
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
     fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
         // XXX return the result of running the retargeting algorithm with context object
         // and the original result as input
-        self.document_or_shadow_root.elements_from_point(x, y, None)
+        self.document_or_shadow_root.elements_from_point(
+            x,
+            y,
+            None,
+            self.document.has_browsing_context(),
+        )
     }
 
     /// https://dom.spec.whatwg.org/#dom-shadowroot-mode
