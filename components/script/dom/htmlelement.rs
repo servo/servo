@@ -707,7 +707,7 @@ impl HTMLElement {
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
         let children = root_node
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ false)
             .filter_map(DomRoot::downcast::<Element>)
             .filter(|elem| elem.is::<HTMLLabelElement>())
             .filter(|elem| elem.get_string_attribute(&local_name!("for")) == id)
