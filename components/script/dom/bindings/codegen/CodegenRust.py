@@ -6399,13 +6399,10 @@ class CGDictionary(CGThing):
         conversion = (
             "{\n"
             "    rooted!(in(cx) let mut rval = UndefinedValue());\n"
-            "    match r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
-            "        true => {\n"
+            "    if r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
             "%s\n"
-            "        },\n"
-            "        false => {\n"
+            "    } else {\n"
             "%s\n"
-            "        },\n"
             "    }\n"
             "}") % (member.identifier.name, indent(conversion), indent(default))
 

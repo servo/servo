@@ -664,14 +664,13 @@ impl BluetoothManager {
                 }
                 let _ = d.connect();
                 for _ in 0..MAXIMUM_TRANSACTION_TIME {
-                    match d.is_connected().unwrap_or(false) {
-                        true => return Ok(BluetoothResponse::GATTServerConnect(true)),
-                        false => {
-                            if is_mock_adapter(&adapter) {
-                                break;
-                            }
-                            thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS));
-                        },
+                    if d.is_connected().unwrap_or(false) {
+                        return Ok(BluetoothResponse::GATTServerConnect(true));
+                    } else {
+                        if is_mock_adapter(&adapter) {
+                            break;
+                        }
+                        thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS));
                     }
                     // TODO: Step 5.1.4: Use the exchange MTU procedure.
                 }
@@ -693,9 +692,10 @@ impl BluetoothManager {
                 }
                 let _ = d.disconnect();
                 for _ in 0..MAXIMUM_TRANSACTION_TIME {
-                    match d.is_connected().unwrap_or(true) {
-                        true => thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS)),
-                        false => return Ok(()),
+                    if d.is_connected().unwrap_or(true) {
+                        thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS))
+                    } else {
+                        return Ok(());
                     }
                 }
                 return Err(BluetoothError::Network);
@@ -947,13 +947,13 @@ impl BluetoothManager {
         let mut adapter = self.get_adapter()?;
         match self.get_gatt_characteristic(&mut adapter, &id) {
             Some(c) => {
-                let result = match enable {
+                let result = if enable {
                     // (StartNotification) Step 8.
                     // TODO: Handle all the errors returned from the start_notify call.
-                    true => c.start_notify(),
-
+                    c.start_notify()
+                } else {
                     // (StopNotification) Step 4.
-                    false => c.stop_notify(),
+                    c.stop_notify()
                 };
                 match result {
                     // (StartNotification) Step 11.
