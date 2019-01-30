@@ -26,6 +26,7 @@ public class Servo {
     private boolean mShuttingDown;
     private boolean mShutdownComplete;
     private boolean mSuspended;
+    private Callbacks mServoCallbacks;
 
     public Servo(
             ServoOptions options,
@@ -38,10 +39,10 @@ public class Servo {
 
         mAssetMgr = activity.getResources().getAssets();
 
-        Callbacks cbs = new Callbacks(client, gfxcb);
+        mServoCallbacks = new Callbacks(client, gfxcb);
 
         mRunCallback.inGLThread(() -> {
-            mJNI.init(activity, options, cbs);
+            mJNI.init(activity, options, mServoCallbacks);
         });
 
         try {
@@ -49,6 +50,10 @@ public class Servo {
         } catch (Exception e) {
           e.printStackTrace();
         }
+    }
+
+    public void resetGfxCallbacks(GfxCallbacks gfxcb) {
+      mServoCallbacks.resetGfxCallbacks(gfxcb);
     }
 
     public void shutdown() {
@@ -198,12 +203,16 @@ public class Servo {
 
     private class Callbacks implements JNIServo.Callbacks, Client {
 
-        private final GfxCallbacks mGfxCb;
+        private GfxCallbacks mGfxCb;
         Client mClient;
 
         Callbacks(Client client, GfxCallbacks gfxcb) {
             mClient = client;
             mGfxCb = gfxcb;
+        }
+
+        private void resetGfxCallbacks(GfxCallbacks gfxcb) {
+          mGfxCb = gfxcb;
         }
 
         public void wakeup() {

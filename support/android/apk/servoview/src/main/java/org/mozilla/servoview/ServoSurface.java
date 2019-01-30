@@ -51,6 +51,11 @@ public class ServoSurface {
         mGLThread = new GLThread();
     }
 
+    public void onSurfaceChanged(Surface surface) {
+      mASurface = surface;
+      mGLThread.onSurfaceChanged();
+    }
+
     public void setClient(Client client) {
         mClient = client;
     }
@@ -228,6 +233,13 @@ public class ServoSurface {
 
         public void inUIThread(Runnable r) {
             mMainLooperHandler.post(r);
+        }
+
+        public void onSurfaceChanged() {
+          Log.d(LOGTAG, "GLThread::onSurfaceChanged");
+          mSurface.destroy();
+          mSurface = new GLSurface(mASurface);
+          mServo.resetGfxCallbacks(mSurface);
         }
 
         public void shutdown() {
