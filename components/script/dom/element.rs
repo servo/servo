@@ -443,7 +443,7 @@ impl Element {
         })
     }
 
-    fn is_shadow_host(&self) -> bool {
+    pub fn is_shadow_host(&self) -> bool {
         self.shadow_root.get().is_some()
     }
 

@@ -631,7 +631,7 @@ impl Document {
     pub fn refresh_base_element(&self) {
         let base = self
             .upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ false)
             .filter_map(DomRoot::downcast::<HTMLBaseElement>)
             .find(|element| {
                 element
@@ -869,7 +869,7 @@ impl Document {
         };
         let doc_node = self.upcast::<Node>();
         doc_node
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ false)
             .filter_map(DomRoot::downcast)
             .find(|node| check_anchor(&node))
             .map(DomRoot::upcast)
@@ -978,7 +978,7 @@ impl Document {
 
     pub fn dirty_all_nodes(&self) {
         let root = self.upcast::<Node>();
-        for node in root.traverse_preorder() {
+        for node in root.traverse_preorder(/* shadow including */ true) {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
@@ -2273,7 +2273,7 @@ impl Document {
     /// Iterate over all iframes in the document.
     pub fn iter_iframes(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> {
         self.upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ true)
             .filter_map(DomRoot::downcast::<HTMLIFrameElement>)
     }
 
@@ -2837,7 +2837,7 @@ impl Document {
         let maybe_node = doc.deref().map(Castable::upcast::<Node>);
         let iter = maybe_node
             .iter()
-            .flat_map(|node| node.traverse_preorder())
+            .flat_map(|node| node.traverse_preorder(/* shadow including */ false))
             .filter(|node| callback(&node));
         NodeList::new_simple_list(&self.window, iter)
     }
@@ -3791,7 +3791,7 @@ impl DocumentMethods for Document {
             } else {
                 // Step 2.
                 root.upcast::<Node>()
-                    .traverse_preorder()
+                    .traverse_preorder(/* shadow including */ false)
                     .find(|node| node.is::<HTMLTitleElement>())
             }
         });
@@ -3838,7 +3838,7 @@ impl DocumentMethods for Document {
         } else if root.namespace() == &ns!(html) {
             let elem = root
                 .upcast::<Node>()
-                .traverse_preorder()
+                .traverse_preorder(/* shadow including */ false)
                 .find(|node| node.is::<HTMLTitleElement>());
             match elem {
                 Some(elem) => elem,
@@ -4205,7 +4205,7 @@ impl DocumentMethods for Document {
         {
             // Step 1.
             let mut elements = root
-                .traverse_preorder()
+                .traverse_preorder(/* shadow including */ false)
                 .filter(|node| filter_by_name(&name, &node))
                 .peekable();
             if let Some(first) = elements.next() {
@@ -4323,7 +4323,10 @@ impl DocumentMethods for Document {
         }
 
         // Step 8
-        for node in self.upcast::<Node>().traverse_preorder() {
+        for node in self
+            .upcast::<Node>()
+            .traverse_preorder(/* shadow including */ true)
+        {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
