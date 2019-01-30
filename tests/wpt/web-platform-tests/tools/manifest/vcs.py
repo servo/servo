@@ -50,8 +50,8 @@ class Git(object):
                 return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
             except Exception as e:
                 if platform.uname()[0] == "Windows" and isinstance(e, WindowsError):
-                        full_cmd[0] = "git.bat"
-                        return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
+                    full_cmd[0] = "git.bat"
+                    return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
                 else:
                     raise
         return git

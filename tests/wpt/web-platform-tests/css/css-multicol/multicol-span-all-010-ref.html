@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: Test the position of the out-of-flow block is relative to the fragment divided by column-span:all</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  body {
+    column-count: 1;
+    column-rule: 6px solid;
+    width: 400px;
+    outline: 1px solid black;
+  }
+  h3 {
+    /* "column-count: 1" makes this behave like a real spanner. */
+    outline: 1px solid blue;
+  }
+  .out-of-flow {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  </style>
+
+  <body>
+    <article id="column">
+      <h3>spanner</h3>
+      <div style="transform: scale(1)">
+        <div class="out-of-flow">out-of-flow</div>
+      </div>
+    </article>
+  </body>
+</html>
