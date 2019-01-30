@@ -32,8 +32,15 @@
         "Deleting element.dataset['-'] should also remove an attribute with name 'data--' should it exist.");
       test(function() { assert_true(testDelete('data--foo', 'Foo')); },
         "Deleting element.dataset['Foo'] should also remove an attribute with name 'data--foo' should it exist.");
-      test(function() { assert_true(testDeleteNoAdd('data--foo', '-foo')); },
-        "Deleting element.dataset['-foo'] should also remove an attribute with name 'data--foo' should it exist.");
+      test(function() {
+        var d = document.createElement("div");
+        d.setAttribute('data--foo', "value");
+        assert_equals(d.dataset['-foo'], undefined);
+        assert_false('-foo' in d.dataset);
+        delete d.dataset['-foo'];
+        assert_true(d.hasAttribute('data--foo'));
+        assert_equals(d.getAttribute('data--foo'), "value");
+      }, "Deleting element.dataset['-foo'] should not remove an attribute with name 'data--foo' should it exist.");
       test(function() { assert_true(testDelete('data---foo', '-Foo')); },
         "Deleting element.dataset['-Foo'] should also remove an attribute with name 'data---foo' should it exist.");
       test(function() { assert_true(testDelete('data-', '')); },

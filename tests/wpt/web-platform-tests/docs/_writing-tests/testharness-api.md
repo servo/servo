@@ -776,11 +776,14 @@ assert that property `property_name` on object is readonly
 ### `assert_throws(code, func, description)`
 `code` - the expected exception. This can take several forms:
 
-  * string - the thrown exception must be a DOMException with the given
-             name, e.g., "TimeoutError" (for compatibility with existing
-             tests, a constant is also supported, e.g., "TIMEOUT_ERR")
-  * object - the thrown exception must have a property called "name" that
-             matches code.name
+  * string - asserts that the thrown exception must be a DOMException
+             with the given name, e.g., "TimeoutError". (For
+             compatibility with existing tests, the name of a
+             DOMException constant can also be given, e.g.,
+             "TIMEOUT_ERR")
+  * object - asserts that the thrown exception must be any other kind
+             of exception, with a property called "name" that matches
+             `code.name`.
 
 `func` - a function that should throw
 

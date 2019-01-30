@@ -255,6 +255,26 @@ promise_test(async t => {
   ]);
 }, 'Two RTCIceTransports connect to each other');
 
+['controlling', 'controlled'].forEach(role => {
+  promise_test(async t => {
+    const [ localTransport, remoteTransport ] =
+        makeAndGatherTwoIceTransports(t);
+    localTransport.start(remoteTransport.getLocalParameters(), role);
+    localTransport.start(remoteTransport.getLocalParameters(), role);
+    const localWatcher = new EventWatcher(t, localTransport, 'statechange');
+    const remoteWatcher = new EventWatcher(t, remoteTransport, 'statechange');
+    await Promise.all([
+      localWatcher.wait_for('statechange').then(() => {
+        assert_equals(localTransport.state, 'connected');
+      }),
+      remoteWatcher.wait_for('statechange').then(() => {
+        assert_equals(remoteTransport.state, 'connected');
+      }),
+    ]);
+  }, `Two RTCIceTransports configured with the ${role} role resolve the ` +
+      'conflict in band and still connect.');
+});
+
 promise_test(async t => {
   async function waitForConnectedThenSelectedCandidatePairChange(t, transport,
       transportName) {
