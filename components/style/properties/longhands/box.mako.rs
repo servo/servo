@@ -602,6 +602,8 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="none",
     gecko_ffi_name="mBinding",
+    gecko_pref="layout.css.moz-binding.content.enabled",
+    enabled_in="chrome",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
 )}
 
