@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::activation::Activatable;
+use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
@@ -13,6 +13,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::document::determine_policy_for_token;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::Element;
@@ -26,7 +27,6 @@ use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use servo_url::ServoUrl;
 use std::default::Default;
@@ -571,15 +571,9 @@ impl Activatable for HTMLAnchorElement {
             }
         }
 
-        // https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-delivery
-        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-            true => Some(ReferrerPolicy::NoReferrer),
-            false => None,
-        };
-
         // Step 2.
         //TODO: Download the link is `download` attribute is set.
-        follow_hyperlink(element, ismap_suffix, referrer_policy);
+        follow_hyperlink(element, ismap_suffix);
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
@@ -594,11 +588,7 @@ impl Activatable for HTMLAnchorElement {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
-pub fn follow_hyperlink(
-    subject: &Element,
-    hyperlink_suffix: Option<String>,
-    referrer_policy: Option<ReferrerPolicy>,
-) {
+pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 1.
     if subject.cannot_navigate() {
         return;
@@ -645,7 +635,7 @@ pub fn follow_hyperlink(
         // Step 10, 11, 12, 13. TODO: if parsing the URL failed, navigate to error page.
         let attribute = subject.get_attribute(&ns!(), &local_name!("href")).unwrap();
         let mut href = attribute.Value();
-        // Step 12: append a hyperlink suffix.
+        // Step 11: append a hyperlink suffix.
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
@@ -654,6 +644,11 @@ pub fn follow_hyperlink(
             Ok(url) => url,
             Err(_) => return,
         };
+
+        // Step 12.
+        let referrer_policy = subject
+            .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
+            .and_then(|attribute: DomRoot<Attr>| (determine_policy_for_token(&attribute.Value())));
 
         // Step 13, 14.
         debug!("following hyperlink to {}", url);

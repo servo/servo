@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::activation::Activatable;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -21,7 +20,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
-use net_traits::ReferrerPolicy;
 use std::default::Default;
 use std::f32;
 use std::str;
@@ -332,10 +330,6 @@ impl Activatable for HTMLAreaElement {
     }
 
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-            true => Some(ReferrerPolicy::NoReferrer),
-            false => None,
-        };
-        follow_hyperlink(self.as_element(), None, referrer_policy);
+        follow_hyperlink(self.as_element(), None);
     }
 }
