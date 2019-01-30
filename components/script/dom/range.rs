@@ -972,7 +972,10 @@ impl RangeMethods for Range {
         let fragment_node = element.parse_fragment(fragment)?;
 
         // Step 4.
-        for node in fragment_node.upcast::<Node>().traverse_preorder() {
+        for node in fragment_node
+            .upcast::<Node>()
+            .traverse_preorder(/* shadow incluing */ false)
+        {
             if let Some(script) = node.downcast::<HTMLScriptElement>() {
                 script.set_already_started(false);
                 script.set_parser_inserted(false);

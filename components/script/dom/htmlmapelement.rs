@@ -43,7 +43,7 @@ impl HTMLMapElement {
 
     pub fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement>> {
         self.upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ false)
             .filter_map(DomRoot::downcast::<HTMLAreaElement>)
             .collect()
     }

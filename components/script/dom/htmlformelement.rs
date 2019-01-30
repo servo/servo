@@ -581,7 +581,7 @@ impl HTMLFormElement {
         //               form, refactor this when html5ever's form owner PR lands
         // Step 1-3
         let invalid_controls = node
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ false)
             .filter_map(|field| {
                 if let Some(el) = field.downcast::<Element>() {
                     if el.disabled_state() {

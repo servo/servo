@@ -1262,7 +1262,7 @@ impl HTMLImageElement {
 
         let useMapElements = document_from_node(self)
             .upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(/* shadow including */ false)
             .filter_map(DomRoot::downcast::<HTMLMapElement>)
             .find(|n| {
                 n.upcast::<Element>()
