@@ -487,9 +487,14 @@ impl Document {
         self.has_browsing_context
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-bc>
     #[inline]
     pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
-        self.document_or_shadow_root.browsing_context()
+        if self.has_browsing_context {
+            self.window.undiscarded_window_proxy()
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -2632,7 +2637,7 @@ impl Document {
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         Document {
             node: Node::new_document_node(),
-            document_or_shadow_root: DocumentOrShadowRootImpl::new(window, has_browsing_context),
+            document_or_shadow_root: DocumentOrShadowRootImpl::new(window),
             window: Dom::from_ref(window),
             has_browsing_context,
             implementation: Default::default(),
@@ -4260,14 +4265,22 @@ impl DocumentMethods for Document {
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
     fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
-        self.document_or_shadow_root
-            .element_from_point(x, y, self.GetDocumentElement())
+        self.document_or_shadow_root.element_from_point(
+            x,
+            y,
+            self.GetDocumentElement(),
+            self.has_browsing_context,
+        )
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
     fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
-        self.document_or_shadow_root
-            .elements_from_point(x, y, self.GetDocumentElement())
+        self.document_or_shadow_root.elements_from_point(
+            x,
+            y,
+            self.GetDocumentElement(),
+            self.has_browsing_context,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
