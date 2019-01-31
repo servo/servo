@@ -151,7 +151,6 @@ jobs:
     displayName: 'Publish results'
     inputs:
       artifactName: 'results'
-    condition: succeededOrFailed()
 
 # The InvokeRESTAPI task can only run in a server job.
 - job: all_post

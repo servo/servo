@@ -164,8 +164,8 @@ function testReflectAttribute(jsAttributeName, contentAttributeName, validValue1
     testReflectAttributeWithContentValues(jsAttributeName, contentAttributeName, validValue1, validValue1, validValue2, validValue2, name, elementName, interfaceName);
 }
 
-function testReflectBooleanAttribute(jsAttributeName, contentAttributeName, name) {
-    testReflectAttributeWithContentValues(jsAttributeName, contentAttributeName, true, '', false, null, name);
+function testReflectBooleanAttribute(jsAttributeName, contentAttributeName, name, elementName, interfaceName) {
+    testReflectAttributeWithContentValues(jsAttributeName, contentAttributeName, true, '', false, null, name, elementName, interfaceName);
 }
 
 function testAttributeAdder(testFunction, name) {
