@@ -9,7 +9,9 @@ use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::PixelFormat;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
+use std::fmt;
 use std::num::NonZeroU32;
+use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
@@ -173,6 +175,33 @@ impl WebGLMsgSender {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct TruncatedDebug<T>(T);
+
+impl<T> From<T> for TruncatedDebug<T> {
+    fn from(v: T) -> TruncatedDebug<T> {
+        TruncatedDebug(v)
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for TruncatedDebug<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut s = format!("{:?}", self.0);
+        if s.len() > 20 {
+            s.truncate(20);
+            s.push_str("...");
+        }
+        write!(f, "{}", s)
+    }
+}
+
+impl<T> Deref for TruncatedDebug<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+
 /// WebGL Commands for a specific WebGLContext
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLCommand {
@@ -284,7 +313,7 @@ pub enum WebGLCommand {
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
         pixel_format: Option<PixelFormat>,
-        data: IpcSharedMemory,
+        data: TruncatedDebug<IpcSharedMemory>,
     },
     TexSubImage2D {
         target: u32,
@@ -300,7 +329,7 @@ pub enum WebGLCommand {
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
         pixel_format: Option<PixelFormat>,
-        data: IpcSharedMemory,
+        data: TruncatedDebug<IpcSharedMemory>,
     },
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),
