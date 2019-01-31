@@ -18,6 +18,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMe
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
@@ -140,6 +141,7 @@ use servo_config::prefs::PREFS;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
+use std::cmp::max;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
@@ -168,6 +170,9 @@ const SPURIOUS_ANIMATION_FRAME_THRESHOLD: u8 = 5;
 
 /// The amount of time between fake `requestAnimationFrame()`s.
 const FAKE_REQUEST_ANIMATION_FRAME_DELAY: u64 = 16;
+
+/// The minimum amount of time for scheduling a `requestAnimationFrame()` callback.
+const FAKE_REQUEST_ANIMATION_FRAME_MIN_DELAY: u64 = 5;
 
 pub enum TouchEventResult {
     Processed(bool),
@@ -328,6 +333,8 @@ pub struct Document {
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
     /// sending needless `ChangeRunningAnimationsState` messages to the compositor.
     running_animation_callbacks: Cell<bool>,
+    /// The last time we ran a requestAnimationFrame.
+    most_recent_animation_frame_time: Cell<DOMHighResTimeStamp>,
     /// Tracks all outstanding loads related to this document.
     loader: DomRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -1608,12 +1615,18 @@ impl Document {
         // If we are running 'fake' animation frames, we unconditionally
         // set up a one-shot timer for script to execute the rAF callbacks.
         if self.is_faking_animation_frames() {
+            let time_since_last_raf = (*self.global().performance().Now()) -
+                (*self.most_recent_animation_frame_time.get());
+            let time_to_next_raf = max(
+                FAKE_REQUEST_ANIMATION_FRAME_DELAY.saturating_sub(time_since_last_raf as u64),
+                FAKE_REQUEST_ANIMATION_FRAME_MIN_DELAY,
+            );
             let callback = FakeRequestAnimationFrameCallback {
                 document: Trusted::new(self),
             };
             self.global().schedule_callback(
                 OneshotTimerCallback::FakeRequestAnimationFrame(callback),
-                MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY),
+                MsDuration::new(time_to_next_raf),
             );
         } else if !self.running_animation_callbacks.get() {
             // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
@@ -1656,6 +1669,8 @@ impl Document {
             }
         }
 
+        self.most_recent_animation_frame_time
+            .set(self.global().performance().Now());
         self.running_animation_callbacks.set(false);
 
         let spurious = !self
@@ -2703,6 +2718,7 @@ impl Document {
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DomRefCell::new(vec![]),
             running_animation_callbacks: Cell::new(false),
+            most_recent_animation_frame_time: Default::default(),
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
