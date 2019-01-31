@@ -34,6 +34,12 @@
   <option selected>Three</option>
 </select>
 
+<select id="select-named-selected">
+  <option>One</option>
+  <option>Two</option>
+  <option id="named-option" selected>Three</option>
+</select>
+
 <select id="invalid-select">
   <option selected>One</option>
   <option selected>Two</option>
@@ -102,6 +108,13 @@ test(() => {
 
 }, ".selectedOptions without the 'multiple' attribute but " +
    "more than one selected option should return the last one");
+
+test(() => {
+  const select = document.getElementById("select-named-selected");
+
+  assert_equals(select.selectedOptions.constructor, HTMLCollection);
+  assert_equals(select.selectedOptions.namedItem("named-option"), select.children[2]);
+}, ".selectedOptions should return `HTMLCollection` instance");
 
 test(() => {
   const select = document.getElementById("select-same-object");

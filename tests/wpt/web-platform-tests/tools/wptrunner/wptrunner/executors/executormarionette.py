@@ -417,7 +417,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
             return
 
         script = """
-            ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("resource://reftest/PerTestCoverageUtils.jsm");
             return PerTestCoverageUtils.enabled;
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -427,7 +427,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("resource://reftest/PerTestCoverageUtils.jsm");
             PerTestCoverageUtils.beforeTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -447,7 +447,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("resource://reftest/PerTestCoverageUtils.jsm");
             PerTestCoverageUtils.afterTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
