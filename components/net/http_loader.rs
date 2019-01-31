@@ -658,6 +658,13 @@ pub fn http_redirect_fetch(
     };
 
     // Step 1 of https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
+    // TODO: check origin and timing allow check
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::RedirectStart);
+    
     context
         .timing
         .lock()
@@ -737,24 +744,6 @@ pub fn http_redirect_fetch(
 
     // Step 15
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
-
-    // https://w3c.github.io/resource-timing/#dfn-step-fetch-start
-    // (Step 20)
-    // 1. If the current resource and the redirected resource are not from
-    //    the same origin as the current document, and the timing allow check
-    //    algorithm fails for either resource, set redirectStart and
-    //    redirectEnd to 0. Then, return to step 5 with the new resource.
-    // 2. If the value of redirectStart is not set, let it be the value of
-    //    fetchStart.
-    if !same_origin {
-        context
-            .timing
-            .lock()
-            .unwrap()
-            .set_attribute(ResourceAttribute::RedirectStart);
-    }
-    // TODO If the value of redirectStart is not set,
-    //      set the redirect_start to fetch_start
 
     main_fetch(
         request,
