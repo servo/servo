@@ -441,7 +441,7 @@ class MachCommands(CommandBase):
             # Build the name of the package containing all GStreamer dependencies
             # according to the build target.
             gst_lib = "gst-build-{}".format(self.config["android"]["lib"])
-            gst_lib_zip = "gstreamer-{}-1.14.3-20181105-103937.zip".format(self.config["android"]["lib"])
+            gst_lib_zip = "gstreamer-{}-1.14.3-20190131-153818.zip".format(self.config["android"]["lib"])
             gst_dir = os.path.join(target_path, "gstreamer")
             gst_lib_path = os.path.join(gst_dir, gst_lib)
             pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
