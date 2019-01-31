@@ -295,8 +295,8 @@ impl Node {
             if parent_in_shadow_tree {
                 if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
                     node.set_owner_shadow_root(&*shadow_root);
-                } else {
-                    node.set_owner_shadow_root(&*self.owner_shadow_root());
+                } else if let Some(shadow_root) = self.owner_shadow_root() {
+                    node.set_owner_shadow_root(&*shadow_root);
                 }
             }
             let mut is_connected = parent_is_connected;
@@ -946,8 +946,8 @@ impl Node {
         self.owner_doc.set(Some(document));
     }
 
-    pub fn owner_shadow_root(&self) -> DomRoot<ShadowRoot> {
-        self.owner_shadow_root.get().unwrap()
+    pub fn owner_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+        self.owner_shadow_root.get()
     }
 
     pub fn set_owner_shadow_root(&self, shadow_root: &ShadowRoot) {
@@ -1184,6 +1184,7 @@ pub trait LayoutNodeHelpers {
     unsafe fn next_sibling_ref(&self) -> Option<LayoutDom<Node>>;
 
     unsafe fn owner_doc_for_layout(&self) -> LayoutDom<Document>;
+    unsafe fn owner_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
@@ -1258,6 +1259,12 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
             .owner_doc
             .get_inner_as_layout()
             .unwrap()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn owner_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
+        (*self.unsafe_get()).owner_shadow_root.get_inner_as_layout()
     }
 
     #[inline]
