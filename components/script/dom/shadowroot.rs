@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{self, ShadowRoo
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
@@ -119,5 +119,18 @@ impl ShadowRootMethods for ShadowRoot {
                 DocumentOrShadowRoot::ShadowRoot(Dom::from_ref(self)),
             )
         })
+    }
+}
+
+#[allow(unsafe_code)]
+pub trait LayoutShadowRootHelpers {
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element>;
+}
+
+impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
+        (*self.unsafe_get()).host.to_layout()
     }
 }

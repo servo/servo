@@ -15,6 +15,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -76,7 +77,7 @@ use crate::dom::node::{NodeDamage, NodeFlags, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::servoparser::ServoParser;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
@@ -587,6 +588,9 @@ pub trait LayoutElementHelpers {
     fn get_state_for_layout(&self) -> ElementState;
     fn insert_selector_flags(&self, flags: ElementSelectorFlags);
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
+    /// The shadow root this element is a host of.
+    #[allow(unsafe_code)]
+    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>>;
 }
 
 impl LayoutElementHelpers for LayoutDom<Element> {
@@ -1047,6 +1051,12 @@ impl LayoutElementHelpers for LayoutDom<Element> {
     #[allow(unsafe_code)]
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
         unsafe { (*self.unsafe_get()).selector_flags.get().contains(flags) }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
+        (*self.unsafe_get()).shadow_root.get_inner_as_layout()
     }
 }
 
@@ -2876,11 +2886,18 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
-        false
+        match self.upcast::<Node>().GetParentNode() {
+            None => false,
+            Some(node) => node.is::<ShadowRoot>(),
+        }
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        None
+        if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
+            Some(shadow_root.Host())
+        } else {
+            None
+        }
     }
 
     fn match_pseudo_element(

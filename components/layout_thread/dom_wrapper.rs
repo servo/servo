@@ -40,13 +40,16 @@ use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script::layout_exports::NodeFlags;
 use script::layout_exports::PendingRestyle;
+use script::layout_exports::ShadowRoot;
 use script::layout_exports::{
-    CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId, TextTypeId,
+    CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
+    TextTypeId,
 };
 use script::layout_exports::{Document, Element, Node, Text};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
 use script::layout_exports::{
-    LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers,
+    LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, LayoutShadowRootHelpers,
+    RawLayoutElementHelpers,
 };
 use script_layout_interface::wrapper_traits::{
     DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode,
@@ -160,35 +163,60 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum Impossible {}
+#[derive(Clone, Copy)]
+pub struct ServoShadowRoot<'a> {
+    /// The wrapped shadow root.
+    shadow_root: LayoutDom<ShadowRoot>,
 
-#[derive(Clone, Copy, PartialEq)]
-pub struct ShadowRoot<'lr>(Impossible, PhantomData<&'lr ()>);
+    /// Being chained to a PhantomData prevents `ShadowRoot`s from escaping.
+    chain: PhantomData<&'a ()>,
+}
 
-impl<'lr> TShadowRoot for ShadowRoot<'lr> {
-    type ConcreteNode = ServoLayoutNode<'lr>;
+impl<'sr> Debug for ServoShadowRoot<'sr> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.as_node().fmt(f)
+    }
+}
+
+impl<'a> PartialEq for ServoShadowRoot<'a> {
+    #[inline]
+    fn eq(&self, other: &ServoShadowRoot) -> bool {
+        self.shadow_root == other.shadow_root
+    }
+}
+
+impl<'sr> TShadowRoot for ServoShadowRoot<'sr> {
+    type ConcreteNode = ServoLayoutNode<'sr>;
 
     fn as_node(&self) -> Self::ConcreteNode {
-        match self.0 {}
+        ServoLayoutNode::from_layout_js(self.shadow_root.upcast())
     }
 
-    fn host(&self) -> ServoLayoutElement<'lr> {
-        match self.0 {}
+    fn host(&self) -> ServoLayoutElement<'sr> {
+        ServoLayoutElement::from_layout_js(unsafe { self.shadow_root.get_host_for_layout() })
     }
 
     fn style_data<'a>(&self) -> Option<&'a CascadeData>
     where
         Self: 'a,
     {
-        match self.0 {}
+        None
+    }
+}
+
+impl<'sr> ServoShadowRoot<'sr> {
+    fn from_layout_js(shadow_root: LayoutDom<ShadowRoot>) -> ServoShadowRoot<'sr> {
+        ServoShadowRoot {
+            shadow_root,
+            chain: PhantomData,
+        }
     }
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteElement = ServoLayoutElement<'ln>;
-    type ConcreteShadowRoot = ShadowRoot<'ln>;
+    type ConcreteShadowRoot = ServoShadowRoot<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
         unsafe {
@@ -256,8 +284,8 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
             .map(ServoLayoutDocument::from_layout_js)
     }
 
-    fn as_shadow_root(&self) -> Option<ShadowRoot<'ln>> {
-        None
+    fn as_shadow_root(&self) -> Option<ServoShadowRoot<'ln>> {
+        self.node.downcast().map(ServoShadowRoot::from_layout_js)
     }
 
     fn is_connected(&self) -> bool {
@@ -616,12 +644,23 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
-    fn shadow_root(&self) -> Option<ShadowRoot<'le>> {
-        None
+    /// The shadow root this element is a host of.
+    fn shadow_root(&self) -> Option<ServoShadowRoot<'le>> {
+        unsafe {
+            self.element
+                .get_shadow_root_for_layout()
+                .map(ServoShadowRoot::from_layout_js)
+        }
     }
 
-    fn containing_shadow(&self) -> Option<ShadowRoot<'le>> {
-        None
+    /// The shadow root which roots the subtree this element is contained in.
+    fn containing_shadow(&self) -> Option<ServoShadowRoot<'le>> {
+        unsafe {
+            self.element
+                .upcast()
+                .owner_shadow_root_for_layout()
+                .map(ServoShadowRoot::from_layout_js)
+        }
     }
 }
 
@@ -706,11 +745,20 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
-        false
+        match self.as_node().parent_node() {
+            None => false,
+            Some(node) => {
+                node.script_type_id() ==
+                    NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
+            },
+        }
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        None
+        match self.containing_shadow() {
+            Some(shadow) => Some(shadow.host()),
+            None => None,
+        }
     }
 
     fn prev_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
