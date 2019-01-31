@@ -188,9 +188,10 @@ impl Event {
     }
 
     pub fn status(&self) -> EventStatus {
-        match self.DefaultPrevented() {
-            true => EventStatus::Canceled,
-            false => EventStatus::NotCanceled,
+        if self.DefaultPrevented() {
+            EventStatus::Canceled
+        } else {
+            EventStatus::NotCanceled
         }
     }
 
@@ -320,9 +321,10 @@ pub enum EventBubbles {
 
 impl From<bool> for EventBubbles {
     fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventBubbles::Bubbles,
-            false => EventBubbles::DoesNotBubble,
+        if boolean {
+            EventBubbles::Bubbles
+        } else {
+            EventBubbles::DoesNotBubble
         }
     }
 }
@@ -344,9 +346,10 @@ pub enum EventCancelable {
 
 impl From<bool> for EventCancelable {
     fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventCancelable::Cancelable,
-            false => EventCancelable::NotCancelable,
+        if boolean {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
         }
     }
 }
