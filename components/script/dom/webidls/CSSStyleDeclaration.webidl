@@ -209,6 +209,8 @@ partial interface CSSStyleDeclaration {
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString filter;
 
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset;
+
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString lineHeight;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString line-height;
 

@@ -26,3 +26,15 @@ interface LinearAccelerationSensor : Accelerometer {
   Exposed=Window]
 interface GravitySensor : Accelerometer {
 };
+
+dictionary AccelerometerReadingValues {
+  required double? x;
+  required double? y;
+  required double? z;
+};
+
+dictionary LinearAccelerationReadingValues : AccelerometerReadingValues {
+};
+
+dictionary GravityReadingValues : AccelerometerReadingValues {
+};

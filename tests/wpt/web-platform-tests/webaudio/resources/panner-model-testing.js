@@ -1,9 +1,12 @@
-let sampleRate = 44100.0;
+// Use a power of two to eliminate round-off when converting frames to time and
+// vice versa.
+let sampleRate = 32768;
 
 let numberOfChannels = 1;
 
-// Time step when each panner node starts.
-let timeStep = 0.001;
+// Time step when each panner node starts.  Make sure it starts on a frame
+// boundary.
+let timeStep = Math.floor(0.001 * sampleRate) / sampleRate;
 
 // Length of the impulse signal.
 let pulseLengthFrames = Math.round(timeStep * sampleRate);
@@ -114,7 +117,7 @@ function checkResult(renderedBuffer, should) {
   // The max error we allow between the rendered impulse and the
   // expected value.  This value is experimentally determined.  Set
   // to 0 to make the test fail to see what the actual error is.
-  let maxAllowedError = 1.3e-6;
+  let maxAllowedError = 1.1597e-6;
 
   let success = true;
 

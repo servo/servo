@@ -289,7 +289,9 @@ class ExpectedUpdater(object):
                            "test_status": self.test_status,
                            "test_end": self.test_end,
                            "assertion_count": self.assertion_count,
-                           "lsan_leak": self.lsan_leak}
+                           "lsan_leak": self.lsan_leak,
+                           "mozleak_object": self.mozleak_object,
+                           "mozleak_total": self.mozleak_total}
         self.tests_visited = {}
 
     def update_from_log(self, log_file):
@@ -339,6 +341,15 @@ class ExpectedUpdater(object):
                                                "max_expected": asserts["max"]})
         for item in data.get("lsan_leaks", []):
             action_map["lsan_leak"](item)
+
+        mozleak_data = data.get("mozleak", {})
+        for scope, scope_data in mozleak_data.iteritems():
+            for key, action in [("objects", "mozleak_object"),
+                                ("total", "mozleak_total")]:
+                for item in scope_data.get(key, []):
+                    item_data = {"scope": scope}
+                    item_data.update(item)
+                    action_map[action](item_data)
 
     def suite_start(self, data):
         self.run_info = run_info_intern.store(data["run_info"])
@@ -397,16 +408,35 @@ class ExpectedUpdater(object):
         if data["count"] < data["min_expected"] or data["count"] > data["max_expected"]:
             test_data.set_requires_update()
 
-    def lsan_leak(self, data):
+    def test_for_scope(self, data):
         dir_path = data.get("scope", "/")
         dir_id = intern(os.path.join(dir_path, "__dir__").replace(os.path.sep, "/").encode("utf8"))
         if dir_id.startswith("/"):
             dir_id = dir_id[1:]
-        test_data = self.id_test_map[dir_id]
+        return dir_id, self.id_test_map[dir_id]
+
+    def lsan_leak(self, data):
+        dir_id, test_data = self.test_for_scope(data)
         test_data.set(dir_id, None, "lsan",
                       self.run_info, (data["frames"], data.get("allowed_match")))
         if not data.get("allowed_match"):
             test_data.set_requires_update()
+
+    def mozleak_object(self, data):
+        dir_id, test_data = self.test_for_scope(data)
+        test_data.set(dir_id, None, "leak-object",
+                      self.run_info, ("%s:%s", (data["process"], data["name"]),
+                                      data.get("allowed")))
+        if not data.get("allowed"):
+            test_data.set_requires_update()
+
+    def mozleak_total(self, data):
+        if data["bytes"]:
+            dir_id, test_data = self.test_for_scope(data)
+            test_data.set(dir_id, None, "leak-threshold",
+                          self.run_info, (data["process"], data["bytes"], data["threshold"]))
+            if data["bytes"] > data["threshold"] or data["bytes"] < 0:
+                test_data.set_requires_update()
 
 
 def create_test_tree(metadata_path, test_manifest):
@@ -552,6 +582,10 @@ class TestFileData(object):
                     if subtest_id is None and test_id.endswith("__dir__"):
                         if prop == "lsan":
                             expected.set_lsan(run_info, value)
+                        elif prop == "leak-object":
+                            expected.set_leak_object(run_info, value)
+                        elif prop == "leak-threshold":
+                            expected.set_leak_threshold(run_info, value)
                         continue
 
                     if prop == "status":

@@ -8,11 +8,13 @@
 <div onclick="frames[0].location.href = 'javascript:parent.postMessage(\'executed\', \'*\')'" id="special_div"></div>
 <script>
   var t = async_test("Should have executed the javascript url");
-  window.onmessage = t.step_func(function(e) {
-    if (e.data == "executed")
-      t.done();
+  frames[0].addEventListener('load', () => {
+    window.onmessage = t.step_func(function(e) {
+      if (e.data == "executed")
+        t.done();
+    });
+    window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have raised a violation event"));
+    document.getElementById('special_div').click();
   });
-  window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have raised a violation event"));
-  document.getElementById('special_div').click();
 </script>
 </body>

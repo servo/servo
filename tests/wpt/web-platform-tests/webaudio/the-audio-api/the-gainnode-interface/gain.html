@@ -18,11 +18,19 @@
 
       let audit = Audit.createTaskRunner();
 
-      let sampleRate = 44100.0;
-      let bufferDurationSeconds = 0.125;
+      // Use a power of two to eliminate any round-off when converting frame to
+      // time.
+      let sampleRate = 32768;
+      // Make sure the buffer duration and spacing are all exact frame lengths
+      // so that the note spacing is also on frame boundaries to eliminate
+      // sub-sample accurate start of a ABSN.
+      let bufferDurationSeconds = Math.floor(0.125 * sampleRate) / sampleRate;
       let numberOfNotes = 11;
-      let noteSpacing = bufferDurationSeconds +
-          0.020;  // leave 20ms of silence between each "note"
+      // Leave about 20ms of silence, being sure this is an exact frame
+      // duration.
+      let noteSilence = Math.floor(0.020 * sampleRate) / sampleRate;
+      let noteSpacing = bufferDurationSeconds + noteSilence;
+          
       let lengthInSeconds = numberOfNotes * noteSpacing;
 
       let context = 0;
@@ -131,18 +139,18 @@
                   // Verify the channels are clsoe to the reference.
                   should(actual0, 'Left output from gain node')
                       .beCloseToArray(
-                          reference0, {relativeThreshold: 1.1908e-7});
+                          reference0, {relativeThreshold: 1.1877e-7});
                   should(actual1, 'Right output from gain node')
                       .beCloseToArray(
-                          reference1, {relativeThreshold: 1.1908e-7});
+                          reference1, {relativeThreshold: 1.1877e-7});
 
                   // Test the SNR too for both channels.
                   let snr0 = 10 * Math.log10(computeSNR(actual0, reference0));
                   let snr1 = 10 * Math.log10(computeSNR(actual1, reference1));
                   should(snr0, 'Left SNR (in dB)')
-                      .beGreaterThanOrEqualTo(148.69);
+                      .beGreaterThanOrEqualTo(148.71);
                   should(snr1, 'Right SNR (in dB)')
-                      .beGreaterThanOrEqualTo(148.69);
+                      .beGreaterThanOrEqualTo(148.71);
                 })
                 .then(() => task.done());
             ;

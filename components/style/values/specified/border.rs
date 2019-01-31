@@ -30,6 +30,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
     Copy,
     Debug,
     Eq,
+    FromPrimitive,
     MallocSizeOf,
     Ord,
     Parse,

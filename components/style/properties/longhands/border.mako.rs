@@ -61,15 +61,6 @@
     )}
 % endfor
 
-${helpers.gecko_keyword_conversion(
-    Keyword('border-style',
-    "none solid double dotted dashed hidden groove ridge inset outset",
-    gecko_enum_prefix="StyleBorderStyle",
-    gecko_inexhaustive=True),
-    type="crate::values::specified::BorderStyle",
-)}
-
-// FIXME(#4126): when gfx supports painting it, make this Size2D<LengthPercentage>
 % for corner in ALL_CORNERS:
     <%
         corner_name = corner[0]

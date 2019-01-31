@@ -1,10 +1,13 @@
-let sampleRate = 44100.0;
+// Use a power of two to eliminate round-off when converting frames to time and
+// vice versa.
+let sampleRate = 32768;
 
 // How many panner nodes to create for the test.
 let nodesToCreate = 100;
 
-// Time step when each panner node starts.
-let timeStep = 0.001;
+// Time step when each panner node starts.  Make sure it starts on a frame
+// boundary.
+let timeStep = Math.floor(0.001 * sampleRate) / sampleRate;
 
 // Make sure we render long enough to get all of our nodes.
 let renderLengthSeconds = timeStep * (nodesToCreate + 1);
@@ -134,7 +137,7 @@ function checkDistanceResult(renderedBuffer, model, should) {
   // The max allowed error between the actual gain and the expected
   // value.  This is determined experimentally.  Set to 0 to see
   // what the actual errors are.
-  let maxAllowedError = 3.3e-6;
+  let maxAllowedError = 2.2720e-6;
 
   let success = true;
 
