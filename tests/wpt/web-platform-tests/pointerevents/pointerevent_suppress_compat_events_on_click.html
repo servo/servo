@@ -27,7 +27,7 @@
       function end_of_interaction() {
           test(function () {
               assert_equals(event_log.join(", "),
-                  "mousedown@target1, mouseup@target1");
+                  "click@target0, mousedown@target1, mouseup@target1, click@target1");
           }, "Event log");
 
           test_pointerEvent.done(); // complete test
@@ -38,7 +38,7 @@
 
           var target_list = ["target0", "target1"];
           var pointer_event_list = ["pointerdown"];
-          var mouse_event_list = ["mousedown", "mouseup"];
+          var mouse_event_list = ["mousedown", "mouseup", "click"];
 
           target_list.forEach(function(targetId) {
               var target = document.getElementById(targetId);
@@ -95,7 +95,7 @@
   <body onload="run()">
     <h1>Pointer Event: Suppress compatibility mouse events on click</h1>
     <h4>
-      When a pointerdown is canceled, a click/tap shouldn't fire any compatibility mouse events.
+      When a pointerdown is canceled, a click/tap shouldn't fire any compatibility mouse events except click event.
     </h4>
     <ol>
       <li> Click or tap on Target0.</li>
