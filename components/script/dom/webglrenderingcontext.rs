@@ -708,7 +708,7 @@ impl WebGLRenderingContext {
             alpha_treatment,
             y_axis_treatment,
             pixel_format: pixels.pixel_format,
-            data: pixels.data,
+            data: pixels.data.into(),
         });
 
         if let Some(fb) = self.bound_framebuffer.get() {
@@ -783,7 +783,7 @@ impl WebGLRenderingContext {
             alpha_treatment,
             y_axis_treatment,
             pixel_format: pixels.pixel_format,
-            data: pixels.data,
+            data: pixels.data.into(),
         });
     }
 
