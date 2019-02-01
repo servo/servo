@@ -35,7 +35,7 @@ use js::jsapi::JS_AddInterruptCallback;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
-use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{load_whole_resource, IpcSend};
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
@@ -105,6 +105,12 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
         }
     }
 
+    fn pipeline_id(&self) -> Option<&PipelineId> {
+        // Workers always return None, since the pipeline_id is only used to check for document activity,
+        // and this check does not apply to worker event-loops.
+        None
+    }
+
     fn into_queued_task(self) -> Option<QueuedTask> {
         let (worker, common_worker_msg) = match self {
             DedicatedWorkerScriptMsg::CommonWorker(worker, common_worker_msg) => {
@@ -129,6 +135,11 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
         let (worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         DedicatedWorkerScriptMsg::CommonWorker(worker.unwrap(), WorkerScriptMsg::Common(script_msg))
+    }
+
+    fn inactive_msg() -> Self {
+        // Inactive is only relevant in the context of a browsing-context event-loop.
+        unreachable!("Workers should never receive messages marked as inactive");
     }
 
     fn wake_up_msg() -> Self {
