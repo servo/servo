@@ -1,0 +1,31 @@
+<!doctype html>
+<head>
+  <meta charset=utf-8>
+  <title>Elements which try to get in front of fullscreen</title>
+  <link rel=match href=fullscreen-baseline-ref.html>
+  <style>
+    div { background: red; }
+    #it { background: green; }
+
+    /* Fixed elements should not show up in front of fullscreen elements */
+    .fixed { position: fixed; top: 0; left: 0; background: blue; }
+
+    /* Elements with a large z-index (even the maximum u32)
+       should not show up in front of fullscreen elements */
+    .zindex { z-index: 4294967295; background: yellow; }
+  </style>
+</head>
+<body>
+  <div>-4</div>
+  <div class="fixed zindex">-3</div>
+  <div class="fixed">-2</div>
+  <div class="zindex">-1</div>
+  <div id="it">0</div>
+  <div>1</div>
+  <div class="fixed zindex">2</div>
+  <div class="fixed">3</div>
+  <div class="zindex">4</div>
+</body>
+<script>
+  document.getElementById("it").requestFullscreen();
+</script>
