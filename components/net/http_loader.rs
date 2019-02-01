@@ -664,7 +664,7 @@ pub fn http_redirect_fetch(
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::RedirectStart);
-    
+
     context
         .timing
         .lock()

@@ -455,7 +455,8 @@ pub struct ResourceFetchTiming {
     // pub connect_end: u64,
 }
 
-enum RedirectStartValue {
+pub enum RedirectStartValue {
+    #[allow(dead_code)]
     Zero,
     FetchStart,
 }
