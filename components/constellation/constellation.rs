@@ -614,11 +614,12 @@ where
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
-                let background_monitor_register = match opts::multiprocess() {
-                    true => None,
-                    false => Some(HangMonitorRegister::init(
+                let background_monitor_register = if opts::multiprocess() {
+                    None
+                } else {
+                    Some(HangMonitorRegister::init(
                         background_hang_monitor_sender.clone(),
-                    )),
+                    ))
                 };
 
                 let (ipc_layout_sender, ipc_layout_receiver) =
