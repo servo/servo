@@ -618,8 +618,7 @@ pub fn http_fetch(
             request.redirect_count as u16,
         ));
 
-    let timing = &*context.timing.lock().unwrap();
-    response.resource_timing = timing.clone();
+    response.resource_timing = context.timing.lock().unwrap().clone();
 
     // Step 6
     response
@@ -1207,8 +1206,8 @@ fn http_network_fetch(
         }
     }
 
-    let timing = &*context.timing.lock().unwrap();
-    let mut response = Response::new(url.clone(), timing.clone());
+    let timing = context.timing.lock().unwrap().clone();
+    let mut response = Response::new(url.clone(), timing);
     response.status = Some((
         res.status(),
         res.status().canonical_reason().unwrap_or("").into(),
