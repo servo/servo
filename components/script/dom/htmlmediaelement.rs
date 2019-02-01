@@ -373,8 +373,10 @@ impl HTMLMediaElement {
             // playback position.
         }
     }
-    // https://html.spec.whatwg.org/multipage/media.html#allowed-to-play
-    fn is_allowed_to_play(&self) -> bool { true }
+    // https://html.spec.whatwg.org/multipage/#allowed-to-play
+    fn is_allowed_to_play(&self) -> bool {
+        true
+    }
 
     // https://html.spec.whatwg.org/multipage/#notify-about-playing
     fn notify_about_playing(&self) {
@@ -1425,7 +1427,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             return;
         }
         self.muted.set(value);
-        self.player.set_mute(value);
+        let _ = self.player.set_mute(value);
         let window = window_from_node(self);
         window
             .task_manager()
