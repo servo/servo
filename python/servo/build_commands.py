@@ -604,6 +604,10 @@ class MachCommands(CommandBase):
                 gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
                 gst_root = ""
                 gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
+                print(gst_default_path)
+                print(os.path.exists(gst_default_path))
+                for pt, dt, ft in os.walk("C:\\gstreamer\\"):
+                    print(pt)
                 gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
                 if os.path.exists(path.join(gst_default_path, "bin", "libz.dll")):
                     gst_root = gst_default_path
