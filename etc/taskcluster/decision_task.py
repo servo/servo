@@ -359,6 +359,12 @@ def windows_build_task(name):
         .with_rustup()
         .with_repacked_msi(
             url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                "1.14.3/gstreamer-1.0-x86_64-1.14.3.msi",
+            sha256="f4f20c713766ed6718b914b9ae57ed993a59ffe194e6ef530c8547508b4484d8",
+            path="gst",
+        )
+        .with_repacked_msi(
+            url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
                 "1.14.3/gstreamer-1.0-devel-x86_64-1.14.3.msi",
             sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
             path="gst",
