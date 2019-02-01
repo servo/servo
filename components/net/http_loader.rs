@@ -41,8 +41,8 @@ use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use net_traits::ResourceAttribute;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
+use net_traits::{RedirectStartValue, ResourceAttribute};
 use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
@@ -528,7 +528,6 @@ pub fn http_fetch(
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
         //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
         //   secure_connection_start)
-        // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
         // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
         //   (https://w3c.github.io/resource-timing/#dfn-starttime)
         context
@@ -659,6 +658,15 @@ pub fn http_redirect_fetch(
     };
 
     // Step 1 of https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
+    // TODO: check origin and timing allow check
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::RedirectStart(
+            RedirectStartValue::FetchStart,
+        ));
+
     context
         .timing
         .lock()
