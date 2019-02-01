@@ -19,7 +19,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import urllib
 
 from mach.decorators import (
     CommandArgument,
@@ -147,26 +146,9 @@ def copy_dependencies(binary_path, lib_path):
 
 
 def copy_windows_dependencies(binary_path, destination):
-    deps = [
-        "libcryptoMD.dll",
-        "libsslMD.dll",
-    ]
-    for d in deps:
-        shutil.copy(path.join(binary_path, d), destination)
-
-    # Search for the generated nspr4.dll
-    build_path = path.join(binary_path, "build")
-    nspr4 = "nspr4.dll"
-    nspr4_path = None
-    for root, dirs, files in os.walk(build_path):
-        if nspr4 in files:
-            nspr4_path = path.join(root, nspr4)
-            break
-
-    if nspr4_path is None:
-        print("WARNING: could not find nspr4.dll")
-    else:
-        shutil.copy(nspr4_path, destination)
+    for f in os.listdir(binary_path):
+        if os.path.isfile(path.join(binary_path, f)) and f.endswith(".dll"):
+            shutil.copy(path.join(binary_path, f), destination)
 
 
 def change_prefs(resources_path, platform, vr=False):
@@ -397,11 +379,10 @@ class PackageCommands(CommandBase):
 
             print("Copying files")
             dir_to_temp = path.join(dir_to_msi, 'temp')
-            dir_to_temp_servo = path.join(dir_to_temp, 'servo')
-            dir_to_resources = path.join(dir_to_temp_servo, 'resources')
+            dir_to_resources = path.join(dir_to_temp, 'resources')
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copy(binary_path, dir_to_temp_servo)
-            copy_windows_dependencies(target_dir, dir_to_temp_servo)
+            shutil.copy(binary_path, dir_to_temp)
+            copy_windows_dependencies(target_dir, dir_to_temp)
 
             change_prefs(dir_to_resources, "windows")
 
@@ -412,7 +393,7 @@ class PackageCommands(CommandBase):
             wxs_path = path.join(dir_to_msi, "Installer.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=target_dir,
-                dir_to_temp=dir_to_temp_servo,
+                dir_to_temp=dir_to_temp,
                 resources_path=dir_to_resources))
 
             # run candle and light
@@ -433,14 +414,7 @@ class PackageCommands(CommandBase):
             dir_to_installer = path.join(dir_to_msi, "Installer.msi")
             print("Packaged Servo into " + dir_to_installer)
 
-            # Download GStreamer installer. Only once.
-            gstreamer_msi_path = path.join(dir_to_msi, 'Gstreamer.msi')
-            if not os.path.exists(gstreamer_msi_path):
-                print('Fetching GStreamer installer. This may take a while...')
-                gstreamer_url = 'https://gstreamer.freedesktop.org/data/pkg/windows/1.14.2/gstreamer-1.0-x86-1.14.2.msi'
-                urllib.urlretrieve(gstreamer_url, gstreamer_msi_path)
-
-            # Generate bundle with GStreamer and Servo installers.
+            # Generate bundle with Servo installer.
             print("Creating bundle")
             shutil.copy(path.join(dir_to_root, 'support', 'windows', 'Servo.wxs'), dir_to_msi)
             bundle_wxs_path = path.join(dir_to_msi, 'Servo.wxs')
@@ -457,11 +431,12 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.msi"))
+            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.exe"))
 
             print("Creating ZIP")
-            shutil.make_archive(path.join(dir_to_msi, "Servo"), "zip", dir_to_temp)
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.zip"))
+            zip_path = path.join(dir_to_msi, "Servo.zip")
+            archive_deterministically(dir_to_temp, zip_path, prepend_path='servo/')
+            print("Packaged Servo into " + zip_path)
 
             print("Cleaning up")
             delete(dir_to_temp)
