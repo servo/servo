@@ -57,6 +57,7 @@ linux_build_env = {
 macos_build_env = {}
 windows_build_env = {
     "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
+    "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
 }
 windows_sparse_checkout = [
     "/*",
@@ -356,6 +357,12 @@ def windows_build_task(name):
         .with_repo(sparse_checkout=windows_sparse_checkout)
         .with_python2()
         .with_rustup()
+        .with_repacked_msi(
+            url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                "1.14.3/gstreamer-1.0-x86_64-1.14.3.msi",
+            sha256="f4f20c713766ed6718b914b9ae57ed993a59ffe194e6ef530c8547508b4484d8",
+            path="gst",
+        )
         .with_repacked_msi(
             url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
                 "1.14.3/gstreamer-1.0-devel-x86_64-1.14.3.msi",
