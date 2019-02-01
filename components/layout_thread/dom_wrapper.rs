@@ -261,7 +261,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'ln>> {
-        self.parent_element()
+        let parent = self.parent_node()?;
+        if let Some(shadow) = parent.as_shadow_root() {
+            return Some(shadow.host());
+        };
+        parent.as_element()
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -440,7 +444,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator> {
-        LayoutIterator(self.as_node().dom_children())
+        LayoutIterator(if let Some(shadow) = self.shadow_root() {
+            shadow.as_node().dom_children()
+        } else {
+            self.as_node().dom_children()
+        })
     }
 
     fn is_html_element(&self) -> bool {
@@ -1034,6 +1042,13 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn children(&self) -> LayoutIterator<Self::ChildrenIterator> {
+        if let Some(element) = self.node.as_element() {
+            if let Some(shadow) = element.shadow_root() {
+                return LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(
+                    shadow.as_node().to_threadsafe(),
+                ));
+            }
+        }
         LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(*self))
     }
 
