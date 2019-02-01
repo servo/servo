@@ -289,6 +289,19 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
         }
     }
 
+    fn pipeline_id(&self) -> Option<&PipelineId> {
+        let script_msg = match self {
+            MainThreadScriptMsg::Common(script_msg) => script_msg,
+            _ => return None,
+        };
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => {
+                pipeline_id.as_ref()
+            },
+            _ => return None,
+        }
+    }
+
     fn into_queued_task(self) -> Option<QueuedTask> {
         let script_msg = match self {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
@@ -877,6 +890,21 @@ impl ScriptThread {
             root.get().and_then(|script_thread| {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.documents.borrow().find_document(id)
+            })
+        })
+    }
+
+    pub fn get_currently_not_fully_active_document_ids() -> HashSet<PipelineId> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.get().map_or(HashSet::new(), |script_thread| {
+                let script_thread = unsafe { &*script_thread };
+                let mut inactive = HashSet::new();
+                for (id, document) in script_thread.documents.borrow().iter() {
+                    if !document.is_fully_active() {
+                        inactive.insert(id.clone());
+                    }
+                }
+                inactive
             })
         })
     }

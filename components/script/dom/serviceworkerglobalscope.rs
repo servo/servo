@@ -29,6 +29,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
+use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
 use script_traits::{
@@ -63,6 +64,12 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
             },
             _ => return None,
         }
+    }
+
+    fn pipeline_id(&self) -> Option<&PipelineId> {
+        // Workers always return None, since the pipeline_id is only used to check for document activity,
+        // and this check does not apply to worker event-loops.
+        None
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {
