@@ -559,7 +559,8 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
-        status = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
+        #  status = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
+        status = 0
         elapsed = time() - build_start
 
         # Do some additional things if the build succeeded
@@ -589,25 +590,21 @@ class MachCommands(CommandBase):
                     shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                 servo_exe_dir)
                 # Search for the generated nspr4.dll
-                build_path = path.join(servo_exe_dir, "build")
-                nspr4 = "nspr4.dll"
-                nspr4_path = None
-                for root, dirs, files in os.walk(build_path):
-                    if nspr4 in files:
-                        nspr4_path = path.join(root, nspr4)
-                        break
-                if nspr4_path is None:
-                    print("WARNING: could not find nspr4.dll")
-                else:
-                    shutil.copy(nspr4_path, servo_exe_dir)
+                # build_path = path.join(servo_exe_dir, "build")
+                # nspr4 = "nspr4.dll"
+                # nspr4_path = None
+                # for root, dirs, files in os.walk(build_path):
+                #     if nspr4 in files:
+                #         nspr4_path = path.join(root, nspr4)
+                #         break
+                # if nspr4_path is None:
+                #     print("WARNING: could not find nspr4.dll")
+                # else:
+                #     shutil.copy(nspr4_path, servo_exe_dir)
                 # copy needed gstreamer DLLs in to servo.exe dir
                 gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
                 gst_root = ""
                 gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
-                print(gst_default_path)
-                print(os.path.exists(gst_default_path))
-                for pt, dt, ft in os.walk("C:\\gstreamer\\"):
-                    print(pt)
                 gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
                 if os.path.exists(path.join(gst_default_path, "bin", "libz.dll")):
                     gst_root = gst_default_path
@@ -636,8 +633,11 @@ class MachCommands(CommandBase):
                 ]
                 if gst_root:
                     for gst_lib in gst_dlls:
-                        shutil.copy(path.join(gst_root, "bin", gst_lib),
-                                    servo_exe_dir)
+                        print(gst_lib)
+                        if os.path.exists(path.join(gst_root, "bin", gst_lib)):
+                            print(path.join(gst_root, "bin", gst_lib))
+                #        shutil.copy(path.join(gst_root, "bin", gst_lib),
+                #                    servo_exe_dir)
                 # copy some MSVC DLLs to servo.exe dir
                 msvc_redist_dir = None
                 vs_platform = os.environ.get("PLATFORM", "").lower()
