@@ -57,6 +57,7 @@ linux_build_env = {
 macos_build_env = {}
 windows_build_env = {
     "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
+    "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
 }
 windows_sparse_checkout = [
     "/*",
