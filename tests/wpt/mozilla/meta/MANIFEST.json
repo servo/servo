@@ -6965,6 +6965,30 @@
      {}
     ]
    ],
+   "mozilla/fullscreen/reftests/fullscreen-baseline.html": [
+    [
+     "/_mozilla/mozilla/fullscreen/reftests/fullscreen-baseline.html",
+     [
+      [
+       "/_mozilla/mozilla/fullscreen/reftests/fullscreen-baseline-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/fullscreen/reftests/fullscreen-hides-others.html": [
+    [
+     "/_mozilla/mozilla/fullscreen/reftests/fullscreen-hides-others.html",
+     [
+      [
+       "/_mozilla/mozilla/fullscreen/reftests/fullscreen-baseline-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/iframe/resize_after_load.html": [
     [
      "/_mozilla/mozilla/iframe/resize_after_load.html",
@@ -10331,6 +10355,11 @@
     ]
    ],
    "mozilla/form_submit_about_frame.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/fullscreen/reftests/fullscreen-baseline-ref.html": [
     [
      {}
     ]
@@ -19344,6 +19373,18 @@
   "mozilla/fullscreen-remove-single.html": [
    "1e3246f791df31532c32a816a14e4e3959582146",
    "testharness"
+  ],
+  "mozilla/fullscreen/reftests/fullscreen-baseline-ref.html": [
+   "7272fa8b6e84979d5fad66bfe8c906d6e714cdb4",
+   "support"
+  ],
+  "mozilla/fullscreen/reftests/fullscreen-baseline.html": [
+   "80503a9befe86e8cbd109eaf870f41c92a1952b2",
+   "reftest"
+  ],
+  "mozilla/fullscreen/reftests/fullscreen-hides-others.html": [
+   "83a9abd907fc899dcfb60bab24691feb25878f7c",
+   "reftest"
   ],
   "mozilla/getBoundingClientRect.html": [
    "a8e92d836330126f6ccc4a13354368e223d260da",
