@@ -1,3 +1,4 @@
 steps:
-- script: ./wpt manifest
+# `python wpt` instead of `./wpt` is to make this work on Windows:
+- script: python wpt manifest
   displayName: 'Update manifest'

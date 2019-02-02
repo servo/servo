@@ -801,5 +801,3 @@ CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/cont
 # Signed Exchange files have hard-coded URLs in the certUrl field
 WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
-
-WEB-PLATFORM.TEST: workers/Worker-location.any.js

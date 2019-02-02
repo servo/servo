@@ -1096,8 +1096,8 @@ interface HTMLCanvasElement : HTMLElement {
 
   RenderingContext? getContext(DOMString contextId, optional any options = null);
 
-  USVString toDataURL(optional DOMString type, optional any quality);
-  void toBlob(BlobCallback _callback, optional DOMString type, optional any quality);
+  USVString toDataURL(optional DOMString type = "image/png", optional any quality);
+  void toBlob(BlobCallback _callback, optional DOMString type = "image/png", optional any quality);
   OffscreenCanvas transferControlToOffscreen();
 };
 
@@ -1357,7 +1357,7 @@ typedef (OffscreenCanvasRenderingContext2D or WebGLRenderingContext or WebGL2Ren
 
 dictionary ImageEncodeOptions {
   DOMString type = "image/png";
-  unrestricted double quality = 1.0;
+  unrestricted double quality;
 };
 
 enum OffscreenRenderingContextId { "2d", "webgl", "webgl2" };

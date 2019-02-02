@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  promise_test(async () => {
+    var bc = new BroadcastChannel("portals-cross-origin-load");
+    var receiveMessage = new Promise((resolve, reject) => {
+      bc.onmessage = e => {
+        bc.close();
+        resolve();
+      }
+    });
+    var portal = document.createElement("portal");
+    portal.src = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-cross-origin.sub.html";
+    document.body.appendChild(portal);
+    return receiveMessage;
+  });
+</script>
+</body>
