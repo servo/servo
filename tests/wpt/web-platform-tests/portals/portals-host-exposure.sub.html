@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  let channelIndex = 0;
+  async function openPortalAndReceiveMessage(portalSrc) {
+    let channelName = `portals-host-exposure-${channelIndex++}`
+    let broadcastChannel = new BroadcastChannel(channelName);
+    try {
+      let received = new Promise((resolve, reject) => {
+        broadcastChannel.addEventListener('message', e => {
+          resolve(e.data);
+        }, {once: true})
+      });
+      let portal = document.createElement('portal');
+      portal.src = `${portalSrc}?broadcastchannel=${channelName}`;
+      document.body.appendChild(portal);
+      return await received;
+    } finally {
+      broadcastChannel.close();
+    }
+  }
+
+  promise_test(async t => {
+    let {hasHost} = await openPortalAndReceiveMessage(
+        'resources/portal-host.html');
+    assert_true(hasHost, "window.portalHost should be defined");
+  }, "window.portalHost should be exposed in same-origin portal");
+
+  promise_test(async t => {
+    let {hasHost} = await openPortalAndReceiveMessage(
+        'http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-host-cross-origin.sub.html');
+    assert_true(hasHost, "window.portalHost should be defined");
+  }, "window.portalHost should be exposed in cross-origin portal");
+
+  promise_test(async t => {
+    let {hasHost} = await openPortalAndReceiveMessage(
+        'resources/portal-host-cross-origin-navigate.sub.html');
+    assert_true(hasHost, "window.portalHost should be defined");
+  }, "window.portalHost should be exposed in portal after cross-origin navigation");
+
+</script>
+</body>

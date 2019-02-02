@@ -13,6 +13,11 @@
 #  - A scheduled build needs to be set up for the the epochs/daily branch.
 #  - To get results from scheduled builds into wpt.fyi, a service connection
 #    named wpt.fyi with URL https://wpt.fyi is needed.
+#  - Self-hosted agents for Windows 10 are used:
+#    - 'Hosted Windows Client' is the latest Windows 10
+#    - 'Hosted Windows Client Next' is Windows 10 Insider Preview
+#    Documention for the setup of these agents:
+#    https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-windows
 
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
@@ -126,6 +131,59 @@ jobs:
   - template: tools/ci/azure/tox_pytest.yml
     parameters:
       directory: tools/wpt/
+
+- job: infrastructure_win10
+  displayName: 'infrastructure/ tests (Windows 10)'
+  # This job is only triggered manually until it has been shown to be robust.
+  condition: and(eq(variables['Build.Reason'], 'Manual'), variables['run_infrastructure_win10'])
+  pool:
+    name: 'Hosted Windows Client'
+  steps:
+  - template: tools/ci/azure/system_info.yml
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_python.yml
+  - template: tools/ci/azure/pip_install.yml
+    parameters:
+      packages: virtualenv
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: python ./wpt run --yes --no-manifest-update --install-fonts --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-tbpl $(Build.ArtifactStagingDirectory)/edge.tbpl.log --log-tbpl-level info edge_webdriver infrastructure/
+    displayName: 'Run tests (Edge)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'infrastructure'
+    condition: succeededOrFailed()
+  - template: tools/ci/azure/cleanup_win10.yml
+
+- job: all_edge
+  displayName: 'all tests (Edge)'
+  # This job is only triggered manually until it has been shown to be robust.
+  condition: and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge'])
+  # There are 5 agents in the pool, but use more jobs so that each takes <1h.
+  strategy:
+    parallel: 20
+  timeoutInMinutes: 360
+  pool:
+    name: 'Hosted Windows Client'
+  steps:
+  - template: tools/ci/azure/system_info.yml
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_python.yml
+  - template: tools/ci/azure/pip_install.yml
+    parameters:
+      packages: virtualenv
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: python ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --test-types reftest testharness --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json edge_webdriver
+    displayName: 'Run tests'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'results'
+  - template: tools/ci/azure/cleanup_win10.yml
 
 - job: all_macOS
   displayName: 'all tests (Safari Technology Preview)'

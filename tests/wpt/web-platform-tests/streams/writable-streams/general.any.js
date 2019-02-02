@@ -268,3 +268,10 @@ test(() => {
   assert_true(sub.extraFunction(),
               'extraFunction() should be present on Subclass object');
 }, 'Subclassing WritableStream should work');
+
+test(() => {
+  const ws = new WritableStream();
+  assert_false(ws.locked, 'stream should not be locked');
+  ws.getWriter();
+  assert_true(ws.locked, 'stream should be locked');
+}, 'the locked getter should return true if the stream has a writer');

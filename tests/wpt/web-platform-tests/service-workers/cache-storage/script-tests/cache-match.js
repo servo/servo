@@ -144,6 +144,25 @@ cache_test(function(cache) {
         });
   }, 'Cache.match supports ignoreVary');
 
+cache_test(function(cache) {
+    let has_cache_name = false;
+    const opts = {
+      get cacheName() {
+        has_cache_name = true;
+        return undefined;
+      }
+    };
+    return self.caches.open('foo')
+      .then(function() {
+          return cache.match('bar', opts);
+        })
+      .then(function() {
+          assert_false(has_cache_name,
+                       'Cache.match does not support cacheName option ' +
+                       'which was removed in CacheQueryOptions.');
+        });
+  }, 'Cache.match does not support cacheName option');
+
 prepopulated_cache_test(simple_entries, function(cache, entries) {
     return cache.match(entries.cat.request.url + '#mouse')
       .then(function(result) {
