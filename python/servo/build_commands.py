@@ -619,6 +619,7 @@ class MachCommands(CommandBase):
                     status = 1
                 gst_dlls = [
                     "libffi-7.dll",
+                    "libgio-2.0-0.dll",
                     "libglib-2.0-0.dll",
                     "libgmodule-2.0-0.dll",
                     "libgobject-2.0-0.dll",
@@ -628,8 +629,11 @@ class MachCommands(CommandBase):
                     "libgstpbutils-1.0-0.dll",
                     "libgstplayer-1.0-0.dll",
                     "libgstreamer-1.0-0.dll",
+                    "libgstrtp-1.0-0.dll",
+                    "libgstsdp-1.0-0.dll",
                     "libgsttag-1.0-0.dll",
                     "libgstvideo-1.0-0.dll",
+                    "libgstwebrtc-1.0-0.dll",
                     "libintl-8.dll",
                     "liborc-0.4-0.dll",
                     "libwinpthread-1.dll",
