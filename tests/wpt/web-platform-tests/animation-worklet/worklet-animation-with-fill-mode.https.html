@@ -14,83 +14,146 @@
 }
 </style>
 
-<script>
-function CreateTest(target, effect, verify, test_name) {
-  promise_test(async function() {
-    await registerConstantLocalTimeAnimator(2000);
-    const animation = new WorkletAnimation('constant_time', effect);
-    animation.play();
+<div id="target" class='target'></div>
 
-    await waitForAsyncAnimationFrames(1);
-    // waitTwoAnimationFrames guarantees a compositor frame that could update
-    // the opacity value in the worklet. Meanwhile, getComputedStyle needs an
-    // extra frame to fetch the updated value.
-    await waitForNextFrame();
-    verify();
-    animation.cancel();
-  }, test_name);
+<script>
+setup(setupAndRegisterTests, {explicit_done: true});
+
+function setupAndRegisterTests() {
+  registerConstantLocalTimeAnimator(2000).then(() => {
+    promise_test(
+        effect_with_fill_mode_forwards,
+        "Effect with fill mode forwards in after phase produces output that is equivalent to effect's end value.");
+
+    promise_test(
+        effect_without_fill_mode_forwards,
+        'Effect without fill mode forwards in after phase (local time beyond end) should deactivate the animation.');
+
+    promise_test(
+        effect_without_fill_forwards_at_end,
+        'Effect without fill mode in after phase (local time at end) should deactivate the animation.');
+
+    promise_test(
+        effect_with_fill_backwards,
+        "Effect with fill mode backwards in before phase produces output that is equivalent to effect's start value.");
+
+    promise_test(
+        effect_without_fill_backwards,
+        'Effect without fill mode backwards in before phase (local time before start) should deactivate the animation.');
+
+    promise_test(
+        effect_without_fill_backwards_at_start,
+        'Effect with local time at start point is in active phase.');
+
+    done();
+  });
 }
-</script>
 
-<div id="target1" class='target'></div>
-<div id="target2" class='target'></div>
-<div id="target3" class='target'></div>
-<div id="target4" class='target'></div>
-<div id="target5" class='target'></div>
-<div id="target6" class='target'></div>
+async function effect_with_fill_mode_forwards(t) {
+      const effect_with_fill_forwards = new KeyframeEffect(
+          target,
+          { opacity: [0.5, 0] },
+          { duration: 1000, fill: 'forwards' });
+      const animation = new WorkletAnimation(
+          'constant_time',
+          effect_with_fill_forwards);
+      animation.play();
 
-<script>
-  const effect_with_fill_forwards = new KeyframeEffect(
-      target1,
-      { opacity: [0.5, 0] },
-      { duration: 1000, fill: 'forwards' });
-  CreateTest(target1,
-      effect_with_fill_forwards,
-      function() { assert_equals(getComputedStyle(target1).opacity, '0'); },
-      "Effect with fill mode forwards in after phase produces output that is equivalent to effect's end value.");
+      await waitForAsyncAnimationFrames(1);
+      await waitForNextFrame();
 
-  const effect_without_fill_forwards = new KeyframeEffect(
-      target2,
-      { opacity: [0.5, 0] },
-      { duration: 1000 });
-  CreateTest(target2,
-      effect_without_fill_forwards,
-      function() { assert_equals(getComputedStyle(target2).opacity, '1'); },
-      'Effect without fill mode forwards in after phase (local time beyond end) should deactivate the animation.');
+      assert_equals(getComputedStyle(target).opacity, '0');
 
-  const effect_without_fill_forwards_at_end = new KeyframeEffect(
-      target3,
-      { opacity: [0.5, 0] },
-      { duration: 2000 });
-  CreateTest(target3,
-      effect_without_fill_forwards_at_end,
-      function() { assert_equals(getComputedStyle(target3).opacity, '1'); },
-      'Effect without fill mode in after phase (local time at end) should deactivate the animation.');
+      animation.cancel();
+}
 
-  const effect_with_fill_backwards = new KeyframeEffect(
-      target4,
-      { opacity: [0.5, 0] },
-      { duration: 1000, delay: 2001, fill: 'backwards' });
-  CreateTest(target4,
-      effect_with_fill_backwards,
-      function() { assert_equals(getComputedStyle(target4).opacity, '0.5'); },
-      "Effect with fill mode backwards in before phase produces output that is equivalent to effect's start value.");
+async function effect_without_fill_mode_forwards(t) {
+      const effect_without_fill_forwards = new KeyframeEffect(
+          target,
+          { opacity: [0.5, 0] },
+          { duration: 1000 });
+      const animation = new WorkletAnimation(
+          'constant_time',
+          effect_without_fill_forwards);
+      animation.play();
 
-  const effect_without_fill_backwards = new KeyframeEffect(
-      target5,
-      { opacity: [0.5, 0] },
-      { duration: 1000, delay: 2001 });
-  CreateTest(target5,
-      effect_without_fill_backwards,
-      function() { assert_equals(getComputedStyle(target5).opacity, '1'); },
-      'Effect without fill mode backwards in before phase (local time before start) should deactivate the animation.');
+      await waitForAsyncAnimationFrames(1);
+      await waitForNextFrame();
 
-  const effect_without_fill_backwards_at_start = new KeyframeEffect(
-      target6,
-      { opacity: [0.5, 0] },
-      { duration: 1000, delay: 2000 });
-  CreateTest(target6,
-      effect_without_fill_backwards_at_start,
-      function() { assert_equals(getComputedStyle(target6).opacity, '0.5'); },
-      'Effect with local time at start point is in active phase.');
+      assert_equals(getComputedStyle(target).opacity, '1');
+
+      animation.cancel();
+}
+
+async function effect_without_fill_forwards_at_end(t) {
+      const effect_without_fill_forwards_at_end = new KeyframeEffect(
+          target,
+          { opacity: [0.5, 0] },
+          { duration: 2000 });
+      const animation = new WorkletAnimation(
+          'constant_time',
+          effect_without_fill_forwards_at_end);
+      animation.play();
+
+      await waitForAsyncAnimationFrames(1);
+      await waitForNextFrame();
+
+      assert_equals(getComputedStyle(target).opacity, '1');
+
+      animation.cancel();
+}
+
+async function effect_with_fill_backwards(t) {
+      const effect_with_fill_backwards = new KeyframeEffect(
+          target,
+          { opacity: [0.5, 0] },
+          { duration: 1000, delay: 2001, fill: 'backwards' });
+      const animation = new WorkletAnimation(
+          'constant_time',
+          effect_with_fill_backwards);
+      animation.play();
+
+      await waitForAsyncAnimationFrames(1);
+      await waitForNextFrame();
+
+      assert_equals(getComputedStyle(target).opacity, '0.5');
+
+      animation.cancel();
+}
+
+async function effect_without_fill_backwards(t) {
+      const effect_without_fill_backwards = new KeyframeEffect(
+          target,
+          { opacity: [0.5, 0] },
+          { duration: 1000, delay: 2001 });
+      const animation = new WorkletAnimation(
+          'constant_time',
+          effect_without_fill_backwards);
+      animation.play();
+
+      await waitForAsyncAnimationFrames(1);
+      await waitForNextFrame();
+
+      assert_equals(getComputedStyle(target).opacity, '1');
+
+      animation.cancel();
+}
+
+async function effect_without_fill_backwards_at_start(t) {
+      const effect_without_fill_backwards_at_start = new KeyframeEffect(
+          target,
+          { opacity: [0.5, 0] },
+          { duration: 1000, delay: 2000 });
+      const animation = new WorkletAnimation(
+          'constant_time',
+          effect_without_fill_backwards_at_start);
+      animation.play();
+
+      await waitForAsyncAnimationFrames(1);
+      await waitForNextFrame();
+
+      assert_equals(getComputedStyle(target).opacity, '0.5');
+
+      animation.cancel();
+}
 </script>

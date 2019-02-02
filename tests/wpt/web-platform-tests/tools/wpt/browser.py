@@ -579,8 +579,12 @@ class Edge(Browser):
         raise NotImplementedError
 
     def version(self, binary=None, webdriver_binary=None):
-        return None
-
+        command = "(Get-AppxPackage Microsoft.MicrosoftEdge).Version"
+        try:
+            return call("powershell.exe", command).strip()
+        except (subprocess.CalledProcessError, OSError):
+            self.logger.warning("Failed to call %s in PowerShell", command)
+            return None
 
 class EdgeWebDriver(Edge):
     product = "edge_webdriver"

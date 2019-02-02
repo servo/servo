@@ -22,7 +22,6 @@ enum EffectiveConnectionType {
   "slow-2g"
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
 interface mixin NavigatorNetworkInformation {
   readonly attribute NetworkInformation connection;
 };

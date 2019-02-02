@@ -109,6 +109,24 @@ test_interpolation(
 test_interpolation(
   {
     property: 'transform',
+    from: 'rotate3d(1, 1, 1, -60deg) translateX(100px)',
+    to: 'rotate3d(2, 2, 2, 60deg) translateY(200px)',
+  }, [{ at: 0.25, expect: 'rotate3d(1, 1, 1, -30deg) translate(75px, 50px)' }],
+  'Match on rotation using collinear rotation axes'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'rotate3d(1, 0, 0, 360deg) translateX(100px)',
+    to: 'rotate3d(0, 1, 0, -720deg) translateY(200px)',
+  }, [{ at: 0.25, expect: 'rotate3d(0, 0, 1, 0deg) translate(75px, 50px)' }],
+  'Match on rotation with spherical interpolation'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
     from: 'rotate(0deg) translate(100px)',
     to: 'rotate(720deg) scale(2) translate(200px)',
   },

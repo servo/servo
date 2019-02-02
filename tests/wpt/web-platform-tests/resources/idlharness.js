@@ -2309,7 +2309,7 @@ IdlInterface.prototype.do_member_operation_asserts = function(memberHolderObject
     }
 }
 
-IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, member) {
+IdlInterface.prototype.test_to_json_operation = function(desc, memberHolderObject, member) {
     var instanceName = memberHolderObject && memberHolderObject.constructor.name
         || member.name + " object";
     if (member.has_extended_attribute("Default")) {
@@ -2325,12 +2325,12 @@ IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, mem
                 this.array.assert_type_is(json[k], type);
                 delete json[k];
             }, this);
-        }.bind(this), "Test default toJSON operation of " + instanceName);
+        }.bind(this), this.name + " interface: default toJSON operation on " + desc);
     } else {
         subsetTestByKey(this.name, test, function() {
             assert_true(this.array.is_json_type(member.idlType), JSON.stringify(member.idlType) + " is not an appropriate return value for the toJSON operation of " + instanceName);
             this.array.assert_type_is(memberHolderObject.toJSON(), member.idlType);
-        }.bind(this), "Test toJSON operation of " + instanceName);
+        }.bind(this), this.name + " interface: toJSON operation on " + desc);
     }
 };
 
@@ -2722,7 +2722,7 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
         }
 
         if (member.is_to_json_regular_operation()) {
-            this.test_to_json_operation(obj, member);
+            this.test_to_json_operation(desc, obj, member);
         }
     }
 };

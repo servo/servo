@@ -253,7 +253,7 @@
     const encoding = getFirstEncoding(param);
 
     encoding.scaleResolutionDownBy = 0.5;
-    return promise_rejects(t, 'RangeError',
+    return promise_rejects(t, new RangeError(),
       sender.setParameters(param));
   }, `setParameters() with encoding.scaleResolutionDownBy field set to less than 1.0 should reject with RangeError`);
 
