@@ -93,23 +93,20 @@ enum XRReferenceSpaceType {
   "unbounded"
 };
 
-dictionary XRReferenceSpaceOptions {
-  required XRReferenceSpaceType type;
-};
-
-[SecureContext, Exposed=Window] interface XRReferenceSpace : XRSpace {
-  attribute XRRigidTransform originOffset;
-  attribute EventHandler onreset;
-};
-
 enum XRStationaryReferenceSpaceSubtype {
   "eye-level",
   "floor-level",
   "position-disabled"
 };
 
-dictionary XRStationaryReferenceSpaceOptions : XRReferenceSpaceOptions {
-  required XRStationaryReferenceSpaceSubtype subtype;
+dictionary XRReferenceSpaceOptions {
+  required XRReferenceSpaceType type;
+  XRStationaryReferenceSpaceSubtype subtype;
+};
+
+[SecureContext, Exposed=Window] interface XRReferenceSpace : XRSpace {
+  attribute XRRigidTransform originOffset;
+  attribute EventHandler onreset;
 };
 
 [SecureContext, Exposed=Window]
