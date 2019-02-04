@@ -6977,6 +6977,18 @@
      {}
     ]
    ],
+   "mozilla/fullscreen/reftests/fullscreen-hides-others.html": [
+    [
+     "/_mozilla/mozilla/fullscreen/reftests/fullscreen-hides-others.html",
+     [
+      [
+       "/_mozilla/mozilla/fullscreen/reftests/fullscreen-baseline-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/iframe/resize_after_load.html": [
     [
      "/_mozilla/mozilla/iframe/resize_after_load.html",
@@ -26964,6 +26976,10 @@
   ],
   "mozilla/fullscreen/reftests/fullscreen-baseline.html": [
    "80503a9befe86e8cbd109eaf870f41c92a1952b2",
+   "reftest"
+  ],
+  "mozilla/fullscreen/reftests/fullscreen-hides-others.html": [
+   "4aaf733180d42790c103b9192992ddc006ca9dcb",
    "reftest"
   ],
   "mozilla/getBoundingClientRect.html": [
