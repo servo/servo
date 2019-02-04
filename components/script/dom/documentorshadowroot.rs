@@ -2,65 +2,86 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::htmlmetaelement::HTMLMetaElement;
+use crate::dom::node::{self, Node};
 use crate::dom::window::Window;
 use euclid::Point2D;
 use js::jsapi::JS_GetRuntime;
-use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
+use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc;
+use std::fmt;
+use style::context::QuirksMode;
+use style::media_queries::MediaList;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::stylesheet_set::DocumentStylesheetSet;
+use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
 
-macro_rules! proxy_call(
-    ($fn_name:ident, $return_type:ty) => (
-        pub fn $fn_name(&self) -> $return_type {
-            match self {
-                DocumentOrShadowRoot::Document(doc) => doc.$fn_name(),
-                DocumentOrShadowRoot::ShadowRoot(root) => root.$fn_name(),
-            }
-        }
-    );
-
-    ($fn_name:ident, $arg1:ident, $arg1_type:ty, $return_type:ty) => (
-        pub fn $fn_name(&self, $arg1: $arg1_type) -> $return_type {
-            match self {
-                DocumentOrShadowRoot::Document(doc) => doc.$fn_name($arg1),
-                DocumentOrShadowRoot::ShadowRoot(root) => root.$fn_name($arg1),
-            }
-        }
-    );
-);
-
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 #[must_root]
-#[derive(JSTraceable, MallocSizeOf)]
-pub enum DocumentOrShadowRoot {
-    Document(Dom<Document>),
-    ShadowRoot(Dom<ShadowRoot>),
+pub struct StyleSheetInDocument {
+    #[ignore_malloc_size_of = "Arc"]
+    sheet: Arc<Stylesheet>,
+    owner: Dom<Element>,
 }
 
-impl DocumentOrShadowRoot {
-    proxy_call!(stylesheet_count, usize);
-    proxy_call!(stylesheet_at, index, usize, Option<DomRoot<CSSStyleSheet>>);
+impl fmt::Debug for StyleSheetInDocument {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.sheet.fmt(formatter)
+    }
+}
+
+impl PartialEq for StyleSheetInDocument {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.sheet, &other.sheet)
+    }
+}
+
+impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
+        self.sheet.origin(guard)
+    }
+
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.sheet.quirks_mode(guard)
+    }
+
+    fn enabled(&self) -> bool {
+        self.sheet.enabled()
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.sheet.media(guard)
+    }
+
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.sheet.rules(guard)
+    }
 }
 
 // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
 #[must_root]
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct DocumentOrShadowRootImpl {
+pub struct DocumentOrShadowRoot {
     window: Dom<Window>,
+    /// List of stylesheets associated with nodes in this document or shadow root.
+    /// |None| if the list needs to be refreshed.
+    stylesheets: DomRefCell<DocumentStylesheetSet<StyleSheetInDocument>>,
 }
 
-impl DocumentOrShadowRootImpl {
+impl DocumentOrShadowRoot {
     pub fn new(window: &Window) -> Self {
         Self {
             window: Dom::from_ref(window),
+            stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
         }
     }
 
@@ -182,6 +203,104 @@ impl DocumentOrShadowRootImpl {
                 // Step 5.
                 Some(body) => Some(DomRoot::upcast(body)),
                 None => document_element,
+            },
+        }
+    }
+
+    pub fn stylesheet_count(&self) -> usize {
+        self.stylesheets.borrow().len()
+    }
+
+    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+        let stylesheets = self.stylesheets.borrow();
+
+        stylesheets
+            .get(Origin::Author, index)
+            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
+    }
+
+    pub fn stylesheets_have_changed(&self) -> bool {
+        self.stylesheets.borrow().has_changed()
+    }
+
+    pub fn invalidate_stylesheets(&self) {
+        self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
+    }
+
+    pub fn flush_stylesheets_without_invalidation(&self) {
+        self.stylesheets.borrow_mut().flush_without_invalidation();
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of document sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.window
+            .layout_chan()
+            .send(Msg::RemoveStylesheet(s.clone()))
+            .unwrap();
+
+        let guard = s.shared_lock.read();
+
+        // FIXME(emilio): Would be nice to remove the clone, etc.
+        self.stylesheets.borrow_mut().remove_stylesheet(
+            None,
+            StyleSheetInDocument {
+                sheet: s.clone(),
+                owner: Dom::from_ref(owner),
+            },
+            &guard,
+        );
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn add_stylesheet(
+        &self,
+        owner: &Element,
+        sheet: Arc<Stylesheet>,
+        style_shared_lock: &StyleSharedRwLock,
+    ) {
+        // FIXME(emilio): It'd be nice to unify more code between the elements
+        // that own stylesheets, but StylesheetOwner is more about loading
+        // them...
+        debug_assert!(
+            owner.as_stylesheet_owner().is_some() || owner.is::<HTMLMetaElement>(),
+            "Wat"
+        );
+
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        let insertion_point = stylesheets
+            .iter()
+            .map(|(sheet, _origin)| sheet)
+            .find(|sheet_in_doc| {
+                owner
+                    .upcast::<Node>()
+                    .is_before(sheet_in_doc.owner.upcast())
+            })
+            .cloned();
+
+        self.window
+            .layout_chan()
+            .send(Msg::AddStylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+            ))
+            .unwrap();
+
+        let sheet = StyleSheetInDocument {
+            sheet,
+            owner: Dom::from_ref(owner),
+        };
+
+        let guard = style_shared_lock.read();
+
+        match insertion_point {
+            Some(ip) => {
+                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
+            },
+            None => {
+                stylesheets.append_stylesheet(None, sheet, &guard);
             },
         }
     }

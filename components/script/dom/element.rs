@@ -77,7 +77,7 @@ use crate::dom::node::{NodeDamage, NodeFlags, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::servoparser::ServoParser;
-use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};

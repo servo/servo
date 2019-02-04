@@ -6,20 +6,25 @@ use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::documentorshadowroot::DocumentOrShadowRoot;
+use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
+pub trait StyleSheetListOwner {
+    fn stylesheet_count(&self) -> usize;
+    fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>>;
+}
+
 #[dom_struct]
 pub struct StyleSheetList {
     reflector_: Reflector,
-    document_or_shadow_root: DocumentOrShadowRoot,
+    #[ignore_malloc_size_of = "trait object"]
+    document_or_shadow_root: Box<StyleSheetListOwner>,
 }
 
 impl StyleSheetList {
-    #[allow(unrooted_must_root)]
-    fn new_inherited(doc_or_sr: DocumentOrShadowRoot) -> StyleSheetList {
+    fn new_inherited(doc_or_sr: Box<StyleSheetListOwner>) -> StyleSheetList {
         StyleSheetList {
             reflector_: Reflector::new(),
             document_or_shadow_root: doc_or_sr,
@@ -27,7 +32,7 @@ impl StyleSheetList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, doc_or_sr: DocumentOrShadowRoot) -> DomRoot<StyleSheetList> {
+    pub fn new(window: &Window, doc_or_sr: Box<StyleSheetListOwner>) -> DomRoot<StyleSheetList> {
         reflect_dom_object(
             Box::new(StyleSheetList::new_inherited(doc_or_sr)),
             window,
