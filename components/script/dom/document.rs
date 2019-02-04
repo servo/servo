@@ -43,7 +43,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, DocumentOrShadowRootImpl};
+use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::CustomElementCreationMode;
@@ -68,7 +68,6 @@ use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::keyboardevent::KeyboardEvent;
@@ -89,7 +88,7 @@ use crate::dom::range::Range;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storageevent::StorageEvent;
-use crate::dom::stylesheetlist::StyleSheetList;
+use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::text::Text;
 use crate::dom::touch::Touch;
 use crate::dom::touchevent::TouchEvent;
@@ -145,7 +144,6 @@ use std::cell::{Cell, Ref, RefMut};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
-use std::fmt;
 use std::mem;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -153,12 +151,12 @@ use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::{Device, MediaList, MediaType};
+use style::media_queries::{Device, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
-use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
+use style::stylesheets::Stylesheet;
 use url::percent_encoding::percent_decode;
 use url::Host;
 
@@ -221,53 +219,11 @@ impl PendingRestyle {
     }
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-#[must_root]
-struct StyleSheetInDocument {
-    #[ignore_malloc_size_of = "Arc"]
-    sheet: Arc<Stylesheet>,
-    owner: Dom<Element>,
-}
-
-impl fmt::Debug for StyleSheetInDocument {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        self.sheet.fmt(formatter)
-    }
-}
-
-impl PartialEq for StyleSheetInDocument {
-    fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.sheet, &other.sheet)
-    }
-}
-
-impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.sheet.origin(guard)
-    }
-
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.sheet.quirks_mode(guard)
-    }
-
-    fn enabled(&self) -> bool {
-        self.sheet.enabled()
-    }
-
-    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        self.sheet.media(guard)
-    }
-
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.sheet.rules(guard)
-    }
-}
-
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
 pub struct Document {
     node: Node,
-    document_or_shadow_root: DocumentOrShadowRootImpl,
+    document_or_shadow_root: DocumentOrShadowRoot,
     window: Dom<Window>,
     implementation: MutNullableDom<DOMImplementation>,
     #[ignore_malloc_size_of = "type from external crate"]
@@ -618,7 +574,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        self.stylesheets.borrow().has_changed() ||
+        self.document_or_shadow_root.stylesheets_have_changed() ||
             self.GetDocumentElement().map_or(false, |root| {
                 root.upcast::<Node>().has_dirty_descendants() ||
                     !self.pending_restyles.borrow().is_empty() ||
@@ -1580,7 +1536,7 @@ impl Document {
     }
 
     pub fn invalidate_stylesheets(&self) {
-        self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
+        self.document_or_shadow_root.invalidate_stylesheets();
 
         // Mark the document element dirty so a reflow will be performed.
         //
@@ -2627,7 +2583,7 @@ impl Document {
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         Document {
             node: Node::new_document_node(),
-            document_or_shadow_root: DocumentOrShadowRootImpl::new(window),
+            document_or_shadow_root: DocumentOrShadowRoot::new(window),
             window: Dom::from_ref(window),
             has_browsing_context,
             implementation: Default::default(),
@@ -2865,9 +2821,9 @@ impl Document {
         // and normal stylesheets additions / removals, because in the last case
         // the layout thread already has that information and we could avoid
         // dirtying the whole thing.
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        let have_changed = stylesheets.has_changed();
-        stylesheets.flush_without_invalidation();
+        let have_changed = self.document_or_shadow_root.stylesheets_have_changed();
+        self.document_or_shadow_root
+            .flush_stylesheets_without_invalidation();
         have_changed
     }
 
@@ -2885,88 +2841,19 @@ impl Document {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.window()
-            .layout_chan()
-            .send(Msg::RemoveStylesheet(s.clone()))
-            .unwrap();
-
-        let guard = s.shared_lock.read();
-
-        // FIXME(emilio): Would be nice to remove the clone, etc.
-        self.stylesheets.borrow_mut().remove_stylesheet(
-            None,
-            StyleSheetInDocument {
-                sheet: s.clone(),
-                owner: Dom::from_ref(owner),
-            },
-            &guard,
-        );
+        self.document_or_shadow_root.remove_stylesheet(owner, s)
     }
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
-        // FIXME(emilio): It'd be nice to unify more code between the elements
-        // that own stylesheets, but StylesheetOwner is more about loading
-        // them...
-        debug_assert!(
-            owner.as_stylesheet_owner().is_some() || owner.is::<HTMLMetaElement>(),
-            "Wat"
-        );
-
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets
-            .iter()
-            .map(|(sheet, _origin)| sheet)
-            .find(|sheet_in_doc| {
-                owner
-                    .upcast::<Node>()
-                    .is_before(sheet_in_doc.owner.upcast())
-            })
-            .cloned();
-
-        self.window()
-            .layout_chan()
-            .send(Msg::AddStylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-            ))
-            .unwrap();
-
-        let sheet = StyleSheetInDocument {
-            sheet,
-            owner: Dom::from_ref(owner),
-        };
-
-        let lock = self.style_shared_lock();
-        let guard = lock.read();
-
-        match insertion_point {
-            Some(ip) => {
-                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
-            },
-            None => {
-                stylesheets.append_stylesheet(None, sheet, &guard);
-            },
-        }
-    }
-
-    /// Returns the number of document stylesheets.
-    pub fn stylesheet_count(&self) -> usize {
-        self.stylesheets.borrow().len()
+        self.document_or_shadow_root
+            .add_stylesheet(owner, sheet, self.style_shared_lock());
     }
 
     pub fn salvageable(&self) -> bool {
         self.salvageable.get()
-    }
-
-    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        let stylesheets = self.stylesheets.borrow();
-
-        stylesheets
-            .get(Origin::Author, index)
-            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
@@ -3288,12 +3175,8 @@ impl ProfilerMetadataFactory for Document {
 impl DocumentMethods for Document {
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
-        self.stylesheet_list.or_init(|| {
-            StyleSheetList::new(
-                &self.window,
-                DocumentOrShadowRoot::Document(Dom::from_ref(self)),
-            )
-        })
+        self.stylesheet_list
+            .or_init(|| StyleSheetList::new(&self.window, Box::new(Dom::from_ref(self))))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
@@ -4674,5 +4557,15 @@ impl PendingScript {
         self.load
             .take()
             .map(|result| (DomRoot::from_ref(&*self.element), result))
+    }
+}
+
+impl StyleSheetListOwner for Dom<Document> {
+    fn stylesheet_count(&self) -> usize {
+        self.document_or_shadow_root.stylesheet_count()
+    }
+
+    fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+        self.document_or_shadow_root.stylesheet_at(index)
     }
 }

@@ -11,10 +11,10 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, DocumentOrShadowRootImpl};
+use crate::dom::documentorshadowroot::DocumentOrShadowRoot;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeFlags};
-use crate::dom::stylesheetlist::StyleSheetList;
+use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
@@ -22,7 +22,7 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct ShadowRoot {
     document_fragment: DocumentFragment,
-    document_or_shadow_root: DocumentOrShadowRootImpl,
+    document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
     host: Dom<Element>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
@@ -38,7 +38,7 @@ impl ShadowRoot {
             .set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
         ShadowRoot {
             document_fragment,
-            document_or_shadow_root: DocumentOrShadowRootImpl::new(document.window()),
+            document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
             host: Dom::from_ref(host),
             stylesheet_list: MutNullableDom::new(None),
@@ -56,16 +56,6 @@ impl ShadowRoot {
 
     pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {
         //XXX get retargeted focused element
-        None
-    }
-
-    pub fn stylesheet_count(&self) -> usize {
-        //XXX handle shadowroot stylesheets
-        0
-    }
-
-    pub fn stylesheet_at(&self, _index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        //XXX handle shadowroot stylesheets
         None
     }
 }
@@ -113,12 +103,8 @@ impl ShadowRootMethods for ShadowRoot {
 
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
-        self.stylesheet_list.or_init(|| {
-            StyleSheetList::new(
-                &self.window,
-                DocumentOrShadowRoot::ShadowRoot(Dom::from_ref(self)),
-            )
-        })
+        self.stylesheet_list
+            .or_init(|| StyleSheetList::new(&self.window, Box::new(Dom::from_ref(self))))
     }
 }
 
@@ -132,5 +118,15 @@ impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
     #[allow(unsafe_code)]
     unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
         (*self.unsafe_get()).host.to_layout()
+    }
+}
+
+impl StyleSheetListOwner for Dom<ShadowRoot> {
+    fn stylesheet_count(&self) -> usize {
+        self.document_or_shadow_root.stylesheet_count()
+    }
+
+    fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+        self.document_or_shadow_root.stylesheet_at(index)
     }
 }
