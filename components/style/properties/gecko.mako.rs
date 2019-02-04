@@ -3024,6 +3024,11 @@ fn static_assert() {
                           translate scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
+    pub fn generate_combined_transform(&mut self) {
+        unsafe { bindings::Gecko_StyleDisplay_GenerateCombinedTransform(&mut self.gecko) };
+    }
+
+    #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
         self.gecko.mDisplay = v;
         self.gecko.mOriginalDisplay = v;
