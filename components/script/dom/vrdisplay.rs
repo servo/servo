@@ -19,9 +19,11 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::node::document_from_node;
 use crate::dom::promise::Promise;
 use crate::dom::vrdisplaycapabilities::VRDisplayCapabilities;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
@@ -30,6 +32,7 @@ use crate::dom::vrframedata::VRFrameData;
 use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::window::ReflowReason;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CommonScriptMsg;
@@ -40,6 +43,7 @@ use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
+use script_layout_interface::message::ReflowGoal;
 use serde_bytes::ByteBuf;
 use std::cell::Cell;
 use std::mem;
@@ -279,7 +283,8 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
-        if self.presenting.get() {
+        // For devices which don't have an external display, we use the regular rAF
+        if self.presenting.get() && self.display.borrow().capabilities.has_external_display {
             let raf_id = self.next_raf_id.get();
             self.next_raf_id.set(raf_id + 1);
             self.raf_callback_list
@@ -295,7 +300,7 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-cancelanimationframe
     fn CancelAnimationFrame(&self, handle: u32) {
-        if self.presenting.get() {
+        if self.presenting.get() && self.display.borrow().capabilities.has_external_display {
             let mut list = self.raf_callback_list.borrow_mut();
             if let Some(pair) = list.iter_mut().find(|pair| pair.0 == handle) {
                 pair.1 = None;
@@ -396,7 +401,9 @@ impl VRDisplayMethods for VRDisplay {
         let display_id = self.display.borrow().display_id;
         let layer = self.layer.borrow();
         let msg = WebVRCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
-        self.layer_ctx.get().unwrap().send_vr_command(msg);
+        if let Some(layer_ctx) = self.layer_ctx.get() {
+            layer_ctx.send_vr_command(msg);
+        }
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#dom-vrdisplay-getlayers
@@ -450,7 +457,7 @@ impl VRDisplay {
         // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
         if self.presenting.get() {
             *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(ctx);
+            self.set_layer_ctx(ctx);
             promise.map(resolve);
             return;
         }
@@ -482,7 +489,7 @@ impl VRDisplay {
                     match recv {
                         Ok(()) => {
                             *this.layer.borrow_mut() = layer_bounds;
-                            this.layer_ctx.set(ctx.as_ref().map(|c| &**c));
+                            this.set_layer_ctx(ctx.as_ref().map(|c| &**c));
                             this.init_present();
                             promise.map(resolve);
                         },
@@ -494,6 +501,43 @@ impl VRDisplay {
                 &canceller,
             );
         });
+    }
+
+    fn set_layer_ctx(&self, ctx: Option<&WebGLRenderingContext>) {
+        // For devices that have no external display, we put the canvas into full-screen mode.
+        if self.layer_ctx == ctx {
+            return;
+        }
+        if self.display.borrow().capabilities.has_external_display {
+            self.layer_ctx.set(ctx);
+            return;
+        }
+
+        // Enter fullscreen mode.
+        // TODO: fullscreen mode isn't quite right because
+        // a) it requires the element to be attached to the DOM tree, and
+        // b) it fullscreens the element together with it's CSS styling.
+        if let Some(old) = self.layer_ctx.get() {
+            debug!("VR exiting full screen mode");
+            let canvas = old.Canvas();
+            let element = canvas.upcast::<Element>();
+            let document = document_from_node(element);
+            element.set_fullscreen_state(false);
+            document.set_fullscreen_element(None);
+        }
+        if let Some(new) = ctx {
+            debug!("VR entering full screen mode");
+            let canvas = new.Canvas();
+            let element = canvas.upcast::<Element>();
+            let document = document_from_node(element);
+            element.set_fullscreen_state(true);
+            document.set_fullscreen_element(Some(element));
+        }
+
+        self.layer_ctx.set(ctx);
+        let global = self.global();
+        let window = global.as_window();
+        window.reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
     }
 
     pub fn handle_webvr_event(&self, event: &WebVRDisplayEvent) {
@@ -561,12 +605,27 @@ impl VRDisplay {
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
         let display_id = self.display.borrow().display_id;
-        let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
+        let api_sender = match self.layer_ctx.get() {
+            Some(layer_ctx) => layer_ctx.webgl_sender(),
+            None => return,
+        };
         let js_sender = self.global().script_chan();
         let address = Trusted::new(&*self);
         let near_init = self.depth_near.get();
         let far_init = self.depth_far.get();
         let pipeline_id = self.global().pipeline_id();
+
+        // For displays with no external display, we use the regular window
+        // rAF, so we don't need to spin up a dedicated thread.
+        if !self.display.borrow().capabilities.has_external_display {
+            // Initialize compositor
+            api_sender
+                .send_vr(WebVRCommand::Create(display_id))
+                .unwrap();
+
+            // No need to spin up a rAF thread
+            return;
+        }
 
         // The render loop at native headset frame rate is implemented using a dedicated thread.
         // Every loop iteration syncs pose data with the HMD, submits the pixels to the display and waits for Vsync.
@@ -625,7 +684,10 @@ impl VRDisplay {
         self.presenting.set(false);
         *self.frame_data_receiver.borrow_mut() = None;
 
-        let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
+        let api_sender = match self.layer_ctx.get() {
+            Some(layer_ctx) => layer_ctx.webgl_sender(),
+            None => return,
+        };
         let display_id = self.display.borrow().display_id;
         api_sender
             .send_vr(WebVRCommand::Release(display_id))

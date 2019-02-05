@@ -303,6 +303,9 @@ textarea { white-space: pre-wrap; }
   /* intentionally not !important */
   object-fit:contain;
 
+  /* A work-around for https://github.com/servo/servo/issues/19771 */
+  display: block !important;
+
   /* The internal-only -servo-top-layer attribute is used
      to implement https://fullscreen.spec.whatwg.org/#top-layer */
   -servo-top-layer: top;

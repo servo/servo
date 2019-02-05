@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::webvr_test::TestVRService;
 use canvas_traits::webgl;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use euclid::Size2D;
+use euclid::TypedScale;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
+use servo_config::opts;
 use servo_config::prefs::PREFS;
+use servo_geometry::DeviceIndependentPixel;
 use std::collections::{HashMap, HashSet};
 use std::{thread, time};
+use style_traits::DevicePixel;
 use webvr_traits::webvr::*;
 use webvr_traits::{WebVRMsg, WebVRResult};
 
@@ -55,6 +60,17 @@ impl WebVRThread {
     ) -> WebVRThread {
         let mut service = VRServiceManager::new();
         service.register_defaults();
+
+        // If the pref is set, install a test WebVR display
+        if PREFS.get("dom.webvr.test").as_boolean().unwrap_or(false) {
+            // Rather annoyingly there's no easy way to get the window size
+            // from the constellation, so we guess based on the options.
+            let size = opts::get().initial_window_size;
+            let hidpi: TypedScale<u32, DeviceIndependentPixel, DevicePixel> =
+                TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0) as u32);
+            service.register(Box::new(TestVRService::new(size * hidpi)));
+        }
+
         WebVRThread {
             receiver: receiver,
             sender: sender,
