@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <title>Chrome crash with inline </title>
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#def-cb">
+  <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=928224">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>test(()=>{})</script>
+<style>
+  a {
+    position: relative;
+  }
+  a:before {
+    content: "foo";
+    position: absolute;
+    background: green;
+  }
+</style>
+</head>
+<body>
+  <div>
+    <li>
+      <a href="dummy">success if does not crash</a>
+    </li>
+  </div>
+</body>
+</html>
