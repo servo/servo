@@ -635,7 +635,7 @@ policies and contribution forms [3].
      * which can make it a lot easier to test a very specific series of events,
      * including ensuring that unexpected events are not fired at any point.
      */
-    function EventWatcher(test, watchedNode, eventTypes)
+    function EventWatcher(test, watchedNode, eventTypes, timeoutPromise)
     {
         if (typeof eventTypes == 'string') {
             eventTypes = [eventTypes];
@@ -712,6 +712,27 @@ policies and contribution forms [3].
                 recordedEvents = [];
             }
             return new Promise(function(resolve, reject) {
+                var timeout = test.step_func(function() {
+                    // If the timeout fires after the events have been received
+                    // or during a subsequent call to wait_for, ignore it.
+                    if (!waitingFor || waitingFor.resolve !== resolve)
+                        return;
+
+                    // This should always fail, otherwise we should have
+                    // resolved the promise.
+                    assert_true(waitingFor.types.length == 0,
+                                'Timed out waiting for ' + waitingFor.types.join(', '));
+                    var result = recordedEvents;
+                    recordedEvents = null;
+                    var resolveFunc = waitingFor.resolve;
+                    waitingFor = null;
+                    resolveFunc(result);
+                });
+
+                if (timeoutPromise) {
+                    timeoutPromise().then(timeout);
+                }
+
                 waitingFor = {
                     types: types,
                     resolve: resolve,

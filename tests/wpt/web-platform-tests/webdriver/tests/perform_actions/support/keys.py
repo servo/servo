@@ -740,6 +740,27 @@ ALL_EVENTS = {
     }
 }
 
+ALTERNATIVE_KEY_NAMES = {
+    "ADD": "Add",
+    "DECIMAL": "Decimal",
+    "DELETE": "Del",
+    "DIVIDE": "Divide",
+    "DOWN": "Down",
+    "ESCAPE": "Esc",
+    "LEFT": "Left",
+    "MULTIPLY": "Multiply",
+    "R_ARROWDOWN": "Down",
+    "R_ARROWLEFT": "Left",
+    "R_ARROWRIGHT": "Right",
+    "R_ARROWUP": "Up",
+    "R_DELETE": "Del",
+    "RIGHT": "Right",
+    "SEPARATOR": "Separator",
+    "SPACE": "Spacebar",
+    "SUBTRACT": "Subtract",
+    "UP": "Up",
+}
+
 if sys.platform == "darwin":
     MODIFIER_KEY = Keys.META
 else:
