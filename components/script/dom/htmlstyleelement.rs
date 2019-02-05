@@ -13,7 +13,8 @@ use crate::dom::document::Document;
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
-    document_from_node, window_from_node, ChildrenMutation, Node, UnbindContext,
+    document_from_node, stylesheets_owner_from_node, window_from_node, ChildrenMutation, Node,
+    UnbindContext,
 };
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -138,13 +139,13 @@ impl HTMLStyleElement {
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        let doc = document_from_node(self);
+        let stylesheets_owner = stylesheets_owner_from_node(self);
         if let Some(ref s) = *self.stylesheet.borrow() {
-            doc.remove_stylesheet(self.upcast(), s)
+            stylesheets_owner.remove_stylesheet(self.upcast(), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
         self.cssom_stylesheet.set(None);
-        doc.add_stylesheet(self.upcast(), s);
+        stylesheets_owner.add_stylesheet(self.upcast(), s);
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -216,7 +217,7 @@ impl VirtualMethods for HTMLStyleElement {
 
         if context.tree_connected {
             if let Some(s) = self.stylesheet.borrow_mut().take() {
-                document_from_node(self).remove_stylesheet(self.upcast(), &s)
+                stylesheets_owner_from_node(self).remove_stylesheet(self.upcast(), &s)
             }
         }
     }

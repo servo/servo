@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{self, ShadowRootMode};
 use crate::dom::bindings::inheritance::Castable;
@@ -11,12 +12,15 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documentorshadowroot::DocumentOrShadowRoot;
+use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeFlags};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_arc::Arc;
+use style::stylesheet_set::AuthorStylesheetSet;
+use style::stylesheets::Stylesheet;
 
 // https://dom.spec.whatwg.org/#interface-shadowroot
 #[dom_struct]
@@ -25,6 +29,9 @@ pub struct ShadowRoot {
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
     host: Dom<Element>,
+    /// List of stylesheets associated with nodes in this shadow tree.
+    /// |None| if the list needs to be refreshed.
+    stylesheets: DomRefCell<AuthorStylesheetSet<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     window: Dom<Window>,
 }
@@ -41,6 +48,7 @@ impl ShadowRoot {
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
             host: Dom::from_ref(host),
+            stylesheets: DomRefCell::new(AuthorStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
         }
@@ -128,5 +136,22 @@ impl StyleSheetListOwner for Dom<ShadowRoot> {
 
     fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         self.document_or_shadow_root.stylesheet_at(index)
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        self.document_or_shadow_root.add_stylesheet(
+            owner,
+            sheet,
+            self.document.style_shared_lock(),
+        );
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.document_or_shadow_root.remove_stylesheet(owner, s)
     }
 }
