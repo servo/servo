@@ -3164,8 +3164,20 @@ impl Document {
         if !pending.fullscreen_element_ready_check() {
             error = true;
         }
-        // TODO fullscreen is supported
-        // TODO This algorithm is allowed to request fullscreen.
+
+        if PREFS
+            .get("dom.fullscreen.test")
+            .as_boolean()
+            .unwrap_or(false)
+        {
+            // For reftests we just take over the current window,
+            // and don't try to really enter fullscreen.
+            info!("Tests don't really enter fullscreen.");
+        } else {
+            // TODO fullscreen is supported
+            // TODO This algorithm is allowed to request fullscreen.
+            warn!("Fullscreen not supported yet");
+        }
 
         // Step 5 Parallel start
 
