@@ -10,7 +10,7 @@ use simpleservo::{
 };
 use std::ffi::{CStr, CString};
 use std::mem;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
 
 fn call<F>(f: F)
 where
@@ -51,6 +51,7 @@ pub struct CInitOptions {
     pub width: u32,
     pub height: u32,
     pub density: f32,
+    pub vr_pointer: *mut c_void,
     pub enable_subpixel_text_antialiasing: bool,
 }
 
@@ -83,6 +84,11 @@ fn init(
         width: opts.width,
         height: opts.height,
         density: opts.density,
+        vr_pointer: if opts.vr_pointer.is_null() {
+            None
+        } else {
+            Some(opts.vr_pointer)
+        },
         enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
     };
 
