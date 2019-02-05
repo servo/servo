@@ -7,13 +7,18 @@ use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetLi
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::element::Element;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_arc::Arc;
+use style::stylesheets::Stylesheet;
 
 pub trait StyleSheetListOwner {
     fn stylesheet_count(&self) -> usize;
     fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>>;
+    fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>);
+    fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>);
 }
 
 #[dom_struct]
