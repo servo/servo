@@ -15,7 +15,9 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
+use crate::dom::node::{
+    document_from_node, stylesheets_owner_from_node, window_from_node, Node, UnbindContext,
+};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -106,6 +108,7 @@ impl HTMLMetaElement {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
+                    let stylesheets_owner = stylesheets_owner_from_node(self);
                     let document = document_from_node(self);
                     let shared_lock = document.style_shared_lock();
                     let rule = CssRule::Viewport(Arc::new(shared_lock.wrap(translated_rule)));
@@ -124,7 +127,7 @@ impl HTMLMetaElement {
                         disabled: AtomicBool::new(false),
                     });
                     *self.stylesheet.borrow_mut() = Some(sheet.clone());
-                    document.add_stylesheet(self.upcast(), sheet);
+                    stylesheets_owner.add_stylesheet(self.upcast(), sheet);
                 }
             }
         }
@@ -208,7 +211,7 @@ impl VirtualMethods for HTMLMetaElement {
             self.process_referrer_attribute();
 
             if let Some(s) = self.stylesheet.borrow_mut().take() {
-                document_from_node(self).remove_stylesheet(self.upcast(), &s);
+                stylesheets_owner_from_node(self).remove_stylesheet(self.upcast(), &s);
             }
         }
     }

@@ -126,7 +126,7 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
-use style::stylesheet_set::DocumentStylesheetSet;
+use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use style::stylesheets::keyframes_rule::Keyframe;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
 use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule, ViewportRule};
@@ -712,6 +712,17 @@ where
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         for (s, _origin) in self.iter() {
+            s.trace(tracer)
+        }
+    }
+}
+
+unsafe impl<S> JSTraceable for AuthorStylesheetSet<S>
+where
+    S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
+{
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        for s in self.iter() {
             s.trace(tracer)
         }
     }
