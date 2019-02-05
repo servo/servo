@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![feature(stmt_expr_attributes)]
 
 #[macro_use]
 extern crate log;
 
+mod webvr_test;
 mod webvr_thread;
 pub use crate::webvr_thread::{WebVRCompositorHandler, WebVRThread};
 pub use rust_webvr::api::VRExternalShmemPtr;

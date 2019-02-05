@@ -4838,8 +4838,11 @@ dependencies = [
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "rust-webvr 0.9.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr-api 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "servo_config 0.0.1",
+ "servo_geometry 0.0.1",
+ "style_traits 0.0.1",
  "webvr_traits 0.0.1",
 ]
 
