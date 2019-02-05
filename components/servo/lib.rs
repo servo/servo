@@ -107,7 +107,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use webrender::{RendererKind, ShaderPrecacheFlags};
-use webvr::{WebVRCompositorHandler, WebVRThread};
+use webvr::{VRExternalShmemPtr, WebVRCompositorHandler, WebVRThread};
 
 pub use gleam::gl;
 pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
@@ -216,6 +216,10 @@ where
         // can't defer it after `create_constellation` has started.
         script::init();
 
+        let webvr_shmem = window
+            .get_vrexternal_pointer()
+            .map(|ptr| VRExternalShmemPtr::new(ptr));
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -232,6 +236,7 @@ where
             webrender_document,
             webrender_api_sender,
             window.gl(),
+            webvr_shmem,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -510,6 +515,7 @@ fn create_constellation(
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
     window_gl: Rc<dyn gl::Gl>,
+    webvr_shmem: Option<VRExternalShmemPtr>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
@@ -532,7 +538,7 @@ fn create_constellation(
     let (webvr_chan, webvr_constellation_sender, webvr_compositor) = if PREFS.is_webvr_enabled() {
         // WebVR initialization
         let (mut handler, sender) = WebVRCompositorHandler::new();
-        let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender);
+        let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender, webvr_shmem);
         handler.set_webvr_thread_sender(webvr_thread.clone());
         (
             Some(webvr_thread),
