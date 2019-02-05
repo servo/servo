@@ -144,7 +144,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             .all(|a| !a.check_name("must_root"))
         {
             match var.node.data {
-                hir::VariantData::Tuple(ref fields, _) => {
+                hir::VariantData::Tuple(ref fields, ..) => {
                     for ref field in fields {
                         let def_id = cx.tcx.hir().local_def_id(field.id);
                         if is_unrooted_ty(cx, cx.tcx.type_of(def_id), false) {
@@ -257,8 +257,8 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         // are implemented, the `Unannotated` case could cause false-positives.
         // These should be fixable by adding an explicit `ref`.
         match pat.node {
-            hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, _, _, _) |
-            hir::PatKind::Binding(hir::BindingAnnotation::Mutable, _, _, _) => {
+            hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
+            hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
                 let ty = cx.tables.pat_ty(pat);
                 if is_unrooted_ty(cx, ty, self.in_new_function) {
                     cx.span_lint(
