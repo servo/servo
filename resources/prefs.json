@@ -19,7 +19,7 @@
   "dom.webgl.dom_to_texture.enabled": false,
   "dom.webgl2.enabled": false,
   "dom.webrtc.enabled": false,
-  "dom.webvr.enabled": false,
+  "dom.webvr.enabled": true,
   "dom.webvr.event_polling_interval": 500,
   "gfx.subpixel-text-antialiasing.enabled": true,
   "js.asmjs.enabled": true,
