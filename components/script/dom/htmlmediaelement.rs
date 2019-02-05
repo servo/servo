@@ -161,7 +161,7 @@ pub struct HTMLMediaElement {
     src_object: MutNullableDom<Blob>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-currentsrc>
     current_src: DomRefCell<String>,
-    /// <https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin>
+    /// <https://html.spec.whatwg.org/multipage/#attr-media-crossorigin>
     cross_origin: DomRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
@@ -1446,11 +1446,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         USVString(self.current_src.borrow().clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
+    // https://html.spec.whatwg.org/multipage/#attr-media-crossorigin
     fn CrossOrigin(&self) -> DOMString {
         DOMString::from_string(self.cross_origin.borrow().clone())
     }
-    // https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin
+    // https://html.spec.whatwg.org/multipage/#attr-media-crossorigin
     make_setter!(SetCrossOrigin, "crossorigin");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-load
