@@ -53,6 +53,8 @@ use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
+use net_traits::request::CorsSettings;
+use net_traits::request::RequestMode;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
@@ -71,8 +73,6 @@ use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
 use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
 use webrender_api::{RenderApiSender, Transaction};
-use net_traits::request::RequestMode;
-use net_traits::request::CorsSettings;
 
 pub struct MediaFrameRenderer {
     api: RenderApi,
@@ -293,7 +293,7 @@ impl HTMLMediaElement {
         return match self.CrossOrigin().as_ref() {
             "anonymous" => Some(CorsSettings::Anonymous),
             "use-credentials" => Some(CorsSettings::UseCredentials),
-            _ => None
+            _ => None,
         };
     }
 
@@ -676,11 +676,11 @@ impl HTMLMediaElement {
             destination,
             mode: match cors_settings {
                 Some(_) => RequestMode::CorsMode,
-                None => RequestMode::NoCors
+                None => RequestMode::NoCors,
             },
             credentials_mode: match cors_settings {
                 Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-                _ => CredentialsMode::Include
+                _ => CredentialsMode::Include,
             },
             use_url_credentials: true,
             origin: document.origin().immutable().clone(),
