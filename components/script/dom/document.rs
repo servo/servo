@@ -2848,20 +2848,6 @@ impl Document {
         Device::new(MediaType::screen(), viewport_size, device_pixel_ratio)
     }
 
-    /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.document_or_shadow_root.remove_stylesheet(owner, s)
-    }
-
-    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
-    /// correct tree position.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
-        self.document_or_shadow_root
-            .add_stylesheet(owner, sheet, self.style_shared_lock());
-    }
-
     pub fn salvageable(&self) -> bool {
         self.salvageable.get()
     }
@@ -4566,5 +4552,19 @@ impl StyleSheetListOwner for Dom<Document> {
 
     fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         self.document_or_shadow_root.stylesheet_at(index)
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        self.document_or_shadow_root
+            .add_stylesheet(owner, sheet, self.style_shared_lock());
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of document sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.document_or_shadow_root.remove_stylesheet(owner, s)
     }
 }

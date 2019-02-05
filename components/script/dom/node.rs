@@ -54,6 +54,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
@@ -2765,6 +2766,22 @@ impl NodeMethods for Node {
 
 pub fn document_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Document> {
     derived.upcast().owner_doc()
+}
+
+pub fn shadow_root_from_node<T: DerivedFrom<Node> + DomObject>(
+    derived: &T,
+) -> Option<DomRoot<ShadowRoot>> {
+    derived.upcast().owner_shadow_root()
+}
+
+pub fn stylesheets_owner_from_node<T: DerivedFrom<Node> + DomObject>(
+    derived: &T,
+) -> Box<StyleSheetListOwner> {
+    if let Some(shadow_root) = shadow_root_from_node(derived) {
+        Box::new(Dom::from_ref(&*shadow_root))
+    } else {
+        Box::new(Dom::from_ref(&*document_from_node(derived)))
+    }
 }
 
 pub fn window_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Window> {
