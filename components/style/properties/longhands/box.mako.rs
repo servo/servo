@@ -34,6 +34,17 @@ ${helpers.single_keyword(
     spec="Internal (not web-exposed)",
 )}
 
+// An internal-only attribute for elements in a top layer
+// https://fullscreen.spec.whatwg.org/#top-layer
+${helpers.single_keyword(
+    "-servo-top-layer",
+    "none top",
+    products="servo",
+    animation_value_type="none",
+    enabled_in="ua",
+    spec="Internal (not web-exposed)",
+)}
+
 ${helpers.single_keyword(
     "position",
     "static absolute relative fixed sticky",

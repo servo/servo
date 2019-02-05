@@ -1917,6 +1917,7 @@ impl Fragment {
             border_box.to_layout(),
             overflow.to_layout(),
             self.effective_z_index(),
+            self.style().get_box()._servo_top_layer,
             filters,
             self.style().get_effects().mix_blend_mode.to_layout(),
             self.transform_matrix(&border_box),
