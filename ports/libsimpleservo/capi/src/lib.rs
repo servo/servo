@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate log;
 
+use env_logger;
 use simpleservo::{self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO};
 use std::ffi::{CStr, CString};
 use std::mem;
@@ -68,6 +69,8 @@ fn init(
     wakeup: extern "C" fn(),
     callbacks: CHostCallbacks,
 ) {
+    crate::env_logger::init();
+
     let args = unsafe { CStr::from_ptr(opts.args) };
     let args = args.to_str().map(|s| s.to_string()).ok();
 
