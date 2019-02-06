@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="match" href="webvr-baseline-ref.html"></link>
+    <meta charset="utf-8" />
+    <title>WebVR baseline test</title>
+  </head>
+  <body>
+    The canvas: <canvas id="canvas" width="640" height="480"></canvas>
+  </body>
+  <script>
+var canvas = document.getElementById("canvas");
+var gl = canvas.getContext("webgl");
+var display = null;
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+navigator.getVRDisplays()
+    .then(function (displays) { display = displays[0]; })
+    .then(function () { display.requestPresent([{ source: canvas }]); })
+    .then(function () { display.requestAnimationFrame(rAF); });
+
+function rAF() {
+  var frameData = new VRFrameData();
+  var leftEye = display.getEyeParameters("left");
+  var rightEye = display.getEyeParameters("right");
+
+  canvas.width = leftEye.renderWidth + rightEye.renderWidth;
+  canvas.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
+
+  display.getFrameData(frameData);
+
+  gl.enable(gl.SCISSOR_TEST);
+
+  gl.viewport(0, 0, leftEye.renderWidth, leftEye.renderHeight);
+  gl.scissor(0, 0, leftEye.renderWidth, leftEye.renderHeight);
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.viewport(leftEye.renderWidth, 0, rightEye.renderWidth, rightEye.renderHeight);
+  gl.scissor(leftEye.renderWidth, 0, rightEye.renderWidth, rightEye.renderHeight);
+  gl.clearColor(0.0, 0.0, 1.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.disable(gl.SCISSOR_TEST);
+
+  display.submitFrame();
+};
+  </script>
+</html>
