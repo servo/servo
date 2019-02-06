@@ -10,7 +10,7 @@ pub mod gl_glue;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods,
 };
-use servo::embedder_traits::resources::{self, Resource};
+use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::EmbedderMsg;
 use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use servo::msg::constellation_msg::TraversalDirection;
@@ -40,11 +40,6 @@ pub struct InitOptions {
     pub height: u32,
     pub density: f32,
     pub enable_subpixel_text_antialiasing: bool,
-}
-
-/// Delegate resource file reading to the embedder.
-pub trait ReadFileTrait {
-    fn readfile(&self, file: &str) -> Vec<u8>;
 }
 
 /// Callbacks. Implemented by embedder. Called by Servo.
@@ -112,10 +107,9 @@ pub fn init(
     init_opts: InitOptions,
     gl: Rc<dyn gl::Gl>,
     waker: Box<dyn EventLoopWaker>,
-    readfile: Box<dyn ReadFileTrait + Send + Sync>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
-    resources::set(Box::new(ResourceReader(readfile)));
+    resources::set(Box::new(ResourceReaderInstance::new()));
 
     if let Some(args) = init_opts.args {
         let mut args: Vec<String> = serde_json::from_str(&args)
@@ -538,31 +532,43 @@ impl WindowMethods for ServoCallbacks {
     }
 }
 
-struct ResourceReader(Box<dyn ReadFileTrait + Send + Sync>);
+struct ResourceReaderInstance;
 
-impl resources::ResourceReaderMethods for ResourceReader {
-    fn read(&self, file: Resource) -> Vec<u8> {
-        let file = match file {
-            Resource::Preferences => "prefs.json",
-            Resource::BluetoothBlocklist => "gatt_blocklist.txt",
-            Resource::DomainList => "public_domains.txt",
-            Resource::HstsPreloadList => "hsts_preload.json",
-            Resource::SSLCertificates => "certs",
-            Resource::BadCertHTML => "badcert.html",
-            Resource::NetErrorHTML => "neterror.html",
-            Resource::UserAgentCSS => "user-agent.css",
-            Resource::ServoCSS => "servo.css",
-            Resource::PresentationalHintsCSS => "presentational-hints.css",
-            Resource::QuirksModeCSS => "quirks-mode.css",
-            Resource::RippyPNG => "rippy.png",
-        };
-        info!("ResourceReader::read({})", file);
-        self.0.readfile(file)
+impl ResourceReaderInstance {
+    fn new() -> ResourceReaderInstance {
+        ResourceReaderInstance
     }
-    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
+}
+
+impl ResourceReaderMethods for ResourceReaderInstance {
+    fn read(&self, res: Resource) -> Vec<u8> {
+        Vec::from(match res {
+            Resource::Preferences => &include_bytes!("../../../../resources/prefs.json")[..],
+            Resource::HstsPreloadList => {
+                &include_bytes!("../../../../resources/hsts_preload.json")[..]
+            },
+            Resource::SSLCertificates => &include_bytes!("../../../../resources/certs")[..],
+            Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
+            Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],
+            Resource::UserAgentCSS => &include_bytes!("../../../../resources/user-agent.css")[..],
+            Resource::ServoCSS => &include_bytes!("../../../../resources/servo.css")[..],
+            Resource::PresentationalHintsCSS => {
+                &include_bytes!("../../../../resources/presentational-hints.css")[..]
+            },
+            Resource::QuirksModeCSS => &include_bytes!("../../../../resources/quirks-mode.css")[..],
+            Resource::RippyPNG => &include_bytes!("../../../../resources/rippy.png")[..],
+            Resource::DomainList => &include_bytes!("../../../../resources/public_domains.txt")[..],
+            Resource::BluetoothBlocklist => {
+                &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
+            },
+        })
+    }
+
+    fn sandbox_access_files(&self) -> Vec<PathBuf> {
         vec![]
     }
-    fn sandbox_access_files(&self) -> Vec<PathBuf> {
+
+    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![]
     }
 }

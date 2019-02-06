@@ -6,12 +6,9 @@
 package org.mozilla.servoview;
 
 import android.app.Activity;
-import android.content.res.AssetManager;
 import android.content.Context;
 import android.util.Log;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
@@ -20,7 +17,6 @@ import org.mozilla.servoview.JNIServo.ServoOptions;
 
 public class Servo {
     private static final String LOGTAG = "Servo";
-    private AssetManager mAssetMgr;
     private JNIServo mJNI = new JNIServo();
     private RunCallback mRunCallback;
     private boolean mShuttingDown;
@@ -36,8 +32,6 @@ public class Servo {
             Activity activity) {
 
         mRunCallback = runCallback;
-
-        mAssetMgr = activity.getResources().getAssets();
 
         mServoCallbacks = new Callbacks(client, gfxcb);
 
@@ -261,19 +255,6 @@ public class Servo {
 
         public void onRedrawing(boolean redrawing) {
             mRunCallback.inUIThread(() -> mClient.onRedrawing(redrawing));
-        }
-
-        public byte[] readfile(String file) {
-            try {
-                InputStream stream = mAssetMgr.open(file);
-                byte[] bytes = new byte[stream.available()];
-                stream.read(bytes);
-                stream.close();
-                return bytes;
-            } catch (IOException e) {
-                Log.e(LOGTAG, "readfile error: " + e.getMessage());
-                return null;
-            }
         }
     }
 }

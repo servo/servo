@@ -97,8 +97,6 @@ public class JNIServo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onShutdownComplete();
-
-        byte[] readfile(String file);
     }
 }
 
