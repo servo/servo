@@ -13,11 +13,9 @@ use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
-use simpleservo::{
-    self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
-};
+use simpleservo::{self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO};
 use std::os::raw::{c_char, c_int, c_void};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 
 struct HostCallbacks {
@@ -101,11 +99,10 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     };
 
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
-    let readfile = Box::new(ReadFileCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
     if let Err(err) =
-        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, readfile, callbacks))
+        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, callbacks))
     {
         throw(&env, err)
     };
@@ -349,39 +346,6 @@ impl EventLoopWaker for WakeupCallback {
         let env = self.jvm.attach_current_thread().unwrap();
         env.call_method(self.callback.as_obj(), "wakeup", "()V", &[])
             .unwrap();
-    }
-}
-
-pub struct ReadFileCallback {
-    callback: Mutex<GlobalRef>,
-    jvm: JavaVM,
-}
-
-impl ReadFileCallback {
-    pub fn new(callback: GlobalRef, env: &JNIEnv) -> ReadFileCallback {
-        let jvm = env.get_java_vm().unwrap();
-        let callback = Mutex::new(callback);
-        ReadFileCallback { callback, jvm }
-    }
-}
-
-impl ReadFileTrait for ReadFileCallback {
-    fn readfile(&self, file: &str) -> Vec<u8> {
-        // FIXME: we'd rather use attach_current_thread but it detaches the VM too early.
-        let env = self.jvm.attach_current_thread_as_daemon().unwrap();
-        let s = match new_string(&env, &file) {
-            Ok(s) => s,
-            Err(_) => return vec![],
-        };
-        let s = JValue::from(JObject::from(s));
-        let array = env.call_method(
-            self.callback.lock().unwrap().as_obj(),
-            "readfile",
-            "(Ljava/lang/String;)[B",
-            &[s],
-        );
-        let array = array.unwrap().l().unwrap().into_inner();
-        env.convert_byte_array(array).unwrap()
     }
 }
 

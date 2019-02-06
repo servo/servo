@@ -5,9 +5,7 @@
 #[macro_use]
 extern crate log;
 
-use simpleservo::{
-    self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
-};
+use simpleservo::{self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::c_char;
@@ -68,7 +66,6 @@ fn init(
     opts: CInitOptions,
     gl: gl_glue::ServoGl,
     wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
 ) {
     let args = unsafe { CStr::from_ptr(opts.args) };
@@ -87,10 +84,9 @@ fn init(
     };
 
     let wakeup = Box::new(WakeupCallback::new(wakeup));
-    let readfile = Box::new(ReadFileCallback::new(readfile));
     let callbacks = Box::new(HostCallbacks::new(callbacks));
 
-    simpleservo::init(opts, gl, wakeup, readfile, callbacks).unwrap();
+    simpleservo::init(opts, gl, wakeup, callbacks).unwrap();
 }
 
 #[cfg(target_os = "windows")]
@@ -98,11 +94,10 @@ fn init(
 pub extern "C" fn init_with_egl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
 ) {
     let gl = gl_glue::egl::init().unwrap();
-    init(opts, gl, wakeup, readfile, callbacks)
+    init(opts, gl, wakeup, callbacks)
 }
 
 #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
@@ -110,11 +105,10 @@ pub extern "C" fn init_with_egl(
 pub extern "C" fn init_with_gl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
 ) {
     let gl = gl_glue::gl::init().unwrap();
-    init(opts, gl, wakeup, readfile, callbacks)
+    init(opts, gl, wakeup, callbacks)
 }
 
 #[no_mangle]
@@ -265,25 +259,6 @@ impl EventLoopWaker for WakeupCallback {
     }
     fn wake(&self) {
         (self.0)();
-    }
-}
-
-pub struct ReadFileCallback(extern "C" fn(*const c_char) -> *const c_char);
-
-impl ReadFileCallback {
-    fn new(callback: extern "C" fn(*const c_char) -> *const c_char) -> ReadFileCallback {
-        ReadFileCallback(callback)
-    }
-}
-
-impl ReadFileTrait for ReadFileCallback {
-    fn readfile(&self, file: &str) -> Vec<u8> {
-        debug!("readfile: {}", file);
-        let file = CString::new(file).expect("Can't create string");
-        let file_ptr = file.as_ptr();
-        let content = (self.0)(file_ptr);
-        let content = unsafe { CStr::from_ptr(content) };
-        content.to_bytes().to_owned()
     }
 }
 
