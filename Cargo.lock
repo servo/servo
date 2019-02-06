@@ -3936,6 +3936,7 @@ source = "git+https://github.com/pcwalton/signpost.git#7ed712507f343c38646b9d1fe
 name = "simpleservo"
 version = "0.0.1"
 dependencies = [
+ "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.44 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
