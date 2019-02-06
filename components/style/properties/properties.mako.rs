@@ -3627,11 +3627,12 @@ impl<'a> StyleBuilder<'a> {
                  Position::Absolute | Position::Fixed)
     }
 
-    /// Whether this style has a top-layer style. That's implemented in Gecko
-    /// via the -moz-top-layer property, but servo doesn't have any concept of a
-    /// top layer (yet, it's needed for fullscreen).
+    /// Whether this style has a top-layer style.
     #[cfg(feature = "servo")]
-    pub fn in_top_layer(&self) -> bool { false }
+    pub fn in_top_layer(&self) -> bool {
+        matches!(self.get_box().clone__servo_top_layer(),
+                 longhands::_servo_top_layer::computed_value::T::Top)
+    }
 
     /// Whether this style has a top-layer style.
     #[cfg(feature = "gecko")]
