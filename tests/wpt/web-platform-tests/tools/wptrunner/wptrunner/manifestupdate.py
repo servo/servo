@@ -1,3 +1,4 @@
+from __future__ import print_function
 import itertools
 import os
 import urlparse
@@ -89,7 +90,7 @@ class ExpectedManifest(ManifestItem):
     def append(self, child):
         ManifestItem.append(self, child)
         if child.id in self.child_map:
-            print "Warning: Duplicate heading %s" % child.id
+            print("Warning: Duplicate heading %s" % child.id)
         self.child_map[child.id] = child
 
     def _remove_child(self, child):

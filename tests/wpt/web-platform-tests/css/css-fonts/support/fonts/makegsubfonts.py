@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import os
 import textwrap
@@ -474,13 +475,13 @@ def makeJavascriptData():
 
 # build fonts
 
-print "Making lookup type 1 font..."
+print("Making lookup type 1 font...")
 makeLookup1()
 
-print "Making lookup type 3 font..."
+print("Making lookup type 3 font...")
 makeLookup3()
 
 # output javascript data
 
-print "Making javascript data file..."
+print("Making javascript data file...")
 makeJavascriptData()

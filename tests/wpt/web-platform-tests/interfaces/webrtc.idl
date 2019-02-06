@@ -628,7 +628,7 @@ enum RTCErrorDetailType {
           };
 
 [Exposed=Window,
- Constructor(DOMString type, RTCErrorEventInit eventInitDict)]
+ Constructor(DOMString type, optional RTCErrorEventInit eventInitDict)]
 interface RTCErrorEvent : Event {
     readonly        attribute RTCError? error;
 };

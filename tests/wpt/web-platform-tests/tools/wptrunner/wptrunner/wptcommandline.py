@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import os
 import sys
@@ -29,7 +30,7 @@ def require_arg(kwargs, name, value_func=None):
         value_func = lambda x: x is not None
 
     if name not in kwargs or not value_func(kwargs[name]):
-        print >> sys.stderr, "Missing required argument %s" % name
+        print("Missing required argument %s" % name, file=sys.stderr)
         sys.exit(1)
 
 
@@ -417,7 +418,7 @@ def check_paths(kwargs):
     for test_paths in kwargs["test_paths"].itervalues():
         if not ("tests_path" in test_paths and
                 "metadata_path" in test_paths):
-            print "Fatal: must specify both a test path and metadata path"
+            print("Fatal: must specify both a test path and metadata path")
             sys.exit(1)
         if "manifest_path" not in test_paths:
             test_paths["manifest_path"] = os.path.join(test_paths["metadata_path"],
@@ -431,11 +432,11 @@ def check_paths(kwargs):
                 path = os.path.dirname(path)
 
             if not os.path.exists(path):
-                print "Fatal: %s path %s does not exist" % (name, path)
+                print("Fatal: %s path %s does not exist" % (name, path))
                 sys.exit(1)
 
             if not os.path.isdir(path):
-                print "Fatal: %s path %s is not a directory" % (name, path)
+                print("Fatal: %s path %s is not a directory" % (name, path))
                 sys.exit(1)
 
 
@@ -488,7 +489,7 @@ def check_args(kwargs):
 
     if kwargs["binary"] is not None:
         if not os.path.exists(kwargs["binary"]):
-            print >> sys.stderr, "Binary path %s does not exist" % kwargs["binary"]
+            print("Binary path %s does not exist" % kwargs["binary"], file=sys.stderr)
             sys.exit(1)
 
     if kwargs["ssl_type"] is None:
@@ -507,14 +508,14 @@ def check_args(kwargs):
     elif kwargs["ssl_type"] == "openssl":
         path = exe_path(kwargs["openssl_binary"])
         if path is None:
-            print >> sys.stderr, "openssl-binary argument missing or not a valid executable"
+            print("openssl-binary argument missing or not a valid executable", file=sys.stderr)
             sys.exit(1)
         kwargs["openssl_binary"] = path
 
     if kwargs["ssl_type"] != "none" and kwargs["product"] == "firefox" and kwargs["certutil_binary"]:
         path = exe_path(kwargs["certutil_binary"])
         if path is None:
-            print >> sys.stderr, "certutil-binary argument missing or not a valid executable"
+            print("certutil-binary argument missing or not a valid executable", file=sys.stderr)
             sys.exit(1)
         kwargs["certutil_binary"] = path
 
@@ -524,7 +525,7 @@ def check_args(kwargs):
             kwargs['extra_prefs'] = [kwargs['extra_prefs']]
         missing = any('=' not in prefarg for prefarg in kwargs['extra_prefs'])
         if missing:
-            print >> sys.stderr, "Preferences via --setpref must be in key=value format"
+            print("Preferences via --setpref must be in key=value format", file=sys.stderr)
             sys.exit(1)
         kwargs['extra_prefs'] = [tuple(prefarg.split('=', 1)) for prefarg in
                                  kwargs['extra_prefs']]
@@ -551,7 +552,7 @@ def check_args_update(kwargs):
 
     for item in kwargs["run_log"]:
         if os.path.isdir(item):
-            print >> sys.stderr, "Log file %s is a directory" % item
+            print("Log file %s is a directory" % item, file=sys.stderr)
             sys.exit(1)
 
     return kwargs

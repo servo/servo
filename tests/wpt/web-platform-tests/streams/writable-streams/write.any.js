@@ -251,3 +251,27 @@ promise_test(() => {
   });
   return ws.getWriter().write('a').then(() => assert_true(thenCalled, 'thenCalled should be true'));
 }, 'returning a thenable from write() should work');
+
+promise_test(() => {
+  const stream = new WritableStream();
+  const writer = stream.getWriter();
+  const WritableStreamDefaultWriter = writer.constructor;
+  assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(stream),
+                'should not be able to construct on locked stream');
+  // If stream.[[writer]] no longer points to |writer| then the closed Promise
+  // won't work properly.
+  return Promise.all([writer.close(), writer.closed]);
+}, 'failing DefaultWriter constructor should not release an existing writer');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    start() {
+      return Promise.reject(error1);
+    }
+  }, { highWaterMark: 0 });
+  const writer = ws.getWriter();
+  return Promise.all([
+    promise_rejects(t, error1, writer.ready, 'ready should be rejected'),
+    promise_rejects(t, error1, writer.write(), 'write() should be rejected')
+  ]);
+}, 'write() on a stream with HWM 0 should not cause the ready Promise to resolve');

@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import print_function, unicode_literals
 
 import json
 import os
@@ -91,7 +91,7 @@ def list_test_groups(test_paths, product, **kwargs):
                                        run_info_extras=run_info_extras, **kwargs)
 
     for item in sorted(test_loader.groups(kwargs["test_types"])):
-        print item
+        print(item)
 
 
 def list_disabled(test_paths, product, **kwargs):
@@ -107,7 +107,7 @@ def list_disabled(test_paths, product, **kwargs):
     for test_type, tests in test_loader.disabled_tests.iteritems():
         for test in tests:
             rv.append({"test": test.id, "reason": test.disabled()})
-    print json.dumps(rv, indent=2)
+    print(json.dumps(rv, indent=2))
 
 
 def list_tests(test_paths, product, **kwargs):
@@ -119,7 +119,7 @@ def list_tests(test_paths, product, **kwargs):
                                        run_info_extras=run_info_extras, **kwargs)
 
     for test in test_loader.test_ids:
-        print test
+        print(test)
 
 
 def get_pause_after_test(test_loader, **kwargs):
@@ -361,7 +361,7 @@ def main():
         if kwargs["pdb"]:
             import pdb
             import traceback
-            print traceback.format_exc()
+            print(traceback.format_exc())
             pdb.post_mortem()
         else:
             raise

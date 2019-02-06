@@ -1,3 +1,4 @@
+from __future__ import print_function
 import array
 import os
 import shutil
@@ -49,9 +50,9 @@ def update_expected(test_paths, serve_root, log_file_names,
             for test in updated_ini.iterchildren():
                 for subtest in test.iterchildren():
                     if subtest.new_disabled:
-                        print "disabled: %s" % os.path.dirname(subtest.root.test_path) + "/" + subtest.name
+                        print("disabled: %s" % os.path.dirname(subtest.root.test_path) + "/" + subtest.name)
                     if test.new_disabled:
-                        print "disabled: %s" % test.root.test_path
+                        print("disabled: %s" % test.root.test_path)
 
 
 def do_delayed_imports(serve_root):
@@ -359,7 +360,7 @@ class ExpectedUpdater(object):
         try:
             test_data = self.id_test_map[test_id]
         except KeyError:
-            print "Test not found %s, skipping" % test_id
+            print("Test not found %s, skipping" % test_id)
             return
 
         if self.ignore_existing:

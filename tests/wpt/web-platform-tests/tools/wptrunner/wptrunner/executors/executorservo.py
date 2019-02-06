@@ -1,3 +1,4 @@
+from __future__ import print_function
 import base64
 import json
 import os
@@ -136,7 +137,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
             self.result_flag.set()
         else:
             if self.interactive:
-                print line
+                print(line)
             else:
                 self.logger.process_output(self.proc.pid,
                                            line,
@@ -267,7 +268,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
     def on_output(self, line):
         line = line.decode("utf8", "replace")
         if self.interactive:
-            print line
+            print(line)
         else:
             self.logger.process_output(self.proc.pid,
                                        line,
