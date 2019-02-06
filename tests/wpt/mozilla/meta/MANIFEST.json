@@ -7277,6 +7277,18 @@
      {}
     ]
    ],
+   "mozilla/webvr/reftests/webvr-baseline.html": [
+    [
+     "/_mozilla/mozilla/webvr/reftests/webvr-baseline.html",
+     [
+      [
+       "/_mozilla/mozilla/webvr/reftests/webvr-baseline-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/worklets/test_paint_worklet.html": [
     [
      "/_mozilla/mozilla/worklets/test_paint_worklet.html",
@@ -10645,6 +10657,11 @@
     ]
    ],
    "mozilla/webgl/tex_image_2d_simple_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/webvr/reftests/webvr-baseline-ref.html": [
     [
      {}
     ]
@@ -20171,6 +20188,14 @@
   "mozilla/websocket_connection_fail.html": [
    "95c56636d53407fd9f18cb089bdd05bad5b1a4d9",
    "testharness"
+  ],
+  "mozilla/webvr/reftests/webvr-baseline-ref.html": [
+   "d3114d13b36738da12b88fbf15833a4542a65866",
+   "support"
+  ],
+  "mozilla/webvr/reftests/webvr-baseline.html": [
+   "5b046dbfa0697ec562e883dfb20723bf71015e46",
+   "reftest"
   ],
   "mozilla/window-postmessage-sameorigin.html": [
    "a3ec80929b784c6d5c766fe4cf9d99996cb8850b",
