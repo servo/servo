@@ -1,5 +1,5 @@
 html5lib == 1.0.1
 mozinfo == 0.10
-mozlog==3.10
+mozlog==4.0
 mozdebug==0.1.1
 urllib3[secure]==1.24.1

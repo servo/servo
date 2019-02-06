@@ -31,6 +31,7 @@
 
 
 """Tests for util module."""
+from __future__ import print_function
 
 
 import os
@@ -172,7 +173,7 @@ class InflaterDeflaterTest(unittest.TestCase):
             [chr(random.randint(0, 255)) for i in xrange(100 * 1024)])
 
         chunked_input = get_random_section(source, 10)
-        print "Input chunk sizes: %r" % [len(c) for c in chunked_input]
+        print("Input chunk sizes: %r" % [len(c) for c in chunked_input])
 
         deflater = util._Deflater(15)
         compressed = []
