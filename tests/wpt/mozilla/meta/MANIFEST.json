@@ -12659,6 +12659,12 @@
      {}
     ]
    ],
+   "mozilla/hit-test-background.html": [
+    [
+     "/_mozilla/mozilla/hit-test-background.html",
+     {}
+    ]
+   ],
    "mozilla/hit_test_multiple_sc.html": [
     [
      "/_mozilla/mozilla/hit_test_multiple_sc.html",
@@ -19417,6 +19423,10 @@
   "mozilla/globals/incumbent.html": [
    "9baa0cdcd5abad00b321e8b9351a1bc162783ed5",
    "support"
+  ],
+  "mozilla/hit-test-background.html": [
+   "5212954e4ee6ecb684212e7373e24a2268434b1c",
+   "testharness"
   ],
   "mozilla/hit_test_multiple_sc.html": [
    "1c79d25ea06f80eb515282fb0a53a34f92a25698",

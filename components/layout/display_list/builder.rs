@@ -390,7 +390,25 @@ impl<'a> DisplayListBuildState<'a> {
         } else {
             self.current_clipping_and_scrolling
         };
+        self.create_base_display_item_with_clipping_and_scrolling(
+            bounds,
+            clip_rect,
+            node,
+            cursor,
+            section,
+            clipping_and_scrolling,
+        )
+    }
 
+    fn create_base_display_item_with_clipping_and_scrolling(
+        &self,
+        bounds: Rect<Au>,
+        clip_rect: Rect<Au>,
+        node: OpaqueNode,
+        cursor: Option<Cursor>,
+        section: DisplayListSection,
+        clipping_and_scrolling: ClippingAndScrolling,
+    ) -> BaseDisplayItem {
         BaseDisplayItem::new(
             bounds.to_layout(),
             DisplayItemMetadata {
@@ -1640,14 +1658,15 @@ impl Fragment {
             // of this fragment's background but behind its content. This ensures that any
             // hit tests inside the content box but not on actual content target the current
             // scrollable ancestor.
-            let content_size = TypedRect::from_size(content_size);
-            let base = state.create_base_display_item(
+            let content_size = TypedRect::new(stacking_relative_border_box.origin, content_size);
+            let base = state.create_base_display_item_with_clipping_and_scrolling(
                 content_size,
                 content_size,
                 self.node,
                 // FIXME(emilio): Why does this ignore pointer-events?
                 get_cursor(&self.style, Cursor::Default).or(Some(Cursor::Default)),
-                DisplayListSection::Content,
+                display_list_section,
+                state.current_clipping_and_scrolling,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
