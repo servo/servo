@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate log;
 
+use env_logger;
 use simpleservo::{
     self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
 };
@@ -71,6 +72,8 @@ fn init(
     readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
 ) {
+    crate::env_logger::init();
+
     let args = unsafe { CStr::from_ptr(opts.args) };
     let args = args.to_str().map(|s| s.to_string()).ok();
 
