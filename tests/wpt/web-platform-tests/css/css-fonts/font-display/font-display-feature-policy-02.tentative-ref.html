@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Test for font-display-late-swap feature policy behavior when set to report-only</title>
+<style>
+.ahem {
+  font-family: 'Ahem';
+}
+.arial {
+  font-family: 'Arial';
+}
+</style>
+<p>None of the font-display values should be changed</p>
+<table id="container">
+ <tr>
+  <th>not-set</th>
+  <th>auto</th>
+  <th>block</th>
+  <th>swap</th>
+  <th>fallback</th>
+  <th>optional</th>
+ </tr>
+ <tr>
+  <td class="ahem">a</td>
+  <td class="ahem">a</td>
+  <td class="ahem">a</td>
+  <td class="ahem">a</td>
+  <td class="ahem">a</td>
+  <td class="arial">a</td>
+ </tr>
+</table>

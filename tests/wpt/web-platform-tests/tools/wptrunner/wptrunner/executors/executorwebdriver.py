@@ -405,6 +405,7 @@ class WebDriverRefTestExecutor(RefTestExecutor):
             """return [window.outerWidth - window.innerWidth,
                        window.outerHeight - window.innerHeight];"""
         )
+        self.protocol.webdriver.window.position = (0, 0)
         self.protocol.webdriver.window.size = (600 + width_offset, 600 + height_offset)
 
         result = self.implementation.run_test(test)
