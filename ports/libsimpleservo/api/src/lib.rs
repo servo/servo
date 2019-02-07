@@ -21,6 +21,7 @@ use servo::servo_url::ServoUrl;
 use servo::{self, gl, webrender_api, BrowserId, Servo};
 use std::cell::{Cell, RefCell};
 use std::mem;
+use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -39,6 +40,7 @@ pub struct InitOptions {
     pub width: u32,
     pub height: u32,
     pub density: f32,
+    pub vr_pointer: Option<*mut c_void>,
     pub enable_subpixel_text_antialiasing: bool,
 }
 
@@ -146,6 +148,7 @@ pub fn init(
         width: Cell::new(init_opts.width),
         height: Cell::new(init_opts.height),
         density: init_opts.density,
+        vr_pointer: init_opts.vr_pointer,
         waker,
     });
 
@@ -489,6 +492,7 @@ struct ServoCallbacks {
     width: Cell<u32>,
     height: Cell<u32>,
     density: f32,
+    vr_pointer: Option<*mut c_void>,
 }
 
 impl WindowMethods for ServoCallbacks {
@@ -529,6 +533,10 @@ impl WindowMethods for ServoCallbacks {
             screen_avail: size,
             hidpi_factor: TypedScale::new(self.density),
         }
+    }
+
+    fn get_vrexternal_pointer(&self) -> Option<*mut c_void> {
+        self.vr_pointer.clone()
     }
 }
 
