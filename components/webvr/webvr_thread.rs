@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::VRExternalShmemPtr;
 use crate::webvr_test::TestVRService;
+use crate::VRExternalShmemPtr;
 use canvas_traits::webgl;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use euclid::Size2D;
