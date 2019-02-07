@@ -21,8 +21,8 @@ euclid = "0.19"
 ipc-channel = "0.11"
 log = "0.4"
 msg = {path = "../msg"}
-rust-webvr-api = "0.9"
-rust-webvr = {version = "0.9", features = ["openvr", "vrexternal"]}
+rust-webvr-api = "0.10"
+rust-webvr = {version = "0.10", features = ["openvr", "vrexternal"]}
 style_traits = {path = "../style_traits"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
