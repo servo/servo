@@ -15,6 +15,8 @@ opt-level = 3
 # lto = false
 
 [patch.crates-io]
+rust-webvr = { git = "https://github.com/asajeffrey/rust-webvr.git", branch = "vrdisplay-presented-by-browser-flag" }
+rust-webvr-api = { git = "https://github.com/asajeffrey/rust-webvr.git", branch = "vrdisplay-presented-by-browser-flag" }
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #

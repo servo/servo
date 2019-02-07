@@ -65,6 +65,7 @@ impl VRDisplay for TestVRDisplay {
             has_orientation: false,
             has_external_display: false,
             can_present: true,
+            presented_by_browser: true,
             max_layers: 1,
         };
 

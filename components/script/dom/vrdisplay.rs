@@ -283,8 +283,8 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
-        // For devices which don't have an external display, we use the regular rAF
-        if self.presenting.get() && self.display.borrow().capabilities.has_external_display {
+        // For devices which are expecting the browser to present, we use the regular rAF
+        if self.using_dedicated_raf_thread() {
             let raf_id = self.next_raf_id.get();
             self.next_raf_id.set(raf_id + 1);
             self.raf_callback_list
@@ -300,7 +300,7 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-cancelanimationframe
     fn CancelAnimationFrame(&self, handle: u32) {
-        if self.presenting.get() && self.display.borrow().capabilities.has_external_display {
+        if self.using_dedicated_raf_thread() {
             let mut list = self.raf_callback_list.borrow_mut();
             if let Some(pair) = list.iter_mut().find(|pair| pair.0 == handle) {
                 pair.1 = None;
@@ -504,11 +504,11 @@ impl VRDisplay {
     }
 
     fn set_layer_ctx(&self, ctx: Option<&WebGLRenderingContext>) {
-        // For devices that have no external display, we put the canvas into full-screen mode.
+        // For devices that expect the browser to present, we put the canvas into full-screen mode.
         if self.layer_ctx == ctx {
             return;
         }
-        if self.display.borrow().capabilities.has_external_display {
+        if !self.display.borrow().capabilities.presented_by_browser {
             self.layer_ctx.set(ctx);
             return;
         }
@@ -617,7 +617,7 @@ impl VRDisplay {
 
         // For displays with no external display, we use the regular window
         // rAF, so we don't need to spin up a dedicated thread.
-        if !self.display.borrow().capabilities.has_external_display {
+        if !self.using_dedicated_raf_thread() {
             // Initialize compositor
             api_sender
                 .send_vr(WebVRCommand::Create(display_id))
@@ -721,6 +721,13 @@ impl VRDisplay {
         };
 
         self.frame_data_status.set(status);
+    }
+
+    fn using_dedicated_raf_thread(&self) -> bool {
+        // We spin up a dedicated rAF thread when we're presenting, and
+        // when the display does it's own presentation rather than asking
+        // the browser to do it.
+        self.presenting.get() && !self.display.borrow().capabilities.presented_by_browser
     }
 
     fn handle_raf(&self, end_sender: &Sender<Result<(f64, f64), ()>>) {
