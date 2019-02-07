@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
-pub type ServoGl = Rc<dyn servo::gl::Gl>;
+pub type ServoGl = std::rc::Rc<dyn servo::gl::Gl>;
 
 #[cfg(any(target_os = "android", target_os = "windows"))]
 #[allow(non_camel_case_types)]
@@ -56,7 +54,7 @@ pub mod egl {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn init() -> Result<Rc<Gl>, &'static str> {
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         info!("Loading EGL...");
 
         let dll = b"libEGL.dll\0" as &[u8];
@@ -77,10 +75,38 @@ pub mod egl {
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 pub mod gl {
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
-        // FIXME: Add an OpenGL version
-        unimplemented!()
+        unimplemented!();
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub mod gl {
+    use core_foundation::base::TCFType;
+    use core_foundation::bundle::{
+        CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName,
+    };
+    use core_foundation::string::CFString;
+    use servo::gl::GlFns;
+    use std::os::raw::c_void;
+    use std::str;
+
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
+        info!("Loading OpenGL...");
+        let gl = unsafe {
+            GlFns::load_with(|addr| {
+                let symbol_name: CFString = str::FromStr::from_str(addr).unwrap();
+                let framework_name: CFString = str::FromStr::from_str("com.apple.opengl").unwrap();
+                let framework =
+                    CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef());
+                let symbol =
+                    CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef());
+                symbol as *const c_void
+            })
+        };
+        info!("OpenGL loaded");
+        Ok(gl)
     }
 }
