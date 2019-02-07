@@ -439,19 +439,14 @@ impl<'a> CanvasData<'a> {
         chan: IpcSender<bool>,
     ) {
         self.ensure_path();
-        let (result, new_state) = match *self.path_state.as_mut().unwrap() {
-            PathState::UserSpacePath(ref path, ref mut transform) => {
-                let result = {
-                    let path_transform = transform.as_ref().unwrap_or(&self.state.transform);
-                    path.contains_point(x, y, path_transform)
-                };
-                let state = PathState::UserSpacePathBuilder(path.copy_to_builder(), transform.take());
-                (result, state)
+        let result = match self.path_state.as_ref() {
+            Some(PathState::UserSpacePath(ref path, ref transform)) => {
+                let target_transform = self.drawtarget.get_transform();
+                let path_transform = transform.as_ref().unwrap_or(&target_transform);
+                path.contains_point(x, y, path_transform)
             }
-            PathState::UserSpacePathBuilder(..) |
-            PathState::DeviceSpacePathBuilder(..) => unreachable!(),
+            Some(_) | None => false,
         };
-        self.path_state = Some(new_state);
         chan.send(result).unwrap();
     }
 
