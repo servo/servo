@@ -8,7 +8,7 @@ use azure::azure_hl::{AntialiasMode, AsAzurePoint, CapStyle, CompositionOp, Join
 use azure::azure_hl::{
     BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat,
 };
-use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder, Path};
+use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, Path, PathBuilder};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
@@ -44,16 +44,16 @@ impl PathState {
     fn is_path(&self) -> bool {
         match *self {
             PathState::UserSpacePath(..) => true,
-            PathState::UserSpacePathBuilder(..) |
-            PathState::DeviceSpacePathBuilder(..) => false,
+            PathState::UserSpacePathBuilder(..) | PathState::DeviceSpacePathBuilder(..) => false,
         }
     }
 
     fn path(&self) -> &Path {
         match *self {
             PathState::UserSpacePath(ref p, _) => p,
-            PathState::UserSpacePathBuilder(..) |
-            PathState::DeviceSpacePathBuilder(..) => panic!("should have called ensure_path"),
+            PathState::UserSpacePathBuilder(..) | PathState::DeviceSpacePathBuilder(..) => {
+                panic!("should have called ensure_path")
+            },
         }
     }
 }
@@ -77,15 +77,21 @@ impl<'a> PathBuilderRef<'a> {
     }
 
     fn rect(&self, rect: &Rect<f32>) {
-        let (first, second, third, fourth) =
-            (Point2D::new(rect.origin.x, rect.origin.y),
-             Point2D::new(rect.origin.x + rect.size.width, rect.origin.y),
-             Point2D::new(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height),
-             Point2D::new(rect.origin.x, rect.origin.y + rect.size.height));
+        let (first, second, third, fourth) = (
+            Point2D::new(rect.origin.x, rect.origin.y),
+            Point2D::new(rect.origin.x + rect.size.width, rect.origin.y),
+            Point2D::new(
+                rect.origin.x + rect.size.width,
+                rect.origin.y + rect.size.height,
+            ),
+            Point2D::new(rect.origin.x, rect.origin.y + rect.size.height),
+        );
         self.builder.move_to(self.transform.transform_point(&first));
-        self.builder.line_to(self.transform.transform_point(&second));
+        self.builder
+            .line_to(self.transform.transform_point(&second));
         self.builder.line_to(self.transform.transform_point(&third));
-        self.builder.line_to(self.transform.transform_point(&fourth));
+        self.builder
+            .line_to(self.transform.transform_point(&fourth));
         self.builder.close();
     }
 
@@ -100,7 +106,7 @@ impl<'a> PathBuilderRef<'a> {
         &self,
         cp1: &Point2D<AzFloat>,
         cp2: &Point2D<AzFloat>,
-        endpoint: &Point2D<AzFloat>
+        endpoint: &Point2D<AzFloat>,
     ) {
         self.builder.bezier_curve_to(
             &self.transform.transform_point(cp1),
@@ -115,10 +121,11 @@ impl<'a> PathBuilderRef<'a> {
         radius: AzFloat,
         start_angle: AzFloat,
         end_angle: AzFloat,
-        ccw: bool
+        ccw: bool,
     ) {
         let center = self.transform.transform_point(center);
-        self.builder.arc(center, radius, start_angle, end_angle, ccw);
+        self.builder
+            .arc(center, radius, start_angle, end_angle, ccw);
     }
 
     pub fn ellipse(
@@ -129,10 +136,18 @@ impl<'a> PathBuilderRef<'a> {
         rotation_angle: AzFloat,
         start_angle: AzFloat,
         end_angle: AzFloat,
-        ccw: bool
+        ccw: bool,
     ) {
         let center = self.transform.transform_point(center);
-        self.builder.ellipse(center, radius_x, radius_y, rotation_angle, start_angle, end_angle, ccw);
+        self.builder.ellipse(
+            center,
+            radius_x,
+            radius_y,
+            rotation_angle,
+            start_angle,
+            end_angle,
+            ccw,
+        );
     }
 
     fn current_point(&self) -> Option<Point2D<AzFloat>> {
@@ -342,15 +357,17 @@ impl<'a> CanvasData<'a> {
         // If there's no record of any path yet, create a new builder in user-space.
         if self.path_state.is_none() {
             self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(), None));
+                self.drawtarget.create_path_builder(),
+                None,
+            ));
         }
 
         // If a user-space builder exists, create a finished path from it.
         let new_state = match *self.path_state.as_mut().unwrap() {
-            PathState::UserSpacePathBuilder(ref builder, ref mut transform) =>
-                Some((builder.finish(), transform.take())),
-            PathState::DeviceSpacePathBuilder(..) | PathState::UserSpacePath(..) =>
-                None,
+            PathState::UserSpacePathBuilder(ref builder, ref mut transform) => {
+                Some((builder.finish(), transform.take()))
+            },
+            PathState::DeviceSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
         };
         if let Some((path, transform)) = new_state {
             self.path_state = Some(PathState::UserSpacePath(path, transform));
@@ -359,12 +376,12 @@ impl<'a> CanvasData<'a> {
         // If a user-space path exists, create a device-space builder based on it if
         // any transform is present.
         let new_state = match *self.path_state.as_ref().unwrap() {
-            PathState::UserSpacePath(ref path, Some(ref transform)) =>
-                Some(path.transformed_copy_to_builder(transform)),
+            PathState::UserSpacePath(ref path, Some(ref transform)) => {
+                Some(path.transformed_copy_to_builder(transform))
+            },
             PathState::UserSpacePath(..) |
             PathState::UserSpacePathBuilder(..) |
-            PathState::DeviceSpacePathBuilder(..) =>
-                None,
+            PathState::DeviceSpacePathBuilder(..) => None,
         };
         if let Some(builder) = new_state {
             self.path_state = Some(PathState::DeviceSpacePathBuilder(builder));
@@ -380,13 +397,12 @@ impl<'a> CanvasData<'a> {
                     None => {
                         warn!("Couldn't invert canvas transformation.");
                         return;
-                    }
+                    },
                 };
                 let builder = path.transformed_copy_to_builder(&inverse);
                 Some(builder.finish())
-            }
-            PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) =>
-                None,
+            },
+            PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
         };
         if let Some(path) = new_state {
             self.path_state = Some(PathState::UserSpacePath(path, None));
@@ -396,7 +412,10 @@ impl<'a> CanvasData<'a> {
     }
 
     fn path(&self) -> &Path {
-        self.path_state.as_ref().expect("Should have called ensure_path()").path()
+        self.path_state
+            .as_ref()
+            .expect("Should have called ensure_path()")
+            .path()
     }
 
     pub fn fill(&mut self) {
@@ -444,7 +463,7 @@ impl<'a> CanvasData<'a> {
                 let target_transform = self.drawtarget.get_transform();
                 let path_transform = transform.as_ref().unwrap_or(&target_transform);
                 path.contains_point(x, y, path_transform)
-            }
+            },
             Some(_) | None => false,
         };
         chan.send(result).unwrap();
@@ -461,7 +480,9 @@ impl<'a> CanvasData<'a> {
     fn path_builder(&mut self) -> PathBuilderRef {
         if self.path_state.is_none() {
             self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(), None));
+                self.drawtarget.create_path_builder(),
+                None,
+            ));
         }
 
         // Rust is not pleased by returning a reference to a builder in some branches
@@ -470,16 +491,20 @@ impl<'a> CanvasData<'a> {
         let new_state = {
             match self.path_state.as_ref().unwrap() {
                 &PathState::UserSpacePathBuilder(_, None) |
-                &PathState::DeviceSpacePathBuilder(_) =>
-                    None,
+                &PathState::DeviceSpacePathBuilder(_) => None,
                 &PathState::UserSpacePathBuilder(ref builder, Some(ref transform)) => {
                     let path = builder.finish();
-                    Some(PathState::DeviceSpacePathBuilder(path.transformed_copy_to_builder(transform)))
-                }
-                &PathState::UserSpacePath(ref path, Some(ref transform)) =>
-                    Some(PathState::DeviceSpacePathBuilder(path.transformed_copy_to_builder(transform))),
-                &PathState::UserSpacePath(ref path, None) =>
-                    Some(PathState::UserSpacePathBuilder(path.copy_to_builder(), None)),
+                    Some(PathState::DeviceSpacePathBuilder(
+                        path.transformed_copy_to_builder(transform),
+                    ))
+                },
+                &PathState::UserSpacePath(ref path, Some(ref transform)) => Some(
+                    PathState::DeviceSpacePathBuilder(path.transformed_copy_to_builder(transform)),
+                ),
+                &PathState::UserSpacePath(ref path, None) => Some(PathState::UserSpacePathBuilder(
+                    path.copy_to_builder(),
+                    None,
+                )),
             }
         };
         match new_state {
@@ -487,34 +512,32 @@ impl<'a> CanvasData<'a> {
             Some(state) => self.path_state = Some(state),
             // There's an existing builder value that can be returned immediately.
             None => match self.path_state.as_ref().unwrap() {
-                &PathState::UserSpacePathBuilder(ref builder, None) =>
+                &PathState::UserSpacePathBuilder(ref builder, None) => {
                     return PathBuilderRef {
                         builder,
                         transform: Transform2D::identity(),
-                    },
-                &PathState::DeviceSpacePathBuilder(ref builder) =>
+                    };
+                },
+                &PathState::DeviceSpacePathBuilder(ref builder) => {
                     return PathBuilderRef {
                         builder,
                         transform: self.drawtarget.get_transform(),
-                    },
+                    };
+                },
                 _ => unreachable!(),
-            }
+            },
         }
 
         match self.path_state.as_ref().unwrap() {
-            &PathState::UserSpacePathBuilder(ref builder, None) =>
-                PathBuilderRef {
-                    builder,
-                    transform: Transform2D::identity(),
-                },
-            &PathState::DeviceSpacePathBuilder(ref builder) =>
-                PathBuilderRef {
-                    builder,
-                    transform: self.drawtarget.get_transform(),
-                },
-            &PathState::UserSpacePathBuilder(..) |
-            &PathState::UserSpacePath(..) =>
-                unreachable!(),
+            &PathState::UserSpacePathBuilder(ref builder, None) => PathBuilderRef {
+                builder,
+                transform: Transform2D::identity(),
+            },
+            &PathState::DeviceSpacePathBuilder(ref builder) => PathBuilderRef {
+                builder,
+                transform: self.drawtarget.get_transform(),
+            },
+            &PathState::UserSpacePathBuilder(..) | &PathState::UserSpacePath(..) => unreachable!(),
         }
     }
 
@@ -522,11 +545,7 @@ impl<'a> CanvasData<'a> {
         self.path_builder().rect(rect);
     }
 
-    pub fn quadratic_curve_to(
-        &mut self,
-        cp: &Point2D<AzFloat>,
-        endpoint: &Point2D<AzFloat>
-    ) {
+    pub fn quadratic_curve_to(&mut self, cp: &Point2D<AzFloat>, endpoint: &Point2D<AzFloat>) {
         self.path_builder().quadratic_curve_to(cp, endpoint);
     }
 
@@ -547,15 +566,11 @@ impl<'a> CanvasData<'a> {
         end_angle: AzFloat,
         ccw: bool,
     ) {
-        self.path_builder().arc(center, radius, start_angle, end_angle, ccw);
+        self.path_builder()
+            .arc(center, radius, start_angle, end_angle, ccw);
     }
 
-    pub fn arc_to(
-        &mut self,
-        cp1: &Point2D<AzFloat>,
-        cp2: &Point2D<AzFloat>,
-        radius: AzFloat
-    ) {
+    pub fn arc_to(&mut self, cp1: &Point2D<AzFloat>, cp2: &Point2D<AzFloat>, radius: AzFloat) {
         let cp0 = match self.path_builder().current_point() {
             Some(p) => p.as_azure_point(),
             None => return,
@@ -628,7 +643,15 @@ impl<'a> CanvasData<'a> {
         end_angle: AzFloat,
         ccw: bool,
     ) {
-        self.path_builder().ellipse(center, radius_x, radius_y, rotation_angle, start_angle, end_angle, ccw);
+        self.path_builder().ellipse(
+            center,
+            radius_x,
+            radius_y,
+            rotation_angle,
+            start_angle,
+            end_angle,
+            ccw,
+        );
     }
 
     pub fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
@@ -663,14 +686,13 @@ impl<'a> CanvasData<'a> {
         // If there is an in-progress path, store the existing transformation required
         // to move between device and user space.
         match self.path_state.as_mut() {
-            None |
-            Some(PathState::DeviceSpacePathBuilder(..)) => (),
+            None | Some(PathState::DeviceSpacePathBuilder(..)) => (),
             Some(PathState::UserSpacePathBuilder(_, ref mut transform)) |
             Some(PathState::UserSpacePath(_, ref mut transform)) => {
                 if transform.is_none() {
                     *transform = Some(self.drawtarget.get_transform());
                 }
-            }
+            },
         }
         self.state.transform = transform.clone();
         self.drawtarget.set_transform(transform)
