@@ -62,23 +62,17 @@ impl PathState {
 /// applied to any points to ensure they are in the matching device space.
 struct PathBuilderRef<'a> {
     builder: &'a PathBuilder,
-    transform: Option<Transform2D<AzFloat>>,
+    transform: Transform2D<AzFloat>,
 }
 
 impl<'a> PathBuilderRef<'a> {
     fn line_to(&self, pt: &Point2D<AzFloat>) {
-        let pt = match self.transform {
-            Some(ref t) => t.transform_point(pt),
-            None => *pt,
-        };
+        let pt = self.transform.transform_point(pt);
         self.builder.line_to(pt);
     }
 
     fn move_to(&self, pt: &Point2D<AzFloat>) {
-        let pt = match self.transform {
-            Some(ref t) => t.transform_point(pt),
-            None => *pt,
-        };
+        let pt = self.transform.transform_point(pt);
         self.builder.move_to(pt);
     }
 
@@ -88,32 +82,18 @@ impl<'a> PathBuilderRef<'a> {
              Point2D::new(rect.origin.x + rect.size.width, rect.origin.y),
              Point2D::new(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height),
              Point2D::new(rect.origin.x, rect.origin.y + rect.size.height));
-        let (first, second, third, fourth) = match self.transform {
-            Some(ref t) =>
-                (t.transform_point(&first),
-                 t.transform_point(&second),
-                 t.transform_point(&third),
-                 t.transform_point(&fourth)),
-            None => (first, second, third, fourth),
-        };
-        self.builder.move_to(first);
-        self.builder.line_to(second);
-        self.builder.line_to(third);
-        self.builder.line_to(fourth);
+        self.builder.move_to(self.transform.transform_point(&first));
+        self.builder.line_to(self.transform.transform_point(&second));
+        self.builder.line_to(self.transform.transform_point(&third));
+        self.builder.line_to(self.transform.transform_point(&fourth));
         self.builder.close();
     }
 
     fn quadratic_curve_to(&self, cp: &Point2D<AzFloat>, endpoint: &Point2D<AzFloat>) {
-        let (cp2, endpoint2);
-        let (cp, endpoint) = match self.transform {
-            Some(ref t) => {
-                cp2 = t.transform_point(cp);
-                endpoint2 = t.transform_point(endpoint);
-                (&cp2, &endpoint2)
-            }
-            None => (cp, endpoint),
-        };
-        self.builder.quadratic_curve_to(cp, endpoint)
+        self.builder.quadratic_curve_to(
+            &self.transform.transform_point(cp),
+            &self.transform.transform_point(endpoint),
+        )
     }
 
     fn bezier_curve_to(
@@ -122,17 +102,11 @@ impl<'a> PathBuilderRef<'a> {
         cp2: &Point2D<AzFloat>,
         endpoint: &Point2D<AzFloat>
     ) {
-        let (cp1_t, cp2_t, endpoint_t);
-        let (cp1, cp2, endpoint) = match self.transform {
-            Some(ref t) => {
-                cp1_t = t.transform_point(cp1);
-                cp2_t = t.transform_point(cp2);
-                endpoint_t = t.transform_point(endpoint);
-                (&cp1_t, &cp2_t, &endpoint_t)
-            }
-            None => (cp1, cp2, endpoint),
-        };
-        self.builder.bezier_curve_to(cp1, cp2, endpoint)
+        self.builder.bezier_curve_to(
+            &self.transform.transform_point(cp1),
+            &self.transform.transform_point(cp2),
+            &self.transform.transform_point(endpoint),
+        )
     }
 
     fn arc(
@@ -143,10 +117,7 @@ impl<'a> PathBuilderRef<'a> {
         end_angle: AzFloat,
         ccw: bool
     ) {
-        let center = match self.transform {
-            Some(ref t) => t.transform_point(center),
-            None => *center,
-        };
+        let center = self.transform.transform_point(center);
         self.builder.arc(center, radius, start_angle, end_angle, ccw);
     }
 
@@ -160,28 +131,17 @@ impl<'a> PathBuilderRef<'a> {
         end_angle: AzFloat,
         ccw: bool
     ) {
-        let center = match self.transform {
-            Some(ref t) => t.transform_point(center),
-            None => *center,
-        };
+        let center = self.transform.transform_point(center);
         self.builder.ellipse(center, radius_x, radius_y, rotation_angle, start_angle, end_angle, ccw);
     }
 
     fn current_point(&self) -> Option<Point2D<AzFloat>> {
-        match self.transform {
-            Some(ref t) => {
-                let inverse = match t.inverse() {
-                    Some(i) => i,
-                    None => return None,
-                };
-                let current_point = self.builder.get_current_point();
-                Some(inverse.transform_point(&Point2D::new(current_point.x, current_point.y)))
-            }
-            None => {
-                let current = self.builder.get_current_point();
-                Some(Point2D::new(current.x, current.y))
-            }
-        }
+        let inverse = match self.transform.inverse() {
+            Some(i) => i,
+            None => return None,
+        };
+        let current_point = self.builder.get_current_point();
+        Some(inverse.transform_point(&Point2D::new(current_point.x, current_point.y)))
     }
 }
 
@@ -535,12 +495,12 @@ impl<'a> CanvasData<'a> {
                 &PathState::UserSpacePathBuilder(ref builder, None) =>
                     return PathBuilderRef {
                         builder,
-                        transform: None,
+                        transform: Transform2D::identity(),
                     },
                 &PathState::DeviceSpacePathBuilder(ref builder) =>
                     return PathBuilderRef {
                         builder,
-                        transform: Some(self.drawtarget.get_transform()),
+                        transform: self.drawtarget.get_transform(),
                     },
                 _ => unreachable!(),
             }
@@ -550,12 +510,12 @@ impl<'a> CanvasData<'a> {
             &PathState::UserSpacePathBuilder(ref builder, None) =>
                 PathBuilderRef {
                     builder,
-                    transform: None,
+                    transform: Transform2D::identity(),
                 },
             &PathState::DeviceSpacePathBuilder(ref builder) =>
                 PathBuilderRef {
                     builder,
-                    transform: Some(self.drawtarget.get_transform()),
+                    transform: self.drawtarget.get_transform(),
                 },
             &PathState::UserSpacePathBuilder(..) |
             &PathState::UserSpacePath(..) =>
