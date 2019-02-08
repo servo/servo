@@ -609,7 +609,17 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         let values = link_types.Value();
         let contains_noopener = values.contains("noopener");
         let contains_noreferrer = values.contains("noreferrer");
-        contains_noreferrer || contains_noopener
+        let contains_opener = values.contains("opener");
+        let target_is_blank = if let Some(name) = target_attribute_value.as_ref() {
+            match name.Value().to_lowercase().as_ref() {
+                "_blank" => true,
+                _ => false,
+            }
+        } else {
+            false
+        };
+
+        contains_noreferrer || contains_noopener || (!contains_opener && target_is_blank)
     } else {
         false
     };
