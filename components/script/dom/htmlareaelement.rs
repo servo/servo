@@ -299,6 +299,12 @@ impl VirtualMethods for HTMLAreaElement {
 }
 
 impl HTMLAreaElementMethods for HTMLAreaElement {
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_getter!(Target, "target");
+
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_setter!(SetTarget, "target");
+
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list

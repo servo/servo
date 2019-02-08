@@ -11,8 +11,8 @@ interface HTMLAreaElement : HTMLElement {
   //         attribute DOMString coords;
   // [CEReactions]
   //         attribute DOMString shape;
-  // [CEReactions]
-  //         attribute DOMString target;
+  [CEReactions]
+             attribute DOMString target;
   // [CEReactions]
   //         attribute DOMString download;
   // [CEReactions]
