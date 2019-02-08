@@ -516,7 +516,7 @@ impl VRDisplay {
         // Enter fullscreen mode.
         // TODO: fullscreen mode isn't quite right because
         // a) it requires the element to be attached to the DOM tree, and
-        // b) it fullscreens the element together with it's CSS styling.
+        // b) it fullscreens the element together with its CSS styling.
         if let Some(old) = self.layer_ctx.get() {
             debug!("VR exiting full screen mode");
             let canvas = old.Canvas();
@@ -725,7 +725,7 @@ impl VRDisplay {
 
     fn using_dedicated_raf_thread(&self) -> bool {
         // We spin up a dedicated rAF thread when we're presenting, and
-        // when the display does it's own presentation rather than asking
+        // when the display does its own presentation rather than asking
         // the browser to do it.
         self.presenting.get() && !self.display.borrow().capabilities.presented_by_browser
     }

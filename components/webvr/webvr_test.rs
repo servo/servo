@@ -8,6 +8,7 @@
 
 use euclid::Angle;
 use euclid::Trig;
+use euclid::TypedScale;
 use euclid::TypedSize2D;
 use rust_webvr_api::VRDisplay;
 use rust_webvr_api::VRDisplayCapabilities;
@@ -23,6 +24,8 @@ use rust_webvr_api::VRGamepadPtr;
 use rust_webvr_api::VRLayer;
 use rust_webvr_api::VRService;
 use rust_webvr_api::VRViewport;
+use servo_config::opts;
+use servo_geometry::DeviceIndependentPixel;
 use std::cell::RefCell;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
@@ -240,10 +243,15 @@ impl VRService for TestVRService {
 }
 
 impl TestVRService {
-    pub fn new(size: TypedSize2D<u32, DevicePixel>) -> TestVRService {
+    pub fn new() -> TestVRService {
+        // Rather annoyingly there's no easy way to get the window size
+        // from the constellation, so we guess based on the options.
+        let size = opts::get().initial_window_size;
+        let hidpi: TypedScale<u32, DeviceIndependentPixel, DevicePixel> =
+            TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0) as u32);
         TestVRService {
             display: None,
-            size: size,
+            size: size * hidpi,
         }
     }
 }
