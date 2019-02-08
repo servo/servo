@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::node::{self, Node};
+use crate::dom::node;
 use crate::dom::window::Window;
 use euclid::Point2D;
 use js::jsapi::JS_GetRuntime;
@@ -22,15 +20,15 @@ use std::fmt;
 use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
+use style::stylesheet_set::StylesheetSet;
+use style::stylesheets::{CssRule, Origin, Stylesheet};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
-    sheet: Arc<Stylesheet>,
-    owner: Dom<Element>,
+    pub sheet: Arc<Stylesheet>,
+    pub owner: Dom<Element>,
 }
 
 impl fmt::Debug for StyleSheetInDocument {
@@ -72,16 +70,12 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct DocumentOrShadowRoot {
     window: Dom<Window>,
-    /// List of stylesheets associated with nodes in this document or shadow root.
-    /// |None| if the list needs to be refreshed.
-    stylesheets: DomRefCell<DocumentStylesheetSet<StyleSheetInDocument>>,
 }
 
 impl DocumentOrShadowRoot {
     pub fn new(window: &Window) -> Self {
         Self {
             window: Dom::from_ref(window),
-            stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
         }
     }
 
@@ -207,33 +201,14 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    pub fn stylesheet_count(&self) -> usize {
-        self.stylesheets.borrow().len()
-    }
-
-    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        let stylesheets = self.stylesheets.borrow();
-
-        stylesheets
-            .get(Origin::Author, index)
-            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
-    }
-
-    pub fn stylesheets_have_changed(&self) -> bool {
-        self.stylesheets.borrow().has_changed()
-    }
-
-    pub fn invalidate_stylesheets(&self) {
-        self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
-    }
-
-    pub fn flush_stylesheets_without_invalidation(&self) {
-        self.stylesheets.borrow_mut().flush_without_invalidation();
-    }
-
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+    pub fn remove_stylesheet(
+        &self,
+        owner: &Element,
+        s: &Arc<Stylesheet>,
+        stylesheets: &mut StylesheetSet<StyleSheetInDocument>,
+    ) {
         self.window
             .layout_chan()
             .send(Msg::RemoveStylesheet(s.clone()))
@@ -242,7 +217,7 @@ impl DocumentOrShadowRoot {
         let guard = s.shared_lock.read();
 
         // FIXME(emilio): Would be nice to remove the clone, etc.
-        self.stylesheets.borrow_mut().remove_stylesheet(
+        stylesheets.remove_stylesheet(
             None,
             StyleSheetInDocument {
                 sheet: s.clone(),
@@ -258,7 +233,9 @@ impl DocumentOrShadowRoot {
     pub fn add_stylesheet(
         &self,
         owner: &Element,
+        stylesheets: &mut StylesheetSet<StyleSheetInDocument>,
         sheet: Arc<Stylesheet>,
+        insertion_point: Option<StyleSheetInDocument>,
         style_shared_lock: &StyleSharedRwLock,
     ) {
         // FIXME(emilio): It'd be nice to unify more code between the elements
@@ -268,17 +245,6 @@ impl DocumentOrShadowRoot {
             owner.as_stylesheet_owner().is_some() || owner.is::<HTMLMetaElement>(),
             "Wat"
         );
-
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets
-            .iter()
-            .map(|(sheet, _origin)| sheet)
-            .find(|sheet_in_doc| {
-                owner
-                    .upcast::<Node>()
-                    .is_before(sheet_in_doc.owner.upcast())
-            })
-            .cloned();
 
         self.window
             .layout_chan()

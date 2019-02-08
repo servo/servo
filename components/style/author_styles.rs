@@ -18,6 +18,7 @@ use crate::stylist::CascadeData;
 
 /// A set of author stylesheets and their computed representation, such as the
 /// ones used for ShadowRoot and XBL.
+#[derive(MallocSizeOf)]
 pub struct AuthorStyles<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
@@ -29,6 +30,7 @@ where
     pub data: CascadeData,
     /// The quirks mode of the last stylesheet flush, used because XBL sucks and
     /// we should really fix it, see bug 1406875.
+    #[ignore_malloc_size_of = "XXX"]
     pub quirks_mode: QuirksMode,
 }
 
