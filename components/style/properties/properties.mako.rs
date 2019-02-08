@@ -2890,7 +2890,6 @@ impl ComputedValues {
 impl ComputedValues {
     /// Create a new refcounted `ComputedValues`
     pub fn new(
-        _: &Device,
         _: Option<<&PseudoElement>,
         custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -3655,7 +3654,6 @@ impl<'a> StyleBuilder<'a> {
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
     pub fn build(self) -> Arc<ComputedValues> {
         ComputedValues::new(
-            self.device,
             self.pseudo,
             self.custom_properties,
             self.writing_mode,
