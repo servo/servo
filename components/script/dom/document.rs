@@ -155,7 +155,7 @@ use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::Stylesheet;
+use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::percent_encoding::percent_decode;
 use url::Host;
 
@@ -573,7 +573,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        self.document_or_shadow_root.stylesheets_have_changed() ||
+        self.stylesheets.borrow().has_changed() ||
             self.GetDocumentElement().map_or(false, |root| {
                 root.upcast::<Node>().has_dirty_descendants() ||
                     !self.pending_restyles.borrow().is_empty() ||
@@ -1542,7 +1542,7 @@ impl Document {
     }
 
     pub fn invalidate_stylesheets(&self) {
-        self.document_or_shadow_root.invalidate_stylesheets();
+        self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
 
         // Mark the document element dirty so a reflow will be performed.
         //
@@ -2831,9 +2831,9 @@ impl Document {
         // and normal stylesheets additions / removals, because in the last case
         // the layout thread already has that information and we could avoid
         // dirtying the whole thing.
-        let have_changed = self.document_or_shadow_root.stylesheets_have_changed();
-        self.document_or_shadow_root
-            .flush_stylesheets_without_invalidation();
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        let have_changed = stylesheets.has_changed();
+        stylesheets.flush_without_invalidation();
         have_changed
     }
 
@@ -4547,24 +4547,47 @@ impl PendingScript {
 
 impl StyleSheetListOwner for Dom<Document> {
     fn stylesheet_count(&self) -> usize {
-        self.document_or_shadow_root.stylesheet_count()
+        self.stylesheets.borrow().len()
     }
 
     fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        self.document_or_shadow_root.stylesheet_at(index)
+        let stylesheets = self.stylesheets.borrow();
+
+        stylesheets
+            .get(Origin::Author, index)
+            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
     }
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
-        self.document_or_shadow_root
-            .add_stylesheet(owner, sheet, self.style_shared_lock());
+        let stylesheets = &mut *self.stylesheets.borrow_mut();
+        let insertion_point = stylesheets
+            .iter()
+            .map(|(sheet, _origin)| sheet)
+            .find(|sheet_in_doc| {
+                owner
+                    .upcast::<Node>()
+                    .is_before(sheet_in_doc.owner.upcast())
+            })
+            .cloned();
+        self.document_or_shadow_root.add_stylesheet(
+            owner,
+            stylesheets,
+            sheet,
+            insertion_point,
+            self.style_shared_lock(),
+        );
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.document_or_shadow_root.remove_stylesheet(owner, s)
+        self.document_or_shadow_root.remove_stylesheet(
+            owner,
+            s,
+            &mut *self.stylesheets.borrow_mut(),
+        )
     }
 }

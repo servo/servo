@@ -19,7 +19,7 @@ use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::stylesheet_set::AuthorStylesheetSet;
+use style::author_styles::AuthorStyles;
 use style::stylesheets::Stylesheet;
 
 // https://dom.spec.whatwg.org/#interface-shadowroot
@@ -31,7 +31,7 @@ pub struct ShadowRoot {
     host: Dom<Element>,
     /// List of stylesheets associated with nodes in this shadow tree.
     /// |None| if the list needs to be refreshed.
-    stylesheets: DomRefCell<AuthorStylesheetSet<StyleSheetInDocument>>,
+    author_styles: DomRefCell<AuthorStyles<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     window: Dom<Window>,
 }
@@ -48,7 +48,7 @@ impl ShadowRoot {
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
             host: Dom::from_ref(host),
-            stylesheets: DomRefCell::new(AuthorStylesheetSet::new()),
+            author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
         }
@@ -131,20 +131,35 @@ impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
 
 impl StyleSheetListOwner for Dom<ShadowRoot> {
     fn stylesheet_count(&self) -> usize {
-        self.document_or_shadow_root.stylesheet_count()
+        self.author_styles.borrow().stylesheets.len()
     }
 
     fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        self.document_or_shadow_root.stylesheet_at(index)
+        let stylesheets = &self.author_styles.borrow().stylesheets;
+
+        stylesheets
+            .get(index)
+            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
     }
 
     /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
     /// correct tree position.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
+        let insertion_point = stylesheets
+            .iter()
+            .find(|sheet_in_shadow| {
+                owner
+                    .upcast::<Node>()
+                    .is_before(sheet_in_shadow.owner.upcast())
+            })
+            .cloned();
         self.document_or_shadow_root.add_stylesheet(
             owner,
+            stylesheets,
             sheet,
+            insertion_point,
             self.document.style_shared_lock(),
         );
     }
@@ -152,6 +167,10 @@ impl StyleSheetListOwner for Dom<ShadowRoot> {
     /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.document_or_shadow_root.remove_stylesheet(owner, s)
+        self.document_or_shadow_root.remove_stylesheet(
+            owner,
+            s,
+            &mut self.author_styles.borrow_mut().stylesheets,
+        )
     }
 }

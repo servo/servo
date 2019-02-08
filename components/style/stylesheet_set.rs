@@ -375,69 +375,113 @@ where
     invalidations: StylesheetInvalidationSet,
 }
 
+/// Functionality common to DocumentStylesheetSet and AuthorStylesheetSet.
+pub trait StylesheetSet<S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    /// Appends a new stylesheet to the current set.
+    ///
+    /// No device implies not computing invalidations.
+    fn append_stylesheet(
+        &mut self,
+        device: Option<&Device>,
+        sheet: S,
+        guard: &SharedRwLockReadGuard,
+    );
+
+    /// Insert a given stylesheet before another stylesheet in the document.
+    fn insert_stylesheet_before(
+        &mut self,
+        device: Option<&Device>,
+        sheet: S,
+        before_sheet: S,
+        guard: &SharedRwLockReadGuard,
+    );
+
+    /// Remove a given stylesheet from the set.
+    fn remove_stylesheet(
+        &mut self,
+        device: Option<&Device>,
+        sheet: S,
+        guard: &SharedRwLockReadGuard,
+    );
+}
+
 /// This macro defines methods common to DocumentStylesheetSet and
 /// AuthorStylesheetSet.
 ///
 /// We could simplify the setup moving invalidations to SheetCollection, but
 /// that would imply not sharing invalidations across origins of the same
 /// documents, which is slightly annoying.
-macro_rules! sheet_set_methods {
-    ($set_name:expr) => {
-        fn collect_invalidations_for(
-            &mut self,
-            device: Option<&Device>,
-            sheet: &S,
-            guard: &SharedRwLockReadGuard,
-        ) {
-            if let Some(device) = device {
-                self.invalidations.collect_invalidations_for(device, sheet, guard);
+macro_rules! stylesheetset_impl {
+    ($set_name:expr, $set_type:ty) => {
+        impl<S> $set_type
+        where
+            S: StylesheetInDocument + PartialEq + 'static,
+        {
+            fn collect_invalidations_for(
+                &mut self,
+                device: Option<&Device>,
+                sheet: &S,
+                guard: &SharedRwLockReadGuard,
+            ) {
+                if let Some(device) = device {
+                    self.invalidations
+                        .collect_invalidations_for(device, sheet, guard);
+                }
             }
         }
 
-        /// Appends a new stylesheet to the current set.
-        ///
-        /// No device implies not computing invalidations.
-        pub fn append_stylesheet(
-            &mut self,
-            device: Option<&Device>,
-            sheet: S,
-            guard: &SharedRwLockReadGuard,
-        ) {
-            debug!(concat!($set_name, "::append_stylesheet"));
-            self.collect_invalidations_for(device, &sheet, guard);
-            let collection = self.collection_for(&sheet, guard);
-            collection.append(sheet);
+        impl<S> StylesheetSet<S> for $set_type
+        where
+            S: StylesheetInDocument + PartialEq + 'static,
+        {
+            /// Appends a new stylesheet to the current set.
+            ///
+            /// No device implies not computing invalidations.
+            fn append_stylesheet(
+                &mut self,
+                device: Option<&Device>,
+                sheet: S,
+                guard: &SharedRwLockReadGuard,
+            ) {
+                debug!(concat!($set_name, "::append_stylesheet"));
+                self.collect_invalidations_for(device, &sheet, guard);
+                let collection = self.collection_for(&sheet, guard);
+                collection.append(sheet);
+            }
+
+            /// Insert a given stylesheet before another stylesheet in the document.
+            fn insert_stylesheet_before(
+                &mut self,
+                device: Option<&Device>,
+                sheet: S,
+                before_sheet: S,
+                guard: &SharedRwLockReadGuard,
+            ) {
+                debug!(concat!($set_name, "::insert_stylesheet_before"));
+                self.collect_invalidations_for(device, &sheet, guard);
+
+                let collection = self.collection_for(&sheet, guard);
+                collection.insert_before(sheet, &before_sheet);
+            }
+
+            /// Remove a given stylesheet from the set.
+            fn remove_stylesheet(
+                &mut self,
+                device: Option<&Device>,
+                sheet: S,
+                guard: &SharedRwLockReadGuard,
+            ) {
+                debug!(concat!($set_name, "::remove_stylesheet"));
+                self.collect_invalidations_for(device, &sheet, guard);
+
+                let collection = self.collection_for(&sheet, guard);
+                collection.remove(&sheet)
+            }
         }
-
-        /// Insert a given stylesheet before another stylesheet in the document.
-        pub fn insert_stylesheet_before(
-            &mut self,
-            device: Option<&Device>,
-            sheet: S,
-            before_sheet: S,
-            guard: &SharedRwLockReadGuard,
-        ) {
-            debug!(concat!($set_name, "::insert_stylesheet_before"));
-            self.collect_invalidations_for(device, &sheet, guard);
-
-            let collection = self.collection_for(&sheet, guard);
-            collection.insert_before(sheet, &before_sheet);
-        }
-
-        /// Remove a given stylesheet from the set.
-        pub fn remove_stylesheet(
-            &mut self,
-            device: Option<&Device>,
-            sheet: S,
-            guard: &SharedRwLockReadGuard,
-        ) {
-            debug!(concat!($set_name, "::remove_stylesheet"));
-            self.collect_invalidations_for(device, &sheet, guard);
-
-            let collection = self.collection_for(&sheet, guard);
-            collection.remove(&sheet)
-        }
-    }
+    };
 }
 
 impl<S> DocumentStylesheetSet<S>
@@ -460,8 +504,6 @@ where
         let origin = sheet.origin(guard);
         self.collections.borrow_mut_for_origin(&origin)
     }
-
-    sheet_set_methods!("DocumentStylesheetSet");
 
     /// Returns the number of stylesheets in the set.
     pub fn len(&self) -> usize {
@@ -541,6 +583,8 @@ where
     }
 }
 
+stylesheetset_impl!("DocumentStylesheetSet", DocumentStylesheetSet<S>);
+
 /// The set of stylesheets effective for a given XBL binding or Shadow Root.
 #[derive(MallocSizeOf)]
 pub struct AuthorStylesheetSet<S>
@@ -587,6 +631,16 @@ where
         self.collection.len() == 0
     }
 
+    /// Returns the `index`th stylesheet in the collection of author styles if present.
+    pub fn get(&self, index: usize) -> Option<&S> {
+        self.collection.get(index)
+    }
+
+    /// Returns the number of author stylesheets.
+    pub fn len(&self) -> usize {
+        self.collection.len()
+    }
+
     fn collection_for(
         &mut self,
         _sheet: &S,
@@ -594,8 +648,6 @@ where
     ) -> &mut SheetCollection<S> {
         &mut self.collection
     }
-
-    sheet_set_methods!("AuthorStylesheetSet");
 
     /// Iterate over the list of stylesheets.
     pub fn iter(&self) -> StylesheetCollectionIterator<S> {
@@ -628,3 +680,5 @@ where
         }
     }
 }
+
+stylesheetset_impl!("AuthorStylesheetSet", AuthorStylesheetSet<S>);
