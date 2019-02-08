@@ -146,6 +146,8 @@
 == flexbox-intrinsic-ratio-005v.html flexbox-intrinsic-ratio-005-ref.html
 == flexbox-intrinsic-ratio-006.html flexbox-intrinsic-ratio-006-ref.html
 == flexbox-intrinsic-ratio-006v.html flexbox-intrinsic-ratio-006-ref.html
+== flexbox-intrinsic-ratio-007.html flexbox-intrinsic-ratio-007-ref.html
+== flexbox-intrinsic-ratio-007v.html flexbox-intrinsic-ratio-007-ref.html
 
 # Test for definite and indefinite sizes.
 == flexbox-definite-sizes-001.html flexbox-definite-sizes-001-ref.html

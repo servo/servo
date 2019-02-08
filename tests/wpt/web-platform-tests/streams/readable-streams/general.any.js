@@ -39,13 +39,15 @@ test(() => {
 
 test(() => {
 
-  const methods = ['cancel', 'constructor', 'getReader', 'pipeThrough', 'pipeTo', 'tee'];
+  const methods = ['cancel', 'constructor', 'getReader', 'pipeThrough', 'pipeTo', 'tee', 'getIterator'];
   const properties = methods.concat(['locked']).sort();
+  const symbols = [Symbol.asyncIterator];
 
   const rs = new ReadableStream();
   const proto = Object.getPrototypeOf(rs);
 
-  assert_array_equals(Object.getOwnPropertyNames(proto).sort(), properties, 'should have all the correct methods');
+  assert_array_equals(Object.getOwnPropertyNames(proto).sort(), properties, 'should have all the correct properties');
+  assert_array_equals(Object.getOwnPropertySymbols(proto).sort(), symbols, 'should have all the correct symbols');
 
   for (const m of methods) {
     const propDesc = Object.getOwnPropertyDescriptor(proto, m);
@@ -70,6 +72,15 @@ test(() => {
   assert_equals(rs.pipeThrough.length, 1, 'pipeThrough should have 1 parameters');
   assert_equals(rs.pipeTo.length, 1, 'pipeTo should have 1 parameter');
   assert_equals(rs.tee.length, 0, 'tee should have no parameters');
+  assert_equals(rs.getIterator.length, 0, 'getIterator should have no required parameters');
+  assert_equals(rs[Symbol.asyncIterator].length, 0, '@@asyncIterator should have no required parameters');
+
+  const asyncIteratorPropDesc = Object.getOwnPropertyDescriptor(proto, Symbol.asyncIterator);
+  assert_false(asyncIteratorPropDesc.enumerable, '@@asyncIterator should be non-enumerable');
+  assert_true(asyncIteratorPropDesc.configurable, '@@asyncIterator should be configurable');
+  assert_true(asyncIteratorPropDesc.writable, '@@asyncIterator should be writable');
+  assert_equals(typeof rs[Symbol.asyncIterator], 'function', '@@asyncIterator should be a function');
+  assert_equals(rs[Symbol.asyncIterator].name, 'getIterator', '@@asyncIterator should have the correct name');
 
 }, 'ReadableStream instances should have the correct list of properties');
 

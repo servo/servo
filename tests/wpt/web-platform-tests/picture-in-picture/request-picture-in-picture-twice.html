@@ -16,4 +16,13 @@ promise_test(async t => {
   await promise_rejects(t, 'NotAllowedError', video2.requestPictureInPicture());
   return promise;
 }, 'request Picture-in-Picture consumes user gesture');
+
+promise_test(async t => {
+  const video1 = await loadVideo();
+  const video2 = await loadVideo();
+  await test_driver.bless('request Picture-in-Picture');
+  await video1.requestPictureInPicture();
+  assert_equals(document.pictureInPictureElement, video1);
+  return video2.requestPictureInPicture();
+}, 'request Picture-in-Picture does not require user gesture if document.pictureInPictureElement is set');
 </script>
