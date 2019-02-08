@@ -80,7 +80,6 @@ pub struct ComputedValues(crate::gecko_bindings::structs::mozilla::ComputedStyle
 
 impl ComputedValues {
     pub fn new(
-        device: &Device,
         pseudo: Option<<&PseudoElement>,
         custom_properties: Option<Arc<CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -100,10 +99,7 @@ impl ComputedValues {
             % for style_struct in data.style_structs:
             ${style_struct.ident},
             % endfor
-        ).to_outer(
-            device.pres_context(),
-            pseudo.map(|p| p.pseudo_info())
-        )
+        ).to_outer(pseudo)
     }
 
     pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
@@ -116,7 +112,7 @@ impl ComputedValues {
             % for style_struct in data.style_structs:
             style_structs::${style_struct.name}::default(pres_context),
             % endfor
-        ).to_outer(pres_context, None)
+        ).to_outer(None)
     }
 
     pub fn pseudo(&self) -> Option<PseudoElement> {
@@ -190,24 +186,23 @@ impl Clone for ComputedValuesInner {
     }
 }
 
-type PseudoInfo = (*mut structs::nsAtom, structs::CSSPseudoElementType);
-
 impl ComputedValuesInner {
-    pub fn new(custom_properties: Option<Arc<CustomPropertiesMap>>,
-               writing_mode: WritingMode,
-               flags: ComputedValueFlags,
-               rules: Option<StrongRuleNode>,
-               visited_style: Option<Arc<ComputedValues>>,
-               % for style_struct in data.style_structs:
-               ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
-               % endfor
+    pub fn new(
+        custom_properties: Option<Arc<CustomPropertiesMap>>,
+        writing_mode: WritingMode,
+        flags: ComputedValueFlags,
+        rules: Option<StrongRuleNode>,
+        visited_style: Option<Arc<ComputedValues>>,
+        % for style_struct in data.style_structs:
+        ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+        % endfor
     ) -> Self {
-        ComputedValuesInner {
-            custom_properties: custom_properties,
-            writing_mode: writing_mode,
-            rules: rules,
-            visited_style: visited_style.map(|x| Arc::into_raw_offset(x)),
-            flags: flags,
+        Self {
+            custom_properties,
+            writing_mode,
+            rules,
+            visited_style: visited_style.map(Arc::into_raw_offset),
+            flags,
             % for style_struct in data.style_structs:
             ${style_struct.gecko_name}: Arc::into_raw_offset(${style_struct.ident}),
             % endfor
@@ -216,29 +211,16 @@ impl ComputedValuesInner {
 
     fn to_outer(
         self,
-        pres_context: RawGeckoPresContextBorrowed,
-        info: Option<PseudoInfo>
+        pseudo: Option<<&PseudoElement>,
     ) -> Arc<ComputedValues> {
-        let (tag, ty) = if let Some(info) = info {
-            info
-        } else {
-            (ptr::null_mut(), structs::CSSPseudoElementType::NotPseudo)
+        let (pseudo_tag, pseudo_ty) = match pseudo {
+            Some(p) => p.pseudo_info(),
+            None => (ptr::null_mut(), structs::CSSPseudoElementType::NotPseudo),
         };
-
-        unsafe { self.to_outer_helper(pres_context, ty, tag) }
-    }
-
-    unsafe fn to_outer_helper(
-        self,
-        pres_context: bindings::RawGeckoPresContextBorrowed,
-        pseudo_ty: structs::CSSPseudoElementType,
-        pseudo_tag: *mut structs::nsAtom
-    ) -> Arc<ComputedValues> {
-        let arc = {
+        let arc = unsafe {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
             bindings::Gecko_ComputedStyle_Init(
                 &arc.0 as *const _ as *mut _,
-                pres_context,
                 &self,
                 pseudo_ty,
                 pseudo_tag
