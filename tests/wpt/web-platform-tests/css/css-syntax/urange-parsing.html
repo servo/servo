@@ -21,17 +21,17 @@
 function testUrange(input, expected) {
     test(()=>{
         const rule = document.styleSheets[0].cssRules[0];
-        rule.style.unicodeRange = "U+1357";
-        rule.style.unicodeRange = input;
-        assert_equals(rule.style.unicodeRange.toUpperCase(), expected.toUpperCase());
+        rule.style.setProperty("unicode-range", "U+1357");
+        rule.style.setProperty("unicode-range", input);
+        assert_equals(rule.style.getPropertyValue("unicode-range").toUpperCase(), expected.toUpperCase());
     }, `"${input}" => "${expected}"`)
 }
 function testInvalidUrange(input) {
     test(()=>{
         const rule = document.styleSheets[0].cssRules[0];
-        rule.style.unicodeRange = "U+1357";
-        rule.style.unicodeRange = input;
-        assert_equals(rule.style.unicodeRange.toUpperCase(), "U+1357");
+        rule.style.setProperty("unicode-range", "U+1357");
+        rule.style.setProperty("unicode-range", input);
+        assert_equals(rule.style.getPropertyValue("unicode-range").toUpperCase(), "U+1357");
     }, `"${input}" is invalid`);
 }
 

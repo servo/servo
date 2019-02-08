@@ -55,6 +55,26 @@ test(function() {
     '<root attr="&#xD;"/>', '<root attr="&#13;"/>']);
 }, 'check XMLSerializer.serializeToString escapes attribute values for roundtripping');
 
+test(function() {
+  const input = '<root><child1/><child2/></root>';
+  const root = (new DOMParser()).parseFromString(input, 'text/xml').documentElement;
+  root.firstChild.setAttributeNS('uri1', 'attr1', 'value1');
+  root.firstChild.setAttributeNS('uri2', 'attr2', 'value2');
+  root.lastChild.setAttributeNS('uri3', 'attr3', 'value3');
+  const xmlString = (new XMLSerializer()).serializeToString(root);
+  assert_equals(xmlString, '<root><child1 xmlns:ns1="uri1" ns1:attr1="value1" xmlns:ns2="uri2" ns2:attr2="value2"/><child2 xmlns:ns3="uri3" ns3:attr3="value3"/></root>');
+}, 'Check if generated prefixes match to "ns${index}".');
+
+test(function() {
+  const input = '<root xmlns:ns2="uri2"><child xmlns:ns1="uri1"/></root>';
+  const root = (new DOMParser()).parseFromString(input, 'text/xml').documentElement;
+  root.firstChild.setAttributeNS('uri3', 'attr1', 'value1');
+  const xmlString = (new XMLSerializer()).serializeToString(root);
+  // According to 'DOM Parsing and Serialization' draft as of 2018-12-11,
+  // 'generate a prefix' result can conflict with an existing xmlns:ns* declaration.
+  assert_equals(xmlString, '<root xmlns:ns2="uri2"><child xmlns:ns1="uri1" xmlns:ns1="uri3" ns1:attr1="value1"/></root>');
+}, 'Check if "ns1" is generated even if the element already has xmlns:ns1.');
+
 </script>
  </body>
 </html>
