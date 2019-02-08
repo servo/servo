@@ -75,7 +75,7 @@ pub mod egl {
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "linux"))]
+#[cfg(target_os = "windows")]
 pub mod gl {
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         unimplemented!();
@@ -107,6 +107,52 @@ pub mod gl {
             })
         };
         info!("OpenGL loaded");
+        Ok(gl)
+    }
+}
+
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "openbsd"
+))]
+pub mod gl {
+    use crate::dlopen;
+    use servo::gl::GlFns;
+    use std::ffi::CString;
+
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
+        info!("Loading OpenGL");
+
+        pub mod glx {
+            include!(concat!(env!("OUT_DIR"), "/glx_bindings.rs"));
+        }
+
+        let mut libglx =
+            unsafe { dlopen::dlopen(b"libGL.so.1\0".as_ptr() as *const _, dlopen::RTLD_NOW) };
+        if libglx.is_null() {
+            libglx =
+                unsafe { dlopen::dlopen(b"libGL.so\0".as_ptr() as *const _, dlopen::RTLD_NOW) };
+        }
+        if libglx.is_null() {
+            return Err("Can't find libGL.so, OpenGL isn't configured/installed");
+        }
+
+        let glx = glx::Glx::load_with(|sym| {
+            let sym = CString::new(sym).unwrap();
+            unsafe { dlopen::dlsym(libglx, sym.as_ptr()) }
+        });
+
+        let gl = unsafe {
+            GlFns::load_with(|addr| {
+                let addr = CString::new(addr.as_bytes()).unwrap();
+                glx.GetProcAddress(addr.as_ptr() as *const _) as *const _
+            })
+        };
+
+        info!("OpenGL is loaded");
+
         Ok(gl)
     }
 }
