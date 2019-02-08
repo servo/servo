@@ -16,5 +16,16 @@ test(function() {
     matched.push(cur);
   }
   assert_array_equals(matched, [document]);
+  // Evaluate again, but reuse result from previous evaluation.
+  result = document.evaluate("..", // expression
+                            document.documentElement, // context node
+                            null, // resolver
+                            XPathResult.ANY_TYPE, // type
+                            result); // result
+  matched = [];
+  while ((cur = result.iterateNext()) !== null) {
+    matched.push(cur);
+  }
+  assert_array_equals(matched, [document]);
 });
 </script>
