@@ -672,7 +672,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "",
     );
     opts.optflag("z", "headless", "Headless mode");
-    opts.optflag("", "angle", "Use ANGLE to create a GL context (Windows-only)");
+    opts.optflag(
+        "",
+        "angle",
+        "Use ANGLE to create a GL context (Windows-only)",
+    );
     opts.optflag(
         "f",
         "hard-fail",
