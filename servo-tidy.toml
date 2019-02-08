@@ -40,9 +40,12 @@ packages = [
   "crossbeam-utils",
   "digest",
   "generic-array",
+  "gl_generator",
+  "khronos_api",
   "rand",
   "unicase",
   "winapi",
+  "xml-rs",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

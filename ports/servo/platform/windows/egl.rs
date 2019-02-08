@@ -1,9 +1,11 @@
-// Licensed under the Apache License, Version 2.0.
-// This file may not be copied, modified, or distributed except according to those terms.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Based on https://github.com/tomaka/glutin/blob/1b2d62c0e9/src/api/egl/mod.rs
 #![allow(unused_variables)]
 
+use glutin::Context;
 use glutin::ContextError;
 use glutin::CreationError;
 use glutin::GlAttributes;
@@ -239,7 +241,7 @@ impl<'a> ContextPrototype<'a> {
     }
 
     pub fn finish(self, native_window: ffi::EGLNativeWindowType)
-                  -> Result<Context, CreationError>
+                  -> Result<EglContext, CreationError>
     {
         let surface = unsafe {
             let surface = egl::CreateWindowSurface(self.display, self.config_id, native_window,
@@ -253,7 +255,7 @@ impl<'a> ContextPrototype<'a> {
         self.finish_impl(surface)
     }
 
-    pub fn finish_pbuffer(self, dimensions: (u32, u32)) -> Result<Context, CreationError> {
+    pub fn finish_pbuffer(self, dimensions: (u32, u32)) -> Result<EglContext, CreationError> {
         let attrs = &[
             ffi::egl::WIDTH as c_int, dimensions.0 as c_int,
             ffi::egl::HEIGHT as c_int, dimensions.1 as c_int,
@@ -273,7 +275,7 @@ impl<'a> ContextPrototype<'a> {
     }
 
     fn finish_impl(self, surface: ffi::egl::types::EGLSurface)
-                   -> Result<Context, CreationError>
+                   -> Result<EglContext, CreationError>
     {
         let context = unsafe {
             if let Some(version) = self.version {
@@ -321,7 +323,7 @@ impl<'a> ContextPrototype<'a> {
             }
         };
 
-        Ok(Context {
+        Ok(EglContext {
             display: self.display,
             context: context,
             surface: Cell::new(surface),

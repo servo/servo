@@ -10,6 +10,8 @@ use glutin::Context as GlutinContext;
 #[cfg(target_os = "windows")]
 use crate::platform::windows::egl::EglContext;
 use winit::Window;
+#[cfg(target_os = "windows")]
+use winit::os::windows::WindowExt;
 
 #[cfg(target_os = "windows")]
 pub struct Context {
@@ -39,7 +41,7 @@ impl GlContext for Context {
     }
 
     fn get_proc_address(&self, addr: &str) -> *const () {
-        self.context.get_proc_address()
+        self.context.get_proc_address(addr)
     }
 
     fn get_api(&self) -> Api {

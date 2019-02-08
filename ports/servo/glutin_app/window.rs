@@ -34,8 +34,6 @@ use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, Keyb
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
-#[cfg(target_os = "windows")]
-use winit::os::windows::WindowExt;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
