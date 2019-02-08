@@ -82,7 +82,7 @@ impl HTMLStyleElement {
     pub fn parse_own_css(&self) {
         let node = self.upcast::<Node>();
         let element = self.upcast::<Element>();
-        assert!(node.is_in_doc());
+        assert!(node.is_connected());
 
         let window = window_from_node(node);
         let doc = document_from_node(self);
