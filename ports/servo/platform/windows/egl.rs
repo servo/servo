@@ -2,7 +2,6 @@
 // This file may not be copied, modified, or distributed except according to those terms.
 
 //! Based on https://github.com/tomaka/glutin/blob/1b2d62c0e9/src/api/egl/mod.rs
-#![cfg(windows)]
 #![allow(unused_variables)]
 
 use glutin::ContextError;
@@ -27,7 +26,7 @@ mod ffi {
     pub use mozangle::egl::ffi::*;
 }
 
-pub struct Context {
+pub struct EglContext {
     display: ffi::egl::types::EGLDisplay,
     context: ffi::egl::types::EGLContext,
     surface: Cell<ffi::egl::types::EGLSurface>,
@@ -35,7 +34,7 @@ pub struct Context {
     pixel_format: PixelFormat,
 }
 
-impl Context {
+impl EglContext {
     /// Start building an EGL context.
     ///
     /// This function initializes some things and chooses the pixel format.
@@ -146,7 +145,7 @@ impl Context {
     }
 }
 
-impl GlContext for Context {
+impl GlContext for EglContext {
     unsafe fn make_current(&self) -> Result<(), ContextError> {
         let ret = egl::MakeCurrent(self.display, self.surface.get(), self.surface.get(), self.context);
 
@@ -180,7 +179,7 @@ impl GlContext for Context {
     }
 }
 
-impl Context {
+impl EglContext {
     #[inline]
     pub fn swap_buffers(&self) -> Result<(), ContextError> {
         if self.surface.get() == ffi::egl::NO_SURFACE {
@@ -203,10 +202,10 @@ impl Context {
     }
 }
 
-unsafe impl Send for Context {}
-unsafe impl Sync for Context {}
+unsafe impl Send for EglContext {}
+unsafe impl Sync for EglContext {}
 
-impl Drop for Context {
+impl Drop for EglContext {
     fn drop(&mut self) {
         unsafe {
             // we don't call MakeCurrent(0, 0) because we are not sure that the context

@@ -4,11 +4,9 @@
 
 //! A windowing implementation using winit.
 
-
-use crate::glutin_app::egl;
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 use gleam::gl;
-use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow, EventsLoop};
+use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
 use keyboard_types::{Key, KeyboardEvent, KeyState};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
@@ -28,10 +26,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use std::time;
+use super::angle;
 use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
 use winapi;
-use winit::WindowBuilder;
 use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -135,7 +133,7 @@ impl HeadlessContext {
 
 enum WindowKind {
     Window(GlWindow, RefCell<winit::EventsLoop>),
-    Angle(winit::Window, egl::Context, RefCell<winit::EventsLoop>),
+    Angle(winit::Window, angle::Context, RefCell<winit::EventsLoop>),
     Headless(HeadlessContext),
 }
 
@@ -242,7 +240,23 @@ impl Window {
 
                 WindowKind::Window(glutin_window, RefCell::new(events_loop))
             } else {
-                create_angle_window(&context_builder, window_builder, events_loop)
+                // FIXME: &context_builder.pf_reqs  https://github.com/tomaka/glutin/pull/1002
+                let pf_reqs = &glutin::PixelFormatRequirements::default();
+                let gl_attr = &context_builder.gl_attr.map_sharing(|_| unimplemented!());
+                let window = window_builder.build(&events_loop).expect("couldn't create window");
+                let PhysicalSize {
+                    width: screen_width,
+                    height: screen_height,
+                } = events_loop.get_primary_monitor().get_dimensions();
+                screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
+                // TODO(ajeffrey): can this fail?
+                let LogicalSize { width, height } = window
+                    .get_inner_size()
+                    .expect("Failed to get window inner size.");
+                inner_size = TypedSize2D::new(width as u32, height as u32);
+
+                let context = angle::create_context(pf_reqs, gl_attr, &window);
+                WindowKind::Angle(window, context, RefCell::new(events_loop))
             }
         };
 
@@ -827,29 +841,4 @@ fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
         TouchPhase::Ended => TouchEventType::Up,
         TouchPhase::Cancelled => TouchEventType::Cancel,
     }
-}
-
-#[cfg(target_os = "windows")]
-fn create_angle_window(
-    context_builder: &ContextBuilder,
-    window_builder: WindowBuilder,
-    events_loop: EventsLoop
-) -> WindowKind {
-    // FIXME: &context_builder.pf_reqs  https://github.com/tomaka/glutin/pull/1002
-    let pf_reqs = &glutin::PixelFormatRequirements::default();
-    let gl_attr = &context_builder.gl_attr.map_sharing(|_| unimplemented!());
-    let window = window_builder.build(&events_loop).expect("couldn't create window");
-    let context = egl::Context::new(pf_reqs, gl_attr)
-        .and_then(|p| p.finish(window.get_hwnd() as _))
-        .expect("Couldn't create ANGLE context");
-    WindowKind::Angle(window, context, RefCell::new(events_loop))
-}
-
-#[cfg(not(target_os = "windows"))]
-fn create_angle_window(
-    context_builder: &ContextBuilder,
-    window_builder: WindowBuilder,
-    events_loop: EventsLoop
-) -> WindowKind {
-    unimplemented!("ANGLE is only supported on Windows platforms")
 }
