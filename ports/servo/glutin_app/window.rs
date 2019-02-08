@@ -4,9 +4,11 @@
 
 //! A windowing implementation using winit.
 
+
+use crate::glutin_app::egl;
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 use gleam::gl;
-use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
+use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow, EventsLoop};
 use keyboard_types::{Key, KeyboardEvent, KeyState};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
@@ -29,10 +31,13 @@ use std::time;
 use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
 use winapi;
+use winit::WindowBuilder;
 use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
+#[cfg(target_os = "windows")]
+use winit::os::windows::WindowExt;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
@@ -130,6 +135,7 @@ impl HeadlessContext {
 
 enum WindowKind {
     Window(GlWindow, RefCell<winit::EventsLoop>),
+    Angle(winit::Window, egl::Context, RefCell<winit::EventsLoop>),
     Headless(HeadlessContext),
 }
 
@@ -210,41 +216,50 @@ impl Window {
                 context_builder = context_builder.with_multisampling(MULTISAMPLES)
             }
 
-            let glutin_window = GlWindow::new(window_builder, context_builder, &events_loop)
-                .expect("Failed to create window.");
+            if !opts::get().angle {
+                let glutin_window = GlWindow::new(window_builder, context_builder, &events_loop)
+                    .expect("Failed to create window.");
 
-            unsafe {
-                glutin_window
-                    .context()
-                    .make_current()
-                    .expect("Couldn't make window current");
+                unsafe {
+                    glutin_window
+                        .context()
+                        .make_current()
+                        .expect("Couldn't make window current");
+                }
+
+                let PhysicalSize {
+                    width: screen_width,
+                    height: screen_height,
+                } = events_loop.get_primary_monitor().get_dimensions();
+                screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
+                // TODO(ajeffrey): can this fail?
+                let LogicalSize { width, height } = glutin_window
+                    .get_inner_size()
+                    .expect("Failed to get window inner size.");
+                inner_size = TypedSize2D::new(width as u32, height as u32);
+
+                glutin_window.show();
+
+                WindowKind::Window(glutin_window, RefCell::new(events_loop))
+            } else {
+                create_angle_window(&context_builder, window_builder, events_loop)
             }
+        };
 
-            let PhysicalSize {
-                width: screen_width,
-                height: screen_height,
-            } = events_loop.get_primary_monitor().get_dimensions();
-            screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
-            // TODO(ajeffrey): can this fail?
-            let LogicalSize { width, height } = glutin_window
-                .get_inner_size()
-                .expect("Failed to get window inner size.");
-            inner_size = TypedSize2D::new(width as u32, height as u32);
-
-            glutin_window.show();
-
-            WindowKind::Window(glutin_window, RefCell::new(events_loop))
+        fn init<Context: glutin::GlContext>(context: &Context) -> Rc<dyn gl::Gl> {
+            match gl::GlType::default() {
+                gl::GlType::Gl => unsafe {
+                    gl::GlFns::load_with(|s| context.get_proc_address(s) as *const _)
+                },
+                gl::GlType::Gles => unsafe {
+                    gl::GlesFns::load_with(|s| context.get_proc_address(s) as *const _)
+                },
+            }
         };
 
         let gl = match window_kind {
-            WindowKind::Window(ref window, ..) => match gl::GlType::default() {
-                gl::GlType::Gl => unsafe {
-                    gl::GlFns::load_with(|s| window.get_proc_address(s) as *const _)
-                },
-                gl::GlType::Gles => unsafe {
-                    gl::GlesFns::load_with(|s| window.get_proc_address(s) as *const _)
-                },
-            },
+            WindowKind::Window(ref window, ..) => init(window),
+            WindowKind::Angle(_, ref context, _) => init(context),
             WindowKind::Headless(..) => unsafe {
                 gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s))
             },
@@ -288,34 +303,49 @@ impl Window {
 
     pub fn page_height(&self) -> f32 {
         let dpr = self.servo_hidpi_factor();
-        match self.kind {
+        let height = match self.kind {
             WindowKind::Window(ref window, _) => {
                 let size = window
                     .get_inner_size()
                     .expect("Failed to get window inner size.");
-                size.height as f32 * dpr.get()
+                size.height
             },
-            WindowKind::Headless(ref context) => context.height as f32 * dpr.get(),
-        }
+            WindowKind::Angle(ref window, ..) => {
+                let size = window
+                    .get_inner_size()
+                    .expect("Failed to get window inner size.");
+                size.height
+            },
+            WindowKind::Headless(ref context) => context.height as f64,
+        };
+        height as f32 * dpr.get()
     }
 
     pub fn set_title(&self, title: &str) {
-        if let WindowKind::Window(ref window, _) = self.kind {
-            window.set_title(title);
+        match self.kind {
+            WindowKind::Window(ref window, _) => window.set_title(title),
+            WindowKind::Angle(ref window, ..) => window.set_title(title),
+            WindowKind::Headless(..) => (),
         }
     }
 
     pub fn set_inner_size(&self, size: DeviceIntSize) {
-        if let WindowKind::Window(ref window, _) = self.kind {
-            let size = size.to_f32() / self.device_hidpi_factor();
-            window.set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
+        let size = size.to_f32() / self.device_hidpi_factor();
+        let size = LogicalSize::new(size.width.into(), size.height.into());
+        match self.kind {
+            WindowKind::Window(ref window, _) => window.set_inner_size(size),
+            WindowKind::Angle(ref window, ..) => window.set_inner_size(size),
+            WindowKind::Headless(..) => (),
         }
     }
 
     pub fn set_position(&self, point: DeviceIntPoint) {
-        if let WindowKind::Window(ref window, _) = self.kind {
-            let point = point.to_f32() / self.device_hidpi_factor();
-            window.set_position(LogicalPosition::new(point.x.into(), point.y.into()))
+        let point = point.to_f32() / self.device_hidpi_factor();
+        let point = LogicalPosition::new(point.x.into(), point.y.into());
+        match self.kind {
+            WindowKind::Window(ref window, _) => window.set_position(point),
+            WindowKind::Angle(ref window, ..) => window.set_position(point),
+            WindowKind::Headless(..) => (),
         }
     }
 
@@ -326,6 +356,11 @@ impl Window {
                     window.set_fullscreen(None);
                 }
             },
+            WindowKind::Angle(ref window, ..) => {
+                if self.fullscreen.get() != state {
+                    window.set_fullscreen(None);
+                }
+            }
             WindowKind::Headless(..) => {},
         }
         self.fullscreen.set(state);
@@ -340,7 +375,8 @@ impl Window {
         T: FnMut() -> bool,
     {
         match self.kind {
-            WindowKind::Window(_, ref events_loop) => {
+            WindowKind::Window(_, ref events_loop) |
+            WindowKind::Angle(_, _, ref events_loop) => {
                 let mut stop = false;
                 loop {
                     if self.is_animating() {
@@ -531,7 +567,7 @@ impl Window {
             } => {
                 // size is DeviceIndependentPixel.
                 // window.resize() takes DevicePixel.
-                if let WindowKind::Window(ref window, _) = self.kind {
+                if let WindowKind::Window(ref window, ..) = self.kind {
                     let size = size.to_physical(self.device_hidpi_factor().get() as f64);
                     window.resize(size);
                 }
@@ -602,6 +638,7 @@ impl Window {
     fn device_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window, ..) => TypedScale::new(window.get_hidpi_factor() as f32),
+            WindowKind::Angle(ref window, ..) => TypedScale::new(window.get_hidpi_factor() as f32),
             WindowKind::Headless(..) => TypedScale::new(1.0),
         }
     }
@@ -617,49 +654,48 @@ impl Window {
     }
 
     pub fn set_cursor(&self, cursor: Cursor) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                use winit::MouseCursor;
+        use winit::MouseCursor;
+        let winit_cursor = match cursor {
+            Cursor::Default => MouseCursor::Default,
+            Cursor::Pointer => MouseCursor::Hand,
+            Cursor::ContextMenu => MouseCursor::ContextMenu,
+            Cursor::Help => MouseCursor::Help,
+            Cursor::Progress => MouseCursor::Progress,
+            Cursor::Wait => MouseCursor::Wait,
+            Cursor::Cell => MouseCursor::Cell,
+            Cursor::Crosshair => MouseCursor::Crosshair,
+            Cursor::Text => MouseCursor::Text,
+            Cursor::VerticalText => MouseCursor::VerticalText,
+            Cursor::Alias => MouseCursor::Alias,
+            Cursor::Copy => MouseCursor::Copy,
+            Cursor::Move => MouseCursor::Move,
+            Cursor::NoDrop => MouseCursor::NoDrop,
+            Cursor::NotAllowed => MouseCursor::NotAllowed,
+            Cursor::Grab => MouseCursor::Grab,
+            Cursor::Grabbing => MouseCursor::Grabbing,
+            Cursor::EResize => MouseCursor::EResize,
+            Cursor::NResize => MouseCursor::NResize,
+            Cursor::NeResize => MouseCursor::NeResize,
+            Cursor::NwResize => MouseCursor::NwResize,
+            Cursor::SResize => MouseCursor::SResize,
+            Cursor::SeResize => MouseCursor::SeResize,
+            Cursor::SwResize => MouseCursor::SwResize,
+            Cursor::WResize => MouseCursor::WResize,
+            Cursor::EwResize => MouseCursor::EwResize,
+            Cursor::NsResize => MouseCursor::NsResize,
+            Cursor::NeswResize => MouseCursor::NeswResize,
+            Cursor::NwseResize => MouseCursor::NwseResize,
+            Cursor::ColResize => MouseCursor::ColResize,
+            Cursor::RowResize => MouseCursor::RowResize,
+            Cursor::AllScroll => MouseCursor::AllScroll,
+            Cursor::ZoomIn => MouseCursor::ZoomIn,
+            Cursor::ZoomOut => MouseCursor::ZoomOut,
+            _ => MouseCursor::Default,
+        };
 
-                let winit_cursor = match cursor {
-                    Cursor::Default => MouseCursor::Default,
-                    Cursor::Pointer => MouseCursor::Hand,
-                    Cursor::ContextMenu => MouseCursor::ContextMenu,
-                    Cursor::Help => MouseCursor::Help,
-                    Cursor::Progress => MouseCursor::Progress,
-                    Cursor::Wait => MouseCursor::Wait,
-                    Cursor::Cell => MouseCursor::Cell,
-                    Cursor::Crosshair => MouseCursor::Crosshair,
-                    Cursor::Text => MouseCursor::Text,
-                    Cursor::VerticalText => MouseCursor::VerticalText,
-                    Cursor::Alias => MouseCursor::Alias,
-                    Cursor::Copy => MouseCursor::Copy,
-                    Cursor::Move => MouseCursor::Move,
-                    Cursor::NoDrop => MouseCursor::NoDrop,
-                    Cursor::NotAllowed => MouseCursor::NotAllowed,
-                    Cursor::Grab => MouseCursor::Grab,
-                    Cursor::Grabbing => MouseCursor::Grabbing,
-                    Cursor::EResize => MouseCursor::EResize,
-                    Cursor::NResize => MouseCursor::NResize,
-                    Cursor::NeResize => MouseCursor::NeResize,
-                    Cursor::NwResize => MouseCursor::NwResize,
-                    Cursor::SResize => MouseCursor::SResize,
-                    Cursor::SeResize => MouseCursor::SeResize,
-                    Cursor::SwResize => MouseCursor::SwResize,
-                    Cursor::WResize => MouseCursor::WResize,
-                    Cursor::EwResize => MouseCursor::EwResize,
-                    Cursor::NsResize => MouseCursor::NsResize,
-                    Cursor::NeswResize => MouseCursor::NeswResize,
-                    Cursor::NwseResize => MouseCursor::NwseResize,
-                    Cursor::ColResize => MouseCursor::ColResize,
-                    Cursor::RowResize => MouseCursor::RowResize,
-                    Cursor::AllScroll => MouseCursor::AllScroll,
-                    Cursor::ZoomIn => MouseCursor::ZoomIn,
-                    Cursor::ZoomOut => MouseCursor::ZoomOut,
-                    _ => MouseCursor::Default,
-                };
-                window.set_cursor(winit_cursor);
-            },
+        match self.kind {
+            WindowKind::Window(ref window, ..) => window.set_cursor(winit_cursor),
+            WindowKind::Angle(ref window, ..) => window.set_cursor(winit_cursor),
             WindowKind::Headless(..) => {},
         }
     }
@@ -671,42 +707,16 @@ impl WindowMethods for Window {
     }
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        match self.kind {
-            WindowKind::Window(ref window, _) => {
-                // TODO(ajeffrey): can this fail?
-                let dpr = self.device_hidpi_factor();
-                let LogicalSize { width, height } = window
-                    .get_outer_size()
-                    .expect("Failed to get window outer size.");
-                let LogicalPosition { x, y } = window
-                    .get_position()
-                    .unwrap_or(LogicalPosition::new(0., 0.));
-                let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-                let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
-                let screen = (self.screen_size.to_f32() * dpr).to_i32();
-
-                let LogicalSize { width, height } = window
-                    .get_inner_size()
-                    .expect("Failed to get window inner size.");
-                let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-
-                let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
-
-                EmbedderCoordinates {
-                    viewport: viewport,
-                    framebuffer: inner_size,
-                    window: (win_size, win_origin),
-                    screen: screen,
-                    // FIXME: Glutin doesn't have API for available size. Fallback to screen size
-                    screen_avail: screen,
-                    hidpi_factor: self.servo_hidpi_factor(),
-                }
-            },
+        let (outer, inner, position) = match self.kind {
+            WindowKind::Window(ref window, _) =>
+                (window.get_outer_size(), window.get_inner_size(), window.get_position()),
+            WindowKind::Angle(ref window, ..) =>
+                (window.get_outer_size(), window.get_inner_size(), window.get_position()),
             WindowKind::Headless(ref context) => {
                 let dpr = self.servo_hidpi_factor();
                 let size =
                     (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_i32();
-                EmbedderCoordinates {
+                return EmbedderCoordinates {
                     viewport: DeviceIntRect::new(TypedPoint2D::zero(), size),
                     framebuffer: size,
                     window: (size, TypedPoint2D::zero()),
@@ -715,17 +725,40 @@ impl WindowMethods for Window {
                     hidpi_factor: dpr,
                 }
             },
+        };
+
+        // TODO(ajeffrey): can this fail?
+        let dpr = self.device_hidpi_factor();
+        let LogicalSize { width, height } = outer.expect("Failed to get window outer size.");
+        let LogicalPosition { x, y } = position.unwrap_or(LogicalPosition::new(0., 0.));
+        let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
+        let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
+        let screen = (self.screen_size.to_f32() * dpr).to_i32();
+
+        let LogicalSize { width, height } = inner.expect("Failed to get window inner size.");
+        let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
+
+        let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
+
+        EmbedderCoordinates {
+            viewport: viewport,
+            framebuffer: inner_size,
+            window: (win_size, win_origin),
+            screen: screen,
+            // FIXME: Glutin doesn't have API for available size. Fallback to screen size
+            screen_avail: screen,
+            hidpi_factor: self.servo_hidpi_factor(),
         }
     }
 
     fn present(&self) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                if let Err(err) = window.swap_buffers() {
-                    warn!("Failed to swap window buffers ({}).", err);
-                }
-            },
-            WindowKind::Headless(..) => {},
+        let result = match self.kind {
+            WindowKind::Window(ref window, ..) => window.swap_buffers(),
+            WindowKind::Angle(_, ref context, _) => context.swap_buffers(),
+            WindowKind::Headless(..) => Ok(()),
+        };
+        if let Err(err) = result {
+            warn!("Failed to swap window buffers ({}).", err);
         }
     }
 
@@ -739,6 +772,9 @@ impl WindowMethods for Window {
                     WindowKind::Window(_, ref events_loop) => {
                         Some(Arc::new(events_loop.borrow().create_proxy()))
                     },
+                    WindowKind::Angle(_, _, ref events_loop) => {
+                        Some(Arc::new(events_loop.borrow().create_proxy()))
+                    }
                     WindowKind::Headless(..) => None,
                 };
                 GlutinEventLoopWaker { proxy }
@@ -768,11 +804,18 @@ impl WindowMethods for Window {
     }
 
     fn prepare_for_composite(&self) -> bool {
-        if let WindowKind::Window(ref window, ..) = self.kind {
-            if let Err(err) = unsafe { window.context().make_current() } {
-                warn!("Couldn't make window current: {}", err);
-            }
+        let result = match self.kind {
+            WindowKind::Window(ref window, ..) => unsafe {
+                window.context().make_current()
+            },
+            WindowKind::Angle(_, ref context, _) => unsafe {
+                context.make_current()
+            },
+            WindowKind::Headless(..) => Ok(()),
         };
+        if let Err(err) = result {
+            warn!("Couldn't make window current: {}", err);
+        }
         true
     }
 }
@@ -784,4 +827,29 @@ fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
         TouchPhase::Ended => TouchEventType::Up,
         TouchPhase::Cancelled => TouchEventType::Cancel,
     }
+}
+
+#[cfg(target_os = "windows")]
+fn create_angle_window(
+    context_builder: &ContextBuilder,
+    window_builder: WindowBuilder,
+    events_loop: EventsLoop
+) -> WindowKind {
+    // FIXME: &context_builder.pf_reqs  https://github.com/tomaka/glutin/pull/1002
+    let pf_reqs = &glutin::PixelFormatRequirements::default();
+    let gl_attr = &context_builder.gl_attr.map_sharing(|_| unimplemented!());
+    let window = window_builder.build(&events_loop).expect("couldn't create window");
+    let context = egl::Context::new(pf_reqs, gl_attr)
+        .and_then(|p| p.finish(window.get_hwnd() as _))
+        .expect("Couldn't create ANGLE context");
+    WindowKind::Angle(window, context, RefCell::new(events_loop))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn create_angle_window(
+    context_builder: &ContextBuilder,
+    window_builder: WindowBuilder,
+    events_loop: EventsLoop
+) -> WindowKind {
+    unimplemented!("ANGLE is only supported on Windows platforms")
 }
