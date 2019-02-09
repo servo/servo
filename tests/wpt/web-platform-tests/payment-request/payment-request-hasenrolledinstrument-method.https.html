@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests for PaymentRequest.hasEnrolledInstrument() method</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#hasenrolledinstrument-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script>
+const unsupportedMethods = [
+  { supportedMethods: "this-is-not-supported" },
+  { supportedMethods: "https://not.supported" },
+];
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+promise_test(async t => {
+  const request = new PaymentRequest(unsupportedMethods, defaultDetails);
+  assert_false(
+    await request.hasEnrolledInstrument(),
+    "Payment method is supported."
+  );
+}, `hasEnrolledInstrument() resolves to false for unsupported payment methods.`);
+</script>
+
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

@@ -30,3 +30,16 @@ function waitForAsyncAnimationFrames(count) {
   // AnimationWorklet.
   return waitForAnimationFrames(count + 1);
 }
+
+async function waitForAnimationFrameWithCondition(condition) {
+  do {
+    await new Promise(window.requestAnimationFrame);
+  } while (!condition())
+};
+
+async function waitForDocumentTimelineAdvance() {
+  const timeAtStart = document.timeline.currentTime;
+  do {
+    await new Promise(window.requestAnimationFrame);
+  } while (timeAtStart === document.timeline.currentTime)
+}
