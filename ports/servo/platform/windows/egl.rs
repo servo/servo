@@ -11,7 +11,6 @@ use glutin::CreationError;
 use glutin::GlAttributes;
 use glutin::GlContext;
 use glutin::GlRequest;
-use glutin::PixelFormat;
 use glutin::PixelFormatRequirements;
 use glutin::ReleaseBehavior;
 use glutin::Robustness;
@@ -33,7 +32,6 @@ pub struct EglContext {
     context: ffi::egl::types::EGLContext,
     surface: Cell<ffi::egl::types::EGLSurface>,
     api: Api,
-    pixel_format: PixelFormat,
 }
 
 impl EglContext {
@@ -130,7 +128,7 @@ impl EglContext {
             }
         };
 
-        let (config_id, pixel_format) = unsafe {
+        let config_id = unsafe {
             choose_fbconfig(display, &egl_version, api, version, pf_reqs)?
         };
 
@@ -142,7 +140,6 @@ impl EglContext {
             api: api,
             version: version,
             config_id: config_id,
-            pixel_format: pixel_format,
         })
     }
 }
@@ -227,7 +224,6 @@ pub struct ContextPrototype<'a> {
     api: Api,
     version: Option<(u8, u8)>,
     config_id: ffi::egl::types::EGLConfig,
-    pixel_format: PixelFormat,
 }
 
 impl<'a> ContextPrototype<'a> {
@@ -328,7 +324,6 @@ impl<'a> ContextPrototype<'a> {
             context: context,
             surface: Cell::new(surface),
             api: self.api,
-            pixel_format: self.pixel_format,
         })
     }
 }
@@ -336,7 +331,7 @@ impl<'a> ContextPrototype<'a> {
 unsafe fn choose_fbconfig(display: ffi::egl::types::EGLDisplay,
                           egl_version: &(ffi::egl::types::EGLint, ffi::egl::types::EGLint),
                           api: Api, version: Option<(u8, u8)>, reqs: &PixelFormatRequirements)
-                          -> Result<(ffi::egl::types::EGLConfig, PixelFormat), CreationError>
+                          -> Result<ffi::egl::types::EGLConfig, CreationError>
 {
     let descriptor = {
         let mut out: Vec<c_int> = Vec::with_capacity(37);
@@ -455,40 +450,7 @@ unsafe fn choose_fbconfig(display: ffi::egl::types::EGLDisplay,
         return Err(CreationError::NoAvailablePixelFormat);
     }
 
-    // analyzing each config
-    macro_rules! attrib {
-        ($display:expr, $config:expr, $attr:expr) => (
-            {
-                let mut value = mem::uninitialized();
-                let res = egl::GetConfigAttrib($display, $config,
-                                               $attr as ffi::egl::types::EGLint, &mut value);
-                if res == 0 {
-                    return Err(CreationError::OsError(format!("eglGetConfigAttrib failed")));
-                }
-                value
-            }
-        )
-    };
-
-    let desc = PixelFormat {
-        hardware_accelerated: attrib!(display, config_id, ffi::egl::CONFIG_CAVEAT)
-                                      != ffi::egl::SLOW_CONFIG as i32,
-        color_bits: attrib!(display, config_id, ffi::egl::RED_SIZE) as u8 +
-                    attrib!(display, config_id, ffi::egl::BLUE_SIZE) as u8 +
-                    attrib!(display, config_id, ffi::egl::GREEN_SIZE) as u8,
-        alpha_bits: attrib!(display, config_id, ffi::egl::ALPHA_SIZE) as u8,
-        depth_bits: attrib!(display, config_id, ffi::egl::DEPTH_SIZE) as u8,
-        stencil_bits: attrib!(display, config_id, ffi::egl::STENCIL_SIZE) as u8,
-        stereoscopy: false,
-        double_buffer: true,
-        multisampling: match attrib!(display, config_id, ffi::egl::SAMPLES) {
-            0 | 1 => None,
-            a => Some(a as u16),
-        },
-        srgb: false,        // TODO: use EGL_KHR_gl_colorspace to know that
-    };
-
-    Ok((config_id, desc))
+    Ok(config_id)
 }
 
 unsafe fn create_context(display: ffi::egl::types::EGLDisplay,
