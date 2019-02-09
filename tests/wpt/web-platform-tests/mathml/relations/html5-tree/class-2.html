@@ -13,7 +13,7 @@
     var mtext = document.getElementsByClassName("cl");
     test(function() {
       assert_equals(mtext.length, 3);
-      var mtext_ref = document.body.firstElementChild.firstElementChild;
+      var mtext_ref = document.body.lastElementChild.firstElementChild;
       mtext_ref = mtext_ref.nextElementSibling.nextElementSibling
       assert_equals(mtext[0], mtext_ref);
       mtext_ref = mtext_ref.nextElementSibling.nextElementSibling;
@@ -26,6 +26,7 @@
 </script>
 </head>
 <body>
+  <div id="log"></div>
   <math>
     <mtext class="cl_"></mtext>
     <mtext class="c"></mtext>

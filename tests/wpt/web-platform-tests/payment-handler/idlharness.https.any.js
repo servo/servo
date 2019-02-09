@@ -9,7 +9,7 @@
 
 idl_test(
   ['payment-handler'],
-  ['service-workers', 'dedicated-workers', 'dom'],
+  ['service-workers', 'html', 'dom'],
   async (idl_array, t) => {
     const isWindow = self.GLOBAL.isWindow();
     const isServiceWorker = 'ServiceWorkerGlobalScope' in self;

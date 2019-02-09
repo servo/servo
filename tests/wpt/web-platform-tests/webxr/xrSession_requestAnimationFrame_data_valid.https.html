@@ -44,7 +44,7 @@
 
             assert_not_equals(viewerPose, null);
             for(let i = 0; i < identityMatrix.length; i++) {
-              assert_equals(viewerPose.poseModelMatrix[i], identityMatrix[i]);
+              assert_equals(viewerPose.transform.matrix[i], identityMatrix[i]);
             }
 
             assert_not_equals(viewerPose.views, null);

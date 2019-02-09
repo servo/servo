@@ -58,7 +58,9 @@
               // Calculate the first zero index in the second channel.
               let channel1 = buffer.getChannelData(1);
               let disconnectIndex = disconnectTime * sampleRate;
-              disconnectIndex -= (disconnectIndex) % renderQuantum;
+              disconnectIndex = renderQuantum *
+                  Math.floor(
+                      (disconnectIndex + renderQuantum - 1) / renderQuantum);
               let firstZeroIndex = channel1.findIndex(function(element, index) {
                 if (element === 0)
                   return index;
@@ -70,7 +72,6 @@
               should(
                   firstZeroIndex, 'The index of first zero in the channel #1')
                   .beEqualTo(disconnectIndex);
-
             })
             .then(() => task.done());
       });
