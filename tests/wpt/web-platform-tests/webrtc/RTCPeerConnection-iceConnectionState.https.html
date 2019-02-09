@@ -182,6 +182,26 @@ async_test(t => {
   }, 'connection with one data channel should eventually ' +
      'have connected connection state');
 
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    caller.addTransceiver('audio', {direction:'recvonly'});
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const [track] = stream.getTracks();
+    callee.addTrack(track, stream);
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+
+    assert_equals(caller.getTransceivers().length, 1);
+    const [transceiver] = caller.getTransceivers();
+    assert_equals(transceiver.currentDirection, 'recvonly');
+
+    await listenToIceConnected(caller);
+  }, 'ICE can connect in a recvonly usecase');
+
   /*
     TODO
     4.4.4 RTCIceConnectionState Enum

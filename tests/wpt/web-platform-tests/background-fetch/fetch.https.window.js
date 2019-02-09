@@ -347,22 +347,9 @@ backgroundFetchTest(async (test, backgroundFetch) => {
     uniqueId(), ['resources/feature-name.txt', '/common/slow.py']);
 
   const record = await registration.match('resources/feature-name.txt');
-
-  await new Promise(resolve => {
-    const expectedResultText = 'Background Fetch';
-
-    registration.onprogress = async event => {
-      if (event.target.downloaded < expectedResultText.length)
-        return;
-
-      const response = await record.responseReady;
-
-      assert_true(response.url.includes('resources/feature-name.txt'));
-      const completedResponseText = await response.text();
-      assert_equals(completedResponseText, expectedResultText);
-
-      resolve();
-    };
-  });
+  const response = await record.responseReady;
+  assert_true(response.url.includes('resources/feature-name.txt'));
+  const completedResponseText = await response.text();
+  assert_equals(completedResponseText, 'Background Fetch');
 
 }, 'Access to active fetches is supported.');

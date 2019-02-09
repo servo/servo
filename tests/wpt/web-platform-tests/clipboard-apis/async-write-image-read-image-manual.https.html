@@ -39,8 +39,10 @@ async function loadBlob(fileName) {
 promise_test(async t => {
   const input = await loadBlob('resources/greenbox.png');
 
-  await navigator.clipboard.writeImageExperimental(input);
-  const output = await navigator.clipboard.readImageExperimental();
+  assert_equals(input.type, "image/png");
+  await navigator.clipboard.write(input);
+  const output = await navigator.clipboard.read();
+  assert_equals(output.type, "image/png");
 
   document.getElementById('image-on-clipboard').src =
       window.URL.createObjectURL(output);

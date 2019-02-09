@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<iframe src="resources/iframe-reload-TAO.sub.html"></iframe>
+<script>
+async_test(t => {
+    window.onmessage = t.step_func(e => {
+        const data = e.data;
+        assert_greater_than(data.domainLookupStart, 0,
+            "domainLookupStart should be greater than 0.");
+        assert_greater_than(data.domainLookupEnd, 0,
+            "domainLookupEnd should be greater than 0.");
+        assert_greater_than(data.connectStart, 0,
+            "connectStart should be greater than 0.");
+        assert_greater_than(data.connectEnd, 0,
+            "connectEnd should be greater than 0.");
+        t.done();
+    });
+}, "Test that TAO headers are reused on reloads.");
+</script>
+</body>

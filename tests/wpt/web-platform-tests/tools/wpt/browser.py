@@ -226,13 +226,10 @@ class Firefox(Browser):
                 tag = "tip"
         else:
             repo = "https://hg.mozilla.org/mozilla-central"
-            if channel == "beta":
-                tag = "FIREFOX_%s_BETA" % version.split(".", 1)[0]
-            else:
-                # Always use tip as the tag for nightly; this isn't quite right
-                # but to do better we need the actual build revision, which we
-                # can get if we have an application.ini file
-                tag = "tip"
+            # Always use tip as the tag for nightly; this isn't quite right
+            # but to do better we need the actual build revision, which we
+            # can get if we have an application.ini file
+            tag = "tip"
 
         return "%s/archive/%s.zip/testing/profiles/" % (repo, tag)
 

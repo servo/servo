@@ -205,6 +205,55 @@ async function doSignalingHandshake(localPc, remotePc, options={}) {
   await localPc.setRemoteDescription(answer);
 }
 
+// Returns a promise that resolves when |pc.iceConnectionState| is 'connected'
+// or 'completed'.
+function listenToIceConnected(pc) {
+  return new Promise((resolve) => {
+    function isConnected(pc) {
+      return pc.iceConnectionState == 'connected' ||
+            pc.iceConnectionState == 'completed';
+    }
+    if (isConnected(pc)) {
+      resolve();
+      return;
+    }
+    pc.oniceconnectionstatechange = () => {
+      if (isConnected(pc))
+        resolve();
+    };
+  });
+}
+
+// Returns a promise that resolves when |pc.connectionState| is 'connected'.
+function listenToConnected(pc) {
+  return new Promise((resolve) => {
+    if (pc.connectionState == 'connected') {
+      resolve();
+      return;
+    }
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState == 'connected')
+        resolve();
+    };
+  });
+}
+
+// Resolves when RTP packets have been received.
+function listenForSSRCs(t, receiver) {
+  return new Promise((resolve) => {
+    function listen() {
+      const ssrcs = receiver.getSynchronizationSources();
+      assert_true(ssrcs != undefined);
+      if (ssrcs.length > 0) {
+        resolve(ssrcs);
+        return;
+      }
+      t.step_timeout(listen, 0);
+    };
+    listen();
+  });
+}
+
 // Helper function to create a pair of connected data channel.
 // On success the promise resolves to an array with two data channels.
 // It does the heavy lifting of performing signaling handshake,

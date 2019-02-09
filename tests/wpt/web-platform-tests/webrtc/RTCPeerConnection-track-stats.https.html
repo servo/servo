@@ -404,7 +404,7 @@
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
     await doSignalingHandshake(caller, callee);
-    await onIceConnectionStateCompleted(caller);
+    await listenToConnected(caller);
     let receiver = caller.getReceivers()[0];
 
     // Obtain inbound and outbound RTP stream stats on a full stats report.
@@ -452,7 +452,7 @@
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
     await doSignalingHandshake(caller, callee);
-    await onIceConnectionStateCompleted(caller);
+    await listenToConnected(caller);
     let receiver = caller.getReceivers()[0];
 
     // Obtain inbound and outbound RTP stream stats on a full stats report.
@@ -500,7 +500,7 @@
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
     await doSignalingHandshake(caller, callee);
-    await onIceConnectionStateCompleted(caller);
+    await listenToIceConnected(caller);
 
     // Wait until RTCP has arrived so that it can not arrive between
     // the two get stats calls.
@@ -531,7 +531,7 @@
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
     await doSignalingHandshake(caller, callee);
-    await onIceConnectionStateCompleted(caller);
+    await listenToIceConnected(caller);
     let receiver = caller.getReceivers()[0];
 
     // Wait until RTCP has arrived so that it can not arrive between
@@ -601,24 +601,6 @@
         stats.push(n.value);
     }
     return stats;
-  }
-
-  // Returns a promise that is resolved when pc.iceConnectionState reaches the
-  // 'connected' or 'completed' state. This is when transport stats can be
-  // expected to have its selectedCandidatePairId defined.
-  async function onIceConnectionStateCompleted(pc) {
-    if (pc.iceConnectionState == 'connected' ||
-        pc.iceConnectionState == 'completed') {
-      return Promise.resolve();
-    }
-    let resolver = new Resolver();
-    pc.oniceconnectionstatechange = e => {
-      if (pc.iceConnectionState == 'connected' ||
-          pc.iceConnectionState == 'completed') {
-        resolver.resolve();
-      }
-    };
-    return resolver;
   }
 
   // Explores the stats graph starting from |stat|, validating each stat
