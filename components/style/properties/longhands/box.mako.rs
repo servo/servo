@@ -34,7 +34,7 @@ ${helpers.single_keyword(
     spec="Internal (not web-exposed)",
 )}
 
-// An internal-only attribute for elements in a top layer
+// An internal-only property for elements in a top layer
 // https://fullscreen.spec.whatwg.org/#top-layer
 ${helpers.single_keyword(
     "-servo-top-layer",
