@@ -29,7 +29,7 @@ use style::computed_values::border_spacing::T as BorderSpacing;
 use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{Color, NonNegativeLengthPercentageOrAuto};
+use style::values::computed::{Color, Size};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}
@@ -429,24 +429,18 @@ impl Flow for TableRowFlow {
                 let child_base = kid.mut_base();
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
                     minimum_length: match child_specified_inline_size {
-                        NonNegativeLengthPercentageOrAuto::Auto => None,
-                        NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                            lp.0.maybe_to_used_value(None)
-                        },
+                        Size::Auto => None,
+                        Size::LengthPercentage(ref lp) => lp.0.maybe_to_used_value(None),
                     }
                     .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
                     percentage: match child_specified_inline_size {
-                        NonNegativeLengthPercentageOrAuto::Auto => 0.0,
-                        NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                            lp.0.as_percentage().map_or(0.0, |p| p.0)
-                        },
+                        Size::Auto => 0.0,
+                        Size::LengthPercentage(ref lp) => lp.0.as_percentage().map_or(0.0, |p| p.0),
                     },
                     preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                     constrained: match child_specified_inline_size {
-                        NonNegativeLengthPercentageOrAuto::Auto => false,
-                        NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                            lp.0.maybe_to_used_value(None).is_some()
-                        },
+                        Size::Auto => false,
+                        Size::LengthPercentage(ref lp) => lp.0.maybe_to_used_value(None).is_some(),
                     },
                 };
                 min_inline_size = min_inline_size + child_column_inline_size.minimum_length;

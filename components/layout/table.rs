@@ -33,7 +33,7 @@ use style::logical_geometry::LogicalSize;
 use style::properties::style_structs::Background;
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::NonNegativeLengthPercentageOrAuto;
+use style::values::computed::Size;
 use style::values::CSSFloat;
 
 #[allow(unsafe_code)]
@@ -301,14 +301,14 @@ impl Flow for TableFlow {
                 self.column_intrinsic_inline_sizes
                     .push(ColumnIntrinsicInlineSize {
                         minimum_length: match *specified_inline_size {
-                            NonNegativeLengthPercentageOrAuto::Auto => Au(0),
-                            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                            Size::Auto => Au(0),
+                            Size::LengthPercentage(ref lp) => {
                                 lp.maybe_to_used_value(None).unwrap_or(Au(0))
                             },
                         },
                         percentage: match *specified_inline_size {
-                            NonNegativeLengthPercentageOrAuto::Auto => 0.0,
-                            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                            Size::Auto => 0.0,
+                            Size::LengthPercentage(ref lp) => {
                                 lp.0.as_percentage().map_or(0.0, |p| p.0)
                             },
                         },
