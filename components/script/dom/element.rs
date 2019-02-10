@@ -718,9 +718,11 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Length(value),
-                )),
+                PropertyDeclaration::Width(
+                    specified::NonNegativeLengthPercentageOrAuto::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Length(value),
+                    )),
+                ),
             ));
         }
 
@@ -745,20 +747,22 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match width {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
-                );
+                let width_value =
+                    specified::NonNegativeLengthPercentageOrAuto::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                    ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value),
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
-                        specified::AbsoluteLength::Px(length.to_f32_px()),
-                    )),
-                );
+                let width_value =
+                    specified::NonNegativeLengthPercentageOrAuto::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
+                            specified::AbsoluteLength::Px(length.to_f32_px()),
+                        )),
+                    ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value),
@@ -779,20 +783,22 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match height {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
-                );
+                let height_value =
+                    specified::NonNegativeLengthPercentageOrAuto::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                    ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value),
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let height_value = specified::LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
-                        specified::AbsoluteLength::Px(length.to_f32_px()),
-                    )),
-                );
+                let height_value =
+                    specified::NonNegativeLengthPercentageOrAuto::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
+                            specified::AbsoluteLength::Px(length.to_f32_px()),
+                        )),
+                    ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value),
@@ -819,9 +825,11 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Length(value),
-                )),
+                PropertyDeclaration::Width(
+                    specified::NonNegativeLengthPercentageOrAuto::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Length(value),
+                    )),
+                ),
             ));
         }
 
@@ -843,9 +851,11 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             ));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Height(specified::LengthPercentageOrAuto::LengthPercentage(
-                    specified::LengthPercentage::Length(value),
-                )),
+                PropertyDeclaration::Height(
+                    specified::NonNegativeLengthPercentageOrAuto::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Length(value),
+                    )),
+                ),
             ));
         }
 

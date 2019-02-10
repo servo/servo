@@ -61,7 +61,9 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::computed::counters::ContentItem;
-use style::values::computed::{LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::{
+    LengthPercentage, LengthPercentageOrAuto, NonNegativeLengthPercentageOrAuto,
+};
 use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
 use webrender_api::{self, LayoutTransform};
@@ -985,8 +987,10 @@ impl Fragment {
         if flags.contains(
             QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED,
         ) {
-            specified =
-                MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
+            specified = style
+                .content_inline_size()
+                .to_used_value(Au(0))
+                .unwrap_or(Au(0));
             specified = max(style.min_inline_size().to_used_value(Au(0)), specified);
             if let Some(max) = style.max_inline_size().to_used_value(Au(0)) {
                 specified = min(specified, max)
@@ -1611,8 +1615,8 @@ impl Fragment {
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Svg(_) => {
                 let inline_size = match self.style.content_inline_size() {
-                    LengthPercentageOrAuto::Auto => None,
-                    LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                    NonNegativeLengthPercentageOrAuto::Auto => None,
+                    NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
                         lp.maybe_to_used_value(None)
                     },
                 };
