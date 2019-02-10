@@ -5,6 +5,7 @@
 //! Generic types for CSS values related to length.
 
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "gecko")]
 use crate::values::computed::ExtremumLength;
 use cssparser::Parser;
 use style_traits::ParseError;
@@ -76,7 +77,7 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
 
 /// A generic value for the `width`, `height`, `min-width`, or `min-height` property.
 ///
-/// Unlike `max-width` or `max-height` properties, a MozLength can be `auto`,
+/// Unlike `max-width` or `max-height` properties, a Size can be `auto`,
 /// and cannot be `none`.
 ///
 /// Note that it only accepts non-negative values.
@@ -95,18 +96,25 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
     ToComputedValue,
     ToCss,
 )]
-pub enum MozLength<LengthPercentage> {
+pub enum Size<LengthPercentage> {
     LengthPercentage(LengthPercentage),
     Auto,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     ExtremumLength(ExtremumLength),
 }
 
-impl<LengthPercentage> MozLength<LengthPercentage> {
+impl<LengthPercentage> Size<LengthPercentage> {
     /// `auto` value.
     #[inline]
     pub fn auto() -> Self {
-        MozLength::Auto
+        Size::Auto
+    }
+
+    /// Returns whether we're the auto value.
+    #[inline]
+    pub fn is_auto(&self) -> bool {
+        matches!(*self, Size::Auto)
     }
 }
 
@@ -126,7 +134,7 @@ impl<LengthPercentage> MozLength<LengthPercentage> {
     ToComputedValue,
     ToCss,
 )]
-pub enum MaxLength<LengthPercentage> {
+pub enum MaxSize<LengthPercentage> {
     LengthPercentage(LengthPercentage),
     None,
     #[cfg(feature = "gecko")]
@@ -134,10 +142,10 @@ pub enum MaxLength<LengthPercentage> {
     ExtremumLength(ExtremumLength),
 }
 
-impl<LengthPercentage> MaxLength<LengthPercentage> {
+impl<LengthPercentage> MaxSize<LengthPercentage> {
     /// `none` value.
     #[inline]
     pub fn none() -> Self {
-        MaxLength::None
+        MaxSize::None
     }
 }

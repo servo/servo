@@ -29,9 +29,7 @@ use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
-use style::values::computed::{
-    MaxLength, NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto,
-};
+use style::values::computed::{MaxSize, Size};
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The size of an axis. May be a specified size, a min/max
@@ -46,21 +44,12 @@ enum AxisSize {
 impl AxisSize {
     /// Generate a new available cross or main axis size from the specified size of the container,
     /// containing block size, min constraint, and max constraint
-    pub fn new(
-        size: NonNegativeLengthPercentageOrAuto,
-        content_size: Option<Au>,
-        min: NonNegativeLengthPercentage,
-        max: MaxLength,
-    ) -> AxisSize {
+    pub fn new(size: Size, content_size: Option<Au>, min: Size, max: MaxSize) -> AxisSize {
         match size {
-            NonNegativeLengthPercentageOrAuto::Auto => {
-                AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None))
-            },
-            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                match lp.maybe_to_used_value(content_size) {
-                    Some(length) => AxisSize::Definite(length),
-                    None => AxisSize::Infinite,
-                }
+            Size::Auto => AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None)),
+            Size::LengthPercentage(ref lp) => match lp.maybe_to_used_value(content_size) {
+                Some(length) => AxisSize::Definite(length),
+                None => AxisSize::Infinite,
             },
         }
     }
@@ -70,26 +59,20 @@ impl AxisSize {
 /// and the container size, then return the used value of flex basis. it can be used to help
 /// determining the flex base size and to indicate whether the main size of the item
 /// is definite after flex size resolving.
-fn from_flex_basis(
-    flex_basis: FlexBasis,
-    main_length: NonNegativeLengthPercentageOrAuto,
-    containing_length: Au,
-) -> MaybeAuto {
+fn from_flex_basis(flex_basis: FlexBasis, main_length: Size, containing_length: Au) -> MaybeAuto {
     let width = match flex_basis {
         GenericFlexBasis::Content => return MaybeAuto::Auto,
         GenericFlexBasis::Width(width) => width,
     };
 
     let width = match width {
-        NonNegativeLengthPercentageOrAuto::Auto => main_length,
+        Size::Auto => main_length,
         _ => width,
     };
 
     match width {
-        NonNegativeLengthPercentageOrAuto::Auto => MaybeAuto::Auto,
-        NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
-            MaybeAuto::Specified(lp.to_used_value(containing_length))
-        },
+        Size::Auto => MaybeAuto::Auto,
+        Size::LengthPercentage(ref lp) => MaybeAuto::Specified(lp.to_used_value(containing_length)),
     }
 }
 
@@ -183,7 +166,8 @@ impl FlexItem {
                     .fragment
                     .style
                     .min_inline_size()
-                    .to_used_value(containing_length);
+                    .to_used_value(containing_length)
+                    .unwrap_or(Au(0));
             },
             Direction::Block => {
                 let basis = from_flex_basis(
@@ -205,7 +189,8 @@ impl FlexItem {
                     .fragment
                     .style
                     .min_block_size()
-                    .to_used_value(containing_length);
+                    .to_used_value(containing_length)
+                    .unwrap_or(Au(0));
             },
         }
     }

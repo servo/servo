@@ -67,9 +67,7 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::{
-    LengthPercentageOrAuto, MaxLength, NonNegativeLengthPercentageOrAuto,
-};
+use style::values::computed::{LengthPercentageOrAuto, MaxSize, Size};
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -421,24 +419,24 @@ impl CandidateBSizeIterator {
         // `min-height` and `max-height`, percentage values are ignored.
 
         let block_size = match fragment.style.content_block_size() {
-            NonNegativeLengthPercentageOrAuto::Auto => MaybeAuto::Auto,
-            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
+            Size::Auto => MaybeAuto::Auto,
+            Size::LengthPercentage(ref lp) => {
                 MaybeAuto::from_option(lp.maybe_to_used_value(block_container_block_size))
             },
         };
 
         let max_block_size = match fragment.style.max_block_size() {
-            MaxLength::None => None,
-            MaxLength::LengthPercentage(ref lp) => {
-                lp.maybe_to_used_value(block_container_block_size)
-            },
+            MaxSize::None => None,
+            MaxSize::LengthPercentage(ref lp) => lp.maybe_to_used_value(block_container_block_size),
         };
 
-        let min_block_size = fragment
-            .style
-            .min_block_size()
-            .maybe_to_used_value(block_container_block_size)
-            .unwrap_or(Au(0));
+        let min_block_size = match fragment.style.min_block_size() {
+            Size::Auto => MaybeAuto::Auto,
+            Size::LengthPercentage(ref lp) => {
+                MaybeAuto::from_option(lp.maybe_to_used_value(block_container_block_size))
+            },
+        }
+        .specified_or_zero();
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
         let adjustment_for_box_sizing = match fragment.style.get_position().box_sizing {
@@ -1402,7 +1400,7 @@ impl BlockFlow {
         let content_block_size = self.fragment.style().content_block_size();
 
         match content_block_size {
-            NonNegativeLengthPercentageOrAuto::Auto => {
+            Size::Auto => {
                 let container_size = containing_block_size?;
                 let (block_start, block_end) = {
                     let position = self.fragment.style().logical_position();
@@ -1437,9 +1435,7 @@ impl BlockFlow {
                     (_, _) => None,
                 }
             },
-            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                lp.maybe_to_used_value(containing_block_size)
-            },
+            Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(containing_block_size),
         }
     }
 
@@ -1796,7 +1792,8 @@ impl BlockFlow {
             .fragment
             .style()
             .min_inline_size()
-            .to_used_value(self.base.block_container_inline_size);
+            .to_used_value(self.base.block_container_inline_size)
+            .unwrap_or(Au(0));
         let specified_inline_size = self.fragment.style().content_inline_size();
         let container_size = self.base.block_container_inline_size;
         let inline_size = match specified_inline_size.to_used_value(container_size) {
@@ -2025,7 +2022,7 @@ impl BlockFlow {
         // If `max-width` is set, then don't perform this speculation. We guess that the
         // page set `max-width` in order to avoid hitting floats. The search box on Google
         // SERPs falls into this category.
-        if self.fragment.style.max_inline_size() != MaxLength::None {
+        if self.fragment.style.max_inline_size() != MaxSize::None {
             return;
         }
 
@@ -2157,10 +2154,8 @@ impl Flow for BlockFlow {
         // rather than bubbling up children inline width.
         // FIXME(emilio): This should probably be writing-mode-aware.
         let consult_children = match self.fragment.style().get_position().width {
-            NonNegativeLengthPercentageOrAuto::Auto => true,
-            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                lp.maybe_to_used_value(None).is_none()
-            },
+            Size::Auto => true,
+            Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(None).is_none(),
         };
         self.bubble_inline_sizes_for_block(consult_children);
         self.fragment
@@ -2911,7 +2906,8 @@ pub trait ISizeAndMarginsComputer {
             .fragment()
             .style()
             .min_inline_size()
-            .to_used_value(containing_block_inline_size);
+            .to_used_value(containing_block_inline_size)
+            .unwrap_or(Au(0));
         if computed_min_inline_size > solution.inline_size {
             input.computed_inline_size = MaybeAuto::Specified(computed_min_inline_size);
             solution = self.solve_inline_size_constraints(block, &input);

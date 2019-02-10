@@ -10,7 +10,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::float::T as StyleFloat;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::values::computed::NonNegativeLengthPercentageOrAuto;
+use style::values::computed::Size;
 
 /// The kind of float: left or right.
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -549,8 +549,8 @@ impl SpeculatedFloatPlacement {
                 // might flow around this float.
                 let inline_size = flow.as_block().fragment.style.content_inline_size();
                 let fixed = match inline_size {
-                    NonNegativeLengthPercentageOrAuto::Auto => false,
-                    NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                    Size::Auto => false,
+                    Size::LengthPercentage(ref lp) => {
                         lp.0.is_definitely_zero() || lp.0.maybe_to_used_value(None).is_some()
                     },
                 };

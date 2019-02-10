@@ -244,65 +244,40 @@ ${helpers.predefined_type(
         if logical:
             spec = "https://drafts.csswg.org/css-logical-props/#propdef-%s"
     %>
-    % if product == "gecko":
-        // width, height, block-size, inline-size
-        ${helpers.predefined_type(
-            size,
-            "MozLength",
-            "computed::MozLength::auto()",
-            logical=logical,
-            logical_group="size",
-            allow_quirks=not logical,
-            spec=spec % size,
-            animation_value_type="MozLength",
-            flags="GETCS_NEEDS_LAYOUT_FLUSH",
-            servo_restyle_damage="reflow",
-        )}
-        // min-width, min-height, min-block-size, min-inline-size,
-        ${helpers.predefined_type(
-            "min-%s" % size,
-            "MozLength",
-            "computed::MozLength::auto()",
-            logical=logical,
-            logical_group="min-size",
-            allow_quirks=not logical,
-            spec=spec % size,
-            animation_value_type="MozLength",
-            servo_restyle_damage="reflow",
-        )}
-    % else:
-        // servo versions (no keyword support)
-        ${helpers.predefined_type(
-            size,
-            "NonNegativeLengthPercentageOrAuto",
-            "computed::NonNegativeLengthPercentageOrAuto::auto()",
-            spec=spec % size,
-            logical_group="size",
-            allow_quirks=not logical,
-            animation_value_type="ComputedValue", logical = logical,
-            servo_restyle_damage="reflow",
-        )}
-        ${helpers.predefined_type(
-            "min-%s" % size,
-            "NonNegativeLengthPercentage",
-            "computed::NonNegativeLengthPercentage::zero()",
-            spec=spec % ("min-%s" % size),
-            logical_group="min-size",
-            animation_value_type="ComputedValue",
-            logical=logical,
-            allow_quirks=not logical,
-            servo_restyle_damage="reflow",
-        )}
-    % endif
+    // width, height, block-size, inline-size
+    ${helpers.predefined_type(
+        size,
+        "Size",
+        "computed::Size::auto()",
+        logical=logical,
+        logical_group="size",
+        allow_quirks=not logical,
+        spec=spec % size,
+        animation_value_type="Size",
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        servo_restyle_damage="reflow",
+    )}
+    // min-width, min-height, min-block-size, min-inline-size
+    ${helpers.predefined_type(
+        "min-%s" % size,
+        "Size",
+        "computed::Size::auto()",
+        logical=logical,
+        logical_group="min-size",
+        allow_quirks=not logical,
+        spec=spec % size,
+        animation_value_type="Size",
+        servo_restyle_damage="reflow",
+    )}
     ${helpers.predefined_type(
         "max-%s" % size,
-        "MaxLength",
-        "computed::MaxLength::none()",
+        "MaxSize",
+        "computed::MaxSize::none()",
         logical=logical,
         logical_group="max-size",
         allow_quirks=not logical,
         spec=spec % size,
-        animation_value_type="MaxLength",
+        animation_value_type="MaxSize",
         servo_restyle_damage="reflow",
     )}
 % endfor

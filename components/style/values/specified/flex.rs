@@ -6,26 +6,19 @@
 
 use crate::parser::{Parse, ParserContext};
 use crate::values::generics::flex::FlexBasis as GenericFlexBasis;
+use crate::values::specified::Size;
 use cssparser::Parser;
 use style_traits::ParseError;
 
-/// The `width` value type.
-#[cfg(feature = "servo")]
-pub type Width = crate::values::specified::NonNegativeLengthPercentageOrAuto;
-
-/// The `width` value type.
-#[cfg(feature = "gecko")]
-pub type Width = crate::values::specified::MozLength;
-
 /// A specified value for the `flex-basis` property.
-pub type FlexBasis = GenericFlexBasis<Width>;
+pub type FlexBasis = GenericFlexBasis<Size>;
 
 impl Parse for FlexBasis {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(width) = input.try(|i| Width::parse(context, i)) {
+        if let Ok(width) = input.try(|i| Size::parse(context, i)) {
             return Ok(GenericFlexBasis::Width(width));
         }
         try_match_ident_ignore_ascii_case! { input,
@@ -38,12 +31,12 @@ impl FlexBasis {
     /// `auto`
     #[inline]
     pub fn auto() -> Self {
-        GenericFlexBasis::Width(Width::auto())
+        GenericFlexBasis::Width(Size::auto())
     }
 
     /// `0%`
     #[inline]
     pub fn zero_percent() -> Self {
-        GenericFlexBasis::Width(Width::zero_percent())
+        GenericFlexBasis::Width(Size::zero_percent())
     }
 }
