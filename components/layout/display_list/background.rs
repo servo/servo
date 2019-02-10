@@ -5,16 +5,14 @@
 // FIXME(rust-lang/rust#26264): Remove GenericBackgroundSize.
 
 use crate::display_list::border;
-use crate::model::MaybeAuto;
 use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::properties::style_structs::Background;
-use style::values::computed::{BackgroundSize, LengthPercentageOrAuto};
+use style::values::computed::{BackgroundSize, NonNegativeLengthPercentageOrAuto};
 use style::values::generics::background::BackgroundSize as GenericBackgroundSize;
-use style::values::generics::NonNegative;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use webrender_api::BorderRadius;
 
@@ -60,10 +58,12 @@ fn compute_background_image_size(
         None => match bg_size {
             GenericBackgroundSize::Cover | GenericBackgroundSize::Contain => bounds_size,
             GenericBackgroundSize::Explicit { width, height } => Size2D::new(
-                MaybeAuto::from_style(width.0, bounds_size.width)
-                    .specified_or_default(bounds_size.width),
-                MaybeAuto::from_style(height.0, bounds_size.height)
-                    .specified_or_default(bounds_size.height),
+                width
+                    .to_used_value(bounds_size.width)
+                    .unwrap_or(bounds_size.width),
+                height
+                    .to_used_value(bounds_size.height)
+                    .unwrap_or(bounds_size.height),
             ),
         },
         Some(own_size) => {
@@ -88,30 +88,34 @@ fn compute_background_image_size(
                 (
                     GenericBackgroundSize::Explicit {
                         width,
-                        height: NonNegative(LengthPercentageOrAuto::Auto),
+                        height: NonNegativeLengthPercentageOrAuto::Auto,
                     },
                     _,
                 ) => {
-                    let width = MaybeAuto::from_style(width.0, bounds_size.width)
-                        .specified_or_default(own_size.width);
+                    let width = width
+                        .to_used_value(bounds_size.width)
+                        .unwrap_or(own_size.width);
                     Size2D::new(width, width.scale_by(image_aspect_ratio.recip()))
                 },
                 (
                     GenericBackgroundSize::Explicit {
-                        width: NonNegative(LengthPercentageOrAuto::Auto),
+                        width: NonNegativeLengthPercentageOrAuto::Auto,
                         height,
                     },
                     _,
                 ) => {
-                    let height = MaybeAuto::from_style(height.0, bounds_size.height)
-                        .specified_or_default(own_size.height);
+                    let height = height
+                        .to_used_value(bounds_size.height)
+                        .unwrap_or(own_size.height);
                     Size2D::new(height.scale_by(image_aspect_ratio), height)
                 },
                 (GenericBackgroundSize::Explicit { width, height }, _) => Size2D::new(
-                    MaybeAuto::from_style(width.0, bounds_size.width)
-                        .specified_or_default(own_size.width),
-                    MaybeAuto::from_style(height.0, bounds_size.height)
-                        .specified_or_default(own_size.height),
+                    width
+                        .to_used_value(bounds_size.width)
+                        .unwrap_or(own_size.width),
+                    height
+                        .to_used_value(bounds_size.height)
+                        .unwrap_or(own_size.height),
                 ),
             }
         },
