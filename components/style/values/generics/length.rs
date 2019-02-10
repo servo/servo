@@ -96,13 +96,16 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
     ToComputedValue,
     ToCss,
 )]
-pub enum Size<LengthPercentage> {
-    LengthPercentage(LengthPercentage),
+#[repr(C, u8)]
+pub enum GenericSize<LengthPercent> {
+    LengthPercentage(LengthPercent),
     Auto,
     #[cfg(feature = "gecko")]
     #[animation(error)]
     ExtremumLength(ExtremumLength),
 }
+
+pub use self::GenericSize as Size;
 
 impl<LengthPercentage> Size<LengthPercentage> {
     /// `auto` value.
@@ -134,13 +137,16 @@ impl<LengthPercentage> Size<LengthPercentage> {
     ToComputedValue,
     ToCss,
 )]
-pub enum MaxSize<LengthPercentage> {
-    LengthPercentage(LengthPercentage),
+#[repr(C, u8)]
+pub enum GenericMaxSize<LengthPercent> {
+    LengthPercentage(LengthPercent),
     None,
     #[cfg(feature = "gecko")]
     #[animation(error)]
     ExtremumLength(ExtremumLength),
 }
+
+pub use self::GenericMaxSize as MaxSize;
 
 impl<LengthPercentage> MaxSize<LengthPercentage> {
     /// `none` value.
