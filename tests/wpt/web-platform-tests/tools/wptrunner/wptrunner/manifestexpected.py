@@ -55,8 +55,9 @@ def tags(node):
 def prefs(node):
     def value(ini_value):
         if isinstance(ini_value, (str, unicode)):
-            return tuple(ini_value.split(":", 1))
+            return tuple(pref_piece.strip() for pref_piece in ini_value.split(':', 1))
         else:
+            # this should be things like @Reset, which are apparently type 'object'
             return (ini_value, None)
 
     try:
