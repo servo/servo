@@ -23,6 +23,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
     ToAnimatedValue,
     ToComputedValue,
 )]
+#[repr(C)]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
 impl<T> Rect<T> {

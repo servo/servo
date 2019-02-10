@@ -14,7 +14,7 @@ use euclid::Point2D;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::LengthPercentageOrAuto;
+use style::values::computed::NonNegativeLengthPercentageOrAuto;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableColGroupFlow {}
@@ -34,7 +34,7 @@ pub struct TableColGroupFlow {
     /// The specified inline-sizes of table columns. (We use `LengthPercentageOrAuto` here in
     /// lieu of `ColumnInlineSize` because column groups do not establish minimum or preferred
     /// inline sizes.)
-    pub inline_sizes: Vec<LengthPercentageOrAuto>,
+    pub inline_sizes: Vec<NonNegativeLengthPercentageOrAuto>,
 }
 
 impl TableColGroupFlow {

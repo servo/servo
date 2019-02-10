@@ -62,7 +62,7 @@ pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
 pub use self::length::{Length, LengthOrNumber, LengthPercentage};
-pub use self::length::{LengthPercentageOrAuto, LengthPercentageOrNone, MaxLength, MozLength};
+pub use self::length::{LengthPercentageOrAuto, MaxLength, MozLength};
 pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;

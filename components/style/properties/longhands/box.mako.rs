@@ -34,7 +34,7 @@ ${helpers.single_keyword(
     spec="Internal (not web-exposed)",
 )}
 
-// An internal-only attribute for elements in a top layer
+// An internal-only property for elements in a top layer
 // https://fullscreen.spec.whatwg.org/#top-layer
 ${helpers.single_keyword(
     "-servo-top-layer",
@@ -602,6 +602,8 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="none",
     gecko_ffi_name="mBinding",
+    gecko_pref="layout.css.moz-binding.content.enabled",
+    enabled_in="chrome",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
 )}
 

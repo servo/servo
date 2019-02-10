@@ -59,7 +59,7 @@ pub use self::image::{GradientItem, GradientKind, Image, ImageLayer, MozImageRec
 pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNumber};
 pub use self::length::{LengthPercentage, LengthPercentageOrAuto};
-pub use self::length::{LengthPercentageOrNone, MaxLength, MozLength};
+pub use self::length::{MaxLength, MozLength};
 pub use self::length::{NoCalcLength, ViewportPercentageLength};
 pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]

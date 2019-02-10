@@ -14,8 +14,9 @@ use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::viewport_rule::*;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, StylesheetInDocument};
+use style::values::generics::length::LengthPercentageOrAuto::{self, Auto};
+use style::values::generics::NonNegative;
 use style::values::specified::LengthPercentage;
-use style::values::specified::LengthPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style_traits::viewport::*;
@@ -97,14 +98,14 @@ macro_rules! assert_decl_len {
 
 macro_rules! viewport_length {
     ($value:expr, px) => {
-        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(
+        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(NonNegative(
             LengthPercentage::Length(NoCalcLength::from_px($value)),
-        ))
+        )))
     };
     ($value:expr, vw) => {
-        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(
+        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(NonNegative(
             LengthPercentage::Length(ViewportPercentage(Vw($value))),
-        ))
+        )))
     };
 }
 

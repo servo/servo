@@ -29,7 +29,9 @@ use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
-use style::values::computed::{LengthPercentage, LengthPercentageOrAuto, LengthPercentageOrNone};
+use style::values::computed::{
+    MaxLength, NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto,
+};
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The size of an axis. May be a specified size, a min/max
@@ -45,16 +47,16 @@ impl AxisSize {
     /// Generate a new available cross or main axis size from the specified size of the container,
     /// containing block size, min constraint, and max constraint
     pub fn new(
-        size: LengthPercentageOrAuto,
+        size: NonNegativeLengthPercentageOrAuto,
         content_size: Option<Au>,
-        min: LengthPercentage,
-        max: LengthPercentageOrNone,
+        min: NonNegativeLengthPercentage,
+        max: MaxLength,
     ) -> AxisSize {
         match size {
-            LengthPercentageOrAuto::Auto => {
+            NonNegativeLengthPercentageOrAuto::Auto => {
                 AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None))
             },
-            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
                 match lp.maybe_to_used_value(content_size) {
                     Some(length) => AxisSize::Definite(length),
                     None => AxisSize::Infinite,
@@ -70,7 +72,7 @@ impl AxisSize {
 /// is definite after flex size resolving.
 fn from_flex_basis(
     flex_basis: FlexBasis,
-    main_length: LengthPercentageOrAuto,
+    main_length: NonNegativeLengthPercentageOrAuto,
     containing_length: Au,
 ) -> MaybeAuto {
     let width = match flex_basis {
@@ -78,9 +80,16 @@ fn from_flex_basis(
         GenericFlexBasis::Width(width) => width,
     };
 
-    match width.0 {
-        LengthPercentageOrAuto::Auto => MaybeAuto::from_style(main_length, containing_length),
-        other => MaybeAuto::from_style(other, containing_length),
+    let width = match width {
+        NonNegativeLengthPercentageOrAuto::Auto => main_length,
+        _ => width,
+    };
+
+    match width {
+        NonNegativeLengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+        NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
+            MaybeAuto::Specified(lp.to_used_value(containing_length))
+        },
     }
 }
 
@@ -224,18 +233,18 @@ impl FlexItem {
         let mut margin_count = 0;
         match direction {
             Direction::Inline => {
-                if margin.inline_start == LengthPercentageOrAuto::Auto {
+                if margin.inline_start.is_auto() {
                     margin_count += 1;
                 }
-                if margin.inline_end == LengthPercentageOrAuto::Auto {
+                if margin.inline_end.is_auto() {
                     margin_count += 1;
                 }
             },
             Direction::Block => {
-                if margin.block_start == LengthPercentageOrAuto::Auto {
+                if margin.block_start.is_auto() {
                     margin_count += 1;
                 }
-                if margin.block_end == LengthPercentageOrAuto::Auto {
+                if margin.block_end.is_auto() {
                     margin_count += 1;
                 }
             },
@@ -816,7 +825,7 @@ impl FlexFlow {
                 // cross size of item should equal to the line size if any auto margin exists.
                 // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
                 if auto_margin_count > 0 {
-                    if margin.block_start == LengthPercentageOrAuto::Auto {
+                    if margin.block_start.is_auto() {
                         margin_block_start = if free_space < Au(0) {
                             Au(0)
                         } else {
@@ -830,7 +839,7 @@ impl FlexFlow {
 
                 let self_align = block.fragment.style().get_position().align_self;
                 if self_align == AlignSelf::Stretch &&
-                    block.fragment.style().content_block_size() == LengthPercentageOrAuto::Auto
+                    block.fragment.style().content_block_size().is_auto()
                 {
                     free_space = Au(0);
                     block.base.block_container_explicit_block_size = Some(line.cross_size);

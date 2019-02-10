@@ -27,6 +27,7 @@ use crate::values::computed::{LengthPercentageOrAuto, NonNegativeLengthPercentag
 use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
+use crate::values::generics::length::LengthPercentageOrAuto as GenericLengthPercentageOrAuto;
 use crate::values::generics::rect::Rect;
 use crate::values::generics::NonNegative;
 use app_units::Au;
@@ -62,19 +63,19 @@ impl From<nsStyleCoord_CalcValue> for LengthPercentage {
     }
 }
 
-impl LengthPercentageOrAuto {
+impl NonNegativeLengthPercentageOrAuto {
     /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
     pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
         match *self {
-            LengthPercentageOrAuto::LengthPercentage(len) => Some(From::from(len)),
-            LengthPercentageOrAuto::Auto => None,
+            GenericLengthPercentageOrAuto::LengthPercentage(ref len) => Some(From::from(len.0)),
+            GenericLengthPercentageOrAuto::Auto => None,
         }
     }
 }
 
 impl From<nsStyleCoord_CalcValue> for LengthPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> LengthPercentageOrAuto {
-        LengthPercentageOrAuto::LengthPercentage(LengthPercentage::from(other))
+        GenericLengthPercentageOrAuto::LengthPercentage(LengthPercentage::from(other))
     }
 }
 
@@ -82,7 +83,7 @@ impl From<nsStyleCoord_CalcValue> for LengthPercentageOrAuto {
 // disappear as we move more stuff to cbindgen.
 impl From<nsStyleCoord_CalcValue> for NonNegativeLengthPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> Self {
-        NonNegative(LengthPercentageOrAuto::LengthPercentage(
+        GenericLengthPercentageOrAuto::LengthPercentage(NonNegative(
             LengthPercentage::with_clamping_mode(
                 Au(other.mLength).into(),
                 if other.mHasPercent {
