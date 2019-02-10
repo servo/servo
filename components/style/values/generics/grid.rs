@@ -192,10 +192,7 @@ impl<L> TrackBreadth<L> {
     /// <https://drafts.csswg.org/css-grid/#typedef-fixed-breadth>
     #[inline]
     pub fn is_fixed(&self) -> bool {
-        match *self {
-            TrackBreadth::Breadth(ref _lp) => true,
-            _ => false,
-        }
+        matches!(*self, TrackBreadth::Breadth(..))
     }
 }
 

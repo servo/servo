@@ -79,6 +79,9 @@ include = [
   "LengthPercentageOrAuto",
   "Rect",
   "IntersectionObserverRootMargin",
+  "Size",
+  "MaxSize",
+  "FlexBasis",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -86,10 +89,12 @@ item_types = ["enums", "structs", "typedefs"]
 "LengthPercentage" = """
   // Defined in nsStyleCoord.h
   static constexpr inline StyleLengthPercentage Zero();
+  static inline StyleLengthPercentage FromAppUnits(nscoord);
   inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
+  inline bool HasLengthAndPercentage() const;
   inline float ToPercentage() const;
   inline CSSCoord LengthInCSSPixels() const;
   inline float Percentage() const;
@@ -101,8 +106,41 @@ item_types = ["enums", "structs", "typedefs"]
 
 "GenericLengthPercentageOrAuto" = """
   inline const StyleLengthPercentage& AsLengthPercentage() const;
-  inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+"""
+
+"GenericSize" = """
+  inline const StyleLengthPercentage& AsLengthPercentage() const;
+  inline StyleExtremumLength AsExtremumLength() const;
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+  inline bool BehavesLikeInitialValueOnBlockAxis() const;
+"""
+
+"GenericFlexBasis" = """
+  inline bool IsAuto() const;
+  inline const StyleSize& AsSize() const;
+"""
+
+"GenericMaxSize" = """
+  inline const StyleLengthPercentage& AsLengthPercentage() const;
+  inline StyleExtremumLength AsExtremumLength() const;
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+  inline bool BehavesLikeInitialValueOnBlockAxis() const;
 """
 
 "Rect" = """
