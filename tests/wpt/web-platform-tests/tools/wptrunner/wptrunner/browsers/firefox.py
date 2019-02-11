@@ -163,7 +163,10 @@ def run_info_extras(**kwargs):
 
 
 def run_info_browser_version(binary):
-    version_info = mozversion.get_version(binary)
+    try:
+        version_info = mozversion.get_version(binary)
+    except mozversion.errors.VersionError:
+        version_info = None
     if version_info:
         return {"browser_build_id": version_info.get("application_buildid", None),
                 "browser_changeset": version_info.get("application_changeset", None)}
