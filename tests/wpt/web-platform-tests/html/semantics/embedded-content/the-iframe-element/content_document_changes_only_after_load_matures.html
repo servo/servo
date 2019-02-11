@@ -8,13 +8,20 @@
 async_test(function(t) {
     var iframe = document.createElement("iframe");
     document.body.appendChild(iframe);
-    iframe.onload = t.step_func(function() {
-        assert_true(iframe.contentDocument.location.toString().includes("support/blank.htm"));
-        t.done();
+    var checkedDuringParse = false;
+    iframe.onload = t.step_func_done(function() {
+        testContentDocument();
+        assert_true(checkedDuringParse);
+    });
+
+    let url = "support/iframe-that-checks-contentDocument.html";
+    window.testContentDocument = t.step_func(function() {
+        assert_true(iframe.contentDocument.location.toString().includes(url));
+        checkedDuringParse = true;
     });
 
     assert_equals(iframe.contentDocument.location.toString(), "about:blank");
-    iframe.src = "support/blank.htm?pipe=trickle(d2)";
+    iframe.src = url + "?pipe=trickle(d2)";
     // The location of the contentDocument should not change until the new document has matured.
     assert_equals(iframe.contentDocument.location.toString(), "about:blank");
 }, "contentDocument should only change after a load matures.");
