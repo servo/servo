@@ -198,7 +198,12 @@ impl<'sr> TShadowRoot for ServoShadowRoot<'sr> {
     where
         Self: 'a,
     {
-        None
+        Some(unsafe {
+            &self
+                .shadow_root
+                .get_style_data_for_layout::<ServoLayoutElement>()
+                .data
+        })
     }
 }
 
