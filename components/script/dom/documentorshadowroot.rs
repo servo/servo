@@ -18,6 +18,7 @@ use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use std::fmt;
 use style::context::QuirksMode;
+use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::stylesheet_set::StylesheetSet;
@@ -40,6 +41,12 @@ impl fmt::Debug for StyleSheetInDocument {
 impl PartialEq for StyleSheetInDocument {
     fn eq(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.sheet, &other.sheet)
+    }
+}
+
+impl ToMediaListKey for StyleSheetInDocument {
+    fn to_media_list_key(&self) -> MediaListKey {
+        self.sheet.to_media_list_key()
     }
 }
 

@@ -20,6 +20,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
+use style::dom::TElement;
 use style::stylesheets::Stylesheet;
 
 // https://dom.spec.whatwg.org/#interface-shadowroot
@@ -29,8 +30,7 @@ pub struct ShadowRoot {
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
     host: Dom<Element>,
-    /// List of stylesheets associated with nodes in this shadow tree.
-    /// |None| if the list needs to be refreshed.
+    /// List of author styles associated with nodes in this shadow tree.
     author_styles: DomRefCell<AuthorStyles<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     window: Dom<Window>,
@@ -119,6 +119,9 @@ impl ShadowRootMethods for ShadowRoot {
 #[allow(unsafe_code)]
 pub trait LayoutShadowRootHelpers {
     unsafe fn get_host_for_layout(&self) -> LayoutDom<Element>;
+    unsafe fn get_style_data_for_layout<'a, E: TElement>(
+        &self,
+    ) -> &'a AuthorStyles<StyleSheetInDocument>;
 }
 
 impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
@@ -126,6 +129,20 @@ impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
     #[allow(unsafe_code)]
     unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
         (*self.unsafe_get()).host.to_layout()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn get_style_data_for_layout<'a, E: TElement>(
+        &self,
+    ) -> &'a AuthorStyles<StyleSheetInDocument> {
+        {
+            let mut author_styles = (*self.unsafe_get()).author_styles.borrow_mut_for_layout();
+            // let document = &(*self.unsafe_get()).document;
+            // let guard = document.style_shared_lock().read();
+            // author_styles.flush::<E>(&document.device(), document.quirks_mode(), &guard);
+        }
+        (*self.unsafe_get()).author_styles.borrow_for_layout()
     }
 }
 
