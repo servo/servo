@@ -117,6 +117,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     /// Handles a generic WebGLMsg message
     #[inline]
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
+        trace!("processing {:?}", msg);
         match msg {
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
                 let result = self.create_webgl_context(version, size, attributes);
@@ -1104,7 +1105,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    Cow::Borrowed(data),
+                    Cow::Borrowed(&*data),
                 );
 
                 ctx.gl()
@@ -1144,7 +1145,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    Cow::Borrowed(data),
+                    Cow::Borrowed(&*data),
                 );
 
                 ctx.gl()
