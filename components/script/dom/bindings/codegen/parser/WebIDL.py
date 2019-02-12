@@ -2044,6 +2044,9 @@ class IDLType(IDLObject):
         IDLObject.__init__(self, location)
         self.name = name
         self.builtin = False
+        self.clamp = False
+        self.enforceRange = False
+        self._extendedAttrDict = {}
 
     def __eq__(self, other):
         return other and self.builtin == other.builtin and self.name == other.name
@@ -2173,11 +2176,32 @@ class IDLType(IDLObject):
         return self.nullable() and self.inner.callback._treatNonObjectAsNull
 
     def addExtendedAttributes(self, attrs):
-        if len(attrs) != 0:
-            raise WebIDLError("There are no extended attributes that are "
-                              "allowed on types, for now (but this is "
-                              "changing; see bug 1359269)",
-                              [attrs[0].location, self.location])
+        for attribute in attrs:
+            identifier = attribute.identifier()
+            if identifier == "Clamp":
+                if not attribute.noArguments():
+                    raise WebIDLError("[Clamp] must take no arguments",
+                                      [attribute.location])
+                if self.enforceRange:
+                    raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
+                                      [self.location])
+                self.clamp = True
+            elif identifier == "EnforceRange":
+                if not attribute.noArguments():
+                    raise WebIDLError("[EnforceRange] must take no arguments",
+                                      [attribute.location])
+                if self.clamp:
+                    raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
+                                      [self.location])
+                self.enforceRange = True
+            else:
+                raise WebIDLError("Unhandled extended attribute on type",
+                                  [attribute.location])
+            attrlist = attribute.listValue()
+            self._extendedAttrDict[identifier] = attrlist if len(attrlist) else True
+
+    def getExtendedAttribute(self, name):
+        return self._extendedAttrDict.get(name, None)
 
     def resolveType(self, parentScope):
         pass
@@ -5729,21 +5753,19 @@ class Parser(Tokenizer):
 
     def p_DictionaryMembers(self, p):
         """
-            DictionaryMembers : ExtendedAttributeList DictionaryMember DictionaryMembers
+            DictionaryMembers : DictionaryMember DictionaryMembers
                              |
         """
         if len(p) == 1:
             # We're at the end of the list
             p[0] = []
             return
-        # Add our extended attributes
-        p[2].addExtendedAttributes(p[1])
-        p[0] = [p[2]]
-        p[0].extend(p[3])
+        p[0] = [p[1]]
+        p[0].extend(p[2])
 
     def p_DictionaryMember(self, p):
         """
-            DictionaryMember : Required Type IDENTIFIER Default SEMICOLON
+            DictionaryMember : Required TypeWithExtendedAttributes IDENTIFIER Default SEMICOLON
         """
         # These quack a lot like optional arguments, so just treat them that way.
         t = p[2]
@@ -5942,7 +5964,7 @@ class Parser(Tokenizer):
     def p_Iterable(self, p):
         """
             Iterable : ITERABLE LT Type GT SEMICOLON
-                     | ITERABLE LT Type COMMA Type GT SEMICOLON
+                     | ITERABLE LT Type COMMA TypeWithExtendedAttributes GT SEMICOLON
         """
         location = self.getLocation(p, 2)
         identifier = IDLUnresolvedIdentifier(location, "__iterable",
@@ -5958,7 +5980,7 @@ class Parser(Tokenizer):
 
     def p_Setlike(self, p):
         """
-            Setlike : ReadOnly SETLIKE LT Type GT SEMICOLON
+            Setlike : ReadOnly SETLIKE LT TypeWithExtendedAttributes GT SEMICOLON
         """
         readonly = p[1]
         maplikeOrSetlikeType = p[2]
@@ -5972,7 +5994,7 @@ class Parser(Tokenizer):
 
     def p_Maplike(self, p):
         """
-            Maplike : ReadOnly MAPLIKE LT Type COMMA Type GT SEMICOLON
+            Maplike : ReadOnly MAPLIKE LT TypeWithExtendedAttributes COMMA Type GT SEMICOLON
         """
         readonly = p[1]
         maplikeOrSetlikeType = p[2]
@@ -6010,7 +6032,7 @@ class Parser(Tokenizer):
 
     def p_AttributeRest(self, p):
         """
-            AttributeRest : ReadOnly ATTRIBUTE Type AttributeName SEMICOLON
+            AttributeRest : ReadOnly ATTRIBUTE TypeWithExtendedAttributes AttributeName SEMICOLON
         """
         location = self.getLocation(p, 2)
         readonly = p[1]
@@ -6264,7 +6286,7 @@ class Parser(Tokenizer):
 
     def p_Argument(self, p):
         """
-            Argument : ExtendedAttributeList Optional Type Ellipsis ArgumentName Default
+            Argument : ExtendedAttributeList Optional TypeWithExtendedAttributes Ellipsis ArgumentName Default
         """
         t = p[3]
         assert isinstance(t, IDLType)
@@ -6492,6 +6514,20 @@ class Parser(Tokenizer):
         """
         p[0] = self.handleNullable(p[1], p[2])
 
+    def p_TypeWithExtendedAttributesSingleType(self, p):
+        """
+            TypeWithExtendedAttributes : ExtendedAttributeList SingleType
+        """
+        p[0] = p[2]
+        p[0].addExtendedAttributes(p[1])
+
+    def p_TypeWithExtendedAttributesUnionType(self, p):
+        """
+            TypeWithExtendedAttributes : ExtendedAttributeList UnionType Null
+        """
+        p[0] = self.handleNullable(p[2], p[3])
+        p[0].addExtendedAttributes(p[1])
+
     def p_SingleTypeNonAnyType(self, p):
         """
             SingleType : NonAnyType
@@ -6514,9 +6550,10 @@ class Parser(Tokenizer):
 
     def p_UnionMemberTypeNonAnyType(self, p):
         """
-            UnionMemberType : NonAnyType
+            UnionMemberType : ExtendedAttributeList NonAnyType
         """
-        p[0] = p[1]
+        p[0] = p[2]
+        p[2].addExtendedAttributes(p[1])
 
     def p_UnionMemberType(self, p):
         """
@@ -6566,7 +6603,7 @@ class Parser(Tokenizer):
 
     def p_NonAnyTypeSequenceType(self, p):
         """
-            NonAnyType : SEQUENCE LT Type GT Null
+            NonAnyType : SEQUENCE LT TypeWithExtendedAttributes GT Null
         """
         innerType = p[3]
         type = IDLSequenceType(self.getLocation(p, 1), innerType)
@@ -6582,7 +6619,7 @@ class Parser(Tokenizer):
 
     def p_NonAnyTypeRecordType(self, p):
         """
-            NonAnyType : RECORD LT StringType COMMA Type GT Null
+            NonAnyType : RECORD LT StringType COMMA TypeWithExtendedAttributes GT Null
         """
         keyType = p[3]
         valueType = p[5]
