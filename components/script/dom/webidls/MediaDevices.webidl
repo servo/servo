@@ -23,10 +23,10 @@ partial interface MediaDevices {
 
 
 dictionary MediaStreamConstraints {
-    //         (boolean or MediaTrackConstraints) video = false;
-    //         (boolean or MediaTrackConstraints) audio = false;
-                boolean video = false;
-                boolean audio = false;
+        (boolean or MediaTrackConstraints) video;
+        // (boolean or MediaTrackConstraints) video = false;
+        (boolean or MediaTrackConstraints) audio;
+        // (boolean or MediaTrackConstraints) audio = false;
 };
 
 // dictionary DoubleRange {
@@ -39,15 +39,15 @@ dictionary MediaStreamConstraints {
 //              double ideal;
 // };
 
-// dictionary ULongRange {
-//              [Clamp] unsigned long max;
-//              [Clamp] unsigned long min;
-// };
+dictionary ULongRange {
+             [Clamp] unsigned long max;
+             [Clamp] unsigned long min;
+};
 
-// dictionary ConstrainULongRange : ULongRange {
-//              [Clamp] unsigned long exact;
-//              [Clamp] unsigned long ideal;
-// };
+dictionary ConstrainULongRange : ULongRange {
+             [Clamp] unsigned long exact;
+             [Clamp] unsigned long ideal;
+};
 
 // dictionary ConstrainBooleanParameters {
 //              boolean exact;
@@ -59,30 +59,30 @@ dictionary MediaStreamConstraints {
 //              (DOMString or sequence<DOMString>) ideal;
 // };
 
-// dictionary MediaTrackConstraints : MediaTrackConstraintSet {
-//              sequence<MediaTrackConstraintSet> advanced;
-// };
+dictionary MediaTrackConstraints : MediaTrackConstraintSet {
+             sequence<MediaTrackConstraintSet> advanced;
+};
 
-// typedef ([Clamp] unsigned long or ConstrainULongRange) ConstrainULong;
+typedef ([Clamp] unsigned long or ConstrainULongRange) ConstrainULong;
 // typedef (double or ConstrainDoubleRange) ConstrainDouble;
 // typedef (boolean or ConstrainBooleanParameters) ConstrainBoolean;
 // typedef (DOMString or sequence<DOMString> or ConstrainDOMStringParameters) ConstrainDOMString;
 
-// dictionary MediaTrackConstraintSet {
-//              ConstrainULong width;
-//              ConstrainULong height;
-//              ConstrainDouble aspectRatio;
-//              ConstrainDouble frameRate;
-//              ConstrainDOMString facingMode;
-//              ConstrainDOMString resizeMode;
-//              ConstrainDouble volume;
-//              ConstrainULong sampleRate;
-//              ConstrainULong sampleSize;
-//              ConstrainBoolean echoCancellation;
-//              ConstrainBoolean autoGainControl;
-//              ConstrainBoolean noiseSuppression;
-//              ConstrainDouble latency;
-//              ConstrainULong channelCount;
-//              ConstrainDOMString deviceId;
-//              ConstrainDOMString groupId;
-// };
+dictionary MediaTrackConstraintSet {
+             ConstrainULong width;
+             ConstrainULong height;
+             // ConstrainDouble aspectRatio;
+             // ConstrainDouble frameRate;
+             // ConstrainDOMString facingMode;
+             // ConstrainDOMString resizeMode;
+             // ConstrainDouble volume;
+             // ConstrainULong sampleRate;
+             // ConstrainULong sampleSize;
+             // ConstrainBoolean echoCancellation;
+             // ConstrainBoolean autoGainControl;
+             // ConstrainBoolean noiseSuppression;
+             // ConstrainDouble latency;
+             // ConstrainULong channelCount;
+             // ConstrainDOMString deviceId;
+             // ConstrainDOMString groupId;
+};
