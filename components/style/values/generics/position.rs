@@ -19,20 +19,20 @@
     ToAnimatedZero,
     ToComputedValue,
 )]
-pub struct Position<H, V> {
+#[repr(C)]
+pub struct GenericPosition<H, V> {
     /// The horizontal component of position.
     pub horizontal: H,
     /// The vertical component of position.
     pub vertical: V,
 }
 
+pub use self::GenericPosition as Position;
+
 impl<H, V> Position<H, V> {
     /// Returns a new position.
     pub fn new(horizontal: H, vertical: V) -> Self {
-        Self {
-            horizontal: horizontal,
-            vertical: vertical,
-        }
+        Self { horizontal, vertical }
     }
 }
 

@@ -614,7 +614,6 @@ pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
 
     use crate::gecko::values::GeckoStyleCoordConvertible;
-    use crate::gecko_bindings::structs;
     use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use crate::gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use crate::gecko_bindings::structs::{
@@ -628,7 +627,6 @@ pub mod basic_shape {
     use crate::values::computed::border::{BorderCornerRadius, BorderRadius};
     use crate::values::computed::length::LengthPercentage;
     use crate::values::computed::motion::OffsetPath;
-    use crate::values::computed::position;
     use crate::values::computed::url::ComputedUrl;
     use crate::values::generics::basic_shape::{
         BasicShape as GenericBasicShape, InsetRect, Polygon,
@@ -759,12 +757,12 @@ pub mod basic_shape {
                 },
                 StyleBasicShapeType::Circle => GenericBasicShape::Circle(Circle {
                     radius: (&other.mCoordinates[0]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Ellipse => GenericBasicShape::Ellipse(Ellipse {
                     semiaxis_x: (&other.mCoordinates[0]).into(),
                     semiaxis_y: (&other.mCoordinates[1]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Polygon => {
                     let mut coords = Vec::with_capacity(other.mCoordinates.len() / 2);
@@ -852,31 +850,11 @@ pub mod basic_shape {
         }
     }
 
-    // Can't be a From impl since we need to set an existing
-    // Position, not create a new one
-    impl From<position::Position> for structs::Position {
-        fn from(other: position::Position) -> Self {
-            structs::Position {
-                mXPosition: other.horizontal.into(),
-                mYPosition: other.vertical.into(),
-            }
-        }
-    }
-
     impl<'a> From<&'a nsStyleCoord> for ShapeRadius {
         fn from(other: &'a nsStyleCoord) -> Self {
             let other = other.borrow();
             ShapeRadius::from_gecko_style_coord(other)
                 .expect("<shape-radius> should be a length, percentage, calc, or keyword value")
-        }
-    }
-
-    impl<'a> From<&'a structs::Position> for position::Position {
-        fn from(other: &'a structs::Position) -> Self {
-            position::Position {
-                horizontal: other.mXPosition.into(),
-                vertical: other.mYPosition.into(),
-            }
         }
     }
 
