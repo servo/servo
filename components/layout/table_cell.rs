@@ -21,7 +21,7 @@ use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::length::NonNegativeLengthPercentageOrAuto;
+use style::values::computed::length::Size;
 use style::values::computed::Color;
 use style::values::generics::box_::VerticalAlign;
 use style::values::specified::BorderStyle;
@@ -203,8 +203,8 @@ impl Flow for TableCellFlow {
 
         self.block_flow.bubble_inline_sizes_for_block(true);
         let specified_inline_size = match self.block_flow.fragment.style().content_inline_size() {
-            NonNegativeLengthPercentageOrAuto::Auto => Au(0),
-            NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => lp.to_used_value(Au(0)),
+            Size::Auto => Au(0),
+            Size::LengthPercentage(ref lp) => lp.to_used_value(Au(0)),
         };
 
         if self

@@ -9,11 +9,9 @@
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 use crate::font_metrics::FontMetricsQueryResult;
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::{self, CSSPixelLength, Context, ExtremumLength};
+use crate::values::computed::{self, CSSPixelLength, Context};
 use crate::values::generics::length as generics;
-use crate::values::generics::length::{
-    MaxLength as GenericMaxLength, MozLength as GenericMozLength,
-};
+use crate::values::generics::length::{MaxSize as GenericMaxSize, Size as GenericSize};
 use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;
@@ -1051,56 +1049,18 @@ impl LengthOrNumber {
 }
 
 /// A specified value for `min-width`, `min-height`, `width` or `height` property.
-pub type MozLength = GenericMozLength<NonNegativeLengthPercentage>;
+pub type Size = GenericSize<NonNegativeLengthPercentage>;
 
-impl Parse for MozLength {
+impl Parse for Size {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        MozLength::parse_quirky(context, input, AllowQuirks::No)
+        Size::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
-impl MozLength {
-    /// Parses, with quirks.
-    pub fn parse_quirky<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-        allow_quirks: AllowQuirks,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(l) = input.try(ExtremumLength::parse) {
-            return Ok(GenericMozLength::ExtremumLength(l));
-        }
-
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(GenericMozLength::Auto);
-        }
-
-        let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
-        Ok(GenericMozLength::LengthPercentage(length))
-    }
-
-    /// Returns `0%`.
-    #[inline]
-    pub fn zero_percent() -> Self {
-        GenericMozLength::LengthPercentage(NonNegativeLengthPercentage::zero_percent())
-    }
-}
-
-/// A specified value for `max-width` or `max-height` property.
-pub type MaxLength = GenericMaxLength<NonNegativeLengthPercentage>;
-
-impl Parse for MaxLength {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        MaxLength::parse_quirky(context, input, AllowQuirks::No)
-    }
-}
-
-impl MaxLength {
+impl Size {
     /// Parses, with quirks.
     pub fn parse_quirky<'i, 't>(
         context: &ParserContext,
@@ -1109,16 +1069,57 @@ impl MaxLength {
     ) -> Result<Self, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
-            if let Ok(l) = input.try(ExtremumLength::parse) {
-                return Ok(GenericMaxLength::ExtremumLength(l));
+            if let Ok(l) = input.try(computed::ExtremumLength::parse) {
+                return Ok(GenericSize::ExtremumLength(l));
+            }
+        }
+
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(GenericSize::Auto);
+        }
+
+        let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
+        Ok(GenericSize::LengthPercentage(length))
+    }
+
+    /// Returns `0%`.
+    #[inline]
+    pub fn zero_percent() -> Self {
+        GenericSize::LengthPercentage(NonNegativeLengthPercentage::zero_percent())
+    }
+}
+
+/// A specified value for `max-width` or `max-height` property.
+pub type MaxSize = GenericMaxSize<NonNegativeLengthPercentage>;
+
+impl Parse for MaxSize {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        MaxSize::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl MaxSize {
+    /// Parses, with quirks.
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        #[cfg(feature = "gecko")]
+        {
+            if let Ok(l) = input.try(computed::ExtremumLength::parse) {
+                return Ok(GenericMaxSize::ExtremumLength(l));
             }
         }
 
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(GenericMaxLength::None);
+            return Ok(GenericMaxSize::None);
         }
 
         let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
-        Ok(GenericMaxLength::LengthPercentage(length))
+        Ok(GenericMaxSize::LengthPercentage(length))
     }
 }

@@ -33,7 +33,7 @@ use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
-use style::values::computed::NonNegativeLengthPercentageOrAuto;
+use style::values::computed::Size;
 use style::values::CSSFloat;
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -201,7 +201,7 @@ impl TableWrapperFlow {
         // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
         // just use the shrink-to-fit inline size.
         let available_inline_size = match self.block_flow.fragment.style().content_inline_size() {
-            NonNegativeLengthPercentageOrAuto::Auto => {
+            Size::Auto => {
                 self.block_flow
                     .get_shrink_to_fit_inline_size(available_inline_size) -
                     table_border_padding
@@ -841,7 +841,7 @@ fn initial_computed_inline_size(
     table_border_padding: Au,
 ) -> MaybeAuto {
     match block.fragment.style.content_inline_size() {
-        NonNegativeLengthPercentageOrAuto::Auto => {
+        Size::Auto => {
             if preferred_width_of_all_columns + table_border_padding <= containing_block_inline_size
             {
                 MaybeAuto::Specified(preferred_width_of_all_columns + table_border_padding)
@@ -851,7 +851,7 @@ fn initial_computed_inline_size(
                 MaybeAuto::Auto
             }
         },
-        NonNegativeLengthPercentageOrAuto::LengthPercentage(ref lp) => {
+        Size::LengthPercentage(ref lp) => {
             let used = lp.to_used_value(containing_block_inline_size);
             MaybeAuto::Specified(max(
                 used - table_border_padding,
