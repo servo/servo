@@ -6,6 +6,9 @@
     <link rel="help" href="https://wicg.github.io/auxclick/">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
     <style>
 #target {
   background-color: green;
@@ -60,6 +63,15 @@
             test_auxclick.done();
         }
     });
+
+    // Inject mouse double click events.
+    var actions = new test_driver.Actions();
+    actions.pointerMove(0, 0, {origin: target})
+           .pointerDown({button: actions.ButtonType.MIDDLE})
+           .pointerUp({button: actions.ButtonType.MIDDLE})
+           .pointerDown({button: actions.ButtonType.MIDDLE})
+           .pointerUp({button: actions.ButtonType.MIDDLE})
+           .send();
     </script>
   </body>
 </html>
