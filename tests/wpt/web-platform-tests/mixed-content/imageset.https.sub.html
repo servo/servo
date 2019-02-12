@@ -21,9 +21,9 @@
   <img srcset="http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_srcset">
   <script>
     window.addEventListener("load", t.step_func(function() {
-        verifyNumberOfDownloads("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_src", 1);
-        verifyNumberOfDownloads("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?picture", 0);
-        verifyNumberOfDownloads("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_srcset", 0);
+        verifyNumberOfResourceTimingEntries("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_src", 1);
+        verifyNumberOfResourceTimingEntries("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?picture", 0);
+        verifyNumberOfResourceTimingEntries("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_srcset", 0);
         t.done();
     }));
   </script>

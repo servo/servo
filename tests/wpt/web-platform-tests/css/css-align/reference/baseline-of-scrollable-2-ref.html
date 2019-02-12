@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>
+    CSS Reference Case
+  </title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+  <style>
+    /* For this reference case, we use an empty block in place of the testcase's
+       "details" element, because empty blocks derive their baseline from their
+       margin-box (and that's the behavior that we're expecting from the
+       "details" elements in our testcase). */
+    .details-ref {
+      display: inline-block;
+      height: 40px;
+      width: 100px;
+      border-color: gray;
+      border-style: solid;
+      border-width: 2px 3px 4px 5px;
+      padding: 4px 5px 7px 8px;
+      margin: 1px 2px 3px 4px;
+    }
+</style>
+</head>
+<body>
+  Test passes if the a/b text aligns with the bottom margin-edge of the
+  gray rects.
+  <br><br>
+
+  a
+  <div class="details-ref"></div>
+  b
+  <br>
+
+  a
+  <div class="details-ref"></div>
+  b
+  <br>
+
+  a
+  <div class="details-ref"></div>
+  b
+  <br>
+
+  a
+  <div class="details-ref"></div>
+  b
+
+</body>
+</html>

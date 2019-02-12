@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The playback rate of a worklet animation</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+// Presence of playback rate adds FP operations to calculating start_time
+// and current_time of animations. That's why it's needed to increase FP error
+// for comparing times in these tests.
+window.assert_times_equal = (actual, expected, description) => {
+  assert_approx_equals(actual, expected, 0.002, description);
+};
+</script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function InstantiateWorkletAnimation(test) {
+  const DURATION = 10000; // ms
+  const KEYFRAMES = { height : ['100px', '50px'] };
+  return new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(test),
+        KEYFRAMES, DURATION), document.timeline);
+}
+
+promise_test(async t => {
+  await registerPassthroughAnimator();
+  const animation = InstantiateWorkletAnimation(t);
+
+  animation.playbackRate = 0.5;
+  animation.play();
+  assert_equals(animation.currentTime, 0,
+    'Zero current time is not affected by playbackRate.');
+}, 'Zero current time is not affected by playbackRate set while the animation is in idle state.');
+
+promise_test(async t => {
+  await registerPassthroughAnimator();
+  const animation = InstantiateWorkletAnimation(t);
+
+  animation.play();
+  animation.playbackRate = 0.5;
+  assert_equals(animation.currentTime, 0,
+    'Zero current time is not affected by playbackRate.');
+}, 'Zero current time is not affected by playbackRate set while the animation is in play-pending state.');
+
+promise_test(async t => {
+  await registerPassthroughAnimator();
+  const animation = InstantiateWorkletAnimation(t);
+  const playbackRate = 2;
+
+  animation.play();
+
+  await waitForNextFrame();
+
+  // Set playback rate while the animation is playing.
+  const prevCurrentTime = animation.currentTime;
+  animation.playbackRate = playbackRate;
+
+  assert_times_equal(animation.currentTime, prevCurrentTime,
+    'The current time should stay unaffected by setting playback rate.');
+}, 'Non zero current time is not affected by playbackRate set while the animation is in play state.');
+
+promise_test(async t => {
+  await registerPassthroughAnimator();
+  const animation = InstantiateWorkletAnimation(t);
+  const playbackRate = 2;
+
+  animation.play();
+
+  await waitForNextFrame();
+
+  // Set playback rate while the animation is playing
+  const prevCurrentTime = animation.currentTime;
+  const prevTimelineTime = document.timeline.currentTime;
+  animation.playbackRate = playbackRate;
+
+  // Play the animation some more.
+  await waitForNextFrame();
+
+  const currentTime = animation.currentTime;
+  const currentTimelineTime = document.timeline.currentTime;
+
+  assert_times_equal(currentTime - prevCurrentTime, (currentTimelineTime - prevTimelineTime) * playbackRate,
+    'The current time should increase two times faster than timeline.');
+
+}, 'The playback rate affects the rate of progress of the current time.');
+
+promise_test(async t => {
+  await registerPassthroughAnimator();
+  const animation = InstantiateWorkletAnimation(t);;
+  const playbackRate = 2;
+
+  // Set playback rate while the animation is in 'idle' state.
+  animation.playbackRate = playbackRate;
+  animation.play();
+  const prevTimelineTime = document.timeline.currentTime;
+
+  await waitForNextFrame();
+
+  const currentTime = animation.currentTime;
+  const timelineTime = document.timeline.currentTime;
+  assert_times_equal(currentTime, (timelineTime - prevTimelineTime) * playbackRate,
+    'The current time should increase two times faster than timeline.');
+}, 'The playback rate set before the animation started playing affects the ' +
+   'rate of progress of the current time');
+
+promise_test(async t => {
+  await registerPassthroughAnimator();
+  const timing = { duration: 100,
+                   easing: 'linear',
+                   fill: 'none',
+                   iterations: 1
+                 };
+  const target = createDiv(t);
+  const keyframeEffect = new KeyframeEffect(target, { opacity: [0, 1] }, timing);
+  const animation = new WorkletAnimation('passthrough', keyframeEffect, document.timeline);
+  const playbackRate = 2;
+
+  animation.play();
+  animation.playbackRate = playbackRate;
+
+  await waitForNextFrame();
+
+  assert_times_equal(keyframeEffect.getComputedTiming().localTime, animation.currentTime,
+    'When playback rate is set on WorkletAnimation, the underlying effect\'s timing should be properly updated.');
+
+  assert_approx_equals(Number(getComputedStyle(target).opacity),
+    animation.currentTime / 100, 0.001,
+    'When playback rate is set on WorkletAnimation, the underlying effect should produce correct visual result.');
+
+}, 'When playback rate is updated, the underlying effect is properly updated ' +
+   'with the current time of its WorkletAnimation and produces correct ' +
+   'visual result.');
+
+</script>
+</body>
