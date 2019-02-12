@@ -9,7 +9,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use servo_media::webrtc::MediaStream as BackendMediaStream;
+use servo_media::streams::MediaStream as BackendMediaStream;
 use std::mem;
 
 #[dom_struct]
