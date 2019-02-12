@@ -3694,18 +3694,19 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#593fcabd749e693de51d609688d29497c668c667"
+source = "git+https://github.com/servo/media#4e2602b5154c0272703a88396fd3b286d34213e4"
 dependencies = [
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-player 0.1.0 (git+https://github.com/servo/media)",
+ "servo-media-streams 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-webrtc 0.1.0 (git+https://github.com/servo/media)",
 ]
 
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#593fcabd749e693de51d609688d29497c668c667"
+source = "git+https://github.com/servo/media#4e2602b5154c0272703a88396fd3b286d34213e4"
 dependencies = [
  "boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3722,7 +3723,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#593fcabd749e693de51d609688d29497c668c667"
+source = "git+https://github.com/servo/media#4e2602b5154c0272703a88396fd3b286d34213e4"
 dependencies = [
  "boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3744,6 +3745,7 @@ dependencies = [
  "regex 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-player 0.1.0 (git+https://github.com/servo/media)",
+ "servo-media-streams 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-webrtc 0.1.0 (git+https://github.com/servo/media)",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3752,7 +3754,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#593fcabd749e693de51d609688d29497c668c667"
+source = "git+https://github.com/servo/media#4e2602b5154c0272703a88396fd3b286d34213e4"
 dependencies = [
  "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3760,11 +3762,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-media-streams"
+version = "0.1.0"
+source = "git+https://github.com/servo/media#4e2602b5154c0272703a88396fd3b286d34213e4"
+
+[[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#593fcabd749e693de51d609688d29497c668c667"
+source = "git+https://github.com/servo/media#4e2602b5154c0272703a88396fd3b286d34213e4"
 dependencies = [
  "boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-media-streams 0.1.0 (git+https://github.com/servo/media)",
 ]
 
 [[package]]
@@ -3847,7 +3855,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#593fcabd749e693de51d609688d29497c668c667"
+source = "git+https://github.com/servo/media#4e2602b5154c0272703a88396fd3b286d34213e4"
 dependencies = [
  "proc-macro2 0.4.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5350,6 +5358,7 @@ dependencies = [
 "checksum servo-media-audio 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-player 0.1.0 (git+https://github.com/servo/media)" = "<none>"
+"checksum servo-media-streams 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-webrtc 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-skia 0.30000020.1 (registry+https://github.com/rust-lang/crates.io-index)" = "63abd6bed50aaf0e348d9fe8104088d61d5b67fd47cbbdc822278f5bed82b5f5"
 "checksum servo_media_derive 0.1.0 (git+https://github.com/servo/media)" = "<none>"

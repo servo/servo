@@ -34,7 +34,7 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 
-use servo_media::webrtc::MediaStream as BackendMediaStream;
+use servo_media::streams::MediaStream as BackendMediaStream;
 use servo_media::webrtc::{
     BundlePolicy, IceCandidate, SdpType, SessionDescription, WebRtcController, WebRtcSignaller,
 };
