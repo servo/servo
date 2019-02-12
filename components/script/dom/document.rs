@@ -376,6 +376,8 @@ pub struct Document {
     delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
     /// https://html.spec.whatwg.org/multipage/#completely-loaded
     completely_loaded: Cell<bool>,
+    /// List of shadow roots bound to the document tree.
+    shadow_roots: DomRefCell<Vec<Dom<ShadowRoot>>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2690,6 +2692,7 @@ impl Document {
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
+            shadow_roots: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -3143,6 +3146,20 @@ impl Document {
                     .expect("Element must be a form control")
                     .reset_form_owner();
             }
+        }
+    }
+
+    pub fn register_shadow_root(&self, shadow_root: &ShadowRoot) {
+        self.shadow_roots
+            .borrow_mut()
+            .push(Dom::from_ref(shadow_root));
+    }
+
+    pub fn unregister_shadow_root(&self, shadow_root: &ShadowRoot) {
+        let mut shadow_roots = self.shadow_roots.borrow_mut();
+        let position = shadow_roots.iter().position(|sr| **sr == *shadow_root);
+        if let Some(index) = position {
+            shadow_roots.remove(index);
         }
     }
 }
