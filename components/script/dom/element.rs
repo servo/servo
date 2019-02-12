@@ -486,9 +486,13 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        Ok(self
+        let shadow_root = self
             .shadow_root
-            .or_init(|| ShadowRoot::new(self, &*self.node.owner_doc())))
+            .or_init(|| ShadowRoot::new(self, &*self.node.owner_doc()));
+
+        self.node.owner_doc().register_shadow_root(&*shadow_root);
+
+        Ok(shadow_root)
     }
 }
 
@@ -2786,8 +2790,9 @@ impl VirtualMethods for Element {
             return;
         }
 
-        if self.is_shadow_host() {
-            let shadow_root = self.shadow_root.get().unwrap();
+        let doc = document_from_node(self);
+
+        if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, tree_connected);
             for node in shadow_root.children() {
@@ -2796,7 +2801,6 @@ impl VirtualMethods for Element {
             }
         }
 
-        let doc = document_from_node(self);
         if let Some(ref value) = *self.id_attribute.borrow() {
             doc.register_named_element(self, value.clone());
         }
@@ -2815,8 +2819,12 @@ impl VirtualMethods for Element {
             return;
         }
 
+        let doc = document_from_node(self);
+
         if self.is_shadow_host() {
             let shadow_root = self.shadow_root.get().unwrap();
+            doc.unregister_shadow_root(&shadow_root);
+            let shadow_root = shadow_root.upcast::<Node>();
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
             for node in shadow_root.children() {
@@ -2825,7 +2833,6 @@ impl VirtualMethods for Element {
             }
         }
 
-        let doc = document_from_node(self);
         let fullscreen = doc.GetFullscreenElement();
         if fullscreen.deref() == Some(self) {
             doc.exit_fullscreen();
