@@ -21,6 +21,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
+use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 
 // https://dom.spec.whatwg.org/#interface-shadowroot
@@ -122,6 +123,7 @@ pub trait LayoutShadowRootHelpers {
     unsafe fn get_style_data_for_layout<'a, E: TElement>(
         &self,
     ) -> &'a AuthorStyles<StyleSheetInDocument>;
+    unsafe fn flush_stylesheets<E: TElement>(&self, guard: &SharedRwLockReadGuard);
 }
 
 impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
@@ -136,13 +138,15 @@ impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
     unsafe fn get_style_data_for_layout<'a, E: TElement>(
         &self,
     ) -> &'a AuthorStyles<StyleSheetInDocument> {
-        {
-            let mut author_styles = (*self.unsafe_get()).author_styles.borrow_mut_for_layout();
-            // let document = &(*self.unsafe_get()).document;
-            // let guard = document.style_shared_lock().read();
-            // author_styles.flush::<E>(&document.device(), document.quirks_mode(), &guard);
-        }
         (*self.unsafe_get()).author_styles.borrow_for_layout()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn flush_stylesheets<E: TElement>(&self, guard: &SharedRwLockReadGuard) {
+        let document = &(*self.unsafe_get()).document;
+        let mut author_styles = (*self.unsafe_get()).author_styles.borrow_mut_for_layout();
+        author_styles.flush::<E>(&document.device(), document.quirks_mode(), guard);
     }
 }
 
