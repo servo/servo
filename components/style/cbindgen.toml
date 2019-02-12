@@ -82,6 +82,7 @@ include = [
   "Size",
   "MaxSize",
   "FlexBasis",
+  "Position",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -90,6 +91,7 @@ item_types = ["enums", "structs", "typedefs"]
   // Defined in nsStyleCoord.h
   static constexpr inline StyleLengthPercentage Zero();
   static inline StyleLengthPercentage FromAppUnits(nscoord);
+  static inline StyleLengthPercentage FromPercentage(float);
   inline CSSCoord LengthInCSSPixels() const;
  private:
   inline nscoord LengthComponent() const;
@@ -103,8 +105,12 @@ item_types = ["enums", "structs", "typedefs"]
   inline float ToPercentage() const;
   inline CSSCoord ResolveToCSSPixels(CSSCoord aPercentageBasisInCSSPixels) const;
   template<typename T> inline CSSCoord ResolveToCSSPixelsWith(T aPercentageGetter) const;
+  template<typename T, typename U>
+  inline nscoord Resolve(T aPercentageGetter, U aPercentRoundingFunction) const;
+  template<typename T>
+  inline nscoord Resolve(nscoord aPercentageBasis, T aPercentRoundingFunction) const;
+  template<typename T> inline nscoord Resolve(T aPercentageGetter) const;
   inline nscoord Resolve(nscoord aPercentageBasis) const;
-  template<typename T> inline nscoord ResolveWith(T aPercentageGetter) const;
 """
 
 "GenericLengthPercentageOrAuto" = """
@@ -144,6 +150,11 @@ item_types = ["enums", "structs", "typedefs"]
   inline bool HasPercent() const;
   inline bool HasLengthAndPercentage() const;
   inline bool BehavesLikeInitialValueOnBlockAxis() const;
+"""
+
+"GenericPosition" = """
+  inline bool DependsOnPositioningAreaSize() const;
+  static inline StyleGenericPosition FromPercentage(float);
 """
 
 "Rect" = """

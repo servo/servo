@@ -453,22 +453,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_position(ident, gecko_ffi_name)">
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        ${set_gecko_property("%s.mXPosition" % gecko_ffi_name, "v.horizontal.into()")}
-        ${set_gecko_property("%s.mYPosition" % gecko_ffi_name, "v.vertical.into()")}
-    }
-    <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
-    #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        longhands::${ident}::computed_value::T {
-            horizontal: self.gecko.${gecko_ffi_name}.mXPosition.into(),
-            vertical: self.gecko.${gecko_ffi_name}.mYPosition.into(),
-        }
-    }
-</%def>
-
 <%def name="impl_color(ident, gecko_ffi_name)">
 <%call expr="impl_color_setter(ident, gecko_ffi_name)"></%call>
 <%call expr="impl_color_copy(ident, gecko_ffi_name)"></%call>
@@ -1401,7 +1385,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "OverflowWrap": impl_simple,
         "OverflowAnchor": impl_simple,
         "Perspective": impl_style_coord,
-        "Position": impl_position,
+        "Position": impl_simple,
         "RGBAColor": impl_rgba_color,
         "SVGLength": impl_svg_length,
         "SVGOpacity": impl_svg_opacity,
@@ -3095,11 +3079,7 @@ fn static_assert() {
         where I: IntoIterator<Item = longhands::scroll_snap_coordinate::computed_value::single_value::T>,
               I::IntoIter: ExactSizeIterator
     {
-        let iter = v.into_iter().map(|c| structs::mozilla::Position {
-            mXPosition: c.horizontal.into(),
-            mYPosition: c.vertical.into(),
-        });
-        self.gecko.mScrollSnapCoordinate.assign_from_iter_pod(iter);
+        self.gecko.mScrollSnapCoordinate.assign_from_iter_pod(v.into_iter());
     }
 
     pub fn copy_scroll_snap_coordinate_from(&mut self, other: &Self) {
@@ -3112,7 +3092,7 @@ fn static_assert() {
     }
 
     pub fn clone_scroll_snap_coordinate(&self) -> longhands::scroll_snap_coordinate::computed_value::T {
-        let vec = self.gecko.mScrollSnapCoordinate.iter().map(|f| f.into()).collect();
+        let vec = self.gecko.mScrollSnapCoordinate.iter().cloned().collect();
         longhands::scroll_snap_coordinate::computed_value::List(vec)
     }
 
@@ -3759,7 +3739,7 @@ fn static_assert() {
     <% impl_simple_image_array_property("clip", shorthand, image_layers_field, "mClip", struct_name) %>
     <% impl_simple_image_array_property("origin", shorthand, image_layers_field, "mOrigin", struct_name) %>
 
-    % for orientation in ["x", "y"]:
+    % for (orientation, keyword) in [("x", "horizontal"), ("y", "vertical")]:
     pub fn copy_${shorthand}_position_${orientation}_from(&mut self, other: &Self) {
         use crate::gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
@@ -3774,8 +3754,7 @@ fn static_assert() {
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                   .zip(other.gecko.${image_layers_field}.mLayers.iter())
                                   .take(count as usize) {
-            layer.mPosition.m${orientation.upper()}Position
-                = other.mPosition.m${orientation.upper()}Position;
+            layer.mPosition.${keyword} = other.mPosition.${keyword};
         }
         self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count = count;
     }
@@ -3789,7 +3768,7 @@ fn static_assert() {
         longhands::${shorthand}_position_${orientation}::computed_value::List(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count as usize)
-                .map(|position| position.mPosition.m${orientation.upper()}Position.into())
+                .map(|position| position.mPosition.${keyword})
                 .collect()
         )
     }
@@ -3812,7 +3791,7 @@ fn static_assert() {
         self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count = v.len() as u32;
         for (servo, geckolayer) in v.zip(self.gecko.${image_layers_field}
                                                            .mLayers.iter_mut()) {
-            geckolayer.mPosition.m${orientation[0].upper()}Position = servo.into();
+            geckolayer.mPosition.${keyword} = servo;
         }
     }
     % endfor
