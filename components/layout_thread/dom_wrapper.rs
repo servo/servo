@@ -85,7 +85,9 @@ use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{extended_filtering, PseudoElement, SelectorImpl};
 use style::selector_parser::{AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass};
-use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
+use style::shared_lock::{
+    Locked as StyleLocked, SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard,
+};
 use style::str::is_whitespace;
 use style::stylist::CascadeData;
 use style::CaseSensitivityExt;
@@ -213,6 +215,14 @@ impl<'sr> ServoShadowRoot<'sr> {
             shadow_root,
             chain: PhantomData,
         }
+    }
+
+    pub fn flush_stylesheets(&self, guard: &SharedRwLockReadGuard) {
+        unsafe {
+            &self
+                .shadow_root
+                .flush_stylesheets::<ServoLayoutElement>(guard)
+        };
     }
 }
 
