@@ -43,12 +43,12 @@ impl MediaDevicesMethods for MediaDevices {
         let media = ServoMedia::get().unwrap();
         let mut tracks = vec![];
         if constraints.audio {
-            if let Some(audio) = media.create_audioinput_stream() {
+            if let Some(audio) = media.create_audioinput_stream(Default::default()) {
                 tracks.push(audio)
             }
         }
         if constraints.video {
-            if let Some(video) = media.create_videoinput_stream() {
+            if let Some(video) = media.create_videoinput_stream(Default::default()) {
                 tracks.push(video)
             }
         }
