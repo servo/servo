@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
+use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, RootedReference};
 use crate::dom::bindings::str::DOMString;
@@ -707,27 +707,28 @@ impl RangeMethods for Range {
         }
         match start_node.type_id() {
             // Handled under step 2.
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => (),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => (),
             NodeTypeId::CharacterData(_) => return Err(Error::HierarchyRequest),
             _ => (),
         }
 
         // Step 2.
-        let (reference_node, parent) =
-            if start_node.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text) {
-                // Step 3.
-                let parent = match start_node.GetParentNode() {
-                    Some(parent) => parent,
-                    // Step 1.
-                    None => return Err(Error::HierarchyRequest),
-                };
-                // Step 5.
-                (Some(DomRoot::from_ref(&*start_node)), parent)
-            } else {
-                // Steps 4-5.
-                let child = start_node.ChildNodes().Item(start_offset);
-                (child, DomRoot::from_ref(&*start_node))
+        let (reference_node, parent) = if start_node.type_id() ==
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
+        {
+            // Step 3.
+            let parent = match start_node.GetParentNode() {
+                Some(parent) => parent,
+                // Step 1.
+                None => return Err(Error::HierarchyRequest),
             };
+            // Step 5.
+            (Some(DomRoot::from_ref(&*start_node)), parent)
+        } else {
+            // Steps 4-5.
+            let child = start_node.ChildNodes().Item(start_offset);
+            (child, DomRoot::from_ref(&*start_node))
+        };
 
         // Step 6.
         Node::ensure_pre_insertion_validity(node, &parent, reference_node.r())?;
@@ -953,7 +954,10 @@ impl RangeMethods for Range {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentElement(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) |
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+                node.GetParentElement()
+            },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::DocumentType => unreachable!(),
         };

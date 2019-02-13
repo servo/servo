@@ -35,6 +35,7 @@ use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
+use crate::dom::cdatasection::CDATASection;
 use crate::dom::closeevent::CloseEvent;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
@@ -3610,6 +3611,22 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-createtextnode
     fn CreateTextNode(&self, data: DOMString) -> DomRoot<Text> {
         Text::new(data, self)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-document-createcdatasection
+    fn CreateCDATASection(&self, data: DOMString) -> Fallible<DomRoot<CDATASection>> {
+        // Step 1
+        if self.is_html_document {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 2
+        if data.contains("]]>") {
+            return Err(Error::InvalidCharacter);
+        }
+
+        // Step 3
+        Ok(CDATASection::new(data, self))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createcomment

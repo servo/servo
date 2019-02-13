@@ -5,7 +5,7 @@
 #![allow(unrooted_must_root)]
 
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
+use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId, TextTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::characterdata::CharacterData;
@@ -232,7 +232,10 @@ impl<'a> Serialize for &'a Node {
                         serializer.write_doctype(&doctype.name())?;
                     },
 
-                    NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                    NodeTypeId::CharacterData(CharacterDataTypeId::Text(
+                        TextTypeId::CDATASection,
+                    )) |
+                    NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
                         let cdata = n.downcast::<CharacterData>().unwrap();
                         serializer.write_text(&cdata.data())?;
                     },
