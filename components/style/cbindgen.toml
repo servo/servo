@@ -83,6 +83,7 @@ include = [
   "MaxSize",
   "FlexBasis",
   "Position",
+  "BackgroundSize",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -155,6 +156,10 @@ item_types = ["enums", "structs", "typedefs"]
 "GenericPosition" = """
   inline bool DependsOnPositioningAreaSize() const;
   static inline StyleGenericPosition FromPercentage(float);
+"""
+
+"GenericBackgroundSize" = """
+  bool IsInitialValue() const;
 """
 
 "Rect" = """
