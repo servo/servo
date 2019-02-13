@@ -11,6 +11,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::node::{shadow_root_from_node, Node};
 use crate::dom::window::Window;
 use cssparser::ToCss;
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput};
@@ -118,12 +119,18 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             let mut guard = self.cssrule.shared_lock().write();
             let stylerule = self.stylerule.write_with(&mut guard);
             mem::swap(&mut stylerule.selectors, &mut s);
-            // It seems like we will want to avoid having to invalidate all
-            // stylesheets eventually!
-            self.global()
-                .as_window()
-                .Document()
-                .invalidate_stylesheets();
+            if let Some(shadow_root) =
+                shadow_root_from_node(self.cssrule.parent_stylesheet().owner().upcast::<Node>())
+            {
+                shadow_root.invalidate_stylesheets();
+            } else {
+                // It seems like we will want to avoid having to invalidate all
+                // stylesheets eventually!
+                self.global()
+                    .as_window()
+                    .Document()
+                    .invalidate_stylesheets();
+            }
         }
     }
 }

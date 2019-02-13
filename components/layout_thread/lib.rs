@@ -103,7 +103,7 @@ use std::time::Duration;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
-use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
+use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
@@ -1337,6 +1337,17 @@ impl LayoutThread {
             if let Some(mut flow) = self.try_get_layout_root(element.as_node()) {
                 LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
             }
+        }
+
+        debug!(
+            "Shadow roots in document {:?}",
+            document.shadow_roots().len()
+        );
+
+        let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
+        // Flush shadow roots stylesheets if dirty.
+        for shadow_root in document.shadow_roots() {
+            shadow_root.flush_stylesheets(&device, document.quirks_mode(), guards.author.clone());
         }
 
         let restyles = document.drain_pending_restyles();
