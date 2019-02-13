@@ -26,22 +26,12 @@ impl Parse for BackgroundSize {
             let height = input
                 .try(|i| NonNegativeLengthPercentageOrAuto::parse(context, i))
                 .unwrap_or(NonNegativeLengthPercentageOrAuto::auto());
-            return Ok(GenericBackgroundSize::Explicit { width, height });
+            return Ok(GenericBackgroundSize::ExplicitSize { width, height });
         }
         Ok(try_match_ident_ignore_ascii_case! { input,
             "cover" => GenericBackgroundSize::Cover,
             "contain" => GenericBackgroundSize::Contain,
         })
-    }
-}
-
-impl BackgroundSize {
-    /// Returns `auto auto`.
-    pub fn auto() -> Self {
-        GenericBackgroundSize::Explicit {
-            width: NonNegativeLengthPercentageOrAuto::auto(),
-            height: NonNegativeLengthPercentageOrAuto::auto(),
-        }
     }
 }
 

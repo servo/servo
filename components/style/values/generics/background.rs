@@ -4,7 +4,7 @@
 
 //! Generic types for CSS values related to backgrounds.
 
-use crate::values::generics::length::LengthPercentageOrAuto;
+use crate::values::generics::length::{LengthPercentageOrAuto, GenericLengthPercentageOrAuto};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -22,13 +22,14 @@ use style_traits::{CssWriter, ToCss};
     ToAnimatedZero,
     ToComputedValue,
 )]
-pub enum BackgroundSize<LengthPercentage> {
+#[repr(C, u8)]
+pub enum GenericBackgroundSize<LengthPercent> {
     /// `<width> <height>`
-    Explicit {
+    ExplicitSize {
         /// Explicit width.
-        width: LengthPercentageOrAuto<LengthPercentage>,
+        width: GenericLengthPercentageOrAuto<LengthPercent>,
         /// Explicit height.
-        height: LengthPercentageOrAuto<LengthPercentage>,
+        height: GenericLengthPercentageOrAuto<LengthPercent>,
     },
     /// `cover`
     #[animation(error)]
@@ -37,6 +38,8 @@ pub enum BackgroundSize<LengthPercentage> {
     #[animation(error)]
     Contain,
 }
+
+pub use self::GenericBackgroundSize as BackgroundSize;
 
 impl<LengthPercentage> ToCss for BackgroundSize<LengthPercentage>
 where
@@ -47,7 +50,7 @@ where
         W: Write,
     {
         match self {
-            BackgroundSize::Explicit { width, height } => {
+            BackgroundSize::ExplicitSize { width, height } => {
                 width.to_css(dest)?;
                 // NOTE(emilio): We should probably simplify all these in case
                 // `width == `height`, but all other browsers agree on only
@@ -60,6 +63,16 @@ where
             },
             BackgroundSize::Cover => dest.write_str("cover"),
             BackgroundSize::Contain => dest.write_str("contain"),
+        }
+    }
+}
+
+impl<LengthPercentage> BackgroundSize<LengthPercentage> {
+    /// Returns `auto auto`.
+    pub fn auto() -> Self {
+        GenericBackgroundSize::ExplicitSize {
+            width: LengthPercentageOrAuto::Auto,
+            height: LengthPercentageOrAuto::Auto,
         }
     }
 }
