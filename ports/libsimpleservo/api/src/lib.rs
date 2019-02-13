@@ -18,6 +18,7 @@ use servo::script_traits::{MouseButton, TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::prefs::{PrefValue, PREFS};
 use servo::servo_url::ServoUrl;
+use servo::webvr::{VRExternalShmemPtr, VRServiceManager};
 use servo::{self, gl, webrender_api, BrowserId, Servo};
 use std::cell::{Cell, RefCell};
 use std::mem;
@@ -535,8 +536,10 @@ impl WindowMethods for ServoCallbacks {
         }
     }
 
-    fn get_vrexternal_pointer(&self) -> Option<*mut c_void> {
-        self.vr_pointer.clone()
+    fn register_vr_services(&self, services: &mut VRServiceManager) {
+        if let Some(ptr) = self.vr_pointer {
+            services.register_vrexternal(VRExternalShmemPtr::new(ptr));
+        }
     }
 }
 
