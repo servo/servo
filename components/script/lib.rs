@@ -84,7 +84,7 @@ mod webdriver_handlers;
 /// TODO(emilio): A few of the FooHelpers can go away, presumably...
 pub mod layout_exports {
     pub use crate::dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
-    pub use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
+    pub use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId, TextTypeId};
     pub use crate::dom::bindings::root::LayoutDom;
     pub use crate::dom::characterdata::LayoutCharacterDataHelpers;
     pub use crate::dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};

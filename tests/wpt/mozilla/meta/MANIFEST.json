@@ -13281,7 +13281,7 @@
    ],
    "mozilla/interfaces.html": [
     [
-     "/_mozilla/mozilla/interfaces.html",
+     "mozilla/interfaces.html",
      {}
     ]
    ],
@@ -20239,7 +20239,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "ab4ead5cfb5afc8b65cb71841e32ee46ec75318b",
+   "f8d8ab879f84bf03f89b12d5d010c83c1025265a",
    "testharness"
   ],
   "mozilla/interfaces.js": [

@@ -245,6 +245,7 @@ pub mod bluetoothuuid;
 pub mod canvasgradient;
 pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;
+pub mod cdatasection;
 pub mod channelmergernode;
 pub mod channelsplitternode;
 pub mod characterdata;

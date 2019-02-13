@@ -24,7 +24,7 @@ pub struct Text {
 }
 
 impl Text {
-    fn new_inherited(text: DOMString, document: &Document) -> Text {
+    pub fn new_inherited(text: DOMString, document: &Document) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(text, document),
         }
