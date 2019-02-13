@@ -752,7 +752,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             for memberType in type.unroll().flatMemberTypes
             if memberType.isDictionary()
         ]
-        if dictionaries:
+        if defaultValue and not isinstance(defaultValue, IDLNullValue):
+            tag = defaultValue.type.tag()
+            if tag is IDLType.Tags.bool:
+                default = "%s::Boolean(%s)" % (
+                    union_native_type(type),
+                    "true" if defaultValue.value else "false")
+            else:
+                raise("We don't currently support default values that aren't null or boolean")
+        elif dictionaries:
             if defaultValue:
                 assert isinstance(defaultValue, IDLNullValue)
                 dictionary, = dictionaries
