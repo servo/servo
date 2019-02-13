@@ -2440,6 +2440,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
+    unsafe fn shadow_roots(&self) -> Vec<LayoutDom<ShadowRoot>>;
 }
 
 #[allow(unsafe_code)]
@@ -2483,6 +2484,16 @@ impl LayoutDocumentHelpers for LayoutDom<Document> {
     #[inline]
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock {
         (*self.unsafe_get()).style_shared_lock()
+    }
+
+    #[inline]
+    unsafe fn shadow_roots(&self) -> Vec<LayoutDom<ShadowRoot>> {
+        (*self.unsafe_get())
+            .shadow_roots
+            .borrow_for_layout()
+            .iter()
+            .map(|sr| sr.to_layout())
+            .collect()
     }
 }
 

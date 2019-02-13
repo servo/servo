@@ -14,13 +14,15 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeFlags};
+use crate::dom::node::{Node, NodeDamage, NodeFlags};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use selectors::context::QuirksMode;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
+use style::media_queries::Device;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 
@@ -66,6 +68,14 @@ impl ShadowRoot {
     pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {
         //XXX get retargeted focused element
         None
+    }
+
+    pub fn invalidate_stylesheets(&self) {
+        self.author_styles.borrow_mut().stylesheets.force_dirty();
+        // Mark the host element dirty so a reflow will be performed.
+        self.host
+            .upcast::<Node>()
+            .dirty(NodeDamage::NodeStyleDamaged);
     }
 }
 
@@ -123,7 +133,12 @@ pub trait LayoutShadowRootHelpers {
     unsafe fn get_style_data_for_layout<'a, E: TElement>(
         &self,
     ) -> &'a AuthorStyles<StyleSheetInDocument>;
-    unsafe fn flush_stylesheets<E: TElement>(&self, guard: &SharedRwLockReadGuard);
+    unsafe fn flush_stylesheets<E: TElement>(
+        &self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        guard: &SharedRwLockReadGuard,
+    );
 }
 
 impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
@@ -143,10 +158,16 @@ impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn flush_stylesheets<E: TElement>(&self, guard: &SharedRwLockReadGuard) {
-        let document = &(*self.unsafe_get()).document;
+    unsafe fn flush_stylesheets<E: TElement>(
+        &self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        guard: &SharedRwLockReadGuard,
+    ) {
         let mut author_styles = (*self.unsafe_get()).author_styles.borrow_mut_for_layout();
-        author_styles.flush::<E>(&document.device(), document.quirks_mode(), guard);
+        if author_styles.stylesheets.dirty() {
+            author_styles.flush::<E>(device, quirks_mode, guard);
+        }
     }
 }
 
