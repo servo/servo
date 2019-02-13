@@ -29,15 +29,15 @@ dictionary MediaStreamConstraints {
         // (boolean or MediaTrackConstraints) audio = false;
 };
 
-// dictionary DoubleRange {
-//              double max;
-//              double min;
-// };
+dictionary DoubleRange {
+             double max;
+             double min;
+};
 
-// dictionary ConstrainDoubleRange : DoubleRange {
-//              double exact;
-//              double ideal;
-// };
+dictionary ConstrainDoubleRange : DoubleRange {
+             double exact;
+             double ideal;
+};
 
 dictionary ULongRange {
              [Clamp] unsigned long max;
@@ -64,19 +64,19 @@ dictionary MediaTrackConstraints : MediaTrackConstraintSet {
 };
 
 typedef ([Clamp] unsigned long or ConstrainULongRange) ConstrainULong;
-// typedef (double or ConstrainDoubleRange) ConstrainDouble;
+typedef (double or ConstrainDoubleRange) ConstrainDouble;
 // typedef (boolean or ConstrainBooleanParameters) ConstrainBoolean;
 // typedef (DOMString or sequence<DOMString> or ConstrainDOMStringParameters) ConstrainDOMString;
 
 dictionary MediaTrackConstraintSet {
              ConstrainULong width;
              ConstrainULong height;
-             // ConstrainDouble aspectRatio;
-             // ConstrainDouble frameRate;
+             ConstrainDouble aspectRatio;
+             ConstrainDouble frameRate;
              // ConstrainDOMString facingMode;
              // ConstrainDOMString resizeMode;
              // ConstrainDouble volume;
-             // ConstrainULong sampleRate;
+             ConstrainULong sampleRate;
              // ConstrainULong sampleSize;
              // ConstrainBoolean echoCancellation;
              // ConstrainBoolean autoGainControl;

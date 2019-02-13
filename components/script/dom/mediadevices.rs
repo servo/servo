@@ -6,6 +6,7 @@ use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::MediaStreamCon
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::{self, MediaDevicesMethods};
 use crate::dom::bindings::codegen::UnionTypes::BooleanOrMediaTrackConstraints;
 use crate::dom::bindings::codegen::UnionTypes::ClampedUnsignedLongOrConstrainULongRange as ConstrainULong;
+use crate::dom::bindings::codegen::UnionTypes::DoubleOrConstrainDoubleRange as ConstrainDouble;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -69,7 +70,9 @@ fn convert_constraints(js: &BooleanOrMediaTrackConstraints) -> Option<MediaTrack
             Some(MediaTrackConstraintSet {
                 height: convert_culong(&c.parent.height),
                 width: convert_culong(&c.parent.width),
-                ..Default::default()
+                aspect: convert_cdouble(&c.parent.aspectRatio),
+                frame_rate: convert_cdouble(&c.parent.frameRate),
+                sample_rate: convert_culong(&c.parent.sampleRate),
             })
         },
     }
@@ -87,6 +90,26 @@ fn convert_culong(js: &ConstrainULong) -> Option<Constrain<u32>> {
                 }))
             } else if let Some(exact) = range.exact {
                 Some(Constrain::Value(exact))
+            } else {
+                // the unspecified case is treated as all three being none
+                None
+            }
+        },
+    }
+}
+
+fn convert_cdouble(js: &ConstrainDouble) -> Option<Constrain<f64>> {
+    match js {
+        ConstrainDouble::Double(val) => Some(Constrain::Value(**val)),
+        ConstrainDouble::ConstrainDoubleRange(ref range) => {
+            if range.parent.min.is_some() || range.parent.max.is_some() {
+                Some(Constrain::Range(ConstrainRange {
+                    min: range.parent.min.map(|x| *x),
+                    max: range.parent.max.map(|x| *x),
+                    ideal: range.ideal.map(|x| *x),
+                }))
+            } else if let Some(exact) = range.exact {
+                Some(Constrain::Value(*exact))
             } else {
                 // the unspecified case is treated as all three being none
                 None
