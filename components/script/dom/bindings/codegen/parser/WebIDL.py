@@ -2049,7 +2049,8 @@ class IDLType(IDLObject):
         self._extendedAttrDict = {}
 
     def __eq__(self, other):
-        return other and self.builtin == other.builtin and self.name == other.name
+        return (other and self.builtin == other.builtin and self.name == other.name and
+                          self.clamp == other.clamp and self.enforceRange == other.enforceRange)
 
     def __ne__(self, other):
         return not self == other
@@ -2175,30 +2176,11 @@ class IDLType(IDLObject):
         assert self.tag() == IDLType.Tags.callback
         return self.nullable() and self.inner.callback._treatNonObjectAsNull
 
-    def addExtendedAttributes(self, attrs):
-        for attribute in attrs:
-            identifier = attribute.identifier()
-            if identifier == "Clamp":
-                if not attribute.noArguments():
-                    raise WebIDLError("[Clamp] must take no arguments",
-                                      [attribute.location])
-                if self.enforceRange:
-                    raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
-                                      [self.location])
-                self.clamp = True
-            elif identifier == "EnforceRange":
-                if not attribute.noArguments():
-                    raise WebIDLError("[EnforceRange] must take no arguments",
-                                      [attribute.location])
-                if self.clamp:
-                    raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
-                                      [self.location])
-                self.enforceRange = True
-            else:
-                raise WebIDLError("Unhandled extended attribute on type",
-                                  [attribute.location])
-            attrlist = attribute.listValue()
-            self._extendedAttrDict[identifier] = attrlist if len(attrlist) else True
+    def withExtendedAttributes(self, attrs):
+        if len(attrs) > 0:
+            raise WebIDLError("Extended attributes on types only supported for builtins",
+                              [attrs[0].location, self.location])
+        return self
 
     def getExtendedAttribute(self, name):
         return self._extendedAttrDict.get(name, None)
@@ -3085,10 +3067,22 @@ class IDLBuiltinType(IDLType):
         Types.ReadableStream: IDLType.Tags.interface,
     }
 
-    def __init__(self, location, name, type):
+    def __init__(self, location, name, type, clamp=False, enforceRange=False):
         IDLType.__init__(self, location, name)
         self.builtin = True
         self._typeTag = type
+        if not clamp and not enforceRange:
+            self.clamped = IDLBuiltinType(location, name, type, clamp=True)
+            self.rangeEnforced = IDLBuiltinType(location, name, type, enforceRange=True)
+        elif clamp:
+            self.clamp = True
+            self.name = "Clamped" + self.name
+            self._extendedAttrDict["Clamp"] = True
+        elif enforceRange:
+            self.enforceRange = True
+            self.name = "RangeEnforced" + self.name
+            self._extendedAttrDict["EnforceRange"] = True
+
 
     def isPrimitive(self):
         return self._typeTag <= IDLBuiltinType.Types.double
@@ -3223,6 +3217,31 @@ class IDLBuiltinType(IDLType):
 
     def _getDependentObjects(self):
         return set()
+
+    def withExtendedAttributes(self, attrs):
+        ret = self
+        for attribute in attrs:
+            identifier = attribute.identifier()
+            if identifier == "Clamp":
+                if not attribute.noArguments():
+                    raise WebIDLError("[Clamp] must take no arguments",
+                                      [attribute.location])
+                if self.enforceRange:
+                    raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
+                                      [self.location])
+                ret = self.clamped
+            elif identifier == "EnforceRange":
+                if not attribute.noArguments():
+                    raise WebIDLError("[EnforceRange] must take no arguments",
+                                      [attribute.location])
+                if self.clamp:
+                    raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
+                                      [self.location])
+                ret = self.rangeEnforced
+            else:
+                raise WebIDLError("Unhandled extended attribute on type",
+                                  [attribute.location])
+        return ret
 
 BuiltinTypes = {
     IDLBuiltinType.Types.byte:
@@ -6518,15 +6537,13 @@ class Parser(Tokenizer):
         """
             TypeWithExtendedAttributes : ExtendedAttributeList SingleType
         """
-        p[0] = p[2]
-        p[0].addExtendedAttributes(p[1])
+        p[0] = p[2].withExtendedAttributes(p[1])
 
     def p_TypeWithExtendedAttributesUnionType(self, p):
         """
             TypeWithExtendedAttributes : ExtendedAttributeList UnionType Null
         """
-        p[0] = self.handleNullable(p[2], p[3])
-        p[0].addExtendedAttributes(p[1])
+        p[0] = self.handleNullable(p[2], p[3]).withExtendedAttributes(p[1])
 
     def p_SingleTypeNonAnyType(self, p):
         """
@@ -6552,8 +6569,7 @@ class Parser(Tokenizer):
         """
             UnionMemberType : ExtendedAttributeList NonAnyType
         """
-        p[0] = p[2]
-        p[2].addExtendedAttributes(p[1])
+        p[0] = p[2].withExtendedAttributes(p[1])
 
     def p_UnionMemberType(self, p):
         """
