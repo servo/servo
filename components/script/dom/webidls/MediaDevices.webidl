@@ -23,10 +23,8 @@ partial interface MediaDevices {
 
 
 dictionary MediaStreamConstraints {
-        (boolean or MediaTrackConstraints) video;
-        // (boolean or MediaTrackConstraints) video = false;
-        (boolean or MediaTrackConstraints) audio;
-        // (boolean or MediaTrackConstraints) audio = false;
+        (boolean or MediaTrackConstraints) video = false;
+        (boolean or MediaTrackConstraints) audio = false;
 };
 
 dictionary DoubleRange {
