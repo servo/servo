@@ -18,7 +18,7 @@ See: https://html.spec.whatwg.org/#the-list-of-available-images
 
 async_test(t => {
   window.onload = t.step_func(() => {
-    step_timeout(() => {
+    t.step_timeout(() => {
       assert_equals(document.getElementById("firstimage").width, 16, "Width is 16");
       var childDocument = document.getElementById('child').contentDocument;
       var img2 = childDocument.createElement("img");

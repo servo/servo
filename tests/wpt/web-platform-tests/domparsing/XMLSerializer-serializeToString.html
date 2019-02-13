@@ -56,6 +56,22 @@ test(function() {
 }, 'check XMLSerializer.serializeToString escapes attribute values for roundtripping');
 
 test(function() {
+  const root = (new Document()).createElement('root');
+  root.setAttributeNS('uri1', 'p:foobar', 'value1');
+  root.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:p', 'uri2');
+  const xmlString = (new XMLSerializer()).serializeToString(root);
+  assert_equals(xmlString, '<root xmlns:ns1="uri1" ns1:foobar="value1" xmlns:p="uri2"/>');
+}, 'Check if attribute serialization takes into account of following xmlns:* attributes');
+
+test(function() {
+  const input = '<root xmlns:p="uri1"><child/></root>';
+  const root = (new DOMParser()).parseFromString(input, 'text/xml').documentElement;
+  root.firstChild.setAttributeNS('uri2', 'p:foobar', 'v');
+  const xmlString = (new XMLSerializer()).serializeToString(root);
+  assert_equals(xmlString, '<root xmlns:p="uri1"><child xmlns:ns1="uri2" ns1:foobar="v"/></root>');
+}, 'Check if attribute serialization takes into account of the same prefix declared in an ancestor element');
+
+test(function() {
   const input = '<root><child1/><child2/></root>';
   const root = (new DOMParser()).parseFromString(input, 'text/xml').documentElement;
   root.firstChild.setAttributeNS('uri1', 'attr1', 'value1');
