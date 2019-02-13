@@ -2379,6 +2379,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::conversions::root_from_handlevalue',
         'std::ptr::NonNull',
         'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::str::ByteString',
         'crate::dom::bindings::str::DOMString',
