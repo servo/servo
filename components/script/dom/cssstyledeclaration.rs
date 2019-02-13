@@ -13,7 +13,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
-use crate::dom::node::{document_from_node, window_from_node, Node};
+use crate::dom::node::{document_from_node, shadow_root_from_node, window_from_node, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
@@ -115,10 +115,16 @@ impl CSSStyleOwner {
                 if changed {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
-                    rule.global()
-                        .as_window()
-                        .Document()
-                        .invalidate_stylesheets();
+                    if let Some(shadow_root) =
+                        shadow_root_from_node(rule.parent_stylesheet().owner().upcast::<Node>())
+                    {
+                        shadow_root.invalidate_stylesheets();
+                    } else {
+                        rule.global()
+                            .as_window()
+                            .Document()
+                            .invalidate_stylesheets();
+                    }
                 }
                 result
             },

@@ -83,6 +83,7 @@ use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
 use style::dom::{TDocument, TElement, TNode, TShadowRoot};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
+use style::media_queries::Device;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{extended_filtering, PseudoElement, SelectorImpl};
 use style::selector_parser::{AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass};
@@ -219,11 +220,16 @@ impl<'sr> ServoShadowRoot<'sr> {
         }
     }
 
-    pub fn flush_stylesheets(&self, guard: &SharedRwLockReadGuard) {
+    pub fn flush_stylesheets(
+        &self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        guard: &SharedRwLockReadGuard,
+    ) {
         unsafe {
             &self
                 .shadow_root
-                .flush_stylesheets::<ServoLayoutElement>(guard)
+                .flush_stylesheets::<ServoLayoutElement>(device, quirks_mode, guard)
         };
     }
 }
@@ -423,6 +429,16 @@ impl<'ld> ServoLayoutDocument<'ld> {
 
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         unsafe { self.document.style_shared_lock() }
+    }
+
+    pub fn shadow_roots(&self) -> Vec<ServoShadowRoot> {
+        unsafe {
+            self.document
+                .shadow_roots()
+                .iter()
+                .map(|sr| ServoShadowRoot::from_layout_js(*sr))
+                .collect()
+        }
     }
 
     pub fn from_layout_js(doc: LayoutDom<Document>) -> ServoLayoutDocument<'ld> {
