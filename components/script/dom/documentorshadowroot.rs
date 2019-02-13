@@ -253,14 +253,6 @@ impl DocumentOrShadowRoot {
             "Wat"
         );
 
-        self.window
-            .layout_chan()
-            .send(Msg::AddStylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-            ))
-            .unwrap();
-
         let sheet = StyleSheetInDocument {
             sheet,
             owner: Dom::from_ref(owner),

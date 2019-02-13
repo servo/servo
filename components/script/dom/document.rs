@@ -4600,6 +4600,15 @@ impl StyleSheetListOwner for Dom<Document> {
                     .is_before(sheet_in_doc.owner.upcast())
             })
             .cloned();
+
+        self.window
+            .layout_chan()
+            .send(Msg::AddStylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+            ))
+            .unwrap();
+
         self.document_or_shadow_root.add_stylesheet(
             owner,
             stylesheets,
