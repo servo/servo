@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::VRExternalShmemPtr;
 use canvas_traits::webgl;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use euclid::Size2D;
@@ -53,13 +52,8 @@ impl WebVRThread {
         sender: IpcSender<WebVRMsg>,
         constellation_chan: Sender<ConstellationMsg>,
         vr_compositor_chan: WebVRCompositorSender,
-        webvr_shmem: Option<VRExternalShmemPtr>,
+        service: VRServiceManager,
     ) -> WebVRThread {
-        let mut service = VRServiceManager::new();
-        service.register_defaults();
-        if let Some(ptr) = webvr_shmem {
-            service.register_vrexternal(ptr);
-        }
         WebVRThread {
             receiver: receiver,
             sender: sender,
@@ -74,7 +68,7 @@ impl WebVRThread {
 
     pub fn spawn(
         vr_compositor_chan: WebVRCompositorSender,
-        webvr_shmem: Option<VRExternalShmemPtr>,
+        service: VRServiceManager,
     ) -> (IpcSender<WebVRMsg>, Sender<Sender<ConstellationMsg>>) {
         let (sender, receiver) = ipc::channel().unwrap();
         let (constellation_sender, constellation_receiver) = unbounded();
@@ -88,7 +82,7 @@ impl WebVRThread {
                     sender_clone,
                     constellation_chan,
                     vr_compositor_chan,
-                    webvr_shmem,
+                    service,
                 )
                 .start();
             })

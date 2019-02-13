@@ -14,11 +14,11 @@ use script_traits::{MouseButton, TouchEventType, TouchId};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
-use std::os::raw::c_void;
 #[cfg(feature = "gl")]
 use std::rc::Rc;
 use style_traits::DevicePixel;
 use webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, ScrollLocation};
+use webvr::VRServiceManager;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -146,11 +146,8 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
-    /// Provide a c_void pointer to a VRExternal shared memory.
-    /// See: https://github.com/servo/rust-webvr/tree/master/rust-webvr/src/api/vrexternal
-    fn get_vrexternal_pointer(&self) -> Option<*mut c_void> {
-        None
-    }
+    /// Register services with a VRServiceManager.
+    fn register_vr_services(&self, _: &mut VRServiceManager) {}
 }
 
 #[derive(Clone, Copy, Debug)]
