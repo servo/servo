@@ -1,5 +1,3 @@
-#!/bin/bash
-
 hosts_fixup() {
     echo "travis_fold:start:hosts_fixup"
     echo "Rewriting hosts file"

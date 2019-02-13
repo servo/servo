@@ -3,6 +3,10 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: WebXR Device API (https://immersive-web.github.io/webxr/)
 
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute XR xr;
+};
+
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   // Methods
   Promise<void> supportsSessionMode(XRSessionMode mode);
@@ -10,11 +14,6 @@
 
   // Events
   attribute EventHandler ondevicechange;
-};
-
-[SecureContext]
-partial interface Navigator {
-  [SameObject] readonly attribute XR xr;
 };
 
 enum XREnvironmentBlendMode {
