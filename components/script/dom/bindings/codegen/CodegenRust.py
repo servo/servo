@@ -631,6 +631,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # We should not have a defaultValue if we know we're an object
     assert not isDefinitelyObject or defaultValue is None
 
+    isClamp = isClamp or type.clamp
+    isEnforceRange = isEnforceRange or type.enforceRange
+
     # If exceptionCode is not set, we'll just rethrow the exception we got.
     # Note that we can't just set failureCode to exceptionCode, because setting
     # failureCode will prevent pending exceptions from being set in cases when
