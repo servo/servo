@@ -8,6 +8,7 @@ use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use crate::values::computed::ExtremumLength;
 use cssparser::Parser;
+use num_traits::Zero;
 use style_traits::ParseError;
 
 /// A `<length-percentage> | auto` value.
@@ -153,5 +154,55 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
     #[inline]
     pub fn none() -> Self {
         MaxSize::None
+    }
+}
+
+/// A generic `<length>` | `<number>` value for the `-moz-tab-size` property.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(C, u8)]
+pub enum GenericLengthOrNumber<L, N> {
+    /// A length.
+    Length(L),
+    /// A number.
+    Number(N),
+}
+
+pub use self::GenericLengthOrNumber as LengthOrNumber;
+
+impl<L: Parse, N: Parse> Parse for LengthOrNumber<L, N> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(number) = input.try(|i| N::parse(context, i)) {
+            // Numbers need to be parsed first because `0` must be recognised
+            // as the number `0` and not the length `0px`.
+            return Ok(LengthOrNumber::Number(number));
+        }
+
+        Ok(LengthOrNumber::Length(L::parse(context, input)?))
+    }
+}
+
+impl<L, N> LengthOrNumber<L, N> {
+    /// Returns `0`.
+    pub fn zero() -> Self
+    where
+        N: Zero,
+    {
+        LengthOrNumber::Number(num_traits::Zero::zero())
     }
 }

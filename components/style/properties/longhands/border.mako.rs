@@ -119,10 +119,9 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "border-image-outset",
-    "LengthOrNumberRect",
-    parse_method="parse_non_negative",
-    initial_value="computed::LengthOrNumberRect::all(computed::LengthOrNumber::zero())",
-    initial_specified_value="specified::LengthOrNumberRect::all(specified::LengthOrNumber::zero())",
+    "NonNegativeLengthOrNumberRect",
+    initial_value="generics::rect::Rect::all(computed::NonNegativeLengthOrNumber::zero())",
+    initial_specified_value="generics::rect::Rect::all(specified::NonNegativeLengthOrNumber::zero())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",

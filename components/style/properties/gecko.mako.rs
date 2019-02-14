@@ -61,7 +61,6 @@ use crate::values::computed::font::FontSize;
 use crate::values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use crate::values::generics::column::ColumnCount;
 use crate::values::generics::position::ZIndex;
-use crate::values::generics::text::MozTabSize;
 use crate::values::generics::transform::TransformStyle;
 use crate::values::generics::url::UrlOrNone;
 
@@ -1371,6 +1370,9 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "MozScriptMinSize": impl_absolute_length,
         "MozScriptSizeMultiplier": impl_simple,
         "NonNegativeLengthPercentage": impl_simple,
+        "NonNegativeLengthOrNumber": impl_simple,
+        "NonNegativeLengthOrNumberRect": impl_simple,
+        "BorderImageSlice": impl_simple,
         "NonNegativeNumber": impl_simple,
         "Number": impl_simple,
         "Opacity": impl_simple,
@@ -1476,8 +1478,8 @@ fn static_assert() {
                                      for x in CORNERS]) %>
 
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="${skip_border_longhands} border-image-source border-image-outset
-                                  border-image-repeat border-image-width border-image-slice">
+                  skip_longhands="${skip_border_longhands} border-image-source
+                                  border-image-repeat border-image-width">
     % for side in SIDES:
     pub fn set_border_${side.ident}_style(&mut self, v: BorderStyle) {
         self.gecko.mBorderStyle[${side.index}] = v;
@@ -1578,8 +1580,6 @@ fn static_assert() {
         }
     }
 
-    <% impl_style_sides("border_image_outset") %>
-
     <%
     border_image_repeat_keywords = ["Stretch", "Repeat", "Round", "Space"]
     %>
@@ -1621,36 +1621,6 @@ fn static_assert() {
     }
 
     <% impl_style_sides("border_image_width") %>
-
-    pub fn set_border_image_slice(&mut self, v: longhands::border_image_slice::computed_value::T) {
-        use crate::gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_SLICE_NOFILL, NS_STYLE_BORDER_IMAGE_SLICE_FILL};
-
-        v.offsets.to_gecko_rect(&mut self.gecko.mBorderImageSlice);
-
-        let fill = if v.fill {
-            NS_STYLE_BORDER_IMAGE_SLICE_FILL
-        } else {
-            NS_STYLE_BORDER_IMAGE_SLICE_NOFILL
-        };
-        self.gecko.mBorderImageFill = fill as u8;
-    }
-
-    <%self:copy_sides_style_coord ident="border_image_slice">
-        self.gecko.mBorderImageFill = other.gecko.mBorderImageFill;
-    </%self:copy_sides_style_coord>
-
-    pub fn clone_border_image_slice(&self) -> longhands::border_image_slice::computed_value::T {
-        use crate::gecko_bindings::structs::NS_STYLE_BORDER_IMAGE_SLICE_FILL;
-        use crate::values::computed::{BorderImageSlice, NonNegativeNumberOrPercentage};
-        type NumberOrPercentageRect = crate::values::generics::rect::Rect<NonNegativeNumberOrPercentage>;
-
-        BorderImageSlice {
-            offsets:
-                NumberOrPercentageRect::from_gecko_rect(&self.gecko.mBorderImageSlice)
-                    .expect("mBorderImageSlice[${side}] could not convert to NumberOrPercentageRect"),
-            fill: self.gecko.mBorderImageFill as u32 == NS_STYLE_BORDER_IMAGE_SLICE_FILL
-        }
-    }
 </%self:impl_trait>
 
 <% skip_scroll_margin_longhands = " ".join(["scroll-margin-%s" % x.ident for x in SIDES]) %>
@@ -4377,7 +4347,7 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
-                                  -webkit-text-stroke-width text-emphasis-position -moz-tab-size">
+                                  -webkit-text-stroke-width text-emphasis-position">
 
     <% text_align_keyword = Keyword("text-align",
                                     "start end left right center justify -moz-center -moz-left -moz-right char",
@@ -4566,28 +4536,6 @@ fn static_assert() {
     ${impl_non_negative_length('_webkit_text_stroke_width',
                                'mWebkitTextStrokeWidth')}
 
-    #[allow(non_snake_case)]
-    pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
-        match v {
-            MozTabSize::Number(non_negative_number) => {
-                self.gecko.mTabSize.set_value(CoordDataValue::Factor(non_negative_number.0));
-            }
-            MozTabSize::Length(non_negative_length) => {
-                self.gecko.mTabSize.set(non_negative_length);
-            }
-        }
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone__moz_tab_size(&self) -> longhands::_moz_tab_size::computed_value::T {
-        match self.gecko.mTabSize.as_value() {
-            CoordDataValue::Coord(coord) => MozTabSize::Length(Au(coord).into()),
-            CoordDataValue::Factor(number) => MozTabSize::Number(From::from(number)),
-            _ => unreachable!(),
-        }
-    }
-
-    <%call expr="impl_coord_copy('_moz_tab_size', 'mTabSize')"></%call>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"

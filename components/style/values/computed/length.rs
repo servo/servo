@@ -6,9 +6,10 @@
 
 use super::{Context, Number, Percentage, ToComputedValue};
 use crate::values::animated::ToAnimatedValue;
+use crate::values::computed::NonNegativeNumber;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::length as generics;
-use crate::values::generics::length::{MaxSize as GenericMaxSize, Size as GenericSize};
+use crate::values::generics::length::{MaxSize as GenericMaxSize, Size as GenericSize, GenericLengthOrNumber};
 use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;
@@ -678,6 +679,15 @@ impl ToCss for CSSPixelLength {
     }
 }
 
+impl Add for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, other: Self) -> Self {
+        Self::new(self.px() + other.px())
+    }
+}
+
 impl Neg for CSSPixelLength {
     type Output = Self;
 
@@ -708,15 +718,7 @@ pub type Length = CSSPixelLength;
 pub type LengthOrAuto = Either<Length, Auto>;
 
 /// Either a computed `<length>` or a `<number>` value.
-pub type LengthOrNumber = Either<Length, Number>;
-
-impl LengthOrNumber {
-    /// Returns `0`.
-    #[inline]
-    pub fn zero() -> Self {
-        Either::Second(0.)
-    }
-}
+pub type LengthOrNumber = GenericLengthOrNumber<Length, Number>;
 
 /// Either a computed `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;
@@ -776,13 +778,6 @@ impl NonNegativeLength {
     }
 }
 
-impl Add<NonNegativeLength> for NonNegativeLength {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        NonNegativeLength::new(self.px() + other.px())
-    }
-}
-
 impl From<Length> for NonNegativeLength {
     #[inline]
     fn from(len: Length) -> Self {
@@ -812,6 +807,9 @@ pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
 
 /// Either a computed NonNegativeLengthPercentage or the `normal` keyword.
 pub type NonNegativeLengthPercentageOrNormal = Either<NonNegativeLengthPercentage, Normal>;
+
+/// Either a non-negative `<length>` or a `<number>`.
+pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, NonNegativeNumber>;
 
 /// A type for possible values for min- and max- flavors of width, height,
 /// block-size, and inline-size.

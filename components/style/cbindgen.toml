@@ -87,19 +87,22 @@ include = [
   "FlexBasis",
   "Position",
   "BackgroundSize",
+  "BorderImageSlice",
+  "NonNegativeLengthOrNumberRect",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
 [export.body]
+"CSSPixelLength" = """
+  inline nscoord ToAppUnits() const;
+"""
+
 "LengthPercentage" = """
   // Defined in nsStyleCoord.h
   static constexpr inline StyleLengthPercentage Zero();
   static inline StyleLengthPercentage FromAppUnits(nscoord);
   static inline StyleLengthPercentage FromPercentage(float);
   inline CSSCoord LengthInCSSPixels() const;
- private:
-  inline nscoord LengthComponent() const;
- public:
   inline float Percentage() const;
   inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
