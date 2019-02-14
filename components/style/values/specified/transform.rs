@@ -231,7 +231,7 @@ impl Parse for Transform {
 }
 
 /// The specified value of a component of a CSS `<transform-origin>`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, Parse, SpecifiedValueInfo, ToCss)]
 pub enum OriginComponent<S> {
     /// `center`
     Center,
@@ -292,25 +292,6 @@ impl Parse for TransformOrigin {
         let x_origin = OriginComponent::Center;
         let depth = Length::from_px(0.);
         Ok(Self::new(x_origin, y_origin, depth))
-    }
-}
-
-impl<S> Parse for OriginComponent<S>
-where
-    S: Parse,
-{
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("center")).is_ok() {
-            return Ok(OriginComponent::Center);
-        }
-        if let Ok(lp) = input.try(|i| LengthPercentage::parse(context, i)) {
-            return Ok(OriginComponent::Length(lp));
-        }
-        let keyword = S::parse(context, input)?;
-        Ok(OriginComponent::Side(keyword))
     }
 }
 

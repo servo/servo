@@ -119,27 +119,25 @@ impl Parse for CounterStyleOrNone {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(CounterStyleOrNone::None);
         }
-        if input.try(|i| i.expect_function_matching("symbols")).is_ok() {
-            return input.parse_nested_block(|input| {
-                let symbols_type = input
-                    .try(|i| SymbolsType::parse(i))
-                    .unwrap_or(SymbolsType::Symbolic);
-                let symbols = Symbols::parse(context, input)?;
-                // There must be at least two symbols for alphabetic or
-                // numeric system.
-                if (symbols_type == SymbolsType::Alphabetic ||
-                    symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2
-                {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                }
-                // Identifier is not allowed in symbols() function.
-                if symbols.0.iter().any(|sym| !sym.is_allowed_in_symbols()) {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                }
-                Ok(CounterStyleOrNone::Symbols(symbols_type, symbols))
-            });
-        }
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        input.expect_function_matching("symbols")?;
+        input.parse_nested_block(|input| {
+            let symbols_type = input
+                .try(SymbolsType::parse)
+                .unwrap_or(SymbolsType::Symbolic);
+            let symbols = Symbols::parse(context, input)?;
+            // There must be at least two symbols for alphabetic or
+            // numeric system.
+            if (symbols_type == SymbolsType::Alphabetic ||
+                symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2
+            {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            }
+            // Identifier is not allowed in symbols() function.
+            if symbols.0.iter().any(|sym| !sym.is_allowed_in_symbols()) {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            }
+            Ok(CounterStyleOrNone::Symbols(symbols_type, symbols))
+        })
     }
 }
 

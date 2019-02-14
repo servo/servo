@@ -165,6 +165,7 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
     Copy,
     Debug,
     MallocSizeOf,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedValue,
@@ -174,28 +175,16 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
 )]
 #[repr(C, u8)]
 pub enum GenericLengthOrNumber<L, N> {
+    /// A number.
+    ///
+    /// NOTE: Numbers need to be before lengths, in order to parse them
+    /// first, since `0` should be a number, not the `0px` length.
+    Number(N),
     /// A length.
     Length(L),
-    /// A number.
-    Number(N),
 }
 
 pub use self::GenericLengthOrNumber as LengthOrNumber;
-
-impl<L: Parse, N: Parse> Parse for LengthOrNumber<L, N> {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| N::parse(context, i)) {
-            // Numbers need to be parsed first because `0` must be recognised
-            // as the number `0` and not the length `0px`.
-            return Ok(LengthOrNumber::Number(number));
-        }
-
-        Ok(LengthOrNumber::Length(L::parse(context, input)?))
-    }
-}
 
 impl<L, N> LengthOrNumber<L, N> {
     /// Returns `0`.
