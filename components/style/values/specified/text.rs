@@ -13,11 +13,10 @@ use crate::values::computed::text::TextOverflow as ComputedTextOverflow;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::MozTabSize as GenericMozTabSize;
 use crate::values::generics::text::Spacing;
 use crate::values::specified::length::{FontRelativeLength, Length};
 use crate::values::specified::length::{LengthPercentage, NoCalcLength};
-use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthPercentage};
+use crate::values::specified::length::{NonNegativeLengthPercentage};
 use crate::values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
@@ -832,25 +831,6 @@ impl From<TextEmphasisPosition> for u8 {
             },
         };
         result as u8
-    }
-}
-
-/// A specified value for the `-moz-tab-size` property.
-pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
-
-impl Parse for MozTabSize {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
-            // Numbers need to be parsed first because `0` must be recognised
-            // as the number `0` and not the length `0px`.
-            return Ok(GenericMozTabSize::Number(number));
-        }
-        Ok(GenericMozTabSize::Length(NonNegativeLength::parse(
-            context, input,
-        )?))
     }
 }
 

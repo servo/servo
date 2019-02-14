@@ -9,6 +9,8 @@ use super::CustomIdent;
 use crate::counter_style::{parse_counter_style_name, Symbols};
 use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
+use num_traits::Zero;
+use std::ops::Add;
 use style_traits::{KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};
 
@@ -176,6 +178,24 @@ impl SpecifiedValueInfo for CounterStyleOrNone {
 )]
 #[repr(transparent)]
 pub struct NonNegative<T>(pub T);
+
+impl <T: Add<Output = T>> Add<NonNegative<T>> for NonNegative<T> {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        NonNegative(self.0 + other.0)
+    }
+}
+
+impl <T: Zero> Zero for NonNegative<T> {
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
+    }
+
+    fn zero() -> Self {
+        NonNegative(T::zero())
+    }
+}
 
 /// A wrapper of greater-than-or-equal-to-one values.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]

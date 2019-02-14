@@ -26,7 +26,8 @@ pub enum BorderImageSideWidth<LengthPercentage, Number> {
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
 )]
-pub struct BorderImageSlice<NumberOrPercentage> {
+#[repr(C)]
+pub struct GenericBorderImageSlice<NumberOrPercentage> {
     /// The offsets.
     #[css(field_bound)]
     pub offsets: Rect<NumberOrPercentage>,
@@ -34,6 +35,8 @@ pub struct BorderImageSlice<NumberOrPercentage> {
     #[css(represents_keyword)]
     pub fill: bool,
 }
+
+pub use self::GenericBorderImageSlice as BorderImageSlice;
 
 /// A generic value for the `border-*-radius` longhand properties.
 #[derive(

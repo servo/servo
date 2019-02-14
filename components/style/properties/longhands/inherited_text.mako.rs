@@ -257,10 +257,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "-moz-tab-size",
-    "MozTabSize",
-    "generics::text::MozTabSize::Number(From::from(8.0))",
+    "NonNegativeLengthOrNumber",
+    "generics::length::LengthOrNumber::Number(From::from(8.0))",
     products="gecko",
-    animation_value_type="AnimatedMozTabSize",
+    animation_value_type="LengthOrNumber",
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property",
 )}
 
@@ -349,8 +349,8 @@ ${helpers.single_keyword(
     "-moz-control-character-visibility",
     "hidden visible",
     gecko_constant_prefix="NS_STYLE_CONTROL_CHARACTER_VISIBILITY",
-    gecko_ffi_name="mControlCharacterVisibility",
     animation_value_type="none",
+    gecko_ffi_name="mControlCharacterVisibility",
     products="gecko",
     spec="Nonstandard",
 )}
