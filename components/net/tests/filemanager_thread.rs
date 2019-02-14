@@ -10,7 +10,7 @@ use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
-use servo_config::prefs::{PrefValue, PREFS};
+use servo_config::prefs;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -18,10 +18,9 @@ use std::path::PathBuf;
 #[test]
 fn test_filemanager() {
     let filemanager = FileManager::new(create_embedder_proxy());
-    PREFS.set(
-        "dom.testing.htmlinputelement.select_files.enabled",
-        PrefValue::Boolean(true),
-    );
+    prefs::pref_map()
+        .set("dom.testing.htmlinputelement.select_files.enabled", true)
+        .expect("Couldn't set preference");
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
     let mut handler = File::open("tests/test.jpeg").expect("test.jpeg is stolen");

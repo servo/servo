@@ -17,7 +17,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use script_traits::{DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg};
-use servo_config::prefs::PREFS;
+use servo_config::get_pref;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::thread;
@@ -206,8 +206,5 @@ impl ServiceWorkerManager {
 }
 
 pub fn serviceworker_enabled() -> bool {
-    PREFS
-        .get("dom.serviceworker.enabled")
-        .as_boolean()
-        .unwrap_or(false)
+    get_pref!(dom.serviceworker.enabled)
 }

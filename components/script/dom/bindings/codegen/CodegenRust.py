@@ -2582,7 +2582,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         pref = iface.getExtendedAttribute("Pref")
         if pref:
             assert isinstance(pref, list) and len(pref) == 1
-            conditions.append('PREFS.get("%s").as_boolean().unwrap_or(false)' % pref[0])
+            conditions.append('prefs::pref_map().get("%s").as_bool().unwrap_or(false)' % pref[0])
 
         func = iface.getExtendedAttribute("Func")
         if func:
@@ -5976,7 +5976,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::globalscope::GlobalScope',
         'crate::mem::malloc_size_of_including_raw_self',
         'libc',
-        'servo_config::prefs::PREFS',
+        'servo_config::get_pref',
+        'servo_config::prefs',
         'std::borrow::ToOwned',
         'std::cmp',
         'std::mem',

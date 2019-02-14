@@ -9,8 +9,6 @@ publish = false
 [lib]
 name = "servo_config"
 path = "lib.rs"
-test = false
-doctest = false
 
 [dependencies]
 euclid = "0.19"
@@ -20,10 +18,12 @@ lazy_static = "1"
 log = "0.4"
 num_cpus = "1.1.0"
 serde = "1.0"
+serde_derive = "1.0"
 serde_json = "1.0"
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 url = "1.2"
+servo_config_plugins = { path = "../config_plugins" }
 
 [dev-dependencies]
 env_logger = "0.6"

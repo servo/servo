@@ -6,7 +6,7 @@ use cssparser::{Parser, ParserInput};
 use euclid::TypedScale;
 use euclid::TypedSize2D;
 use servo_arc::Arc;
-use servo_config::prefs::{PrefValue, PREFS};
+use servo_config::prefs;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -45,7 +45,9 @@ fn test_viewport_rule<F>(css: &str, device: &Device, callback: F)
 where
     F: Fn(&Vec<ViewportDescriptorDeclaration>, &str),
 {
-    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
+    prefs::pref_map()
+        .set("layout.viewport.enabled", true)
+        .unwrap();
     let stylesheet = stylesheet!(css, Author);
     let mut rule_count = 0;
     stylesheet.effective_viewport_rules(&device, &stylesheet.shared_lock.read(), |rule| {
@@ -445,7 +447,9 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
-    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
+    prefs::pref_map()
+        .set("layout.viewport.enabled", true)
+        .unwrap();
     let device = Device::new(
         MediaType::screen(),
         TypedSize2D::new(800., 600.),
