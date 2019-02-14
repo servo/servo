@@ -88,26 +88,44 @@ impl ShadowRootMethods for ShadowRoot {
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
     fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
-        // XXX return the result of running the retargeting algorithm with context object
-        // and the original result as input
-        self.document_or_shadow_root.element_from_point(
+        // Return the result of running the retargeting algorithm with context object
+        // and the original result as input.
+        match self.document_or_shadow_root.element_from_point(
             x,
             y,
             None,
             self.document.has_browsing_context(),
-        )
+        ) {
+            Some(e) => {
+                let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
+                retargeted_node
+                    .downcast::<Element>()
+                    .map(|n| DomRoot::from_ref(n))
+            },
+            None => None,
+        }
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
     fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
-        // XXX return the result of running the retargeting algorithm with context object
+        // Return the result of running the retargeting algorithm with context object
         // and the original result as input
-        self.document_or_shadow_root.elements_from_point(
+        let mut elements = Vec::new();
+        for e in self.document_or_shadow_root.elements_from_point(
             x,
             y,
             None,
             self.document.has_browsing_context(),
-        )
+        ).iter() {
+            let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
+            if let Some(element) = retargeted_node
+                .downcast::<Element>()
+                .map(|n| DomRoot::from_ref(n)) {
+                elements.push(element);
+            }
+        }
+        elements
+
     }
 
     /// https://dom.spec.whatwg.org/#dom-shadowroot-mode

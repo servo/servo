@@ -155,7 +155,7 @@ impl DocumentOrShadowRoot {
         let point = &Point2D::new(x, y);
         let viewport = self.window.window_size().initial_viewport;
 
-        if has_browsing_context {
+        if !has_browsing_context {
             return vec![];
         }
 
