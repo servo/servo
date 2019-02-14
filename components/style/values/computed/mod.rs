@@ -45,7 +45,7 @@ pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
 pub use self::box_::{Display, Overflow, OverflowAnchor, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapAlign, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
-pub use self::color::{Color, ColorPropertyValue, RGBAColor};
+pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, RGBAColor};
 pub use self::column::ColumnCount;
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::easing::TimingFunction;
@@ -85,7 +85,7 @@ pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon, UserSelect};
+pub use self::ui::{Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use super::{Auto, Either, None_};
 pub use app_units::Au;

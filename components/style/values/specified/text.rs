@@ -419,7 +419,7 @@ pub enum TextAlignKeyword {
 
 /// Specified value of text-align property.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextAlign {
     /// Keyword value of text-align property.
     Keyword(TextAlignKeyword),
@@ -433,27 +433,6 @@ pub enum TextAlign {
     #[cfg(feature = "gecko")]
     #[css(skip)]
     MozCenterOrInherit,
-}
-
-impl Parse for TextAlign {
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        // MozCenterOrInherit cannot be parsed, only set directly on the elements
-        if let Ok(key) = input.try(TextAlignKeyword::parse) {
-            return Ok(TextAlign::Keyword(key));
-        }
-        #[cfg(feature = "gecko")]
-        {
-            input.expect_ident_matching("match-parent")?;
-            return Ok(TextAlign::MatchParent);
-        }
-        #[cfg(feature = "servo")]
-        {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-    }
 }
 
 impl TextAlign {

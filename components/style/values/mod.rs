@@ -125,6 +125,7 @@ impl Parse for Impossible {
     Copy,
     MallocSizeOf,
     PartialEq,
+    Parse,
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToAnimatedZero,
@@ -143,19 +144,6 @@ impl<A: Debug, B: Debug> Debug for Either<A, B> {
         match *self {
             Either::First(ref v) => v.fmt(f),
             Either::Second(ref v) => v.fmt(f),
-        }
-    }
-}
-
-impl<A: Parse, B: Parse> Parse for Either<A, B> {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Either<A, B>, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| A::parse(context, i)) {
-            Ok(Either::First(v))
-        } else {
-            B::parse(context, input).map(Either::Second)
         }
     }
 }
