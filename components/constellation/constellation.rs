@@ -150,8 +150,7 @@ use script_traits::{IFrameSizeMsg, WindowSizeData, WindowSizeType};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
-use servo_config::opts;
-use servo_config::prefs::PREFS;
+use servo_config::{opts, pref};
 use servo_rand::{random, Rng, SeedableRng, ServoRng};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -3506,10 +3505,7 @@ where
         let pipelines_to_evict = {
             let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
-            let history_length = PREFS
-                .get("session-history.max-length")
-                .as_u64()
-                .unwrap_or(20) as usize;
+            let history_length = pref!(session_history.max_length) as usize;
 
             // The past is stored with older entries at the front.
             // We reverse the iter so that newer entries are at the front and then

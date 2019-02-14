@@ -27,6 +27,7 @@ use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use euclid::TypedSize2D;
 use selectors::parser::SelectorParseErrorKind;
+use servo_config::pref;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt::{self, Write};
@@ -38,11 +39,7 @@ use style_traits::{CssWriter, ParseError, PinchZoomFactor, StyleParseErrorKind, 
 /// Whether parsing and processing of `@viewport` rules is enabled.
 #[cfg(feature = "servo")]
 pub fn enabled() -> bool {
-    use servo_config::prefs::PREFS;
-    PREFS
-        .get("layout.viewport.enabled")
-        .as_boolean()
-        .unwrap_or(false)
+    pref!(layout.viewport.enabled)
 }
 
 /// Whether parsing and processing of `@viewport` rules is enabled.

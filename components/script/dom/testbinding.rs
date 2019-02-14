@@ -57,7 +57,7 @@ use js::rust::CustomAutoRooterGuard;
 use js::rust::{HandleObject, HandleValue};
 use js::typedarray;
 use script_traits::MsDuration;
-use servo_config::prefs::PREFS;
+use servo_config::prefs;
 use std::borrow::ToOwned;
 use std::ptr;
 use std::ptr::NonNull;
@@ -887,12 +887,15 @@ impl TestBindingMethods for TestBinding {
     #[allow(unsafe_code)]
     unsafe fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
-        PREFS.get(pref_name.as_ref()).as_boolean().unwrap_or(false)
+        prefs::pref_map()
+            .get(pref_name.as_ref())
+            .as_bool()
+            .unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        PREFS
+        prefs::pref_map()
             .get(pref_name.as_ref())
-            .as_string()
+            .as_str()
             .map(|s| DOMString::from(s))
             .unwrap_or_else(|| DOMString::new())
     }

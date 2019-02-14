@@ -7,251 +7,475 @@ use crate::opts;
 use embedder_traits::resources::{self, Resource};
 use serde_json::{self, Value};
 use std::borrow::ToOwned;
-use std::cmp::max;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{stderr, Read, Write};
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+
+use crate::pref_util::Preferences;
+pub use crate::pref_util::{PrefError, PrefValue};
+use gen::Prefs;
 
 lazy_static! {
-    pub static ref PREFS: Preferences = {
-        let defaults = default_prefs();
-        if let Ok(prefs) = read_prefs(&resources::read_string(Resource::Preferences)) {
-            defaults.extend(prefs);
-        }
-        defaults
+    static ref PREFS: Preferences<'static, Prefs> = {
+        let def_prefs: Prefs = serde_json::from_str(&resources::read_string(Resource::Preferences))
+            .expect("Failed to initialize config preferences.");
+        Preferences::new(def_prefs, &gen::PREF_ACCESSORS)
     };
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub enum PrefValue {
-    Boolean(bool),
-    String(String),
-    Number(f64),
-    Missing,
+/// A convenience macro for accessing a preference value using its static path.
+/// Passing an invalid path is a compile-time error.
+#[macro_export]
+macro_rules! pref {
+    ($($segment: ident).+) => {{
+        let values = $crate::prefs::pref_map().values();
+        let lock = values.read()
+            .map(|prefs| prefs $(.$segment)+.clone());
+        lock.unwrap()
+    }};
 }
 
-impl PrefValue {
-    pub fn from_json(data: Value) -> Result<PrefValue, ()> {
-        let value = match data {
-            Value::Bool(x) => PrefValue::Boolean(x),
-            Value::String(x) => PrefValue::String(x),
-            Value::Number(x) => {
-                if let Some(v) = x.as_f64() {
-                    PrefValue::Number(v)
-                } else {
-                    return Err(());
-                }
-            },
-            _ => return Err(()),
-        };
-        Ok(value)
-    }
-
-    pub fn as_boolean(&self) -> Option<bool> {
-        match *self {
-            PrefValue::Boolean(value) => Some(value),
-            _ => None,
-        }
-    }
-
-    pub fn as_string(&self) -> Option<&str> {
-        match *self {
-            PrefValue::String(ref value) => Some(&value),
-            _ => None,
-        }
-    }
-
-    pub fn as_i64(&self) -> Option<i64> {
-        match *self {
-            PrefValue::Number(x) => Some(x as i64),
-            _ => None,
-        }
-    }
-
-    pub fn as_u64(&self) -> Option<u64> {
-        match *self {
-            PrefValue::Number(x) => Some(x as u64),
-            _ => None,
-        }
-    }
+/// A convenience macro for updating a preference value using its static path.
+/// Passing an invalid path is a compile-time error.
+#[macro_export]
+macro_rules! set_pref {
+    ($($segment: ident).+, $value: expr) => {{
+        let values = $crate::prefs::pref_map().values();
+        let mut lock = values.write().unwrap();
+        lock$ (.$segment)+ = $value;
+    }};
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum Pref {
-    NoDefault(Arc<PrefValue>),
-    WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>),
-}
-
-impl Pref {
-    pub fn new(value: PrefValue) -> Pref {
-        Pref::NoDefault(Arc::new(value))
-    }
-
-    fn new_default(value: PrefValue) -> Pref {
-        Pref::WithDefault(Arc::new(value), None)
-    }
-
-    fn from_json(data: Value) -> Result<Pref, ()> {
-        let value = PrefValue::from_json(data)?;
-        Ok(Pref::new_default(value))
-    }
-
-    pub fn value(&self) -> &Arc<PrefValue> {
-        match *self {
-            Pref::NoDefault(ref x) => x,
-            Pref::WithDefault(ref default, ref override_value) => match *override_value {
-                Some(ref x) => x,
-                None => default,
-            },
-        }
-    }
-
-    fn set(&mut self, value: PrefValue) {
-        // TODO - this should error if we try to override a pref of one type
-        // with a value of a different type
-        match *self {
-            Pref::NoDefault(ref mut pref_value) => *pref_value = Arc::new(value),
-            Pref::WithDefault(_, ref mut override_value) => *override_value = Some(Arc::new(value)),
-        }
-    }
-}
-
-pub fn default_prefs() -> Preferences {
-    let prefs = Preferences(Arc::new(RwLock::new(HashMap::new())));
-    prefs.set(
-        "layout.threads",
-        PrefValue::Number(max(num_cpus::get() * 3 / 4, 1) as f64),
-    );
-    prefs
-}
-
-pub fn read_prefs(txt: &str) -> Result<HashMap<String, Pref>, ()> {
-    let json: Value = serde_json::from_str(txt).or_else(|e| {
-        println!("Ignoring invalid JSON in preferences: {:?}.", e);
-        Err(())
-    })?;
-
-    let mut prefs = HashMap::new();
-    if let Value::Object(obj) = json {
-        for (name, value) in obj.into_iter() {
-            match Pref::from_json(value) {
-                Ok(x) => {
-                    prefs.insert(name, x);
-                },
-                Err(_) => println!(
-                    "Ignoring non-boolean/string/i64 preference value for {:?}",
-                    name
-                ),
-            }
-        }
-    }
-    Ok(prefs)
+/// Access preferences using their `String` keys. Note that the key may be different from the
+/// static path because legacy keys contain hyphens, or because a preference name has been renamed.
+///
+/// When retrieving a preference, the value will always be a `PrefValue`. When setting a value, it
+/// may be a `PrefValue` or the type that converts into the correct underlying value; one of `bool`,
+/// `i64`, `f64` or `String`.
+#[inline]
+pub fn pref_map() -> &'static Preferences<'static, Prefs> {
+    &PREFS
 }
 
 pub fn add_user_prefs() {
-    match opts::get().config_dir {
-        Some(ref config_path) => {
-            let mut path = PathBuf::from(config_path);
-            init_user_prefs(&mut path);
-        },
-        None => {
-            if let Some(mut path) = default_config_dir() {
-                if path.join("prefs.json").exists() {
-                    init_user_prefs(&mut path);
-                }
-            }
-        },
+    if let Some(path) = user_prefs_path() {
+        init_user_prefs(path);
     }
 }
 
-fn init_user_prefs(path: &mut PathBuf) {
-    path.push("prefs.json");
-    if let Ok(mut file) = File::open(path) {
+fn user_prefs_path() -> Option<PathBuf> {
+    opts::get()
+        .config_dir
+        .clone()
+        .or_else(|| default_config_dir())
+        .map(|path| path.join("prefs.json"))
+        .filter(|path| path.exists())
+}
+
+fn init_user_prefs(path: PathBuf) {
+    if let Ok(mut file) = File::open(&path) {
         let mut txt = String::new();
-        file.read_to_string(&mut txt).expect("Can't read use prefs");
-        if let Ok(prefs) = read_prefs(&txt) {
-            PREFS.extend(prefs);
+        file.read_to_string(&mut txt)
+            .expect("Can't read user prefs");
+        match read_prefs_map(&txt) {
+            Ok(prefs) => {
+                if let Err(error) = PREFS.set_all(prefs.into_iter()) {
+                    writeln!(&mut stderr(), "Error setting preference: {:?}", error)
+                } else {
+                    Ok(())
+                }
+            },
+            Err(error) => writeln!(&mut stderr(), "Error parsing prefs.json: {:?}", error),
         }
     } else {
-        writeln!(
-            &mut stderr(),
-            "Error opening prefs.json from config directory"
-        )
-        .expect("failed printing to stderr");
+        writeln!(&mut stderr(), "Error opening user prefs from {:?}", path)
     }
+    .expect("failed printing to stderr");
 }
 
-pub struct Preferences(Arc<RwLock<HashMap<String, Pref>>>);
+pub fn read_prefs_map(txt: &str) -> Result<HashMap<String, PrefValue>, PrefError> {
+    let prefs: HashMap<String, Value> =
+        serde_json::from_str(txt).map_err(|e| PrefError::JsonParseErr(e))?;
+    prefs
+        .into_iter()
+        .map(|(k, pref_value)| {
+            Ok({
+                let v = match &pref_value {
+                    Value::Bool(b) => PrefValue::Bool(*b),
+                    Value::Number(n) if n.is_i64() => PrefValue::Int(n.as_i64().unwrap()),
+                    Value::Number(n) if n.is_f64() => PrefValue::Float(n.as_f64().unwrap()),
+                    Value::String(s) => PrefValue::Str(s.to_owned()),
+                    _ => {
+                        return Err(PrefError::InvalidValue(format!(
+                            "Invalid value: {}",
+                            pref_value
+                        )));
+                    },
+                };
+                (k.to_owned(), v)
+            })
+        })
+        .collect()
+}
 
-impl Preferences {
-    pub fn get(&self, name: &str) -> Arc<PrefValue> {
-        self.0
-            .read()
-            .unwrap()
-            .get(name)
-            .map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
+mod gen {
+    use servo_config_plugins::build_structs;
+
+    // The number of layout threads is calculated if it is not present in `prefs.json`.
+    fn default_layout_threads() -> i64 {
+        std::cmp::max(num_cpus::get() * 3 / 4, 1) as i64
     }
 
-    pub fn cloned(&self) -> HashMap<String, Pref> {
-        self.0.read().unwrap().clone()
+    fn black() -> i64 {
+        0x000000
     }
 
-    pub fn set(&self, name: &str, value: PrefValue) {
-        let mut prefs = self.0.write().unwrap();
-        if let Some(pref) = prefs.get_mut(name) {
-            pref.set(value);
-            return;
-        }
-        prefs.insert(name.to_owned(), Pref::new(value));
+    fn white() -> i64 {
+        0xFFFFFF
     }
 
-    pub fn reset(&self, name: &str) -> Arc<PrefValue> {
-        let mut prefs = self.0.write().unwrap();
-        let result = match prefs.get_mut(name) {
-            None => return Arc::new(PrefValue::Missing),
-            Some(&mut Pref::NoDefault(_)) => Arc::new(PrefValue::Missing),
-            Some(&mut Pref::WithDefault(ref default, ref mut set_value)) => {
-                *set_value = None;
-                default.clone()
+    build_structs! {
+        // type of the accessors
+        accessor_type = crate::pref_util::Accessor::<Prefs, crate::pref_util::PrefValue>,
+        // name of the constant, which will hold a HashMap of preference accessors
+        gen_accessors = PREF_ACCESSORS,
+        // tree of structs to generate
+        gen_types = Prefs {
+            browser: {
+                display: {
+                    #[serde(default = "white")]
+                    background_color: i64,
+                    #[serde(default = "black")]
+                    foreground_color: i64,
+                }
             },
-        };
-        if *result == PrefValue::Missing {
-            prefs.remove(name);
+            css: {
+                animations: {
+                    testing: {
+                        #[serde(default)]
+                        enabled: bool,
+                    },
+                },
+            },
+            dom: {
+                bluetooth: {
+                    enabled: bool,
+                    testing: {
+                        enabled: bool,
+                    }
+                },
+                canvas_text: {
+                    #[serde(rename = "dom.canvas-text.enabled")]
+                    enabled: bool,
+                },
+                composition_event: {
+                    #[serde(rename = "dom.compositionevent.enabled")]
+                    enabled: bool,
+                },
+                custom_elements: {
+                    #[serde(rename = "dom.customelements.enabled")]
+                    enabled: bool,
+                },
+                document: {
+                    dblclick_timeout: i64,
+                    dblclick_dist: i64,
+                },
+                forcetouch: {
+                    enabled: bool,
+                },
+                fullscreen: {
+                    test: bool,
+                },
+                gamepad: {
+                    enabled: bool,
+                },
+                microdata: {
+                    testing: {
+                        enabled: bool,
+                    }
+                },
+                mouse_event: {
+                    which: {
+                        #[serde(rename = "dom.mouseevent.which.enabled")]
+                        enabled: bool,
+                    }
+                },
+                mutation_observer: {
+                    enabled: bool,
+                },
+                offscreen_canvas: {
+                    enabled: bool,
+                },
+                permissions: {
+                    enabled: bool,
+                    testing: {
+                        allowed_in_nonsecure_contexts: bool,
+                    }
+                },
+                serviceworker: {
+                    enabled: bool,
+                    timeout_seconds: i64,
+                },
+                servoparser: {
+                    async_html_tokenizer: {
+                        enabled: bool,
+                    }
+                },
+                svg: {
+                    enabled: bool,
+                },
+                testable_crash: {
+                    enabled: bool,
+                },
+                testbinding: {
+                    enabled: bool,
+                    prefcontrolled: {
+                        #[serde(default)]
+                        enabled: bool,
+                    },
+                    prefcontrolled2: {
+                        #[serde(default)]
+                        enabled: bool,
+                    },
+                    preference_value: {
+                        #[serde(default)]
+                        falsy: bool,
+                        #[serde(default)]
+                        quote_string_test: String,
+                        #[serde(default)]
+                        space_string_test: String,
+                        #[serde(default)]
+                        string_empty: String,
+                        #[serde(default)]
+                        string_test: String,
+                        #[serde(default)]
+                        truthy: bool,
+                    },
+                },
+                testing: {
+                    element: {
+                        activation: {
+                            #[serde(default)]
+                            enabled: bool,
+                        }
+                    },
+                    html_input_element: {
+                        select_files: {
+                            #[serde(rename = "dom.testing.htmlinputelement.select_files.enabled")]
+                            enabled: bool,
+                        }
+                    },
+                },
+                testperf: {
+                    #[serde(default)]
+                    enabled: bool,
+                },
+                webgl: {
+                    dom_to_texture: {
+                        enabled: bool,
+                    }
+                },
+                webgl2: {
+                    enabled: bool,
+                },
+                webrtc: {
+                    #[serde(default)]
+                    enabled: bool,
+                },
+                webvr: {
+                    enabled: bool,
+                    event_polling_interval: i64,
+                    test: bool,
+                },
+                webxr: {
+                    #[serde(default)]
+                    enabled: bool,
+                },
+                worklet: {
+                    blockingsleep: {
+                        #[serde(default)]
+                        enabled: bool,
+                    },
+                    #[serde(default)]
+                    enabled: bool,
+                    testing: {
+                        #[serde(default)]
+                        enabled: bool,
+                    },
+                    timeout_ms: i64,
+                },
+            },
+            gfx: {
+                subpixel_text_antialiasing: {
+                    #[serde(rename = "gfx.subpixel-text-antialiasing.enabled")]
+                    enabled: bool,
+                }
+            },
+            js: {
+                asmjs: {
+                    enabled: bool,
+                },
+                asyncstack: {
+                    enabled: bool,
+                },
+                baseline: {
+                    enabled: bool,
+                    unsafe_eager_compilation: {
+                        enabled: bool,
+                    },
+                },
+                discard_system_source: {
+                    enabled: bool,
+                },
+                dump_stack_on_debuggee_would_run: {
+                    enabled: bool,
+                },
+                ion: {
+                    enabled: bool,
+                    offthread_compilation: {
+                        enabled: bool,
+                    },
+                    unsafe_eager_compilation: {
+                        enabled: bool,
+                    },
+                },
+                mem: {
+                    gc: {
+                        allocation_threshold_mb: i64,
+                        allocation_threshold_factor: i64,
+                        allocation_threshold_avoid_interrupt_factor: i64,
+                        compacting: {
+                            enabled: bool,
+                        },
+                        decommit_threshold_mb: i64,
+                        dynamic_heap_growth: {
+                            enabled: bool,
+                        },
+                        dynamic_mark_slice: {
+                            enabled: bool,
+                        },
+                        empty_chunk_count_max: i64,
+                        empty_chunk_count_min: i64,
+                        high_frequency_heap_growth_max: i64,
+                        high_frequency_heap_growth_min: i64,
+                        high_frequency_high_limit_mb: i64,
+                        high_frequency_low_limit_mb: i64,
+                        high_frequency_time_limit_ms: i64,
+                        incremental: {
+                            enabled: bool,
+                            slice_ms: i64,
+                        },
+                        low_frequency_heap_growth: i64,
+                        per_compartment: {
+                            enabled: bool,
+                        },
+                        per_zone: {
+                            enabled: bool,
+                        },
+                        zeal: {
+                            frequency: i64,
+                            level: i64,
+                        },
+                    },
+                    high_water_mark: i64,
+                    max: i64,
+                },
+                native_regex: {
+                    enabled: bool,
+                },
+                offthread_compilation: {
+                    enabled: bool,
+                },
+                parallel_parsing: {
+                    enabled: bool,
+                },
+                shared_memory: {
+                    enabled: bool,
+                },
+                strict: {
+                    debug: {
+                        enabled: bool,
+                    },
+                    enabled: bool,
+                },
+                throw_on_asmjs_validation_failure: {
+                    enabled: bool,
+                },
+                throw_on_debuggee_would_run: {
+                    enabled: bool,
+                },
+                timers: {
+                    minimum_duration: i64,
+                },
+                wasm: {
+                    baseline: {
+                        enabled: bool,
+                    },
+                    enabled: bool,
+                    ion: {
+                        enabled: bool,
+                    }
+                },
+                werror: {
+                    enabled: bool,
+                },
+            },
+            layout: {
+                animations: {
+                    test: {
+                        enabled: bool,
+                    }
+                },
+                columns: {
+                    enabled: bool,
+                },
+                #[serde(default = "default_layout_threads")]
+                threads: i64,
+                viewport: {
+                    enabled: bool,
+                },
+                writing_mode: {
+                    #[serde(rename = "layout.writing-mode.enabled")]
+                    enabled: bool,
+                }
+            },
+            media: {
+                testing: {
+                    enabled: bool,
+                }
+            },
+            network: {
+                http_cache: {
+                    #[serde(rename = "network.http-cache.disabled")]
+                    disabled: bool,
+                },
+                mime: {
+                    sniff: bool,
+                }
+            },
+            session_history: {
+                #[serde(rename = "session-history.max-length")]
+                max_length: i64,
+            },
+            shell: {
+                homepage: String,
+                keep_screen_on: {
+                    enabled: bool,
+                },
+                #[serde(rename = "shell.native-orientation")]
+                native_orientation: String,
+                native_titlebar: {
+                    #[serde(rename = "shell.native-titlebar.enabled")]
+                    enabled: bool,
+                },
+                searchpage: String,
+            },
+            webgl: {
+                testing: {
+                    context_creation_error: bool,
+                }
+            },
         }
-        result
-    }
-
-    pub fn reset_all(&self) {
-        let names = {
-            self.0
-                .read()
-                .unwrap()
-                .keys()
-                .cloned()
-                .collect::<Vec<String>>()
-        };
-        for name in names.iter() {
-            self.reset(name);
-        }
-    }
-
-    pub fn extend(&self, extension: HashMap<String, Pref>) {
-        self.0.write().unwrap().extend(extension);
-    }
-
-    pub fn is_webvr_enabled(&self) -> bool {
-        self.get("dom.webvr.enabled").as_boolean().unwrap_or(false)
-    }
-
-    pub fn is_dom_to_texture_enabled(&self) -> bool {
-        self.get("dom.webgl.dom_to_texture.enabled")
-            .as_boolean()
-            .unwrap_or(false)
-    }
-
-    pub fn is_webgl2_enabled(&self) -> bool {
-        self.get("dom.webgl2.enabled").as_boolean().unwrap_or(false)
     }
 }

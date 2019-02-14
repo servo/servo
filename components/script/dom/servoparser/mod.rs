@@ -52,7 +52,7 @@ use profile_traits::time::{
     profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use script_traits::DocumentActivity;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -135,11 +135,7 @@ impl ServoParser {
     }
 
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = if PREFS
-            .get("dom.servoparser.async_html_tokenizer.enabled")
-            .as_boolean()
-            .unwrap()
-        {
+        let parser = if pref!(dom.servoparser.async_html_tokenizer.enabled) {
             ServoParser::new(
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
