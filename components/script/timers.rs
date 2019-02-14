@@ -20,7 +20,7 @@ use js::rust::HandleValue;
 use script_traits::{precise_time_ms, MsDuration};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
 use script_traits::{TimerSchedulerMsg, TimerSource};
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
@@ -227,10 +227,7 @@ impl OneshotTimers {
     }
 
     pub fn slow_down(&self) {
-        let duration = PREFS
-            .get("js.timers.minimum_duration")
-            .as_u64()
-            .unwrap_or(1000);
+        let duration = pref!(js.timers.minimum_duration) as u64;
         self.js_timers.set_min_duration(MsDuration::new(duration));
     }
 

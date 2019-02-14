@@ -33,7 +33,7 @@ use crate::parser::ParserContext;
 use crate::properties::longhands::system_font::SystemFont;
 use crate::selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
-#[cfg(feature = "servo")] use servo_config::prefs::PREFS;
+#[cfg(feature = "servo")] use servo_config::prefs;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -514,7 +514,7 @@ impl NonCustomPropertyId {
                     Some(pref) => pref,
                 };
 
-                PREFS.get(pref).as_boolean().unwrap_or(false)
+                prefs::pref_map().get(pref).as_bool().unwrap_or(false)
             % else:
                 unsafe { structs::nsCSSProps_gPropertyEnabled[self.0] }
             % endif
