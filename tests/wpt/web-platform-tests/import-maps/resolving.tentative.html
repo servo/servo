@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({allow_uncaught_exception : true});
+
+// Hacky glue code to run Jest-based tests as WPT tests.
+// Only supports resolving.js.
+function require(name) {
+  return {
+    'URL': URL,
+    'parseFromString': parseFromString,
+    'resolve': resolve
+  };
+}
+
+function expect(v) {
+  return {
+    toMatchURL: expected => assert_equals(v, expected),
+    toThrow: expected => assert_throws(expected(), v)
+  };
+}
+
+let current_message = '';
+function describe(message, f) {
+  const old = current_message;
+  if (current_message !== '') {
+    current_message += ' / ';
+  }
+  current_message += message;
+  f();
+  current_message = old;
+}
+function it(message, f) {
+  const old = current_message;
+  if (current_message !== '') {
+    current_message += ' / ';
+  }
+  current_message += message;
+  test(t => t.step_func(f)(), current_message);
+  current_message = old;
+}
+
+// Creates a new Document (via <iframe>) and add an inline import map.
+// Currently document.write() is used to make everything synchronous, which
+// is just needed for running the existing Jest-based tests easily.
+function parseFromString(mapString, mapBaseURL) {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(`
+    <base href="${mapBaseURL}">
+    <script>
+    let isError = false;
+    function onError() {
+      isError = true;
+    }
+    </sc` + `ript>
+    <script type="importmap" onerror="onError()">
+    ${mapString}
+    </sc` + `ript>
+  `);
+  iframe.contentDocument.close();
+  return iframe;
+}
+
+// URL resolution is tested using Chromium's `internals`.
+// TODO(hiroshige): Remove the Chromium-specific dependency.
+function resolve(specifier, map, baseURL) {
+  return internals.resolveModuleSpecifier(specifier,
+                                          baseURL,
+                                          map.contentDocument);
+}
+
+</script>
+
+<!--
+resolving.js is
+https://github.com/WICG/import-maps/blob/master/reference-implementation/__tests__/resolving.js
+-->
+<script type="module" src="resources/resolving.js"></script>

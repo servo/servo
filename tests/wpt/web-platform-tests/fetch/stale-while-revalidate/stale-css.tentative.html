@@ -12,7 +12,7 @@ https://github.com/whatwg/fetch/pull/853
 
 async_test(t => {
   window.onload = t.step_func(() => {
-    step_timeout(() => {
+    t.step_timeout(() => {
       assert_equals(window.getComputedStyle(document.body).getPropertyValue('background-color'), "rgb(0, 128, 0)");
       var link2 = document.createElement("link");
       link2.onload = t.step_func(() => {

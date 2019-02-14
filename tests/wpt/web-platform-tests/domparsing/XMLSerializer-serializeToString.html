@@ -15,6 +15,15 @@ function createXmlDoc(){
   return parser.parseFromString(input, 'text/xml');
 }
 
+// Returns the root element.
+function parse(xmlString) {
+  return (new DOMParser()).parseFromString(xmlString, 'text/xml').documentElement;
+}
+
+function serialize(node) {
+  return (new XMLSerializer()).serializeToString(node);
+}
+
 test(function() {
   var serializer = new XMLSerializer();
   var root = createXmlDoc().documentElement;
@@ -41,6 +50,58 @@ test(function() {
 }, 'Check if there is no redundant empty namespace declaration.');
 
 test(function() {
+  let root = parse('<r xmlns:xx="uri"></r>');
+  root.setAttributeNS('uri', 'name', 'v');
+  assert_equals(serialize(root), '<r xmlns:xx="uri" xx:name="v"/>');
+
+  let root2 = parse('<r xmlns:xx="uri"><b/></r>');
+  let child = root2.firstChild;
+  child.setAttributeNS('uri', 'name', 'v');
+  assert_equals(serialize(root2), '<r xmlns:xx="uri"><b xx:name="v"/></r>');
+
+  let root3 = parse('<r xmlns:x0="uri" xmlns:x2="uri"><b xmlns:x1="uri"/></r>');
+  let child3 = root3.firstChild;
+  child3.setAttributeNS('uri', 'name', 'v');
+  assert_equals(serialize(root3),
+                '<r xmlns:x0="uri" xmlns:x2="uri"><b xmlns:x1="uri" x1:name="v"/></r>',
+                'Should choose the nearest prefix');
+}, 'Check if an attribute with namespace and no prefix is serialized with the nearest-declared prefix');
+
+test(function() {
+  let root = parse('<el1 xmlns:p="u1" xmlns:q="u1"><el2 xmlns:q="u2"/></el1>');
+  root.firstChild.setAttributeNS('u1', 'name', 'v');
+  assert_equals(serialize(root),
+                '<el1 xmlns:p="u1" xmlns:q="u1"><el2 xmlns:q="u2" q:name="v"/></el1>');
+  // Maybe this is a specification error.
+}, 'Check if an attribute with namespace and no prefix is serialized with the nearest-declared prefix even if the prefix is assigned to another namespace.');
+
+test(function() {
+  let root = parse('<r xmlns:xx="uri"></r>');
+  root.setAttributeNS('uri', 'p:name', 'v');
+  assert_equals(serialize(root), '<r xmlns:xx="uri" xx:name="v"/>');
+
+  let root2 = parse('<r xmlns:xx="uri"><b/></r>');
+  let child = root2.firstChild;
+  child.setAttributeNS('uri', 'p:name', 'value');
+  assert_equals(serialize(root2),
+                '<r xmlns:xx="uri"><b xx:name="value"/></r>');
+}, 'Check if the prefix of an attribute is replaced with another existing prefix mapped to the same namespace URI.');
+
+test(function() {
+  let root = parse('<r xmlns:xx="uri"></r>');
+  root.setAttributeNS('uri2', 'p:name', 'value');
+  assert_equals(serialize(root),
+                '<r xmlns:xx="uri" xmlns:ns1="uri2" ns1:name="value"/>');
+}, 'Check if the prefix of an attribute is NOT preserved in a case where neither its prefix nor its namespace URI is not already used.');
+
+test(function() {
+  let root = parse('<r xmlns:xx="uri"></r>');
+  root.setAttributeNS('uri2', 'xx:name', 'value');
+  assert_equals(serialize(root),
+                '<r xmlns:xx="uri" xmlns:ns1="uri2" ns1:name="value"/>');
+}, 'Check if the prefix of an attribute is replaced with a generated one in a case where the prefix is already mapped to a different namespace URI.');
+
+test(function() {
   var serializer = new XMLSerializer();
   var parser = new DOMParser();
   var root = parser.parseFromString('<root />', 'text/xml').documentElement;
@@ -54,6 +115,22 @@ test(function() {
   assert_in_array(serializer.serializeToString(root), [
     '<root attr="&#xD;"/>', '<root attr="&#13;"/>']);
 }, 'check XMLSerializer.serializeToString escapes attribute values for roundtripping');
+
+test(function() {
+  const root = (new Document()).createElement('root');
+  root.setAttributeNS('uri1', 'p:foobar', 'value1');
+  root.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:p', 'uri2');
+  const xmlString = (new XMLSerializer()).serializeToString(root);
+  assert_equals(xmlString, '<root xmlns:ns1="uri1" ns1:foobar="value1" xmlns:p="uri2"/>');
+}, 'Check if attribute serialization takes into account of following xmlns:* attributes');
+
+test(function() {
+  const input = '<root xmlns:p="uri1"><child/></root>';
+  const root = (new DOMParser()).parseFromString(input, 'text/xml').documentElement;
+  root.firstChild.setAttributeNS('uri2', 'p:foobar', 'v');
+  const xmlString = (new XMLSerializer()).serializeToString(root);
+  assert_equals(xmlString, '<root xmlns:p="uri1"><child xmlns:ns1="uri2" ns1:foobar="v"/></root>');
+}, 'Check if attribute serialization takes into account of the same prefix declared in an ancestor element');
 
 test(function() {
   const input = '<root><child1/><child2/></root>';
@@ -74,6 +151,16 @@ test(function() {
   // 'generate a prefix' result can conflict with an existing xmlns:ns* declaration.
   assert_equals(xmlString, '<root xmlns:ns2="uri2"><child xmlns:ns1="uri1" xmlns:ns1="uri3" ns1:attr1="value1"/></root>');
 }, 'Check if "ns1" is generated even if the element already has xmlns:ns1.');
+
+test(function() {
+  const root = (new Document()).createElement('root');
+  root.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'v');
+  assert_equals(serialize(root), '<root xmlns:ns1="http://www.w3.org/1999/xlink" ns1:href="v"/>');
+
+  const root2 = (new Document()).createElement('root');
+  root2.setAttributeNS('http://www.w3.org/1999/xlink', 'xl:type', 'v');
+  assert_equals(serialize(root2), '<root xmlns:xl="http://www.w3.org/1999/xlink" xl:type="v"/>');
+}, 'Check if no special handling for XLink namespace unlike HTML serializer.');
 
 </script>
  </body>

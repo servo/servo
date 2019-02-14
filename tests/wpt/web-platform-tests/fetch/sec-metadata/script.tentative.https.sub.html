@@ -12,7 +12,8 @@
     assert_header_equals(header, {
       "dest": "script",
       "site": "same-origin",
-      "user":"?F"
+      "user": "?F",
+      "mode": "no-cors",
     });
   }, "Same-origin script");
 </script>
@@ -26,7 +27,8 @@
     assert_header_equals(header, {
       "dest": "script",
       "site": "same-site",
-      "user":"?F"
+      "user": "?F",
+      "mode": "no-cors",
     });
   }, "Same-site script");
 </script>
@@ -40,7 +42,23 @@
     assert_header_equals(header, {
       "dest": "script",
       "site": "cross-site",
-      "user":"?F"
+      "user": "?F",
+      "mode": "no-cors",
     });
   }, "Cross-site script");
+</script>
+
+<!-- Same-origin script, CORS mode -->
+<script src="https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/echo-as-script.py" crossorigin="anonymous"></script>
+<script>
+  test(t => {
+    t.add_cleanup(_ => { header = null; });
+
+    assert_header_equals(header, {
+      "dest": "script",
+      "site": "same-origin",
+      "user": "?F",
+      "mode": "cors",
+    });
+  }, "Same-origin CORS script");
 </script>
