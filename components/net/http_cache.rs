@@ -22,7 +22,6 @@ use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
 use servo_arc::Arc;
-use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::ops::Bound;
@@ -750,11 +749,7 @@ impl HttpCache {
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub fn store(&mut self, request: &Request, response: &Response) {
-        if PREFS
-            .get("network.http-cache.disabled")
-            .as_boolean()
-            .unwrap_or(false)
-        {
+        if pref!(network.http_cache.disabled) {
             return;
         }
         if request.method != Method::GET {

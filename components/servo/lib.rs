@@ -103,7 +103,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
-use servo_config::prefs::PREFS;
+use servo_config::{pref, prefs};
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
@@ -259,7 +259,7 @@ where
         script::init();
 
         let mut webvr_heartbeats = Vec::new();
-        let webvr_services = if PREFS.is_webvr_enabled() {
+        let webvr_services = if pref!(dom.webvr.enabled) {
             let mut services = VRServiceManager::new();
             services.register_defaults();
             window.register_vr_services(&mut services, &mut webvr_heartbeats);
@@ -712,7 +712,9 @@ pub fn run_content_process(token: String) {
 
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_options(unprivileged_content.opts());
-    PREFS.extend(unprivileged_content.prefs());
+    prefs::pref_map()
+        .set_all(unprivileged_content.prefs())
+        .expect("Failed to set preferences");
     set_logger(unprivileged_content.script_to_constellation_chan().clone());
 
     // Enter the sandbox if necessary.

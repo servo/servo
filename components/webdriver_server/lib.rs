@@ -29,7 +29,7 @@ use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
 use serde_json::{self, Value};
-use servo_config::prefs::{PrefValue, PREFS};
+use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
@@ -218,9 +218,10 @@ impl Serialize for WebDriverPrefValue {
         S: Serializer,
     {
         match self.0 {
-            PrefValue::Boolean(b) => serializer.serialize_bool(b),
-            PrefValue::String(ref s) => serializer.serialize_str(&s),
-            PrefValue::Number(f) => serializer.serialize_f64(f),
+            PrefValue::Bool(b) => serializer.serialize_bool(b),
+            PrefValue::Str(ref s) => serializer.serialize_str(&s),
+            PrefValue::Float(f) => serializer.serialize_f64(f),
+            PrefValue::Int(i) => serializer.serialize_i64(i),
             PrefValue::Missing => serializer.serialize_unit(),
         }
     }
@@ -244,35 +245,35 @@ impl<'de> Deserialize<'de> for WebDriverPrefValue {
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Number(value)))
+                Ok(WebDriverPrefValue(PrefValue::Float(value)))
             }
 
             fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Number(value as f64)))
+                Ok(WebDriverPrefValue(PrefValue::Int(value)))
             }
 
             fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Number(value as f64)))
+                Ok(WebDriverPrefValue(PrefValue::Int(value as i64)))
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::String(value.to_owned())))
+                Ok(WebDriverPrefValue(PrefValue::Str(String::from(value))))
             }
 
             fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Boolean(value)))
+                Ok(WebDriverPrefValue(PrefValue::Bool(value)))
             }
         }
 
@@ -1146,7 +1147,12 @@ impl Handler {
         let prefs = parameters
             .prefs
             .iter()
-            .map(|item| (item.clone(), serde_json::to_value(PREFS.get(item)).unwrap()))
+            .map(|item| {
+                (
+                    item.clone(),
+                    serde_json::to_value(prefs::pref_map().get(item)).unwrap(),
+                )
+            })
             .collect::<BTreeMap<_, _>>();
 
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1159,7 +1165,9 @@ impl Handler {
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         for &(ref key, ref value) in parameters.prefs.iter() {
-            PREFS.set(key, value.0.clone());
+            prefs::pref_map()
+                .set(key, value.0.clone())
+                .expect("Failed to set preference");
         }
         Ok(WebDriverResponse::Void)
     }
@@ -1169,7 +1177,7 @@ impl Handler {
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let prefs = if parameters.prefs.len() == 0 {
-            PREFS.reset_all();
+            prefs::pref_map().reset_all();
             BTreeMap::new()
         } else {
             parameters
@@ -1178,7 +1186,10 @@ impl Handler {
                 .map(|item| {
                     (
                         item.clone(),
-                        serde_json::to_value(PREFS.reset(item)).unwrap(),
+                        serde_json::to_value(
+                            prefs::pref_map().reset(item).unwrap_or(PrefValue::Missing),
+                        )
+                        .unwrap(),
                     )
                 })
                 .collect::<BTreeMap<_, _>>()

@@ -136,7 +136,7 @@ use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventTyp
 use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
 use servo_atoms::Atom;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
@@ -1089,16 +1089,9 @@ impl Document {
         let opt = self.last_click_info.borrow_mut().take();
 
         if let Some((last_time, last_pos)) = opt {
-            let DBL_CLICK_TIMEOUT = Duration::from_millis(
-                PREFS
-                    .get("dom.document.dblclick_timeout")
-                    .as_u64()
-                    .unwrap_or(300),
-            );
-            let DBL_CLICK_DIST_THRESHOLD = PREFS
-                .get("dom.document.dblclick_dist")
-                .as_u64()
-                .unwrap_or(1);
+            let DBL_CLICK_TIMEOUT =
+                Duration::from_millis(pref!(dom.document.dblclick_timeout) as u64);
+            let DBL_CLICK_DIST_THRESHOLD = pref!(dom.document.dblclick_dist) as u64;
 
             // Calculate distance between this click and the previous click.
             let line = click_pos - last_pos;
@@ -2422,11 +2415,7 @@ impl Document {
         local_name: &LocalName,
         is: Option<&LocalName>,
     ) -> Option<Rc<CustomElementDefinition>> {
-        if !PREFS
-            .get("dom.customelements.enabled")
-            .as_boolean()
-            .unwrap_or(false)
-        {
+        if !pref!(dom.custom_elements.enabled) {
             return None;
         }
 
@@ -3164,11 +3153,7 @@ impl Document {
             error = true;
         }
 
-        if PREFS
-            .get("dom.fullscreen.test")
-            .as_boolean()
-            .unwrap_or(false)
-        {
+        if pref!(dom.fullscreen.test) {
             // For reftests we just take over the current window,
             // and don't try to really enter fullscreen.
             info!("Tests don't really enter fullscreen.");

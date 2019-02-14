@@ -35,7 +35,7 @@ use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
 use script_traits::{
     ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::thread;
@@ -336,10 +336,7 @@ impl ServiceWorkerGlobalScope {
                 thread::Builder::new()
                     .name("SWTimeoutThread".to_owned())
                     .spawn(move || {
-                        let sw_lifetime_timeout = PREFS
-                            .get("dom.serviceworker.timeout_seconds")
-                            .as_u64()
-                            .unwrap();
+                        let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
                         thread::sleep(Duration::new(sw_lifetime_timeout, 0));
                         let _ = timer_chan.send(());
                     })
