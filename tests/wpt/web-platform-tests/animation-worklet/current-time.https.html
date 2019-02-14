@@ -2,47 +2,63 @@
 <meta charset=utf-8>
 <title>The current time of a worklet animation</title>
 <link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
 <script src="common.js"></script>
-<body>
-<div id="log"></div>
+
+<div id="box"></div>
+
 <script>
 'use strict';
 
-const DURATION = 10000; // ms
-const KEYFRAMES = { height : ['100px', '50px'] };
+function CreateAnimation() {
+  const box = document.getElementById('box');
+  const effect = new KeyframeEffect(
+      box,
+      { height: ['100px', '50px'] },
+      10000);
 
-promise_test(async t => {
-  await registerPassthroughAnimator();
-  const animation =
-    new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(t),
-        KEYFRAMES, DURATION), document.timeline);
+  return new WorkletAnimation('passthrough', effect);
+}
 
-  animation.play();
-  assert_equals(animation.currentTime, 0,
-    'Current time returns the hold time set when entering the play-pending' +
-    'state');
-}, 'The current time returns the hold time when set');
+setup(setupAndRegisterTests, {explicit_done: true});
 
-promise_test(async t => {
-  await registerPassthroughAnimator();
-  const animation =
-    new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(t),
-        KEYFRAMES, DURATION), document.timeline);
+function setupAndRegisterTests() {
+  registerPassthroughAnimator().then(() => {
+    promise_test(async t => {
+      const animation = CreateAnimation();
+      animation.play();
 
-  // TODO(majidvp): We should use Animation.startTime here because the
-  // animation may not immediately start.
-  const startTime = document.timeline.currentTime;
-  animation.play();
-  await waitForNextFrame();
-  const timelineTime = document.timeline.currentTime;
-  assert_times_equal(animation.currentTime, (timelineTime - startTime));
-}, 'The current time is calculated from the timeline time and start time');
+      assert_equals(animation.currentTime, 0,
+        'Current time returns the hold time set when entering the play-pending' +
+        'state');
+
+      animation.cancel();
+    }, 'The current time returns the hold time when set');
+
+    promise_test(async t => {
+      const animation = CreateAnimation();
+      animation.play();
+
+      // Allow one async animation frame to pass so that animation is running.
+      await waitForAsyncAnimationFrames(1);
+      assert_equals(animation.playState, "running");
+      // Allow time to advance so that we have a non-zero current time.
+      await waitForDocumentTimelineAdvance();
+      const timelineTime = document.timeline.currentTime;
+      assert_greater_than(animation.currentTime, 0);
+      assert_times_equal(animation.currentTime, (timelineTime - animation.startTime));
+
+      animation.cancel();
+    }, 'The current time is calculated from the timeline time and start time');
+
+    done();
+  });
+}
 
 // TODO(majidvp): Add tests for playbackRate and animations that are not
 // associated with a timeline once these are supported in  WorkletAnimation.
 // http://crbug.com/833846
 </script>
-</body>
