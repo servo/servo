@@ -88,7 +88,7 @@ use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -536,11 +536,7 @@ impl LayoutThread {
                 element_inner_text_response: String::new(),
             })),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
-            timer: if PREFS
-                .get("layout.animations.test.enabled")
-                .as_boolean()
-                .unwrap_or(false)
-            {
+            timer: if pref!(layout.animations.test.enabled) {
                 Timer::test_mode()
             } else {
                 Timer::new()

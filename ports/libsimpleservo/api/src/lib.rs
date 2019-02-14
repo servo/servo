@@ -19,7 +19,7 @@ use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::opts;
-use servo::servo_config::prefs::{PrefValue, PREFS};
+use servo::servo_config::{pref, prefs::PrefValue, set_pref};
 use servo::servo_url::ServoUrl;
 use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRServiceManager};
 use servo::{self, gl, webrender_api, BrowserId, Servo};
@@ -125,17 +125,16 @@ pub fn init(
         // opts::from_cmdline_args expects the first argument to be the binary name.
         args.insert(0, "servo".to_string());
 
-        let pref = PrefValue::Boolean(init_opts.enable_subpixel_text_antialiasing);
-        PREFS.set("gfx.subpixel-text-antialiasing.enabled", pref);
+        set_pref!(
+            gfx.subpixel_text_antialiasing.enabled,
+            init_opts.enable_subpixel_text_antialiasing
+        );
         opts::from_cmdline_args(&args);
     }
 
     let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
     let cmdline_url = opts::get().url.clone();
-    let pref_url = PREFS
-        .get("shell.homepage")
-        .as_string()
-        .and_then(|s| ServoUrl::parse(s).ok());
+    let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let url = embedder_url
