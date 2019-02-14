@@ -20,8 +20,8 @@ use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacte
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use servo_config::get_pref;
 use servo_config::opts;
-use servo_config::prefs::PREFS;
 use servo_rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
@@ -65,7 +65,7 @@ pub trait BluetoothThreadFactory {
 impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
     fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let adapter = if Some(true) == PREFS.get("dom.bluetooth.enabled").as_boolean() {
+        let adapter = if get_pref!(dom.bluetooth.enabled) {
             BluetoothAdapter::init()
         } else {
             BluetoothAdapter::init_mock()

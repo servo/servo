@@ -16,6 +16,8 @@ extern crate matches;
 extern crate profile_traits;
 #[macro_use]
 extern crate serde;
+#[macro_use]
+extern crate servo_config;
 
 pub mod connector;
 pub mod cookie;
