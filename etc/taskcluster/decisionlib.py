@@ -431,14 +431,15 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             cd repo
         """
         if sparse_checkout:
+            self.with_mounts({
+                "file": "sparse-checkout",
+                "content": {"raw": "\n".join(sparse_checkout)},
+            })
             git += """
                 git config core.sparsecheckout true
-                echo %SPARSE_CHECKOUT_BASE64% > .git\\info\\sparse.b64
-                certutil -decode .git\\info\\sparse.b64 .git\\info\\sparse-checkout
+                copy ..\\sparse-checkout .git\\info\\sparse-checkout
                 type .git\\info\\sparse-checkout
             """
-            self.env["SPARSE_CHECKOUT_BASE64"] = base64.b64encode(
-                "\n".join(sparse_checkout).encode("utf-8"))
         git += """
             git fetch --depth 1 %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%
