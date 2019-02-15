@@ -12,7 +12,8 @@
     assert_header_equals(header, {
       "dest": "",
       "site": "",
-      "user": ""
+      "user": "",
+      "mode": "",
     });
   }, "Non-secure same-origin script => No headers");
 </script>
@@ -26,7 +27,8 @@
     assert_header_equals(header, {
       "dest": "",
       "site": "",
-      "user": ""
+      "user": "",
+      "mode": "",
     });
   }, "Non-secure same-site script => No headers");
 </script>
@@ -40,7 +42,8 @@
     assert_header_equals(header, {
       "dest": "",
       "site": "",
-      "user": ""
+      "user": "",
+      "mode": "",
     });
   }, "Non-secure cross-site script => No headers");
 </script>

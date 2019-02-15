@@ -14,7 +14,8 @@
       assert_header_equals(e.data, {
         "dest": "nested-document",
         "site": "same-origin",
-        "user":"?F"
+        "user": "?F",
+        "mode": "navigate"
       });
       t.done();
     }));
@@ -32,7 +33,8 @@
       assert_header_equals(e.data, {
         "dest": "nested-document",
         "site": "same-site",
-        "user": "?F"
+        "user": "?F",
+        "mode": "navigate"
       });
       t.done();
     }));
@@ -50,7 +52,8 @@
       assert_header_equals(e.data, {
         "dest": "nested-document",
         "site": "cross-site",
-        "user": "?F"
+        "user": "?F",
+        "mode": "navigate"
       });
       t.done();
     }));

@@ -54,18 +54,11 @@ class Protocol(object):
 
             msg = "Post-connection steps failed"
             self.after_connect()
-        except IOError:
-            self.logger.warning("Timed out waiting for browser to start")
-            self.executor.runner.send_message("init_failed")
-            return
         except Exception:
             if msg is not None:
                 self.logger.warning(msg)
-            self.logger.error(traceback.format_exc())
-            self.executor.runner.send_message("init_failed")
-            return
-        else:
-            self.executor.runner.send_message("init_succeeded")
+            self.logger.warning(traceback.format_exc())
+            raise
 
     @abstractmethod
     def connect(self):

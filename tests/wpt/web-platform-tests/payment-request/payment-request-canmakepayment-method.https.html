@@ -7,6 +7,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src='/resources/testdriver-vendor.js'></script>
 <script>
+"use strict";
 const basicCard = Object.freeze({ supportedMethods: "basic-card" });
 const applePay = Object.freeze({
   supportedMethods: "https://apple.com/apple-pay",
@@ -77,6 +78,40 @@ promise_test(async t => {
   ).canMakePayment();
   assert_true(await someSupported, `At least one method is expected to be supported.`);
 }, `Mix of supported and unsupported methods, at least one method is supported.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [acceptPromise, canMakePaymentPromise] = await test_driver.bless(
+    "show payment request",
+    () => {
+      const acceptPromise = request.show(); // Sets state to "interactive"
+      const canMakePaymentPromise = request.canMakePayment();
+      return [acceptPromise, canMakePaymentPromise];
+    });
+
+  await promise_rejects(t, "InvalidStateError", canMakePaymentPromise);
+  request.abort();
+  await promise_rejects(t, "AbortError", acceptPromise);
+
+  // The state should be "closed"
+  await promise_rejects(t, "InvalidStateError", request.canMakePayment());
+}, 'If request.[[state]] is "interactive", then return a promise rejected with an "InvalidStateError" DOMException.');
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [abortPromise, acceptPromise] = await test_driver.bless(
+    "show payment request",
+    () => {
+      const acceptPromise = request.show(); // Sets state to "interactive"
+      acceptPromise.catch(() => {}); // no-op, just to silence unhandled rejection in devtools.
+      const abortPromise = request.abort();  // Sets state to "closed"
+      return [abortPromise, acceptPromise];
+    });
+
+  await abortPromise;
+  await promise_rejects(t, "AbortError", acceptPromise);
+  await promise_rejects(t, "InvalidStateError", request.canMakePayment());
+}, 'If request.[[state]] is "closed", then return a promise rejected with an "InvalidStateError" DOMException.');
 </script>
 
 <small>

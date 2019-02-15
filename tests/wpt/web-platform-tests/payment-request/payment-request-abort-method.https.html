@@ -47,6 +47,46 @@ promise_test(async t => {
   const promises = new Set([request.abort(), request.abort(), request.abort()]);
   assert_equals(promises.size, 3, "Must have three unique objects");
 }, "Calling abort() multiple times is always a new object.");
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [abortPromise, acceptPromise] = await test_driver.bless(
+    "show payment request",
+    () => {
+      const acceptPromise = request.show()
+      acceptPromise.catch(() => {}); // no-op, just to silence unhandled rejection in devtools.
+      const abortPromise = request.abort();
+      return [abortPromise, acceptPromise];
+    });
+
+  await abortPromise;
+  await promise_rejects(t, "AbortError", acceptPromise);
+  // As request is now "closed", trying to show it will fail
+  await promise_rejects(t, "InvalidStateError", request.show());
+}, "The same request cannot be shown multiple times.");
+
+promise_test(async t => {
+  // request is in "created" state.
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  await promise_rejects(t, "InvalidStateError", request.abort());
+  // Call it again, for good measure.
+  await promise_rejects(t, "InvalidStateError", request.abort());
+  // The request's state is "created", so let's show it
+  // which changes the state to "interactive.".
+  const [abortPromise, acceptPromise] = await test_driver.bless(
+    "show payment request",
+    () => {
+      const acceptPromise = request.show()
+      // Let's set request the state to "closed" by calling .abort()
+      const abortPromise = request.abort();
+      return [abortPromise, acceptPromise];
+    });
+
+  await abortPromise;
+  // The request is now "closed", so...
+  await promise_rejects(t, "InvalidStateError", request.abort());
+  await promise_rejects(t, "AbortError", acceptPromise);
+}, "Aborting a request before it is shown doesn't prevent it from being shown later.");
 </script>
 <small>
   If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
