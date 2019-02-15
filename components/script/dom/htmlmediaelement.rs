@@ -1771,6 +1771,11 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
+        if &local_name!("muted") == attr.local_name() {
+            self.SetMuted(mutation.new_value(attr).is_some());
+            return;
+        }
+
         if mutation.new_value(attr).is_none() {
             return;
         }
