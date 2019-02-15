@@ -257,10 +257,11 @@ where
         // can't defer it after `create_constellation` has started.
         script::init();
 
+        let mut webvr_heartbeats = Vec::new();
         let webvr_services = if PREFS.is_webvr_enabled() {
             let mut services = VRServiceManager::new();
             services.register_defaults();
-            window.register_vr_services(&mut services);
+            window.register_vr_services(&mut services, &mut webvr_heartbeats);
             Some(services)
         } else {
             None
@@ -307,6 +308,7 @@ where
                 webrender,
                 webrender_document,
                 webrender_api,
+                webvr_heartbeats,
             },
         );
 

@@ -43,6 +43,7 @@ use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollLocation};
+use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -176,6 +177,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The webrender interface, if enabled.
     webrender_api: webrender_api::RenderApi,
 
+    /// Some VR displays want to be sent a heartbeat from the main thread.
+    webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
+
     /// Map of the pending paint metrics per layout thread.
     /// The layout thread for each specific pipeline expects the compositor to
     /// paint frames with specific given IDs (epoch). Once the compositor paints
@@ -283,6 +287,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
+            webvr_heartbeats: state.webvr_heartbeats,
             pending_paint_metrics: HashMap::new(),
         }
     }
@@ -919,7 +924,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 pipeline_ids.push(*pipeline_id);
             }
         }
-        let animation_state = if pipeline_ids.is_empty() {
+        let animation_state = if pipeline_ids.is_empty() && !self.webvr_heartbeats_racing() {
             windowing::AnimationState::Idle
         } else {
             windowing::AnimationState::Animating
@@ -928,6 +933,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for pipeline_id in &pipeline_ids {
             self.tick_animations_for_pipeline(*pipeline_id)
         }
+    }
+
+    fn webvr_heartbeats_racing(&self) -> bool {
+        self.webvr_heartbeats.iter().any(|hb| hb.heart_racing())
     }
 
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
@@ -1284,6 +1293,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 
+        // Send every VR display that wants one a main-thread heartbeat
+        for webvr_heartbeat in &mut self.webvr_heartbeats {
+            webvr_heartbeat.heartbeat();
+        }
+
         self.process_animations();
         self.waiting_for_results_of_scroll = false;
 
@@ -1338,6 +1352,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
         if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
             self.zoom_action = false;
+        }
+
+        if self.window.get_animation_state() == windowing::AnimationState::Animating {
+            self.composite_if_necessary(CompositingReason::Animation);
         }
 
         match self.composition_request {
