@@ -57,6 +57,7 @@ include = [
   "CursorKind",
   "Display",
   "DisplayMode",
+  "PrefersColorScheme",
   "ExtremumLength",
   "FillRule",
   "FontDisplay",
