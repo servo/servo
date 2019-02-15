@@ -280,6 +280,16 @@ enum PrefersReducedMotion {
     Reduce,
 }
 
+/// Values for the prefers-color-scheme media feature.
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
+#[repr(u8)]
+#[allow(missing_docs)]
+pub enum PrefersColorScheme {
+    Light,
+    Dark,
+    NoPreference,
+}
+
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
 fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReducedMotion>) -> bool {
     let prefers_reduced =
@@ -345,6 +355,16 @@ fn eval_overflow_inline(device: &Device, query_value: Option<OverflowInline>) ->
     match query_value {
         OverflowInline::None => !scrolling,
         OverflowInline::Scroll => scrolling,
+    }
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
+fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+    let prefers_color_scheme =
+        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document()) };
+    match query_value {
+        Some(v) => prefers_color_scheme == v,
+        None => prefers_color_scheme != PrefersColorScheme::NoPreference,
     }
 }
 
@@ -526,7 +546,7 @@ lazy_static! {
     /// to support new types in these entries and (2) ensuring that either
     /// nsPresContext::MediaFeatureValuesChanged is called when the value that
     /// would be returned by the evaluator function could change.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 52] = [
+    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 53] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
@@ -655,6 +675,12 @@ lazy_static! {
             atom!("overflow-inline"),
             AllowsRanges::No,
             keyword_evaluator!(eval_overflow_inline, OverflowInline),
+            ParsingRequirements::empty(),
+        ),
+        feature!(
+            atom!("prefers-color-scheme"),
+            AllowsRanges::No,
+            keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
             ParsingRequirements::empty(),
         ),
         feature!(
