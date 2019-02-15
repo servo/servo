@@ -51,6 +51,7 @@ lazy_static = "1"
 libservo = {path = "../../components/servo"}
 libc = "0.2"
 log = "0.4"
+rust-webvr = { version = "0.10.2", features = ["glwindow"] }
 tinyfiledialogs = "3.0"
 winit = {version = "0.18", features = ["icon_loading"]}
 

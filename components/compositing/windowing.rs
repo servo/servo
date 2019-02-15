@@ -19,6 +19,7 @@ use std::rc::Rc;
 use style_traits::DevicePixel;
 use webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, ScrollLocation};
 use webvr::VRServiceManager;
+use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -147,7 +148,12 @@ pub trait WindowMethods {
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
     /// Register services with a VRServiceManager.
-    fn register_vr_services(&self, _: &mut VRServiceManager) {}
+    fn register_vr_services(
+        &self,
+        _: &mut VRServiceManager,
+        _: &mut Vec<Box<WebVRMainThreadHeartbeat>>,
+    ) {
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
