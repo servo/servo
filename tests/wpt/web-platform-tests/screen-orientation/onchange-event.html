@@ -3,13 +3,20 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
   const type = screen.orientation.type;
   screen.orientation.onchange = t.unreached_func("change event should not be fired");
   await screen.orientation.lock(type);
   assert_equals(screen.orientation.type, type);
+  return document.exitFullscreen();
 }, "Test that orientationchange event is not fired when the orientation does not change.");
 
 promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
   let orientations = [
     'portrait-primary',
     'portrait-secondary',
@@ -27,5 +34,6 @@ promise_test(async t => {
     assert_equals(screen.orientation.type, orientation);
   }
   screen.orientation.unlock();
+  return document.exitFullscreen();
 }, "Test that orientationchange event is fired when the orientation changes.");
 </script>

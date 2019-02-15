@@ -78,12 +78,12 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
 [SecureContext, Exposed=Window] interface XRFrame {
   readonly attribute XRSession session;
 
-  XRViewerPose? getViewerPose(optional XRReferenceSpace referenceSpace);
-  XRInputPose? getInputPose(XRInputSource inputSource, optional XRReferenceSpace referenceSpace);
+  XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
+  XRPose? getPose(XRSpace space, XRSpace relativeTo);
 };
 
 [SecureContext, Exposed=Window] interface XRSpace : EventTarget {
-  XRRigidTransform? getTransformTo(XRSpace other);
+
 };
 
 enum XRReferenceSpaceType {
@@ -159,8 +159,12 @@ interface XRRay {
   readonly attribute Float32Array matrix;
 };
 
-[SecureContext, Exposed=Window] interface XRViewerPose {
+[SecureContext, Exposed=Window] interface XRPose {
   readonly attribute XRRigidTransform transform;
+  readonly attribute boolean emulatedPosition;
+};
+
+[SecureContext, Exposed=Window] interface XRViewerPose : XRPose {
   readonly attribute FrozenArray<XRView> views;
 };
 
@@ -180,13 +184,8 @@ enum XRTargetRayMode {
 interface XRInputSource {
   readonly attribute XRHandedness handedness;
   readonly attribute XRTargetRayMode targetRayMode;
-};
-
-[SecureContext, Exposed=Window]
-interface XRInputPose {
-  readonly attribute boolean emulatedPosition;
-  readonly attribute XRRay targetRay;
-  readonly attribute XRRigidTransform? gripTransform;
+  readonly attribute XRSpace targetRaySpace;
+  readonly attribute XRSpace? gripSpace;
 };
 
 [SecureContext, Exposed=Window] interface XRLayer {};

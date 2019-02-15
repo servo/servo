@@ -36,7 +36,7 @@
             .then(t.step_func(e => {
                 assert_equals(e.blockedURI, "inline");
                 assert_equals(e.lineNumber, 118);
-                assert_equals(e.columnNumber, 4);
+                assert_in_array(e.columnNumber, [4, 6]);
                 assert_equals(e.target, document, "Elements created in this document, but pushed into a same-origin frame trigger on that frame's document, not on this frame's document.");
                 return watcher.wait_for('securitypolicyviolation');
             }))
@@ -50,7 +50,7 @@
             .then(t.step_func(e => {
                 assert_equals(e.blockedURI, "inline");
                 assert_equals(e.lineNumber, 139);
-                assert_equals(e.columnNumber, 4);
+                assert_in_array(e.columnNumber, [4, 6]);
                 assert_equals(e.target, document, "Inline event handlers for disconnected elements target the document.");
                 return watcher.wait_for('securitypolicyviolation');
             }))

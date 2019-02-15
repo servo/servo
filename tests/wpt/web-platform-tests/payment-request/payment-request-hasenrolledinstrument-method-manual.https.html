@@ -57,45 +57,6 @@ function testHasEnrolledInstrumentAgain() {
     );
   }, `hasEnrolledInstrument() can be called multiple times if the payment method details are identical.`);
 }
-
-function testInteractiveState() {
-  promise_test(async t => {
-    const request = new PaymentRequest(defaultMethods, defaultDetails);
-    const acceptPromise = request.show();  // Sets state to "interactive"
-    const hasEnrolledInstrumentPromise = request.hasEnrolledInstrument();
-    try {
-      const result = await hasEnrolledInstrumentPromise;
-      assert_true(
-        false,
-        "hasEnrolledInstrument() should have thrown InvalidStateError"
-      );
-    } catch(err) {
-      await promise_rejects(t, "InvalidStateError", hasEnrolledInstrumentPromise);
-    } finally {
-      request.abort();
-      await promise_rejects(t, "AbortError", acceptPromise);
-    }
-  }, `If request.[[state]] is "interactive", then return a promise rejected with an "InvalidStateError" DOMException.`);
-}
-
-function testClosedState() {
-  promise_test(async t => {
-    const request = new PaymentRequest(defaultMethods, defaultDetails);
-    const acceptPromise = request.show();  // Sets state to "interactive"
-    acceptPromise.catch(() => {});  // no-op, just to handle unhandled rejection in devtools.
-    await request.abort();  // Sets state to "closed"
-    const hasEnrolledInstrumentPromise = request.hasEnrolledInstrument();
-    try {
-      const result = await hasEnrolledInstrumentPromise;
-      assert_true(
-        false,
-        "hasEnrolledInstrument() should have thrown InvalidStateError"
-      );
-    } catch(err) {
-      await promise_rejects(t, "InvalidStateError", hasEnrolledInstrumentPromise);
-    }
-  }, `If request.[[state]] is "closed", then return a promise rejected with an "InvalidStateError" DOMException.`);
-}
 </script>
 
 <h2>Manual tests for hasEnrolledInstrument() method</h2>
@@ -122,18 +83,6 @@ function testClosedState() {
     <button onclick="testHasEnrolledInstrumentAgain()">
       hasEnrolledInstrument() can be called multiple times if the payment method
       details are identical.
-    </button>
-  </li>
-  <li>
-    <button onclick="testInteractiveState()">
-      If request.[[state]] is "interactive", then return a promise rejected with
-      an "InvalidStateError" DOMException.
-    </button>
-  </li>
-  <li>
-    <button onclick="testClosedState()">
-      If request.[[state]] is "closed", then return a promise rejected with an
-      "InvalidStateError" DOMException.
     </button>
   </li>
   <li>

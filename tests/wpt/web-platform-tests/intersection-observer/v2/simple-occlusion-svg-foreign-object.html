@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body, html {
+  margin: 0;
+}
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+#occluder {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+</style>
+
+<div id="target"></div>
+<svg id="svg" style="display: block">
+  <foreignObject>
+    <div id="occluder"></div>
+  </foreignObject>
+</svg>
+
+<script>
+var delay = 100;
+var entries = [];
+var target;
+var occluder;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  occluder = document.getElementById("occluder");
+  assert_true(!!target, "target exists");
+  assert_true(!!occluder, "occluder exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {trackVisibility: true, delay: delay});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.", delay);
+}, "IntersectionObserverV2 in a single document using the implicit root, with an occluding element.", delay);
+
+function step0() {
+  svg.style.marginTop = "-10px";
+  runTestCycle(step1, "svg.style.marginTop = '-10px'", delay);
+  checkLastEntry(entries, 0, [0, 100, 0, 100, 0, 100, 0, 100, 0, 800, 0, 600, true, true]);
+}
+
+function step1() {
+  // Occluding elements with opacity=0 should not affect target visibility.
+  svg.style.opacity = "0";
+  runTestCycle(step2, "occluder.style.opacity = 0", delay);
+  checkLastEntry(entries, 1, [0, 100, 0, 100, 0, 100, 0, 100, 0, 800, 0, 600, true, false]);
+}
+
+function step2() {
+  checkLastEntry(entries, 2, [0, 100, 0, 100, 0, 100, 0, 100, 0, 800, 0, 600, true, true]);
+}
+</script>

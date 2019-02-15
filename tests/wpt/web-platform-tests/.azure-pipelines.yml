@@ -214,15 +214,11 @@ jobs:
 - job: all_post
   displayName: 'all tests (wpt.fyi hook)'
   dependsOn: all_macOS
-  pool: server
+  pool:
+    vmImage: 'ubuntu-16.04'
   steps:
-  - task: InvokeRESTAPI@1
+  - script: curl -s -S https://wpt.fyi/api/checks/azure/$(Build.BuildId)
     displayName: 'Invoke wpt.fyi hook'
-    inputs:
-      serviceConnection: wpt.fyi
-      urlSuffix: /api/checks/azure/$(Build.BuildId)
-  - task: InvokeRESTAPI@1
+  - script: curl -s -S https://staging.wpt.fyi/api/checks/azure/$(Build.BuildId)
     displayName: 'Invoke staging.wpt.fyi hook'
-    inputs:
-      serviceConnection: staging.wpt.fyi
-      urlSuffix: /api/checks/azure/$(Build.BuildId)
+    condition: succeededOrFailed()
