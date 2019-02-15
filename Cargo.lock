@@ -456,6 +456,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "cbindgen"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "clap 2.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.15.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tempfile 3.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3960,6 +3975,7 @@ dependencies = [
 name = "simpleservo_capi"
 version = "0.0.1"
 dependencies = [
+ "cbindgen 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "simpleservo 0.0.1",
@@ -5097,6 +5113,7 @@ dependencies = [
 "checksum bzip2 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "42b7c3cbf0fa9c1b82308d57191728ca0256cb821220f4e2fd410a72ade26e3b"
 "checksum bzip2-sys 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2c5162604199bbb17690ede847eaa6120a3f33d5ab4dcc8e7c25b16d849ae79b"
 "checksum caseless 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "808dab3318747be122cb31d36de18d4d1c81277a76f8332a02b81a3d73463d7f"
+"checksum cbindgen 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0ae5776bf2f6d5ff4f07eb63aa666fd9e1dbe0fe4b87f0fa32b469efae2940f7"
 "checksum cc 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)" = "2119ea4867bd2b8ed3aecab467709720b2d55b1bcfe09f772fd68066eaf15275"
 "checksum cesu8 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
 "checksum cexpr 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8fc0086be9ca82f7fc89fc873435531cb898b86e850005850de1f820e2db6e9b"

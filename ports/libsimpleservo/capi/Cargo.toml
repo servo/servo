@@ -17,6 +17,9 @@ simpleservo = { path = "../api" }
 log = "0.4"
 env_logger = "0.6"
 
+[build-dependencies]
+cbindgen = "0.8"
+
 [features]
 default = ["unstable", "default-except-unstable"]
 default-except-unstable = ["webdriver", "max_log_level"]
