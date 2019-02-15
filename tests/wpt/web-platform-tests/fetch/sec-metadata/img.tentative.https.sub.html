@@ -21,7 +21,8 @@
         assert_header_equals(got, {
           "dest": "image",
           "site": "same-origin",
-          "user": "?F"
+          "user": "?F",
+          "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
         });
       }),
       [],
@@ -42,7 +43,8 @@
         assert_header_equals(got, {
           "dest": "image",
           "site": "same-site",
-          "user": "?F"
+          "user": "?F",
+          "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
         });
       }),
       [],
@@ -63,7 +65,8 @@
         assert_header_equals(got, {
           "dest": "image",
           "site": "cross-site",
-          "user": "?F"
+          "user": "?F",
+          "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
         });
       }),
       [],

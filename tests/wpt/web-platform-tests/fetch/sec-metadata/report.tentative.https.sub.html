@@ -22,9 +22,9 @@
     document.addEventListener("securitypolicyviolation", (e) => {
       counter++;
       if (counter == 3) {
-        generate_test({"dest":"report", "site":"same-origin", "user":"?F"}, "same-origin");
-        generate_test({"dest":"report", "site":"same-site", "user":"?F"}, "same-site");
-        generate_test({"dest":"report", "site":"cross-site", "user":"?F"}, "cross-site");
+        generate_test({"dest":"report", "site":"same-origin", "user":"?F", "mode": "no-cors"}, "same-origin");
+        generate_test({"dest":"report", "site":"same-site", "user":"?F", "mode": "no-cors"}, "same-site");
+        generate_test({"dest":"report", "site":"cross-site", "user":"?F", "mode": "no-cors"}, "cross-site");
       }
     });
   }, "Initialization.");

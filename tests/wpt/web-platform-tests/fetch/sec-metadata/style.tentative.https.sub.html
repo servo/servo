@@ -14,7 +14,7 @@
       e.rel = "stylesheet";
       e.href = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"style", "site":"same-origin", "user":"?F"};
+        let expected = {"dest":"style", "site":"same-origin", "user":"?F", "mode": "no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -34,7 +34,7 @@
       e.rel = "stylesheet";
       e.href = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"style", "site":"same-site", "user":"?F"};
+        let expected = {"dest":"style", "site":"same-site", "user":"?F", "mode": "no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -54,7 +54,7 @@
       e.rel = "stylesheet";
       e.href = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"style", "site":"cross-site", "user":"?F"};
+        let expected = {"dest":"style", "site":"cross-site", "user":"?F", "mode": "no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -65,6 +65,27 @@
       document.body.appendChild(e);
     })
   }, "Cross-Site style");
+
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "style-same-origin";
+
+      let e = document.createElement('link');
+      e.rel = "stylesheet";
+      e.href = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
+      e.crossOrigin = "anonymous";
+      e.onload = e => {
+        let expected = {"dest":"style", "site":"same-origin", "user":"?F", "mode": "cors"};
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
+
+      document.body.appendChild(e);
+    })
+  }, "Same-Origin, cors style");
 </script>
 </html>
 

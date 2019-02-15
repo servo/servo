@@ -141,12 +141,12 @@ function client_message_queue_enable_test(
     earliest_dispatch,
     description)
 {
-    function later_state(state1, state2) {
+    function assert_state_less_than_equal(state1, state2, explanation) {
         const states = ['init', 'install', 'start', 'finish', 'loaded'];
         const index1 = states.indexOf(state1);
         const index2 = states.indexOf(state2);
-        const max_index = Math.max(index1, index2);
-        return states[max_index];
+        if (index1 > index2)
+          assert_unreached(explanation);
     }
 
     client_message_queue_test('enable-client-message-queue.html', async t => {
@@ -161,12 +161,13 @@ function client_message_queue_enable_test(
 
         // Wait for all messages to get dispatched on the child's
         // ServiceWorkerContainer and then verify that each message
-        // was dispatched while the child was in the correct state.
+        // was dispatched after |earliest_dispatch|.
         const report = await t.frame.report;
         ['init', 'install', 'start'].forEach(state => {
-            const dispatch = later_state(state, earliest_dispatch);
-            assert_equals(report[state], dispatch,
-                          `Message sent in state '${state}' dispatched in state '${dispatch}'`);
+            const explanation = `Message sent in state '${state}' was dispatched in '${report[state]}', should be dispatched no earlier than '${earliest_dispatch}'`;
+            assert_state_less_than_equal(earliest_dispatch,
+                                         report[state],
+                                         explanation);
         });
     }, description);
 }

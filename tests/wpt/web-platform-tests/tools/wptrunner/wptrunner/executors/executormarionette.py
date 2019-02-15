@@ -511,12 +511,13 @@ class MarionetteProtocol(Protocol):
         pass
 
     def teardown(self):
-        try:
-            self.marionette._request_in_app_shutdown()
-            self.marionette.delete_session(send_request=False)
-        except Exception:
-            # This is typically because the session never started
-            pass
+        if self.marionette and self.marionette.session_id:
+            try:
+                self.marionette._request_in_app_shutdown()
+                self.marionette.delete_session(send_request=False)
+            except Exception:
+                # This is typically because the session never started
+                pass
         if self.marionette is not None:
             del self.marionette
         super(MarionetteProtocol, self).teardown()
@@ -769,9 +770,10 @@ class MarionetteRefTestExecutor(RefTestExecutor):
     def teardown(self):
         try:
             self.implementation.teardown()
-            handles = self.protocol.marionette.window_handles
-            if handles:
-                self.protocol.marionette.switch_to_window(handles[0])
+            if self.protocol.marionette and self.protocol.marionette.session_id:
+                handles = self.protocol.marionette.window_handles
+                if handles:
+                    self.protocol.marionette.switch_to_window(handles[0])
             super(self.__class__, self).teardown()
         except Exception as e:
             # Ignore errors during teardown
@@ -877,8 +879,9 @@ class InternalRefTestImplementation(object):
 
     def teardown(self):
         try:
-            self.executor.protocol.marionette._send_message("reftest:teardown", {})
-            self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CONTENT)
+            if self.executor.protocol.marionette and self.executor.protocol.marionette.session_id:
+                self.executor.protocol.marionette._send_message("reftest:teardown", {})
+                self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CONTENT)
         except Exception as e:
             # Ignore errors during teardown
             self.logger.warning(traceback.format_exc(e))

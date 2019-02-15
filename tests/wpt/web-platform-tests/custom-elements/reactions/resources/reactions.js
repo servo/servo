@@ -168,6 +168,41 @@ function testReflectBooleanAttribute(jsAttributeName, contentAttributeName, name
     testReflectAttributeWithContentValues(jsAttributeName, contentAttributeName, true, '', false, null, name, elementName, interfaceName);
 }
 
+function testReflectAttributeWithContentValuesAndParentNode(jsAttributeName, contentAttributeName, validValue1, contentValue1, validValue2, contentValue2, name, elementName, getParentElement, interfaceName) {
+    let parentElement = getParentElement();
+
+    test(() => {
+        let element = define_build_in_custom_element([contentAttributeName], interfaceName, elementName);
+        let instance = document.createElement(elementName, { is: element.name });
+
+        assert_array_equals(element.takeLog().types(), ['constructed']);
+        parentElement.appendChild(instance);
+        assert_array_equals(element.takeLog().types(), ['connected']);
+        instance[jsAttributeName] = validValue1;
+        let logEntries = element.takeLog();
+        assert_array_equals(logEntries.types(), ['attributeChanged']);
+        assert_attribute_log_entry(logEntries.last(), { name: contentAttributeName, oldValue: null, newValue: contentValue1, namespace: null });
+}, name + ' must enqueue an attributeChanged reaction when adding a new attribute');
+
+    test(() => {
+        let element = define_build_in_custom_element([contentAttributeName], interfaceName, elementName);
+        let instance = document.createElement(elementName, { is: element.name });
+        parentElement.appendChild(instance);
+
+        assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
+        instance[jsAttributeName] = validValue1;
+        assert_array_equals(element.takeLog().types(), ['attributeChanged']);
+        instance[jsAttributeName] = validValue2;
+        let logEntries = element.takeLog();
+        assert_array_equals(logEntries.types(), ['attributeChanged']);
+        assert_attribute_log_entry(logEntries.last(), { name: contentAttributeName, oldValue: contentValue1, newValue: contentValue2, namespace: null });
+    }, name + ' must enqueue an attributeChanged reaction when replacing an existing attribute');
+}
+
+function testReflectAttributeWithParentNode(jsAttributeName, contentAttributeName, validValue1, validValue2, name, elementName, getParentElement, interfaceName) {
+    testReflectAttributeWithContentValuesAndParentNode(jsAttributeName, contentAttributeName, validValue1, validValue1, validValue2, validValue2, name, elementName, getParentElement, interfaceName);
+}
+
 function testAttributeAdder(testFunction, name) {
     test(function () {
         var element = define_new_custom_element(['id']);

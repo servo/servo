@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<head>
+<title>PerformanceObserver.supportedEntryTypes contains "layoutJank"</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  if (typeof PerformanceObserver.supportedEntryTypes === "undefined")
+    assert_unreached("supportedEntryTypes is not supported.");
+  assert_greater_than(PerformanceObserver.supportedEntryTypes.indexOf("layoutJank"), -1,
+    "There should be an entry 'layoutJank' in PerformanceObserver.supportedEntryTypes");
+}, "supportedEntryTypes contains 'layoutJank'.");
+</script>
+</body>
+</html>

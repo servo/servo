@@ -469,7 +469,7 @@ class Chrome(Browser):
                 return None
             m = re.match(r"Google Chrome (.*)", version_string)
             if not m:
-                self.logger.warning("Failed to extract version from: s%", version_string)
+                self.logger.warning("Failed to extract version from: %s", version_string)
                 return None
             return m.group(1)
         self.logger.warning("Unable to extract version from binary on Windows.")
@@ -667,7 +667,7 @@ class Safari(Browser):
             return None
         m = re.match(r"Included with Safari (.*)", version_string)
         if not m:
-            self.logger.warning("Failed to extract version from: s%", version_string)
+            self.logger.warning("Failed to extract version from: %s", version_string)
             return None
         return m.group(1)
 

@@ -7,10 +7,19 @@
 <script src="/resources/testdriver.js"></script>
 <script src='/resources/testdriver-vendor.js'></script>
 <script>
+"use strict";
 const unsupportedMethods = [
   { supportedMethods: "this-is-not-supported" },
   { supportedMethods: "https://not.supported" },
 ];
+const defaultMethods = Object.freeze([
+  {
+    supportedMethods: "basic-card",
+    data: {
+      supportedNetworks: [ 'visa' ],
+    },
+  }
+]);
 const defaultDetails = Object.freeze({
   total: {
     label: "Total",
@@ -25,9 +34,39 @@ promise_test(async t => {
   const request = new PaymentRequest(unsupportedMethods, defaultDetails);
   assert_false(
     await request.hasEnrolledInstrument(),
-    "Payment method is supported."
+    "hasEnrolledInstrument() should resolve to false."
   );
 }, `hasEnrolledInstrument() resolves to false for unsupported payment methods.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [acceptPromise, hasEnrolledInstrumentPromise] = await test_driver.bless(
+      "show payment request",
+      () => {
+        const acceptPromise = request.show();  // Sets state to "interactive"
+        const hasEnrolledInstrumentPromise = request.hasEnrolledInstrument();
+        return [acceptPromise, hasEnrolledInstrumentPromise];
+      });
+  await promise_rejects(t, "InvalidStateError", hasEnrolledInstrumentPromise);
+
+  await request.abort();
+  await promise_rejects(t, "AbortError", acceptPromise);
+}, `If request.[[state]] is "interactive", then return a promise rejected with an "InvalidStateError" DOMException.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [abortPromise, acceptPromise] = await test_driver.bless( "show payment request", () => {
+    const acceptPromise = request.show();  // Sets state to "interactive"
+    acceptPromise.catch(() => {});  // no-op, just to handle unhandled rejection in devtools.
+    const abortPromise =request.abort();  // Sets state to "closed"
+    return [abortPromise, acceptPromise];
+  });
+  await abortPromise;
+  await promise_rejects(t, "AbortError", acceptPromise);
+
+  const hasEnrolledInstrumentPromise = request.hasEnrolledInstrument();
+  await promise_rejects(t, "InvalidStateError", hasEnrolledInstrumentPromise);
+}, `If request.[[state]] is "closed", then return a promise rejected with an "InvalidStateError" DOMException.`);
 </script>
 
 <small>

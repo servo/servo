@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+</style>
+
+<div id="container">
+  <iframe src="http://{{domains[www1]}}:{{ports[http][0]}}/intersection-observer/resources/v2-subframe.html"></iframe>
+</div>
+
+<script>
+async_test(function(t) {
+  let container = document.getElementById("container");
+  let iframe = document.querySelector("iframe");
+
+  function step0(event) {
+    assert_equals(event.data,"");
+  }
+
+  function step1(event) {
+    container.style.opacity = "0.99";
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([true]));
+  }
+
+  function step2(event) {
+    container.style.opacity = "";
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([false]));
+  }
+
+  function step3(event) {
+    container.style.transform = "skew(30deg)";
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([true]));
+  }
+
+  function step4(event) {
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([false]));
+  }
+
+  let steps = [step0, step1, step2, step3, step4];
+
+  window.addEventListener("message", event => {
+    if (steps.length) {
+      t.step_func(steps.shift(), event);
+      waitForFrame(t, () => {
+        iframe.contentWindow.postMessage("", "*")
+      });
+    } else {
+      t.done();
+    }
+  });
+
+}, "Intersection observer V2 test with visual effects on iframe.");
+</script>

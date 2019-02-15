@@ -272,4 +272,7 @@ gen-signedexchange \
   -miRecordSize 100 \
   -ignoreErrors true
 
+# Signed Exchange with payload integrity error.
+echo 'garbage' | cat sxg/sxg-location.sxg - >sxg/sxg-merkle-integrity-error.sxg
+
 rm -fr $tmpdir
