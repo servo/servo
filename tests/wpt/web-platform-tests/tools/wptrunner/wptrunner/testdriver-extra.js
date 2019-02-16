@@ -51,6 +51,8 @@
         return selector;
     };
 
+    window.test_driver_internal.in_automation = true;
+
     window.test_driver_internal.click = function(element) {
         const selector = get_selector(element);
         const pending_promise = new Promise(function(resolve, reject) {

@@ -1,9 +1,10 @@
 def main(request, response):
 
-    cookie = request.cookies.first("Count", None)
+    token = request.GET.first("token", None)
+    value = request.server.stash.take(token)
     count = 0
-    if cookie != None:
-      count = int(cookie.value)
+    if value != None:
+      count = int(value)
     if request.GET.first("query", None) != None:
       headers = [("Count", count)]
       content = ""
@@ -15,6 +16,7 @@ def main(request, response):
         content = "body { background: rgb(255, 0, 0); }"
 
       headers = [("Content-Type", "text/css"),
-               ("Set-Cookie", "Count={}".format(count)),
-               ("Cache-Control", "private, max-age=0, stale-while-revalidate=10")]
+               ("Cache-Control", "private, max-age=0, stale-while-revalidate=60")]
+
+      request.server.stash.put(token, count)
       return 200, headers, content

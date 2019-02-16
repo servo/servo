@@ -16,15 +16,15 @@ function getParentElement(parentElementName) {
   return parentElement;
 }
 
-testReflectAttributeWithContentValues('autofocus', 'autofocus', true, 'true', false, 'false', 'autofocus on HTMLButtonElement', 'button', HTMLButtonElement);
-testReflectAttributeWithContentValues('disabled', 'disabled', true, 'true', false, 'false', 'disabled on HTMLButtonElement', 'button', HTMLButtonElement);
+testReflectBooleanAttribute('autofocus', 'autofocus', 'autofocus on HTMLButtonElement', 'button', HTMLButtonElement);
+testReflectBooleanAttribute('disabled', 'disabled', 'disabled on HTMLButtonElement', 'button', HTMLButtonElement);
 testReflectAttribute('name', 'name', 'intel', 'intel1', 'name on HTMLButtonElement', 'button', HTMLButtonElement);
 testReflectAttribute('value', 'value', 'HTML', 'CSS', 'value on HTMLButtonElement', 'button', HTMLButtonElement);
 testReflectAttributeWithParentNode('type', 'type', 'submit', 'reset', 'type on HTMLButtonElement', 'button', () => getParentElement('form'), HTMLButtonElement);
 testReflectAttrWithDepAttr('formAction', 'formaction', 'type', 'intel.asp', 'intel1.asp', 'submit', 'formAction on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
 testReflectAttrWithDepAttr('formEnctype', 'formenctype', 'type', 'text/plain', 'multipart/form-data', 'submit', 'formEnctype on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
 testReflectAttrWithDepAttr('formMethod', 'formmethod', 'type', 'get', 'post', 'submit', 'formMethod on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
-testReflectAttrWithContentValuesAndDepAttr('formNoValidate', 'formnovalidate', 'type', true, 'true', false, 'false', 'submit', 'formNoValidate on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
+testReflectAttrWithContentValuesAndDepAttr('formNoValidate', 'formnovalidate', 'type', true, '', false, null, 'submit', 'formNoValidate on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
 testReflectAttrWithDepAttr('formTarget', 'formtarget', 'type', '_blank', '_self', 'submit', 'formTarget on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
 
 //In parent node, sub node's observeAttribute which depends another attribute can enqueue by changing attribute value
