@@ -322,29 +322,4 @@ impl Activatable for HTMLButtonElement {
             _ => (),
         }
     }
-
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
-    #[allow(unsafe_code)]
-    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
-        let doc = document_from_node(self);
-        let node = doc.upcast::<Node>();
-        let owner = self.form_owner();
-        if owner.is_none() || self.upcast::<Element>().click_in_progress() {
-            return;
-        }
-        node.query_selector_iter(DOMString::from("button[type=submit]"))
-            .unwrap()
-            .filter_map(DomRoot::downcast::<HTMLButtonElement>)
-            .find(|r| r.form_owner() == owner)
-            .map(|s| {
-                synthetic_click_activation(
-                    s.as_element(),
-                    ctrl_key,
-                    shift_key,
-                    alt_key,
-                    meta_key,
-                    ActivationSource::NotFromClick,
-                )
-            });
-    }
 }

@@ -575,16 +575,6 @@ impl Activatable for HTMLAnchorElement {
         //TODO: Download the link is `download` attribute is set.
         follow_hyperlink(element, ismap_suffix);
     }
-
-    //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
-    fn implicit_submission(
-        &self,
-        _ctrl_key: bool,
-        _shift_key: bool,
-        _alt_key: bool,
-        _meta_key: bool,
-    ) {
-    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>

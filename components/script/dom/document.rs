@@ -114,7 +114,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use keyboard_types::{Key, KeyState, Modifiers};
+use keyboard_types::{Key, KeyState, Code};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
     ProgressiveWebMetric,
@@ -1408,6 +1408,7 @@ impl Document {
             0,
             keyboard_event.key.legacy_keycode(),
         );
+        println!("flow {:?}", keyboard_event);
         let event = keyevent.upcast::<Event>();
         event.fire(target);
         let mut cancel_state = event.get_cancel_state();
@@ -1417,6 +1418,7 @@ impl Document {
             keyboard_event.key.legacy_charcode() != 0 &&
             cancel_state != EventDefault::Prevented
         {
+            // println!("dispatch keydown");
             // https://w3c.github.io/uievents/#keypress-event-order
             let event = KeyboardEvent::new(
                 &self.window,
@@ -1438,7 +1440,6 @@ impl Document {
             ev.fire(target);
             cancel_state = ev.get_cancel_state();
         }
-
         if cancel_state == EventDefault::Allowed {
             let msg = EmbedderMsg::Keyboard(keyboard_event.clone());
             self.send_to_embedder(msg);
@@ -1448,35 +1449,22 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            match keyboard_event.key {
-                Key::Character(ref letter)
-                    if letter == " " && keyboard_event.state == KeyState::Up =>
-                {
-                    let maybe_elem = target.downcast::<Element>();
-                    if let Some(el) = maybe_elem {
-                        synthetic_click_activation(
-                            el,
-                            false,
-                            false,
-                            false,
-                            false,
-                            ActivationSource::NotFromClick,
-                        )
-                    }
+
+            // println!("dispatch allowed {:?}", keyboard_event);
+            if (keyboard_event.key == Key::Enter && keyboard_event.state == KeyState::Up) ||
+                (keyboard_event.code == Code::Space && keyboard_event.state == KeyState::Down) {
+                let maybe_elem = target.downcast::<Element>();
+                // println!("dispatch keyup");
+                if let Some(el) = maybe_elem {
+                    synthetic_click_activation(
+                        el,
+                        false,
+                        false,
+                        false,
+                        false,
+                        ActivationSource::NotFromClick,
+                    )
                 }
-                Key::Enter if keyboard_event.state == KeyState::Up => {
-                    let maybe_elem = target.downcast::<Element>();
-                    if let Some(el) = maybe_elem {
-                        if let Some(a) = el.as_maybe_activatable() {
-                            let ctrl = keyboard_event.modifiers.contains(Modifiers::CONTROL);
-                            let alt = keyboard_event.modifiers.contains(Modifiers::ALT);
-                            let shift = keyboard_event.modifiers.contains(Modifiers::SHIFT);
-                            let meta = keyboard_event.modifiers.contains(Modifiers::META);
-                            a.implicit_submission(ctrl, alt, shift, meta);
-                        }
-                    }
-                },
-                _ => (),
             }
         }
 

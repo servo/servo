@@ -356,6 +356,75 @@ impl HTMLInputElement {
     pub fn input_type(&self) -> InputType {
         self.input_type.get()
     }
+
+    // https://html.spec.whatwg.org/multipage/#implicit-submission
+    #[allow(unsafe_code)]
+    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
+        let doc = document_from_node(self);
+        let node = doc.upcast::<Node>();
+        let owner = self.form_owner();
+        let form = match owner {
+            None => return,
+            Some(ref f) => f,
+        };
+
+        if self.upcast::<Element>().click_in_progress() {
+            return;
+        }
+        let submit_button;
+        submit_button = node
+            .query_selector_iter(DOMString::from("input[type=submit]"))
+            .unwrap()
+            .filter_map(DomRoot::downcast::<HTMLInputElement>)
+            .find(|r| r.form_owner() == owner);
+        match submit_button {
+            Some(ref button) => {
+                if button.is_instance_activatable() {
+                    synthetic_click_activation(
+                        button.as_element(),
+                        ctrl_key,
+                        shift_key,
+                        alt_key,
+                        meta_key,
+                        ActivationSource::NotFromClick,
+                    )
+                }
+            },
+            None => {
+                let inputs = node
+                    .query_selector_iter(DOMString::from("input"))
+                    .unwrap()
+                    .filter_map(DomRoot::downcast::<HTMLInputElement>)
+                    .filter(|input| {
+                        input.form_owner() == owner &&
+                            match input.input_type() {
+                                InputType::Text |
+                                InputType::Search |
+                                InputType::Url |
+                                InputType::Tel |
+                                InputType::Email |
+                                InputType::Password |
+                                InputType::Date |
+                                InputType::Month |
+                                InputType::Week |
+                                InputType::Time |
+                                InputType::DatetimeLocal |
+                                InputType::Number => true,
+                                _ => false,
+                            }
+                    });
+
+                if inputs.skip(1).next().is_some() {
+                    // lazily test for > 1 submission-blocking inputs
+                    return;
+                }
+                form.submit(
+                    SubmittedFrom::NotFromForm,
+                    FormSubmitter::FormElement(&form),
+                );
+            },
+        }
+    }
 }
 
 pub trait LayoutHTMLInputElementHelpers {
@@ -1725,75 +1794,6 @@ impl Activatable for HTMLInputElement {
             },
             InputType::File => self.select_files(None),
             _ => (),
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
-    #[allow(unsafe_code)]
-    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
-        let doc = document_from_node(self);
-        let node = doc.upcast::<Node>();
-        let owner = self.form_owner();
-        let form = match owner {
-            None => return,
-            Some(ref f) => f,
-        };
-
-        if self.upcast::<Element>().click_in_progress() {
-            return;
-        }
-        let submit_button;
-        submit_button = node
-            .query_selector_iter(DOMString::from("input[type=submit]"))
-            .unwrap()
-            .filter_map(DomRoot::downcast::<HTMLInputElement>)
-            .find(|r| r.form_owner() == owner);
-        match submit_button {
-            Some(ref button) => {
-                if button.is_instance_activatable() {
-                    synthetic_click_activation(
-                        button.as_element(),
-                        ctrl_key,
-                        shift_key,
-                        alt_key,
-                        meta_key,
-                        ActivationSource::NotFromClick,
-                    )
-                }
-            },
-            None => {
-                let inputs = node
-                    .query_selector_iter(DOMString::from("input"))
-                    .unwrap()
-                    .filter_map(DomRoot::downcast::<HTMLInputElement>)
-                    .filter(|input| {
-                        input.form_owner() == owner &&
-                            match input.input_type() {
-                                InputType::Text |
-                                InputType::Search |
-                                InputType::Url |
-                                InputType::Tel |
-                                InputType::Email |
-                                InputType::Password |
-                                InputType::Date |
-                                InputType::Month |
-                                InputType::Week |
-                                InputType::Time |
-                                InputType::DatetimeLocal |
-                                InputType::Number => true,
-                                _ => false,
-                            }
-                    });
-
-                if inputs.skip(1).next().is_some() {
-                    // lazily test for > 1 submission-blocking inputs
-                    return;
-                }
-                form.submit(
-                    SubmittedFrom::NotFromForm,
-                    FormSubmitter::FormElement(&form),
-                );
-            },
         }
     }
 }

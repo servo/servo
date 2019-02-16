@@ -83,18 +83,6 @@ impl Activatable for HTMLLabelElement {
             );
         }
     }
-
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
-    fn implicit_submission(
-        &self,
-        _ctrl_key: bool,
-        _shift_key: bool,
-        _alt_key: bool,
-        _meta_key: bool,
-    ) {
-        //FIXME: Investigate and implement implicit submission for label elements
-        // Issue filed at https://github.com/servo/servo/issues/8263
-    }
 }
 
 impl HTMLLabelElementMethods for HTMLLabelElement {

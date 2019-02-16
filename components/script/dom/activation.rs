@@ -29,9 +29,6 @@ pub trait Activatable {
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, event: &Event, target: &EventTarget);
 
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
-    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool);
-
     // https://html.spec.whatwg.org/multipage/#concept-selector-active
     fn enter_formal_activation_state(&self) {
         self.as_element().set_active_state(true);

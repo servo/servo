@@ -320,15 +320,6 @@ impl Activatable for HTMLAreaElement {
 
     fn canceled_activation(&self) {}
 
-    fn implicit_submission(
-        &self,
-        _ctrl_key: bool,
-        _shift_key: bool,
-        _alt_key: bool,
-        _meta_key: bool,
-    ) {
-    }
-
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         follow_hyperlink(self.as_element(), None);
     }
