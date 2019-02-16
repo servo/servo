@@ -15,7 +15,7 @@ link_support_table['link'] = {
                  'noreferrer', 'noopener']
 };
 link_support_table['a'] =  {
-  supported : ['noreferrer', 'noopener'],
+  supported : ['noreferrer', 'noopener', 'opener'],
   unsupported : ['author', 'bookmark', 'external', 'help', 'license',
                  'nofollow', 'pingback', 'prev', 'search', 'tag',
                  'modulepreload', 'preload', 'preconnect', 'dns-prefetch',
@@ -24,6 +24,7 @@ link_support_table['a'] =  {
                  'apple-touch-icon-precomposed', 'canonical']
 };
 link_support_table['area'] = link_support_table['a'];
+link_support_table['form'] = link_support_table['form'];
 
 function test_rellist(tag_name, rel_table) {
   let element = document.createElement(tag_name);
@@ -77,5 +78,6 @@ test(function() {
   test_rellist('LINK', link_support_table['link']);
   test_rellist('A', link_support_table['a']);
   test_rellist('AREA', link_support_table['area']);
+  test_rellist('FORM', link_support_table['form']);
 }, 'Make sure that relList based feature detection is working');
 </script>

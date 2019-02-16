@@ -7,10 +7,12 @@ https://github.com/whatwg/fetch/pull/853
 <title>Tests Stale While Revalidate works for scripts</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <body>
 <script>
 var last_modified;
 var last_modified_count = 0;
+var request_token = token();
 
 // The script will call report via a uniquely generated ID on the subresource.
 // If it is a cache hit the ID will be the same and the test will pass.
@@ -27,13 +29,13 @@ async_test(t => {
   window.onload = t.step_func(() => {
     step_timeout(() => {
       var script = document.createElement("script");
-      script.src = "stale-script.py";
+      script.src = "stale-script.py?token=" + request_token;
       document.body.appendChild(script);
       script.onload = t.step_func(() => {
           assert_equals(last_modified_count, 2, "last modified");
           var checkResult = () => {
             // We poll because we don't know when the revalidation will occur.
-            fetch("stale-script.py?query").then(t.step_func((response) => {
+            fetch("stale-script.py?query&token=" + request_token).then(t.step_func((response) => {
               var count = response.headers.get("Count");
               if (count == '2') {
                   t.done();
@@ -49,7 +51,7 @@ async_test(t => {
 }, 'Cache returns stale resource');
 
 var script = document.createElement("script");
-script.src = "stale-script.py";
+script.src = "stale-script.py?token=" + request_token;
 document.body.appendChild(script);
 </script>
 </body>

@@ -75,10 +75,4 @@ dictionary NFCReaderOptions {
   USVString url = "";
   NFCRecordType recordType;
   USVString mediaType = "";
-  NFCAccept accept = "web-nfc-only";
-};
-
-enum NFCAccept {
-  "web-nfc-only",
-  "any"
 };
