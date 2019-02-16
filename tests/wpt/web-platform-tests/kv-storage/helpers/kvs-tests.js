@@ -1,6 +1,17 @@
 import { StorageArea, storage as defaultArea } from "std:kv-storage";
 import { assertAsyncIteratorEquals, assertAsyncIteratorCustomEquals } from "./equality-asserters.js";
 
+// Used when we're manually creating the database, and so the IDB helpers also want to clean it up.
+// If we used testWithArea, then the IDB helpers would time out in their cleanup steps when they
+// fail to delete the already-deleted database.
+export function testWithAreaNoCleanup(testFn, description) {
+  promise_test(t => {
+    const area = new StorageArea(description);
+
+    return testFn(area, t);
+  }, description);
+}
+
 export function testWithArea(testFn, description) {
   promise_test(t => {
     const area = new StorageArea(description);

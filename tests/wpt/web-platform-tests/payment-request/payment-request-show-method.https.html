@@ -4,6 +4,8 @@
 <link rel="help" href="https://w3c.github.io/payment-request/#show-method">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 "use strict";
 const defaultMethods = Object.freeze([
@@ -33,8 +35,80 @@ const defaultDetails = Object.freeze({
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
   const acceptPromise = request.show();
+  // Abort the request after 2 seconds if it has not rejected. This allows the
+  // other tests in this file to run even if a non-compliant browser shows the
+  // payment sheet without user activation.
+  t.step_timeout(() => {
+    t.force_timeout();
+    request.abort();
+  }, 2000);
+
   await promise_rejects(t, "SecurityError", acceptPromise);
 }, `Calling show() without being triggered by user interaction throws`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [acceptPromise] = await test_driver.bless(
+    "test: throws if the promise [[state]] is not 'created'",
+    () => {
+      const acceptPromise = request.show(); // Sets state to "interactive"
+      return [acceptPromise];
+    });
+  await promise_rejects(t, "InvalidStateError", request.show());
+  await request.abort();
+  await promise_rejects(t, "AbortError", acceptPromise);
+}, "Throws if the promise [[state]] is not 'created'.");
+
+promise_test(async t => {
+  const request1 = new PaymentRequest(defaultMethods, defaultDetails);
+  const request2 = new PaymentRequest(defaultMethods, defaultDetails);
+  const [acceptPromise1] = await test_driver.bless(
+    `test: reject promise with "AbortedError" if payment request is already showing`,
+    async () => {
+      const acceptPromise1 = request1.show();
+      const acceptPromise2 = request2.show();
+      await promise_rejects(t, "AbortError", acceptPromise2);
+      return [acceptPromise1];
+    });
+
+  await request1.abort();
+  await promise_rejects(t, "AbortError", acceptPromise1);
+}, `If the user agent's "payment request is showing" boolean is true, then return a promise rejected with an "AbortError" DOMException.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(
+    [{ supportedMethods: "this-is-not-supported" }],
+    defaultDetails
+  );
+  const [acceptPromise] = await test_driver.bless(
+    `test: reject promise with "NotSupportedError"`,
+    () => {
+      const acceptPromise = request.show();
+      return [acceptPromise];
+    });
+  await promise_rejects(t, "NotSupportedError", acceptPromise);
+}, `If payment method consultation produces no supported method of payment, then return a promise rejected with a "NotSupportedError" DOMException.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [p1, p2, p3] = await test_driver.bless(
+    `test: calling show() multiple times always returns a new promise`,
+    () => {
+      const p1 = request.show();
+      const p2 = request.show();
+      const p3 = request.show();
+      return [p1, p2, p3];
+    });
+  const promises = new Set([p1, p2, p3]);
+  assert_equals(promises.size, 3, "Must have three unique objects");
+
+  await promise_rejects(t, "InvalidStateError", p2);
+  await promise_rejects(t, "InvalidStateError", p3);
+
+  await request.abort();
+  await promise_rejects(t, "AbortError", p1);
+}, "Calling show() multiple times always returns a new promise.");
+
 </script>
 <small>
   If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>

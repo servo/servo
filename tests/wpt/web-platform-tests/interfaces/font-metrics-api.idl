@@ -10,7 +10,7 @@ partial interface Document {
 
 interface FontMetrics {
   readonly attribute double width;
-  readonly attribute sequence<double> advances;
+  readonly attribute FrozenArray<double> advances;
 
   readonly attribute double boundingBoxLeft;
   readonly attribute double boundingBoxRight;
@@ -24,8 +24,8 @@ interface FontMetrics {
   readonly attribute double fontBoundingBoxDescent;
 
   readonly attribute Baseline dominantBaseline;
-  readonly attribute sequence<Baseline> baselines;
-  readonly attribute sequence<Font> fonts;
+  readonly attribute FrozenArray<Baseline> baselines;
+  readonly attribute FrozenArray<Font> fonts;
 };
 
 interface Baseline {

@@ -9,19 +9,6 @@
 import { testVariousMethodsWithDefaultArea } from "./helpers/kvs-tests.js";
 import { storage } from "std:kv-storage";
 
-test(() => {
-  const { backingStore } = storage;
-  assert_array_equals(Object.keys(backingStore), ["database", "store", "version"]);
-  assert_own_property(backingStore, "database");
-  assert_own_property(backingStore, "store");
-  assert_own_property(backingStore, "version");
-  assert_equals(Object.getPrototypeOf(backingStore), Object.prototype);
-
-  assert_equals(backingStore.database, "kv-storage:default");
-  assert_equals(backingStore.store, "store");
-  assert_equals(backingStore.version, 1);
-}, "backingStore returns the correct object");
-
 testVariousMethodsWithDefaultArea(
   "Storage methods smoke test with string key and value", "key", "value", assert_equals
 );

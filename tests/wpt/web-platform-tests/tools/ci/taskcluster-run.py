@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 
 browser_specific_args = {
     "firefox": ["--install-browser"]
@@ -38,8 +39,7 @@ def main(product, commit_range, wpt_args):
     )
     logger.addHandler(handler)
 
-    child = subprocess.Popen(['python', './wpt', 'manifest-download'])
-    child.wait()
+    subprocess.call(['python', './wpt', 'manifest-download'])
 
     if commit_range:
         logger.info(
@@ -65,7 +65,9 @@ def main(product, commit_range, wpt_args):
 
     logger.info("Executing command: %s" % " ".join(command))
 
-    subprocess.check_call(command)
+    retcode = subprocess.call(command)
+    if retcode != 0:
+        sys.exit(retcode)
 
     wptreport = find_wptreport(wpt_args)
     if wptreport:

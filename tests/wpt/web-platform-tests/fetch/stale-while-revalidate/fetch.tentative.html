@@ -7,11 +7,14 @@ https://github.com/whatwg/fetch/pull/853
 <title>Tests Stale While Revalidate is not executed for fetch API</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script>
 promise_test(async (test) => {
-  const response = await fetch(`stale-script.py`);
-  const response2 = await fetch(`stale-script.py`);
+  var request_token = token();
 
-  assert_not_equals(response.headers.get('Token'), response2.headers.get('Token'));
+  const response = await fetch(`stale-script.py?token=` + request_token);
+  const response2 = await fetch(`stale-script.py?token=` + request_token);
+
+  assert_not_equals(response.headers.get('Unique-Id'), response2.headers.get('Unique-Id'));
 }, 'Second fetch does not return same response');
 </script>
