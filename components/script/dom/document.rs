@@ -1408,7 +1408,6 @@ impl Document {
             0,
             keyboard_event.key.legacy_keycode(),
         );
-        println!("flow {:?}", keyboard_event);
         let event = keyevent.upcast::<Event>();
         event.fire(target);
         let mut cancel_state = event.get_cancel_state();
@@ -1450,11 +1449,9 @@ impl Document {
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
 
-            // println!("dispatch allowed {:?}", keyboard_event);
             if (keyboard_event.key == Key::Enter && keyboard_event.state == KeyState::Up) ||
                 (keyboard_event.code == Code::Space && keyboard_event.state == KeyState::Down) {
                 let maybe_elem = target.downcast::<Element>();
-                // println!("dispatch keyup");
                 if let Some(el) = maybe_elem {
                     synthetic_click_activation(
                         el,
