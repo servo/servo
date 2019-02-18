@@ -503,7 +503,7 @@ impl LengthPercentageOrAuto {
 
 /// A wrapper of LengthPercentageOrAuto, whose value must be >= 0.
 pub type NonNegativeLengthPercentageOrAuto =
-    generics::LengthPercentageOrAuto<NonNegativeLengthPercentage>;
+    generics::GenericLengthPercentageOrAuto<NonNegativeLengthPercentage>;
 
 impl NonNegativeLengthPercentageOrAuto {
     computed_length_percentage_or_auto!(NonNegativeLengthPercentage);

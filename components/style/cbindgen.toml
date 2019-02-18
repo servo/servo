@@ -78,6 +78,7 @@ include = [
   "LengthPercentage",
   "NonNegativeLengthPercentage",
   "LengthPercentageOrAuto",
+  "NonNegativeLengthPercentageOrAuto",
   "Rect",
   "IntersectionObserverRootMargin",
   "Size",
