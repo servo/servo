@@ -70,6 +70,7 @@ include = [
   "UserSelect",
   "Float",
   "OverscrollBehavior",
+  "ScrollSnapAlign",
   "ScrollSnapType",
   "OverflowAnchor",
   "OverflowClipBox",

@@ -1354,6 +1354,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "Appearance": impl_simple,
         "OverscrollBehavior": impl_simple,
         "OverflowClipBox": impl_simple,
+        "ScrollSnapAlign": impl_simple,
         "ScrollSnapType": impl_simple,
         "Float": impl_simple,
         "Overflow": impl_simple,
