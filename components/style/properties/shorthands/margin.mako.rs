@@ -28,3 +28,32 @@ ${helpers.two_properties_shorthand(
     "specified::LengthPercentageOrAuto::parse",
     spec="https://drafts.csswg.org/css-logical/#propdef-margin-inline"
 )}
+
+${helpers.four_sides_shorthand(
+    "scroll-margin",
+    "scroll-margin-%s",
+    "specified::Length::parse",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap-v1.enabled",
+)}
+
+${helpers.two_properties_shorthand(
+    "scroll-margin-block",
+    "scroll-margin-block-start",
+    "scroll-margin-block-end",
+    "specified::Length::parse",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap-v1.enabled",
+)}
+
+${helpers.two_properties_shorthand(
+    "scroll-margin-inline",
+    "scroll-margin-inline-start",
+    "scroll-margin-inline-end",
+    "specified::Length::parse",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-inline",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap-v1.enabled",
+)}
