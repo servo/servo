@@ -1219,7 +1219,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn parent_node_ref(&self) -> Option<LayoutDom<Node>> {
-        (*self.unsafe_get()).parent_node.get_inner_as_layout()
+        (*self.unsafe_get()).composed_parent_node.get_inner_as_layout()
     }
 
     #[inline]
