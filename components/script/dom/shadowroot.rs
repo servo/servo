@@ -111,21 +111,20 @@ impl ShadowRootMethods for ShadowRoot {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input
         let mut elements = Vec::new();
-        for e in self.document_or_shadow_root.elements_from_point(
-            x,
-            y,
-            None,
-            self.document.has_browsing_context(),
-        ).iter() {
+        for e in self
+            .document_or_shadow_root
+            .elements_from_point(x, y, None, self.document.has_browsing_context())
+            .iter()
+        {
             let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
             if let Some(element) = retargeted_node
                 .downcast::<Element>()
-                .map(|n| DomRoot::from_ref(n)) {
+                .map(|n| DomRoot::from_ref(n))
+            {
                 elements.push(element);
             }
         }
         elements
-
     }
 
     /// https://dom.spec.whatwg.org/#dom-shadowroot-mode
