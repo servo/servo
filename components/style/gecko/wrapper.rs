@@ -411,6 +411,11 @@ impl<'ln> TNode for GeckoNode<'ln> {
         self.get_bool_flag(nsINode_BooleanFlag::IsInDocument)
     }
 
+    #[inline]
+    fn is_connected(&self) -> bool {
+        self.get_bool_flag(nsINode_BooleanFlag::IsConnected)
+    }
+
     fn traversal_parent(&self) -> Option<GeckoElement<'ln>> {
         self.flattened_tree_parent().and_then(|n| n.as_element())
     }

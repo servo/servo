@@ -185,6 +185,9 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
         DomChildren(self.first_child())
     }
 
+    /// Returns whether the node is attached to a document.
+    fn is_in_document(&self) -> bool;
+
     /// Returns whether the node is connected.
     fn is_connected(&self) -> bool;
 
