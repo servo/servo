@@ -89,6 +89,8 @@ include = [
   "BackgroundSize",
   "BorderImageSlice",
   "NonNegativeLengthOrNumberRect",
+  "Perspective",
+  "ZIndex",
 ]
 item_types = ["enums", "structs", "typedefs"]
 

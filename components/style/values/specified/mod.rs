@@ -585,7 +585,7 @@ impl Parse for PositiveInteger {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne::<Integer>)
+        Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne)
     }
 }
 

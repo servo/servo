@@ -731,15 +731,3 @@ impl GridTemplateAreas {
 
 /// A specified value for the `z-index` property.
 pub type ZIndex = GenericZIndex<Integer>;
-
-impl Parse for ZIndex {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(GenericZIndex::Auto);
-        }
-        Ok(GenericZIndex::Integer(Integer::parse(context, input)?))
-    }
-}

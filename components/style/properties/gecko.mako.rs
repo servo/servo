@@ -60,7 +60,6 @@ use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
 use crate::values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use crate::values::generics::column::ColumnCount;
-use crate::values::generics::position::ZIndex;
 use crate::values::generics::transform::TransformStyle;
 use crate::values::generics::url::UrlOrNone;
 
@@ -1378,7 +1377,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "Opacity": impl_simple,
         "OverflowWrap": impl_simple,
         "OverflowAnchor": impl_simple,
-        "Perspective": impl_style_coord,
+        "Perspective": impl_simple,
         "Position": impl_simple,
         "RGBAColor": impl_rgba_color,
         "SVGLength": impl_svg_length,
@@ -1389,6 +1388,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "TransformOrigin": impl_transform_origin,
         "UserSelect": impl_simple,
         "url::UrlOrNone": impl_css_url,
+        "ZIndex": impl_simple,
     }
 
     def longhand_method(longhand):
@@ -1655,7 +1655,7 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES + GRID_LINES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} z-index order
+                  skip_longhands="${skip_position_longhands} order
                                   align-content justify-content align-self
                                   justify-self align-items justify-items
                                   grid-auto-rows grid-auto-columns
@@ -1664,38 +1664,6 @@ fn static_assert() {
     % for side in SIDES:
     <% impl_split_style_coord(side.ident, "mOffset", side.index) %>
     % endfor
-
-    pub fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
-        match v {
-            ZIndex::Integer(n) => self.gecko.mZIndex.set_value(CoordDataValue::Integer(n)),
-            ZIndex::Auto => self.gecko.mZIndex.set_value(CoordDataValue::Auto),
-        }
-    }
-
-    pub fn copy_z_index_from(&mut self, other: &Self) {
-        use crate::gecko_bindings::structs::nsStyleUnit;
-        // z-index is never a calc(). If it were, we'd be leaking here, so
-        // assert that it isn't.
-        debug_assert_ne!(self.gecko.mZIndex.unit(), nsStyleUnit::eStyleUnit_Calc);
-        unsafe {
-            self.gecko.mZIndex.copy_from_unchecked(&other.gecko.mZIndex);
-        }
-    }
-
-    pub fn reset_z_index(&mut self, other: &Self) {
-        self.copy_z_index_from(other)
-    }
-
-    pub fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
-        return match self.gecko.mZIndex.as_value() {
-            CoordDataValue::Integer(n) => ZIndex::Integer(n),
-            CoordDataValue::Auto => ZIndex::Auto,
-            _ => {
-                debug_assert!(false);
-                ZIndex::Integer(0)
-            }
-        }
-    }
 
     % for kind in ["align", "justify"]:
     ${impl_simple_type_with_conversion(kind + "_content")}
