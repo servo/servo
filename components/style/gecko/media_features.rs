@@ -461,7 +461,7 @@ fn eval_moz_is_glyph(
     query_value: Option<bool>,
     _: Option<RangeOrOperator>,
 ) -> bool {
-    let is_glyph = unsafe { (*device.document()).mIsSVGGlyphsDocument() };
+    let is_glyph = device.document().mIsSVGGlyphsDocument();
     query_value.map_or(is_glyph, |v| v == is_glyph)
 }
 

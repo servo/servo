@@ -35,7 +35,6 @@ use crate::gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use crate::gecko_bindings::bindings::Gecko_SetListStyleImageImageValue;
 use crate::gecko_bindings::bindings::Gecko_SetNullImageValue;
 use crate::gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
-use crate::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
@@ -102,7 +101,7 @@ impl ComputedValues {
         ).to_outer(pseudo)
     }
 
-    pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
+    pub fn default_values(doc: &structs::Document) -> Arc<Self> {
         ComputedValuesInner::new(
             /* custom_properties = */ None,
             /* writing_mode = */ WritingMode::empty(), // FIXME(bz): This seems dubious
@@ -110,7 +109,7 @@ impl ComputedValues {
             /* rules = */ None,
             /* visited_style = */ None,
             % for style_struct in data.style_structs:
-            style_structs::${style_struct.name}::default(pres_context),
+            style_structs::${style_struct.name}::default(doc),
             % endfor
         ).to_outer(None)
     }
@@ -1247,11 +1246,13 @@ pub fn clone_transform_from_list(
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
-    pub fn default(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
+    pub fn default(document: &structs::Document) -> Arc<Self> {
         let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
         unsafe {
-            Gecko_Construct_Default_${style_struct.gecko_ffi_name}(&mut Arc::get_mut(&mut result).unwrap().gecko,
-                                                                   pres_context);
+            Gecko_Construct_Default_${style_struct.gecko_ffi_name}(
+                &mut Arc::get_mut(&mut result).unwrap().gecko,
+                document,
+            );
         }
         result
     }
@@ -2199,7 +2200,7 @@ fn static_assert() {
     pub fn fixup_none_generic(&mut self, device: &Device) {
         self.gecko.mFont.systemFont = false;
         unsafe {
-            bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, device.pres_context())
+            bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, device.document())
         }
     }
 
@@ -2315,7 +2316,7 @@ fn static_assert() {
     }
 
     pub fn fixup_font_min_size(&mut self, device: &Device) {
-        unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, device.pres_context()) }
+        unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, device.document()) }
     }
 
     pub fn apply_unconstrained_font_size(&mut self, v: NonNegativeLength) {
@@ -2637,9 +2638,11 @@ fn static_assert() {
     ${impl_simple("_moz_script_level", "mScriptLevel")}
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
 
-    pub fn set_font_variant_alternates(&mut self,
-                                       v: values::computed::font::FontVariantAlternates,
-                                       device: &Device) {
+    pub fn set_font_variant_alternates(
+        &mut self,
+        v: values::computed::font::FontVariantAlternates,
+        device: &Device,
+    ) {
         use crate::gecko_bindings::bindings::{Gecko_ClearAlternateValues, Gecko_AppendAlternateValues};
         use crate::gecko_bindings::bindings::Gecko_nsFont_ResetFontFeatureValuesLookup;
         use crate::gecko_bindings::bindings::Gecko_nsFont_SetFontFeatureValuesLookup;
@@ -3953,12 +3956,12 @@ fn static_assert() {
         }
     }
 
-    pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T, device: &Device) {
+    pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T) {
         use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToString;
         use nsstring::{nsACString, nsCStr};
         use self::longhands::list_style_type::computed_value::T;
         match v {
-            T::CounterStyle(s) => s.to_gecko_value(&mut self.gecko.mCounterStyle, device),
+            T::CounterStyle(s) => s.to_gecko_value(&mut self.gecko.mCounterStyle),
             T::String(s) => unsafe {
                 Gecko_SetCounterStyleToString(&mut self.gecko.mCounterStyle,
                                               &nsCStr::from(&s) as &nsACString)
@@ -5200,7 +5203,7 @@ clip-path
         self.gecko.mContents.is_empty()
     }
 
-    pub fn set_content(&mut self, v: longhands::content::computed_value::T, device: &Device) {
+    pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
         use crate::values::CustomIdent;
         use crate::values::generics::counters::{Content, ContentItem};
         use crate::values::generics::CounterStyleOrNone;
@@ -5225,7 +5228,6 @@ clip-path
             name: &CustomIdent,
             sep: &str,
             style: CounterStyleOrNone,
-            device: &Device,
         ) {
             debug_assert!(content_type == StyleContentType::Counter ||
                           content_type == StyleContentType::Counters);
@@ -5236,7 +5238,7 @@ clip-path
             if content_type == StyleContentType::Counters {
                 counter_func.mSeparator.assign_str(sep);
             }
-            style.to_gecko_value(&mut counter_func.mCounterStyle, device);
+            style.to_gecko_value(&mut counter_func.mCounterStyle);
         }
 
         match v {
@@ -5311,7 +5313,6 @@ clip-path
                                 &name,
                                 "",
                                 style.clone(),
-                                device,
                             );
                         }
                         ContentItem::Counters(ref name, ref sep, ref style) => {
@@ -5321,7 +5322,6 @@ clip-path
                                 &name,
                                 &sep,
                                 style.clone(),
-                                device,
                             );
                         }
                         ContentItem::Url(ref url) => {

@@ -85,7 +85,7 @@ impl Device {
         assert!(!pres_context.is_null());
         Device {
             pres_context,
-            default_values: ComputedValues::default_values(unsafe { &*pres_context }),
+            default_values: ComputedValues::default_values(unsafe { &*(*pres_context).mDocument.mRawPtr }),
             // FIXME(bz): Seems dubious?
             root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
             body_text_color: AtomicUsize::new(unsafe { &*pres_context }.mDefaultColor as usize),
@@ -162,13 +162,13 @@ impl Device {
 
     /// Gets the document pointer.
     #[inline]
-    pub fn document(&self) -> *mut structs::Document {
-        self.pres_context().mDocument.mRawPtr
+    pub fn document(&self) -> &structs::Document {
+        unsafe { &*self.pres_context().mDocument.mRawPtr }
     }
 
     /// Recreates the default computed values.
     pub fn reset_computed_values(&mut self) {
-        self.default_values = ComputedValues::default_values(self.pres_context());
+        self.default_values = ComputedValues::default_values(self.document());
     }
 
     /// Rebuild all the cached data.
