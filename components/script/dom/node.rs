@@ -292,6 +292,7 @@ impl Node {
         let parent_in_doc = self.is_in_doc();
         let parent_in_shadow_tree = self.is_in_shadow_tree();
         let parent_is_connected = self.is_connected();
+
         for node in new_child.traverse_preorder(/* shadow including */ false) {
             if parent_in_shadow_tree {
                 if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
@@ -300,18 +301,12 @@ impl Node {
                     node.set_owner_shadow_root(&*shadow_root);
                 }
             }
-            let mut is_connected = parent_is_connected;
-            if !is_connected {
-                if let Some(element) = node.downcast::<Element>() {
-                    is_connected = element.is_connected();
-                }
-            }
             node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
-            node.set_flag(NodeFlags::IS_CONNECTED, is_connected);
+            node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&&*node).bind_to_tree(is_connected);
+            vtable_for(&&*node).bind_to_tree(parent_is_connected);
         }
     }
 
@@ -1614,7 +1609,10 @@ impl Node {
 
     #[allow(unrooted_must_root)]
     pub fn new_document_node() -> Node {
-        Node::new_(NodeFlags::new() | NodeFlags::IS_IN_DOC, None)
+        Node::new_(
+            NodeFlags::new() | NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED,
+            None,
+        )
     }
 
     #[allow(unrooted_must_root)]
