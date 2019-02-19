@@ -38,7 +38,7 @@ use crate::gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom}
 use crate::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
-use crate::gecko_bindings::structs::mozilla::CSSPseudoElementType;
+use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::gecko::values::convert_nscolor_to_rgba;
@@ -115,26 +115,17 @@ impl ComputedValues {
         ).to_outer(None)
     }
 
+    #[inline]
     pub fn pseudo(&self) -> Option<PseudoElement> {
-        let atom = (self.0).mPseudoTag.mRawPtr;
-        if atom.is_null() {
+        if self.0.mPseudoType == PseudoStyleType::NotPseudo {
             return None;
         }
-
-        let atom = unsafe { Atom::from_raw(atom) };
-        PseudoElement::from_atom(&atom)
+        PseudoElement::from_pseudo_type(self.0.mPseudoType)
     }
 
     #[inline]
-    fn get_pseudo_type(&self) -> CSSPseudoElementType {
-        self.0.mPseudoType
-    }
-
-    #[inline]
-    pub fn is_anon_box(&self) -> bool {
-        let our_type = self.get_pseudo_type();
-        return our_type == CSSPseudoElementType::InheritingAnonBox ||
-               our_type == CSSPseudoElementType::NonInheritingAnonBox;
+    pub fn is_first_line_style(&self) -> bool {
+        self.pseudo() == Some(PseudoElement::FirstLine)
     }
 
     /// Returns true if the display property is changed from 'none' to others.
@@ -213,9 +204,9 @@ impl ComputedValuesInner {
         self,
         pseudo: Option<<&PseudoElement>,
     ) -> Arc<ComputedValues> {
-        let (pseudo_tag, pseudo_ty) = match pseudo {
-            Some(p) => p.pseudo_info(),
-            None => (ptr::null_mut(), structs::CSSPseudoElementType::NotPseudo),
+        let pseudo_ty = match pseudo {
+            Some(p) => p.pseudo_type(),
+            None => structs::PseudoStyleType::NotPseudo,
         };
         let arc = unsafe {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
@@ -223,7 +214,6 @@ impl ComputedValuesInner {
                 &arc.0 as *const _ as *mut _,
                 &self,
                 pseudo_ty,
-                pseudo_tag
             );
             // We're simulating a move by having C++ do a memcpy and then forgetting
             // it on this end.

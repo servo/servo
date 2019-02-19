@@ -48,17 +48,6 @@ PseudoElement::${pseudo.capitalized_pseudo()}${"({})".format(tree_arg) if pseudo
 </%def>
 
 impl PseudoElement {
-    /// Get the pseudo-element as an atom.
-    #[inline]
-    fn atom(&self) -> Atom {
-        match *self {
-            % for pseudo in PSEUDOS:
-                ${pseudo_element_variant(pseudo)} => atom!("${pseudo.value}"),
-            % endfor
-            PseudoElement::UnknownWebkit(..) => unreachable!(),
-        }
-    }
-
     /// Returns an index of the pseudo-element.
     #[inline]
     pub fn index(&self) -> usize {
@@ -138,43 +127,34 @@ impl PseudoElement {
         }
     }
 
-    /// Construct a pseudo-element from a `CSSPseudoElementType`.
+    /// Construct a pseudo-element from a `PseudoStyleType`.
     #[inline]
-    pub fn from_pseudo_type(type_: CSSPseudoElementType) -> Option<Self> {
+    pub fn from_pseudo_type(type_: PseudoStyleType) -> Option<Self> {
         match type_ {
             % for pseudo in PSEUDOS:
-                % if not pseudo.is_anon_box():
-                    CSSPseudoElementType::${pseudo.pseudo_ident} => {
-                        Some(${pseudo_element_variant(pseudo)})
-                    },
-                % endif
+            % if not pseudo.is_tree_pseudo_element():
+                PseudoStyleType::${pseudo.pseudo_ident} => {
+                    Some(${pseudo_element_variant(pseudo)})
+                },
+            % endif
             % endfor
             _ => None,
         }
     }
 
-    /// Construct a `CSSPseudoElementType` from a pseudo-element
+    /// Construct a `PseudoStyleType` from a pseudo-element
     #[inline]
-    fn pseudo_type(&self) -> CSSPseudoElementType {
+    pub fn pseudo_type(&self) -> PseudoStyleType {
         match *self {
             % for pseudo in PSEUDOS:
-                % if not pseudo.is_anon_box():
-                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::${pseudo.pseudo_ident},
-                % elif pseudo.is_tree_pseudo_element():
-                    PseudoElement::${pseudo.capitalized_pseudo()}(..) => CSSPseudoElementType::XULTree,
-                % elif pseudo.is_inheriting_anon_box():
-                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::InheritingAnonBox,
-                % else:
-                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::NonInheritingAnonBox,
-                % endif
+            % if pseudo.is_tree_pseudo_element():
+                PseudoElement::${pseudo.capitalized_pseudo()}(..) => PseudoStyleType::XULTree,
+            % else:
+                PseudoElement::${pseudo.capitalized_pseudo()} => PseudoStyleType::${pseudo.pseudo_ident},
+            % endif
             % endfor
             PseudoElement::UnknownWebkit(..) => unreachable!(),
         }
-    }
-
-    /// Get a PseudoInfo for a pseudo
-    pub fn pseudo_info(&self) -> (*mut structs::nsAtom, CSSPseudoElementType) {
-        (self.atom().as_ptr(), self.pseudo_type())
     }
 
     /// Get the argument list of a tree pseudo-element.
@@ -188,45 +168,15 @@ impl PseudoElement {
         }
     }
 
-    /// Construct a pseudo-element from an `Atom`.
-    #[inline]
-    pub fn from_atom(atom: &Atom) -> Option<Self> {
-        % for pseudo in PSEUDOS:
-            % if pseudo.is_tree_pseudo_element():
-                // We cannot generate ${pseudo_element_variant(pseudo)} from just an atom.
-            % else:
-                if atom == &atom!("${pseudo.value}") {
-                    return Some(${pseudo_element_variant(pseudo)});
-                }
-            % endif
-        % endfor
-        None
-    }
-
-    /// Construct a pseudo-element from an anonymous box `Atom`.
-    #[inline]
-    pub fn from_anon_box_atom(atom: &Atom) -> Option<Self> {
-        % for pseudo in PSEUDOS:
-            % if pseudo.is_tree_pseudo_element():
-                // We cannot generate ${pseudo_element_variant(pseudo)} from just an atom.
-            % elif pseudo.is_anon_box():
-                if atom == &atom!("${pseudo.value}") {
-                    return Some(${pseudo_element_variant(pseudo)});
-                }
-            % endif
-        % endfor
-        None
-    }
-
     /// Construct a tree pseudo-element from atom and args.
     #[inline]
     pub fn from_tree_pseudo_atom(atom: &Atom, args: Box<[Atom]>) -> Option<Self> {
         % for pseudo in PSEUDOS:
-            % if pseudo.is_tree_pseudo_element():
-                if atom == &atom!("${pseudo.value}") {
-                    return Some(PseudoElement::${pseudo.capitalized_pseudo()}(args.into()));
-                }
-            % endif
+        % if pseudo.is_tree_pseudo_element():
+            if atom == &atom!("${pseudo.value}") {
+                return Some(PseudoElement::${pseudo.capitalized_pseudo()}(args.into()));
+            }
+        % endif
         % endfor
         None
     }
