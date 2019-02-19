@@ -7301,6 +7301,18 @@
      {}
     ]
    ],
+   "mozilla/partial_shadow_dom_layout_style.html": [
+    [
+     "mozilla/partial_shadow_dom_layout_style.html",
+     [
+      [
+       "/_mozilla/mozilla/partial_shadow_dom_layout_style_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/remove_link_styles.html": [
     [
      "mozilla/remove_link_styles.html",
@@ -10840,6 +10852,11 @@
     ]
    ],
    "mozilla/nested_asap_script.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/partial_shadow_dom_layout_style_ref.html": [
     [
      {}
     ]
@@ -20272,7 +20289,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "a2b9fd23948319fabc0b5fff550b9565704b6678",
+   "c7e1929c626007e2ef3cdf9f2276620aa995c5b7",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -20422,6 +20439,14 @@
   "mozilla/partial_shadow_dom.html": [
    "d97f1422d20161e989f200d44be6e379f79410bd",
    "testharness"
+  ],
+  "mozilla/partial_shadow_dom_layout_style.html": [
+   "822e86bc07103351a5ceb2203fd9b6bee0c6367d",
+   "reftest"
+  ],
+  "mozilla/partial_shadow_dom_layout_style_ref.html": [
+   "bf40d2cc35b6b2c1e32afffa0651cb1b26e41fe8",
+   "support"
   ],
   "mozilla/poster.png": [
    "33834c3ef095fa9c0080017e1b65b2eb8413eac4",
