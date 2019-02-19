@@ -46,6 +46,10 @@ impl ShadowRoot {
         document_fragment
             .upcast::<Node>()
             .set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
+        document_fragment.upcast::<Node>().set_flag(
+            NodeFlags::IS_CONNECTED,
+            host.upcast::<Node>().is_connected(),
+        );
         ShadowRoot {
             document_fragment,
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
