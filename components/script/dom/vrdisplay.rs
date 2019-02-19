@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
@@ -13,6 +14,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -347,6 +349,24 @@ impl VRDisplayMethods for VRDisplay {
             },
         };
 
+        // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
+        if self.presenting.get() {
+            *self.layer.borrow_mut() = layer_bounds;
+            self.layer_ctx.set(Some(&layer_ctx));
+            promise.resolve_native(&());
+            return promise;
+        }
+
+        let xr = self.global().as_window().Navigator().Xr();
+
+        if xr.pending_or_active_session() {
+            // WebVR spec doesn't mandate anything here, however
+            // the WebXR spec expects there to be only one immersive XR session at a time,
+            // and WebVR is deprecated
+            promise.reject_error(Error::InvalidState);
+            return promise;
+        }
+
         self.request_present(layer_bounds, Some(&layer_ctx), Some(promise.clone()), |p| {
             p.resolve_native(&())
         });
@@ -447,14 +467,6 @@ impl VRDisplay {
     ) where
         F: FnOnce(Rc<Promise>) + Send + 'static,
     {
-        // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
-        if self.presenting.get() {
-            *self.layer.borrow_mut() = layer_bounds;
-            self.layer_ctx.set(ctx);
-            promise.map(resolve);
-            return;
-        }
-
         // Request Present
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.webvr_thread()
@@ -557,6 +569,8 @@ impl VRDisplay {
 
     fn init_present(&self) {
         self.presenting.set(true);
+        let xr = self.global().as_window().Navigator().Xr();
+        xr.set_active_immersive_session(&self);
         let (sync_sender, sync_receiver) = webgl_channel().unwrap();
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
@@ -623,6 +637,8 @@ impl VRDisplay {
 
     fn stop_present(&self) {
         self.presenting.set(false);
+        let xr = self.global().as_window().Navigator().Xr();
+        xr.deactivate_session();
         *self.frame_data_receiver.borrow_mut() = None;
 
         let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
