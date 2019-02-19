@@ -96,6 +96,7 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "mask-mode",
     "match-source alpha luminance",
+    gecko_enum_prefix="StyleMaskMode",
     vector=True,
     products="gecko",
     animation_value_type="discrete",
