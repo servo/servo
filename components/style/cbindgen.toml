@@ -91,6 +91,7 @@ include = [
   "NonNegativeLengthOrNumberRect",
   "Perspective",
   "ZIndex",
+  "TransformOrigin",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -103,6 +104,7 @@ item_types = ["enums", "structs", "typedefs"]
   // Defined in nsStyleCoord.h
   static constexpr inline StyleLengthPercentage Zero();
   static inline StyleLengthPercentage FromAppUnits(nscoord);
+  static inline StyleLengthPercentage FromPixels(CSSCoord);
   static inline StyleLengthPercentage FromPercentage(float);
   inline CSSCoord LengthInCSSPixels() const;
   inline float Percentage() const;
