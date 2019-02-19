@@ -559,7 +559,7 @@ impl Node {
 
     // FIXME(emilio): This and the function below should move to Element.
     pub fn note_dirty_descendants(&self) {
-        debug_assert!(self.is_connected());
+        debug_assert!(self.is_in_doc());
 
         for ancestor in self.shadow_including_inclusive_ancestors() {
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
