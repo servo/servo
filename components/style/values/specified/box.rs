@@ -862,20 +862,6 @@ impl Parse for Contain {
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;
 
-impl Parse for Perspective {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(GenericPerspective::None);
-        }
-        Ok(GenericPerspective::Length(NonNegativeLength::parse(
-            context, input,
-        )?))
-    }
-}
-
 /// A given transition property, that is either `All`, a longhand or shorthand
 /// property, or an unsupported or custom property.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]

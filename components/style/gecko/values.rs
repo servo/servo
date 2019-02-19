@@ -14,7 +14,6 @@ use crate::values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use crate::values::computed::{Angle, Length, LengthPercentage};
 use crate::values::computed::{Number, NumberOrPercentage, Percentage};
 use crate::values::generics::basic_shape::ShapeRadius;
-use crate::values::generics::box_::Perspective;
 use crate::values::generics::gecko::ScrollSnapPoint;
 use crate::values::generics::grid::{TrackBreadth, TrackKeyword};
 use crate::values::generics::length::LengthPercentageOrAuto;
@@ -327,27 +326,6 @@ impl GeckoStyleCoordConvertible for ScrollSnapPoint<LengthPercentage> {
                     .expect("coord could not convert to LengthPercentage"),
             ),
         })
-    }
-}
-
-impl<L> GeckoStyleCoordConvertible for Perspective<L>
-where
-    L: GeckoStyleCoordConvertible,
-{
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        match *self {
-            Perspective::None => coord.set_value(CoordDataValue::None),
-            Perspective::Length(ref l) => l.to_gecko_style_coord(coord),
-        };
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        use crate::gecko_bindings::structs::root::nsStyleUnit;
-
-        if coord.unit() == nsStyleUnit::eStyleUnit_None {
-            return Some(Perspective::None);
-        }
-        Some(Perspective::Length(L::from_gecko_style_coord(coord)?))
     }
 }
 
