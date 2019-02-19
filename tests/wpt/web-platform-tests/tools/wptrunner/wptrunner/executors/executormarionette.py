@@ -868,7 +868,9 @@ class InternalRefTestImplementation(object):
                                                              {"test": self.executor.test_url(test),
                                                               "references": references,
                                                               "expected": test.expected(),
-                                                              "timeout": timeout})["value"]
+                                                              "timeout": timeout,
+                                                              "width": 800,
+                                                              "height": 600})["value"]
         return rv
 
     def get_references(self, node):

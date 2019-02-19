@@ -3,7 +3,7 @@
 // META: script=/wasm/jsapi/wasm-module-builder.js
 // META: script=assertions.js
 
-let functions;
+let functions = {};
 setup(() => {
   const builder = new WasmModuleBuilder();
 

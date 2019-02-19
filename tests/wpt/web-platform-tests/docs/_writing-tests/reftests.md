@@ -27,7 +27,7 @@ tested. It also contains a `link` element with `rel="match"` or
 `rel="mismatch"` and `href` attribute pointing to the *reference*
 file, e.g. `<link rel=match href=references/green-box-ref.html>`. A
 `match` test only passes if the two files render pixel-for-pixel
-identically within a 600x600 window *including* scroll-bars if
+identically within a 800x600 window *including* scroll-bars if
 present; a `mismatch` test only passes if they *don't* render
 identically.
 

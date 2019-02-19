@@ -212,6 +212,8 @@ promise_test(function(t) {
 }, "Another example");
 ```
 
+## `EventWatcher` ##
+
 `EventWatcher` is a constructor function that allows DOM events to be handled
 using Promises, which can make it a lot easier to test a very specific series
 of events, including ensuring that unexpected events are not fired at any point.
