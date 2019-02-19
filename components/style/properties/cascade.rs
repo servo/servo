@@ -236,7 +236,7 @@ where
                 parent_style.unwrap(),
                 parent_style_ignoring_first_line.unwrap()
             ) ||
-            parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine)
+            parent_style.unwrap().is_first_line_style()
     );
 
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
