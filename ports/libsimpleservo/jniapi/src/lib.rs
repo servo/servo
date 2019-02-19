@@ -65,7 +65,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         // should show up in adb logcat with a release build.
         let filters = [
             "servo",
-            "simpleservo::api",
+            "simpleservo",
             "simpleservo::jniapi",
             "simpleservo::gl_glue::egl",
             // Show JS errors by default.
