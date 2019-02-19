@@ -17,7 +17,7 @@ interface XRSession : EventTarget {
   // // Attributes
   readonly attribute XRSessionMode mode;
   // readonly attribute XRPresentationContext outputContext;
-  // readonly attribute XREnvironmentBlendMode environmentBlendMode;
+  readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
   attribute double depthNear;
   attribute double depthFar;
