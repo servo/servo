@@ -1,10 +1,12 @@
 {
  "items": {
   "conformancechecker": {
-   "mozilla/partial_shadow_dom.html": []
+   "mozilla/partial_shadow_dom.html": [],
+   "mozilla/partial_shadow_dom_layout_style.html": []
   },
   "manual": {
-   "mozilla/partial_shadow_dom.html": []
+   "mozilla/partial_shadow_dom.html": [],
+   "mozilla/partial_shadow_dom_layout_style.html": []
   },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
@@ -7007,7 +7009,18 @@
      {}
     ]
    ],
-   "mozilla/partial_shadow_dom.html": [],
+   "mozilla/partial_shadow_dom_layout_style.html": [
+    [
+     "/_mozilla/mozilla/partial_shadow_dom_layout_style.html",
+     [
+      [
+       "/_mozilla/mozilla/partial_shadow_dom_layout_style_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/remove_link_styles.html": [
     [
      "/_mozilla/mozilla/remove_link_styles.html",
@@ -7337,7 +7350,8 @@
    "mozilla/partial_shadow_dom.html": []
   },
   "stub": {
-   "mozilla/partial_shadow_dom.html": []
+   "mozilla/partial_shadow_dom.html": [],
+   "mozilla/partial_shadow_dom_layout_style.html": []
   },
   "support": {
    "bluetooth/bluetooth-helpers.js": [
@@ -10421,6 +10435,12 @@
     ]
    ],
    "mozilla/partial_shadow_dom.html": [],
+   "mozilla/partial_shadow_dom_layout_style.html": [],
+   "mozilla/partial_shadow_dom_layout_style_ref.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/poster.png": [
     [
      {}
@@ -13049,6 +13069,7 @@
      {}
     ]
    ],
+   "mozilla/partial_shadow_dom_layout_style.html": [],
    "mozilla/postmessage_closed.html": [
     [
      "/_mozilla/mozilla/postmessage_closed.html",
@@ -13397,10 +13418,12 @@
    ]
   },
   "visual": {
-   "mozilla/partial_shadow_dom.html": []
+   "mozilla/partial_shadow_dom.html": [],
+   "mozilla/partial_shadow_dom_layout_style.html": []
   },
   "wdspec": {
-   "mozilla/partial_shadow_dom.html": []
+   "mozilla/partial_shadow_dom.html": [],
+   "mozilla/partial_shadow_dom_layout_style.html": []
   }
  },
  "paths": {
@@ -19581,7 +19604,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "55cafc9995da83d48230eed5b5c3863d8cf173c9",
+   "e850b4a34fe6d52ca154674c35623c3cc8794ed4",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -19731,6 +19754,14 @@
   "mozilla/partial_shadow_dom.html": [
    "d97f1422d20161e989f200d44be6e379f79410bd",
    "testharness"
+  ],
+  "mozilla/partial_shadow_dom_layout_style.html": [
+   "822e86bc07103351a5ceb2203fd9b6bee0c6367d",
+   "reftest"
+  ],
+  "mozilla/partial_shadow_dom_layout_style_ref.html": [
+   "bf40d2cc35b6b2c1e32afffa0651cb1b26e41fe8",
+   "support"
   ],
   "mozilla/poster.png": [
    "33834c3ef095fa9c0080017e1b65b2eb8413eac4",
