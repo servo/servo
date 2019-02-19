@@ -21,7 +21,7 @@ pub type TransformOperation =
 pub type Transform = generic::Transform<TransformOperation>;
 
 /// The computed value of a CSS `<transform-origin>`
-pub type TransformOrigin = generic::TransformOrigin<LengthPercentage, LengthPercentage, Length>;
+pub type TransformOrigin = generic::GenericTransformOrigin<LengthPercentage, LengthPercentage, Length>;
 
 /// A vector to represent the direction vector (rotate axis) for Rotate3D.
 pub type DirectionVector = Vector3D<CSSFloat>;

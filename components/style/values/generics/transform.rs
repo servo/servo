@@ -83,7 +83,8 @@ impl<T: Into<f64>> From<Matrix3D<T>> for Transform3D<f64> {
     ToComputedValue,
     ToCss,
 )]
-pub struct TransformOrigin<H, V, Depth> {
+#[repr(C)]
+pub struct GenericTransformOrigin<H, V, Depth> {
     /// The horizontal origin.
     pub horizontal: H,
     /// The vertical origin.
@@ -92,14 +93,12 @@ pub struct TransformOrigin<H, V, Depth> {
     pub depth: Depth,
 }
 
+pub use self::GenericTransformOrigin as TransformOrigin;
+
 impl<H, V, D> TransformOrigin<H, V, D> {
     /// Returns a new transform origin.
     pub fn new(horizontal: H, vertical: V, depth: D) -> Self {
-        Self {
-            horizontal: horizontal,
-            vertical: vertical,
-            depth: depth,
-        }
+        Self { horizontal, vertical, depth }
     }
 }
 
