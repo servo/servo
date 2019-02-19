@@ -5,6 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
@@ -26,6 +27,7 @@ pub struct XRSession {
     eventtarget: EventTarget,
     display: Dom<VRDisplay>,
     base_layer: MutNullableDom<XRLayer>,
+    blend_mode: XREnvironmentBlendMode,
 }
 
 impl XRSession {
@@ -34,6 +36,8 @@ impl XRSession {
             eventtarget: EventTarget::new_inherited(),
             display: Dom::from_ref(display),
             base_layer: Default::default(),
+            // we don't yet support any AR devices
+            blend_mode: XREnvironmentBlendMode::Opaque,
         }
     }
 
@@ -101,5 +105,10 @@ impl XRSessionMethods for XRSession {
     /// https://immersive-web.github.io/webxr/#dom-xrsession-cancelanimationframe
     fn CancelAnimationFrame(&self, frame: i32) {
         self.display.xr_cancel_raf(frame)
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-environmentblendmode
+    fn EnvironmentBlendMode(&self) -> XREnvironmentBlendMode {
+        self.blend_mode
     }
 }
