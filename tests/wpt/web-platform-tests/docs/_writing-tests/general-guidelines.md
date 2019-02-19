@@ -90,7 +90,7 @@ headers.
 ### Be Short
 
 Tests should be as short as possible. For reftests in particular
-scrollbars at 600&#xD7;600px window size must be avoided unless scrolling
+scrollbars at 800&#xD7;600px window size must be avoided unless scrolling
 behavior is specifically being tested. For all tests extraneous
 elements on the page should be avoided so it is clear what is part of
 the test (for a typical testharness test, the only content on the page

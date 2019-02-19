@@ -8,7 +8,7 @@ The tests make a number of assumptions of the user agent, and new
 tests can freely rely on these assumptions being true:
 
  * The device is a full-color device.
- * The device has a viewport width of at least 600px.
+ * The device has a viewport width of at least 800px.
  * The UA imposes no minimum font size.
  * The `medium` `font-size` computes to 16px.
  * The canvas background is `white`.
