@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
@@ -2824,7 +2824,6 @@ impl VirtualMethods for Element {
             let shadow_root = self.shadow_root.get().unwrap();
             doc.unregister_shadow_root(&shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
-            let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
             for node in shadow_root.children() {
                 node.set_flag(NodeFlags::IS_CONNECTED, false);
@@ -3335,11 +3334,7 @@ impl Element {
 
     /// <https://dom.spec.whatwg.org/#connected>
     pub fn is_connected(&self) -> bool {
-        let node = self.upcast::<Node>();
-        let mut options = GetRootNodeOptions::empty();
-        options.composed = true; // shadow included.
-        let root = node.GetRootNode(&options);
-        root.is::<Document>()
+        self.upcast::<Node>().is_connected()
     }
 
     // https://html.spec.whatwg.org/multipage/#cannot-navigate
