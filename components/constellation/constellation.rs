@@ -73,6 +73,7 @@
 //! * Constellation can block on compositor
 //! * Constellation can block on embedder
 //! * Constellation can block on layout
+//! * Compositor can block on canvas (issue #22914)
 //! * Script can block on anything (other than script)
 //! * Blocking is transitive (if T1 can block on T2 and T2 can block on T3 then T1 can block on T3)
 //! * Nothing can block on itself!
