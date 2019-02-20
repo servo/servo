@@ -173,20 +173,20 @@ pub struct ServoShadowRoot<'a> {
     chain: PhantomData<&'a ()>,
 }
 
-impl<'sr> Debug for ServoShadowRoot<'sr> {
+impl<'lr> Debug for ServoShadowRoot<'lr> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.as_node().fmt(f)
     }
 }
 
-impl<'sr> TShadowRoot for ServoShadowRoot<'sr> {
-    type ConcreteNode = ServoLayoutNode<'sr>;
+impl<'lr> TShadowRoot for ServoShadowRoot<'lr> {
+    type ConcreteNode = ServoLayoutNode<'lr>;
 
     fn as_node(&self) -> Self::ConcreteNode {
         ServoLayoutNode::from_layout_js(self.shadow_root.upcast())
     }
 
-    fn host(&self) -> ServoLayoutElement<'sr> {
+    fn host(&self) -> ServoLayoutElement<'lr> {
         ServoLayoutElement::from_layout_js(unsafe { self.shadow_root.get_host_for_layout() })
     }
 
@@ -203,8 +203,8 @@ impl<'sr> TShadowRoot for ServoShadowRoot<'sr> {
     }
 }
 
-impl<'sr> ServoShadowRoot<'sr> {
-    fn from_layout_js(shadow_root: LayoutDom<ShadowRoot>) -> ServoShadowRoot<'sr> {
+impl<'lr> ServoShadowRoot<'lr> {
+    fn from_layout_js(shadow_root: LayoutDom<ShadowRoot>) -> ServoShadowRoot<'lr> {
         ServoShadowRoot {
             shadow_root,
             chain: PhantomData,
@@ -218,8 +218,7 @@ impl<'sr> ServoShadowRoot<'sr> {
         guard: &SharedRwLockReadGuard,
     ) {
         unsafe {
-            &self
-                .shadow_root
+            self.shadow_root
                 .flush_stylesheets::<ServoLayoutElement>(device, quirks_mode, guard)
         };
     }
@@ -789,10 +788,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        match self.containing_shadow() {
-            Some(shadow) => Some(shadow.host()),
-            None => None,
-        }
+        self.containing_shadow().map(|s| s.host())
     }
 
     fn prev_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
