@@ -164,7 +164,7 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct ServoShadowRoot<'a> {
     /// The wrapped shadow root.
     shadow_root: LayoutDom<ShadowRoot>,
@@ -176,13 +176,6 @@ pub struct ServoShadowRoot<'a> {
 impl<'sr> Debug for ServoShadowRoot<'sr> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.as_node().fmt(f)
-    }
-}
-
-impl<'a> PartialEq for ServoShadowRoot<'a> {
-    #[inline]
-    fn eq(&self, other: &ServoShadowRoot) -> bool {
-        self.shadow_root == other.shadow_root
     }
 }
 
