@@ -28,6 +28,7 @@ enum XREnvironmentBlendMode {
   readonly attribute XRPresentationContext? outputContext;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
   readonly attribute XRRenderState renderState;
+  readonly attribute XRSpace viewerSpace;
 
   // Methods
   void updateRenderState(optional XRRenderStateInit state);
