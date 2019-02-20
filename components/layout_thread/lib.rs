@@ -1340,10 +1340,13 @@ impl LayoutThread {
             document.shadow_roots().len()
         );
 
-        let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         // Flush shadow roots stylesheets if dirty.
         for shadow_root in document.shadow_roots() {
-            shadow_root.flush_stylesheets(&device, document.quirks_mode(), guards.author.clone());
+            shadow_root.flush_stylesheets(
+                &self.stylist.device(),
+                document.quirks_mode(),
+                guards.author.clone(),
+            );
         }
 
         let restyles = document.drain_pending_restyles();
