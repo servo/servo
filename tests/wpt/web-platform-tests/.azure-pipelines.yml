@@ -22,7 +22,7 @@
 jobs:
 # The affected tests jobs are unconditional for speed, as most PRs have one or
 # more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
-- job: affected_macOS
+- job: affected_safari_preview
   displayName: 'affected tests (Safari Technology Preview)'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
@@ -30,9 +30,9 @@ jobs:
   steps:
   - template: tools/ci/azure/affected_tests.yml
     parameters:
-      artifactName: 'affected-tests'
+      artifactName: 'safari-preview-affected-tests'
 
-- job: affected_without_changes_macOS
+- job: affected_without_changes_safari_preview
   displayName: 'affected tests without changes (Safari Technology Preview)'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
@@ -42,7 +42,7 @@ jobs:
     parameters:
       checkoutCommit: 'HEAD^1'
       affectedRange: 'HEAD@{1}'
-      artifactName: 'affected-tests-without-changes'
+      artifactName: 'safari-preview-affected-tests-without-changes'
 
 # The decision jobs runs `./wpt test-jobs` to determine which jobs to run,
 # and all following jobs wait for it to finish and depend on its output.
@@ -157,7 +157,7 @@ jobs:
     condition: succeededOrFailed()
   - template: tools/ci/azure/cleanup_win10.yml
 
-- job: all_edge
+- job: results_edge
   displayName: 'all tests (Edge)'
   # This job is only triggered manually until it has been shown to be robust.
   condition: and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge'])
@@ -182,10 +182,12 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
-      artifactName: 'results'
+      artifactName: 'edge-results'
   - template: tools/ci/azure/cleanup_win10.yml
 
-- job: all_macOS
+# All `./wpt run` tests are run from epochs/* branches on a schedule. See
+# documentation at the top of this file for required setup.
+- job: results_safari_preview
   displayName: 'all tests (Safari Technology Preview)'
   condition: eq(variables['Build.Reason'], 'Schedule')
   strategy:
@@ -208,12 +210,12 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
-      artifactName: 'results'
+      artifactName: 'safari-preview-results'
 
 # The InvokeRESTAPI task can only run in a server job.
-- job: all_post
+- job: results_post
   displayName: 'all tests (wpt.fyi hook)'
-  dependsOn: all_macOS
+  dependsOn: results_safari_preview
   pool:
     vmImage: 'ubuntu-16.04'
   steps:

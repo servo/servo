@@ -275,3 +275,10 @@ promise_test(t => {
     promise_rejects(t, error1, writer.write(), 'write() should be rejected')
   ]);
 }, 'write() on a stream with HWM 0 should not cause the ready Promise to resolve');
+
+promise_test(t => {
+  const ws = new WritableStream();
+  const writer = ws.getWriter();
+  writer.releaseLock();
+  return promise_rejects(t, new TypeError(), writer.write(), 'write should reject');
+}, 'writing to a released writer should reject the returned promise');
