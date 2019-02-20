@@ -30,6 +30,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: MutNullableDom<EventTarget>,
     target: MutNullableDom<EventTarget>,
+    src_element: MutNullableDom<EventTarget>,
     type_: DomRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<EventDefault>,
@@ -49,6 +50,7 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: Default::default(),
             target: Default::default(),
+            src_element: Default::default(),
             type_: DomRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
             canceled: Cell::new(EventDefault::Allowed),
@@ -99,6 +101,7 @@ impl Event {
         self.canceled.set(EventDefault::Allowed);
         self.trusted.set(false);
         self.target.set(None);
+        self.src_element.set(None);
         *self.type_.borrow_mut() = type_;
         self.bubbles.set(bubbles);
         self.cancelable.set(cancelable);
@@ -257,6 +260,11 @@ impl EventMethods for Event {
     // https://dom.spec.whatwg.org/#dom-event-target
     fn GetTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.target.get()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-srcelement
+    fn GetSrcElement(&self) -> Option<DomRoot<EventTarget>> {
+        self.src_element.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
