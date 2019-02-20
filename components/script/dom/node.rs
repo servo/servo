@@ -346,6 +346,7 @@ impl Node {
             // Out-of-document elements never have the descendants flag set.
             node.set_flag(
                 NodeFlags::IS_IN_DOC |
+                    NodeFlags::IS_CONNECTED |
                     NodeFlags::HAS_DIRTY_DESCENDANTS |
                     NodeFlags::HAS_SNAPSHOT |
                     NodeFlags::HANDLED_SNAPSHOT,
