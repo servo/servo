@@ -8,7 +8,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, ShadowIncluding};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 
@@ -43,7 +43,7 @@ impl HTMLMapElement {
 
     pub fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement>> {
         self.upcast::<Node>()
-            .traverse_preorder(/* shadow including */ false)
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLAreaElement>)
             .collect()
     }

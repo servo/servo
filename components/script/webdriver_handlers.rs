@@ -22,7 +22,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::script_thread::Documents;
 use cookie::Cookie;
 use euclid::{Point2D, Rect, Size2D};
@@ -50,7 +50,7 @@ fn find_node_by_unique_id(
     documents.find_document(pipeline).and_then(|document| {
         document
             .upcast::<Node>()
-            .traverse_preorder(/* shadow including */ true)
+            .traverse_preorder(ShadowIncluding::Yes)
             .find(|candidate| candidate.unique_id() == node_id)
     })
 }

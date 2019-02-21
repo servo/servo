@@ -13,7 +13,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -59,7 +59,7 @@ impl DocumentFragmentMethods for DocumentFragment {
     fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
         let node = self.upcast::<Node>();
         let id = Atom::from(id);
-        node.traverse_preorder(/* shadow including */ false)
+        node.traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .find(
                 |descendant| match descendant.get_attribute(&ns!(), &local_name!("id")) {

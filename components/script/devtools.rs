@@ -15,7 +15,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::window::Window;
 use crate::script_thread::Documents;
 use devtools_traits::TimelineMarkerType;
@@ -103,7 +103,7 @@ fn find_node_by_unique_id(
     documents.find_document(pipeline).and_then(|document| {
         document
             .upcast::<Node>()
-            .traverse_preorder(/* shadow including */ false)
+            .traverse_preorder(ShadowIncluding::No)
             .find(|candidate| candidate.unique_id() == node_id)
     })
 }

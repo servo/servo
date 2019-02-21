@@ -24,7 +24,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::Element;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::node::{Node, UnbindContext};
+use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -978,7 +978,7 @@ impl RangeMethods for Range {
         // Step 4.
         for node in fragment_node
             .upcast::<Node>()
-            .traverse_preorder(/* shadow incluing */ false)
+            .traverse_preorder(ShadowIncluding::No)
         {
             if let Some(script) = node.downcast::<HTMLScriptElement>() {
                 script.set_already_started(false);

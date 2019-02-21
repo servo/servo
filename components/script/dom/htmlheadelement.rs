@@ -10,7 +10,7 @@ use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::{document_from_node, Node, ShadowIncluding};
 use crate::dom::userscripts::load_script;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -55,7 +55,7 @@ impl HTMLHeadElement {
 
         let node = self.upcast::<Node>();
         let candidates = node
-            .traverse_preorder(/* shadow including */ false)
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .filter(|elem| elem.is::<HTMLMetaElement>())
             .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
