@@ -26,7 +26,7 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::element::{CustomElementState, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, Node};
+use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
@@ -364,7 +364,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Steps 14-15
         for candidate in document
             .upcast::<Node>()
-            .traverse_preorder(/* shadow including */ true)
+            .traverse_preorder(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
         {
             let is = candidate.get_is();

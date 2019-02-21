@@ -75,7 +75,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::VecPreOrderInsertionHelper;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -595,7 +595,7 @@ impl Document {
     pub fn refresh_base_element(&self) {
         let base = self
             .upcast::<Node>()
-            .traverse_preorder(/* shadow including */ false)
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLBaseElement>)
             .find(|element| {
                 element
@@ -833,7 +833,7 @@ impl Document {
         };
         let doc_node = self.upcast::<Node>();
         doc_node
-            .traverse_preorder(/* shadow including */ false)
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast)
             .find(|node| check_anchor(&node))
             .map(DomRoot::upcast)
@@ -942,7 +942,7 @@ impl Document {
 
     pub fn dirty_all_nodes(&self) {
         let root = self.upcast::<Node>();
-        for node in root.traverse_preorder(/* shadow including */ true) {
+        for node in root.traverse_preorder(ShadowIncluding::Yes) {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
@@ -2244,7 +2244,7 @@ impl Document {
     /// Iterate over all iframes in the document.
     pub fn iter_iframes(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> {
         self.upcast::<Node>()
-            .traverse_preorder(/* shadow including */ true)
+            .traverse_preorder(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<HTMLIFrameElement>)
     }
 
@@ -2837,7 +2837,7 @@ impl Document {
         let maybe_node = doc.r().map(Castable::upcast::<Node>);
         let iter = maybe_node
             .iter()
-            .flat_map(|node| node.traverse_preorder(/* shadow including */ false))
+            .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
             .filter(|node| callback(&node));
         NodeList::new_simple_list(&self.window, iter)
     }
@@ -3723,7 +3723,7 @@ impl DocumentMethods for Document {
             } else {
                 // Step 2.
                 root.upcast::<Node>()
-                    .traverse_preorder(/* shadow including */ false)
+                    .traverse_preorder(ShadowIncluding::No)
                     .find(|node| node.is::<HTMLTitleElement>())
             }
         });
@@ -3770,7 +3770,7 @@ impl DocumentMethods for Document {
         } else if root.namespace() == &ns!(html) {
             let elem = root
                 .upcast::<Node>()
-                .traverse_preorder(/* shadow including */ false)
+                .traverse_preorder(ShadowIncluding::No)
                 .find(|node| node.is::<HTMLTitleElement>());
             match elem {
                 Some(elem) => elem,
@@ -4137,7 +4137,7 @@ impl DocumentMethods for Document {
         {
             // Step 1.
             let mut elements = root
-                .traverse_preorder(/* shadow including */ false)
+                .traverse_preorder(ShadowIncluding::No)
                 .filter(|node| filter_by_name(&name, &node))
                 .peekable();
             if let Some(first) = elements.next() {
@@ -4265,7 +4265,7 @@ impl DocumentMethods for Document {
         // Step 8
         for node in self
             .upcast::<Node>()
-            .traverse_preorder(/* shadow including */ true)
+            .traverse_preorder(ShadowIncluding::Yes)
         {
             node.upcast::<EventTarget>().remove_all_listeners();
         }

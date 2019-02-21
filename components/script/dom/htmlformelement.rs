@@ -41,7 +41,8 @@ use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
+use crate::dom::node::{Node, NodeFlags, ShadowIncluding};
+use crate::dom::node::{UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -581,7 +582,7 @@ impl HTMLFormElement {
         //               form, refactor this when html5ever's form owner PR lands
         // Step 1-3
         let invalid_controls = node
-            .traverse_preorder(/* shadow including */ false)
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(|field| {
                 if let Some(el) = field.downcast::<Element>() {
                     if el.disabled_state() {
