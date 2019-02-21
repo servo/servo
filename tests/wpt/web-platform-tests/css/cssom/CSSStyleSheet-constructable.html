@@ -14,7 +14,7 @@
     <span class="yellow"></span>
   </div>
 </section>
-<section id="secondSection"></section>
+<section id="shadowHost"></section>
 <section id="thirdSection"></section>
 
 <script>
@@ -27,7 +27,8 @@ const yellowStyleText = ".yellow { color: yellow; }";
 
 const firstDiv = document.querySelector('#firstSection > div');
 const secondDiv = firstDiv.cloneNode(true);
-const shadowRoot = document.querySelector('#secondSection').attachShadow({mode: 'open'});
+const shadowHost = document.querySelector('#shadowHost');
+const shadowRoot = shadowHost.attachShadow({mode: 'open'});
 shadowRoot.appendChild(secondDiv);
 
 const greenSpan = firstDiv.children[0];
@@ -208,6 +209,24 @@ promise_test(() => {
     assert_equals(getComputedStyle(yellowShadowSpan).color, "rgb(255, 255, 0)");
   });
 }, 'Constructed style sheets can be applied on shadow root');
+
+promise_test(() => {
+  return Promise.all(createAllSheetsPromise()).then(values => {
+    const greenStyleSheet = values[0];
+    const redStyleSheet = values[1];
+    shadowRoot.adoptedStyleSheets = [greenStyleSheet];
+    assert_equals(getComputedStyle(greenShadowSpan).color, "rgb(0, 128, 0)", "Style applies connected");
+    assert_equals(getComputedStyle(redShadowSpan).color, "rgb(0, 0, 0)", "Style applies when connected");
+    let hostParent = shadowHost.parentNode;
+    hostParent.removeChild(shadowHost);
+    assert_equals(getComputedStyle(greenShadowSpan).color, "", "Style doesn't apply when detached");
+    assert_equals(getComputedStyle(redShadowSpan).color, "", "Style doesn't apply when detached");
+    shadowRoot.adoptedStyleSheets = [redStyleSheet, greenStyleSheet];
+    hostParent.appendChild(shadowHost);
+    assert_equals(getComputedStyle(greenShadowSpan).color, "rgb(0, 128, 0)", "Style applies after reattach");
+    assert_equals(getComputedStyle(redShadowSpan).color, "rgb(255, 0, 0)", "Style applies after reattach");
+  });
+}, 'Re-attaching shadow host with adopted stylesheets work');
 
 promise_test(() => {
   const plainSheet = new CSSStyleSheet();

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>fractions linethickness</title>
+    <style type="text/css">
+      @font-face {
+        font-family: TestFont;
+        src: url("/fonts/math/fraction-rulethickness10000.woff");
+      }
+      math {
+        /* FractionRuleThickness = 10000 * 1 / 1000 = 10px; */
+        font-family: "TestFont";
+        font-size: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if you see fractions with line thickness equal to the height of their blue numerator and cyan denominator.</p>
+    <math>
+      <mfrac linethickness="5px">
+        <mspace width="20px" height="5px" style="background: blue"></mspace>
+        <mspace width="20px" height="5px" style="background: cyan"></mspace>
+      </mfrac>
+      <mfrac linethickness="10px">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+      <mfrac linethickness="20px">
+        <mspace width="20px" height="20px" style="background: blue"></mspace>
+        <mspace width="20px" height="20px" style="background: cyan"></mspace>
+      </mfrac>
+      <mfrac linethickness="50px">
+        <mspace width="20px" height="50px" style="background: blue"></mspace>
+        <mspace width="20px" height="50px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+  </body>
+</html>

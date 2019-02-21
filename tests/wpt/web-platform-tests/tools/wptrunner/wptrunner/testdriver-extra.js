@@ -90,4 +90,13 @@
         window.__wptrunner_message_queue.push({"type": "action", "action": "action_sequence", "actions": actions});
         return pending_promise;
     };
+
+    window.test_driver_internal.generate_test_report = function(message) {
+        const pending_promise = new Promise(function(resolve, reject) {
+            pending_resolve = resolve;
+            pending_reject = reject;
+        });
+        window.__wptrunner_message_queue.push({"type": "action", "action": "generate_test_report", "message": message});
+        return pending_promise;
+    };
 })();
