@@ -15,7 +15,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::{document_from_node, Node, ShadowIncluding};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -162,7 +162,7 @@ impl VirtualMethods for HTMLLabelElement {
 impl HTMLLabelElement {
     pub fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement>> {
         self.upcast::<Node>()
-            .traverse_preorder(/* shadow including */ false)
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLElement>)
             .filter(|elem| elem.is_labelable_element())
             .next()
