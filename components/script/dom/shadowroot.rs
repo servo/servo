@@ -237,4 +237,8 @@ impl StyleSheetListOwner for Dom<ShadowRoot> {
             &mut self.author_styles.borrow_mut().stylesheets,
         )
     }
+
+    fn invalidate_stylesheets(&self) {
+        ShadowRoot::invalidate_stylesheets(self);
+    }
 }
