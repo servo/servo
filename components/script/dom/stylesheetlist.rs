@@ -20,6 +20,7 @@ pub trait StyleSheetListOwner: JSTraceable {
     fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>>;
     fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>);
     fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>);
+    fn invalidate_stylesheets(&self);
 }
 
 #[dom_struct]

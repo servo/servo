@@ -4656,4 +4656,8 @@ impl StyleSheetListOwner for Dom<Document> {
             &mut *self.stylesheets.borrow_mut(),
         )
     }
+
+    fn invalidate_stylesheets(&self) {
+        Document::invalidate_stylesheets(self);
+    }
 }
