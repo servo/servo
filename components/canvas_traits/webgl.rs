@@ -4,6 +4,7 @@
 
 use euclid::{Rect, Size2D};
 use gleam::gl;
+use gleam::gl::Gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::PixelFormat;
@@ -521,7 +522,7 @@ pub enum WebVRCommand {
 // Trait object that handles WebVR commands.
 // Receives the texture id and size associated to the WebGLContext.
 pub trait WebVRRenderHandler: Send {
-    fn handle(&mut self, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
+    fn handle(&mut self, gl: &dyn Gl, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
 }
 
 /// WebGL commands required to implement DOMToTexture feature.

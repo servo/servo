@@ -5,6 +5,7 @@
 use canvas_traits::webgl;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use euclid::Size2D;
+use gleam::gl::Gl;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
@@ -375,7 +376,12 @@ impl WebVRCompositorHandler {
 
 impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn handle(&mut self, cmd: webgl::WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
+    fn handle(
+        &mut self,
+        gl: &dyn Gl,
+        cmd: webgl::WebVRCommand,
+        texture: Option<(u32, Size2D<i32>)>,
+    ) {
         match cmd {
             webgl::WebVRCommand::Create(compositor_id) => {
                 self.create_compositor(compositor_id);
@@ -397,10 +403,7 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                             right_bounds: right_bounds,
                             texture_size: Some((size.width as u32, size.height as u32)),
                         };
-                        unsafe {
-                            (*compositor.0).render_layer(&layer);
-                            (*compositor.0).submit_frame();
-                        }
+                        unsafe { (*compositor.0).submit_layer(gl, &layer) };
                     }
                 }
             },
