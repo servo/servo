@@ -75,6 +75,7 @@ impl ShadowRoot {
     }
 
     pub fn invalidate_stylesheets(&self) {
+        self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
         self.host

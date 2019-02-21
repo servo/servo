@@ -437,6 +437,23 @@ impl<'ld> ServoLayoutDocument<'ld> {
         }
     }
 
+    pub fn flush_shadow_roots_stylesheets(
+        &self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        unsafe {
+            if !self.document.shadow_roots_styles_changed() {
+                return;
+            }
+            self.document.flush_shadow_roots_stylesheets();
+            for shadow_root in self.shadow_roots() {
+                shadow_root.flush_stylesheets(device, quirks_mode, guard);
+            }
+        }
+    }
+
     pub fn from_layout_js(doc: LayoutDom<Document>) -> ServoLayoutDocument<'ld> {
         ServoLayoutDocument {
             document: doc,
