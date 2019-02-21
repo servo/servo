@@ -293,7 +293,7 @@ impl Node {
         let parent_in_shadow_tree = self.is_in_shadow_tree();
         let parent_is_connected = self.is_connected();
 
-        for node in new_child.traverse_preorder(/* shadow including */ false) {
+        for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
                 if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
                     node.set_owner_shadow_root(&*shadow_root);
@@ -351,7 +351,7 @@ impl Node {
         child.composed_parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        for node in child.traverse_preorder(/* shadow including */ true) {
+        for node in child.traverse_preorder(ShadowIncluding::Yes) {
             // Out-of-document elements never have the descendants flag set.
             node.set_flag(
                 NodeFlags::IS_IN_DOC |
@@ -362,7 +362,7 @@ impl Node {
                 false,
             );
         }
-        for node in child.traverse_preorder(/* shadow including */ true) {
+        for node in child.traverse_preorder(ShadowIncluding::Yes) {
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
@@ -625,7 +625,7 @@ impl Node {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    pub fn traverse_preorder(&self, shadow_including: bool) -> TreeIterator {
+    pub fn traverse_preorder(&self, shadow_including: ShadowIncluding) -> TreeIterator {
         TreeIterator::new(self, shadow_including)
     }
 
@@ -873,7 +873,7 @@ impl Node {
                     self.owner_doc().quirks_mode(),
                 );
                 Ok(self
-                    .traverse_preorder(/* shadow including */ false)
+                    .traverse_preorder(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast)
                     .find(|element| matches_selector_list(&selectors, element, &mut ctx)))
             },
@@ -891,7 +891,7 @@ impl Node {
             Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                let mut descendants = self.traverse_preorder(/* shadow including */ false);
+                let mut descendants = self.traverse_preorder(ShadowIncluding::No);
                 // Skip the root of the tree.
                 assert!(&*descendants.next().unwrap() == self);
                 Ok(QuerySelectorIterator::new(descendants, selectors))
@@ -1510,6 +1510,13 @@ where
     }
 }
 
+/// Whether a tree traversal should pass shadow tree boundaries.
+#[derive(PartialEq)]
+pub enum ShadowIncluding {
+    No,
+    Yes,
+}
+
 pub struct TreeIterator {
     current: Option<DomRoot<Node>>,
     depth: usize,
@@ -1517,11 +1524,11 @@ pub struct TreeIterator {
 }
 
 impl TreeIterator {
-    fn new(root: &Node, shadow_including: bool) -> TreeIterator {
+    fn new(root: &Node, shadow_including: ShadowIncluding) -> TreeIterator {
         TreeIterator {
             current: Some(DomRoot::from_ref(root)),
             depth: 0,
-            shadow_including,
+            shadow_including: shadow_including == ShadowIncluding::Yes,
         }
     }
 
@@ -1655,11 +1662,11 @@ impl Node {
         // Step 3.
         if &*old_doc != document {
             // Step 3.1.
-            for descendant in node.traverse_preorder(/* shadow including */ true) {
+            for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
                 descendant.set_owner_doc(document);
             }
             for descendant in node
-                .traverse_preorder(/* shadow including */ true)
+                .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(|d| d.as_custom_element())
             {
                 // Step 3.2.
@@ -1669,7 +1676,7 @@ impl Node {
                     None,
                 );
             }
-            for descendant in node.traverse_preorder(/* shadow including */ true) {
+            for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
                 // Step 3.3.
                 vtable_for(&descendant).adopting_steps(&old_doc);
             }
@@ -1890,7 +1897,7 @@ impl Node {
             parent.add_child(*kid, child);
             // Step 7.7.
             for descendant in kid
-                .traverse_preorder(/* shadow including */ true)
+                .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 // Step 7.7.2.
@@ -2325,9 +2332,8 @@ impl NodeMethods for Node {
     fn GetTextContent(&self) -> Option<DOMString> {
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-                let content = Node::collect_text_contents(
-                    self.traverse_preorder(/* shadow including */ false),
-                );
+                let content =
+                    Node::collect_text_contents(self.traverse_preorder(ShadowIncluding::No));
                 Some(content)
             },
             NodeTypeId::CharacterData(..) => {
@@ -3180,7 +3186,7 @@ where
 
         let elem_node = elem.upcast::<Node>();
         let mut head: usize = 0;
-        for node in tree_root.traverse_preorder(/* shadow including */ false) {
+        for node in tree_root.traverse_preorder(ShadowIncluding::No) {
             let head_node = DomRoot::upcast::<Node>(DomRoot::from_ref(&*self[head]));
             if head_node == node {
                 head += 1;
