@@ -1345,13 +1345,11 @@ impl LayoutThread {
         );
 
         // Flush shadow roots stylesheets if dirty.
-        for shadow_root in document.shadow_roots() {
-            shadow_root.flush_stylesheets(
-                &self.stylist.device(),
-                document.quirks_mode(),
-                guards.author.clone(),
-            );
-        }
+        document.flush_shadow_roots_stylesheets(
+            &self.stylist.device(),
+            document.quirks_mode(),
+            guards.author.clone(),
+        );
 
         let restyles = document.drain_pending_restyles();
         debug!("Draining restyles: {}", restyles.len());
