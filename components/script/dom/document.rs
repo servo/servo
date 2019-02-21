@@ -378,6 +378,8 @@ pub struct Document {
     completely_loaded: Cell<bool>,
     /// List of shadow roots bound to the document tree.
     shadow_roots: DomRefCell<Vec<Dom<ShadowRoot>>>,
+    /// Whether any of the shadow roots need the stylesheets flushed.
+    shadow_roots_styles_changed: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2441,6 +2443,8 @@ pub trait LayoutDocumentHelpers {
     unsafe fn quirks_mode(&self) -> QuirksMode;
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
     unsafe fn shadow_roots(&self) -> Vec<LayoutDom<ShadowRoot>>;
+    unsafe fn shadow_roots_styles_changed(&self) -> bool;
+    unsafe fn flush_shadow_roots_stylesheets(&self);
 }
 
 #[allow(unsafe_code)]
@@ -2494,6 +2498,16 @@ impl LayoutDocumentHelpers for LayoutDom<Document> {
             .iter()
             .map(|sr| sr.to_layout())
             .collect()
+    }
+
+    #[inline]
+    unsafe fn shadow_roots_styles_changed(&self) -> bool {
+        (*self.unsafe_get()).shadow_roots_styles_changed()
+    }
+
+    #[inline]
+    unsafe fn flush_shadow_roots_stylesheets(&self) {
+        (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 }
 
@@ -2704,6 +2718,7 @@ impl Document {
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
             shadow_roots: DomRefCell::new(Vec::new()),
+            shadow_roots_styles_changed: Cell::new(false),
         }
     }
 
@@ -3164,6 +3179,7 @@ impl Document {
         self.shadow_roots
             .borrow_mut()
             .push(Dom::from_ref(shadow_root));
+        self.invalidate_shadow_roots_stylesheets();
     }
 
     pub fn unregister_shadow_root(&self, shadow_root: &ShadowRoot) {
@@ -3172,6 +3188,21 @@ impl Document {
         if let Some(index) = position {
             shadow_roots.remove(index);
         }
+    }
+
+    pub fn invalidate_shadow_roots_stylesheets(&self) {
+        self.shadow_roots_styles_changed.set(true);
+    }
+
+    pub fn shadow_roots_styles_changed(&self) -> bool {
+        self.shadow_roots_styles_changed.get()
+    }
+
+    pub fn flush_shadow_roots_stylesheets(&self) {
+        if !self.shadow_roots_styles_changed.get() {
+            return;
+        }
+        self.shadow_roots_styles_changed.set(false);
     }
 }
 
