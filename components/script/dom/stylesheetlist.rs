@@ -6,6 +6,7 @@ use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::element::Element;
 use crate::dom::stylesheet::StyleSheet;
@@ -14,7 +15,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
-pub trait StyleSheetListOwner {
+pub trait StyleSheetListOwner: JSTraceable {
     fn stylesheet_count(&self) -> usize;
     fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>>;
     fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>);

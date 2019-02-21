@@ -39,7 +39,6 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
-use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -500,7 +499,6 @@ unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
 unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>, RigidTransform3D<f64>);
-unsafe_no_jsmanaged_fields!(StyleSheetListOwner);
 unsafe_no_jsmanaged_fields!(CascadeData);
 
 unsafe impl<'a> JSTraceable for &'a str {
