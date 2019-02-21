@@ -170,7 +170,7 @@ interface XRRay {
 };
 
 enum XRHandedness {
-  "",
+  "none",
   "left",
   "right"
 };

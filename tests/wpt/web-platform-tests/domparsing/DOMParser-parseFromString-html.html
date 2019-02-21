@@ -67,6 +67,11 @@ test(function() {
 }, "DOMParser parses HTML tag soup with no problems");
 
 test(function() {
+   const doc = new DOMParser().parseFromString('<noembed>&lt;a&gt;</noembed>', 'text/html');
+   assert_equals(doc.querySelector('noembed').textContent, '&lt;a&gt;');
+}, 'DOMParser should handle the content of <noembed> as raw text');
+
+test(function() {
     assert_throws(new TypeError(), function() {
         new DOMParser().parseFromString("", "text/foo-this-is-invalid");
     })

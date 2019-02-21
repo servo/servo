@@ -194,6 +194,20 @@
          */
         action_sequence: function(actions) {
             return window.test_driver_internal.action_sequence(actions);
+        },
+
+        /**
+         * Generates a test report on the current page
+         *
+         * The generate_test_report function generates a report (to be observed
+         * by ReportingObserver) for testing purposes, as described in
+         * {@link https://w3c.github.io/reporting/#generate-test-report-command}
+         *
+         * @returns {Promise} fulfilled after the report is generated, or
+         *                    rejected if the report generation fails
+         */
+        generate_test_report: function(message) {
+            return window.test_driver_internal.generate_test_report(message);
         }
     };
 
@@ -280,6 +294,17 @@
          *                    fail
          */
         action_sequence: function(actions) {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+        /**
+         * Generates a test report on the current page
+         *
+         * @param {String} message - the message to be contained in the report
+         * @returns {Promise} fulfilled after the report is generated, or
+         *                    rejected if the report generation fails
+         */
+        generate_test_report: function(message) {
             return Promise.reject(new Error("unimplemented"));
         }
     };

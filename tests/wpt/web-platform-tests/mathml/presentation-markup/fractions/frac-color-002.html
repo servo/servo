@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>fractions color</title>
+    <link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS3.SSS2">
+    <meta name="assert" content="Verifies the color attribute affects the fraction bar">
+    <link rel="match" href="frac-color-002-ref.html">
+  </head>
+  <body>
+    <p>This test passes if you see a green square and a blue square.</p>
+    <div style="background: green; width: 200px; height: 200px;">
+      <math>
+        <mspace width="10px"></mspace>
+        <mfrac style="color: green">
+          <mspace width="150px" height="20px"></mspace>
+          <mspace width="150px" height="20px"></mspace>
+        </mfrac>
+      </math>
+    </div>
+    <div style="background: blue; width: 200px; height: 200px;">
+      <math>
+        <mspace width="10px"></mspace>
+        <mfrac style="color: blue">
+          <mspace width="150px" height="20px"></mspace>
+          <mspace width="150px" height="20px"></mspace>
+        </mfrac>
+      </math>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Reporting: Disconnect</title>
+<link rel="author" title="Paul Meyer" href="paulmeyer@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  async_test(async function(test) {
+    var observer = new ReportingObserver(function(reports, observer) {
+      test.step(function() {
+        assert_equals(reports.length, 1);
+        assert_equals(reports[0].body.message, "Test message.");
+      });
+      test.done();
+    });
+    observer.observe();
+
+    // The observer should still receive this report even though disconnect()
+    // is called immediately afterwards.
+    await test_driver.generate_test_report("Test message.");
+    observer.disconnect();
+  }, "Disconnect");
+</script>

@@ -213,9 +213,6 @@ class SeleniumProtocol(Protocol):
                                                                             resolve_ip=False),
                                           desired_capabilities=self.capabilities)
 
-    def after_conect(self):
-        pass
-
     def teardown(self):
         self.logger.debug("Hanging up on Selenium session")
         try:

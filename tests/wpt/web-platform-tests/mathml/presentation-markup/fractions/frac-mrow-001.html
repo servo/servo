@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Fraction mrow</title>
+    <link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS3.SSS2">
+    <meta name="assert" content="This test that <mrow> elements can be used as numerator and denominator of fractions.">
+    <link rel="match" href="frac-mrow-001-ref.html">
+  </head>
+  <body style="font-size: 20pt;">
+    <p>This test passes if you see a fraction with a blue square as numerator and a cyan square as denominator.</p>
+    <math>
+      <mfrac>
+        <mrow>
+          <mspace width="30px" height="60px" style="background: blue"></mspace>
+          <mspace width="30px" height="60px" style="background: blue "></mspace>
+        </mrow>
+        <mrow>
+          <mspace width="30px" height="60px" style="background: cyan"></mspace>
+          <mspace width="30px" height="60px" style="background: cyan "></mspace>
+        </mrow>
+      </mfrac>
+    </math>
+  </body>
+</html>
