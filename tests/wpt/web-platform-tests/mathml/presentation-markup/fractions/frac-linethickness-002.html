@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>fractions linethickness</title>
+    <link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS3.SSS2">
+    <meta name="assert" content="Verifies fraction with negative, percent and named space linethickness values.">
+    <link rel="match" href="frac-linethickness-002-ref.html">
+    <style type="text/css">
+      @font-face {
+        font-family: TestFont;
+        src: url("/fonts/math/fraction-rulethickness10000.woff");
+      }
+      math {
+        /* FractionRuleThickness = 10000 * 1 / 1000 = 10px; */
+        font-family: "TestFont";
+        font-size: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if you see fraction with a cyan denominator and
+      a blue numerator as tall as its black bar.</p>
+    <math>
+      <mfrac linethickness="-1.23em">
+        <mspace width="20px" height="0px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac linethickness="500%">
+        <mspace width="20px" height="50px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+    <math style="font-size: 180px">
+      <mfrac linethickness="veryverythickmathspace">
+        <mspace width="20px" height="70px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+  </body>
+</html>

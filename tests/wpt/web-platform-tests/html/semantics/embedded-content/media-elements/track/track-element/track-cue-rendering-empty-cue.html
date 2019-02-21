@@ -1,16 +1,26 @@
 <!DOCTYPE html>
-<title>Empty cues</title>
-<script src="/common/media.js"></script>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script>
-async_test(function(t) {
-    var video = document.createElement("video");
-    video.src = getVideoURI("/media/test");
-    video.addTextTrack("captions", "regular captions track", "en");
-    video.textTracks[0].addCue(new VTTCue(0, 4, ""));
+<html class="reftest-wait">
+<title>Track rendering with empty cue</title>
+<link rel="match" href="track-cue-rendering-empty-cue-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180">
+  <source src="/media/white.webm" type="video/webm">
+  <source src="/media/white.mp4" type="video/mp4">
+  <script>
+    var video = document.querySelector("video");
+    var track = video.addTextTrack("captions", "regular captions track", "en");
+    track.addCue(new VTTCue(0, 4, ""));
+    track.mode = "showing";
 
-    video.onplaying = t.step_func_done();
+    video.addEventListener('playing', () => {
+      video.pause();
+      takeScreenshot();
+    }, { once: true});
     video.play();
-});
-</script>
+  </script>
+</video>
+</html>

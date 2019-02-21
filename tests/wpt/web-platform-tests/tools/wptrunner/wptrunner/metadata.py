@@ -365,7 +365,7 @@ class ExpectedUpdater(object):
 
         if self.ignore_existing:
             test_data.set_requires_update()
-            test_data.clear.append("expected")
+            test_data.clear.add("expected")
         self.tests_visited[test_id] = set()
 
     def test_status(self, data):
