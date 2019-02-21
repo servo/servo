@@ -250,6 +250,13 @@ impl FromStr for AdjacentPosition {
     }
 }
 
+/// Whether a shadow root hosts an User Agent widget.
+#[derive(PartialEq)]
+pub enum IsUserAgentWidget {
+    No,
+    Yes,
+}
+
 //
 // Element methods
 //
@@ -451,7 +458,7 @@ impl Element {
     /// https://dom.spec.whatwg.org/#dom-element-attachshadow
     /// XXX This is not exposed to web content yet. It is meant to be used
     ///     for UA widgets only.
-    pub fn attach_shadow(&self) -> Fallible<DomRoot<ShadowRoot>> {
+    pub fn attach_shadow(&self, is_ua_widget: IsUserAgentWidget) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1.
         if self.namespace != ns!(html) {
             return Err(Error::NotSupported);
@@ -477,6 +484,8 @@ impl Element {
             &local_name!("p") |
             &local_name!("section") |
             &local_name!("span") => {},
+            &local_name!("video") | &local_name!("audio")
+                if is_ua_widget == IsUserAgentWidget::Yes => {},
             _ => return Err(Error::NotSupported),
         };
 
@@ -2657,7 +2666,7 @@ impl ElementMethods for Element {
     //     to test partial Shadow DOM support for UA widgets.
     // https://dom.spec.whatwg.org/#dom-element-attachshadow
     fn AttachShadow(&self) -> Fallible<DomRoot<ShadowRoot>> {
-        self.attach_shadow()
+        self.attach_shadow(IsUserAgentWidget::No)
     }
 }
 
