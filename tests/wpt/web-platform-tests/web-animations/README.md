@@ -19,7 +19,7 @@ Guidelines for writing tests
 
     Instead, try something like:
 
-    > *   `/web-animations/timing-model/animations/set-the-animation-start-time.html`<br>
+    > *   `/web-animations/timing-model/animations/setting-the-start-time-of-an-animation.html`<br>
     >     Tests all the branches and inputs to the procedure as defined in the
     >     spec (using the `Animation.startTime` API).
     > *   `/web-animations/interfaces/Animation/startTime.html`<br>

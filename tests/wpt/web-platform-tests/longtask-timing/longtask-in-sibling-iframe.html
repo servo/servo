@@ -14,6 +14,10 @@
     }
     window.addEventListener('message', t.step_func(e => {
       assert_equals(e.data['entryType'], 'longtask');
+      // Ignore any long task that may be produced by the top-level frame.
+      if (e.data['frame-attribution'] === 'same-origin-ancestor')
+        return;
+
       assert_equals(e.data['frame-attribution'], 'same-origin');
       assert_equals(e.data['task-attribution'], 'unknown');
       assert_equals(e.data['containerId'], 'longtask-iframe-id');

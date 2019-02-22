@@ -7,16 +7,18 @@
 <script>
   // These tests reuse the `referrer-policy` infrastructure to load images that
   // encode their request headers in their pixels. Fun stuff!
-  async_test(t => {
+  promise_test(() =>
     loadImageInWindow(
       "https://{{host}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
-      t.step_func_done(img => {
+      [],
+      window)
+    .then(img => {
         headers = decodeImageData(extractImageData(img)).headers;
         got = {
-        "dest": headers["sec-fetch-dest"],
-        "mode": headers["sec-fetch-mode"],
-        "site": headers["sec-fetch-site"],
-        "user": headers["sec-fetch-user"]
+          "dest": headers["sec-fetch-dest"],
+          "mode": headers["sec-fetch-mode"],
+          "site": headers["sec-fetch-site"],
+          "user": headers["sec-fetch-user"]
         };
         assert_header_equals(got, {
           "dest": "image",
@@ -25,20 +27,20 @@
           "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
         });
       }),
-      [],
-      window);
-  }, "Same-origin image");
+    "Same-origin image");
 
-  async_test(t => {
+  promise_test(() =>
     loadImageInWindow(
       "https://{{hosts[][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
-      t.step_func_done(img => {
+      [],
+      window)
+    .then(img => {
         headers = decodeImageData(extractImageData(img)).headers;
         got = {
-        "dest": headers["sec-fetch-dest"],
-        "mode": headers["sec-fetch-mode"],
-        "site": headers["sec-fetch-site"],
-        "user": headers["sec-fetch-user"]
+          "dest": headers["sec-fetch-dest"],
+          "mode": headers["sec-fetch-mode"],
+          "site": headers["sec-fetch-site"],
+          "user": headers["sec-fetch-user"]
         };
         assert_header_equals(got, {
           "dest": "image",
@@ -47,20 +49,20 @@
           "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
         });
       }),
-      [],
-      window);
-  }, "Same-site image");
+    "Same-site image");
 
-  async_test(t => {
+  promise_test(() =>
     loadImageInWindow(
       "https://{{hosts[alt][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
-      t.step_func_done(img => {
+      [],
+      window)
+    .then(img => {
         headers = decodeImageData(extractImageData(img)).headers;
         got = {
-        "dest": headers["sec-fetch-dest"],
-        "mode": headers["sec-fetch-mode"],
-        "site": headers["sec-fetch-site"],
-        "user": headers["sec-fetch-user"]
+          "dest": headers["sec-fetch-dest"],
+          "mode": headers["sec-fetch-mode"],
+          "site": headers["sec-fetch-site"],
+          "user": headers["sec-fetch-user"]
         };
         assert_header_equals(got, {
           "dest": "image",
@@ -69,7 +71,5 @@
           "mode": "cors", // Because `loadImageInWindow` tacks on `crossorigin`
         });
       }),
-      [],
-      window);
-  }, "Cross-site image");
+    "Cross-site image");
 </script>

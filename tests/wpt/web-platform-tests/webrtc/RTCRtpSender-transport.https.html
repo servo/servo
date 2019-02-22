@@ -69,10 +69,14 @@
       }
       await callee.setRemoteDescription(offer);
       const [callee_transceiver1, callee_transceiver2] = callee.getTransceivers();
-      assert_not_equals(callee_transceiver1.receiver.transport, null);
-      assert_not_equals(callee_transceiver2.receiver.transport, null);
+      // According to spec, setRemoteDescription only updates the transports
+      // if the remote description is an answer.
+      assert_equals(callee_transceiver1.receiver.transport, null);
+      assert_equals(callee_transceiver2.receiver.transport, null);
       const answer = await callee.createAnswer();
       await callee.setLocalDescription(answer);
+      assert_not_equals(callee_transceiver1.receiver.transport, null);
+      assert_not_equals(callee_transceiver2.receiver.transport, null);
       // At this point, bundle should have kicked in.
       assert_equals(callee_transceiver1.receiver.transport,
                     callee_transceiver2.receiver.transport);

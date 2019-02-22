@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Async Clipboard writeText -> read (Blob/text) tests</title>
+<title>Async Clipboard writeText -> read (text/plain Blob) tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -15,7 +15,7 @@ async function readWriteTest(textInput) {
   }, "Verify write and read clipboard given text: " + textInput);
 }
 
-readWriteTest("Clipboard write text -> read (Blob/text) test");
+readWriteTest("Clipboard write text -> read (text/plain Blob) test");
 readWriteTest("non-Latin1 text encoding test データ");
 </script>
 <p>

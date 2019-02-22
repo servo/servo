@@ -639,7 +639,6 @@ class TestRunnerManager(threading.Thread):
                 # We are starting a new group of tests, so force a restart
                 restart = True
         else:
-            test = test
             test_group = self.state.test_group
             group_metadata = self.state.group_metadata
         if restart:

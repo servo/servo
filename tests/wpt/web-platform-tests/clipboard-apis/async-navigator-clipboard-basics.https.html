@@ -11,12 +11,14 @@ test(() => {
   assert_equals(navigator.clipboard, navigator.clipboard);
 }, "navigator.clipboard exists");
 
-/* clipboard.write(Blob/text) */
+/* clipboard.write(text/plain Blob) */
 
 promise_test(async () => {
   const blob = new Blob(["hello"], {type: 'text/plain'});
   await navigator.clipboard.write(blob);
-}, "navigator.clipboard.write(Blob) succeeds");
+}, "navigator.clipboard.write(text/plain Blob) succeeds");
+
+/* clipboard.write(invalid input) */
 
 promise_test(async t => {
   await promise_rejects(t, new TypeError(),
@@ -45,7 +47,7 @@ promise_test(async t => {
                          navigator.clipboard.writeText());
 }, "navigator.clipboard.writeText() fails (expect DOMString)");
 
-/* clipboard.write(Blob/image) */
+/* clipboard.write(image/png Blob) */
 
 promise_test(async () => {
   const fetched = await fetch(
@@ -53,15 +55,9 @@ promise_test(async () => {
   const image = await fetched.blob();
 
   await navigator.clipboard.write(image);
-}, "navigator.clipboard.writeImageExperimental(Blob) succeeds");
+}, "navigator.clipboard.write(image/png Blob) succeeds");
 
-promise_test(async t => {
-  await promise_rejects(t, new TypeError(),
-                        navigator.clipboard.write());
-}, "navigator.clipboard.writeImageExperimental() fails (expect Blob)");
-
-
-/* Blob/text or Blob/image clipboard.read() */
+/* text/plain or image/png Blob clipboard.read() */
 
 promise_test(async () => {
   const result = await navigator.clipboard.read();

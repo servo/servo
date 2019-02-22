@@ -2,12 +2,12 @@ import time
 import json
 import re
 
-def retrieve_from_stash(request, key, timeout, default_value):
+def retrieve_from_stash(request, key, timeout, min_count, default_value):
   t0 = time.time()
   while time.time() - t0 < timeout:
     time.sleep(0.5)
     value = request.server.stash.take(key=key)
-    if value is not None:
+    if value is not None and len(value) >= min_count:
       request.server.stash.put(key=key, value=value)
       return json.dumps(value)
 
@@ -34,7 +34,11 @@ def main(request, response):
       timeout = float(request.GET.first("timeout"))
     except:
       timeout = 0.5
-    return [("Content-Type", "application/json")], retrieve_from_stash(request, key, timeout, '[]')
+    try:
+      min_count = int(request.GET.first("min_count"))
+    except:
+      min_count = 1
+    return [("Content-Type", "application/json")], retrieve_from_stash(request, key, timeout, min_count, '[]')
 
   # append new reports
   new_reports = json.loads(request.body)
