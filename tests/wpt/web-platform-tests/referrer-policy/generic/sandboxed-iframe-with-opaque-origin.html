@@ -8,6 +8,7 @@
     <script src="/resources/testharnessreport.js"></script>
     <!-- Common global functions for referrer-policy tests. -->
     <script src="/referrer-policy/generic/common.js"></script>
+    <script src="/referrer-policy/generic/referrer-policy-test-case.js"></script>
   </head>
   <body>
     <h1>Referrer Policy: A document with an opaque origin doesn't send referrers</h1>
@@ -26,12 +27,16 @@
           iframe.srcdoc = `
               <meta name = "referrer" content = "always">
               <script src = "/referrer-policy/generic/common.js"></` + `script>
+              <script src = "/referrer-policy/generic/referrer-policy-test-case.js"></` + `script>
               <script>
                 var urlPath = "/referrer-policy/generic/subresource/xhr.py";
                 var url = "${location.protocol}//www1.${location.hostname}:${location.port}" + urlPath;
-                queryXhr(url, (msg) => {
+                requestViaXhr(url).then((msg) => {
                     parent.postMessage({referrer: msg.referrer, description: "${description}"}, "*")
-                }, null, null, test);
+                  })
+                  .catch((e) => {
+                    parent.postMessage({referrer: "FAILURE", description: "${description}"}, "*")
+                  });
               </` + "script>";
           document.body.appendChild(iframe);
         }, description);
