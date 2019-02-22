@@ -3,20 +3,20 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Web NFC API (https://w3c.github.io/web-nfc/)
 
-dictionary NFCMessage {
-  sequence<NFCRecord> records;
+dictionary NDEFMessage {
+  sequence<NDEFRecord> records;
   USVString url;
 };
 
-typedef (DOMString or unrestricted double or ArrayBuffer or Dictionary) NFCRecordData;
+typedef (DOMString or unrestricted double or ArrayBuffer or Dictionary) NDEFRecordData;
 
-dictionary NFCRecord {
-  NFCRecordType recordType;
+dictionary NDEFRecord {
+  NDEFRecordType recordType;
   USVString mediaType;
-  NFCRecordData data;
+  NDEFRecordData data;
 };
 
-enum NFCRecordType {
+enum NDEFRecordType {
   "empty",
   "text",
   "url",
@@ -24,11 +24,11 @@ enum NFCRecordType {
   "opaque"
 };
 
-typedef (DOMString or ArrayBuffer or NFCMessage) NFCMessageSource;
+typedef (DOMString or ArrayBuffer or NDEFMessage) NDEFMessageSource;
 
 [Constructor(), SecureContext, Exposed=Window]
 interface NFCWriter {
-  Promise<void> push(NFCMessageSource message, optional NFCPushOptions options);
+  Promise<void> push(NDEFMessageSource message, optional NFCPushOptions options);
 };
 
 [Constructor(optional NFCReaderOptions options), SecureContext, Exposed=Window]
@@ -42,11 +42,11 @@ interface NFCReader : EventTarget {
 
 [Constructor(DOMString type, NFCReadingEventInit readingEventInitDict), SecureContext, Exposed=Window]
 interface NFCReadingEvent : Event {
-  readonly attribute NFCMessage message;
+  readonly attribute NDEFMessage message;
 };
 
 dictionary NFCReadingEventInit : EventInit {
-  required NFCMessage message;
+  required NDEFMessage message;
 };
 
 [Constructor(DOMString type, NFCErrorEventInit errorEventInitDict), SecureContext, Exposed=Window]
@@ -58,11 +58,18 @@ dictionary NFCErrorEventInit : EventInit {
   required DOMException error;
 };
 
+enum NDEFCompatibility {
+  "nfc-forum",
+  "vendor",
+  "any"
+};
+
 dictionary NFCPushOptions {
   NFCPushTarget target = "any";
   unrestricted double timeout = Infinity;
   boolean ignoreRead = true;
   AbortSignal? signal;
+  NDEFCompatibility compatibility = "nfc-forum";
 };
 
 enum NFCPushTarget {
@@ -73,6 +80,7 @@ enum NFCPushTarget {
 
 dictionary NFCReaderOptions {
   USVString url = "";
-  NFCRecordType recordType;
+  NDEFRecordType recordType;
   USVString mediaType = "";
+  NDEFCompatibility compatibility = "nfc-forum";
 };

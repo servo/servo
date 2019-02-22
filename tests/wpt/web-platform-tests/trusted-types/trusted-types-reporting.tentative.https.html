@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/content-security-policy/support/testharness-helper.js"></script>
+</head>
+<body>
+  <script>
+  // CSP insists the "trusted-types: ..." directives are deliverd as headers
+  // (rather than as "<meta http-equiv" tags). This test assumes the following
+  // headers are set in the .headers file:
+  //
+  //   Content-Security-Policy: trusted-types one
+  //   Content-Security-Policy-Report-Only: trusted-types two; report-uri ...
+  //   Content-Security-Policy: plugin-types bla/blubb
+  //
+  // The last rule is there so we can provoke a CSP violation report at will.
+  // The intent is that in order to test that a violation has *not* been thrown
+  // (and without resorting to abominations like timeouts), we force a *another*
+  // CSP violation (by violating the img-src rule) and when that event is
+  // processed we can we sure that an earlier event - if it indeed occurred -
+  // must have already been processed.
+
+  const url = "" + document.location;
+
+  // Return function that returns a promise that resolves on the given
+  // violation report.
+  //
+  // filter_arg - iff function, call it with the event object.
+  //              Else, string-ify and compare against event.originalPolicy.
+  function promise_violation(filter_arg) {
+    return _ => new Promise((resolve, reject) => {
+      function handler(e) {
+        let matches = (filter_arg instanceof Function)
+            ? filter_arg(e)
+            : (e.originalPolicy.includes(filter_arg));
+        if (matches) {
+          document.removeEventListener("securitypolicyviolation", handler);
+          e.stopPropagation();
+          resolve(e);
+        }
+      }
+      document.addEventListener("securitypolicyviolation", handler);
+    });
+  }
+
+  // Like assert_throws, but we don't care about the exact error. We just want
+  // to run the code and continue.
+  function expect_throws(fn) {
+    try { fn(); assert_unreached(); } catch (err) { /* ignore */ }
+  }
+
+  // A sample policy we use to test TrustedTypes.createPolicy behaviour.
+  const id = x => x;
+  const a_policy = {
+    createHTML: id,
+    createScriptURL: id,
+    createURL: id,
+    createScript: id,
+  };
+
+  // Provoke/wait for a CSP violation, in order to be sure that all previous
+  // CSP violations have been delivered.
+  function promise_flush() {
+    return promise_violation("plugin-types bla/blubb");
+  }
+  function flush() {
+   expect_throws(_ => {
+      var o = document.createElement('object');
+      o.type = "application/x-shockwave-flash";
+      document.body.appendChild(o);
+    });
+  }
+
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("trusted-types one"))
+        .then(promise_violation("trusted-types two"))
+        .then(promise_flush());
+    expect_throws(_ => TrustedTypes.createPolicy("three", a_policy));
+    flush();
+    return p;
+  }, "Trusted Type violation report: creating a forbidden policy.");
+
+  promise_test(t => {
+    let p = promise_flush()();
+    expect_throws(_ => TrustedTypes.createPolicy("two", a_policy));
+    flush();
+    return p;
+  }, "Trusted Type violation report: creating a report-only-forbidden policy.");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("trusted-types two"))
+        .then(promise_flush());
+    TrustedTypes.createPolicy("one", a_policy, {exposed: true});
+    flush();
+    return p;
+  }, "Trusted Type violation report: creating a forbidden-but-not-reported policy.");
+
+  promise_test(t => {
+    let p = promise_violation("trusted-types two")();
+    expect_throws(_ => document.getElementById("anchor").href = url);
+    return p;
+  }, "Trusted Type violation report: assign string to url");
+
+  promise_test(t => {
+    let p = promise_violation("trusted-types two")();
+    expect_throws(_ => document.getElementById("div").innerHTML = "abc");
+    return p;
+  }, "Trusted Type violation report: assign string to html");
+
+  // In the following tests, we rely on the previous tests to have successfully
+  // created an exposed, no-op policy "one". Let's briefly test that.
+  promise_test(t => {
+    assert_true(!!TrustedTypes.getExposedPolicy("one"));
+    return Promise.resolve();
+  }, "By now, the \"one\" policy should have been created.");
+
+  promise_test(t => {
+    let p = promise_flush()();
+    document.getElementById("anchor").href =
+        TrustedTypes.getExposedPolicy("one").createURL("#");
+    flush();
+    return p;
+  }, "Trusted Type violation report: assign trusted URL to url; no report");
+
+  promise_test(t => {
+    let p = promise_flush()();
+    document.getElementById("div").innerHTML =
+        TrustedTypes.getExposedPolicy("one").createHTML("abc");
+    flush();
+    return p;
+  }, "Trusted Type violation report: assign trusted HTML to html; no report");
+
+  </script>
+
+  <!-- Some elements for the tests to act on. -->
+  <a id="anchor" href="">anchor</a>
+  <div id="div"></div>
+
+</body>

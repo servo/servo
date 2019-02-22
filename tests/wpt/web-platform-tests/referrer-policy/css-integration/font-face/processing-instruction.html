@@ -7,6 +7,7 @@
     <script src="/common/utils.js"></script>
     <!-- Common global functions for referrer-policy tests. -->
     <script src="/referrer-policy/generic/common.js"></script>
+    <script src="/referrer-policy/generic/referrer-policy-test-case.js"></script>
     <meta name="referrer" content="never">
   </head>
   <body>
@@ -17,7 +18,7 @@
     <div class="styled"></div>
 
     <script>
-      async_test(function(css_test) {
+      promise_test(function(css_test) {
         let id = token();
         let url_prefix = location.protocol + "//www1." + location.hostname + ":" + location.port;
         let css_url = url_prefix +
@@ -32,15 +33,14 @@
         let processingInstruction =
           document.createProcessingInstruction(
             "xml-stylesheet", "href=\"" + css_url + "\" type=\"text/css\"");
-        css_test.step_timeout(function() {
-            queryXhr(font_url, function(message) {
-                assert_own_property(message, "headers");
-                assert_own_property(message, "referrer");
-                assert_equals(message.referrer, expected);
-                css_test.done();
-            }, null, null, css_test);
-        }, 1000);
         document.insertBefore(processingInstruction, document.firstChild);
+        return timeoutPromise(css_test, 1000)
+          .then(() => requestViaXhr(font_url))
+          .then(function(message) {
+              assert_own_property(message, "headers");
+              assert_own_property(message, "referrer");
+              assert_equals(message.referrer, expected);
+            });
       }, "Font from external stylesheet (from ProcessingInstruction).");
     </script>
 

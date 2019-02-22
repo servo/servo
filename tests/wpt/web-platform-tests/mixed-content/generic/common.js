@@ -5,6 +5,20 @@
  *     method's JSDoc.
  */
 
+// The same content is placed as
+// - wpt/referrer-policy/generic/common.js and
+// - wpt/mixed-content/generic/common.js.
+// If you modify either one, please also update the other one.
+//
+// TODO(https://crbug.com/906850): These two files are going to be merged.
+// Currently they are duplicated only to avoid frequent mass modification
+// for each step of refactoring, as these file names are hard-coded in
+// a large number of generated test files.
+
+function timeoutPromise(t, ms) {
+  return new Promise(resolve => { t.step_timeout(resolve, ms); });
+}
+
 /**
  * Normalizes the target port for use in a URL. For default ports, this is the
  *     empty string (omitted port), otherwise it's a colon followed by the port
@@ -70,27 +84,66 @@ function setAttributes(el, attrs) {
     el.setAttribute(attr, attrs[attr]);
 }
 
-
 /**
  * Binds to success and error events of an object wrapping them into a promise
  *     available through {@code element.eventPromise}. The success event
  *     resolves and error event rejects.
+ * This method adds event listeners, and then removes all the added listeners
+ * when one of listened event is fired.
  * @param {object} element An object supporting events on which to bind the
  *     promise.
  * @param {string} resolveEventName [="load"] The event name to bind resolve to.
  * @param {string} rejectEventName [="error"] The event name to bind reject to.
  */
 function bindEvents(element, resolveEventName, rejectEventName) {
-  element.eventPromise = new Promise(function(resolve, reject) {
-    element.addEventListener(resolveEventName  || "load", function (e) {
-      resolve(e);
-    });
-    element.addEventListener(rejectEventName || "error", function(e) {
+  element.eventPromise =
+      bindEvents2(element, resolveEventName, element, rejectEventName);
+}
+
+// Returns a promise wrapping success and error events of objects.
+// This is a variant of bindEvents that can accept separate objects for each
+// events and two events to reject, and doesn't set `eventPromise`.
+//
+// When `resolveObject`'s `resolveEventName` event (default: "load") is
+// fired, the promise is resolved with the event.
+//
+// When `rejectObject`'s `rejectEventName` event (default: "error") or
+// `rejectObject2`'s `rejectEventName2` event (default: "error") is
+// fired, the promise is rejected.
+//
+// `rejectObject2` is optional.
+function bindEvents2(resolveObject, resolveEventName, rejectObject, rejectEventName, rejectObject2, rejectEventName2) {
+  return new Promise(function(resolve, reject) {
+    const actualResolveEventName = resolveEventName || "load";
+    const actualRejectEventName = rejectEventName || "error";
+    const actualRejectEventName2 = rejectEventName2 || "error";
+
+    const resolveHandler = function(event) {
+      cleanup();
+      resolve(event);
+    };
+
+    const rejectHandler = function(event) {
       // Chromium starts propagating errors from worker.onerror to
       // window.onerror. This handles the uncaught exceptions in tests.
-      e.preventDefault();
-      reject(e);
-    });
+      event.preventDefault();
+      cleanup();
+      reject(event);
+    };
+
+    const cleanup = function() {
+      resolveObject.removeEventListener(actualResolveEventName, resolveHandler);
+      rejectObject.removeEventListener(actualRejectEventName, rejectHandler);
+      if (rejectObject2) {
+        rejectObject2.removeEventListener(actualRejectEventName2, rejectHandler);
+      }
+    };
+
+    resolveObject.addEventListener(actualResolveEventName, resolveHandler);
+    rejectObject.addEventListener(actualRejectEventName, rejectHandler);
+    if (rejectObject2) {
+      rejectObject2.addEventListener(actualRejectEventName2, rejectHandler);
+    }
   });
 }
 
@@ -150,13 +203,34 @@ function createHelperIframe(name, doBindEvents) {
 }
 
 /**
+ * requestVia*() functions return promises that are resolved on successful
+ * requests with objects of the same "type", i.e. objects that contains
+ * the same sets of keys that are fixed within one category of tests (e.g.
+ * within wpt/referrer-policy tests).
+ * wrapResult() (that should be defined outside this file) is used to convert
+ * the response bodies of subresources into the expected result objects in some
+ * cases, and in other cases the result objects are constructed more directly.
+ * TODO(https://crbug.com/906850): Clean up the semantics around this, e.g.
+ * use (or not use) wrapResult() consistently, unify the arguments, etc.
+ */
+
+/**
  * Creates a new iframe, binds load and error events, sets the src attribute and
  *     appends it to {@code document.body} .
  * @param {string} url The src for the iframe.
  * @return {Promise} The promise for success/error events.
  */
-function requestViaIframe(url) {
-  return createRequestViaElement("iframe", {"src": url}, document.body);
+function requestViaIframe(url, additionalAttributes) {
+  const iframe = createElement(
+      "iframe",
+      Object.assign({"src": url}, additionalAttributes),
+      document.body,
+      false);
+  return bindEvents2(window, "message", iframe, "error", window, "error")
+      .then(event => {
+          assert_equals(event.source, iframe.contentWindow);
+          return event.data;
+        });
 }
 
 /**
@@ -169,13 +243,122 @@ function requestViaImage(url) {
   return createRequestViaElement("img", {"src": url}, document.body);
 }
 
+// Helpers for requestViaImageForReferrerPolicy().
+function loadImageInWindow(src, attributes, w) {
+  return new Promise((resolve, reject) => {
+    var image = new w.Image();
+    image.crossOrigin = "Anonymous";
+    image.onload = function() {
+      resolve(image);
+    };
+
+    // Extend element with attributes. (E.g. "referrerPolicy" or "rel")
+    if (attributes) {
+      for (var attr in attributes) {
+        image[attr] = attributes[attr];
+      }
+    }
+
+    image.src = src;
+    w.document.body.appendChild(image)
+  });
+}
+
+function extractImageData(img) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext('2d');
+    context.drawImage(img, 0, 0);
+    var imgData = context.getImageData(0, 0, img.clientWidth, img.clientHeight);
+    return imgData.data;
+}
+
+function decodeImageData(rgba) {
+  var rgb = new Uint8ClampedArray(rgba.length);
+
+  // RGBA -> RGB.
+  var rgb_length = 0;
+  for (var i = 0; i < rgba.length; ++i) {
+    // Skip alpha component.
+    if (i % 4 == 3)
+      continue;
+
+    // Zero is the string terminator.
+    if (rgba[i] == 0)
+      break;
+
+    rgb[rgb_length++] = rgba[i];
+  }
+
+  // Remove trailing nulls from data.
+  rgb = rgb.subarray(0, rgb_length);
+  var string_data = (new TextDecoder("ascii")).decode(rgb);
+
+  return JSON.parse(string_data);
+}
+
+// A variant of requestViaImage for referrer policy tests.
+// This tests many patterns of <iframe>s to test referrer policy inheritance.
+// TODO(https://crbug.com/906850): Merge this into requestViaImage().
+// <iframe>-related code should be moved outside requestViaImage*().
+function requestViaImageForReferrerPolicy(url, attributes, referrerPolicy) {
+  // For images, we'll test:
+  // - images in a `srcdoc` frame to ensure that it uses the referrer
+  //   policy of its parent,
+  // - images in a top-level document,
+  // - and images in a `srcdoc` frame with its own referrer policy to
+  //   override its parent.
+
+  var iframeWithoutOwnPolicy = document.createElement('iframe');
+  var noSrcDocPolicy = new Promise((resolve, reject) => {
+        iframeWithoutOwnPolicy.srcdoc = "Hello, world.";
+        iframeWithoutOwnPolicy.onload = resolve;
+        document.body.appendChild(iframeWithoutOwnPolicy);
+      })
+    .then(() => {
+        var nextUrl = url + "&cache_destroyer2=" + (new Date()).getTime();
+        return loadImageInWindow(nextUrl, attributes,
+                                 iframeWithoutOwnPolicy.contentWindow);
+      })
+    .then(function (img) {
+        return decodeImageData(extractImageData(img));
+      });
+
+  // Give a srcdoc iframe a referrer policy different from the top-level page's policy.
+  var iframePolicy = (referrerPolicy === "no-referrer") ? "unsafe-url" : "no-referrer";
+  var iframeWithOwnPolicy = document.createElement('iframe');
+  var srcDocPolicy = new Promise((resolve, reject) => {
+        iframeWithOwnPolicy.srcdoc = "<meta name='referrer' content='" + iframePolicy + "'>Hello world.";
+        iframeWithOwnPolicy.onload = resolve;
+        document.body.appendChild(iframeWithOwnPolicy);
+      })
+    .then(() => {
+        var nextUrl = url + "&cache_destroyer3=" + (new Date()).getTime();
+        return loadImageInWindow(nextUrl, null,
+                                 iframeWithOwnPolicy.contentWindow);
+      })
+    .then(function (img) {
+        return decodeImageData(extractImageData(img));
+      });
+
+  var pagePolicy = loadImageInWindow(url, attributes, window)
+    .then(function (img) {
+        return decodeImageData(extractImageData(img));
+      });
+
+  return Promise.all([noSrcDocPolicy, srcDocPolicy, pagePolicy]).then(values => {
+    assert_equals(values[0].headers.referer, values[2].headers.referer, "Referrer inside 'srcdoc' without its own policy should be the same as embedder's referrer.");
+    assert_equals((iframePolicy === "no-referrer" ? undefined : document.location.href), values[1].headers.referer, "Referrer inside 'srcdoc' should use the iframe's policy if it has one");
+    return wrapResult(values[2]);
+  });
+}
+
 /**
  * Initiates a new XHR GET request to provided URL.
  * @param {string} url The endpoint URL for the XHR.
  * @return {Promise} The promise for success/error events.
  */
 function requestViaXhr(url) {
-  return xhrRequest(url);
+  return xhrRequest(url).then(result => wrapResult(result));
 }
 
 /**
@@ -184,7 +367,9 @@ function requestViaXhr(url) {
  * @return {Promise} The promise for success/error events.
  */
 function requestViaFetch(url) {
-  return fetch(url);
+  return fetch(url)
+    .then(res => res.json())
+    .then(j => wrapResult(j));
 }
 
 function dedicatedWorkerUrlThatFetches(url) {
@@ -213,10 +398,22 @@ function requestViaDedicatedWorker(url, options) {
   } catch (e) {
     return Promise.reject(e);
   }
-  bindEvents(worker, "message", "error");
   worker.postMessage('');
+  return bindEvents2(worker, "message", worker, "error")
+    .then(event => wrapResult(event.data));
+}
 
-  return worker.eventPromise;
+function requestViaSharedWorker(url) {
+  var worker;
+  try {
+    worker = new SharedWorker(url);
+  } catch(e) {
+    return Promise.reject(e);
+  }
+  const promise = bindEvents2(worker.port, "message", worker, "error")
+    .then(event => wrapResult(event.data));
+  worker.port.start();
+  return promise;
 }
 
 // Returns a reference to a worklet object corresponding to a given type.
@@ -251,13 +448,19 @@ function requestViaWorklet(type, url) {
  * @return {Promise} The promise for success/error events.
  */
 function requestViaNavigable(navigableElement, url) {
-  var iframe = createHelperIframe(guid(), true);
+  var iframe = createHelperIframe(guid(), false);
   setAttributes(navigableElement,
                 {"href": url,
                  "target": iframe.name});
-  navigableElement.click();
 
-  return iframe.eventPromise;
+  const promise =
+    bindEvents2(window, "message", iframe, "error", window, "error")
+      .then(event => {
+          assert_equals(event.source, iframe.contentWindow, "event.source");
+          return event.data;
+        });
+  navigableElement.click();
+  return promise;
 }
 
 /**
@@ -266,8 +469,11 @@ function requestViaNavigable(navigableElement, url) {
  * @param {string} url The URL to navigate to.
  * @return {Promise} The promise for success/error events.
  */
-function requestViaAnchor(url) {
-  var a = createElement("a", {"innerHTML": "Link to resource"}, document.body);
+function requestViaAnchor(url, additionalAttributes) {
+  var a = createElement(
+      "a",
+      Object.assign({"innerHTML": "Link to resource"}, additionalAttributes),
+      document.body);
 
   return requestViaNavigable(a, url);
 }
@@ -278,9 +484,13 @@ function requestViaAnchor(url) {
  * @param {string} url The URL to navigate to.
  * @return {Promise} The promise for success/error events.
  */
-function requestViaArea(url) {
-  var area = createElement("area", {}, document.body);
+function requestViaArea(url, additionalAttributes) {
+  var area = createElement(
+      "area",
+      Object.assign({}, additionalAttributes),
+      document.body);
 
+  // TODO(kristijanburnik): Append to map and add image.
   return requestViaNavigable(area, url);
 }
 
@@ -290,8 +500,15 @@ function requestViaArea(url) {
  * @param {string} url The src URL.
  * @return {Promise} The promise for success/error events.
  */
-function requestViaScript(url) {
-  return createRequestViaElement("script", {"src": url}, document.body);
+function requestViaScript(url, additionalAttributes) {
+  const script = createElement(
+      "script",
+      Object.assign({"src": url}, additionalAttributes),
+      document.body,
+      false);
+
+  return bindEvents2(window, "message", script, "error", window, "error")
+    .then(event => wrapResult(event.data));
 }
 
 /**
@@ -458,7 +675,7 @@ function requestViaWebSocket(url) {
     var websocket = new WebSocket(url);
 
     websocket.addEventListener("message", function(e) {
-      resolve(JSON.parse(e.data));
+      resolve(e.data);
     });
 
     websocket.addEventListener("open", function(e) {
@@ -468,7 +685,10 @@ function requestViaWebSocket(url) {
     websocket.addEventListener("error", function(e) {
       reject(e)
     });
-  });
+  })
+  .then(data => {
+      return JSON.parse(data);
+    });
 }
 
 // SanityChecker does nothing in release mode. See sanity-checker.js for debug
@@ -476,3 +696,4 @@ function requestViaWebSocket(url) {
 function SanityChecker() {}
 SanityChecker.prototype.checkScenario = function() {};
 SanityChecker.prototype.setFailTimeout = function(test, timeout) {};
+SanityChecker.prototype.checkSubresourceResult = function() {};
