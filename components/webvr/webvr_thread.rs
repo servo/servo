@@ -11,6 +11,7 @@ use msg::constellation_msg::PipelineId;
 use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
 use servo_config::prefs::PREFS;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::{thread, time};
 use webvr_traits::webvr::*;
@@ -378,7 +379,9 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
     fn handle(&mut self, cmd: webgl::WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
         match cmd {
             webgl::WebVRCommand::Create(compositor_id) => {
-                self.create_compositor(compositor_id);
+                if let Some(compositor) = self.create_compositor(compositor_id) {
+                    unsafe { (*compositor.0).start_present(None) };
+                }
             },
             webgl::WebVRCommand::SyncPoses(compositor_id, near, far, sender) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
@@ -408,7 +411,9 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                 }
             },
             webgl::WebVRCommand::Release(compositor_id) => {
-                self.compositors.remove(&compositor_id);
+                if let Some(compositor) = self.compositors.remove(&compositor_id) {
+                    unsafe { (*compositor.0).stop_present() };
+                }
             },
         }
     }
@@ -416,10 +421,13 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
 
 impl WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn create_compositor(&mut self, display_id: webgl::WebVRDeviceId) {
+    fn create_compositor(
+        &mut self,
+        display_id: webgl::WebVRDeviceId,
+    ) -> Option<&mut WebVRCompositor> {
         let sender = match self.webvr_thread_sender {
             Some(ref s) => s,
-            None => return,
+            None => return None,
         };
 
         sender
@@ -428,13 +436,14 @@ impl WebVRCompositorHandler {
         let display = self.webvr_thread_receiver.recv().unwrap();
 
         match display {
-            Some(display) => {
-                self.compositors.insert(display_id, display);
+            Some(display) => match self.compositors.entry(display_id) {
+                Entry::Vacant(entry) => return Some(entry.insert(display)),
+                Entry::Occupied(_) => error!("VRDisplay already presenting"),
             },
-            None => {
-                error!("VRDisplay not found when creating a new VRCompositor");
-            },
+            None => error!("VRDisplay not found when creating a new VRCompositor"),
         };
+
+        None
     }
 
     // This is done on only a per-platform basis on initialization.
