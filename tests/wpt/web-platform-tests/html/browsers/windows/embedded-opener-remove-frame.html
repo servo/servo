@@ -1,0 +1,46 @@
+<!doctype html>
+<title>opener and "removed" embedded documents</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<iframe name=matchesastring></iframe>
+<script>
+async_test(t => {
+  const frame = document.querySelector("iframe"),
+        frameW = frame.contentWindow;
+  frame.onload = t.step_func(() => {
+    // Firefox and Chrome/Safari load differently
+    if (frame.contentWindow.location.href === "about:blank") {
+      return;
+    }
+
+    // Test bits
+    assert_equals(frameW.opener, window, "opener before removal");
+
+    const openerDesc = Object.getOwnPropertyDescriptor(frameW, "opener"),
+          openerGet = openerDesc.get;
+
+    assert_equals(openerGet(), window, "opener before removal via directly invoking the getter");
+    frame.remove();
+    assert_equals(frameW.opener, null, "opener after removal");
+    assert_equals(openerGet(), null, "opener after removal via directly invoking the getter");
+
+    frameW.opener = null;
+    assert_equals(openerGet(), null, "opener after setting it null via directly invoking the getter");
+    const openerDescNull = Object.getOwnPropertyDescriptor(frameW, "opener");
+    assert_not_equals(openerDescNull, openerDesc);
+    assert_object_equals(openerDescNull, openerDesc);
+
+    frameW.opener = "immaterial";
+    assert_equals(openerGet(), null, "opener after setting it \"immaterial\" via directly invoking the getter");
+    const openerDescImmaterial = Object.getOwnPropertyDescriptor(frameW, "opener");
+    assert_equals(openerDescImmaterial.value, "immaterial");
+    assert_true(openerDescImmaterial.writable);
+    assert_true(openerDescImmaterial.enumerable);
+    assert_true(openerDescImmaterial.configurable);
+
+    t.done();
+  });
+  window.open("/common/blank.html", "matchesastring");
+});
+</script>

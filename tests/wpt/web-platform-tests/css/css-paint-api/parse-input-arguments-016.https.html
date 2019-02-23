@@ -25,7 +25,8 @@ try {
         }
     });
 } catch(ex) {
-    if (ex.name == "TypeError" && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': cannot convert to dictionary.")
+    // 'contextOptions' property is 42, not a dictionary.
+    if (ex.name == 'TypeError')
         testsPassed = true;
 }
 
