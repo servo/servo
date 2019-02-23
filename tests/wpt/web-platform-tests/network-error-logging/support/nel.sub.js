@@ -55,11 +55,16 @@ function _getNELResourceURL(subdomain, suffix) {
  */
 
 function getURLForResourceWithBasicPolicy(subdomain) {
-  return _getNELResourceURL(subdomain, "pass.png?id="+reportID);
+  return _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=1.0");
 }
 
 function fetchResourceWithBasicPolicy(subdomain) {
   const url = getURLForResourceWithBasicPolicy(subdomain);
+  return fetch(url, {mode: "no-cors"});
+}
+
+function fetchResourceWithZeroSuccessFractionPolicy(subdomain) {
+  const url = _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=0.0");
   return fetch(url, {mode: "no-cors"});
 }
 
