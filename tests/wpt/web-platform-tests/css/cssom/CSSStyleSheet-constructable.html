@@ -228,6 +228,41 @@ promise_test(() => {
   });
 }, 'Re-attaching shadow host with adopted stylesheets work');
 
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(":host { color: red; }");
+  const host = document.createElement("div");
+  let sr = host.attachShadow({mode: "open"});
+  sr.adoptedStyleSheets = [sheet];
+  document.body.appendChild(host);
+  assert_equals(getComputedStyle(host).color, "rgb(255, 0, 0)", "Style applies when connected");
+  sheet.replaceSync(":host { color: blue; }");
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 255)", "Style update applies when connected");
+}, 'Attaching a shadow root that already has adopted stylesheets work');
+
+test(() => {
+
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(":host([red]) { color: red; } :host(.blue) { color: blue; }");
+  const host = document.createElement("div");
+  host.toggleAttribute("red");
+  document.body.appendChild(host);
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 0)", "No style applies yet");
+
+  let sr = host.attachShadow({mode: "open"});
+  sr.adoptedStyleSheets = [sheet];
+
+  assert_equals(getComputedStyle(host).color, "rgb(255, 0, 0)", "Style applies after adding style");
+  document.body.removeChild(host);
+  document.body.appendChild(host);
+  assert_equals(getComputedStyle(host).color, "rgb(255, 0, 0)", "Style applies after reattachment");
+  host.toggleAttribute("red");
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 0)", "Attribute updates to the element after reattachment apply");
+  host.classList.toggle("blue");
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 255)", "Class updates to the element after reattachment apply");
+
+}, "Re-attaching shadow host and updating attributes work");
+
 promise_test(() => {
   const plainSheet = new CSSStyleSheet();
   const redStyleSheetPromise = plainSheet.replace(redStyleTexts[0]);
