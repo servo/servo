@@ -763,7 +763,7 @@ impl Fragment {
                     let background_size =
                         get_cyclic(&style.get_background().background_size.0, i).clone();
                     let size = match background_size {
-                        BackgroundSize::Explicit { width, height } => Size2D::new(
+                        BackgroundSize::ExplicitSize { width, height } => Size2D::new(
                             width
                                 .to_used_value(bounding_box_size.width)
                                 .unwrap_or(bounding_box_size.width),
