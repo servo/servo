@@ -6,7 +6,7 @@
 
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCoord_Calc, nsStyleCoord_CalcValue};
-use crate::gecko_bindings::structs::{nsStyleCorners, nsStyleSides};
+use crate::gecko_bindings::structs::nsStyleSides;
 use crate::gecko_bindings::structs::{nsStyleUnion, nsStyleUnit, nscoord};
 use std::mem;
 
@@ -119,64 +119,6 @@ unsafe impl<'a> CoordDataMut for SidesDataMut<'a> {
     unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
         let unit = &mut self.sides.get_mUnits_mut()[self.index] as *mut _;
         let value = &mut self.sides.get_mValues_mut()[self.index] as *mut _;
-        (&mut *unit, &mut *value)
-    }
-}
-
-impl nsStyleCorners {
-    /// Get a `nsStyleCoord` like object representing the given index's value
-    /// and unit.
-    #[inline]
-    pub fn data_at(&self, index: usize) -> CornersData {
-        CornersData {
-            corners: self,
-            index: index,
-        }
-    }
-
-    /// Get a `nsStyleCoord` like object representing the mutable given index's
-    /// value and unit.
-    #[inline]
-    pub fn data_at_mut(&mut self, index: usize) -> CornersDataMut {
-        CornersDataMut {
-            corners: self,
-            index: index,
-        }
-    }
-}
-
-/// A `nsStyleCoord`-like struct on top of `nsStyleCorners`.
-pub struct CornersData<'a> {
-    corners: &'a nsStyleCorners,
-    index: usize,
-}
-
-/// A `nsStyleCoord`-like struct on top of a mutable `nsStyleCorners` reference.
-pub struct CornersDataMut<'a> {
-    corners: &'a mut nsStyleCorners,
-    index: usize,
-}
-
-unsafe impl<'a> CoordData for CornersData<'a> {
-    fn unit(&self) -> nsStyleUnit {
-        unsafe { self.corners.get_mUnits()[self.index] }
-    }
-    fn union(&self) -> nsStyleUnion {
-        unsafe { self.corners.get_mValues()[self.index] }
-    }
-}
-unsafe impl<'a> CoordData for CornersDataMut<'a> {
-    fn unit(&self) -> nsStyleUnit {
-        unsafe { self.corners.get_mUnits()[self.index] }
-    }
-    fn union(&self) -> nsStyleUnion {
-        unsafe { self.corners.get_mValues()[self.index] }
-    }
-}
-unsafe impl<'a> CoordDataMut for CornersDataMut<'a> {
-    unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
-        let unit = &mut self.corners.get_mUnits_mut()[self.index] as *mut _;
-        let value = &mut self.corners.get_mValues_mut()[self.index] as *mut _;
         (&mut *unit, &mut *value)
     }
 }
