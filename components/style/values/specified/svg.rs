@@ -64,7 +64,7 @@ impl Parse for SVGStrokeDashArray {
                 NonNegativeSvgLengthPercentageOrNumber::parse(context, i)
             })
         }) {
-            return Ok(generic::SVGStrokeDashArray::Values(values))
+            return Ok(generic::SVGStrokeDashArray::Values(values));
         }
 
         try_match_ident_ignore_ascii_case! { input,

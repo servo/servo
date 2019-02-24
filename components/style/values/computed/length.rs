@@ -9,7 +9,9 @@ use crate::values::animated::ToAnimatedValue;
 use crate::values::computed::NonNegativeNumber;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::length as generics;
-use crate::values::generics::length::{MaxSize as GenericMaxSize, Size as GenericSize, GenericLengthOrNumber};
+use crate::values::generics::length::{
+    GenericLengthOrNumber, MaxSize as GenericMaxSize, Size as GenericSize,
+};
 use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;

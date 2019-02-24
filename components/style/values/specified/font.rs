@@ -17,7 +17,7 @@ use crate::values::generics::font::{KeywordSize, VariationValue};
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
-use crate::values::specified::{NoCalcLength, Number, NonNegativeNumber, Percentage};
+use crate::values::specified::{NoCalcLength, NonNegativeNumber, Number, Percentage};
 use crate::values::CustomIdent;
 use crate::Atom;
 use app_units::Au;
