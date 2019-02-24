@@ -9,7 +9,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <!-- Common global functions for mixed-content tests. -->
-    <script src="/mixed-content/generic/common.js"></script>
+    <script src="/common/security-features/resources/common.js"></script>
     <!-- The original specification JSON for validating the scenario. -->
     <script src="/mixed-content/spec_json.js"></script>
     <!-- Internal checking of the tests -->

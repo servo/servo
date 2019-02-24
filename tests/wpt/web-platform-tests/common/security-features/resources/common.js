@@ -5,16 +5,6 @@
  *     method's JSDoc.
  */
 
-// The same content is placed as
-// - wpt/referrer-policy/generic/common.js and
-// - wpt/mixed-content/generic/common.js.
-// If you modify either one, please also update the other one.
-//
-// TODO(https://crbug.com/906850): These two files are going to be merged.
-// Currently they are duplicated only to avoid frequent mass modification
-// for each step of refactoring, as these file names are hard-coded in
-// a large number of generated test files.
-
 function timeoutPromise(t, ms) {
   return new Promise(resolve => { t.step_timeout(resolve, ms); });
 }
