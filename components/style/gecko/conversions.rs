@@ -575,17 +575,15 @@ pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
 
     use crate::gecko::values::GeckoStyleCoordConvertible;
-    use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
+    use crate::gecko_bindings::structs::nsStyleCoord;
     use crate::gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use crate::gecko_bindings::structs::{
         StyleGeometryBox, StyleShapeSource, StyleShapeSourceType,
     };
-    use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use crate::gecko_bindings::sugar::refptr::RefPtr;
     use crate::values::computed::basic_shape::{
         BasicShape, ClippingShape, FloatAreaShape, ShapeRadius,
     };
-    use crate::values::computed::border::{BorderCornerRadius, BorderRadius};
     use crate::values::computed::length::LengthPercentage;
     use crate::values::computed::motion::OffsetPath;
     use crate::values::computed::url::ComputedUrl;
@@ -594,9 +592,7 @@ pub mod basic_shape {
     };
     use crate::values::generics::basic_shape::{Circle, Ellipse, Path, PolygonCoord};
     use crate::values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
-    use crate::values::generics::border::BorderRadius as GenericBorderRadius;
     use crate::values::generics::rect::Rect;
-    use crate::values::generics::NonNegative;
     use crate::values::specified::SVGPathData;
     use std::borrow::Borrow;
 
@@ -706,7 +702,7 @@ pub mod basic_shape {
                     let r = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[1]);
                     let b = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
                     let l = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
-                    let round: BorderRadius = (&other.mRadius).into();
+                    let round = other.mRadius;
                     let round = if round.all_zero() { None } else { Some(round) };
                     let rect = Rect::new(
                         t.expect("inset() offset should be a length, percentage, or calc value"),
@@ -748,65 +744,6 @@ pub mod basic_shape {
                         coordinates: coords,
                     })
                 },
-            }
-        }
-    }
-
-    impl<'a> From<&'a nsStyleCorners> for BorderRadius {
-        fn from(other: &'a nsStyleCorners) -> Self {
-            let get_corner = |index| {
-                BorderCornerRadius::new(
-                    NonNegative(
-                        LengthPercentage::from_gecko_style_coord(&other.data_at(index)).expect(
-                            "<border-radius> should be a length, percentage, or calc value",
-                        ),
-                    ),
-                    NonNegative(
-                        LengthPercentage::from_gecko_style_coord(&other.data_at(index + 1)).expect(
-                            "<border-radius> should be a length, percentage, or calc value",
-                        ),
-                    ),
-                )
-            };
-
-            GenericBorderRadius {
-                top_left: get_corner(0),
-                top_right: get_corner(2),
-                bottom_right: get_corner(4),
-                bottom_left: get_corner(6),
-            }
-        }
-    }
-
-    // Can't be a From impl since we need to set an existing
-    // nsStyleCorners, not create a new one
-    impl BorderRadius {
-        /// Set this `BorderRadius` into a given `nsStyleCoord`.
-        pub fn set_corners(&self, other: &mut nsStyleCorners) {
-            let mut set_corner = |field: &BorderCornerRadius, index| {
-                field
-                    .0
-                    .width()
-                    .to_gecko_style_coord(&mut other.data_at_mut(index));
-                field
-                    .0
-                    .height()
-                    .to_gecko_style_coord(&mut other.data_at_mut(index + 1));
-            };
-            set_corner(&self.top_left, 0);
-            set_corner(&self.top_right, 2);
-            set_corner(&self.bottom_right, 4);
-            set_corner(&self.bottom_left, 6);
-        }
-    }
-
-    /// We use None for a nonexistant radius, but Gecko uses (0 0 0 0 / 0 0 0 0)
-    pub fn set_corners_from_radius(radius: Option<BorderRadius>, other: &mut nsStyleCorners) {
-        if let Some(radius) = radius {
-            radius.set_corners(other);
-        } else {
-            for i in 0..8 {
-                other.data_at_mut(i).set_value(CoordDataValue::Coord(0));
             }
         }
     }
