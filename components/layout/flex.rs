@@ -30,7 +30,6 @@ use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
 use style::values::computed::{MaxSize, Size};
-use style::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -61,8 +60,8 @@ impl AxisSize {
 /// is definite after flex size resolving.
 fn from_flex_basis(flex_basis: FlexBasis, main_length: Size, containing_length: Au) -> MaybeAuto {
     let width = match flex_basis {
-        GenericFlexBasis::Content => return MaybeAuto::Auto,
-        GenericFlexBasis::Width(width) => width,
+        FlexBasis::Content => return MaybeAuto::Auto,
+        FlexBasis::Size(width) => width,
     };
 
     let width = match width {
