@@ -10,7 +10,7 @@ use euclid::TypedScale;
 use gleam::gl;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
-use script_traits::{MouseButton, TouchEventType, TouchId};
+use script_traits::{MouseButton, TouchEventType, TouchId, WheelDelta};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
@@ -65,6 +65,8 @@ pub enum WindowEvent {
     MouseWindowMoveEventClass(DevicePoint),
     /// Touch event: type, identifier, point
     Touch(TouchEventType, TouchId, DevicePoint),
+    /// Sent when user moves the mouse wheel.
+    Wheel(WheelDelta, DevicePoint),
     /// Sent when the user scrolls. The first point is the delta and the second point is the
     /// origin.
     Scroll(ScrollLocation, DeviceIntPoint, TouchEventType),
@@ -113,6 +115,7 @@ impl Debug for WindowEvent {
             WindowEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),
             WindowEvent::MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
             WindowEvent::Touch(..) => write!(f, "Touch"),
+            WindowEvent::Wheel(..) => write!(f, "Wheel"),
             WindowEvent::Scroll(..) => write!(f, "Scroll"),
             WindowEvent::Zoom(..) => write!(f, "Zoom"),
             WindowEvent::PinchZoom(..) => write!(f, "PinchZoom"),
