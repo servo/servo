@@ -14,7 +14,7 @@ use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::{Cursor, EventLoopWaker};
-use servo::script_traits::TouchEventType;
+use servo::script_traits::{TouchEventType, WheelDelta};
 use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
@@ -495,14 +495,21 @@ impl Window {
                 event: glutin::WindowEvent::MouseWheel { delta, phase, .. },
                 ..
             } => {
-                let (mut dx, mut dy) = match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
+                let (mut dx, mut dy, mode) = match delta {
+                    MouseScrollDelta::LineDelta(dx, dy) => (dx as f64, (dy * LINE_HEIGHT) as f64, 0x01),
                     MouseScrollDelta::PixelDelta(position) => {
                         let position =
                             position.to_physical(self.device_hidpi_factor().get() as f64);
-                        (position.x as f32, position.y as f32)
+                        (position.x as f64, position.y as f64, 0x00)
                     },
                 };
+
+                // Create wheel event before snapping to the major axis of movement
+                let wheel_delta = WheelDelta { x: dx, y: dy, z: 0.0, mode };
+                let pos = self.mouse_pos.get();
+                let position = TypedPoint2D::new(pos.x as f32, pos.y as f32);
+                let wheel_event = WindowEvent::Wheel(wheel_delta, position);
+
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
                 if dy.abs() >= dx.abs() {
@@ -511,10 +518,13 @@ impl Window {
                     dy = 0.0;
                 }
 
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(dx, dy));
+                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(dx as f32, dy as f32));
                 let phase = winit_phase_to_touch_event_type(phase);
-                let event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
-                self.event_queue.borrow_mut().push(event);
+                let scroll_event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
+
+                // Send events
+                self.event_queue.borrow_mut().push(wheel_event);
+                self.event_queue.borrow_mut().push(scroll_event);
             },
             Event::WindowEvent {
                 event: glutin::WindowEvent::Touch(touch),

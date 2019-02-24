@@ -460,6 +460,19 @@ pub enum MouseEventType {
     MouseUp,
 }
 
+/// The Wheel event deltas in every direction
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct WheelDelta {
+    /// Delta in the left/right direction
+    pub x: f64,
+    /// Delta in the up/down direction
+    pub y: f64,
+    /// Delta in the direction going into/out of the screen
+    pub z: f64,
+    /// Mode to measure the floats in
+    pub mode: u32,
+}
+
 /// Events from the compositor that the script thread needs to know about
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CompositorEvent {
@@ -482,6 +495,8 @@ pub enum CompositorEvent {
         Point2D<f32>,
         Option<UntrustedNodeAddress>,
     ),
+    /// A wheel event was generated with a delta in the X, Y, and/or Z directions
+    WheelEvent(WheelDelta, Point2D<f32>, Option<UntrustedNodeAddress>),
     /// A key was pressed.
     KeyboardEvent(KeyboardEvent),
     /// An event from the IME is dispatched.

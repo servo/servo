@@ -521,6 +521,7 @@ pub mod webgltexture;
 pub mod webgluniformlocation;
 pub mod webglvertexarrayobjectoes;
 pub mod websocket;
+pub mod wheelevent;
 pub mod window;
 pub mod windowproxy;
 pub mod worker;

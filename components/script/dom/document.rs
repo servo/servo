@@ -96,6 +96,7 @@ use crate::dom::treewalker::TreeWalker;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webglcontextevent::WebGLContextEvent;
+use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
@@ -134,7 +135,9 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataR
 use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
-use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{
+    MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
+};
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::pref;
@@ -1263,6 +1266,56 @@ impl Document {
 
         self.window
             .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
+    }
+
+    #[allow(unsafe_code)]
+    pub fn handle_wheel_event(
+        &self,
+        js_runtime: *mut JSRuntime,
+        delta: WheelDelta,
+        client_point: Point2D<f32>,
+        node_Address: Option<UntrustedNodeAddress>,
+    ) {
+        let wheel_event_type_string = "wheel".to_owned();
+        debug!("{}: at {:?}", wheel_event_type_string, client_point);
+
+        let el = node_Address.and_then(|address| {
+            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            node.inclusive_ancestors()
+                .filter_map(DomRoot::downcast::<Element>)
+                .next()
+        });
+
+        let el = match el {
+            Some(el) => el,
+            None => return,
+        };
+
+        let node = el.upcast::<Node>();
+        debug!("{}: on {:?}", wheel_event_type_string, node.debug_str());
+
+        // https://w3c.github.io/uievents/#event-wheelevents
+        let event = WheelEvent::new(
+            &self.window,
+            DOMString::from(wheel_event_type_string),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(&self.window),
+            1,
+            Finite::wrap(delta.x),
+            Finite::wrap(delta.y),
+            Finite::wrap(delta.z),
+            delta.mode,
+        );
+
+        let event = event.upcast::<Event>();
+        event.set_trusted(true);
+
+        let target = node.upcast();
+        event.fire(target);
+
+        self.window
+            .reflow(ReflowGoal::Full, ReflowReason::WheelEvent);
     }
 
     #[allow(unsafe_code)]

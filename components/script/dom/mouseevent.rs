@@ -37,7 +37,7 @@ pub struct MouseEvent {
 }
 
 impl MouseEvent {
-    fn new_inherited() -> MouseEvent {
+    pub fn new_inherited() -> MouseEvent {
         MouseEvent {
             uievent: UIEvent::new_inherited(),
             screen_x: Cell::new(0),
