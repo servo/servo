@@ -8,6 +8,7 @@ use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use crate::values::computed::ExtremumLength;
 use cssparser::Parser;
+use num_traits::Zero;
 use style_traits::ParseError;
 
 /// A `<length-percentage> | auto` value.
@@ -96,13 +97,16 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
     ToComputedValue,
     ToCss,
 )]
-pub enum Size<LengthPercentage> {
-    LengthPercentage(LengthPercentage),
+#[repr(C, u8)]
+pub enum GenericSize<LengthPercent> {
+    LengthPercentage(LengthPercent),
     Auto,
     #[cfg(feature = "gecko")]
     #[animation(error)]
     ExtremumLength(ExtremumLength),
 }
+
+pub use self::GenericSize as Size;
 
 impl<LengthPercentage> Size<LengthPercentage> {
     /// `auto` value.
@@ -134,18 +138,60 @@ impl<LengthPercentage> Size<LengthPercentage> {
     ToComputedValue,
     ToCss,
 )]
-pub enum MaxSize<LengthPercentage> {
-    LengthPercentage(LengthPercentage),
+#[repr(C, u8)]
+pub enum GenericMaxSize<LengthPercent> {
+    LengthPercentage(LengthPercent),
     None,
     #[cfg(feature = "gecko")]
     #[animation(error)]
     ExtremumLength(ExtremumLength),
 }
 
+pub use self::GenericMaxSize as MaxSize;
+
 impl<LengthPercentage> MaxSize<LengthPercentage> {
     /// `none` value.
     #[inline]
     pub fn none() -> Self {
         MaxSize::None
+    }
+}
+
+/// A generic `<length>` | `<number>` value for the `-moz-tab-size` property.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(C, u8)]
+pub enum GenericLengthOrNumber<L, N> {
+    /// A number.
+    ///
+    /// NOTE: Numbers need to be before lengths, in order to parse them
+    /// first, since `0` should be a number, not the `0px` length.
+    Number(N),
+    /// A length.
+    Length(L),
+}
+
+pub use self::GenericLengthOrNumber as LengthOrNumber;
+
+impl<L, N> LengthOrNumber<L, N> {
+    /// Returns `0`.
+    pub fn zero() -> Self
+    where
+        N: Zero,
+    {
+        LengthOrNumber::Number(num_traits::Zero::zero())
     }
 }

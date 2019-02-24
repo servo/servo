@@ -23,13 +23,10 @@ use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, Gradient, Image};
 use crate::values::computed::{Integer, LengthPercentage};
 use crate::values::computed::{Length, Percentage, TextAlign};
-use crate::values::computed::{LengthPercentageOrAuto, NonNegativeLengthPercentageOrAuto};
 use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
-use crate::values::generics::length::LengthPercentageOrAuto as GenericLengthPercentageOrAuto;
 use crate::values::generics::rect::Rect;
-use crate::values::generics::NonNegative;
 use app_units::Au;
 use std::f32::consts::PI;
 use style_traits::values::specified::AllowedNumericType;
@@ -62,42 +59,6 @@ impl From<nsStyleCoord_CalcValue> for LengthPercentage {
         )
     }
 }
-
-impl NonNegativeLengthPercentageOrAuto {
-    /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
-    pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
-        match *self {
-            GenericLengthPercentageOrAuto::LengthPercentage(ref len) => Some(From::from(len.0)),
-            GenericLengthPercentageOrAuto::Auto => None,
-        }
-    }
-}
-
-impl From<nsStyleCoord_CalcValue> for LengthPercentageOrAuto {
-    fn from(other: nsStyleCoord_CalcValue) -> LengthPercentageOrAuto {
-        GenericLengthPercentageOrAuto::LengthPercentage(LengthPercentage::from(other))
-    }
-}
-
-// FIXME(emilio): A lot of these impl From should probably become explicit or
-// disappear as we move more stuff to cbindgen.
-impl From<nsStyleCoord_CalcValue> for NonNegativeLengthPercentageOrAuto {
-    fn from(other: nsStyleCoord_CalcValue) -> Self {
-        GenericLengthPercentageOrAuto::LengthPercentage(NonNegative(
-            LengthPercentage::with_clamping_mode(
-                Au(other.mLength).into(),
-                if other.mHasPercent {
-                    Some(Percentage(other.mPercent))
-                } else {
-                    None
-                },
-                AllowedNumericType::NonNegative,
-                /* was_calc = */ true,
-            ),
-        ))
-    }
-}
-
 impl From<Angle> for CoordDataValue {
     fn from(reference: Angle) -> Self {
         CoordDataValue::Degree(reference.degrees())
@@ -614,7 +575,6 @@ pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
 
     use crate::gecko::values::GeckoStyleCoordConvertible;
-    use crate::gecko_bindings::structs;
     use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use crate::gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use crate::gecko_bindings::structs::{
@@ -628,7 +588,6 @@ pub mod basic_shape {
     use crate::values::computed::border::{BorderCornerRadius, BorderRadius};
     use crate::values::computed::length::LengthPercentage;
     use crate::values::computed::motion::OffsetPath;
-    use crate::values::computed::position;
     use crate::values::computed::url::ComputedUrl;
     use crate::values::generics::basic_shape::{
         BasicShape as GenericBasicShape, InsetRect, Polygon,
@@ -759,12 +718,12 @@ pub mod basic_shape {
                 },
                 StyleBasicShapeType::Circle => GenericBasicShape::Circle(Circle {
                     radius: (&other.mCoordinates[0]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Ellipse => GenericBasicShape::Ellipse(Ellipse {
                     semiaxis_x: (&other.mCoordinates[0]).into(),
                     semiaxis_y: (&other.mCoordinates[1]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Polygon => {
                     let mut coords = Vec::with_capacity(other.mCoordinates.len() / 2);
@@ -852,31 +811,11 @@ pub mod basic_shape {
         }
     }
 
-    // Can't be a From impl since we need to set an existing
-    // Position, not create a new one
-    impl From<position::Position> for structs::Position {
-        fn from(other: position::Position) -> Self {
-            structs::Position {
-                mXPosition: other.horizontal.into(),
-                mYPosition: other.vertical.into(),
-            }
-        }
-    }
-
     impl<'a> From<&'a nsStyleCoord> for ShapeRadius {
         fn from(other: &'a nsStyleCoord) -> Self {
             let other = other.borrow();
             ShapeRadius::from_gecko_style_coord(other)
                 .expect("<shape-radius> should be a length, percentage, calc, or keyword value")
-        }
-    }
-
-    impl<'a> From<&'a structs::Position> for position::Position {
-        fn from(other: &'a structs::Position) -> Self {
-            position::Position {
-                horizontal: other.mXPosition.into(),
-                vertical: other.mYPosition.into(),
-            }
         }
     }
 

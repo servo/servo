@@ -41,8 +41,10 @@ class Atom:
         # The type of atom: "Atom", "PseudoElement", "NonInheritingAnonBox",
         # or "InheritingAnonBox".
         self.atom_type = atom_type
-        if self.is_pseudo() or self.is_anon_box():
+
+        if self.is_pseudo_element() or self.is_anon_box() or self.is_tree_pseudo_element():
             self.pseudo_ident = (ident.split("_", 1))[1]
+
         if self.is_anon_box():
             assert self.is_inheriting_anon_box() or self.is_non_inheriting_anon_box()
 
@@ -52,16 +54,21 @@ class Atom:
     def capitalized_pseudo(self):
         return self.pseudo_ident[0].upper() + self.pseudo_ident[1:]
 
-    def is_pseudo(self):
+    def is_pseudo_element(self):
         return self.atom_type == "PseudoElementAtom"
 
     def is_anon_box(self):
+        if self.is_tree_pseudo_element():
+            return False
         return self.is_non_inheriting_anon_box() or self.is_inheriting_anon_box()
 
     def is_non_inheriting_anon_box(self):
+        assert not self.is_tree_pseudo_element()
         return self.atom_type == "NonInheritingAnonBoxAtom"
 
     def is_inheriting_anon_box(self):
+        if self.is_tree_pseudo_element():
+            return False
         return self.atom_type == "InheritingAnonBoxAtom"
 
     def is_tree_pseudo_element(self):

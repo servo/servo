@@ -13,11 +13,10 @@ use crate::values::computed::text::TextOverflow as ComputedTextOverflow;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::MozTabSize as GenericMozTabSize;
 use crate::values::generics::text::Spacing;
+use crate::values::specified::length::NonNegativeLengthPercentage;
 use crate::values::specified::length::{FontRelativeLength, Length};
 use crate::values::specified::length::{LengthPercentage, NoCalcLength};
-use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthPercentage};
 use crate::values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
@@ -420,7 +419,7 @@ pub enum TextAlignKeyword {
 
 /// Specified value of text-align property.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextAlign {
     /// Keyword value of text-align property.
     Keyword(TextAlignKeyword),
@@ -434,27 +433,6 @@ pub enum TextAlign {
     #[cfg(feature = "gecko")]
     #[css(skip)]
     MozCenterOrInherit,
-}
-
-impl Parse for TextAlign {
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        // MozCenterOrInherit cannot be parsed, only set directly on the elements
-        if let Ok(key) = input.try(TextAlignKeyword::parse) {
-            return Ok(TextAlign::Keyword(key));
-        }
-        #[cfg(feature = "gecko")]
-        {
-            input.expect_ident_matching("match-parent")?;
-            return Ok(TextAlign::MatchParent);
-        }
-        #[cfg(feature = "servo")]
-        {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-    }
 }
 
 impl TextAlign {
@@ -832,25 +810,6 @@ impl From<TextEmphasisPosition> for u8 {
             },
         };
         result as u8
-    }
-}
-
-/// A specified value for the `-moz-tab-size` property.
-pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
-
-impl Parse for MozTabSize {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
-            // Numbers need to be parsed first because `0` must be recognised
-            // as the number `0` and not the length `0px`.
-            return Ok(GenericMozTabSize::Number(number));
-        }
-        Ok(GenericMozTabSize::Length(NonNegativeLength::parse(
-            context, input,
-        )?))
     }
 }
 

@@ -3358,7 +3358,7 @@ impl<'a> StyleBuilder<'a> {
         debug_assert!(parent_style.is_none() ||
                       std::ptr::eq(parent_style.unwrap(),
                                      parent_style_ignoring_first_line.unwrap()) ||
-                      parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
+                      parent_style.unwrap().is_first_line_style());
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
         let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
@@ -3402,7 +3402,7 @@ impl<'a> StyleBuilder<'a> {
         let inherited_style = parent_style.unwrap_or(reset_style);
         #[cfg(feature = "gecko")]
         debug_assert!(parent_style.is_none() ||
-                      parent_style.unwrap().pseudo() != Some(PseudoElement::FirstLine));
+                      !parent_style.unwrap().is_first_line_style());
         StyleBuilder {
             device,
             inherited_style,
@@ -3507,14 +3507,11 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset = true;
         % endif
 
-        <% props_need_device = ["content", "list_style_type", "font_variant_alternates"] %>
         self.${property.style_struct.ident}.mutate()
             .set_${property.ident}(
                 value,
                 % if property.logical:
                 self.writing_mode,
-                % elif product == "gecko" and property.ident in props_need_device:
-                self.device,
                 % endif
             );
     }

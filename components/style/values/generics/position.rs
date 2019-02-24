@@ -19,19 +19,22 @@
     ToAnimatedZero,
     ToComputedValue,
 )]
-pub struct Position<H, V> {
+#[repr(C)]
+pub struct GenericPosition<H, V> {
     /// The horizontal component of position.
     pub horizontal: H,
     /// The vertical component of position.
     pub vertical: V,
 }
 
+pub use self::GenericPosition as Position;
+
 impl<H, V> Position<H, V> {
     /// Returns a new position.
     pub fn new(horizontal: H, vertical: V) -> Self {
         Self {
-            horizontal: horizontal,
-            vertical: vertical,
+            horizontal,
+            vertical,
         }
     }
 }
@@ -45,17 +48,21 @@ impl<H, V> Position<H, V> {
     Debug,
     MallocSizeOf,
     PartialEq,
+    Parse,
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
 )]
-pub enum ZIndex<Integer> {
+#[repr(C, u8)]
+pub enum GenericZIndex<I> {
     /// An integer value.
-    Integer(Integer),
+    Integer(I),
     /// The keyword `auto`.
     Auto,
 }
+
+pub use self::GenericZIndex as ZIndex;
 
 impl<Integer> ZIndex<Integer> {
     /// Returns `auto`

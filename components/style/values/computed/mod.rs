@@ -44,8 +44,8 @@ pub use self::box_::{AnimationIterationCount, AnimationName, Contain};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
 pub use self::box_::{Display, Overflow, OverflowAnchor, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
-pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
-pub use self::color::{Color, ColorPropertyValue, RGBAColor};
+pub use self::box_::{ScrollSnapAlign, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
+pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, RGBAColor};
 pub use self::column::ColumnCount;
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::easing::TimingFunction;
@@ -61,7 +61,7 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
-pub use self::length::{Length, LengthOrNumber, LengthPercentage};
+pub use self::length::{Length, LengthOrNumber, LengthPercentage, NonNegativeLengthOrNumber};
 pub use self::length::{LengthPercentageOrAuto, MaxSize, Size};
 pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
@@ -71,13 +71,13 @@ pub use self::motion::OffsetPath;
 pub use self::outline::OutlineStyle;
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, ZIndex};
-pub use self::rect::LengthOrNumberRect;
+pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
 pub use self::svg::MozContextProperties;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight};
 pub use self::text::{OverflowWrap, TextOverflow, WordSpacing};
 pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle};
 pub use self::time::Time;
@@ -85,7 +85,7 @@ pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon, UserSelect};
+pub use self::ui::{Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use super::{Auto, Either, None_};
 pub use app_units::Au;
@@ -536,6 +536,7 @@ impl From<GreaterThanOrEqualToOneNumber> for CSSFloat {
 
 #[allow(missing_docs)]
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[repr(C, u8)]
 pub enum NumberOrPercentage {
     Percentage(Percentage),
     Number(Number),

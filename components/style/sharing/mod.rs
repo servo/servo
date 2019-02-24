@@ -766,6 +766,11 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
+        if target.element.has_animations() {
+            trace!("Miss: Has Animations");
+            return None;
+        }
+
         if target.matches_user_and_author_rules() !=
             candidate.element.matches_user_and_author_rules()
         {

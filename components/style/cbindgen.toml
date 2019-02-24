@@ -57,6 +57,7 @@ include = [
   "CursorKind",
   "Display",
   "DisplayMode",
+  "PrefersColorScheme",
   "ExtremumLength",
   "FillRule",
   "FontDisplay",
@@ -69,6 +70,7 @@ include = [
   "UserSelect",
   "Float",
   "OverscrollBehavior",
+  "ScrollSnapAlign",
   "ScrollSnapType",
   "OverflowAnchor",
   "OverflowClipBox",
@@ -77,32 +79,97 @@ include = [
   "LengthPercentage",
   "NonNegativeLengthPercentage",
   "LengthPercentageOrAuto",
+  "NonNegativeLengthPercentageOrAuto",
   "Rect",
   "IntersectionObserverRootMargin",
+  "Size",
+  "MaxSize",
+  "FlexBasis",
+  "Position",
+  "BackgroundSize",
+  "BorderImageSlice",
+  "NonNegativeLengthOrNumberRect",
+  "Perspective",
+  "ZIndex",
+  "TransformOrigin",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
 [export.body]
+"CSSPixelLength" = """
+  inline nscoord ToAppUnits() const;
+"""
+
 "LengthPercentage" = """
   // Defined in nsStyleCoord.h
   static constexpr inline StyleLengthPercentage Zero();
+  static inline StyleLengthPercentage FromAppUnits(nscoord);
+  static inline StyleLengthPercentage FromPixels(CSSCoord);
+  static inline StyleLengthPercentage FromPercentage(float);
+  inline CSSCoord LengthInCSSPixels() const;
+  inline float Percentage() const;
   inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
+  inline bool HasLengthAndPercentage() const;
   inline float ToPercentage() const;
-  inline CSSCoord LengthInCSSPixels() const;
-  inline float Percentage() const;
   inline CSSCoord ResolveToCSSPixels(CSSCoord aPercentageBasisInCSSPixels) const;
   template<typename T> inline CSSCoord ResolveToCSSPixelsWith(T aPercentageGetter) const;
+  template<typename T, typename U>
+  inline nscoord Resolve(T aPercentageGetter, U aPercentRoundingFunction) const;
+  template<typename T>
+  inline nscoord Resolve(nscoord aPercentageBasis, T aPercentRoundingFunction) const;
+  template<typename T> inline nscoord Resolve(T aPercentageGetter) const;
   inline nscoord Resolve(nscoord aPercentageBasis) const;
-  template<typename T> inline nscoord ResolveWith(T aPercentageGetter) const;
 """
 
 "GenericLengthPercentageOrAuto" = """
   inline const StyleLengthPercentage& AsLengthPercentage() const;
-  inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+"""
+
+"GenericSize" = """
+  inline const StyleLengthPercentage& AsLengthPercentage() const;
+  inline StyleExtremumLength AsExtremumLength() const;
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+  inline bool BehavesLikeInitialValueOnBlockAxis() const;
+"""
+
+"GenericFlexBasis" = """
+  inline bool IsAuto() const;
+  inline const StyleSize& AsSize() const;
+"""
+
+"GenericMaxSize" = """
+  inline const StyleLengthPercentage& AsLengthPercentage() const;
+  inline StyleExtremumLength AsExtremumLength() const;
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+  inline bool BehavesLikeInitialValueOnBlockAxis() const;
+"""
+
+"GenericPosition" = """
+  inline bool DependsOnPositioningAreaSize() const;
+  static inline StyleGenericPosition FromPercentage(float);
+"""
+
+"GenericBackgroundSize" = """
+  bool IsInitialValue() const;
 """
 
 "Rect" = """

@@ -305,7 +305,7 @@ impl Gradient {
     ) -> Result<Self, ParseError<'i>> {
         type Point = GenericPosition<Component<X>, Component<Y>>;
 
-        #[derive(Clone, Copy)]
+        #[derive(Clone, Copy, Parse)]
         enum Component<S> {
             Center,
             Number(NumberOrPercentage),
@@ -405,22 +405,6 @@ impl Gradient {
                     },
                     (_, _) => None,
                 }
-            }
-        }
-
-        impl<S: Parse> Parse for Component<S> {
-            fn parse<'i, 't>(
-                context: &ParserContext,
-                input: &mut Parser<'i, 't>,
-            ) -> Result<Self, ParseError<'i>> {
-                if let Ok(side) = input.try(|i| S::parse(context, i)) {
-                    return Ok(Component::Side(side));
-                }
-                if let Ok(number) = input.try(|i| NumberOrPercentage::parse(context, i)) {
-                    return Ok(Component::Number(number));
-                }
-                input.try(|i| i.expect_ident_matching("center"))?;
-                Ok(Component::Center)
             }
         }
 

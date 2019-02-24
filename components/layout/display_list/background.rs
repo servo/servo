@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// FIXME(rust-lang/rust#26264): Remove GenericBackgroundSize.
-
 use crate::display_list::border;
 use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
@@ -12,7 +10,6 @@ use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::properties::style_structs::Background;
 use style::values::computed::{BackgroundSize, NonNegativeLengthPercentageOrAuto};
-use style::values::generics::background::BackgroundSize as GenericBackgroundSize;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use webrender_api::BorderRadius;
 
@@ -56,8 +53,8 @@ fn compute_background_image_size(
 ) -> Size2D<Au> {
     match intrinsic_size {
         None => match bg_size {
-            GenericBackgroundSize::Cover | GenericBackgroundSize::Contain => bounds_size,
-            GenericBackgroundSize::Explicit { width, height } => Size2D::new(
+            BackgroundSize::Cover | BackgroundSize::Contain => bounds_size,
+            BackgroundSize::ExplicitSize { width, height } => Size2D::new(
                 width
                     .to_used_value(bounds_size.width)
                     .unwrap_or(bounds_size.width),
@@ -73,20 +70,16 @@ fn compute_background_image_size(
             let bounds_aspect_ratio =
                 bounds_size.width.to_f32_px() / bounds_size.height.to_f32_px();
             match (bg_size, image_aspect_ratio < bounds_aspect_ratio) {
-                (GenericBackgroundSize::Contain, false) | (GenericBackgroundSize::Cover, true) => {
-                    Size2D::new(
-                        bounds_size.width,
-                        bounds_size.width.scale_by(image_aspect_ratio.recip()),
-                    )
-                },
-                (GenericBackgroundSize::Contain, true) | (GenericBackgroundSize::Cover, false) => {
-                    Size2D::new(
-                        bounds_size.height.scale_by(image_aspect_ratio),
-                        bounds_size.height,
-                    )
-                },
+                (BackgroundSize::Contain, false) | (BackgroundSize::Cover, true) => Size2D::new(
+                    bounds_size.width,
+                    bounds_size.width.scale_by(image_aspect_ratio.recip()),
+                ),
+                (BackgroundSize::Contain, true) | (BackgroundSize::Cover, false) => Size2D::new(
+                    bounds_size.height.scale_by(image_aspect_ratio),
+                    bounds_size.height,
+                ),
                 (
-                    GenericBackgroundSize::Explicit {
+                    BackgroundSize::ExplicitSize {
                         width,
                         height: NonNegativeLengthPercentageOrAuto::Auto,
                     },
@@ -98,7 +91,7 @@ fn compute_background_image_size(
                     Size2D::new(width, width.scale_by(image_aspect_ratio.recip()))
                 },
                 (
-                    GenericBackgroundSize::Explicit {
+                    BackgroundSize::ExplicitSize {
                         width: NonNegativeLengthPercentageOrAuto::Auto,
                         height,
                     },
@@ -109,7 +102,7 @@ fn compute_background_image_size(
                         .unwrap_or(own_size.height);
                     Size2D::new(height.scale_by(image_aspect_ratio), height)
                 },
-                (GenericBackgroundSize::Explicit { width, height }, _) => Size2D::new(
+                (BackgroundSize::ExplicitSize { width, height }, _) => Size2D::new(
                     width
                         .to_used_value(bounds_size.width)
                         .unwrap_or(own_size.width),

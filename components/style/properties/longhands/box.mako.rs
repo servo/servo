@@ -417,6 +417,16 @@ ${helpers.single_keyword(
     animation_value_type="discrete",
 )}
 
+${helpers.predefined_type(
+    "scroll-snap-align",
+    "ScrollSnapAlign",
+    "computed::ScrollSnapAlign::none()",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap-v1.enabled",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align",
+    animation_value_type="discrete",
+)}
+
 % for axis in ["x", "y"]:
     ${helpers.predefined_type(
         "scroll-snap-type-" + axis,

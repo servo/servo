@@ -149,25 +149,3 @@ impl<N, L> LineHeight<N, L> {
         LineHeight::Normal
     }
 }
-
-/// A generic value for the `-moz-tab-size` property.
-#[derive(
-    Animate,
-    Clone,
-    ComputeSquaredDistance,
-    Copy,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToAnimatedValue,
-    ToAnimatedZero,
-    ToComputedValue,
-    ToCss,
-)]
-pub enum MozTabSize<Number, Length> {
-    /// A number.
-    Number(Number),
-    /// A length.
-    Length(Length),
-}

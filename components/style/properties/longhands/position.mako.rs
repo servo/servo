@@ -75,6 +75,7 @@ ${helpers.single_keyword(
     extra_prefixes="webkit",
     animation_value_type="discrete",
     servo_restyle_damage = "reflow",
+    gecko_enum_prefix = "StyleFlexDirection",
 )}
 
 ${helpers.single_keyword(
@@ -225,7 +226,7 @@ ${helpers.predefined_type(
     extra_prefixes="webkit",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-flexbox/#order-property",
-    servo_restyle_damage = "reflow",
+    servo_restyle_damage="reflow",
 )}
 
 ${helpers.predefined_type(
@@ -235,7 +236,8 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
     extra_prefixes="webkit",
     animation_value_type="FlexBasis",
-    servo_restyle_damage = "reflow",
+    servo_restyle_damage="reflow",
+    boxed=True,
 )}
 
 % for (size, logical) in ALL_SIZES:

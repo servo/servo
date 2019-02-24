@@ -236,7 +236,7 @@ where
                 parent_style.unwrap(),
                 parent_style_ignoring_first_line.unwrap()
             ) ||
-            parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine)
+            parent_style.unwrap().is_first_line_style()
     );
 
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
@@ -745,13 +745,13 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
                 // FIXME(emilio): Why both setting the generic and passing it
                 // down?
-                let pres_context = self.context.builder.device.pres_context();
+                let doc = self.context.builder.device.document();
                 let gecko_font = self.context.builder.mutate_font().gecko_mut();
                 gecko_font.mGenericID = generic;
                 unsafe {
                     crate::gecko_bindings::bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
                         gecko_font,
-                        pres_context,
+                        doc,
                         generic,
                     );
                 }

@@ -19,9 +19,10 @@ use crate::values::serialize_atom_identifier;
 use crate::values::specified::calc::CalcNode;
 use crate::{Atom, Namespace, Prefix};
 use cssparser::{Parser, Token};
-use num_traits::One;
+use num_traits::{One, Zero};
 use std::f32;
 use std::fmt::{self, Write};
+use std::ops::Add;
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
@@ -39,8 +40,9 @@ pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin};
 pub use self::box_::{Clear, Float, Overflow, OverflowAnchor};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
-pub use self::box_::{ScrollSnapType, TouchAction, TransitionProperty, VerticalAlign, WillChange};
-pub use self::color::{Color, ColorPropertyValue, RGBAColor};
+pub use self::box_::{ScrollSnapAlign, ScrollSnapType};
+pub use self::box_::{TouchAction, TransitionProperty, VerticalAlign, WillChange};
+pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, RGBAColor};
 pub use self::column::ColumnCount;
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::easing::TimingFunction;
@@ -57,7 +59,7 @@ pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageLayer, MozImageRect};
 pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
-pub use self::length::{FontRelativeLength, Length, LengthOrNumber};
+pub use self::length::{FontRelativeLength, Length, LengthOrNumber, NonNegativeLengthOrNumber};
 pub use self::length::{LengthPercentage, LengthPercentageOrAuto};
 pub use self::length::{MaxSize, Size};
 pub use self::length::{NoCalcLength, ViewportPercentageLength};
@@ -70,14 +72,14 @@ pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
 pub use self::position::{GridAutoFlow, GridTemplateAreas, Position};
 pub use self::position::{PositionComponent, ZIndex};
-pub use self::rect::LengthOrNumberRect;
+pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
 pub use self::svg::MozContextProperties;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
 pub use self::table::XSpan;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize, TextAlign};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
 pub use self::time::Time;
@@ -85,7 +87,7 @@ pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon, UserSelect};
+pub use self::ui::{Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]
@@ -269,6 +271,26 @@ impl IsParallelTo for (Number, Number, Number) {
 }
 
 impl SpecifiedValueInfo for Number {}
+
+impl Add for Number {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self::new(self.get() + other.get())
+    }
+}
+
+impl Zero for Number {
+    #[inline]
+    fn zero() -> Self {
+        Self::new(0.)
+    }
+
+    #[inline]
+    fn is_zero(&self) -> bool {
+        self.get() == 0.
+    }
+}
 
 impl From<Number> for f32 {
     #[inline]
@@ -563,7 +585,7 @@ impl Parse for PositiveInteger {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne::<Integer>)
+        Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne)
     }
 }
 
