@@ -297,6 +297,18 @@ impl EventMethods for Event {
         self.cancelable.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    fn ReturnValue(&self) -> bool {
+        self.canceled.get() == EventDefault::Allowed
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    fn SetReturnValue(&self, val: bool) {
+        if val == false && self.cancelable.get() {
+            self.canceled.set(EventDefault::Prevented)
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-event-timestamp
     fn TimeStamp(&self) -> u64 {
         self.timestamp
