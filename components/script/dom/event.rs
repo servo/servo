@@ -297,6 +297,18 @@ impl EventMethods for Event {
         self.cancelable.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    fn CancelBubble(&self) -> bool {
+        self.stop_propagation.get()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    fn SetCancelBubble(&self, value: bool) -> () {
+        if value {
+            self.stop_propagation.set(true)
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-event-timestamp
     fn TimeStamp(&self) -> u64 {
         self.timestamp
