@@ -7,7 +7,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <!-- Common global functions for referrer-policy tests. -->
-    <script src="/referrer-policy/generic/common.js"></script>
+    <script src="/common/security-features/resources/common.js"></script>
     <script src="/referrer-policy/generic/referrer-policy-test-case.js"></script>
   </head>
   <body>
@@ -26,7 +26,7 @@
           iframe.sandbox = sandboxAttributes;
           iframe.srcdoc = `
               <meta name = "referrer" content = "always">
-              <script src = "/referrer-policy/generic/common.js"></` + `script>
+              <script src = "/common/security-features/resources/common.js"></` + `script>
               <script src = "/referrer-policy/generic/referrer-policy-test-case.js"></` + `script>
               <script>
                 var urlPath = "/referrer-policy/generic/subresource/xhr.py";

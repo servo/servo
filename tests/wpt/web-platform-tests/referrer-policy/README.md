@@ -96,7 +96,7 @@ The ```./generic/tools/clean.py``` utility will only work if there is a valid ``
 
 ## Updating the tests
 
-The main test logic lives in ```./generic/referrer-policy-test-case.js``` with helper functions defined in ```./generic/common.js``` so you should probably start there.
+The main test logic lives in ```./generic/referrer-policy-test-case.js``` with helper functions defined in ```./common/security-features/resources/common.js``` so you should probably start there.
 
 For updating the test suite you will most likely do **a subset** of the following:
 

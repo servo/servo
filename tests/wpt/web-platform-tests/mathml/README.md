@@ -1,4 +1,4 @@
-# MathML: Tests for the MathML Core specification
+# Tests for the MathML Core specification
 
 This directory contains tests for the
 [MathML Core specification](https://mathml-refresh.github.io/mathml-core/).
