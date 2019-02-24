@@ -391,6 +391,10 @@ where
                     .on_touch_event(event_type, identifier, location);
             },
 
+            WindowEvent::Wheel(delta, location) => {
+                self.compositor.on_wheel_event(delta, location);
+            },
+
             WindowEvent::Scroll(delta, cursor, phase) => {
                 self.compositor.on_scroll_event(delta, cursor, phase);
             },

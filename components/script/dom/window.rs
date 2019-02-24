@@ -148,6 +148,7 @@ pub enum ReflowReason {
     FirstLoad,
     KeyEvent,
     MouseEvent,
+    WheelEvent,
     Query,
     Timer,
     Viewport,

@@ -125,6 +125,7 @@ use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
+    WheelEvent,
 };
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
@@ -132,7 +133,7 @@ use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
 use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
-use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -3159,6 +3160,10 @@ impl ScriptThread {
                 }
             },
 
+            WheelEvent(delta, point, node_address) => {
+                self.handle_wheel_event(pipeline_id, delta, point, node_address);
+            },
+
             KeyboardEvent(key_event) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
@@ -3222,6 +3227,20 @@ impl ScriptThread {
             point,
             node_address,
         )
+    }
+
+    fn handle_wheel_event(
+        &self,
+        pipeline_id: PipelineId,
+        wheel_delta: WheelDelta,
+        point: Point2D<f32>,
+        node_address: Option<UntrustedNodeAddress>,
+    ) {
+        let document = match { self.documents.borrow().find_document(pipeline_id) } {
+            Some(document) => document,
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        };
+        document.handle_wheel_event(self.js_runtime.rt(), wheel_delta, point, node_address);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
