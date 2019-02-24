@@ -52,7 +52,7 @@ use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
 use std::marker::PhantomData;
-use std::mem::{forget, uninitialized, transmute, zeroed};
+use std::mem::{forget, uninitialized, zeroed};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
 use crate::values::computed::{NonNegativeLength, Percentage, TransitionProperty};
@@ -817,34 +817,23 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_corner_style_coord(ident, gecko_ffi_name, x_index, y_index)">
+<%def name="impl_corner_style_coord(ident, gecko_ffi_name, corner)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        v.0.width().to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${x_index}));
-        v.0.height().to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${y_index}));
+        self.gecko.${gecko_ffi_name}.${corner} = v;
     }
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        self.gecko.${gecko_ffi_name}.data_at_mut(${x_index})
-                  .copy_from(&other.gecko.${gecko_ffi_name}.data_at(${x_index}));
-        self.gecko.${gecko_ffi_name}.data_at_mut(${y_index})
-                  .copy_from(&other.gecko.${gecko_ffi_name}.data_at(${y_index}));
+        self.gecko.${gecko_ffi_name}.${corner} =
+            other.gecko.${gecko_ffi_name}.${corner};
     }
     #[allow(non_snake_case)]
     pub fn reset_${ident}(&mut self, other: &Self) {
         self.copy_${ident}_from(other)
     }
-
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::values::computed::border::BorderCornerRadius;
-        let width = GeckoStyleCoordConvertible::from_gecko_style_coord(
-                        &self.gecko.${gecko_ffi_name}.data_at(${x_index}))
-                        .expect("Failed to clone ${ident}");
-        let height = GeckoStyleCoordConvertible::from_gecko_style_coord(
-                        &self.gecko.${gecko_ffi_name}.data_at(${y_index}))
-                        .expect("Failed to clone ${ident}");
-        BorderCornerRadius::new(width, height)
+        self.gecko.${gecko_ffi_name}.${corner}
     }
 </%def>
 
@@ -1387,14 +1376,6 @@ class Side(object):
         self.ident = name.lower()
         self.index = index
 
-class Corner(object):
-    def __init__(self, vert, horiz, index):
-        self.x_name = "HalfCorner::eCorner" + vert + horiz + "X"
-        self.y_name = "HalfCorner::eCorner" + vert + horiz + "Y"
-        self.ident = (vert + "_" + horiz).lower()
-        self.x_index = 2 * index
-        self.y_index = 2 * index + 1
-
 class GridLine(object):
     def __init__(self, name):
         self.ident = "grid-" + name.lower()
@@ -1402,19 +1383,12 @@ class GridLine(object):
         self.gecko = "m" + to_camel_case(self.ident)
 
 SIDES = [Side("Top", 0), Side("Right", 1), Side("Bottom", 2), Side("Left", 3)]
-CORNERS = [Corner("Top", "Left", 0), Corner("Top", "Right", 1),
-           Corner("Bottom", "Right", 2), Corner("Bottom", "Left", 3)]
+CORNERS = ["top_left", "top_right", "bottom_right", "bottom_left"]
 GRID_LINES = map(GridLine, ["row-start", "row-end", "column-start", "column-end"])
 %>
 
 #[allow(dead_code)]
 fn static_assert() {
-    unsafe {
-        % for corner in CORNERS:
-        transmute::<_, [u32; ${corner.x_index}]>([1; structs::${corner.x_name} as usize]);
-        transmute::<_, [u32; ${corner.y_index}]>([1; structs::${corner.y_name} as usize]);
-        % endfor
-    }
     // Note: using the above technique with an enum hits a rust bug when |structs| is in a different crate.
     % for side in SIDES:
     { const DETAIL: u32 = [0][(structs::Side::eSide${side.name} as usize != ${side.index}) as usize]; let _ = DETAIL; }
@@ -1425,7 +1399,7 @@ fn static_assert() {
 <% skip_border_longhands = " ".join(["border-{0}-{1}".format(x.ident, y)
                                      for x in SIDES
                                      for y in ["color", "style", "width"]] +
-                                    ["border-{0}-radius".format(x.ident.replace("_", "-"))
+                                    ["border-{0}-radius".format(x.replace("_", "-"))
                                      for x in CORNERS]) %>
 
 <%self:impl_trait style_struct_name="Border"
@@ -1494,10 +1468,9 @@ fn static_assert() {
     % endfor
 
     % for corner in CORNERS:
-    <% impl_corner_style_coord("border_%s_radius" % corner.ident,
+    <% impl_corner_style_coord("border_%s_radius" % corner,
                                "mBorderRadius",
-                               corner.x_index,
-                               corner.y_index) %>
+                               corner) %>
     % endfor
 
     pub fn set_border_image_source(&mut self, image: longhands::border_image_source::computed_value::T) {
@@ -2027,7 +2000,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-style outline-width".split() +
-                                     ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
+                                     ["-moz-outline-radius-{0}".format(x.replace("_", ""))
                                       for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
                   skip_longhands="${skip_outline_longhands}">
@@ -2059,10 +2032,9 @@ fn static_assert() {
                                 round_to_pixels=True) %>
 
     % for corner in CORNERS:
-    <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
+    <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.replace("_", ""),
                                "mOutlineRadius",
-                               corner.x_index,
-                               corner.y_index) %>
+                               corner) %>
     % endfor
 
     pub fn outline_has_nonzero_width(&self) -> bool {
@@ -4593,7 +4565,6 @@ fn set_style_svg_path(
         use crate::gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyShapeSource};
         use crate::gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
         use crate::gecko_bindings::structs::{StyleGeometryBox, StyleShapeSource};
-        use crate::gecko::conversions::basic_shape::set_corners_from_radius;
         use crate::gecko::values::GeckoStyleCoordConvertible;
         use crate::values::generics::basic_shape::{BasicShape, ShapeSource};
 
@@ -4658,8 +4629,10 @@ fn set_style_svg_path(
                         inset.rect.2.to_gecko_style_coord(&mut shape.mCoordinates[2]);
                         shape.mCoordinates[3].leaky_set_null();
                         inset.rect.3.to_gecko_style_coord(&mut shape.mCoordinates[3]);
-
-                        set_corners_from_radius(inset.round, &mut shape.mRadius);
+                        shape.mRadius = match inset.round {
+                            Some(radius) => radius,
+                            None => crate::values::computed::BorderRadius::zero(),
+                        };
                     }
                     BasicShape::Circle(circ) => {
                         let shape = init_shape(${ident}, StyleBasicShapeType::Circle);

@@ -25,6 +25,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
     ToComputedValue,
 )]
 #[allow(missing_docs)]
+#[repr(C)]
 pub struct Size2D<L> {
     pub width: L,
     pub height: L,
