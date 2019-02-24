@@ -11,11 +11,13 @@ use crate::font_metrics::FontMetricsQueryResult;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{self, CSSPixelLength, Context};
 use crate::values::generics::length as generics;
-use crate::values::generics::length::{MaxSize as GenericMaxSize, Size as GenericSize, GenericLengthOrNumber};
+use crate::values::generics::length::{
+    GenericLengthOrNumber, MaxSize as GenericMaxSize, Size as GenericSize,
+};
 use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
-use crate::values::specified::NonNegativeNumber;
 use crate::values::specified::calc::CalcNode;
+use crate::values::specified::NonNegativeNumber;
 use crate::values::{Auto, CSSFloat, Either, Normal};
 use app_units::Au;
 use cssparser::{Parser, Token};

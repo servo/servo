@@ -70,11 +70,13 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
     {
         let mut where_clause = input.generics.where_clause.take();
         for param in input.generics.type_params() {
-            cg::add_predicate(&mut where_clause, parse_quote!(#param: crate::parser::Parse));
+            cg::add_predicate(
+                &mut where_clause,
+                parse_quote!(#param: crate::parser::Parse),
+            );
         }
         input.generics.where_clause = where_clause;
     }
-
 
     let name = &input.ident;
     let s = Structure::new(&input);
@@ -140,13 +142,8 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
     let mut parse_non_keywords = quote! {};
     for (i, (variant, css_attrs, parse_attrs)) in non_keywords.iter().enumerate() {
         let skip_try = !has_keywords && i == non_keywords.len() - 1;
-        let parse_variant = parse_non_keyword_variant(
-            name,
-            variant,
-            css_attrs,
-            parse_attrs,
-            skip_try,
-        );
+        let parse_variant =
+            parse_non_keyword_variant(name, variant, css_attrs, parse_attrs, skip_try);
         parse_non_keywords.extend(parse_variant);
     }
 

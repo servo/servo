@@ -127,8 +127,8 @@ impl Parse for CounterStyleOrNone {
             let symbols = Symbols::parse(context, input)?;
             // There must be at least two symbols for alphabetic or
             // numeric system.
-            if (symbols_type == SymbolsType::Alphabetic ||
-                symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2
+            if (symbols_type == SymbolsType::Alphabetic || symbols_type == SymbolsType::Numeric) &&
+                symbols.0.len() < 2
             {
                 return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
@@ -177,7 +177,7 @@ impl SpecifiedValueInfo for CounterStyleOrNone {
 #[repr(transparent)]
 pub struct NonNegative<T>(pub T);
 
-impl <T: Add<Output = T>> Add<NonNegative<T>> for NonNegative<T> {
+impl<T: Add<Output = T>> Add<NonNegative<T>> for NonNegative<T> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -185,7 +185,7 @@ impl <T: Add<Output = T>> Add<NonNegative<T>> for NonNegative<T> {
     }
 }
 
-impl <T: Zero> Zero for NonNegative<T> {
+impl<T: Zero> Zero for NonNegative<T> {
     fn is_zero(&self) -> bool {
         self.0.is_zero()
     }

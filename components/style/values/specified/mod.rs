@@ -19,10 +19,10 @@ use crate::values::serialize_atom_identifier;
 use crate::values::specified::calc::CalcNode;
 use crate::{Atom, Namespace, Prefix};
 use cssparser::{Parser, Token};
-use num_traits::{Zero, One};
+use num_traits::{One, Zero};
 use std::f32;
-use std::ops::Add;
 use std::fmt::{self, Write};
+use std::ops::Add;
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 

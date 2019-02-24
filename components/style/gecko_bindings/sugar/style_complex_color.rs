@@ -8,7 +8,9 @@ use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use crate::gecko_bindings::structs::StyleComplexColor;
 use crate::gecko_bindings::structs::StyleComplexColor_Tag as Tag;
 use crate::values::computed::{Color as ComputedColor, ColorOrAuto, RGBAColor as ComputedRGBA};
-use crate::values::generics::color::{Color as GenericColor, ColorOrAuto as GenericColorOrAuto, ComplexColorRatios};
+use crate::values::generics::color::{
+    Color as GenericColor, ColorOrAuto as GenericColorOrAuto, ComplexColorRatios,
+};
 
 impl StyleComplexColor {
     /// Create a `StyleComplexColor` value that represents `currentColor`.

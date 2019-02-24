@@ -85,7 +85,9 @@ impl Device {
         assert!(!pres_context.is_null());
         Device {
             pres_context,
-            default_values: ComputedValues::default_values(unsafe { &*(*pres_context).mDocument.mRawPtr }),
+            default_values: ComputedValues::default_values(unsafe {
+                &*(*pres_context).mDocument.mRawPtr
+            }),
             // FIXME(bz): Seems dubious?
             root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
             body_text_color: AtomicUsize::new(unsafe { &*pres_context }.mDefaultColor as usize),

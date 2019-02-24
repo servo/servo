@@ -32,7 +32,10 @@ pub use self::GenericPosition as Position;
 impl<H, V> Position<H, V> {
     /// Returns a new position.
     pub fn new(horizontal: H, vertical: V) -> Self {
-        Self { horizontal, vertical }
+        Self {
+            horizontal,
+            vertical,
+        }
     }
 }
 
