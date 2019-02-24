@@ -26,9 +26,11 @@ use num_traits::FromPrimitive;
 #[cfg(feature = "gl")]
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent};
+use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
-use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
+use script_traits::{
+    MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId, WheelDelta,
+};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
@@ -746,6 +748,22 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
+    pub fn send_wheel_event(&mut self, delta: WheelDelta, point: DevicePoint) {
+        let results = self.hit_test_at_point(point);
+        if let Some(item) = results.items.first() {
+            let event = WheelEvent(
+                delta,
+                item.point_in_viewport.to_untyped(),
+                Some(UntrustedNodeAddress(item.tag.0 as *const c_void)),
+            );
+            let pipeline_id = PipelineId::from_webrender(item.pipeline);
+            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({:?}).", e);
+            }
+        }
+    }
+
     pub fn on_touch_event(
         &mut self,
         event_type: TouchEventType,
@@ -810,6 +828,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseDown(button, p));
         self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseUp(button, p));
         self.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
+    }
+
+    pub fn on_wheel_event(&mut self, delta: WheelDelta, p: DevicePoint) {
+        self.send_wheel_event(delta, p);
     }
 
     pub fn on_scroll_event(
