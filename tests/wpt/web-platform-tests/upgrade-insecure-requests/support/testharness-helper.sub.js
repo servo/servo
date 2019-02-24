@@ -1,4 +1,4 @@
-// Used by /mixed-content/generic/common.js.
+// Used by common.js.
 function wrapResult(server_data) {
   // Currently the returned value is not used in mixed-content tests.
   return null;
