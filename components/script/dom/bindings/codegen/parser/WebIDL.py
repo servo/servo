@@ -2269,7 +2269,7 @@ class IDLUnresolvedType(IDLType):
             return typedefType.complete(scope)
         elif obj.isCallback() and not obj.isInterface():
             assert self.name.name == obj.identifier.name
-            return IDLCallbackType(self.location, obj)
+            return IDLCallbackType(obj.location, obj)
 
         name = self.name.resolve(scope, None)
         return IDLWrapperType(self.location, obj)
@@ -6677,7 +6677,7 @@ class Parser(Tokenizer):
                     type = IDLTypedefType(self.getLocation(p, 1), obj.innerType,
                                           obj.identifier.name)
                 elif obj.isCallback() and not obj.isInterface():
-                    type = IDLCallbackType(self.getLocation(p, 1), obj)
+                    type = IDLCallbackType(obj.location, obj)
                 else:
                     type = IDLWrapperType(self.getLocation(p, 1), p[1])
                 p[0] = self.handleNullable(type, p[2])
