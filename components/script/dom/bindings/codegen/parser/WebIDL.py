@@ -6959,7 +6959,8 @@ class Parser(Tokenizer):
             self.parser = yacc.yacc(module=self,
                                     outputdir=outputdir,
                                     tabmodule='webidlyacc',
-                                    errorlog=logger
+                                    errorlog=logger,
+                                    debug=False
                                     # Pickling the grammar is a speedup in
                                     # some cases (older Python?) but a
                                     # significant slowdown in others.
