@@ -5,7 +5,7 @@
 //! Generic types for CSS values related to borders.
 
 use crate::values::generics::rect::Rect;
-use crate::values::generics::size::Size;
+use crate::values::generics::size::Size2D;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -53,12 +53,12 @@ pub use self::GenericBorderImageSlice as BorderImageSlice;
     ToComputedValue,
     ToCss,
 )]
-pub struct BorderCornerRadius<L>(#[css(field_bound)] pub Size<L>);
+pub struct BorderCornerRadius<L>(#[css(field_bound)] pub Size2D<L>);
 
 impl<L> BorderCornerRadius<L> {
     /// Trivially create a `BorderCornerRadius`.
     pub fn new(w: L, h: L) -> Self {
-        BorderCornerRadius(Size::new(w, h))
+        BorderCornerRadius(Size2D::new(w, h))
     }
 }
 
@@ -77,12 +77,12 @@ impl<L> BorderCornerRadius<L> {
     ToComputedValue,
     ToCss,
 )]
-pub struct BorderSpacing<L>(#[css(field_bound)] pub Size<L>);
+pub struct BorderSpacing<L>(#[css(field_bound)] pub Size2D<L>);
 
 impl<L> BorderSpacing<L> {
     /// Trivially create a `BorderCornerRadius`.
     pub fn new(w: L, h: L) -> Self {
-        BorderSpacing(Size::new(w, h))
+        BorderSpacing(Size2D::new(w, h))
     }
 }
 
@@ -168,8 +168,8 @@ where
             bottom_left: BorderCornerRadius(ref bl),
         } = *self;
 
-        let widths = Rect::new(&tl.0.width, &tr.0.width, &br.0.width, &bl.0.width);
-        let heights = Rect::new(&tl.0.height, &tr.0.height, &br.0.height, &bl.0.height);
+        let widths = Rect::new(&tl.width, &tr.width, &br.width, &bl.width);
+        let heights = Rect::new(&tl.height, &tr.height, &br.height, &bl.height);
 
         Self::serialize_rects(widths, heights, dest)
     }
