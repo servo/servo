@@ -12,7 +12,7 @@ use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice
 use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
-use crate::values::generics::size::Size;
+use crate::values::generics::size::Size2D;
 use crate::values::generics::NonNegative;
 use app_units::Au;
 
@@ -59,7 +59,7 @@ impl BorderImageSlice {
 impl BorderSpacing {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderSpacing(Size::new(
+        GenericBorderSpacing(Size2D::new(
             NonNegativeLength::zero(),
             NonNegativeLength::zero(),
         ))
@@ -79,7 +79,7 @@ impl BorderSpacing {
 impl BorderCornerRadius {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderCornerRadius(Size::new(
+        GenericBorderCornerRadius(Size2D::new(
             NonNegativeLengthPercentage::zero(),
             NonNegativeLengthPercentage::zero(),
         ))
