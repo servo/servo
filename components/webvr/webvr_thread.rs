@@ -382,11 +382,8 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
             },
             webgl::WebVRCommand::SyncPoses(compositor_id, near, far, sender) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
-                    let pose = unsafe {
-                        (*compositor.0).sync_poses();
-                        (*compositor.0).synced_frame_data(near, far).to_bytes()
-                    };
-                    let _ = sender.send(Ok(pose.into()));
+                    let pose = unsafe { (*compositor.0).future_frame_data(near, far) };
+                    let _ = sender.send(Ok(pose));
                 } else {
                     let _ = sender.send(Err(()));
                 }

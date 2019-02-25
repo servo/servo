@@ -42,13 +42,13 @@ use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
-use serde_bytes::ByteBuf;
 use std::cell::Cell;
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::thread;
-use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
+use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRFutureFrameData};
+use webvr_traits::{WebVRLayer, WebVRMsg};
 
 #[dom_struct]
 pub struct VRDisplay {
@@ -77,7 +77,7 @@ pub struct VRDisplay {
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_malloc_size_of = "closures are hard"]
-    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<ByteBuf, ()>>>>,
+    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<WebVRFutureFrameData, ()>>>>,
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
@@ -664,8 +664,8 @@ impl VRDisplay {
     fn sync_frame_data(&self) {
         let status = if let Some(receiver) = self.frame_data_receiver.borrow().as_ref() {
             match receiver.recv().unwrap() {
-                Ok(bytes) => {
-                    *self.frame_data.borrow_mut() = WebVRFrameData::from_bytes(&bytes[..]);
+                Ok(future_data) => {
+                    *self.frame_data.borrow_mut() = future_data.block();
                     VRFrameDataStatus::Synced
                 },
                 Err(()) => VRFrameDataStatus::Exit,
