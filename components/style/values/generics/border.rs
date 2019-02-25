@@ -145,11 +145,7 @@ where
         W: Write,
     {
         widths.to_css(dest)?;
-        if widths.0 != heights.0 ||
-            widths.1 != heights.1 ||
-            widths.2 != heights.2 ||
-            widths.3 != heights.3
-        {
+        if widths != heights {
             dest.write_str(" / ")?;
             heights.to_css(dest)?;
         }
