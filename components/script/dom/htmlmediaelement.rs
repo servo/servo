@@ -199,6 +199,8 @@ pub struct HTMLMediaElement {
     volume: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-muted
+    muted: Cell<bool>,
     /// URL of the media resource, if any.
     resource_url: DomRefCell<Option<ServoUrl>>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
@@ -248,6 +250,7 @@ impl HTMLMediaElement {
             paused: Cell::new(true),
             defaultPlaybackRate: Cell::new(1.0),
             playbackRate: Cell::new(1.0),
+            muted: Cell::new(false),
             // FIXME(nox): Why is this initialised to true?
             autoplaying: Cell::new(true),
             delaying_the_load_event_flag: Default::default(),
@@ -369,6 +372,10 @@ impl HTMLMediaElement {
             // FIXME(nox): Set the official playback position to the current
             // playback position.
         }
+    }
+    // https://html.spec.whatwg.org/multipage/#allowed-to-play
+    fn is_allowed_to_play(&self) -> bool {
+        true
     }
 
     // https://html.spec.whatwg.org/multipage/#notify-about-playing
@@ -1398,11 +1405,38 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-autoplay
     make_bool_setter!(SetAutoplay, "autoplay");
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
+    make_bool_getter!(DefaultMuted, "muted");
+    // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
+    make_bool_setter!(SetDefaultMuted, "muted");
+
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_setter!(SetSrc, "src");
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-muted
+    fn Muted(&self) -> bool {
+        self.muted.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-muted
+    fn SetMuted(&self, value: bool) {
+        if self.muted.get() == value {
+            return;
+        }
+        self.muted.set(value);
+        let _ = self.player.set_mute(value);
+        let window = window_from_node(self);
+        window
+            .task_manager()
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
+        if !self.is_allowed_to_play() {
+            self.internal_pause_steps();
+        }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
     fn GetSrcObject(&self) -> Option<DomRoot<Blob>> {
@@ -1720,6 +1754,9 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
+            if !self.is_allowed_to_play() {
+                self.internal_pause_steps();
+            }
         }
 
         Ok(())
@@ -1733,6 +1770,11 @@ impl VirtualMethods for HTMLMediaElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
+
+        if &local_name!("muted") == attr.local_name() {
+            self.SetMuted(mutation.new_value(attr).is_some());
+            return;
+        }
 
         if mutation.new_value(attr).is_none() {
             return;
