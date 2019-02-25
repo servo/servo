@@ -1786,7 +1786,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
                   identifier == "ProbablyShortLivingWrapper" or
                   identifier == "LegacyUnenumerableNamedProperties" or
                   identifier == "RunConstructorInCallerCompartment" or
-                  identifier == "WantsEventListenerHooks"):
+                  identifier == "WantsEventListenerHooks" or
+                  identifier == "Abstract"):
                 # Known extended attributes that do not take values
                 if not attr.noArguments():
                     raise WebIDLError("[%s] must take no arguments" % identifier,
