@@ -26,6 +26,31 @@ def WebIDLTest(parser, harness):
     harness.check(dict2.members[1].identifier.name, "child",
                   "'a' really comes before 'c'")
 
+    # Test partial dictionary.
+    parser = parser.reset();
+    parser.parse("""
+      dictionary A {
+        long c;
+        long g;
+      };
+      partial dictionary A {
+        long h;
+        long d;
+      };
+    """)
+    results = parser.finish()
+
+    dict1 = results[0];
+    harness.check(len(dict1.members), 4, "Dict1 has four members")
+    harness.check(dict1.members[0].identifier.name, "c",
+                  "c should be first")
+    harness.check(dict1.members[1].identifier.name, "d",
+                  "d should come after c")
+    harness.check(dict1.members[2].identifier.name, "g",
+                  "g should come after d")
+    harness.check(dict1.members[3].identifier.name, "h",
+                  "h should be last")
+
     # Now reset our parser
     parser = parser.reset()
     threw = False
@@ -41,6 +66,24 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Should not allow name duplication in a dictionary")
+
+    # Test no name duplication across normal and partial dictionary.
+    parser = parser.reset();
+    threw = False
+    try:
+        parser.parse("""
+          dictionary A {
+            long prop = 5;
+          };
+          partial dictionary A {
+            long prop;
+          };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "Should not allow name duplication across normal and partial dictionary")
 
     # Now reset our parser again
     parser = parser.reset()
