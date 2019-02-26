@@ -203,12 +203,7 @@ impl LengthPercentage {
             return None;
         }
 
-        if self.clamping_mode.clamp(self.percentage.0) != self.percentage.0 {
-            debug_assert!(self.was_calc);
-            return None;
-        }
-
-        Some(self.percentage)
+        Some(Percentage(self.clamping_mode.clamp(self.percentage.0)))
     }
 
     /// Convert the computed value into used value.
@@ -433,14 +428,13 @@ impl ToComputedValue for specified::LengthPercentage {
     }
 
     fn from_computed_value(computed: &LengthPercentage) -> Self {
-        let length = computed.unclamped_length();
         if let Some(p) = computed.as_percentage() {
             return specified::LengthPercentage::Percentage(p);
         }
 
-        if !computed.has_percentage && computed.clamping_mode.clamp(length.px()) == length.px() {
+        if !computed.has_percentage {
             return specified::LengthPercentage::Length(ToComputedValue::from_computed_value(
-                &length,
+                &computed.length(),
             ));
         }
 
