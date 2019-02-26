@@ -274,8 +274,9 @@ impl Color {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-                return parse_hash_color(ident.as_bytes())
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                return parse_hash_color(ident.as_bytes()).map_err(|()| {
+                    location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                });
             },
             ref t => {
                 return Err(location.new_unexpected_token_error(t.clone()));

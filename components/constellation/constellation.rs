@@ -3127,7 +3127,9 @@ where
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),
-                    None => return warn!("Pipeline {:?} ScriptCommand after closure.", pipeline_id),
+                    None => {
+                        return warn!("Pipeline {:?} ScriptCommand after closure.", pipeline_id)
+                    },
                 };
                 if let Err(e) = result {
                     self.handle_send_error(pipeline_id, e);

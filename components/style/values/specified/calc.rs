@@ -180,7 +180,9 @@ impl CalcNode {
             ) => {
                 return NoCalcLength::parse_dimension(context, value, unit)
                     .map(CalcNode::Length)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    .map_err(|()| {
+                        location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                    });
             },
             (
                 &Token::Dimension {
@@ -190,7 +192,9 @@ impl CalcNode {
             ) => {
                 return Angle::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Angle)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    .map_err(|()| {
+                        location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                    });
             },
             (
                 &Token::Dimension {
@@ -200,7 +204,9 @@ impl CalcNode {
             ) => {
                 return Time::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Time)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    .map_err(|()| {
+                        location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                    });
             },
             (&Token::Percentage { unit_value, .. }, CalcUnit::LengthPercentage) |
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {

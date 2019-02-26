@@ -2533,13 +2533,14 @@ impl ElementMethods for Element {
         let position = position.parse::<AdjacentPosition>()?;
 
         let context = match position {
-            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => match self
-                .upcast::<Node>()
-                .GetParentNode()
-            {
-                Some(ref node) if node.is::<Document>() => return Err(Error::NoModificationAllowed),
-                None => return Err(Error::NoModificationAllowed),
-                Some(node) => node,
+            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
+                match self.upcast::<Node>().GetParentNode() {
+                    Some(ref node) if node.is::<Document>() => {
+                        return Err(Error::NoModificationAllowed)
+                    },
+                    None => return Err(Error::NoModificationAllowed),
+                    Some(node) => node,
+                }
             },
             AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => {
                 DomRoot::from_ref(self.upcast::<Node>())
