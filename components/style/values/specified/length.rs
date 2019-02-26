@@ -614,7 +614,9 @@ impl Length {
                         !context.parsing_mode.allows_unitless_lengths() &&
                         !allow_quirks.allowed(context.quirks_mode)
                     {
-                        return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                        return Err(
+                            location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                        );
                     }
                     return Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(
                         value,

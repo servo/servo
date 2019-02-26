@@ -1658,7 +1658,9 @@ impl Fragment {
                 handle_text(text_fragment_info, self, &mut result)
             },
 
-            SpecificFragmentInfo::TruncatedFragment(_) => return IntrinsicISizesContribution::new(),
+            SpecificFragmentInfo::TruncatedFragment(_) => {
+                return IntrinsicISizesContribution::new()
+            },
 
             SpecificFragmentInfo::UnscannedText(..) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
