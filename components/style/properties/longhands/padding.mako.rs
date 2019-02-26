@@ -39,6 +39,6 @@
         logical=side[1],
         logical_group="scroll-padding",
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-%s" % side[0],
-        animation_value_type="ComputedValue",
+        animation_value_type="NonNegativeLengthPercentageOrAuto",
     )}
 % endfor
