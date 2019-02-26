@@ -1959,8 +1959,9 @@ where
                 let name = match input.next_including_whitespace()? {
                     &Token::Ident(ref name) => name.clone(),
                     t => {
-                        return Err(location
-                            .new_custom_error(SelectorParseErrorKind::NoIdentForPseudo(t.clone())));
+                        return Err(location.new_custom_error(
+                            SelectorParseErrorKind::NoIdentForPseudo(t.clone()),
+                        ));
                     },
                 };
 

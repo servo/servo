@@ -4,7 +4,7 @@
 
 use crate::utils::{in_derive_expn, match_def_path};
 use rustc::hir::intravisit as visit;
-use rustc::hir::{self, ExprKind};
+use rustc::hir::{self, ExprKind, HirId};
 use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
 use rustc::ty;
 use syntax::{ast, source_map};
@@ -113,15 +113,18 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     /// All structs containing #[must_root] types must be #[must_root] themselves
     fn check_struct_def(
         &mut self,
-        cx: &LateContext,
-        def: &hir::VariantData,
+        cx: &LateContext<'a, 'tcx>,
+        def: &'tcx hir::VariantData,
         _n: ast::Name,
-        _gen: &hir::Generics,
-        id: ast::NodeId,
+        _gen: &'tcx hir::Generics,
+        id: HirId,
     ) {
-        let item = match cx.tcx.hir().get(id) {
+        let item = match cx.tcx.hir().get_by_hir_id(id) {
             hir::Node::Item(item) => item,
-            _ => cx.tcx.hir().expect_item(cx.tcx.hir().get_parent(id)),
+            _ => cx
+                .tcx
+                .hir()
+                .expect_item_by_hir_id(cx.tcx.hir().get_parent_item(id)),
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields() {
@@ -165,11 +168,11 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     fn check_fn(
         &mut self,
         cx: &LateContext<'a, 'tcx>,
-        kind: visit::FnKind,
+        kind: visit::FnKind<'tcx>,
         decl: &'tcx hir::FnDecl,
         body: &'tcx hir::Body,
         span: source_map::Span,
-        id: ast::NodeId,
+        id: HirId,
     ) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _) | visit::FnKind::Method(n, _, _, _) => {
@@ -179,7 +182,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
         };
 
         if !in_derive_expn(span) {
-            let def_id = cx.tcx.hir().local_def_id(id);
+            let def_id = cx.tcx.hir().local_def_id_from_hir_id(id);
             let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
