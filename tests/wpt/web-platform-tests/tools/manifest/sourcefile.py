@@ -335,7 +335,7 @@ class SourceFile(object):
     def name_is_reference(self):
         """Check if the file name matches the conditions for the file to
         be a reference file (not a reftest)"""
-        return "/reference/" in self.url or "/reftest/" in self.url or bool(reference_file_re.search(self.name))
+        return "/reference/" in self.url or bool(reference_file_re.search(self.name))
 
     @property
     def markup_type(self):

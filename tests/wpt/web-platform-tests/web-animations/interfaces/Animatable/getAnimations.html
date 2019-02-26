@@ -197,5 +197,33 @@ test(t => {
 }, 'Returns animations based on dynamic changes to individual'
    + ' animations\' current time');
 
+promise_test(async t => {
+  const div = createDiv(t);
+  const watcher = EventWatcher(t, div, 'transitionrun');
+
+  // Create a covering animation to prevent transitions from firing after
+  // calling getAnimations().
+  const coveringAnimation = new Animation(
+    new KeyframeEffect(div, { opacity: [0, 1] }, 100 * MS_PER_SEC)
+  );
+
+  // Setup transition start point.
+  div.style.transition = 'opacity 100s';
+  getComputedStyle(div).opacity;
+
+  // Update specified style but don't flush style.
+  div.style.opacity = '0.5';
+
+  // Fetch animations
+  div.getAnimations();
+
+  // Play the covering animation to ensure that only the call to
+  // getAnimations() has a chance to trigger transitions.
+  coveringAnimation.play();
+
+  // If getAnimations() flushed style, we should get a transitionrun event.
+  await watcher.wait_for('transitionrun');
+}, 'Triggers a style change event');
+
 </script>
 </body>
