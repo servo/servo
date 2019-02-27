@@ -20,6 +20,7 @@ pub use rust_webvr_api::VREye as WebVREye;
 pub use rust_webvr_api::VREyeParameters as WebVREyeParameters;
 pub use rust_webvr_api::VRFieldOfView as WebVRFieldOfView;
 pub use rust_webvr_api::VRFrameData as WebVRFrameData;
+pub use rust_webvr_api::VRFutureFrameData as WebVRFutureFrameData;
 pub use rust_webvr_api::VRGamepadButton as WebVRGamepadButton;
 pub use rust_webvr_api::VRGamepadData as WebVRGamepadData;
 pub use rust_webvr_api::VRGamepadEvent as WebVRGamepadEvent;

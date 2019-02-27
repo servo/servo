@@ -7,12 +7,12 @@ use gleam::gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::PixelFormat;
-use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::fmt;
 use std::num::NonZeroU32;
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
+use webvr_traits::WebVRFutureFrameData;
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use crate::webgl_channel::webgl_channel;
@@ -506,7 +506,12 @@ pub enum WebVRCommand {
     /// Start presenting to a VR device.
     Create(WebVRDeviceId),
     /// Synchronize the pose information to be used in the frame.
-    SyncPoses(WebVRDeviceId, f64, f64, WebGLSender<Result<ByteBuf, ()>>),
+    SyncPoses(
+        WebVRDeviceId,
+        f64,
+        f64,
+        WebGLSender<Result<WebVRFutureFrameData, ()>>,
+    ),
     /// Submit the frame to a VR device using the specified texture coordinates.
     SubmitFrame(WebVRDeviceId, [f32; 4], [f32; 4]),
     /// Stop presenting to a VR device
