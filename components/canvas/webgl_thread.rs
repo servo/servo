@@ -210,15 +210,19 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
 
     /// Handles a WebVRCommand for a specific WebGLContext
     fn handle_webvr_command(&mut self, context_id: WebGLContextId, command: WebVRCommand) {
-        Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
-        let texture = match command {
-            WebVRCommand::SubmitFrame(..) => self.cached_context_info.get(&context_id),
-            _ => None,
-        };
-        self.webvr_compositor
-            .as_mut()
-            .unwrap()
-            .handle(command, texture.map(|t| (t.texture_id, t.size)));
+        if let Some(context) =
+            Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
+        {
+            let texture = match command {
+                WebVRCommand::SubmitFrame(..) => self.cached_context_info.get(&context_id),
+                _ => None,
+            };
+            self.webvr_compositor.as_mut().unwrap().handle(
+                context.ctx.gl(),
+                command,
+                texture.map(|t| (t.texture_id, t.size)),
+            );
+        }
     }
 
     /// Handles a lock external callback received from webrender::ExternalImageHandler
