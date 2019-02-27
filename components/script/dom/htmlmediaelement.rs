@@ -1147,15 +1147,16 @@ impl HTMLMediaElement {
             action_receiver.to_opaque(),
             Box::new(move |message| {
                 let event: PlayerEvent = message.to().unwrap();
+                trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
-                task_source
-                    .queue_with_canceller(
-                        task!(handle_player_event: move || {
-                            this.root().handle_player_event(&event);
-                        }),
-                        &canceller,
-                    )
-                    .unwrap();
+                if let Err(err) = task_source.queue_with_canceller(
+                    task!(handle_player_event: move || {
+                        this.root().handle_player_event(&event);
+                    }),
+                    &canceller,
+                ) {
+                    warn!("Could not queue player event handler task {:?}", err);
+                }
             }),
         );
 
@@ -1486,6 +1487,14 @@ impl HTMLMediaElement {
     // https://github.com/servo/servo/pull/22321
     fn Loop(&self) -> bool {
         false
+    }
+}
+
+impl Drop for HTMLMediaElement {
+    fn drop(&mut self) {
+        if let Err(err) = self.player.shutdown() {
+            warn!("Error shutting down player {:?}", err);
+        }
     }
 }
 

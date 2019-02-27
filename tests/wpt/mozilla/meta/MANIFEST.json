@@ -1,5 +1,11 @@
 {
  "items": {
+  "conformancechecker": {
+   "mozilla/remove_video_iframe.html": []
+  },
+  "manual": {
+   "mozilla/remove_video_iframe.html": []
+  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -7325,6 +7331,7 @@
      {}
     ]
    ],
+   "mozilla/remove_video_iframe.html": [],
    "mozilla/reparse_style_elements.html": [
     [
      "mozilla/reparse_style_elements.html",
@@ -7626,7 +7633,11 @@
      ],
      {}
     ]
-   ]
+   ],
+   "mozilla/remove_video_iframe.html": []
+  },
+  "stub": {
+   "mozilla/remove_video_iframe.html": []
   },
   "support": {
    ".gitignore": [
@@ -10864,6 +10875,7 @@
      {}
     ]
    ],
+   "mozilla/remove_video_iframe.html": [],
    "mozilla/reparse_style_elements_ref.html": [
     [
      {}
@@ -10939,12 +10951,22 @@
      {}
     ]
    ],
+   "mozilla/resources/remove_video_iframe_inner.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/resources/second.html": [
     [
      {}
     ]
    ],
    "mozilla/resources/ssl.https.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/resources/video.mp4": [
     [
      {}
     ]
@@ -13550,6 +13572,12 @@
      {}
     ]
    ],
+   "mozilla/remove_video_iframe.html": [
+    [
+     "/_mozilla/mozilla/remove_video_iframe.html",
+     {}
+    ]
+   ],
    "mozilla/response-data-brotli.htm": [
     [
      "mozilla/response-data-brotli.htm",
@@ -13862,6 +13890,12 @@
      {}
     ]
    ]
+  },
+  "visual": {
+   "mozilla/remove_video_iframe.html": []
+  },
+  "wdspec": {
+   "mozilla/remove_video_iframe.html": []
   }
  },
  "paths": {
@@ -20461,6 +20495,10 @@
    "d562e12720350501ad14223b668131837fd10620",
    "support"
   ],
+  "mozilla/remove_video_iframe.html": [
+   "67b28d100828334ba96736d5fb2bcf01ed554d68",
+   "testharness"
+  ],
   "mozilla/reparse_style_elements.html": [
    "e54f5a28d131ab41f89d3d70a9d01ea2fae751c1",
    "reftest"
@@ -20529,12 +20567,20 @@
    "b0883f382e1a80609b7b2c7904e701fbe6760b14",
    "support"
   ],
+  "mozilla/resources/remove_video_iframe_inner.html": [
+   "bdd3d9349af8ade8bb4dcec1d7d46256ee2cffa1",
+   "support"
+  ],
   "mozilla/resources/second.html": [
    "c4fbe534ed193e1d192c0338997a8d9da8eb6406",
    "support"
   ],
   "mozilla/resources/ssl.https.html": [
    "8faa57c0c47c4fdf27c052d059b28ee1088235e9",
+   "support"
+  ],
+  "mozilla/resources/video.mp4": [
+   "fb5dbca23808bee44003692cb0e139dd6a22e874",
    "support"
   ],
   "mozilla/resources/worker_success.js": [
