@@ -11,7 +11,6 @@ use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-use gleam::gl::Gl;
 use servo_config::prefs::PREFS;
 use std::rc::Rc;
 
@@ -113,7 +112,12 @@ impl WebGLExternalImageApi for WebGLExternalImages {
 struct WebVRRenderWrapper(Box<dyn WebVRRenderHandler>);
 
 impl WebVRRenderHandler for WebVRRenderWrapper {
-    fn handle(&mut self, gl: &dyn Gl, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
+    fn handle(
+        &mut self,
+        gl: &dyn gl::Gl,
+        command: WebVRCommand,
+        texture: Option<(u32, Size2D<i32>)>,
+    ) {
         self.0.handle(gl, command, texture);
     }
 }
