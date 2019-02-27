@@ -142,6 +142,7 @@
       if (!remoteStreams.includes(e.streams[0]))
         remoteStreams.push(e.streams[0]);
     };
+    exchangeIceCandidates(caller, callee);
     await exchangeOfferAnswer(caller, callee);
     assert_equals(remoteStreams.length, 1, 'One remote stream created.');
     assert_equals(remoteStreams[0].getTracks()[0].id,
@@ -176,6 +177,7 @@
       if (!remoteStreams.includes(e.streams[0]))
         remoteStreams.push(e.streams[0]);
     };
+    exchangeIceCandidates(caller, callee);
     await exchangeOfferAnswer(caller, callee);
     assert_equals(remoteStreams.length, 1, 'One remote stream created.');
     const onaddtrackPromise =
@@ -247,6 +249,7 @@
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     const sender = caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track');
+    exchangeIceCandidates(caller, callee);
     await exchangeOfferAnswer(caller, callee);
     await ontrackPromise;
     assert_equals(callee.getReceivers().length, 1, 'One receiver created.');
@@ -269,6 +272,7 @@
       assert_equals(e.streams.length, 1);
       return e.streams[0];
     });
+    exchangeIceCandidates(caller, callee);
     await exchangeOfferAnswer(caller, callee);
     const remoteStream = await ontrackPromise;
     const remoteTrack = remoteStream.getTracks()[0];
@@ -297,6 +301,7 @@
       assert_equals(e.streams.length, 1);
       return e.streams[0];
     });
+    exchangeIceCandidates(caller, callee);
     await exchangeOfferAnswer(caller, callee);
     const remoteStream = await ontrackPromise;
     const remoteTrack = remoteStream.getTracks()[0];
@@ -320,13 +325,19 @@
         await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     const sender = caller.addTrack(localStream.getTracks()[0], localStream);
-    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
-      assert_equals(e.streams.length, 1);
-      return e.streams[0];
+    exchangeIceCandidates(caller, callee);
+    const e = await exchangeOfferAndListenToOntrack(t, caller, callee);
+    const remoteTrack = e.track;
+
+    // Need to wait for unmute, otherwise there's no event for the transition
+    // back to muted.
+    const onunmutePromise =
+        addEventListenerPromise(t, remoteTrack, 'unmute', () => {
+      assert_false(remoteTrack.muted);
     });
-    await exchangeOfferAnswer(caller, callee);
-    const remoteStream = await ontrackPromise;
-    const remoteTrack = remoteStream.getTracks()[0];
+    await exchangeAnswer(caller, callee);
+    await onunmutePromise;
+
     const onmutePromise =
         addEventListenerPromise(t, remoteTrack, 'mute', () => {
       assert_true(remoteTrack.muted);
@@ -350,9 +361,19 @@
       assert_equals(e.streams.length, 1);
       return e.streams[0];
     });
-    await exchangeOfferAnswer(caller, callee);
-    const remoteStream = await ontrackPromise;
-    const remoteTrack = remoteStream.getTracks()[0];
+    exchangeIceCandidates(caller, callee);
+    const e = await exchangeOfferAndListenToOntrack(t, caller, callee);
+    const remoteTrack = e.track;
+
+    // Need to wait for unmute, otherwise there's no event for the transition
+    // back to muted.
+    const onunmutePromise =
+        addEventListenerPromise(t, remoteTrack, 'unmute', () => {
+      assert_false(remoteTrack.muted);
+    });
+    await exchangeAnswer(caller, callee);
+    await onunmutePromise;
+
     const onmutePromise =
         addEventListenerPromise(t, remoteTrack, 'mute', () => {
       eventSequence += 'track.onmute;';

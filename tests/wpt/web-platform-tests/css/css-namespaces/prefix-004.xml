@@ -3,7 +3,7 @@
   <link rel="author" title="Anne van Kesteren" href="http://annevankesteren.nl/"/>
   <link rel="author" title="Opera Software ASA" href="http://opera.com/"/>
   <link rel="help" href="http://www.w3.org/TR/css-namespaces-3/#prefixes"/>
-  <link rel="match" href="reftest/ref-lime-2-generic.xml"/>
+  <link rel="match" href="reference/ref-lime-2-generic.xml"/>
   <title>CSS Namespaces Test Suite: empty string default namespace</title>
   <style>
    @namespace "";

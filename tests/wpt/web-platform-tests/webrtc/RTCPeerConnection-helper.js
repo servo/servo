@@ -601,7 +601,7 @@ function createPeerConnectionWithCleanup(t) {
 async function createTrackAndStreamWithCleanup(t, kind = 'audio') {
   let constraints = {};
   constraints[kind] = true;
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const stream = await getNoiseStream(constraints);
   const [track] = stream.getTracks();
   t.add_cleanup(() => track.stop());
   return [track, stream];
