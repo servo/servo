@@ -65,9 +65,11 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
-use compositing::compositor_thread::{CompositorProxy, CompositorReceiver, InitialCompositorState};
+use compositing::compositor_thread::{
+    CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
+};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use compositing::{IOCompositor, RenderNotifier, ShutdownState};
+use compositing::{CompositingReason, IOCompositor, ShutdownState};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -133,7 +135,7 @@ pub struct Servo<Window: WindowMethods + 'static> {
 }
 
 #[derive(Clone)]
-pub struct RenderNotifier {
+struct RenderNotifier {
     compositor_proxy: CompositorProxy,
 }
 
