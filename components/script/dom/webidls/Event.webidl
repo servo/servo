@@ -11,6 +11,7 @@ interface Event {
   [Pure]
   readonly attribute DOMString type;
   readonly attribute EventTarget? target;
+  readonly attribute EventTarget? srcElement;
   readonly attribute EventTarget? currentTarget;
 
   const unsigned short NONE = 0;
