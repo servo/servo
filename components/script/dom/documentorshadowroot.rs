@@ -13,7 +13,7 @@ use crate::dom::node;
 use crate::dom::window::Window;
 use euclid::Point2D;
 use js::jsapi::JS_GetRuntime;
-use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg};
+use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use std::fmt;
@@ -216,11 +216,6 @@ impl DocumentOrShadowRoot {
         s: &Arc<Stylesheet>,
         stylesheets: &mut StylesheetSet<StyleSheetInDocument>,
     ) {
-        self.window
-            .layout_chan()
-            .send(Msg::RemoveStylesheet(s.clone()))
-            .unwrap();
-
         let guard = s.shared_lock.read();
 
         // FIXME(emilio): Would be nice to remove the clone, etc.
