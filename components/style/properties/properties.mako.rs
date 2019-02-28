@@ -42,6 +42,7 @@ use crate::values::computed;
 use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
 use crate::rule_tree::StrongRuleNode;
+use crate::Zero;
 use self::computed_value_flags::*;
 use crate::str::{CssString, CssStringBorrow, CssStringWriter};
 
@@ -2585,7 +2586,7 @@ pub mod style_structs {
                     /// Whether the border-${side} property has nonzero width.
                     #[allow(non_snake_case)]
                     pub fn border_${side}_has_nonzero_width(&self) -> bool {
-                        self.border_${side}_width != NonNegativeLength::zero()
+                        !self.border_${side}_width.is_zero()
                     }
                 % endfor
             % elif style_struct.name == "Font":
@@ -2624,7 +2625,7 @@ pub mod style_structs {
                 /// Whether the outline-width property is non-zero.
                 #[inline]
                 pub fn outline_has_nonzero_width(&self) -> bool {
-                    self.outline_width != NonNegativeLength::zero()
+                    !self.outline_width.is_zero()
                 }
             % elif style_struct.name == "Text":
                 /// Whether the text decoration has an underline.

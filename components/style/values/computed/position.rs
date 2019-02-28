@@ -11,6 +11,7 @@ use crate::values::computed::{Integer, LengthPercentage, Percentage};
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 pub use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas};
+use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 

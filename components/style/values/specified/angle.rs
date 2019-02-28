@@ -101,6 +101,11 @@ impl Angle {
         }
     }
 
+    /// Return `0deg`.
+    pub fn zero() -> Self {
+        Self::from_degrees(0.0, false)
+    }
+
     /// Returns the value of the angle in degrees, mostly for `calc()`.
     #[inline]
     pub fn degrees(&self) -> CSSFloat {
@@ -111,12 +116,6 @@ impl Angle {
     #[inline]
     pub fn was_calc(&self) -> bool {
         self.was_calc
-    }
-
-    /// Returns `0deg`.
-    #[inline]
-    pub fn zero() -> Self {
-        Self::from_degrees(0.0, false)
     }
 
     /// Returns an `Angle` parsed from a `calc()` expression.

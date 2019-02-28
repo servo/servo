@@ -27,6 +27,7 @@ use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
 use crate::values::generics::rect::Rect;
+use crate::Zero;
 use app_units::Au;
 use std::f32::consts::PI;
 use style_traits::values::specified::AllowedNumericType;
@@ -703,7 +704,6 @@ pub mod basic_shape {
                     let b = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
                     let l = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
                     let round = other.mRadius;
-                    let round = if round.all_zero() { None } else { Some(round) };
                     let rect = Rect::new(
                         t.expect("inset() offset should be a length, percentage, or calc value"),
                         r.expect("inset() offset should be a length, percentage, or calc value"),

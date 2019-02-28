@@ -10,9 +10,9 @@ use crate::values::specified::angle::Angle as SpecifiedAngle;
 use crate::values::specified::length::Length as SpecifiedLength;
 use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercentage;
 use crate::values::{computed, CSSFloat};
+use crate::Zero;
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
-use num_traits::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -643,16 +643,7 @@ pub enum Translate<LengthPercentage, Length> {
     Translate3D(LengthPercentage, LengthPercentage, Length),
 }
 
-/// A trait to check if this is a zero length.
-/// An alternative way is use num_traits::Zero. However, in order to implement num_traits::Zero,
-/// we also have to implement Add, which may be complicated for LengthPercentage::Calc.
-/// We could do this if other types also need it. If so, we could drop this trait.
-pub trait IsZeroLength {
-    /// Returns true if this is a zero length.
-    fn is_zero_length(&self) -> bool;
-}
-
-impl<LoP: ToCss + IsZeroLength, L: ToCss> ToCss for Translate<LoP, L> {
+impl<LoP: ToCss + Zero, L: ToCss> ToCss for Translate<LoP, L> {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: fmt::Write,
@@ -670,7 +661,7 @@ impl<LoP: ToCss + IsZeroLength, L: ToCss> ToCss for Translate<LoP, L> {
             Translate::None => dest.write_str("none"),
             Translate::Translate(ref x, ref y) => {
                 x.to_css(dest)?;
-                if !y.is_zero_length() {
+                if !y.is_zero() {
                     dest.write_char(' ')?;
                     y.to_css(dest)?;
                 }

@@ -9,8 +9,8 @@ use crate::values::animated::transform::{Perspective, Scale3D, Translate3D};
 use crate::values::animated::ToAnimatedZero;
 use crate::values::computed::{Angle, Integer, Length, LengthPercentage, Number, Percentage};
 use crate::values::generics::transform as generic;
+use crate::Zero;
 use euclid::{Transform3D, Vector3D};
-use num_traits::Zero;
 
 pub use crate::values::generics::transform::TransformStyle;
 
