@@ -8,8 +8,8 @@
 use super::CustomIdent;
 use crate::counter_style::{parse_counter_style_name, Symbols};
 use crate::parser::{Parse, ParserContext};
+use crate::Zero;
 use cssparser::Parser;
-use num_traits::Zero;
 use std::ops::Add;
 use style_traits::{KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};

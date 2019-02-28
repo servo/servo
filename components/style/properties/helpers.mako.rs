@@ -19,6 +19,8 @@
         #[allow(unused_imports)]
         use crate::values::specified::AllowQuirks;
         #[allow(unused_imports)]
+        use crate::Zero;
+        #[allow(unused_imports)]
         use smallvec::SmallVec;
         pub use crate::values::specified::${type} as SpecifiedValue;
         pub mod computed_value {

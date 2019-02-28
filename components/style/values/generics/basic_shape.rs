@@ -11,6 +11,7 @@ use crate::values::generics::border::BorderRadius;
 use crate::values::generics::position::Position;
 use crate::values::generics::rect::Rect;
 use crate::values::specified::SVGPathData;
+use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -127,7 +128,7 @@ pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
 )]
 pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     pub rect: Rect<LengthPercentage>,
-    pub round: Option<BorderRadius<NonNegativeLengthPercentage>>,
+    pub round: BorderRadius<NonNegativeLengthPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
@@ -311,7 +312,7 @@ impl<B, T, U> ToAnimatedZero for ShapeSource<B, T, U> {
 impl<Length, NonNegativeLength> ToCss for InsetRect<Length, NonNegativeLength>
 where
     Length: ToCss + PartialEq,
-    NonNegativeLength: ToCss + PartialEq,
+    NonNegativeLength: ToCss + PartialEq + Zero,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -319,9 +320,9 @@ where
     {
         dest.write_str("inset(")?;
         self.rect.to_css(dest)?;
-        if let Some(ref radius) = self.round {
+        if !self.round.is_zero() {
             dest.write_str(" round ")?;
-            radius.to_css(dest)?;
+            self.round.to_css(dest)?;
         }
         dest.write_str(")")
     }

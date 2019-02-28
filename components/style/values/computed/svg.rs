@@ -10,6 +10,7 @@ use crate::values::computed::{LengthPercentage, NonNegativeLengthPercentage};
 use crate::values::computed::{NonNegativeNumber, Number, Opacity};
 use crate::values::generics::svg as generic;
 use crate::values::RGBA;
+use crate::Zero;
 
 pub use crate::values::specified::SVGPaintOrder;
 

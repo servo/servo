@@ -6,6 +6,7 @@
 
 use crate::values::generics::rect::Rect;
 use crate::values::generics::size::Size2D;
+use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -62,6 +63,16 @@ impl<L> BorderCornerRadius<L> {
     /// Trivially create a `BorderCornerRadius`.
     pub fn new(w: L, h: L) -> Self {
         BorderCornerRadius(Size2D::new(w, h))
+    }
+}
+
+impl<L: Zero> Zero for BorderCornerRadius<L> {
+    fn zero() -> Self {
+        BorderCornerRadius(Size2D::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
     }
 }
 
@@ -135,12 +146,7 @@ impl<L> BorderRadius<L> {
             bottom_left: bl,
         }
     }
-}
 
-impl<L> BorderRadius<L>
-where
-    L: PartialEq + ToCss,
-{
     /// Serialises two given rects following the syntax of the `border-radius``
     /// property.
     pub fn serialize_rects<W>(
@@ -149,6 +155,7 @@ where
         dest: &mut CssWriter<W>,
     ) -> fmt::Result
     where
+        L: PartialEq + ToCss,
         W: Write,
     {
         widths.to_css(dest)?;
@@ -157,6 +164,24 @@ where
             heights.to_css(dest)?;
         }
         Ok(())
+    }
+}
+
+impl<L: Zero> Zero for BorderRadius<L> {
+    fn zero() -> Self {
+        Self::new(
+            BorderCornerRadius::<L>::zero(),
+            BorderCornerRadius::<L>::zero(),
+            BorderCornerRadius::<L>::zero(),
+            BorderCornerRadius::<L>::zero(),
+        )
+    }
+
+    fn is_zero(&self) -> bool {
+        self.top_left.is_zero() &&
+            self.top_right.is_zero() &&
+            self.bottom_right.is_zero() &&
+            self.bottom_left.is_zero()
     }
 }
 
