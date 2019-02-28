@@ -154,11 +154,11 @@ def linux_tidy_unit_docs():
         .with_treeherder("Linux x64", "Tidy+Unit+Doc")
         .with_script("""
             ./mach test-tidy --no-progress --all
-            ./mach build --dev
-            ./mach test-unit
+            time ./mach build --dev
+            time ./mach test-unit
             ./mach package --dev
             ./mach build --dev --libsimpleservo
-            ./mach build --dev --no-default-features --features default-except-unstable
+            time ./mach build --dev --no-default-features --features default-except-unstable
             ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
@@ -166,13 +166,13 @@ def linux_tidy_unit_docs():
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
 
-            ./mach doc
+            time ./mach doc
             cd target/doc
             git init
             time git add .
             git -c user.name="Taskcluster" -c user.email="" \
                 commit -q -m "Rebuild Servo documentation"
-            git bundle create docs.bundle HEAD
+            time git bundle create docs.bundle HEAD
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
         .find_or_create("docs." + CONFIG.git_sha)
