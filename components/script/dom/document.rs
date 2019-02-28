@@ -4653,6 +4653,11 @@ impl StyleSheetListOwner for Dom<Document> {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.window
+            .layout_chan()
+            .send(Msg::RemoveStylesheet(s.clone()))
+            .unwrap();
+
         self.document_or_shadow_root.remove_stylesheet(
             owner,
             s,
