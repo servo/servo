@@ -45,10 +45,10 @@ cache:
 
 install:
   - appveyor-retry choco install pkgconfiglite
-  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.14.1/gstreamer-1.0-devel-x86_64-1.14.1.msi
-  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.14.1/gstreamer-1.0-x86_64-1.14.1.msi
-  - msiexec /i gstreamer-1.0-devel-x86_64-1.14.1.msi /quiet /qn /norestart /log install-devel.log
-  - msiexec /i gstreamer-1.0-x86_64-1.14.1.msi /quiet /qn /norestart /log install.log
+  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.15.1/gstreamer-1.0-devel-x86_64-1.15.1.msi
+  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.15.1/gstreamer-1.0-x86_64-1.15.1.msi
+  - msiexec /i gstreamer-1.0-devel-x86_64-1.15.1.msi /quiet /qn /norestart /log install-devel.log
+  - msiexec /i gstreamer-1.0-x86_64-1.15.1.msi /quiet /qn /norestart /log install.log
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
   - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain none
