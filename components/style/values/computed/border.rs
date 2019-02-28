@@ -14,6 +14,7 @@ use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
 use crate::values::generics::size::Size2D;
 use crate::values::generics::NonNegative;
+use crate::Zero;
 use app_units::Au;
 
 pub use crate::values::specified::border::BorderImageRepeat;
@@ -73,41 +74,5 @@ impl BorderSpacing {
     /// Returns the vertical spacing.
     pub fn vertical(&self) -> Au {
         Au::from(*self.0.height())
-    }
-}
-
-impl BorderCornerRadius {
-    /// Returns `0 0`.
-    pub fn zero() -> Self {
-        GenericBorderCornerRadius(Size2D::new(
-            NonNegativeLengthPercentage::zero(),
-            NonNegativeLengthPercentage::zero(),
-        ))
-    }
-}
-
-impl BorderRadius {
-    /// Returns a `0` border radius.
-    pub fn zero() -> Self {
-        Self {
-            top_left: BorderCornerRadius::zero(),
-            top_right: BorderCornerRadius::zero(),
-            bottom_right: BorderCornerRadius::zero(),
-            bottom_left: BorderCornerRadius::zero(),
-        }
-    }
-
-    /// Returns whether all the values are `0px`.
-    pub fn all_zero(&self) -> bool {
-        fn all(corner: &BorderCornerRadius) -> bool {
-            fn is_zero(l: &NonNegativeLengthPercentage) -> bool {
-                *l == NonNegativeLengthPercentage::zero()
-            }
-            is_zero(corner.0.width()) && is_zero(corner.0.height())
-        }
-        all(&self.top_left) &&
-            all(&self.top_right) &&
-            all(&self.bottom_left) &&
-            all(&self.bottom_right)
     }
 }

@@ -22,7 +22,7 @@ use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::transform::{self, Transform, TransformOperation};
 use crate::values::generics::transform::{Rotate, Scale, Translate};
 use crate::values::CSSFloat;
-use num_traits::Zero;
+use crate::Zero;
 use std::cmp;
 
 // ------------------------------------

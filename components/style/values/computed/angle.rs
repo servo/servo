@@ -6,7 +6,7 @@
 
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::CSSFloat;
-use num_traits::Zero;
+use crate::Zero;
 use std::f64::consts::PI;
 use std::fmt::{self, Write};
 use std::{f32, f64};

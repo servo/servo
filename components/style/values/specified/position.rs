@@ -17,6 +17,7 @@ use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::transform::OriginComponent;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
 use crate::values::{Either, None_};
+use crate::Zero;
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;

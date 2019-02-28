@@ -5,6 +5,7 @@
 //! Generic type for CSS properties that are composed by two dimensions.
 
 use crate::parser::ParserContext;
+use crate::Zero;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -82,5 +83,15 @@ where
         }
 
         Ok(())
+    }
+}
+
+impl<L: Zero> Zero for Size2D<L> {
+    fn zero() -> Self {
+        Self::new(L::zero(), L::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.width.is_zero() && self.height.is_zero()
     }
 }
