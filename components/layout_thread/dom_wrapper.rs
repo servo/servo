@@ -213,16 +213,14 @@ impl<'lr> ServoShadowRoot<'lr> {
         }
     }
 
-    pub fn flush_stylesheets(
+    pub unsafe fn flush_stylesheets(
         &self,
         device: &Device,
         quirks_mode: QuirksMode,
         guard: &SharedRwLockReadGuard,
     ) {
-        unsafe {
-            self.shadow_root
-                .flush_stylesheets::<ServoLayoutElement>(device, quirks_mode, guard)
-        };
+        self.shadow_root
+            .flush_stylesheets::<ServoLayoutElement>(device, quirks_mode, guard)
     }
 }
 
