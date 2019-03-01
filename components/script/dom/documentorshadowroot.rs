@@ -211,10 +211,9 @@ impl DocumentOrShadowRoot {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(
-        &self,
         owner: &Element,
         s: &Arc<Stylesheet>,
-        stylesheets: &mut StylesheetSet<StyleSheetInDocument>,
+        mut stylesheets: StylesheetSet<StyleSheetInDocument>,
     ) {
         let guard = s.shared_lock.read();
 
@@ -233,9 +232,8 @@ impl DocumentOrShadowRoot {
     /// correct tree position.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn add_stylesheet(
-        &self,
         owner: &Element,
-        stylesheets: &mut StylesheetSet<StyleSheetInDocument>,
+        mut stylesheets: StylesheetSet<StyleSheetInDocument>,
         sheet: Arc<Stylesheet>,
         insertion_point: Option<StyleSheetInDocument>,
         style_shared_lock: &StyleSharedRwLock,
