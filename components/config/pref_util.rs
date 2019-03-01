@@ -206,7 +206,7 @@ impl<'m, P: Clone> Preferences<'m, P> {
     }
 
     /// Access to the data structure holding the preference values.
-    pub fn values<'a>(&'a self) -> Arc<RwLock<P>> {
+    pub fn values(&self) -> Arc<RwLock<P>> {
         Arc::clone(&self.user_prefs)
     }
 
