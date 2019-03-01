@@ -24,6 +24,7 @@ use style::author_styles::AuthorStyles;
 use style::dom::TElement;
 use style::media_queries::Device;
 use style::shared_lock::SharedRwLockReadGuard;
+use style::stylesheet_set::StylesheetSet;
 use style::stylesheets::Stylesheet;
 
 // https://dom.spec.whatwg.org/#interface-shadowroot
@@ -219,9 +220,9 @@ impl StyleSheetListOwner for Dom<ShadowRoot> {
                     .is_before(sheet_in_shadow.owner.upcast())
             })
             .cloned();
-        self.document_or_shadow_root.add_stylesheet(
+        DocumentOrShadowRoot::add_stylesheet(
             owner,
-            stylesheets,
+            StylesheetSet::Author(stylesheets),
             sheet,
             insertion_point,
             self.document.style_shared_lock(),
@@ -231,10 +232,10 @@ impl StyleSheetListOwner for Dom<ShadowRoot> {
     /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.document_or_shadow_root.remove_stylesheet(
+        DocumentOrShadowRoot::remove_stylesheet(
             owner,
             s,
-            &mut self.author_styles.borrow_mut().stylesheets,
+            StylesheetSet::Author(&mut self.author_styles.borrow_mut().stylesheets),
         )
     }
 
