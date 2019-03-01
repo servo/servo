@@ -54,6 +54,7 @@ macro_rules! set_pref {
 /// When retrieving a preference, the value will always be a `PrefValue`. When setting a value, it
 /// may be a `PrefValue` or the type that converts into the correct underlying value; one of `bool`,
 /// `i64`, `f64` or `String`.
+#[inline]
 pub fn pref_map() -> &'static Preferences<'static, Prefs> {
     &PREFS
 }
