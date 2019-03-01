@@ -75,6 +75,50 @@ impl ShadowRoot {
         None
     }
 
+    pub fn stylesheet_count(&self) -> usize {
+        self.author_styles.borrow().stylesheets.len()
+    }
+
+    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+        let stylesheets = &self.author_styles.borrow().stylesheets;
+
+        stylesheets
+            .get(index)
+            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
+        let insertion_point = stylesheets
+            .iter()
+            .find(|sheet_in_shadow| {
+                owner
+                    .upcast::<Node>()
+                    .is_before(sheet_in_shadow.owner.upcast())
+            })
+            .cloned();
+        DocumentOrShadowRoot::add_stylesheet(
+            owner,
+            StylesheetSet::Author(stylesheets),
+            sheet,
+            insertion_point,
+            self.document.style_shared_lock(),
+        );
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        DocumentOrShadowRoot::remove_stylesheet(
+            owner,
+            s,
+            StylesheetSet::Author(&mut self.author_styles.borrow_mut().stylesheets),
+        )
+    }
+
     pub fn invalidate_stylesheets(&self) {
         self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
@@ -145,8 +189,12 @@ impl ShadowRootMethods for ShadowRoot {
 
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
-        self.stylesheet_list
-            .or_init(|| StyleSheetList::new(&self.window, Box::new(Dom::from_ref(self))))
+        self.stylesheet_list.or_init(|| {
+            StyleSheetList::new(
+                &self.window,
+                StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
+            )
+        })
     }
 }
 
@@ -191,55 +239,5 @@ impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
         if author_styles.stylesheets.dirty() {
             author_styles.flush::<E>(device, quirks_mode, guard);
         }
-    }
-}
-
-impl StyleSheetListOwner for Dom<ShadowRoot> {
-    fn stylesheet_count(&self) -> usize {
-        self.author_styles.borrow().stylesheets.len()
-    }
-
-    fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        let stylesheets = &self.author_styles.borrow().stylesheets;
-
-        stylesheets
-            .get(index)
-            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
-    }
-
-    /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
-    /// correct tree position.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
-        let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
-        let insertion_point = stylesheets
-            .iter()
-            .find(|sheet_in_shadow| {
-                owner
-                    .upcast::<Node>()
-                    .is_before(sheet_in_shadow.owner.upcast())
-            })
-            .cloned();
-        DocumentOrShadowRoot::add_stylesheet(
-            owner,
-            StylesheetSet::Author(stylesheets),
-            sheet,
-            insertion_point,
-            self.document.style_shared_lock(),
-        );
-    }
-
-    /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        DocumentOrShadowRoot::remove_stylesheet(
-            owner,
-            s,
-            StylesheetSet::Author(&mut self.author_styles.borrow_mut().stylesheets),
-        )
-    }
-
-    fn invalidate_stylesheets(&self) {
-        ShadowRoot::invalidate_stylesheets(self);
     }
 }

@@ -138,6 +138,7 @@ impl HTMLStyleElement {
     }
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
+    #[allow(unrooted_must_root)]
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         let stylesheets_owner = stylesheets_owner_from_node(self);
         if let Some(ref s) = *self.stylesheet.borrow() {
