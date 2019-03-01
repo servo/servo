@@ -3189,6 +3189,65 @@ impl Document {
         }
         self.shadow_roots_styles_changed.set(false);
     }
+
+    pub fn stylesheet_count(&self) -> usize {
+        self.stylesheets.borrow().len()
+    }
+
+    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+        let stylesheets = self.stylesheets.borrow();
+
+        stylesheets
+            .get(Origin::Author, index)
+            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        let stylesheets = &mut *self.stylesheets.borrow_mut();
+        let insertion_point = stylesheets
+            .iter()
+            .map(|(sheet, _origin)| sheet)
+            .find(|sheet_in_doc| {
+                owner
+                    .upcast::<Node>()
+                    .is_before(sheet_in_doc.owner.upcast())
+            })
+            .cloned();
+
+        self.window
+            .layout_chan()
+            .send(Msg::AddStylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+            ))
+            .unwrap();
+
+        DocumentOrShadowRoot::add_stylesheet(
+            owner,
+            StylesheetSet::Document(stylesheets),
+            sheet,
+            insertion_point,
+            self.style_shared_lock(),
+        );
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of document sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.window
+            .layout_chan()
+            .send(Msg::RemoveStylesheet(s.clone()))
+            .unwrap();
+
+        DocumentOrShadowRoot::remove_stylesheet(
+            owner,
+            s,
+            StylesheetSet::Document(&mut *self.stylesheets.borrow_mut()),
+        )
+    }
 }
 
 impl Element {
@@ -3220,8 +3279,12 @@ impl ProfilerMetadataFactory for Document {
 impl DocumentMethods for Document {
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
-        self.stylesheet_list
-            .or_init(|| StyleSheetList::new(&self.window, Box::new(Dom::from_ref(self))))
+        self.stylesheet_list.or_init(|| {
+            StyleSheetList::new(
+                &self.window,
+                StyleSheetListOwner::Document(Dom::from_ref(self)),
+            )
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
@@ -4602,70 +4665,5 @@ impl PendingScript {
         self.load
             .take()
             .map(|result| (DomRoot::from_ref(&*self.element), result))
-    }
-}
-
-impl StyleSheetListOwner for Dom<Document> {
-    fn stylesheet_count(&self) -> usize {
-        self.stylesheets.borrow().len()
-    }
-
-    fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        let stylesheets = self.stylesheets.borrow();
-
-        stylesheets
-            .get(Origin::Author, index)
-            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
-    }
-
-    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
-    /// correct tree position.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
-        let stylesheets = &mut *self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets
-            .iter()
-            .map(|(sheet, _origin)| sheet)
-            .find(|sheet_in_doc| {
-                owner
-                    .upcast::<Node>()
-                    .is_before(sheet_in_doc.owner.upcast())
-            })
-            .cloned();
-
-        self.window
-            .layout_chan()
-            .send(Msg::AddStylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-            ))
-            .unwrap();
-
-        DocumentOrShadowRoot::add_stylesheet(
-            owner,
-            StylesheetSet::Document(stylesheets),
-            sheet,
-            insertion_point,
-            self.style_shared_lock(),
-        );
-    }
-
-    /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.window
-            .layout_chan()
-            .send(Msg::RemoveStylesheet(s.clone()))
-            .unwrap();
-
-        DocumentOrShadowRoot::remove_stylesheet(
-            owner,
-            s,
-            StylesheetSet::Document(&mut *self.stylesheets.borrow_mut()),
-        )
-    }
-
-    fn invalidate_stylesheets(&self) {
-        Document::invalidate_stylesheets(self);
     }
 }
