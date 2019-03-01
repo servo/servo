@@ -154,7 +154,7 @@ use style::media_queries::{Device, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
-use style::stylesheet_set::DocumentStylesheetSet;
+use style::stylesheet_set::{DocumentStylesheetSet, StylesheetSet};
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::percent_encoding::percent_decode;
 use url::Host;
@@ -4638,9 +4638,9 @@ impl StyleSheetListOwner for Dom<Document> {
             ))
             .unwrap();
 
-        self.document_or_shadow_root.add_stylesheet(
+        DocumentOrShadowRoot::add_stylesheet(
             owner,
-            stylesheets,
+            StylesheetSet::Document(stylesheets),
             sheet,
             insertion_point,
             self.style_shared_lock(),
@@ -4655,10 +4655,10 @@ impl StyleSheetListOwner for Dom<Document> {
             .send(Msg::RemoveStylesheet(s.clone()))
             .unwrap();
 
-        self.document_or_shadow_root.remove_stylesheet(
+        DocumentOrShadowRoot::remove_stylesheet(
             owner,
             s,
-            &mut *self.stylesheets.borrow_mut(),
+            StylesheetSet::Document(&mut *self.stylesheets.borrow_mut()),
         )
     }
 
