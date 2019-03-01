@@ -1328,6 +1328,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "TransformOrigin": impl_simple,
         "UserSelect": impl_simple,
         "url::UrlOrNone": impl_css_url,
+        "WordBreak": impl_simple,
         "ZIndex": impl_simple,
     }
 
