@@ -95,6 +95,7 @@ include = [
   "Perspective",
   "ZIndex",
   "TransformOrigin",
+  "WordBreak",
 ]
 item_types = ["enums", "structs", "typedefs"]
 

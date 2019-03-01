@@ -813,6 +813,32 @@ impl From<TextEmphasisPosition> for u8 {
     }
 }
 
+/// Values for the `word-break` property.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[allow(missing_docs)]
+pub enum WordBreak {
+    Normal,
+    BreakAll,
+    KeepAll,
+    /// The break-word value, needed for compat.
+    ///
+    /// Specifying `word-break: break-word` makes `overflow-wrap` behave as
+    /// `anywhere`, and `word-break` behave like `normal`.
+    BreakWord,
+}
+
 /// Values for the `overflow-wrap` property.
 #[repr(u8)]
 #[derive(
