@@ -778,6 +778,12 @@ impl<Impl: selectors::parser::SelectorImpl> MallocSizeOf
     }
 }
 
+impl MallocSizeOf for selectors::context::QuirksMode {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl MallocSizeOf for Void {
     #[inline]
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {

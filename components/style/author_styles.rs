@@ -30,7 +30,6 @@ where
     pub data: CascadeData,
     /// The quirks mode of the last stylesheet flush, used because XBL sucks and
     /// we should really fix it, see bug 1406875.
-    #[ignore_malloc_size_of = "XXX"]
     pub quirks_mode: QuirksMode,
 }
 
