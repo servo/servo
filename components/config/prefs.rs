@@ -42,9 +42,8 @@ macro_rules! pref {
 macro_rules! set_pref {
     ($($segment: ident).+, $value: expr) => {{
         let values = $crate::prefs::pref_map().values();
-        let mut lock = values.write()
-            .map(|prefs| prefs $(.$segment)+.clone());
-        *lock = $value;
+        let mut lock = values.write().unwrap();
+        lock$ (.$segment)+ = $value;
     }};
 }
 

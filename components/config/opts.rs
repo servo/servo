@@ -1058,9 +1058,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     if let Some(layout_threads) = layout_threads {
-        prefs::pref_map()
-            .set("layout.threads", layout_threads as i64)
-            .expect("Could not set preference: layout.threads");
+        set_pref!(layout.threads, layout_threads as i64);
     }
 
     ArgumentParsingResult::ChromeProcess

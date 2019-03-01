@@ -16,7 +16,7 @@ use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{MouseButton, TouchEventType, TouchId};
 use servo::servo_config::opts;
-use servo::servo_config::{pref, prefs::pref_map, prefs::PrefValue};
+use servo::servo_config::{pref, prefs::PrefValue, set_pref};
 use servo::servo_url::ServoUrl;
 use servo::webvr::{VRExternalShmemPtr, VRServiceManager};
 use servo::{self, gl, webrender_api, BrowserId, Servo};
@@ -120,12 +120,10 @@ pub fn init(
         // opts::from_cmdline_args expects the first argument to be the binary name.
         args.insert(0, "servo".to_string());
 
-        prefs::pref_map()
-            .set(
-                "gfx.subpixel-text-antialiasing.enabled",
-                init_opts.enable_subpixel_text_antialiasing,
-            )
-            .expect("Failed to set preference");
+        set_pref!(
+            gfx.subpixel_text_antialiasing.enabled,
+            init_opts.enable_subpixel_text_antialiasing
+        );
         opts::from_cmdline_args(&args);
     }
 
