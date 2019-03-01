@@ -99,6 +99,7 @@ impl HTMLMetaElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     fn apply_viewport(&self) {
         if !PREFS
             .get("layout.viewport.enabled")
