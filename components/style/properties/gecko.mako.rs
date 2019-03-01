@@ -463,27 +463,22 @@ def set_gecko_property(ffi_name, expr):
     // set on mContextFlags, and the length field is set to the initial value.
 
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use crate::values::generics::svg::{SVGLength, SvgLengthPercentageOrNumber};
+        use crate::values::generics::svg::SVGLength;
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
         let length = match v {
-            SVGLength::Length(length) => {
+            SVGLength::LengthPercentage(length) => {
                 self.gecko.mContextFlags &= !CONTEXT_VALUE;
                 length
             }
             SVGLength::ContextValue => {
                 self.gecko.mContextFlags |= CONTEXT_VALUE;
                 match longhands::${ident}::get_initial_value() {
-                    SVGLength::Length(length) => length,
+                    SVGLength::LengthPercentage(length) => length,
                     _ => unreachable!("Initial value should not be context-value"),
                 }
             }
         };
-        match length {
-            SvgLengthPercentageOrNumber::LengthPercentage(lp) =>
-                self.gecko.${gecko_ffi_name}.set(lp),
-            SvgLengthPercentageOrNumber::Number(num) =>
-                self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(num.into())),
-        }
+        self.gecko.${gecko_ffi_name}.set(length)
     }
 
     pub fn copy_${ident}_from(&mut self, other: &Self) {
@@ -499,32 +494,16 @@ def set_gecko_property(ffi_name, expr):
     }
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::values::generics::svg::{SVGLength, SvgLengthPercentageOrNumber};
+        use crate::values::generics::svg::SVGLength;
         use crate::values::computed::LengthPercentage;
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
         if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
             return SVGLength::ContextValue;
         }
-        let length = match self.gecko.${gecko_ffi_name}.as_value() {
-            CoordDataValue::Factor(number) => {
-                SvgLengthPercentageOrNumber::Number(number)
-            },
-            CoordDataValue::Coord(coord) => {
-                SvgLengthPercentageOrNumber::LengthPercentage(
-                    LengthPercentage::new(Au(coord).into(), None)
-                )
-            },
-            CoordDataValue::Percent(p) => {
-                SvgLengthPercentageOrNumber::LengthPercentage(
-                    LengthPercentage::new(Au(0).into(), Some(Percentage(p)))
-                )
-            },
-            CoordDataValue::Calc(calc) => {
-                SvgLengthPercentageOrNumber::LengthPercentage(calc.into())
-            },
-            _ => unreachable!("Unexpected coordinate in ${ident}"),
-        };
-        SVGLength::Length(length.into())
+        // TODO(emilio): Use the Rust representation instead.
+        let length =
+            LengthPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}).unwrap();
+        SVGLength::LengthPercentage(length.into())
     }
 </%def>
 
@@ -4718,7 +4697,7 @@ clip-path
 
     pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use crate::values::generics::svg::{SVGStrokeDashArray, SvgLengthPercentageOrNumber};
+        use crate::values::generics::svg::SVGStrokeDashArray;
 
         match v {
             SVGStrokeDashArray::Values(v) => {
@@ -4728,12 +4707,7 @@ clip-path
                     bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.len() as u32);
                 }
                 for (gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
-                    match servo {
-                        SvgLengthPercentageOrNumber::LengthPercentage(lp) =>
-                            gecko.set(lp),
-                        SvgLengthPercentageOrNumber::Number(num) =>
-                            gecko.set_value(CoordDataValue::Factor(num.into())),
-                    }
+                    gecko.set(servo)
                 }
             }
             SVGStrokeDashArray::ContextValue => {
@@ -4761,30 +4735,17 @@ clip-path
 
     pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use crate::values::computed::LengthPercentage;
-        use crate::values::generics::NonNegative;
-        use crate::values::generics::svg::{SVGStrokeDashArray, SvgLengthPercentageOrNumber};
+        use crate::values::computed::NonNegativeLengthPercentage;
+        use crate::values::generics::svg::SVGStrokeDashArray;
 
         if self.gecko.mContextFlags & CONTEXT_VALUE != 0 {
             debug_assert_eq!(self.gecko.mStrokeDasharray.len(), 0);
             return SVGStrokeDashArray::ContextValue;
         }
+        // TODO(emilio): Use the rust representation instead.
         let mut vec = vec![];
         for gecko in self.gecko.mStrokeDasharray.iter() {
-            match gecko.as_value() {
-                CoordDataValue::Factor(number) =>
-                    vec.push(SvgLengthPercentageOrNumber::Number(number.into())),
-                CoordDataValue::Coord(coord) =>
-                    vec.push(SvgLengthPercentageOrNumber::LengthPercentage(
-                        NonNegative(LengthPercentage::new(Au(coord).into(), None).into()))),
-                CoordDataValue::Percent(p) =>
-                    vec.push(SvgLengthPercentageOrNumber::LengthPercentage(
-                        NonNegative(LengthPercentage::new_percent(Percentage(p)).into()))),
-                CoordDataValue::Calc(calc) =>
-                    vec.push(SvgLengthPercentageOrNumber::LengthPercentage(
-                        NonNegative(LengthPercentage::from(calc).clamp_to_non_negative()))),
-                _ => unreachable!(),
-            }
+            vec.push(NonNegativeLengthPercentage::from_gecko_style_coord(gecko).unwrap());
         }
         SVGStrokeDashArray::Values(vec)
     }

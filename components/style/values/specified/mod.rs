@@ -782,16 +782,22 @@ impl ClipRectOrAuto {
 /// Whether quirks are allowed in this context.
 #[derive(Clone, Copy, PartialEq)]
 pub enum AllowQuirks {
-    /// Quirks are allowed.
-    Yes,
     /// Quirks are not allowed.
     No,
+    /// Quirks are allowed, in quirks mode.
+    Yes,
+    /// Quirks are always allowed, used for SVG lengths.
+    Always,
 }
 
 impl AllowQuirks {
     /// Returns `true` if quirks are allowed in this context.
     pub fn allowed(self, quirks_mode: QuirksMode) -> bool {
-        self == AllowQuirks::Yes && quirks_mode == QuirksMode::Quirks
+        match self {
+            AllowQuirks::Always => true,
+            AllowQuirks::No => false,
+            AllowQuirks::Yes => quirks_mode == QuirksMode::Quirks,
+        }
     }
 }
 
