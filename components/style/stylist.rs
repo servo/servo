@@ -23,7 +23,7 @@ use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, S
 use crate::selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
-use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher, StylesheetSet};
+use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use crate::stylesheets::StyleRule;
