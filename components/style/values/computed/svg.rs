@@ -6,8 +6,7 @@
 
 use crate::values::computed::color::Color;
 use crate::values::computed::url::ComputedUrl;
-use crate::values::computed::{LengthPercentage, NonNegativeLengthPercentage};
-use crate::values::computed::{NonNegativeNumber, Number, Opacity};
+use crate::values::computed::{LengthPercentage, NonNegativeLengthPercentage, Opacity};
 use crate::values::generics::svg as generic;
 use crate::values::RGBA;
 use crate::Zero;
@@ -41,58 +40,31 @@ impl SVGPaint {
     }
 }
 
-/// A value of <length> | <percentage> | <number> for stroke-dashoffset.
-/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
-pub type SvgLengthPercentageOrNumber =
-    generic::SvgLengthPercentageOrNumber<LengthPercentage, Number>;
-
 /// <length> | <percentage> | <number> | context-value
-pub type SVGLength = generic::SVGLength<SvgLengthPercentageOrNumber>;
+pub type SVGLength = generic::SVGLength<LengthPercentage>;
 
 impl SVGLength {
     /// `0px`
     pub fn zero() -> Self {
-        generic::SVGLength::Length(generic::SvgLengthPercentageOrNumber::LengthPercentage(
-            LengthPercentage::zero(),
-        ))
-    }
-}
-
-/// A value of <length> | <percentage> | <number> for stroke-width/stroke-dasharray.
-/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
-pub type NonNegativeSvgLengthPercentageOrNumber =
-    generic::SvgLengthPercentageOrNumber<NonNegativeLengthPercentage, NonNegativeNumber>;
-
-// FIXME(emilio): This is really hacky, and can go away with a bit of work on
-// the clone_stroke_width code in gecko.mako.rs.
-impl Into<NonNegativeSvgLengthPercentageOrNumber> for SvgLengthPercentageOrNumber {
-    fn into(self) -> NonNegativeSvgLengthPercentageOrNumber {
-        match self {
-            generic::SvgLengthPercentageOrNumber::LengthPercentage(lop) => {
-                generic::SvgLengthPercentageOrNumber::LengthPercentage(lop.into())
-            },
-            generic::SvgLengthPercentageOrNumber::Number(num) => {
-                generic::SvgLengthPercentageOrNumber::Number(num.into())
-            },
-        }
+        generic::SVGLength::LengthPercentage(LengthPercentage::zero())
     }
 }
 
 /// An non-negative wrapper of SVGLength.
-pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthPercentageOrNumber>;
+pub type SVGWidth = generic::SVGLength<NonNegativeLengthPercentage>;
 
 impl SVGWidth {
     /// `1px`.
     pub fn one() -> Self {
         use crate::values::generics::NonNegative;
-        generic::SVGLength::Length(generic::SvgLengthPercentageOrNumber::LengthPercentage(
+        generic::SVGLength::LengthPercentage(
             NonNegative(LengthPercentage::one()),
-        ))
+        )
     }
 }
 
 /// [ <length> | <percentage> | <number> ]# | context-value
-pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeSvgLengthPercentageOrNumber>;
+pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeLengthPercentage>;
 
 impl Default for SVGStrokeDashArray {
     fn default() -> Self {
