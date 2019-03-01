@@ -18,7 +18,7 @@ use servo::{Servo, BrowserId};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
 use servo::config::servo_version;
-use servo::servo_config::get_pref;
+use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use std::env;
 use std::panic;
@@ -131,7 +131,7 @@ pub fn main() {
     let cwd = env::current_dir().unwrap();
     let cmdline_url = opts::get().url.clone();
     let pref_url = {
-        let homepage_url = get_pref!(shell.homepage);
+        let homepage_url = pref!(shell.homepage);
         parse_url_or_filename(&cwd, &homepage_url).ok()
     };
     let blank_url = ServoUrl::parse("about:blank").ok();

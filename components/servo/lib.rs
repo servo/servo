@@ -101,7 +101,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
-use servo_config::{get_pref, prefs};
+use servo_config::{pref, prefs};
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
@@ -216,7 +216,7 @@ where
         // can't defer it after `create_constellation` has started.
         script::init();
 
-        let webvr_services = if get_pref!(dom.webvr.enabled) {
+        let webvr_services = if pref!(dom.webvr.enabled) {
             let mut services = VRServiceManager::new();
             services.register_defaults();
             window.register_vr_services(&mut services);

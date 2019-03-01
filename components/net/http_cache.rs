@@ -749,7 +749,7 @@ impl HttpCache {
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub fn store(&mut self, request: &Request, response: &Response) {
-        if get_pref!(network.http_cache.disabled) {
+        if pref!(network.http_cache.disabled) {
             return;
         }
         if request.method != Method::GET {

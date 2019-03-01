@@ -20,9 +20,9 @@ use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use servo_config::get_pref;
 #[cfg(target_os = "linux")]
 use servo_config::opts;
+use servo_config::pref;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use tinyfiledialogs::{self, MessageBoxIcon, YesNo};
@@ -307,7 +307,7 @@ pub fn get_descriptor_permission_state(
     let state = if allowed_in_nonsecure_contexts(&permission_name) {
         PermissionState::Prompt
     } else {
-        if get_pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
+        if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
             PermissionState::Granted
         } else {
             settings

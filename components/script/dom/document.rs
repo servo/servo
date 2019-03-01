@@ -136,7 +136,7 @@ use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventTyp
 use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
 use servo_atoms::Atom;
-use servo_config::get_pref;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
@@ -1090,8 +1090,8 @@ impl Document {
 
         if let Some((last_time, last_pos)) = opt {
             let DBL_CLICK_TIMEOUT =
-                Duration::from_millis(get_pref!(dom.document.dblclick_timeout) as u64);
-            let DBL_CLICK_DIST_THRESHOLD = get_pref!(dom.document.dblclick_dist) as u64;
+                Duration::from_millis(pref!(dom.document.dblclick_timeout) as u64);
+            let DBL_CLICK_DIST_THRESHOLD = pref!(dom.document.dblclick_dist) as u64;
 
             // Calculate distance between this click and the previous click.
             let line = click_pos - last_pos;
@@ -2416,7 +2416,7 @@ impl Document {
         local_name: &LocalName,
         is: Option<&LocalName>,
     ) -> Option<Rc<CustomElementDefinition>> {
-        if !get_pref!(dom.custom_elements.enabled) {
+        if !pref!(dom.custom_elements.enabled) {
             return None;
         }
 
@@ -3154,7 +3154,7 @@ impl Document {
             error = true;
         }
 
-        if get_pref!(dom.fullscreen.test) {
+        if pref!(dom.fullscreen.test) {
             // For reftests we just take over the current window,
             // and don't try to really enter fullscreen.
             info!("Tests don't really enter fullscreen.");

@@ -115,27 +115,27 @@ fn test_parse_pref_from_command_line() {
         prefs::pref_map().get("dom.bluetooth.enabled"),
         PrefValue::Bool(true)
     );
-    assert_eq!(get_pref!(dom.bluetooth.enabled), true);
+    assert_eq!(pref!(dom.bluetooth.enabled), true);
 
     parse_pref_from_command_line("dom.bluetooth.enabled=false");
     assert_eq!(
         prefs::pref_map().get("dom.bluetooth.enabled"),
         PrefValue::Bool(false)
     );
-    assert_eq!(get_pref!(dom.bluetooth.enabled), false);
+    assert_eq!(pref!(dom.bluetooth.enabled), false);
 
     // Test with numbers
     parse_pref_from_command_line("layout.threads=42");
-    assert_eq!(get_pref!(layout.threads), 42);
+    assert_eq!(pref!(layout.threads), 42);
 
     // Test string.
     parse_pref_from_command_line("shell.homepage=str");
-    assert_eq!(get_pref!(shell.homepage), "str");
+    assert_eq!(pref!(shell.homepage), "str");
 
     // Test with no value (defaults to true).
     prefs::pref_map()
         .set("dom.bluetooth.enabled", false)
         .unwrap();
     parse_pref_from_command_line("dom.bluetooth.enabled");
-    assert_eq!(get_pref!(dom.bluetooth.enabled), true);
+    assert_eq!(pref!(dom.bluetooth.enabled), true);
 }

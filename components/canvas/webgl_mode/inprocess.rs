@@ -11,7 +11,7 @@ use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-use servo_config::get_pref;
+use servo_config::pref;
 use std::rc::Rc;
 
 /// WebGL Threading API entry point that lives in the constellation.
@@ -35,7 +35,7 @@ impl WebGLThreads {
             webrender_api_sender,
             webvr_compositor.map(|c| WebVRRenderWrapper(c)),
         );
-        let output_handler = if get_pref!(dom.webgl.dom_to_texture.enabled) {
+        let output_handler = if pref!(dom.webgl.dom_to_texture.enabled) {
             Some(Box::new(OutputHandler::new(
                 webrender_gl.clone(),
                 channel.clone(),

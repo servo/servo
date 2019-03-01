@@ -11,7 +11,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
-use servo_config::get_pref;
+use servo_config::pref;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::{thread, time};
@@ -308,7 +308,7 @@ impl WebVRThread {
         let (sender, receiver) = ipc::channel().unwrap();
 
         // Defines the polling interval time in ms for VR Events such as VRDisplay connected, disconnected, etc.
-        let polling_interval = get_pref!(dom.webvr.event_polling_interval) as u64;
+        let polling_interval = pref!(dom.webvr.event_polling_interval) as u64;
 
         thread::Builder::new()
             .name("WebVRPollEvents".into())

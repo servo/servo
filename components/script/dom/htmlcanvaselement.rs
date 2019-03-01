@@ -43,7 +43,7 @@ use js::rust::HandleValue;
 use offscreen_gl_context::GLContextAttributes;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
-use servo_config::get_pref;
+use servo_config::pref;
 use std::cell::Ref;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
@@ -233,7 +233,7 @@ impl HTMLCanvasElement {
         cx: *mut JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        if !get_pref!(dom.webgl2.enabled) {
+        if !pref!(dom.webgl2.enabled) {
             return None;
         }
         if let Some(ctx) = self.context() {

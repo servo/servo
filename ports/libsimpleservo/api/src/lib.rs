@@ -16,7 +16,7 @@ use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{MouseButton, TouchEventType, TouchId};
 use servo::servo_config::opts;
-use servo::servo_config::{get_pref, prefs::pref_map, prefs::PrefValue};
+use servo::servo_config::{pref, prefs::pref_map, prefs::PrefValue};
 use servo::servo_url::ServoUrl;
 use servo::webvr::{VRExternalShmemPtr, VRServiceManager};
 use servo::{self, gl, webrender_api, BrowserId, Servo};
@@ -131,7 +131,7 @@ pub fn init(
 
     let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
     let cmdline_url = opts::get().url.clone();
-    let pref_url = ServoUrl::parse(&get_pref!(shell.homepage)).ok();
+    let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let url = embedder_url

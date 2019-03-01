@@ -310,7 +310,7 @@ impl FileManagerStore {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
-        let opt_s = if get_pref!(dom.testing.html_input_element.select_files.enabled) {
+        let opt_s = if pref!(dom.testing.html_input_element.select_files.enabled) {
             opt_test_path
         } else {
             self.query_files_from_embedder(patterns, false, embedder_proxy)
@@ -341,7 +341,7 @@ impl FileManagerStore {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
-        let opt_v = if get_pref!(dom.testing.html_input_element.select_files.enabled) {
+        let opt_v = if pref!(dom.testing.html_input_element.select_files.enabled) {
             opt_test_paths
         } else {
             self.query_files_from_embedder(patterns, true, embedder_proxy)

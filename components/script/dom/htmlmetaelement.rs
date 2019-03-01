@@ -21,7 +21,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use parking_lot::RwLock;
 use servo_arc::Arc;
-use servo_config::get_pref;
+use servo_config::pref;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
@@ -98,7 +98,7 @@ impl HTMLMetaElement {
     }
 
     fn apply_viewport(&self) {
-        if !get_pref!(layout.viewport.enabled) {
+        if !pref!(layout.viewport.enabled) {
             return;
         }
         let element = self.upcast::<Element>();

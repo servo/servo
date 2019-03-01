@@ -27,7 +27,7 @@ lazy_static! {
 /// A convenience macro for accessing a preference value using its static path.
 /// Passing an invalid path is a compile-time error.
 #[macro_export]
-macro_rules! get_pref {
+macro_rules! pref {
     ($($segment: ident).+) => {{
         let values = $crate::prefs::pref_map().values();
         let lock = values.read()

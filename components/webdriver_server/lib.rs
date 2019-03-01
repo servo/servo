@@ -1104,10 +1104,7 @@ impl Handler {
         )))
     }
 
-    fn handle_get_prefs(
-        &self,
-        parameters: &GetPrefsParameters,
-    ) -> WebDriverResult<WebDriverResponse> {
+    fn handle_prefs(&self, parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         let prefs = parameters
             .prefs
             .iter()
@@ -1225,7 +1222,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => match *extension {
-                ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
+                ServoExtensionCommand::GetPrefs(ref x) => self.handle_prefs(x),
                 ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
                 ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
             },

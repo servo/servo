@@ -975,10 +975,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         .collect();
 
     let do_not_use_native_titlebar =
-        opt_match.opt_present("b") || !(get_pref!(shell.native_titlebar.enabled));
+        opt_match.opt_present("b") || !(pref!(shell.native_titlebar.enabled));
 
     let enable_subpixel_text_antialiasing =
-        !debug_options.disable_subpixel_aa && get_pref!(gfx.subpixel_text_antialiasing.enabled);
+        !debug_options.disable_subpixel_aa && pref!(gfx.subpixel_text_antialiasing.enabled);
 
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 

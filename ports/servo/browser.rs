@@ -13,7 +13,7 @@ use servo::msg::constellation_msg::TraversalDirection;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
-use servo::servo_config::get_pref;
+use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::mem;
@@ -461,7 +461,7 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
             }
         })
         .or_else(|| {
-            let url = get_pref!(shell.searchpage).replace("%s", request);
+            let url = pref!(shell.searchpage).replace("%s", request);
             ServoUrl::parse(&url).ok()
         })
 }

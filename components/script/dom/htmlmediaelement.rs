@@ -57,7 +57,7 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
-use servo_config::get_pref;
+use servo_config::pref;
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, StreamType};
 use servo_media::ServoMedia;
@@ -1106,7 +1106,7 @@ impl HTMLMediaElement {
                 .unwrap()
                 .render_poster_frame(image);
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-            if get_pref!(media.testing.enabled) {
+            if pref!(media.testing.enabled) {
                 let window = window_from_node(self);
                 let task_source = window.task_manager().media_element_task_source();
                 task_source.queue_simple_event(self.upcast(), atom!("postershown"), &window);

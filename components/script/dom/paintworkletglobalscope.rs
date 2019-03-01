@@ -50,7 +50,7 @@ use profile_traits::ipc;
 use script_traits::Painter;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use servo_atoms::Atom;
-use servo_config::get_pref;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
@@ -439,7 +439,7 @@ impl PaintWorkletGlobalScope {
                     .expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
 
-                let timeout = get_pref!(dom.worklet.timeout_ms) as u64;
+                let timeout = pref!(dom.worklet.timeout_ms) as u64;
 
                 receiver
                     .recv_timeout(Duration::from_millis(timeout))

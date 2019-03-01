@@ -71,7 +71,7 @@ use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::{self, PixelFormat};
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
-use servo_config::get_pref;
+use servo_config::pref;
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
@@ -173,7 +173,7 @@ impl WebGLRenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Result<WebGLRenderingContext, String> {
-        if get_pref!(webgl.testing.context_creation_error) {
+        if pref!(webgl.testing.context_creation_error) {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 

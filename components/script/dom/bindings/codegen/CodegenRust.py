@@ -5976,7 +5976,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::globalscope::GlobalScope',
         'crate::mem::malloc_size_of_including_raw_self',
         'libc',
-        'servo_config::get_pref',
+        'servo_config::pref',
         'servo_config::prefs',
         'std::borrow::ToOwned',
         'std::cmp',

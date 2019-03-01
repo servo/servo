@@ -81,7 +81,7 @@ use crate::dom::svgsvgelement::SVGSVGElement;
 use crate::script_thread::ScriptThread;
 use html5ever::{LocalName, Prefix, QualName};
 use js::jsapi::JSAutoCompartment;
-use servo_config::get_pref;
+use servo_config::pref;
 
 fn create_svg_element(
     name: QualName,
@@ -101,7 +101,7 @@ fn create_svg_element(
         })
     );
 
-    if !get_pref!(dom.svg.enabled) {
+    if !pref!(dom.svg.enabled) {
         return Element::new(name.local, name.ns, prefix, document);
     }
 

@@ -11,7 +11,7 @@ use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
 use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
 use rayon;
-use servo_config::get_pref;
+use servo_config::pref;
 use std::env;
 
 /// Global style data
@@ -70,7 +70,7 @@ lazy_static! {
                 // We always set this pref on startup, before layout or script
                 // have had a chance of accessing (and thus creating) the
                 // thread-pool.
-                get_pref!(layout.threads) as usize
+                pref!(layout.threads) as usize
             }
             #[cfg(feature = "gecko")]
             _ => {

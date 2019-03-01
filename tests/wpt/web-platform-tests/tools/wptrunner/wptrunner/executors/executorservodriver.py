@@ -33,7 +33,7 @@ def do_delayed_imports():
             self.session = session
 
         @webdriver.client.command
-        def get_prefs(self, *prefs):
+        def prefs(self, *prefs):
             body = {"prefs": list(prefs)}
             return self.session.send_session_command("POST", "servo/prefs/get", body)
 

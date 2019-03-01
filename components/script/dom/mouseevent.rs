@@ -16,7 +16,7 @@ use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use servo_config::get_pref;
+use servo_config::pref;
 use std::cell::Cell;
 use std::default::Default;
 
@@ -194,7 +194,7 @@ impl MouseEventMethods for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if get_pref!(dom.mouse_event.which.enabled) {
+        if pref!(dom.mouse_event.which.enabled) {
             (self.button.get() + 1) as i32
         } else {
             0
