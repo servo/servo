@@ -2802,13 +2802,14 @@ pub fn shadow_root_from_node<T: DerivedFrom<Node> + DomObject>(
     derived.upcast().owner_shadow_root()
 }
 
+#[allow(unrooted_must_root)]
 pub fn stylesheets_owner_from_node<T: DerivedFrom<Node> + DomObject>(
     derived: &T,
-) -> Box<StyleSheetListOwner> {
+) -> StyleSheetListOwner {
     if let Some(shadow_root) = shadow_root_from_node(derived) {
-        Box::new(Dom::from_ref(&*shadow_root))
+        StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root))
     } else {
-        Box::new(Dom::from_ref(&*document_from_node(derived)))
+        StyleSheetListOwner::Document(Dom::from_ref(&*document_from_node(derived)))
     }
 }
 
