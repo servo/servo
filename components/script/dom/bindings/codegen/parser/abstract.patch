@@ -1,11 +1,11 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -1744,7 +1744,8 @@
+@@ -1786,7 +1786,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
+                   identifier == "ProbablyShortLivingWrapper" or
                    identifier == "LegacyUnenumerableNamedProperties" or
                    identifier == "RunConstructorInCallerCompartment" or
-                   identifier == "WantsEventListenerHooks" or
--                  identifier == "NonOrdinaryGetPrototypeOf"):
-+                  identifier == "NonOrdinaryGetPrototypeOf" or
+-                  identifier == "WantsEventListenerHooks"):
++                  identifier == "WantsEventListenerHooks" or
 +                  identifier == "Abstract"):
                  # Known extended attributes that do not take values
                  if not attr.noArguments():
