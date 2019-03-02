@@ -478,12 +478,12 @@ def set_gecko_property(ffi_name, expr):
                 }
             }
         };
-        self.gecko.${gecko_ffi_name}.set(length)
+        self.gecko.${gecko_ffi_name} = length;
     }
 
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
-        self.gecko.${gecko_ffi_name}.copy_from(&other.gecko.${gecko_ffi_name});
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
         self.gecko.mContextFlags =
             (self.gecko.mContextFlags & !CONTEXT_VALUE) |
             (other.gecko.mContextFlags & CONTEXT_VALUE);
@@ -495,15 +495,11 @@ def set_gecko_property(ffi_name, expr):
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         use crate::values::generics::svg::SVGLength;
-        use crate::values::computed::LengthPercentage;
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
         if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
             return SVGLength::ContextValue;
         }
-        // TODO(emilio): Use the Rust representation instead.
-        let length =
-            LengthPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}).unwrap();
-        SVGLength::LengthPercentage(length.into())
+        SVGLength::LengthPercentage(self.gecko.${gecko_ffi_name})
     }
 </%def>
 
@@ -4707,7 +4703,7 @@ clip-path
                     bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.len() as u32);
                 }
                 for (gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
-                    gecko.set(servo)
+                    *gecko = servo;
                 }
             }
             SVGStrokeDashArray::ContextValue => {
@@ -4735,19 +4731,13 @@ clip-path
 
     pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use crate::values::computed::NonNegativeLengthPercentage;
         use crate::values::generics::svg::SVGStrokeDashArray;
 
         if self.gecko.mContextFlags & CONTEXT_VALUE != 0 {
             debug_assert_eq!(self.gecko.mStrokeDasharray.len(), 0);
             return SVGStrokeDashArray::ContextValue;
         }
-        // TODO(emilio): Use the rust representation instead.
-        let mut vec = vec![];
-        for gecko in self.gecko.mStrokeDasharray.iter() {
-            vec.push(NonNegativeLengthPercentage::from_gecko_style_coord(gecko).unwrap());
-        }
-        SVGStrokeDashArray::Values(vec)
+        SVGStrokeDashArray::Values(self.gecko.mStrokeDasharray.iter().cloned().collect())
     }
 
     #[allow(non_snake_case)]
