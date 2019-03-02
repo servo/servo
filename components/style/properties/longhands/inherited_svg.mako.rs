@@ -84,7 +84,8 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "stroke-width", "SVGWidth",
+    "stroke-width",
+    "SVGWidth",
     "computed::SVGWidth::one()",
     products="gecko",
     animation_value_type="crate::values::computed::SVGWidth",
