@@ -46,7 +46,7 @@ interface HTMLElement : Element {
   //         attribute boolean spellcheck;
   // void forceSpellCheck();
 
-  [TreatNullAs=EmptyString] attribute DOMString innerText;
+  attribute [TreatNullAs=EmptyString] DOMString innerText;
 
   // command API
   // readonly attribute DOMString? commandType;

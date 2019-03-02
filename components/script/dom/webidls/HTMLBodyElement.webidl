@@ -11,7 +11,7 @@ HTMLBodyElement implements WindowEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#HTMLBodyElement-partial
 partial interface HTMLBodyElement {
-  [CEReactions, TreatNullAs=EmptyString] attribute DOMString text;
+  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString text;
 
   // https://github.com/servo/servo/issues/8715
   //[CEReactions, TreatNullAs=EmptyString] attribute DOMString link;
@@ -22,6 +22,6 @@ partial interface HTMLBodyElement {
   // https://github.com/servo/servo/issues/8717
   //[CEReactions, TreatNullAs=EmptyString] attribute DOMString aLink;
 
-  [CEReactions, TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
   [CEReactions] attribute DOMString background;
 };
