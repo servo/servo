@@ -573,9 +573,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                 isAutoRooted=False,
                                 invalidEnumValueFatal=True,
                                 defaultValue=None,
-                                treatNullAs="Default",
-                                isEnforceRange=False,
-                                isClamp=False,
                                 exceptionCode=None,
                                 allowTreatNonObjectAsNull=False,
                                 isCallbackReturnValue=False,
@@ -603,12 +600,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     If defaultValue is not None, it's the IDL default value for this conversion
 
-    If isEnforceRange is true, we're converting an integer and throwing if the
-    value is out of range.
-
-    If isClamp is true, we're converting an integer and clamping if the
-    value is out of range.
-
     If allowTreatNonObjectAsNull is true, then [TreatNonObjectAsNull]
     extended attributes on nullable callback functions will be honored.
 
@@ -630,6 +621,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     """
     # We should not have a defaultValue if we know we're an object
     assert not isDefinitelyObject or defaultValue is None
+
+    isEnforceRange = type.enforceRange
+    isClamp = type.clamp
+    if type.treatNullAsEmpty:
+        treatNullAs = "EmptyString"
+    else:
+        treatNullAs = "Default"
 
     # If exceptionCode is not set, we'll just rethrow the exception we got.
     # Note that we can't just set failureCode to exceptionCode, because setting
@@ -1301,9 +1299,6 @@ class CGArgumentConverter(CGThing):
             descriptorProvider,
             invalidEnumValueFatal=invalidEnumValueFatal,
             defaultValue=argument.defaultValue,
-            treatNullAs=argument.treatNullAs,
-            isEnforceRange=argument.enforceRange,
-            isClamp=argument.clamp,
             isMember="Variadic" if argument.variadic else False,
             isAutoRooted=type_needs_auto_root(argument.type),
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
@@ -3508,9 +3503,6 @@ class FakeArgument():
         self.variadic = False
         self.defaultValue = None
         self._allowTreatNonObjectAsNull = allowTreatNonObjectAsNull
-        self.treatNullAs = interfaceMember.treatNullAs
-        self.enforceRange = False
-        self.clamp = False
 
     def allowTreatNonCallableAsNull(self):
         return self._allowTreatNonObjectAsNull
@@ -4874,7 +4866,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
             info = getJSToNativeConversionInfo(
-                argument.type, descriptor, treatNullAs=argument.treatNullAs,
+                argument.type, descriptor,
                 exceptionCode="return false;")
             template = info.template
             declType = info.declType
@@ -6886,7 +6878,7 @@ class CGCallbackInterface(CGCallback):
 
 class FakeMember():
     def __init__(self):
-        self.treatNullAs = "Default"
+        pass
 
     def isStatic(self):
         return False
