@@ -12,6 +12,70 @@ use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
 use syn::{Variant, WherePredicate};
 use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
 
+/// Given an input type which has some where clauses already, like:
+///
+/// struct InputType<T>
+/// where
+///     T: Zero,
+/// {
+///     ...
+/// }
+///
+/// Add the necessary `where` clauses so that the output type of a trait
+/// fulfils them.
+///
+/// For example:
+///
+///     <T as ToComputedValue>::ComputedValue: Zero,
+///
+/// This needs to run before adding other bounds to the type parameters.
+pub fn propagate_clauses_to_output_type(
+    where_clause: &mut Option<syn::WhereClause>,
+    generics: &syn::Generics,
+    trait_path: Path,
+    trait_output: Ident,
+) {
+    let where_clause = match *where_clause {
+        Some(ref mut clause) => clause,
+        None => return,
+    };
+    let mut extra_bounds = vec![];
+    for pred in &where_clause.predicates {
+        let ty = match *pred {
+            syn::WherePredicate::Type(ref ty) => ty,
+            ref predicate => panic!("Unhanded complex where predicate: {:?}", predicate),
+        };
+
+        let path = match ty.bounded_ty {
+            syn::Type::Path(ref p) => &p.path,
+            ref ty => panic!("Unhanded complex where type: {:?}", ty),
+        };
+
+        assert!(
+            ty.lifetimes.is_none(),
+            "Unhanded complex lifetime bound: {:?}",
+            ty,
+        );
+
+        let ident = match path_to_ident(path) {
+            Some(i) => i,
+            None => panic!("Unhanded complex where type path: {:?}", path),
+        };
+
+        if generics.type_params().any(|param| param.ident == *ident) {
+            extra_bounds.push(ty.clone());
+        }
+    }
+
+    for bound in extra_bounds {
+        let ty = bound.bounded_ty;
+        let bounds = bound.bounds;
+        where_clause.predicates.push(
+            parse_quote!(<#ty as #trait_path>::#trait_output: #bounds),
+        )
+    }
+}
+
 pub fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePredicate) {
     where_clause
         .get_or_insert(parse_quote!(where))
