@@ -76,39 +76,18 @@ impl VideoTrackList {
             .media_element_task_source_with_canceller();
 
         if let Some(current) = self.selected_index() {
-            if current != idx {
-                self.tracks.borrow()[current].set_selected(false);
-                track.set_selected(true);
-
-                let _ = source.queue_with_canceller(
-                    task!(media_track_change: move || {
-                        let this = this.root();
-                        this.upcast::<EventTarget>().fire_event(atom!("change"));
-                    }),
-                    &canceller,
-                );
-            } else {
-                self.tracks.borrow()[current].set_selected(false);
-
-                let _ = source.queue_with_canceller(
-                    task!(media_track_change: move || {
-                        let this = this.root();
-                        this.upcast::<EventTarget>().fire_event(atom!("change"));
-                    }),
-                    &canceller,
-                );
-            }
-        } else {
-            track.set_selected(true);
-
-            let _ = source.queue_with_canceller(
-                task!(media_track_change: move || {
-                    let this = this.root();
-                    this.upcast::<EventTarget>().fire_event(atom!("change"));
-                }),
-                &canceller,
-            );
+            self.tracks.borrow()[current].set_selected(false);
         }
+
+        track.set_selected(value);
+
+        let _ = source.queue_with_canceller(
+            task!(media_track_change: move || {
+                let this = this.root();
+                this.upcast::<EventTarget>().fire_event(atom!("change"));
+            }),
+            &canceller,
+        );
     }
 
     pub fn add(&self, track: &VideoTrack) {
