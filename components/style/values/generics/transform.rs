@@ -629,53 +629,32 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss
 )]
-/// A value of the `Translate` property
+/// A value of the `translate` property
+///
+/// https://drafts.csswg.org/css-transforms-2/#individual-transform-serialization:
+///
+/// If a 2d translation is specified, the property must serialize with only one
+/// or two values (per usual, if the second value is 0px, the default, it must
+/// be omitted when serializing).
+///
+/// If a 3d translation is specified, all three values must be serialized.
+///
+/// We don't omit the 3rd component even if it is 0px for now, and the
+/// related spec issue is https://github.com/w3c/csswg-drafts/issues/3305
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
-pub enum Translate<LengthPercentage, Length> {
+pub enum Translate<LengthPercentage, Length>
+where
+    LengthPercentage: Zero,
+{
     /// 'none'
     None,
     /// '<length-percentage>' or '<length-percentage> <length-percentage>'
-    Translate(LengthPercentage, LengthPercentage),
+    Translate(LengthPercentage, #[css(skip_if = "Zero::is_zero")] LengthPercentage),
     /// '<length-percentage> <length-percentage> <length>'
     Translate3D(LengthPercentage, LengthPercentage, Length),
-}
-
-impl<LoP: ToCss + Zero, L: ToCss> ToCss for Translate<LoP, L> {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        // The spec says:
-        // 1. If a 2d translation is specified, the property must serialize with only one or two
-        //    values (per usual, if the second value is 0px, the default, it must be omitted when
-        //    serializing).
-        // 2. If a 3d translation is specified, all three values must be serialized.
-        // https://drafts.csswg.org/css-transforms-2/#individual-transform-serialization
-        //
-        // We don't omit the 3rd component even if it is 0px for now, and the related
-        // spec issue is https://github.com/w3c/csswg-drafts/issues/3305
-        match *self {
-            Translate::None => dest.write_str("none"),
-            Translate::Translate(ref x, ref y) => {
-                x.to_css(dest)?;
-                if !y.is_zero() {
-                    dest.write_char(' ')?;
-                    y.to_css(dest)?;
-                }
-                Ok(())
-            },
-            Translate::Translate3D(ref x, ref y, ref z) => {
-                x.to_css(dest)?;
-                dest.write_char(' ')?;
-                y.to_css(dest)?;
-                dest.write_char(' ')?;
-                z.to_css(dest)
-            },
-        }
-    }
 }
 
 #[allow(missing_docs)]
