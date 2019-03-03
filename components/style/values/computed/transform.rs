@@ -371,15 +371,14 @@ impl TransformOperation {
     pub fn to_translate_3d(&self) -> Self {
         match *self {
             generic::TransformOperation::Translate3D(..) => self.clone(),
-            generic::TransformOperation::TranslateX(ref x) |
-            generic::TransformOperation::Translate(ref x, None) => {
+            generic::TransformOperation::TranslateX(ref x) => {
                 generic::TransformOperation::Translate3D(
                     x.clone(),
                     LengthPercentage::zero(),
                     Length::zero(),
                 )
             },
-            generic::TransformOperation::Translate(ref x, Some(ref y)) => {
+            generic::TransformOperation::Translate(ref x, ref y) => {
                 generic::TransformOperation::Translate3D(x.clone(), y.clone(), Length::zero())
             },
             generic::TransformOperation::TranslateY(ref y) => {
@@ -426,10 +425,7 @@ impl TransformOperation {
     pub fn to_scale_3d(&self) -> Self {
         match *self {
             generic::TransformOperation::Scale3D(..) => self.clone(),
-            generic::TransformOperation::Scale(s, None) => {
-                generic::TransformOperation::Scale3D(s, s, 1.)
-            },
-            generic::TransformOperation::Scale(x, Some(y)) => {
+            generic::TransformOperation::Scale(x, y) => {
                 generic::TransformOperation::Scale3D(x, y, 1.)
             },
             generic::TransformOperation::ScaleX(x) => {
@@ -494,7 +490,7 @@ impl ToAnimatedZero for TransformOperation {
                 Ok(generic::TransformOperation::Scale3D(1.0, 1.0, 1.0))
             },
             generic::TransformOperation::Scale(_, _) => {
-                Ok(generic::TransformOperation::Scale(1.0, Some(1.0)))
+                Ok(generic::TransformOperation::Scale(1.0, 1.0))
             },
             generic::TransformOperation::ScaleX(..) => Ok(generic::TransformOperation::ScaleX(1.0)),
             generic::TransformOperation::ScaleY(..) => Ok(generic::TransformOperation::ScaleY(1.0)),
@@ -585,7 +581,7 @@ impl Translate {
         match *self {
             generic::Translate::None => None,
             generic::Translate::Translate(tx, ty) => {
-                Some(generic::TransformOperation::Translate(tx, Some(ty)))
+                Some(generic::TransformOperation::Translate(tx, ty))
             },
             generic::Translate::Translate3D(tx, ty, tz) => {
                 Some(generic::TransformOperation::Translate3D(tx, ty, tz))
@@ -596,7 +592,7 @@ impl Translate {
     /// Convert Translate to TransformOperation.
     pub fn from_transform_operation(operation: &TransformOperation) -> Translate {
         match *operation {
-            generic::TransformOperation::Translate(tx, Some(ty)) => {
+            generic::TransformOperation::Translate(tx, ty) => {
                 generic::Translate::Translate(tx, ty)
             },
             generic::TransformOperation::Translate3D(tx, ty, tz) => {
@@ -615,7 +611,7 @@ impl Scale {
     pub fn to_transform_operation(&self) -> Option<TransformOperation> {
         match *self {
             generic::Scale::None => None,
-            generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, Some(sy))),
+            generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, sy)),
             generic::Scale::Scale3D(sx, sy, sz) => {
                 Some(generic::TransformOperation::Scale3D(sx, sy, sz))
             },
@@ -625,8 +621,7 @@ impl Scale {
     /// Convert Scale to TransformOperation.
     pub fn from_transform_operation(operation: &TransformOperation) -> Scale {
         match *operation {
-            generic::TransformOperation::Scale(sx, Some(sy)) => generic::Scale::Scale(sx, sy),
-            generic::TransformOperation::Scale(sx, None) => generic::Scale::Scale(sx, sx),
+            generic::TransformOperation::Scale(sx, sy) => generic::Scale::Scale(sx, sy),
             generic::TransformOperation::Scale3D(sx, sy, sz) => generic::Scale::Scale3D(sx, sy, sz),
             _ => unreachable!("Found unexpected value for scale"),
         }
