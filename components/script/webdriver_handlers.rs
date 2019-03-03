@@ -203,6 +203,23 @@ pub fn handle_find_elements_css(
     reply.send(node_ids).unwrap();
 }
 
+pub fn handle_find_element_element_css(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    reply: IpcSender<Result<Option<String>, ()>>,
+) {
+    let node_id = find_node_by_unique_id(documents, pipeline, element_id)
+        .ok_or(())
+        .and_then(|node| {
+            node.query_selector(DOMString::from(selector))
+                .map_err(|_| ())
+        })
+        .map(|node| node.map(|x| x.upcast::<Node>().unique_id()));
+    reply.send(node_id).unwrap();
+}
+
 pub fn handle_focus_element(
     documents: &Documents,
     pipeline: PipelineId,
