@@ -20,6 +20,7 @@ interface Event {
   readonly attribute unsigned short eventPhase;
 
   void stopPropagation();
+  attribute boolean cancelBubble;
   void stopImmediatePropagation();
 
   [Pure]
