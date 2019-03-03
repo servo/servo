@@ -71,7 +71,7 @@ pub trait IDLInterface {
 /// A trait to mark an IDL interface as deriving from another one.
 #[cfg_attr(
     feature = "unstable",
-    rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`."
+    rustc_on_unimplemented(message = "The IDL interface `{Self}` is not derived from `{T}`.")
 )]
 pub trait DerivedFrom<T: Castable>: Castable {}
 

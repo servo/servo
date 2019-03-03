@@ -7,7 +7,6 @@
 #![feature(const_fn)]
 #![feature(drain_filter)]
 #![feature(plugin)]
-#![feature(try_from)]
 #![feature(type_alias_enum_variants)]
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
