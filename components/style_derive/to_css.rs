@@ -148,12 +148,20 @@ fn derive_variant_fields_expr(
                 }
             }
         }
+
+        if let Some(condition) = attrs.contextual_skip_if {
+            expr = quote! {
+                if !#condition(#(#bindings),*) {
+                    #expr
+                }
+            }
+        }
         return expr;
     }
 
-    let mut expr = derive_single_field_expr(first, attrs, where_clause);
+    let mut expr = derive_single_field_expr(first, attrs, where_clause, bindings);
     for (binding, attrs) in iter {
-        derive_single_field_expr(binding, attrs, where_clause).to_tokens(&mut expr)
+        derive_single_field_expr(binding, attrs, where_clause, bindings).to_tokens(&mut expr)
     }
 
     quote! {{
@@ -167,6 +175,7 @@ fn derive_single_field_expr(
     field: &BindingInfo,
     attrs: CssFieldAttrs,
     where_clause: &mut Option<WhereClause>,
+    bindings: &[BindingInfo],
 ) -> TokenStream {
     let mut expr = if attrs.iterable {
         if let Some(if_empty) = attrs.if_empty {
@@ -216,6 +225,14 @@ fn derive_single_field_expr(
         }
     }
 
+    if let Some(condition) = attrs.contextual_skip_if {
+        expr = quote! {
+            if !#condition(#(#bindings),*) {
+                #expr
+            }
+        }
+    }
+
     expr
 }
 
@@ -249,5 +266,6 @@ pub struct CssFieldAttrs {
     pub iterable: bool,
     pub skip: bool,
     pub represents_keyword: bool,
+    pub contextual_skip_if: Option<Path>,
     pub skip_if: Option<Path>,
 }
