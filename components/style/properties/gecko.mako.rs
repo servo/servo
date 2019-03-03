@@ -855,13 +855,13 @@ def set_gecko_property(ffi_name, expr):
 transform_functions = [
     ("Matrix3D", "matrix3d", ["number"] * 16),
     ("Matrix", "matrix", ["number"] * 6),
-    ("Translate", "translate", ["lp", "optional_lp"]),
+    ("Translate", "translate", ["lp", "lp"]),
     ("Translate3D", "translate3d", ["lp", "lp", "length"]),
     ("TranslateX", "translatex", ["lp"]),
     ("TranslateY", "translatey", ["lp"]),
     ("TranslateZ", "translatez", ["length"]),
     ("Scale3D", "scale3d", ["number"] * 3),
-    ("Scale", "scale", ["number", "optional_number"]),
+    ("Scale", "scale", ["number", "number"]),
     ("ScaleX", "scalex", ["number"]),
     ("ScaleY", "scaley", ["number"]),
     ("ScaleZ", "scalez", ["number"]),
@@ -870,7 +870,7 @@ transform_functions = [
     ("RotateX", "rotatex", ["angle"]),
     ("RotateY", "rotatey", ["angle"]),
     ("RotateZ", "rotatez", ["angle"]),
-    ("Skew", "skew", ["angle", "optional_angle"]),
+    ("Skew", "skew", ["angle", "angle"]),
     ("SkewX", "skewx", ["angle"]),
     ("SkewY", "skewy", ["angle"]),
     ("Perspective", "perspective", ["length"]),
@@ -881,7 +881,6 @@ transform_functions = [
 
 <%def name="transform_function_arm(name, keyword, items)">
     <%
-        has_optional = items[-1].startswith("optional_")
         pattern = None
         if keyword == "matrix3d":
             # m11: number1, m12: number2, ..
@@ -919,36 +918,20 @@ transform_functions = [
         }
     %>
     crate::values::generics::transform::TransformOperation::${name}${pattern} => {
-        % if has_optional:
-            let optional_present = ${items[-1] + str(len(items))}.is_some();
-            let len = if optional_present {
-                ${len(items) + 1}
-            } else {
-                ${len(items)}
-            };
-        % else:
-            let len = ${len(items) + 1};
-        % endif
+        let len = ${len(items) + 1};
         bindings::Gecko_CSSValue_SetFunction(gecko_value, len);
         bindings::Gecko_CSSValue_SetKeyword(
             bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
             structs::nsCSSKeyword::eCSSKeyword_${keyword}
         );
         % for index, item in enumerate(items):
-            <% replaced_item = item.replace("optional_", "") %>
-            % if item.startswith("optional"):
-                if let Some(${replaced_item + str(index + 1)}) = ${item + str(index + 1)} {
-            % endif
             % if item == "list":
                 debug_assert!(!${item}${index + 1}.0.is_empty());
             % endif
-            ${css_value_setters[replaced_item] % (
+            ${css_value_setters[item] % (
                 "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
-                replaced_item + str(index + 1)
+                item + str(index + 1)
             )};
-            % if item.startswith("optional"):
-                }
-            % endif
         % endfor
     }
 </%def>
@@ -959,8 +942,6 @@ transform_functions = [
         css_value_getters = {
             "length" : "Length::new(bindings::Gecko_CSSValue_GetNumber(%s))",
             "lp" : "%s.get_length_percentage()",
-            "lpon" : "Either::Second(%s.get_length_percentage())",
-            "lon" : "Either::First(%s.get_length())",
             "angle" : "%s.get_angle()",
             "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
             "percentage" : "Percentage(bindings::Gecko_CSSValue_GetPercentage(%s))",
@@ -998,20 +979,11 @@ transform_functions = [
                 ${field_names[index]}:
             % endif
             <%
-                getter = css_value_getters[item.replace("optional_", "")] % (
+                getter = css_value_getters[item] % (
                     "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
                 )
             %>
-            % if item.startswith("optional_"):
-                if (**gecko_value.mValue.mArray.as_ref()).mCount == ${index + 1} {
-                    None
-                } else {
-                    Some(${getter})
-                }
-            % else:
-                ${getter}
-            % endif
-,
+            ${getter},
         % endfor
         ${post_symbols}
     },

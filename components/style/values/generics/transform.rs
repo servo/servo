@@ -106,9 +106,18 @@ impl<H, V, D> TransformOrigin<H, V, D> {
     }
 }
 
+fn is_same<N: PartialEq>(x: &N, y: &N) -> bool {
+    x == y
+}
+
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// A single operation in the list of a `transform` value
-pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage> {
+pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage>
+where
+    Angle: Zero,
+    LengthPercentage: Zero,
+    Number: PartialEq,
+{
     /// Represents a 2D 2x3 matrix.
     Matrix(Matrix<Number>),
     /// Represents a 3D 4x4 matrix.
@@ -119,7 +128,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage> {
     ///
     /// Syntax can be skew(angle) or skew(angle, angle)
     #[css(comma, function)]
-    Skew(Angle, Option<Angle>),
+    Skew(Angle, #[css(skip_if = "Zero::is_zero")] Angle),
     /// skewX(angle)
     #[css(function = "skewX")]
     SkewX(Angle),
@@ -128,7 +137,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage> {
     SkewY(Angle),
     /// translate(x, y) or translate(x)
     #[css(comma, function)]
-    Translate(LengthPercentage, Option<LengthPercentage>),
+    Translate(LengthPercentage, #[css(skip_if = "Zero::is_zero")] LengthPercentage),
     /// translateX(x)
     #[css(function = "translateX")]
     TranslateX(LengthPercentage),
@@ -143,14 +152,9 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthPercentage> {
     Translate3D(LengthPercentage, LengthPercentage, Length),
     /// A 2D scaling factor.
     ///
-    /// `scale(2)` is parsed as `Scale(Number::new(2.0), None)` and is equivalent to
-    /// writing `scale(2, 2)` (`Scale(Number::new(2.0), Some(Number::new(2.0)))`).
-    ///
-    /// Negative values are allowed and flip the element.
-    ///
     /// Syntax can be scale(factor) or scale(factor, factor)
     #[css(comma, function)]
-    Scale(Number, Option<Number>),
+    Scale(Number, #[css(contextual_skip_if = "is_same")] Number),
     /// scaleX(factor)
     #[css(function = "scaleX")]
     ScaleX(Number),
@@ -214,6 +218,10 @@ pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 
 impl<Angle, Number, Length, Integer, LengthPercentage>
     TransformOperation<Angle, Number, Length, Integer, LengthPercentage>
+where
+    Angle: Zero,
+    LengthPercentage: Zero,
+    Number: PartialEq,
 {
     /// Check if it is any rotate function.
     pub fn is_rotate(&self) -> bool {
@@ -333,10 +341,10 @@ impl ToRadians for SpecifiedAngle {
 impl<Angle, Number, Length, Integer, LoP> ToMatrix
     for TransformOperation<Angle, Number, Length, Integer, LoP>
 where
-    Angle: ToRadians + Copy,
-    Number: Copy + Into<f32> + Into<f64>,
+    Angle: Zero + ToRadians + Copy,
+    Number: PartialEq + Copy + Into<f32> + Into<f64>,
     Length: ToAbsoluteLength,
-    LoP: ToAbsoluteLength,
+    LoP: Zero + ToAbsoluteLength,
 {
     #[inline]
     fn is_3d(&self) -> bool {
@@ -389,7 +397,7 @@ where
                 m.cast()
             },
             Scale3D(sx, sy, sz) => Transform3D::create_scale(sx.into(), sy.into(), sz.into()),
-            Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.unwrap_or(sx).into(), 1.),
+            Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.into(), 1.),
             ScaleX(s) => Transform3D::create_scale(s.into(), 1., 1.),
             ScaleY(s) => Transform3D::create_scale(1., s.into(), 1.),
             ScaleZ(s) => Transform3D::create_scale(1., 1., s.into()),
@@ -398,12 +406,12 @@ where
                 let ty = ty.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(tx, ty, tz.to_pixel_length(None)? as f64)
             },
-            Translate(ref tx, Some(ref ty)) => {
+            Translate(ref tx, ref ty) => {
                 let tx = tx.to_pixel_length(reference_width)? as f64;
                 let ty = ty.to_pixel_length(reference_height)? as f64;
                 Transform3D::create_translation(tx, ty, 0.)
             },
-            TranslateX(ref t) | Translate(ref t, None) => {
+            TranslateX(ref t) => {
                 let t = t.to_pixel_length(reference_width)? as f64;
                 Transform3D::create_translation(t, 0., 0.)
             },
@@ -416,7 +424,7 @@ where
             },
             Skew(theta_x, theta_y) => Transform3D::create_skew(
                 euclid::Angle::radians(theta_x.radians64()),
-                euclid::Angle::radians(theta_y.map_or(0., |a| a.radians64())),
+                euclid::Angle::radians(theta_y.radians64()),
             ),
             SkewX(theta) => Transform3D::create_skew(
                 euclid::Angle::radians(theta.radians64()),

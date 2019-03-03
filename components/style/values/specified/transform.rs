@@ -109,9 +109,9 @@ impl Transform {
                         let sx = specified::LengthPercentage::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let sy = specified::LengthPercentage::parse(context, input)?;
-                            Ok(generic::TransformOperation::Translate(sx, Some(sy)))
+                            Ok(generic::TransformOperation::Translate(sx, sy))
                         } else {
-                            Ok(generic::TransformOperation::Translate(sx, None))
+                            Ok(generic::TransformOperation::Translate(sx, Zero::zero()))
                         }
                     },
                     "translatex" => {
@@ -138,9 +138,9 @@ impl Transform {
                         let sx = Number::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let sy = Number::parse(context, input)?;
-                            Ok(generic::TransformOperation::Scale(sx, Some(sy)))
+                            Ok(generic::TransformOperation::Scale(sx, sy))
                         } else {
-                            Ok(generic::TransformOperation::Scale(sx, None))
+                            Ok(generic::TransformOperation::Scale(sx, sx))
                         }
                     },
                     "scalex" => {
@@ -194,9 +194,9 @@ impl Transform {
                         let ax = specified::Angle::parse_with_unitless(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let ay = specified::Angle::parse_with_unitless(context, input)?;
-                            Ok(generic::TransformOperation::Skew(ax, Some(ay)))
+                            Ok(generic::TransformOperation::Skew(ax, ay))
                         } else {
-                            Ok(generic::TransformOperation::Skew(ax, None))
+                            Ok(generic::TransformOperation::Skew(ax, Zero::zero()))
                         }
                     },
                     "skewx" => {
