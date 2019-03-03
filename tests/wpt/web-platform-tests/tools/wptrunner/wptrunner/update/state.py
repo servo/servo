@@ -69,7 +69,7 @@ class State(object):
     def save(self):
         """Write the state to disk"""
         with open(self.filename, "w") as f:
-            pickle.dump(self, f)
+            pickle.dump(self, f, 2)
 
     def is_empty(self):
         return len(self._data) == 1 and self._data[0] == {}
