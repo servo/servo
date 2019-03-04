@@ -53,7 +53,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserve
 use crate::dom::nodelist::NodeList;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
@@ -108,9 +108,6 @@ pub struct Node {
 
     /// The parent of this node.
     parent_node: MutNullableDom<Node>,
-
-    /// The parent of this node, ignoring shadow roots.
-    composed_parent_node: MutNullableDom<Node>,
 
     /// The first child of this node.
     first_child: MutNullableDom<Node>,
@@ -244,7 +241,6 @@ impl Node {
     /// Fails unless `new_child` is disconnected from the tree.
     fn add_child(&self, new_child: &Node, before: Option<&Node>) {
         assert!(new_child.parent_node.get().is_none());
-        assert!(new_child.composed_parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
         match before {
@@ -280,13 +276,6 @@ impl Node {
         }
 
         new_child.parent_node.set(Some(self));
-        if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
-            new_child
-                .composed_parent_node
-                .set(Some(shadow_root.Host().upcast::<Node>()));
-        } else {
-            new_child.composed_parent_node.set(Some(self));
-        }
         self.children_count.set(self.children_count.get() + 1);
 
         let parent_in_doc = self.is_in_doc();
@@ -339,7 +328,6 @@ impl Node {
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
         child.parent_node.set(None);
-        child.composed_parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
         for node in child.traverse_preorder(ShadowIncluding::Yes) {
@@ -598,13 +586,11 @@ impl Node {
         }
 
         match self.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => self
-                .composed_parent_node
-                .get()
-                .unwrap()
-                .downcast::<Element>()
-                .unwrap()
-                .restyle(damage),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                if let Some(parent) = self.composed_parent_node() {
+                    parent.downcast::<Element>().unwrap().restyle(damage)
+                }
+            },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             _ => {},
         };
@@ -950,6 +936,16 @@ impl Node {
         self.is_connected() && self.owner_doc().browsing_context().is_some()
     }
 
+    fn composed_parent_node(&self) -> Option<DomRoot<Node>> {
+        let parent = self.parent_node.get();
+        if let Some(ref parent) = parent {
+            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
+                return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+            }
+        }
+        parent
+    }
+
     pub fn children(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetFirstChild(),
@@ -1215,9 +1211,13 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn parent_node_ref(&self) -> Option<LayoutDom<Node>> {
-        (*self.unsafe_get())
-            .composed_parent_node
-            .get_inner_as_layout()
+        let parent = (*self.unsafe_get()).parent_node.get_inner_as_layout();
+        if let Some(ref parent) = parent {
+            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
+                return Some(shadow_root.get_host_for_layout().upcast());
+            }
+        }
+        parent
     }
 
     #[inline]
@@ -1620,7 +1620,6 @@ impl Node {
             eventtarget: EventTarget::new_inherited(),
 
             parent_node: Default::default(),
-            composed_parent_node: Default::default(),
             first_child: Default::default(),
             last_child: Default::default(),
             next_sibling: Default::default(),
