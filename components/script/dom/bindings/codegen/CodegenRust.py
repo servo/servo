@@ -747,7 +747,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             for memberType in type.unroll().flatMemberTypes
             if memberType.isDictionary()
         ]
-        if dictionaries:
+        if defaultValue and not isinstance(defaultValue, IDLNullValue):
+            tag = defaultValue.type.tag()
+            if tag is IDLType.Tags.bool:
+                default = "%s::Boolean(%s)" % (
+                    union_native_type(type),
+                    "true" if defaultValue.value else "false")
+            else:
+                raise("We don't currently support default values that aren't null or boolean")
+        elif dictionaries:
             if defaultValue:
                 assert isinstance(defaultValue, IDLNullValue)
                 dictionary, = dictionaries
@@ -2379,6 +2387,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::conversions::root_from_handlevalue',
         'std::ptr::NonNull',
         'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::str::ByteString',
         'crate::dom::bindings::str::DOMString',
