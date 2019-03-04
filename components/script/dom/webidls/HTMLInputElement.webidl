@@ -68,8 +68,8 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString type;
   [CEReactions]
            attribute DOMString defaultValue;
-  [CEReactions, TreatNullAs=EmptyString, SetterThrows]
-           attribute DOMString value;
+  [CEReactions, SetterThrows]
+           attribute [TreatNullAs=EmptyString] DOMString value;
   //          attribute Date? valueAsDate;
   //          attribute unrestricted double valueAsNumber;
   //          attribute double valueLow;
