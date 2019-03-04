@@ -40,6 +40,7 @@ pub struct CHostCallbacks {
     pub on_history_changed: extern "C" fn(can_go_back: bool, can_go_forward: bool),
     pub on_animating_changed: extern "C" fn(animating: bool),
     pub on_shutdown_complete: extern "C" fn(),
+    pub on_ime_state_changed: extern "C" fn(show: bool),
 }
 
 /// Servo options
@@ -191,19 +192,19 @@ pub extern "C" fn go_forward() {
 #[no_mangle]
 pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll_start");
-    call(|s| s.scroll_start(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll_start(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
 pub extern "C" fn scroll_end(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll_end");
-    call(|s| s.scroll_end(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll_end(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
 pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll");
-    call(|s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
@@ -251,7 +252,7 @@ pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
 #[no_mangle]
 pub extern "C" fn click(x: i32, y: i32) {
     debug!("click");
-    call(|s| s.click(x as u32, y as u32));
+    call(|s| s.click(x as f32, y as f32));
 }
 
 pub struct WakeupCallback(extern "C" fn());
@@ -329,5 +330,10 @@ impl HostTrait for HostCallbacks {
     fn on_shutdown_complete(&self) {
         debug!("on_shutdown_complete");
         (self.0.on_shutdown_complete)();
+    }
+
+    fn on_ime_state_changed(&self, show: bool) {
+        debug!("on_ime_state_changed");
+        (self.0.on_ime_state_changed)(show);
     }
 }
