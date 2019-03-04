@@ -7,13 +7,14 @@
 #[cfg(feature = "servo")]
 use crate::properties::StyleBuilder;
 use crate::values::computed::length::{Length, LengthPercentage};
-use crate::values::computed::{NonNegativeLength, NonNegativeNumber};
+use crate::values::computed::{Context, NonNegativeLength, NonNegativeNumber, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
 use crate::values::generics::text::Spacing;
-use crate::values::specified::text::TextOverflowSide;
+use crate::values::specified::text::{self as specified, TextOverflowSide};
 use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 use crate::values::{CSSFloat, CSSInteger};
+use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -25,10 +26,78 @@ pub use crate::values::specified::TextEmphasisPosition;
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
 
 /// A computed value for the `letter-spacing` property.
-pub type LetterSpacing = Spacing<Length>;
+#[repr(transparent)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedValue,
+    ToAnimatedZero,
+)]
+pub struct LetterSpacing(Length);
+
+impl LetterSpacing {
+    /// Return the `normal` computed value, which is just zero.
+    #[inline]
+    pub fn normal() -> Self {
+        LetterSpacing(Length::zero())
+    }
+}
+
+impl ToCss for LetterSpacing {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        // https://drafts.csswg.org/css-text/#propdef-letter-spacing
+        //
+        // For legacy reasons, a computed letter-spacing of zero yields a
+        // resolved value (getComputedStyle() return value) of normal.
+        if self.0.is_zero() {
+            return dest.write_str("normal");
+        }
+        self.0.to_css(dest)
+    }
+}
+
+impl ToComputedValue for specified::LetterSpacing {
+    type ComputedValue = LetterSpacing;
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            Spacing::Normal => LetterSpacing(Length::zero()),
+            Spacing::Value(ref v) => LetterSpacing(v.to_computed_value(context)),
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        if computed.0.is_zero() {
+            return Spacing::Normal;
+        }
+        Spacing::Value(ToComputedValue::from_computed_value(&computed.0))
+    }
+}
 
 /// A computed value for the `word-spacing` property.
-pub type WordSpacing = Spacing<LengthPercentage>;
+pub type WordSpacing = LengthPercentage;
+
+impl ToComputedValue for specified::WordSpacing {
+    type ComputedValue = WordSpacing;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            Spacing::Normal => LengthPercentage::zero(),
+            Spacing::Value(ref v) => v.to_computed_value(context),
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Spacing::Value(ToComputedValue::from_computed_value(computed))
+    }
+}
 
 /// A computed value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLength>;
