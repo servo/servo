@@ -78,8 +78,10 @@ include = [
   "Resize",
   "Overflow",
   "LengthPercentage",
+  "LetterSpacing",
   "NonNegativeLengthPercentage",
   "LengthPercentageOrAuto",
+  "LineHeight",
   "NonNegativeLengthPercentageOrAuto",
   "Rect",
   "IntersectionObserverRootMargin",
@@ -102,6 +104,7 @@ item_types = ["enums", "structs", "typedefs"]
 [export.body]
 "CSSPixelLength" = """
   inline nscoord ToAppUnits() const;
+  inline bool IsZero() const;
 """
 
 "LengthPercentage" = """
@@ -118,6 +121,7 @@ item_types = ["enums", "structs", "typedefs"]
   inline bool ConvertsToPercentage() const;
   inline bool HasLengthAndPercentage() const;
   inline float ToPercentage() const;
+  inline bool IsDefinitelyZero() const;
   inline CSSCoord ResolveToCSSPixels(CSSCoord aPercentageBasisInCSSPixels) const;
   template<typename T> inline CSSCoord ResolveToCSSPixelsWith(T aPercentageGetter) const;
   template<typename T, typename U>
