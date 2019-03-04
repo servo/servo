@@ -157,7 +157,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "word-spacing",
     "WordSpacing",
-    "computed::WordSpacing::normal()",
+    "computed::WordSpacing::zero()",
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-word-spacing",
