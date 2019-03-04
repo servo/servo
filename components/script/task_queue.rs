@@ -65,12 +65,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     /// Process an incoming message, either:
     /// 1: making it available for further processing as part of "incoming", or
     /// 2: in the case of a not fully-active document, storing it into the "inactive" queue.
-    fn process_message(
-        &self,
-        msg: T,
-        currently_inactive: &HashSet<PipelineId>,
-        incoming: &mut Vec<T>,
-    ) {
+    fn process_message(&self, msg: T, fully_active: &HashSet<PipelineId>, incoming: &mut Vec<T>) {
         if msg.is_wake_up() {
             return;
         }
@@ -78,10 +73,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         // Hold back tasks for currently not fully-active documents.
         // https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
         if let Some(pipeline_id) = msg.pipeline_id() {
-            if currently_inactive.contains(pipeline_id) {
-                let inactive_queue = inactive
-                    .entry(pipeline_id.clone())
-                    .or_insert(VecDeque::new());
+            if !fully_active.contains(pipeline_id) {
+                let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();
                 inactive_queue
                     .push_back(msg.into_queued_task().expect(
                         "Incoming messages should always be convertible into queued tasks",
@@ -102,38 +95,32 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     /// Release previously held-back tasks for documents that are now fully-active.
     fn release_tasks_for_fully_active_documents(
         &self,
-        currently_inactive: &HashSet<PipelineId>,
-        incoming: &mut Vec<T>,
-    ) {
-        let previously_inactive: HashSet<PipelineId> = {
-            let inactive = self.inactive.borrow();
-            inactive.keys().map(|id| id.clone()).collect()
-        };
-        let mut inactive = self.inactive.borrow_mut();
-        for pipeline_id in previously_inactive.difference(&currently_inactive) {
-            let (_, inactive_queue) = inactive
-                .remove_entry(&pipeline_id)
-                .expect("Inactive should contain this key");
-            for queued_task in inactive_queue {
-                incoming.push(T::from_queued_task(queued_task));
-            }
-        }
+        fully_active: &HashSet<PipelineId>,
+    ) -> Vec<T> {
+        self.inactive
+            .borrow_mut()
+            .iter_mut()
+            .filter(|(pipeline_id, _)| fully_active.contains(pipeline_id))
+            .flat_map(|(_, inactive_queue)| {
+                inactive_queue
+                    .drain(0..)
+                    .map(|queued_task| T::from_queued_task(queued_task))
+            })
+            .collect()
     }
 
     /// Process incoming tasks, immediately sending priority ones downstream,
     /// and categorizing potential throttles.
-    fn process_incoming_tasks(&self, first_msg: T, currently_inactive: &HashSet<PipelineId>) {
-        let mut incoming = vec![];
-
+    fn process_incoming_tasks(&self, first_msg: T, fully_active: &HashSet<PipelineId>) {
         // 1. Make any previously stored task from now fully-active document available.
-        self.release_tasks_for_fully_active_documents(currently_inactive, &mut incoming);
+        let mut incoming = self.release_tasks_for_fully_active_documents(fully_active);
 
         // 2. Process the first message(artifact of the fact that select always returns a message).
-        self.process_message(first_msg, currently_inactive, &mut incoming);
+        self.process_message(first_msg, fully_active, &mut incoming);
 
         // 3. Process any other incoming message.
         while let Ok(msg) = self.port.try_recv() {
-            self.process_message(msg, currently_inactive, &mut incoming);
+            self.process_message(msg, fully_active, &mut incoming);
         }
 
         // 4. Filter tasks from non-priority task-sources.
@@ -201,9 +188,9 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     pub fn take_tasks(&self, first_msg: T) {
         // High-watermark: once reached, throttled tasks will be held-back.
         const PER_ITERATION_MAX: u64 = 5;
-        let currently_inactive = ScriptThread::get_currently_not_fully_active_document_ids();
+        let fully_active = ScriptThread::get_fully_active_document_ids();
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
-        self.process_incoming_tasks(first_msg, &currently_inactive);
+        self.process_incoming_tasks(first_msg, &fully_active);
         let mut throttled = self.throttled.borrow_mut();
         let mut throttled_length: usize = throttled.values().map(|queue| queue.len()).sum();
         let task_source_names = TaskSourceName::all();
@@ -237,7 +224,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
                     // Hold back tasks for currently inactive documents.
                     if let Some(pipeline_id) = msg.pipeline_id() {
-                        if currently_inactive.contains(pipeline_id) {
+                        if !fully_active.contains(pipeline_id) {
                             let mut inactive = self.inactive.borrow_mut();
                             let inactive_queue = inactive
                                 .entry(pipeline_id.clone())

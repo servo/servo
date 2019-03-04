@@ -287,7 +287,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
                 Some(&task_source)
             },
-            _ => return None,
+            _ => None,
         }
     }
 
@@ -300,7 +300,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => {
                 pipeline_id.as_ref()
             },
-            _ => return None,
+            _ => None,
         }
     }
 
@@ -900,7 +900,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn get_currently_not_fully_active_document_ids() -> HashSet<PipelineId> {
+    pub fn get_fully_active_document_ids() -> HashSet<PipelineId> {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.get().map_or(HashSet::new(), |script_thread| {
                 let script_thread = unsafe { &*script_thread };
@@ -909,7 +909,7 @@ impl ScriptThread {
                     .borrow()
                     .iter()
                     .filter_map(|(id, document)| {
-                        if !document.is_fully_active() {
+                        if document.is_fully_active() {
                             Some(id.clone())
                         } else {
                             None

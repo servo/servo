@@ -62,7 +62,7 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
                 Some(&task_source)
             },
-            _ => return None,
+            _ => None,
         }
     }
 
@@ -94,7 +94,7 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
 
     fn inactive_msg() -> Self {
         // Inactive is only relevant in the context of a browsing-context event-loop.
-        unreachable!("Workers should never receive messages marked as inactive");
+        panic!("Workers should never receive messages marked as inactive");
     }
 
     fn wake_up_msg() -> Self {
