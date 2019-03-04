@@ -231,7 +231,7 @@ where
     // Optimize for when the root is a document or a shadow root and the element
     // is connected to that root.
     if root.as_document().is_some() {
-        debug_assert!(element.as_node().is_connected(), "Not connected?");
+        debug_assert!(element.as_node().is_in_document(), "Not connected?");
         debug_assert_eq!(
             root,
             root.owner_doc().as_node(),
@@ -241,10 +241,11 @@ where
     }
 
     if root.as_shadow_root().is_some() {
+        debug_assert!(element.as_node().is_in_document(), "Not connected?");
         debug_assert_eq!(
             element.containing_shadow().unwrap().as_node(),
             root,
-            "Not connected?"
+            "Where did this element come from?"
         );
         return true;
     }
@@ -275,7 +276,7 @@ where
         return Err(());
     }
 
-    if root.is_connected() {
+    if root.is_in_document() {
         if let Some(shadow) = root.as_shadow_root() {
             return shadow.elements_with_id(id);
         }
