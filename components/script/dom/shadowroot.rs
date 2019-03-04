@@ -44,10 +44,9 @@ impl ShadowRoot {
     #[allow(unrooted_must_root)]
     fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
-        document_fragment
-            .upcast::<Node>()
-            .set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
-        document_fragment.upcast::<Node>().set_flag(
+        let node = document_fragment.upcast::<Node>();
+        node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
+        node.set_flag(
             NodeFlags::IS_CONNECTED,
             host.upcast::<Node>().is_connected(),
         );

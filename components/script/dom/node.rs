@@ -125,6 +125,8 @@ pub struct Node {
     owner_doc: MutNullableDom<Document>,
 
     /// The shadow root this node belongs to.
+    /// This is None if the node is not in a shadow tree or
+    /// if it is a ShadowRoot.
     owner_shadow_root: MutNullableDom<ShadowRoot>,
 
     /// The live list of children return by .childNodes.
@@ -284,11 +286,10 @@ impl Node {
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
-                if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
-                    node.set_owner_shadow_root(&*shadow_root);
-                } else if let Some(shadow_root) = self.owner_shadow_root() {
+                if let Some(shadow_root) = self.owner_shadow_root() {
                     node.set_owner_shadow_root(&*shadow_root);
                 }
+                debug_assert!(node.owner_shadow_root().is_some());
             }
             node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
@@ -930,6 +931,9 @@ impl Node {
     }
 
     pub fn owner_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+        if let Some(ref shadow_root) = self.downcast::<ShadowRoot>() {
+            return Some(DomRoot::from_ref(shadow_root));
+        }
         self.owner_shadow_root.get()
     }
 
