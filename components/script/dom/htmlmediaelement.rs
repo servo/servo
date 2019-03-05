@@ -249,6 +249,7 @@ pub enum ReadyState {
 
 impl HTMLMediaElement {
     pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
+        ServoMedia::init::<servo_media_auto::Backend>();
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),

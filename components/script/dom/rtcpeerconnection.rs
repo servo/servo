@@ -117,6 +117,7 @@ impl RTCPeerConnection {
             RTCPeerConnectionBinding::Wrap,
         );
         let signaller = this.make_signaller();
+        ServoMedia::init::<servo_media_auto::Backend>();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
         if let Some(ref servers) = config.iceServers {
             if let Some(ref server) = servers.get(0) {
