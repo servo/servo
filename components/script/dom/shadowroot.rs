@@ -20,6 +20,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use selectors::context::QuirksMode;
 use servo_arc::Arc;
+use servo_atoms::Atom;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
 use style::media_queries::Device;
@@ -125,6 +126,27 @@ impl ShadowRoot {
         self.host
             .upcast::<Node>()
             .dirty(NodeDamage::NodeStyleDamaged);
+    }
+
+    /// Remove any existing association between the provided id and any elements
+    /// in this shadow tree.
+    pub fn unregister_named_element(&self, to_unregister: &Element, id: Atom) {
+        self.document_or_shadow_root.unregister_named_element(
+            self.document_fragment.id_map(),
+            to_unregister,
+            &id,
+        );
+    }
+
+    /// Associate an element present in this shadow tree with the provided id.
+    pub fn register_named_element(&self, element: &Element, id: Atom) {
+        let root = self.upcast::<Node>().inclusive_ancestors().last().unwrap();
+        self.document_or_shadow_root.register_named_element(
+            self.document_fragment.id_map(),
+            element,
+            &id,
+            root,
+        );
     }
 }
 

@@ -74,7 +74,6 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::VecPreOrderInsertionHelper;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
@@ -682,55 +681,23 @@ impl Document {
 
     /// Remove any existing association between the provided id and any elements in this document.
     pub fn unregister_named_element(&self, to_unregister: &Element, id: Atom) {
-        debug!(
-            "Removing named element from document {:p}: {:p} id={}",
-            self, to_unregister, id
-        );
-        // Limit the scope of the borrow because id_map might be borrowed again by
-        // GetElementById through the following sequence of calls
-        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
-        {
-            let mut id_map = self.id_map.borrow_mut();
-            let is_empty = match id_map.get_mut(&id) {
-                None => false,
-                Some(elements) => {
-                    let position = elements
-                        .iter()
-                        .position(|element| &**element == to_unregister)
-                        .expect("This element should be in registered.");
-                    elements.remove(position);
-                    elements.is_empty()
-                },
-            };
-            if is_empty {
-                id_map.remove(&id);
-            }
-        }
+        self.document_or_shadow_root
+            .unregister_named_element(&self.id_map, to_unregister, &id);
         self.reset_form_owner_for_listeners(&id);
     }
 
     /// Associate an element present in this document with the provided id.
     pub fn register_named_element(&self, element: &Element, id: Atom) {
-        debug!(
-            "Adding named element to document {:p}: {:p} id={}",
-            self, element, id
-        );
-        assert!(element.upcast::<Node>().is_connected());
-        assert!(!id.is_empty());
-
         let root = self.GetDocumentElement().expect(
             "The element is in the document, so there must be a document \
              element.",
         );
-
-        // Limit the scope of the borrow because id_map might be borrowed again by
-        // GetElementById through the following sequence of calls
-        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
-        {
-            let mut id_map = self.id_map.borrow_mut();
-            let elements = id_map.entry(id.clone()).or_insert(Vec::new());
-            elements.insert_pre_order(element, root.upcast::<Node>());
-        }
+        self.document_or_shadow_root.register_named_element(
+            &self.id_map,
+            element,
+            &id,
+            DomRoot::from_ref(root.upcast::<Node>()),
+        );
         self.reset_form_owner_for_listeners(&id);
     }
 
@@ -2619,11 +2586,11 @@ impl Document {
             url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
+            id_map: DomRefCell::new(HashMap::new()),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
-            id_map: DomRefCell::new(HashMap::new()),
             tag_map: DomRefCell::new(HashMap::new()),
             tagns_map: DomRefCell::new(HashMap::new()),
             classes_map: DomRefCell::new(HashMap::new()),

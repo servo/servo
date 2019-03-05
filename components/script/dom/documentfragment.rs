@@ -2,27 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use std::collections::HashMap;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
 pub struct DocumentFragment {
     node: Node,
+    /// Caches for the getElement methods
+    id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
 }
 
 impl DocumentFragment {
@@ -30,6 +34,7 @@ impl DocumentFragment {
     pub fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
+            id_map: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -46,6 +51,10 @@ impl DocumentFragment {
 
         Ok(DocumentFragment::new(&document))
     }
+
+    pub fn id_map(&self) -> &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>> {
+        &self.id_map
+    }
 }
 
 impl DocumentFragmentMethods for DocumentFragment {
@@ -57,16 +66,11 @@ impl DocumentFragmentMethods for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        let node = self.upcast::<Node>();
         let id = Atom::from(id);
-        node.traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-            .find(
-                |descendant| match descendant.get_attribute(&ns!(), &local_name!("id")) {
-                    None => false,
-                    Some(attr) => *attr.value().as_atom() == id,
-                },
-            )
+        self.id_map
+            .borrow()
+            .get(&id)
+            .map(|ref elements| DomRoot::from_ref(&*(*elements)[0]))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild

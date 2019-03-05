@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -9,13 +10,15 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::node;
+use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
 use euclid::Point2D;
 use js::jsapi::JS_GetRuntime;
 use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
+use servo_atoms::Atom;
+use std::collections::HashMap;
 use std::fmt;
 use style::context::QuirksMode;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
@@ -260,6 +263,61 @@ impl DocumentOrShadowRoot {
             None => {
                 stylesheets.append_stylesheet(None, sheet, &guard);
             },
+        }
+    }
+
+    /// Remove any existing association between the provided id and any elements in this document.
+    pub fn unregister_named_element(
+        &self,
+        id_map: &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+        to_unregister: &Element,
+        id: &Atom,
+    ) {
+        debug!(
+            "Removing named element {:p}: {:p} id={}",
+            self, to_unregister, id
+        );
+        // Limit the scope of the borrow because id_map might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut id_map = id_map.borrow_mut();
+            let is_empty = match id_map.get_mut(&id) {
+                None => false,
+                Some(elements) => {
+                    let position = elements
+                        .iter()
+                        .position(|element| &**element == to_unregister)
+                        .expect("This element should be in registered.");
+                    elements.remove(position);
+                    elements.is_empty()
+                },
+            };
+            if is_empty {
+                id_map.remove(&id);
+            }
+        }
+    }
+
+    /// Associate an element present in this document with the provided id.
+    pub fn register_named_element(
+        &self,
+        id_map: &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+        element: &Element,
+        id: &Atom,
+        root: DomRoot<Node>,
+    ) {
+        debug!("Adding named element {:p}: {:p} id={}", self, element, id);
+        assert!(element.upcast::<Node>().is_connected());
+        assert!(!id.is_empty());
+
+        // Limit the scope of the borrow because id_map might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut id_map = id_map.borrow_mut();
+            let elements = id_map.entry(id.clone()).or_insert(Vec::new());
+            elements.insert_pre_order(element, &root);
         }
     }
 }
