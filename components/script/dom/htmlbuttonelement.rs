@@ -18,7 +18,7 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue};
 use crate::dom::htmlformelement::{FormSubmitter, ResetFrom, SubmittedFrom};
-use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
+use crate::dom::node::{document_from_node, window_from_node, BindContext, Node, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -232,9 +232,9 @@ impl VirtualMethods for HTMLButtonElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
         self.upcast::<Element>()

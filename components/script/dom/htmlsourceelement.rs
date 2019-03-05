@@ -15,7 +15,7 @@ use crate::dom::element::AttributeMutation;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
-use crate::dom::node::{Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -82,8 +82,8 @@ impl VirtualMethods for HTMLSourceElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
-    fn bind_to_tree(&self, tree_connected: bool) {
-        self.super_type().unwrap().bind_to_tree(tree_connected);
+    fn bind_to_tree(&self, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(context);
         let parent = self.upcast::<Node>().GetParentNode().unwrap();
         if let Some(media) = parent.downcast::<HTMLMediaElement>() {
             media.handle_source_child_insertion();

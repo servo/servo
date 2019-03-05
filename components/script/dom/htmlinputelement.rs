@@ -35,7 +35,7 @@ use crate::dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, NodeDamage, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeDamage, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::Validatable;
@@ -1422,9 +1422,9 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
