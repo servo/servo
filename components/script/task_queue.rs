@@ -74,18 +74,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         // https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
         if let Some(pipeline_id) = msg.pipeline_id() {
             if !fully_active.contains(pipeline_id) {
-                let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();
-                inactive_queue
-                    .push_back(msg.into_queued_task().expect(
-                        "Incoming messages should always be convertible into queued tasks",
-                    ));
-                if incoming.is_empty() {
-                    // Ensure there is at least one message.
-                    // Otherwise if the just stored inactive message
-                    // was the first and last of this iteration,
-                    // it will result in a spurious wake-up of the event-loop.
-                    incoming.push(T::inactive_msg());
-                }
+                self.store_task_for_inactive_pipeline(&msg, &pipeline_id);
                 return;
             }
         }
@@ -107,6 +96,21 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                     .map(|queued_task| T::from_queued_task(queued_task))
             })
             .collect()
+    }
+
+    fn store_task_for_inactive_pipeline(&self, msg: &T, pipeline_id: &PipelineId) {
+        let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();
+        inactive_queue.push_back(
+            msg.into_queued_task()
+                .expect("Incoming messages should always be convertible into queued tasks"),
+        );
+        if incoming.is_empty() {
+            // Ensure there is at least one message.
+            // Otherwise if the just stored inactive message
+            // was the first and last of this iteration,
+            // it will result in a spurious wake-up of the event-loop.
+            incoming.push(T::inactive_msg());
+        }
     }
 
     /// Process incoming tasks, immediately sending priority ones downstream,
@@ -158,7 +162,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             let mut throttled_tasks = self.throttled.borrow_mut();
             throttled_tasks
                 .entry(task_source.clone())
-                .or_insert(VecDeque::new())
+                .or_default()
                 .push_back((worker, category, boxed, pipeline_id, task_source));
         }
     }
@@ -225,13 +229,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                     // Hold back tasks for currently inactive documents.
                     if let Some(pipeline_id) = msg.pipeline_id() {
                         if !fully_active.contains(pipeline_id) {
-                            let mut inactive = self.inactive.borrow_mut();
-                            let inactive_queue = inactive
-                                .entry(pipeline_id.clone())
-                                .or_insert(VecDeque::new());
-                            inactive_queue.push_back(msg.into_queued_task().expect(
-                                "Throttled messages should always be convertible into queued tasks",
-                            ));
+                            self.store_task_for_inactive_pipeline(&msg, &pipeline_id);
                             // Reduce the length of throttles,
                             // but don't add the task to "msg_queue",
                             // and neither increment "taken_task_counter".
