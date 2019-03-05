@@ -27,5 +27,6 @@ pub use rust_webvr_api::VRGamepadEvent as WebVRGamepadEvent;
 pub use rust_webvr_api::VRGamepadHand as WebVRGamepadHand;
 pub use rust_webvr_api::VRGamepadState as WebVRGamepadState;
 pub use rust_webvr_api::VRLayer as WebVRLayer;
+pub use rust_webvr_api::VRMainThreadHeartbeat as WebVRMainThreadHeartbeat;
 pub use rust_webvr_api::VRPose as WebVRPose;
 pub use rust_webvr_api::VRStageParameters as WebVRStageParameters;
