@@ -12,7 +12,6 @@ use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelec
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use crate::dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
-//use dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -25,7 +24,7 @@ use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFo
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::node::{window_from_node, Node, UnbindContext};
+use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -382,9 +381,9 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
         self.upcast::<Element>()

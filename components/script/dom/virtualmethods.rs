@@ -51,7 +51,7 @@ use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
+use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use crate::dom::svgsvgelement::SVGSVGElement;
 use html5ever::LocalName;
 use style::attr::AttrValue;
@@ -92,9 +92,9 @@ pub trait VirtualMethods {
 
     /// Called when a Node is appended to a tree, where 'tree_connected' indicates
     /// whether the tree is part of a Document.
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
     }
 

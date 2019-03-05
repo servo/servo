@@ -10,7 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{ChildrenMutation, Node};
+use crate::dom::node::{BindContext, ChildrenMutation, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -69,17 +69,17 @@ impl VirtualMethods for HTMLTitleElement {
             s.children_changed(mutation);
         }
         let node = self.upcast::<Node>();
-        if node.is_connected() {
+        if node.is_in_doc() {
             node.owner_doc().title_changed();
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
         let node = self.upcast::<Node>();
-        if tree_connected {
+        if context.tree_in_doc {
             node.owner_doc().title_changed();
         }
     }
