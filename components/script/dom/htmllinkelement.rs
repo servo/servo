@@ -19,7 +19,8 @@ use crate::dom::element::{
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
-    document_from_node, stylesheets_owner_from_node, window_from_node, Node, UnbindContext,
+    document_from_node, stylesheets_owner_from_node, window_from_node, BindContext, Node,
+    UnbindContext,
 };
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -225,12 +226,12 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
-        if tree_connected {
+        if context.tree_connected {
             let element = self.upcast();
 
             let rel = get_attr(element, &local_name!("rel"));

@@ -11,7 +11,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, Node, UnbindContext};
+use crate::dom::node::{document_from_node, BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -63,8 +63,8 @@ impl HTMLBaseElement {
 
     /// Update the cached base element in response to binding or unbinding from
     /// a tree.
-    pub fn bind_unbind(&self, tree_connected: bool) {
-        if !tree_connected {
+    pub fn bind_unbind(&self, tree_in_doc: bool) {
+        if !tree_in_doc || self.upcast::<Node>().owner_shadow_root().is_some() {
             return;
         }
 
@@ -119,13 +119,13 @@ impl VirtualMethods for HTMLBaseElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
-        self.super_type().unwrap().bind_to_tree(tree_connected);
-        self.bind_unbind(tree_connected);
+    fn bind_to_tree(&self, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(context);
+        self.bind_unbind(context.tree_in_doc);
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
-        self.bind_unbind(context.tree_connected);
+        self.bind_unbind(context.tree_in_doc);
     }
 }
