@@ -2740,21 +2740,34 @@ impl VirtualMethods for Element {
                         None
                     }
                 });
+                let owner_shadow_root = self.upcast::<Node>().owner_shadow_root();
                 if node.is_connected() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
                         AttributeMutation::Set(old_value) => {
                             if let Some(old_value) = old_value {
                                 let old_value = old_value.as_atom().clone();
-                                doc.unregister_named_element(self, old_value);
+                                if let Some(ref shadow_root) = owner_shadow_root {
+                                    shadow_root.unregister_named_element(self, old_value);
+                                } else {
+                                    doc.unregister_named_element(self, old_value);
+                                }
                             }
                             if value != atom!("") {
-                                doc.register_named_element(self, value);
+                                if let Some(ref shadow_root) = owner_shadow_root {
+                                    shadow_root.register_named_element(self, value);
+                                } else {
+                                    doc.register_named_element(self, value);
+                                }
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
-                                doc.unregister_named_element(self, value);
+                                if let Some(ref shadow_root) = owner_shadow_root {
+                                    shadow_root.unregister_named_element(self, value);
+                                } else {
+                                    doc.unregister_named_element(self, value);
+                                }
                             }
                         },
                     }
@@ -2799,8 +2812,6 @@ impl VirtualMethods for Element {
             return;
         }
 
-        let doc = document_from_node(self);
-
         if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, tree_connected);
@@ -2810,8 +2821,13 @@ impl VirtualMethods for Element {
             }
         }
 
+        let doc = document_from_node(self);
         if let Some(ref value) = *self.id_attribute.borrow() {
-            doc.register_named_element(self, value.clone());
+            if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
+                shadow_root.register_named_element(self, value.clone());
+            } else {
+                doc.register_named_element(self, value.clone());
+            }
         }
         // This is used for layout optimization.
         doc.increment_dom_count();
