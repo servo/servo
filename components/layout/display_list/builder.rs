@@ -2012,6 +2012,7 @@ impl Fragment {
                         offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
                         color: self.style.resolve_color(shadow.color).to_layout(),
                         blur_radius: shadow.blur.px(),
+                        should_inflate: false,
                     },
                 },
             )));
