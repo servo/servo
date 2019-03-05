@@ -6,7 +6,7 @@
   <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
-  <h1 class="header">Not in the shadows</h1>
+  <h1 id="header" class="header">Not in the shadows</h1>
   <div id="host">
   </div>
   <script>
@@ -20,12 +20,14 @@
 
       assert_equals(document.body.getElementsByTagName('h1').length, 1);
       assert_equals(document.body.getElementsByClassName('header').length, 1);
+      assert_equals(document.getElementById('header').textContent, "Not in the shadows");
       assert_equals(document.querySelectorAll('h1').length, 1);
       assert_equals(document.body.childNodes.length, 6);
 
       // Append child to shadow tree and check that its content is encapsulated.
       var shadowChild = document.createElement('h1');
       shadowChild.classList.add('header');
+      shadowChild.setAttribute('id', 'header');
       shadowChild.textContent = 'In the shadows';
       shadowRoot.appendChild(shadowChild);
       assert_equals(document.body.getElementsByTagName('h1').length, 1);
@@ -33,6 +35,7 @@
       assert_equals(document.querySelectorAll('h1').length, 1);
       assert_equals(document.body.childNodes.length, 6);
       assert_equals(shadowRoot.querySelectorAll('h1').length, 1);
+      assert_equals(shadowRoot.getElementById('header').textContent, "In the shadows");
     });
   </script>
 </body>
