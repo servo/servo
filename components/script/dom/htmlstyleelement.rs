@@ -13,8 +13,8 @@ use crate::dom::document::Document;
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
-    document_from_node, stylesheets_owner_from_node, window_from_node, ChildrenMutation, Node,
-    UnbindContext,
+    document_from_node, stylesheets_owner_from_node, window_from_node, BindContext,
+    ChildrenMutation, Node, UnbindContext,
 };
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -187,14 +187,14 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
-        self.super_type().unwrap().bind_to_tree(tree_connected);
+    fn bind_to_tree(&self, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(context);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // Handles the case when:
         // "The element is not on the stack of open elements of an HTML parser or XML parser,
         // and it becomes connected or disconnected."
-        if tree_connected && !self.in_stack_of_open_elements.get() {
+        if context.tree_connected && !self.in_stack_of_open_elements.get() {
             self.parse_own_css();
         }
     }

@@ -14,7 +14,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, Node};
+use crate::dom::node::{document_from_node, window_from_node, BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
@@ -149,12 +149,12 @@ impl VirtualMethods for HTMLBodyElement {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
-        if !tree_connected {
+        if !context.tree_in_doc {
             return;
         }
 

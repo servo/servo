@@ -296,7 +296,10 @@ impl Node {
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&&*node).bind_to_tree(parent_is_connected);
+            vtable_for(&&*node).bind_to_tree(&BindContext {
+                tree_connected: parent_is_connected,
+                tree_in_doc: parent_in_doc,
+            });
         }
     }
 
@@ -3015,6 +3018,14 @@ impl<'a> ChildrenMutation<'a> {
     }
 }
 
+/// The context of the binding to tree of a node.
+pub struct BindContext {
+    /// Whether the tree is connected.
+    pub tree_connected: bool,
+    /// Whether the tree is in the document.
+    pub tree_in_doc: bool,
+}
+
 /// The context of the unbinding from a tree of a node when one of its
 /// inclusive ancestors is removed.
 pub struct UnbindContext<'a> {
@@ -3028,6 +3039,8 @@ pub struct UnbindContext<'a> {
     pub next_sibling: Option<&'a Node>,
     /// Whether the tree is connected.
     pub tree_connected: bool,
+    /// Whether the tree is in doc.
+    pub tree_in_doc: bool,
 }
 
 impl<'a> UnbindContext<'a> {
@@ -3044,6 +3057,7 @@ impl<'a> UnbindContext<'a> {
             prev_sibling: prev_sibling,
             next_sibling: next_sibling,
             tree_connected: parent.is_connected(),
+            tree_in_doc: parent.is_in_doc(),
         }
     }
 

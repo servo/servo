@@ -28,7 +28,7 @@ use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, NodeFlags, ShadowIncluding};
+use crate::dom::node::{BindContext, Node, NodeFlags, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -740,9 +740,9 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(context);
         }
         self.update_sequentially_focusable_status();
     }

@@ -19,7 +19,9 @@ use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
+use crate::dom::node::{
+    document_from_node, window_from_node, BindContext, Node, NodeDamage, UnbindContext,
+};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::ReflowReason;
 use crate::dom::windowproxy::WindowProxy;
@@ -619,11 +621,12 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
+        let tree_connected = context.tree_connected;
         let iframe = Trusted::new(self);
         document_from_node(self).add_delayed_task(task!(IFrameDelayedInitialize: move || {
             let this = iframe.root();

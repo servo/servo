@@ -33,7 +33,9 @@ use crate::dom::htmlpictureelement::HTMLPictureElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::UnbindContext;
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, ShadowIncluding};
+use crate::dom::node::{
+    document_from_node, window_from_node, BindContext, Node, NodeDamage, ShadowIncluding,
+};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
@@ -1649,12 +1651,12 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
         let document = document_from_node(self);
-        if tree_connected {
+        if context.tree_connected {
             document.register_responsive_image(self);
         }
 

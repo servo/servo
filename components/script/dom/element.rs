@@ -72,8 +72,8 @@ use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaEle
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::node::{BindContext, NodeDamage, NodeFlags, UnbindContext};
 use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node};
-use crate::dom::node::{NodeDamage, NodeFlags, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::servoparser::ServoParser;
@@ -2799,26 +2799,26 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
         if let Some(f) = self.as_maybe_form_control() {
             f.bind_form_control_to_tree();
         }
 
-        if !tree_connected {
-            return;
-        }
-
         if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
             let shadow_root = shadow_root.upcast::<Node>();
-            shadow_root.set_flag(NodeFlags::IS_CONNECTED, tree_connected);
+            shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
             for node in shadow_root.children() {
-                node.set_flag(NodeFlags::IS_CONNECTED, tree_connected);
-                node.bind_to_tree(tree_connected);
+                node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+                node.bind_to_tree(context);
             }
+        }
+
+        if !context.tree_connected {
+            return;
         }
 
         let doc = document_from_node(self);
@@ -2846,8 +2846,7 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if self.is_shadow_host() {
-            let shadow_root = self.shadow_root.get().unwrap();
+        if let Some(shadow_root) = self.shadow_root.get() {
             doc.unregister_shadow_root(&shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);

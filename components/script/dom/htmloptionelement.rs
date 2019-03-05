@@ -19,7 +19,7 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -235,9 +235,9 @@ impl VirtualMethods for HTMLOptionElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
         self.upcast::<Element>()

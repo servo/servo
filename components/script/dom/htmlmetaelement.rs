@@ -16,7 +16,8 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::{
-    document_from_node, stylesheets_owner_from_node, window_from_node, Node, UnbindContext,
+    document_from_node, stylesheets_owner_from_node, window_from_node, BindContext, Node,
+    UnbindContext,
 };
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -179,12 +180,12 @@ impl VirtualMethods for HTMLMetaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, tree_connected: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_connected);
+            s.bind_to_tree(context);
         }
 
-        if tree_connected {
+        if context.tree_connected {
             self.process_attributes();
         }
     }
