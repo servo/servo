@@ -105,7 +105,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
         }
     }
 
-    fn pipeline_id(&self) -> Option<&PipelineId> {
+    fn pipeline_id(&self) -> Option<PipelineId> {
         // Workers always return None, since the pipeline_id is only used to check for document activity,
         // and this check does not apply to worker event-loops.
         None

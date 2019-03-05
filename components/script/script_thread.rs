@@ -291,14 +291,14 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
         }
     }
 
-    fn pipeline_id(&self) -> Option<&PipelineId> {
+    fn pipeline_id(&self) -> Option<PipelineId> {
         let script_msg = match self {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
         match script_msg {
             CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => {
-                pipeline_id.as_ref()
+                pipeline_id.clone()
             },
             _ => None,
         }

@@ -27,7 +27,7 @@ pub type QueuedTask = (
 /// Defining the operations used to convert from a msg T to a QueuedTask.
 pub trait QueuedTaskConversion {
     fn task_source_name(&self) -> Option<&TaskSourceName>;
-    fn pipeline_id(&self) -> Option<&PipelineId>;
+    fn pipeline_id(&self) -> Option<PipelineId>;
     fn into_queued_task(self) -> Option<QueuedTask>;
     fn from_queued_task(queued_task: QueuedTask) -> Self;
     fn inactive_msg() -> Self;
@@ -62,37 +62,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         }
     }
 
-    /// Process an incoming message, either:
-    /// 1: making it available for further processing as part of "incoming", or
-    /// 2: in the case of a not fully-active document, storing it into the "inactive" queue.
-    fn process_message(&self, msg: T, fully_active: &HashSet<PipelineId>, incoming: &mut Vec<T>) {
-        if msg.is_wake_up() {
-            return;
-        }
-        let mut inactive = self.inactive.borrow_mut();
-        // Hold back tasks for currently not fully-active documents.
-        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
-        if let Some(pipeline_id) = msg.pipeline_id() {
-            if !fully_active.contains(pipeline_id) {
-                let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();
-                inactive_queue
-                    .push_back(msg.into_queued_task().expect(
-                        "Incoming messages should always be convertible into queued tasks",
-                    ));
-                if incoming.is_empty() {
-                    // Ensure there is at least one message.
-                    // Otherwise if the just stored inactive message
-                    // was the first and last of this iteration,
-                    // it will result in a spurious wake-up of the event-loop.
-                    incoming.push(T::inactive_msg());
-                }
-                return;
-            }
-        }
-        incoming.push(msg);
-    }
-
     /// Release previously held-back tasks for documents that are now fully-active.
+    /// https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
     fn release_tasks_for_fully_active_documents(
         &self,
         fully_active: &HashSet<PipelineId>,
@@ -109,6 +80,25 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             .collect()
     }
 
+    /// Hold back tasks for currently not fully-active documents.
+    /// https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
+    fn store_task_for_inactive_pipeline(&self, msg: T, pipeline_id: &PipelineId) {
+        let mut inactive = self.inactive.borrow_mut();
+        let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();
+        inactive_queue.push_back(
+            msg.into_queued_task()
+                .expect("Incoming messages should always be convertible into queued tasks"),
+        );
+        let mut msg_queue = self.msg_queue.borrow_mut();
+        if msg_queue.is_empty() {
+            // Ensure there is at least one message.
+            // Otherwise if the just stored inactive message
+            // was the first and last of this iteration,
+            // it will result in a spurious wake-up of the event-loop.
+            msg_queue.push_back(T::inactive_msg());
+        }
+    }
+
     /// Process incoming tasks, immediately sending priority ones downstream,
     /// and categorizing potential throttles.
     fn process_incoming_tasks(&self, first_msg: T, fully_active: &HashSet<PipelineId>) {
@@ -116,11 +106,13 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         let mut incoming = self.release_tasks_for_fully_active_documents(fully_active);
 
         // 2. Process the first message(artifact of the fact that select always returns a message).
-        self.process_message(first_msg, fully_active, &mut incoming);
+        if !first_msg.is_wake_up() {
+            incoming.push(first_msg);
+        }
 
         // 3. Process any other incoming message.
         while let Ok(msg) = self.port.try_recv() {
-            self.process_message(msg, fully_active, &mut incoming);
+            incoming.push(msg);
         }
 
         // 4. Filter tasks from non-priority task-sources.
@@ -143,6 +135,12 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             .collect();
 
         for msg in incoming {
+            if let Some(pipeline_id) = msg.pipeline_id() {
+                if !fully_active.contains(&pipeline_id) {
+                    self.store_task_for_inactive_pipeline(msg, &pipeline_id);
+                    continue;
+                }
+            }
             // Immediately send non-throttled tasks for processing.
             let _ = self.msg_queue.borrow_mut().push_back(msg);
         }
@@ -158,7 +156,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             let mut throttled_tasks = self.throttled.borrow_mut();
             throttled_tasks
                 .entry(task_source.clone())
-                .or_insert(VecDeque::new())
+                .or_default()
                 .push_back((worker, category, boxed, pipeline_id, task_source));
         }
     }
@@ -224,14 +222,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
                     // Hold back tasks for currently inactive documents.
                     if let Some(pipeline_id) = msg.pipeline_id() {
-                        if !fully_active.contains(pipeline_id) {
-                            let mut inactive = self.inactive.borrow_mut();
-                            let inactive_queue = inactive
-                                .entry(pipeline_id.clone())
-                                .or_insert(VecDeque::new());
-                            inactive_queue.push_back(msg.into_queued_task().expect(
-                                "Throttled messages should always be convertible into queued tasks",
-                            ));
+                        if !fully_active.contains(&pipeline_id) {
+                            self.store_task_for_inactive_pipeline(msg, &pipeline_id);
                             // Reduce the length of throttles,
                             // but don't add the task to "msg_queue",
                             // and neither increment "taken_task_counter".
