@@ -37,6 +37,7 @@ gattserverdisconnected
 hashchange
 hidden
 icecandidate
+iceconnectionstatechange
 icegatheringstatechange
 image
 input

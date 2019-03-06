@@ -7,7 +7,8 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandi
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
-    RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceGatheringState, RTCOfferOptions,
+    RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceConnectionState,
+    RTCIceGatheringState, RTCOfferOptions,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
@@ -36,8 +37,8 @@ use dom_struct::dom_struct;
 
 use servo_media::streams::MediaStream as BackendMediaStream;
 use servo_media::webrtc::{
-    BundlePolicy, GatheringState, IceCandidate, SdpType, SessionDescription, WebRtcController,
-    WebRtcSignaller,
+    BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
+    WebRtcController, WebRtcSignaller,
 };
 use servo_media::ServoMedia;
 use servo_media_auto::Backend;
@@ -61,6 +62,7 @@ pub struct RTCPeerConnection {
     local_description: MutNullableDom<RTCSessionDescription>,
     remote_description: MutNullableDom<RTCSessionDescription>,
     gathering_state: Cell<RTCIceGatheringState>,
+    ice_connection_state: Cell<RTCIceConnectionState>,
 }
 
 struct RTCSignaller {
@@ -103,6 +105,17 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
+    fn update_ice_connection_state(&self, state: IceConnectionState) {
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(update_ice_connection_state: move || {
+                let this = this.root();
+                this.update_ice_connection_state(state);
+            }),
+            &self.canceller,
+        );
+    }
+
     fn on_add_stream(&self, _: Box<BackendMediaStream>) {}
 
     fn close(&self) {
@@ -122,6 +135,7 @@ impl RTCPeerConnection {
             local_description: Default::default(),
             remote_description: Default::default(),
             gathering_state: Cell::new(RTCIceGatheringState::New),
+            ice_connection_state: Cell::new(RTCIceConnectionState::New),
         }
     }
 
@@ -250,11 +264,30 @@ impl RTCPeerConnection {
             );
             event.upcast::<Event>().fire(self.upcast());
         }
+    }
+
+    /// https://www.w3.org/TR/webrtc/#update-ice-connection-state
+    fn update_ice_connection_state(&self, state: IceConnectionState) {
+        // step 1
+        if self.closed.get() {
+            return;
+        }
+
+        // step 2 (state derivation already done by gstreamer)
+        let state: RTCIceConnectionState = state.into();
+
+        // step 3
+        if state == self.ice_connection_state.get() {
+            return;
+        }
+
+        // step 4
+        self.ice_connection_state.set(state);
 
         // step 5
         let event = Event::new(
             &self.global(),
-            atom!("icegatheringstatechange"),
+            atom!("iceconnectionstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
         );
@@ -331,6 +364,13 @@ impl RTCPeerConnection {
 impl RTCPeerConnectionMethods for RTCPeerConnection {
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
+
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-iceconnectionstatechange
+    event_handler!(
+        iceconnectionstatechange,
+        GetOniceconnectionstatechange,
+        SetOniceconnectionstatechange
+    );
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icegatheringstatechange
     event_handler!(
@@ -494,6 +534,11 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     fn IceGatheringState(&self) -> RTCIceGatheringState {
         self.gathering_state.get()
     }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-iceconnectionstate
+    fn IceConnectionState(&self) -> RTCIceConnectionState {
+        self.ice_connection_state.get()
+    }
 }
 
 impl From<SessionDescription> for RTCSessionDescriptionInit {
@@ -526,13 +571,26 @@ impl<'a> From<&'a RTCSessionDescriptionInit> for SessionDescription {
     }
 }
 
-
 impl From<GatheringState> for RTCIceGatheringState {
     fn from(state: GatheringState) -> Self {
         match state {
             GatheringState::New => RTCIceGatheringState::New,
             GatheringState::Gathering => RTCIceGatheringState::Gathering,
             GatheringState::Complete => RTCIceGatheringState::Complete,
+        }
+    }
+}
+
+impl From<IceConnectionState> for RTCIceConnectionState {
+    fn from(state: IceConnectionState) -> Self {
+        match state {
+            IceConnectionState::New => RTCIceConnectionState::New,
+            IceConnectionState::Checking => RTCIceConnectionState::Checking,
+            IceConnectionState::Connected => RTCIceConnectionState::Connected,
+            IceConnectionState::Completed => RTCIceConnectionState::Completed,
+            IceConnectionState::Disconnected => RTCIceConnectionState::Disconnected,
+            IceConnectionState::Failed => RTCIceConnectionState::Failed,
+            IceConnectionState::Closed => RTCIceConnectionState::Closed,
         }
     }
 }
