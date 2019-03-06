@@ -17,7 +17,7 @@ use crate::values::generics::length::{
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::NonNegativeNumber;
-use crate::values::{Auto, CSSFloat, Either, Normal};
+use crate::values::{CSSFloat, Either, Normal};
 use crate::Zero;
 use app_units::Au;
 use cssparser::{Parser, Token};
@@ -729,9 +729,6 @@ impl NonNegativeLength {
     }
 }
 
-/// Either a NonNegativeLength or the `auto` keyword.
-pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
-
 /// A `<length-percentage>` value. This can be either a `<length>`, a
 /// `<percentage>`, or a combination of both via `calc()`.
 ///
@@ -997,7 +994,25 @@ impl NonNegativeLengthPercentage {
 pub type LengthOrNormal = Either<Length, Normal>;
 
 /// Either a `<length>` or the `auto` keyword.
-pub type LengthOrAuto = Either<Length, Auto>;
+pub type LengthOrAuto = generics::LengthPercentageOrAuto<Length>;
+
+impl LengthOrAuto {
+    /// Parses a length, allowing the unitless length quirk.
+    /// <https://quirks.spec.whatwg.org/#the-unitless-length-quirk>
+    #[inline]
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with(context, input, |context, input| {
+            Length::parse_quirky(context, input, allow_quirks)
+        })
+    }
+}
+
+/// Either a non-negative `<length>` or the `auto` keyword.
+pub type NonNegativeLengthOrAuto = generics::LengthPercentageOrAuto<NonNegativeLength>;
 
 /// Either a `<length>` or a `<number>`.
 pub type LengthOrNumber = GenericLengthOrNumber<Length, Number>;

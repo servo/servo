@@ -15,7 +15,7 @@ use crate::values::generics::length::{
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
-use crate::values::{specified, Auto, CSSFloat, Either, Normal};
+use crate::values::{specified, CSSFloat, Either, Normal};
 use crate::Zero;
 use app_units::Au;
 use ordered_float::NotNan;
@@ -701,7 +701,10 @@ impl From<Au> for CSSPixelLength {
 pub type Length = CSSPixelLength;
 
 /// Either a computed `<length>` or the `auto` keyword.
-pub type LengthOrAuto = Either<Length, Auto>;
+pub type LengthOrAuto = generics::GenericLengthPercentageOrAuto<Length>;
+
+/// Either a non-negative `<length>` or the `auto` keyword.
+pub type NonNegativeLengthOrAuto = generics::GenericLengthPercentageOrAuto<NonNegativeLength>;
 
 /// Either a computed `<length>` or a `<number>` value.
 pub type LengthOrNumber = GenericLengthOrNumber<Length, Number>;
@@ -778,9 +781,6 @@ impl From<NonNegativeLength> for Au {
         Au::from(non_negative_len.0)
     }
 }
-
-/// Either a computed NonNegativeLength or the `auto` keyword.
-pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
 
 /// Either a computed NonNegativeLength or the `normal` keyword.
 pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
