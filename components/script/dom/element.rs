@@ -76,6 +76,7 @@ use crate::dom::node::{BindContext, NodeDamage, NodeFlags, UnbindContext};
 use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
+use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
@@ -172,10 +173,7 @@ pub struct Element {
     custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     custom_element_state: Cell<CustomElementState>,
-    /// https://dom.spec.whatwg.org/#dom-element-shadowroot
-    /// XXX This is currently not exposed to web content. Only for
-    ///     internal use.
-    shadow_root: MutNullableDom<ShadowRoot>,
+    rare_data: Box<ElementRareData>,
 }
 
 impl fmt::Debug for Element {
@@ -310,7 +308,7 @@ impl Element {
             custom_element_reaction_queue: Default::default(),
             custom_element_definition: Default::default(),
             custom_element_state: Cell::new(CustomElementState::Uncustomized),
-            shadow_root: Default::default(),
+            rare_data: Default::default(),
         }
     }
 
@@ -452,7 +450,7 @@ impl Element {
     }
 
     pub fn is_shadow_host(&self) -> bool {
-        self.shadow_root.get().is_some()
+        self.rare_data.shadow_root.get().is_some()
     }
 
     /// https://dom.spec.whatwg.org/#dom-element-attachshadow
@@ -496,6 +494,7 @@ impl Element {
 
         // Steps 4, 5 and 6.
         let shadow_root = self
+            .rare_data
             .shadow_root
             .or_init(|| ShadowRoot::new(self, &*self.node.owner_doc()));
 
@@ -1069,7 +1068,10 @@ impl LayoutElementHelpers for LayoutDom<Element> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
-        (*self.unsafe_get()).shadow_root.get_inner_as_layout()
+        (*self.unsafe_get())
+            .rare_data
+            .shadow_root
+            .get_inner_as_layout()
     }
 }
 
@@ -2846,7 +2848,7 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(shadow_root) = self.shadow_root.get() {
+        if let Some(shadow_root) = self.rare_data.shadow_root.get() {
             doc.unregister_shadow_root(&shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
