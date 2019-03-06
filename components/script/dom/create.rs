@@ -5,9 +5,11 @@
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::customelementregistry::{is_valid_custom_element_name, upgrade_element};
+use crate::dom::customelementregistry::{
+    is_valid_custom_element_name, upgrade_element, CustomElementState,
+};
 use crate::dom::document::Document;
-use crate::dom::element::{CustomElementCreationMode, CustomElementState, Element, ElementCreator};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
