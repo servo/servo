@@ -3177,7 +3177,6 @@ fn static_assert() {
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
@@ -3201,9 +3200,6 @@ fn static_assert() {
         if v.contains(SpecifiedValue::LAYOUT) {
             bitfield |= NS_STYLE_CONTAIN_LAYOUT;
         }
-        if v.contains(SpecifiedValue::STYLE) {
-            bitfield |= NS_STYLE_CONTAIN_STYLE;
-        }
         if v.contains(SpecifiedValue::PAINT) {
             bitfield |= NS_STYLE_CONTAIN_PAINT;
         }
@@ -3219,7 +3215,6 @@ fn static_assert() {
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
         use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
@@ -3248,9 +3243,6 @@ fn static_assert() {
         }
         if gecko_flags & (NS_STYLE_CONTAIN_LAYOUT as u8) != 0 {
             servo_flags.insert(SpecifiedValue::LAYOUT);
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_STYLE as u8) != 0 {
-            servo_flags.insert(SpecifiedValue::STYLE);
         }
         if gecko_flags & (NS_STYLE_CONTAIN_PAINT as u8) != 0 {
             servo_flags.insert(SpecifiedValue::PAINT);
