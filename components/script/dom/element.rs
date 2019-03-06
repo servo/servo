@@ -33,7 +33,7 @@ use crate::dom::bindings::xmlname::{
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::customelementregistry::{
-    CallbackReaction, CustomElementDefinition, CustomElementReaction,
+    CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
 use crate::dom::document::{Document, LayoutDocumentHelpers};
 use crate::dom::documentfragment::DocumentFragment;
@@ -166,13 +166,6 @@ pub struct Element {
     /// when it has exclusive access to the element.
     #[ignore_malloc_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
-    /// <https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue>
-    custom_element_reaction_queue: DomRefCell<Vec<CustomElementReaction>>,
-    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-definition>
-    #[ignore_malloc_size_of = "Rc"]
-    custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
-    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
-    custom_element_state: Cell<CustomElementState>,
     rare_data: Box<ElementRareData>,
 }
 
@@ -201,15 +194,6 @@ pub enum ElementCreator {
 pub enum CustomElementCreationMode {
     Synchronous,
     Asynchronous,
-}
-
-/// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
-#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum CustomElementState {
-    Undefined,
-    Failed,
-    Uncustomized,
-    Custom,
 }
 
 impl ElementCreator {
@@ -305,9 +289,6 @@ impl Element {
             class_list: Default::default(),
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
-            custom_element_reaction_queue: Default::default(),
-            custom_element_definition: Default::default(),
-            custom_element_state: Cell::new(CustomElementState::Uncustomized),
             rare_data: Default::default(),
         }
     }
@@ -349,45 +330,55 @@ impl Element {
     }
 
     pub fn set_custom_element_state(&self, state: CustomElementState) {
-        self.custom_element_state.set(state);
+        self.rare_data.custom_element_state.set(state);
     }
 
     pub fn get_custom_element_state(&self) -> CustomElementState {
-        self.custom_element_state.get()
+        self.rare_data.custom_element_state.get()
     }
 
     pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
-        *self.custom_element_definition.borrow_mut() = Some(definition);
+        *self.rare_data.custom_element_definition.borrow_mut() = Some(definition);
     }
 
     pub fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
-        (*self.custom_element_definition.borrow()).clone()
+        (*self.rare_data.custom_element_definition.borrow()).clone()
     }
 
     pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
-        self.custom_element_reaction_queue
+        self.rare_data
+            .custom_element_reaction_queue
             .borrow_mut()
             .push(CustomElementReaction::Callback(function, args));
     }
 
     pub fn push_upgrade_reaction(&self, definition: Rc<CustomElementDefinition>) {
-        self.custom_element_reaction_queue
+        self.rare_data
+            .custom_element_reaction_queue
             .borrow_mut()
             .push(CustomElementReaction::Upgrade(definition));
     }
 
     pub fn clear_reaction_queue(&self) {
-        self.custom_element_reaction_queue.borrow_mut().clear();
+        self.rare_data
+            .custom_element_reaction_queue
+            .borrow_mut()
+            .clear();
     }
 
     pub fn invoke_reactions(&self) {
         // TODO: This is not spec compliant, as this will allow some reactions to be processed
         // after clear_reaction_queue has been called.
         rooted_vec!(let mut reactions);
-        while !self.custom_element_reaction_queue.borrow().is_empty() {
+        while !self
+            .rare_data
+            .custom_element_reaction_queue
+            .borrow()
+            .is_empty()
+        {
             mem::swap(
                 &mut *reactions,
-                &mut *self.custom_element_reaction_queue.borrow_mut(),
+                &mut *self.rare_data.custom_element_reaction_queue.borrow_mut(),
             );
             for reaction in reactions.iter() {
                 reaction.invoke(self);

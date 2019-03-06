@@ -4,8 +4,13 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::customelementregistry::{
+    CustomElementDefinition, CustomElementReaction, CustomElementState,
+};
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::shadowroot::ShadowRoot;
+use std::cell::Cell;
+use std::rc::Rc;
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[must_root]
@@ -25,4 +30,11 @@ pub struct ElementRareData {
     /// XXX This is currently not exposed to web content. Only for
     ///     internal use.
     pub shadow_root: MutNullableDom<ShadowRoot>,
+    /// <https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue>
+    pub custom_element_reaction_queue: DomRefCell<Vec<CustomElementReaction>>,
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-definition>
+    #[ignore_malloc_size_of = "Rc"]
+    pub custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
+    pub custom_element_state: Cell<CustomElementState>,
 }
