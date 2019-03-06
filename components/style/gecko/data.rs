@@ -7,7 +7,7 @@
 use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings::{self, RawServoStyleSet};
-use crate::gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetSizes};
+use crate::gecko_bindings::structs::{self, ServoStyleSetSizes};
 use crate::gecko_bindings::structs::{StyleSheet as DomStyleSheet, StyleSheetInfo};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
@@ -142,9 +142,9 @@ pub struct PerDocumentStyleDataImpl {
 pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
 
 impl PerDocumentStyleData {
-    /// Create a dummy `PerDocumentStyleData`.
-    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
-        let device = Device::new(pres_context);
+    /// Create a `PerDocumentStyleData`.
+    pub fn new(document: *const structs::Document) -> Self {
+        let device = Device::new(document);
 
         // FIXME(emilio, tlin): How is this supposed to work with XBL? This is
         // right now not always honored, see bug 1405543...
