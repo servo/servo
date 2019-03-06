@@ -6905,6 +6905,306 @@
      {}
     ]
    ],
+   "gfx-rs-gecko/1035611-1.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/1035611-1.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/1035611-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/240933-2.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/240933-2.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/240933-2-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/356774-1.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/356774-1.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/356774-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-6-dyn.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/block-first-child-6-dyn.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/block-first-child-6-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-7-dyn.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/block-first-child-7-dyn.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/block-first-child-7-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-8a-dyn.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/block-first-child-8a-dyn.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/block-first-child-8-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-8b-dyn.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/block-first-child-8b-dyn.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/block-first-child-8-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-8c-dyn.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/block-first-child-8c-dyn.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/block-first-child-8-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/border-collapse-bevels-1b.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1b.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/border-collapse-bevels-1c.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1c.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/border-collapse-bevels-1d.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1d.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/border-collapse-bevels-1e.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1e.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/border-collapse-bevels-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/color-2a.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/color-2a.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/color-2-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/column-balancing-nested-001.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/column-balancing-nested-001.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/column-balancing-nested-001-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/descriptor-ranges.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/descriptor-ranges.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/descriptor-ranges-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/display-block-baselines-1.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/display-block-baselines-1.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/display-block-baselines-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/downscale-2f.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/downscale-2f.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/blank.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/element-paint-recursion.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/element-paint-recursion.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/element-paint-recursion-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/emoji-1.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/emoji-1.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/emoji-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/grid-item-align-002.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/grid-item-align-002.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/grid-item-align-002-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/grid-item-justify-001.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/grid-item-justify-001.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/grid-item-justify-001-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/hScrollAbsHeight.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/hScrollAbsHeight.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/greenbox.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/hScrollSimpleHeight.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/hScrollSimpleHeight.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/greenbox.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/image-zoom-1.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/image-zoom-1.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/image-zoom-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/opacity-background-1.html": [
+    [
+     "/_mozilla/gfx-rs-gecko/opacity-background-1.html",
+     [
+      [
+       "/_mozilla/gfx-rs-gecko/opacity-background-1-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/FileAPI/blob_url_upload.html": [
     [
      "/_mozilla/mozilla/FileAPI/blob_url_upload.html",
@@ -10279,6 +10579,136 @@
      {}
     ]
    ],
+   "gfx-rs-gecko/1035611-1-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/240933-2-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/356774-1-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/Chunkfive.otf": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/big.png": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/black-border-top.png": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/blank.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-6-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-7-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/block-first-child-8-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/border-collapse-bevels-1-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/color-2-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/colr-unset.ttf": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/column-balancing-nested-001-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/descriptor-ranges-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/descriptor-ranges.js": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/display-block-baselines-1-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/element-paint-recursion-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/emoji-1-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/greenbox.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/grid-item-align-002-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/grid-item-justify-001-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/image-zoom-1-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/opacity-background-1-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/size-4x4.png": [
+    [
+     {}
+    ]
+   ],
+   "gfx-rs-gecko/small.png": [
+    [
+     {}
+    ]
+   ],
    "lint.whitelist": [
     [
      {}
@@ -12676,7 +13106,9 @@
    "mozilla/globals/entry.worker.js": [
     [
      "/_mozilla/mozilla/globals/entry.worker.html",
-     {}
+     {
+      "script_metadata": []
+     }
     ]
    ],
    "mozilla/history.html": [
@@ -12856,7 +13288,9 @@
    "mozilla/interfaces.worker.js": [
     [
      "/_mozilla/mozilla/interfaces.worker.html",
-     {}
+     {
+      "script_metadata": []
+     }
     ]
    ],
    "mozilla/invalid-this.html": [
@@ -13198,11 +13632,25 @@
    "mozilla/task_queue_throttling.any.js": [
     [
      "/_mozilla/mozilla/task_queue_throttling.any.html",
-     {}
+     {
+      "script_metadata": [
+       [
+        "title",
+        "Throttling the performance timeline task queue."
+       ]
+      ]
+     }
     ],
     [
      "/_mozilla/mozilla/task_queue_throttling.any.worker.html",
-     {}
+     {
+      "script_metadata": [
+       [
+        "title",
+        "Throttling the performance timeline task queue."
+       ]
+      ]
+     }
     ]
    ],
    "mozilla/textcontent.html": [
@@ -19037,6 +19485,210 @@
   "css/writing-mode_change_display.html": [
    "dd2b2cf3e565b61717c7e0e6fae484fd56edb0c2",
    "testharness"
+  ],
+  "gfx-rs-gecko/1035611-1-ref.html": [
+   "05cb06dee6e7135405332ac5767c4d8d11c7e154",
+   "support"
+  ],
+  "gfx-rs-gecko/1035611-1.html": [
+   "fcc528481b56d673d0a7037bd9c956fe1ea9dd50",
+   "reftest"
+  ],
+  "gfx-rs-gecko/240933-2-ref.html": [
+   "7dbc082a58a5fbf494ab1e6e5a1dca1369516264",
+   "support"
+  ],
+  "gfx-rs-gecko/240933-2.html": [
+   "76b072e85097cd5bb3d74abb70a428a284513a04",
+   "reftest"
+  ],
+  "gfx-rs-gecko/356774-1-ref.html": [
+   "e781b795a141efd24673782d860288ea352bbc8c",
+   "support"
+  ],
+  "gfx-rs-gecko/356774-1.html": [
+   "ecbf77806560c00a1d3a3c575102cd21f7d10e39",
+   "reftest"
+  ],
+  "gfx-rs-gecko/Chunkfive.otf": [
+   "33d53d53e05c013509d68f3112e23805f93847a1",
+   "support"
+  ],
+  "gfx-rs-gecko/big.png": [
+   "76a32497c7593087f40a0a0eb899ad84fd6b6f0c",
+   "support"
+  ],
+  "gfx-rs-gecko/black-border-top.png": [
+   "fc6e69e02aa1b6d51fb34db1d2720452d336024d",
+   "support"
+  ],
+  "gfx-rs-gecko/blank.html": [
+   "0e76edd65b7baf5316fc9d0c4da59a3502e4c27a",
+   "support"
+  ],
+  "gfx-rs-gecko/block-first-child-6-dyn.html": [
+   "98aae16cc0f507b761500fe627e0e40457f0d110",
+   "reftest"
+  ],
+  "gfx-rs-gecko/block-first-child-6-ref.html": [
+   "2a2d8d9bf8ad11e32562de4d98b96da3383e1e3b",
+   "support"
+  ],
+  "gfx-rs-gecko/block-first-child-7-dyn.html": [
+   "54e5a4a49660f90f50466db66e8668b80122a45a",
+   "reftest"
+  ],
+  "gfx-rs-gecko/block-first-child-7-ref.html": [
+   "545006bc0e3da5b96a6736979340e784c3d9b817",
+   "support"
+  ],
+  "gfx-rs-gecko/block-first-child-8-ref.html": [
+   "18ae4f0b6ed2e8a68f60b638877614251439f61e",
+   "support"
+  ],
+  "gfx-rs-gecko/block-first-child-8a-dyn.html": [
+   "1df7087fb5fd51073d4b00e107f12734ebb47373",
+   "reftest"
+  ],
+  "gfx-rs-gecko/block-first-child-8b-dyn.html": [
+   "b11b5ddf5adcefc7d04f5884106bdc352980518a",
+   "reftest"
+  ],
+  "gfx-rs-gecko/block-first-child-8c-dyn.html": [
+   "6e1711ac839c2a2d62c9b6e23e7230af1704cab6",
+   "reftest"
+  ],
+  "gfx-rs-gecko/border-collapse-bevels-1-ref.html": [
+   "5d5a43058970f0b055dc669bde1df87488e7adfa",
+   "support"
+  ],
+  "gfx-rs-gecko/border-collapse-bevels-1b.html": [
+   "554f051fa25a7db16070ff808bcc77cc4ab1bf19",
+   "reftest"
+  ],
+  "gfx-rs-gecko/border-collapse-bevels-1c.html": [
+   "4e2510771914986eaf88b5d8823795a526f96bc7",
+   "reftest"
+  ],
+  "gfx-rs-gecko/border-collapse-bevels-1d.html": [
+   "28904c86e7a7175a523e9d9dd1be8f05ae585f32",
+   "reftest"
+  ],
+  "gfx-rs-gecko/border-collapse-bevels-1e.html": [
+   "299dbdc2bef9e8b2f40541d714046f6b6c1f79cd",
+   "reftest"
+  ],
+  "gfx-rs-gecko/color-2-ref.html": [
+   "d3354b3192c4076d80dec6800bcdca24f2c6acff",
+   "support"
+  ],
+  "gfx-rs-gecko/color-2a.html": [
+   "b80652cb16fdecbecc35f6725e0eacbfa7a16974",
+   "reftest"
+  ],
+  "gfx-rs-gecko/colr-unset.ttf": [
+   "a78fd30a5923edfe1b0967c942aa0611ddf0ccce",
+   "support"
+  ],
+  "gfx-rs-gecko/column-balancing-nested-001-ref.html": [
+   "736ca5368ccce5484241a0b36405b337ada2427b",
+   "support"
+  ],
+  "gfx-rs-gecko/column-balancing-nested-001.html": [
+   "96dac315b2cc580c08a070eff9d0c1e218f02058",
+   "reftest"
+  ],
+  "gfx-rs-gecko/descriptor-ranges-ref.html": [
+   "a2e6888a9d58ce9d3d41103384665f611e520253",
+   "support"
+  ],
+  "gfx-rs-gecko/descriptor-ranges.html": [
+   "79630aee3c12a27b8b8013c6f46f9bbe53022737",
+   "reftest"
+  ],
+  "gfx-rs-gecko/descriptor-ranges.js": [
+   "e59bd0d45c03f8976be7b66c73f9c676af9c1b0e",
+   "support"
+  ],
+  "gfx-rs-gecko/display-block-baselines-1-ref.html": [
+   "aeac413c0d35d9a3f2ae418ba6e36cafa67f72b8",
+   "support"
+  ],
+  "gfx-rs-gecko/display-block-baselines-1.html": [
+   "0051525c907bf975323c92b6c2f4d50f45041337",
+   "reftest"
+  ],
+  "gfx-rs-gecko/downscale-2f.html": [
+   "a5a755accee61837f99489b45704cf909fe2b6a4",
+   "reftest"
+  ],
+  "gfx-rs-gecko/element-paint-recursion-ref.html": [
+   "e37ec29806e22e9d654b632c2ce966a8dfc627a2",
+   "support"
+  ],
+  "gfx-rs-gecko/element-paint-recursion.html": [
+   "220e8f9d14836c9db52010051c371f07ef88e908",
+   "reftest"
+  ],
+  "gfx-rs-gecko/emoji-1-ref.html": [
+   "871f2cf00d313fd111145b552b175d06f3245a94",
+   "support"
+  ],
+  "gfx-rs-gecko/emoji-1.html": [
+   "a299bb0cff431401af0469707258e49c29ca5eec",
+   "reftest"
+  ],
+  "gfx-rs-gecko/greenbox.html": [
+   "fc44641112a4e968bbd468f2c0851245a392eb4d",
+   "support"
+  ],
+  "gfx-rs-gecko/grid-item-align-002-ref.html": [
+   "de59dea26d0487702b9a24fe2b7d529c498caf50",
+   "support"
+  ],
+  "gfx-rs-gecko/grid-item-align-002.html": [
+   "1d923678e066058f3176b20103fe90ec7a0a05cf",
+   "reftest"
+  ],
+  "gfx-rs-gecko/grid-item-justify-001-ref.html": [
+   "cfe109554620548da1dd40427281f4c1382cab9a",
+   "support"
+  ],
+  "gfx-rs-gecko/grid-item-justify-001.html": [
+   "52ba438e352abb5d5bb3897b829d5d8934e61b12",
+   "reftest"
+  ],
+  "gfx-rs-gecko/hScrollAbsHeight.html": [
+   "b56c823f26f74b40826d0e9384f4b78ec68ff465",
+   "reftest"
+  ],
+  "gfx-rs-gecko/hScrollSimpleHeight.html": [
+   "a35443779900c0228e447d2a7818bc9fcbf50346",
+   "reftest"
+  ],
+  "gfx-rs-gecko/image-zoom-1-ref.html": [
+   "58bd5b8c694e451bf260124dfec7f1ccb358c3d3",
+   "support"
+  ],
+  "gfx-rs-gecko/image-zoom-1.html": [
+   "1ac842e2863d5590684ec8bd48953fa352d29ac5",
+   "reftest"
+  ],
+  "gfx-rs-gecko/opacity-background-1-ref.html": [
+   "c80ed888666be52434a8436214032dd59e923cb0",
+   "support"
+  ],
+  "gfx-rs-gecko/opacity-background-1.html": [
+   "2d0bbb8cc047cf8ea3a86a788fef2650ab2265ec",
+   "reftest"
+  ],
+  "gfx-rs-gecko/size-4x4.png": [
+   "e6afafd89ac86972d6ba8d67f0333d0e5a69ac72",
+   "support"
+  ],
+  "gfx-rs-gecko/small.png": [
+   "9ff11a99327a8f9d2cd62755b793e65c2f7e5d13",
+   "support"
   ],
   "lint.whitelist": [
    "4e9dcc5ddf894bc85224a634349663b832dd8c24",
