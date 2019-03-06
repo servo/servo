@@ -994,6 +994,10 @@ impl NonNegativeLengthPercentage {
 pub type LengthOrNormal = Either<Length, Normal>;
 
 /// Either a `<length>` or the `auto` keyword.
+///
+/// Note that we use LengthPercentage just for convenience, since it pretty much
+/// is everything we care about, but we could just add a similar LengthOrAuto
+/// instead if we think getting rid of this weirdness is worth it.
 pub type LengthOrAuto = generics::LengthPercentageOrAuto<Length>;
 
 impl LengthOrAuto {
