@@ -5,7 +5,6 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -151,9 +150,6 @@ pub struct Node {
     /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
-
-    /// Registered observers for this node.
-    mutation_observers: DomRefCell<Vec<RegisteredObserver>>,
 
     unique_id: UniqueId,
 }
@@ -445,12 +441,13 @@ impl Node {
 
     /// Return all registered mutation observers for this node.
     pub fn registered_mutation_observers(&self) -> RefMut<Vec<RegisteredObserver>> {
-        self.mutation_observers.borrow_mut()
+        self.rare_data.mutation_observers.borrow_mut()
     }
 
     /// Removes the mutation observer for a given node.
     pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
-        self.mutation_observers
+        self.rare_data
+            .mutation_observers
             .borrow_mut()
             .retain(|reg_obs| &*reg_obs.observer != observer)
     }
@@ -1642,8 +1639,6 @@ impl Node {
             ranges: WeakRangeVec::new(),
 
             style_and_layout_data: Cell::new(None),
-
-            mutation_observers: Default::default(),
 
             unique_id: UniqueId::new(),
         }
