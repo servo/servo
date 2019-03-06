@@ -2801,7 +2801,7 @@ impl VirtualMethods for Element {
             f.bind_form_control_to_tree();
         }
 
-        if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
+        if let Some(shadow_root) = self.rare_data.shadow_root.get() {
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
             for node in shadow_root.children() {
