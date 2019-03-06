@@ -112,7 +112,9 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
         // 3. Process any other incoming message.
         while let Ok(msg) = self.port.try_recv() {
-            incoming.push(msg);
+            if !msg.is_wake_up() {
+                incoming.push(msg);
+            }
         }
 
         // 4. Filter tasks from non-priority task-sources.
