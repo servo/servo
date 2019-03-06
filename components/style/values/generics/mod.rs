@@ -212,3 +212,14 @@ impl<T: Zero> Zero for NonNegative<T> {
     ToCss,
 )]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
+
+/// A clip rect for clip and image-region
+#[allow(missing_docs)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[css(function = "rect", comma)]
+pub struct ClipRect<LengthOrAuto> {
+    pub top: LengthOrAuto,
+    pub right: LengthOrAuto,
+    pub bottom: LengthOrAuto,
+    pub left: LengthOrAuto,
+}

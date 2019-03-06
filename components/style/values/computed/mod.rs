@@ -10,7 +10,7 @@ use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
 use super::generics::transform::IsParallelTo;
-use super::generics::{GreaterThanOrEqualToOne, NonNegative};
+use super::generics::{self, GreaterThanOrEqualToOne, NonNegative};
 use super::specified;
 use super::{CSSFloat, CSSInteger};
 use crate::context::QuirksMode;
@@ -27,8 +27,6 @@ use euclid::Size2D;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};
@@ -62,7 +60,7 @@ pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
 pub use self::length::{Length, LengthOrNumber, LengthPercentage, NonNegativeLengthOrNumber};
-pub use self::length::{LengthPercentageOrAuto, MaxSize, Size};
+pub use self::length::{LengthOrAuto, LengthPercentageOrAuto, MaxSize, Size};
 pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
@@ -637,52 +635,8 @@ impl From<CSSInteger> for PositiveInteger {
     }
 }
 
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
-/// A computed cliprect for clip and image-region
-pub struct ClipRect {
-    pub top: Option<Length>,
-    pub right: Option<Length>,
-    pub bottom: Option<Length>,
-    pub left: Option<Length>,
-}
-
-impl ToCss for ClipRect {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str("rect(")?;
-        if let Some(top) = self.top {
-            top.to_css(dest)?;
-            dest.write_str(", ")?;
-        } else {
-            dest.write_str("auto, ")?;
-        }
-
-        if let Some(right) = self.right {
-            right.to_css(dest)?;
-            dest.write_str(", ")?;
-        } else {
-            dest.write_str("auto, ")?;
-        }
-
-        if let Some(bottom) = self.bottom {
-            bottom.to_css(dest)?;
-            dest.write_str(", ")?;
-        } else {
-            dest.write_str("auto, ")?;
-        }
-
-        if let Some(left) = self.left {
-            left.to_css(dest)?;
-        } else {
-            dest.write_str("auto")?;
-        }
-        dest.write_str(")")
-    }
-}
+/// rect(...)
+pub type ClipRect = generics::ClipRect<LengthOrAuto>;
 
 /// rect(...) | auto
 pub type ClipRectOrAuto = Either<ClipRect, Auto>;

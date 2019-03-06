@@ -802,27 +802,27 @@ impl ToAnimatedZero for Visibility {
 impl Animate for ClipRect {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        use crate::values::computed::Length;
-        let animate_component = |this: &Option<Length>, other: &Option<Length>| {
-            match (this.animate(other, procedure)?, procedure) {
-                (None, Procedure::Interpolate { .. }) => Ok(None),
-                (None, _) => Err(()),
-                (result, _) => Ok(result),
+        use crate::values::computed::LengthOrAuto;
+        let animate_component = |this: &LengthOrAuto, other: &LengthOrAuto| {
+            let result = this.animate(other, procedure)?;
+            if let Procedure::Interpolate { .. } = procedure {
+                return Ok(result);
             }
+            if result.is_auto() {
+                // FIXME(emilio): Why? A couple SMIL tests fail without this,
+                // but it seems extremely fishy.
+                return Err(());
+            }
+            Ok(result)
         };
 
         Ok(ClipRect {
-            top:    animate_component(&self.top, &other.top)?,
-            right:  animate_component(&self.right, &other.right)?,
+            top: animate_component(&self.top, &other.top)?,
+            right: animate_component(&self.right, &other.right)?,
             bottom: animate_component(&self.bottom, &other.bottom)?,
-            left:   animate_component(&self.left, &other.left)?,
+            left: animate_component(&self.left, &other.left)?,
         })
     }
-}
-
-impl ToAnimatedZero for ClipRect {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 <%
