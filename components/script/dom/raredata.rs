@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::shadowroot::ShadowRoot;
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -12,6 +14,8 @@ pub struct NodeRareData {
     /// This is None if the node is not in a shadow tree or
     /// if it is a ShadowRoot.
     pub owner_shadow_root: MutNullableDom<ShadowRoot>,
+    /// Registered observers for this node.
+    pub mutation_observers: DomRefCell<Vec<RegisteredObserver>>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
