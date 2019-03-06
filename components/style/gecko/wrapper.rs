@@ -1243,7 +1243,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
         self.as_node().owner_doc().0 as *const structs::Document ==
-            device.pres_context().mDocument.mRawPtr
+            device.document() as *const _
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
