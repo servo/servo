@@ -40,8 +40,13 @@ include = ["cssparser", "style_traits"]
 derive_eq = true
 derive_neq = true
 
+[macro_expansion]
+bitflags = true
+
 [enum]
 derive_helper_methods = true
+derive_const_casts = true
+cast_assert_name = "MOZ_ASSERT"
 
 [export]
 prefix = "Style"
@@ -133,7 +138,6 @@ item_types = ["enums", "structs", "typedefs"]
 """
 
 "GenericLengthPercentageOrAuto" = """
-  inline const StyleLengthPercentage& AsLengthPercentage() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
@@ -143,8 +147,6 @@ item_types = ["enums", "structs", "typedefs"]
 """
 
 "GenericSize" = """
-  inline const StyleLengthPercentage& AsLengthPercentage() const;
-  inline StyleExtremumLength AsExtremumLength() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
@@ -156,12 +158,9 @@ item_types = ["enums", "structs", "typedefs"]
 
 "GenericFlexBasis" = """
   inline bool IsAuto() const;
-  inline const StyleSize& AsSize() const;
 """
 
 "GenericMaxSize" = """
-  inline const StyleLengthPercentage& AsLengthPercentage() const;
-  inline StyleExtremumLength AsExtremumLength() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
