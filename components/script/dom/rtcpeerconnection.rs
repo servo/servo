@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandi
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
-    RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCOfferOptions,
+    RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceGatheringState, RTCOfferOptions,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
@@ -36,7 +36,8 @@ use dom_struct::dom_struct;
 
 use servo_media::streams::MediaStream as BackendMediaStream;
 use servo_media::webrtc::{
-    BundlePolicy, IceCandidate, SdpType, SessionDescription, WebRtcController, WebRtcSignaller,
+    BundlePolicy, GatheringState, IceCandidate, SdpType, SessionDescription, WebRtcController,
+    WebRtcSignaller,
 };
 use servo_media::ServoMedia;
 use servo_media_auto::Backend;
@@ -59,6 +60,7 @@ pub struct RTCPeerConnection {
     answer_promises: DomRefCell<Vec<Rc<Promise>>>,
     local_description: MutNullableDom<RTCSessionDescription>,
     remote_description: MutNullableDom<RTCSessionDescription>,
+    gathering_state: Cell<RTCIceGatheringState>,
 }
 
 struct RTCSignaller {
@@ -90,6 +92,17 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
+    fn update_gathering_state(&self, state: GatheringState) {
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(update_gathering_state: move || {
+                let this = this.root();
+                this.update_gathering_state(state);
+            }),
+            &self.canceller,
+        );
+    }
+
     fn on_add_stream(&self, _: Box<BackendMediaStream>) {}
 
     fn close(&self) {
@@ -108,6 +121,7 @@ impl RTCPeerConnection {
             answer_promises: DomRefCell::new(vec![]),
             local_description: Default::default(),
             remote_description: Default::default(),
+            gathering_state: Cell::new(RTCIceGatheringState::New),
         }
     }
 
@@ -198,6 +212,55 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(self.upcast());
     }
 
+    /// https://www.w3.org/TR/webrtc/#update-ice-gathering-state
+    fn update_gathering_state(&self, state: GatheringState) {
+        // step 1
+        if self.closed.get() {
+            return;
+        }
+
+        // step 2 (state derivation already done by gstreamer)
+        let state: RTCIceGatheringState = state.into();
+
+        // step 3
+        if state == self.gathering_state.get() {
+            return;
+        }
+
+        // step 4
+        self.gathering_state.set(state);
+
+        // step 5
+        let event = Event::new(
+            &self.global(),
+            atom!("icegatheringstatechange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event.upcast::<Event>().fire(self.upcast());
+
+        // step 6
+        if state == RTCIceGatheringState::Complete {
+            let event = RTCPeerConnectionIceEvent::new(
+                &self.global(),
+                atom!("icecandidate"),
+                None,
+                None,
+                true,
+            );
+            event.upcast::<Event>().fire(self.upcast());
+        }
+
+        // step 5
+        let event = Event::new(
+            &self.global(),
+            atom!("icegatheringstatechange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event.upcast::<Event>().fire(self.upcast());
+    }
+
     fn create_offer(&self) {
         let generation = self.offer_answer_generation.get();
         let (task_source, canceller) = self
@@ -268,6 +331,13 @@ impl RTCPeerConnection {
 impl RTCPeerConnectionMethods for RTCPeerConnection {
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
+
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icegatheringstatechange
+    event_handler!(
+        icegatheringstatechange,
+        GetOnicegatheringstatechange,
+        SetOnicegatheringstatechange
+    );
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-onnegotiationneeded
     event_handler!(
@@ -419,6 +489,11 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
             self.controller.borrow().as_ref().unwrap().add_stream(track);
         }
     }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-icegatheringstate
+    fn IceGatheringState(&self) -> RTCIceGatheringState {
+        self.gathering_state.get()
+    }
 }
 
 impl From<SessionDescription> for RTCSessionDescriptionInit {
@@ -447,6 +522,17 @@ impl<'a> From<&'a RTCSessionDescriptionInit> for SessionDescription {
         SessionDescription {
             type_,
             sdp: desc.sdp.to_string(),
+        }
+    }
+}
+
+
+impl From<GatheringState> for RTCIceGatheringState {
+    fn from(state: GatheringState) -> Self {
+        match state {
+            GatheringState::New => RTCIceGatheringState::New,
+            GatheringState::Gathering => RTCIceGatheringState::Gathering,
+            GatheringState::Complete => RTCIceGatheringState::Complete,
         }
     }
 }

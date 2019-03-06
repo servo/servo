@@ -37,6 +37,7 @@ gattserverdisconnected
 hashchange
 hidden
 icecandidate
+icegatheringstatechange
 image
 input
 invalid
