@@ -23,7 +23,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
-use crate::dom::element::{CustomElementState, Element};
+use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
@@ -46,6 +46,21 @@ use std::mem;
 use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
+
+/// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
+pub enum CustomElementState {
+    Undefined,
+    Failed,
+    Uncustomized,
+    Custom,
+}
+
+impl Default for CustomElementState {
+    fn default() -> CustomElementState {
+        CustomElementState::Uncustomized
+    }
+}
 
 /// <https://html.spec.whatwg.org/multipage/#customelementregistry>
 #[dom_struct]
