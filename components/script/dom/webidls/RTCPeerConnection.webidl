@@ -19,7 +19,7 @@ interface RTCPeerConnection : EventTarget {
     // readonly attribute RTCSessionDescription? pendingRemoteDescription;
     Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate);
     // readonly attribute RTCSignalingState      signalingState;
-    // readonly attribute RTCIceGatheringState   iceGatheringState;
+    readonly attribute RTCIceGatheringState   iceGatheringState;
     // readonly attribute RTCIceConnectionState  iceConnectionState;
     // readonly attribute RTCPeerConnectionState connectionState;
     // readonly attribute boolean?               canTrickleIceCandidates;
@@ -32,7 +32,7 @@ interface RTCPeerConnection : EventTarget {
     //          attribute EventHandler           onicecandidateerror;
     //          attribute EventHandler           onsignalingstatechange;
     //          attribute EventHandler           oniceconnectionstatechange;
-    //          attribute EventHandler           onicegatheringstatechange;
+             attribute EventHandler           onicegatheringstatechange;
     //          attribute EventHandler           onconnectionstatechange;
 
     // removed from spec, but still shipped by browsers
@@ -88,4 +88,10 @@ dictionary RTCOfferOptions : RTCOfferAnswerOptions {
 };
 
 dictionary RTCAnswerOptions : RTCOfferAnswerOptions {
+};
+
+enum RTCIceGatheringState {
+    "new",
+    "gathering",
+    "complete"
 };
