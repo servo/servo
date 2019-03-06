@@ -83,14 +83,14 @@ impl Device {
     /// Trivially constructs a new `Device`.
     pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
         assert!(!pres_context.is_null());
+        let doc = unsafe { &*(*pres_context).mDocument.mRawPtr };
+        let prefs = unsafe { &*bindings::Gecko_GetPrefSheetPrefs(doc) };
         Device {
             pres_context,
-            default_values: ComputedValues::default_values(unsafe {
-                &*(*pres_context).mDocument.mRawPtr
-            }),
+            default_values: ComputedValues::default_values(doc),
             // FIXME(bz): Seems dubious?
             root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
-            body_text_color: AtomicUsize::new(unsafe { &*pres_context }.mDefaultColor as usize),
+            body_text_color: AtomicUsize::new(prefs.mDefaultColor as usize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
             environment: CssEnvironment,
@@ -168,6 +168,12 @@ impl Device {
         unsafe { &*self.pres_context().mDocument.mRawPtr }
     }
 
+    /// Gets the preference stylesheet prefs for our document.
+    #[inline]
+    pub fn pref_sheet_prefs(&self) -> &structs::PreferenceSheet_Prefs {
+        unsafe { &*bindings::Gecko_GetPrefSheetPrefs(self.document()) }
+    }
+
     /// Recreates the default computed values.
     pub fn reset_computed_values(&mut self) {
         self.default_values = ComputedValues::default_values(self.document());
@@ -243,7 +249,7 @@ impl Device {
 
     /// Returns the default background color.
     pub fn default_background_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pres_context().mBackgroundColor)
+        convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultBackgroundColor)
     }
 
     /// Applies text zoom to a font-size or line-height value (see nsStyleFont::ZoomText).
