@@ -586,6 +586,31 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     fn SignalingState(&self) -> RTCSignalingState {
         self.signaling_state.get()
     }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close
+    fn Close(&self) {
+        // Step 1
+        if self.closed.get() {
+            return;
+        }
+        // Step 2
+        self.closed.set(true);
+
+        // Step 4
+        self.signaling_state.set(RTCSignalingState::Closed);
+
+        // Step 5 handled by backend
+        self.controller.borrow_mut().as_ref().unwrap().quit();
+
+        // Step 6-10
+        // (no current support for data channels, transports, etc)
+
+        // Step 11
+        self.ice_connection_state.set(RTCIceConnectionState::Closed);
+
+        // Step 11
+        // (no current support for connection state)
+    }
 }
 
 impl From<SessionDescription> for RTCSessionDescriptionInit {

@@ -26,7 +26,7 @@ interface RTCPeerConnection : EventTarget {
     // static sequence<RTCIceServer>      getDefaultIceServers();
     // RTCConfiguration                   getConfiguration();
     // void                               setConfiguration(RTCConfiguration configuration);
-    // void                               close();
+    void                               close();
              attribute EventHandler           onnegotiationneeded;
              attribute EventHandler           onicecandidate;
     //          attribute EventHandler           onicecandidateerror;
