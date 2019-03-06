@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceConnectionState,
-    RTCIceGatheringState, RTCOfferOptions,
+    RTCIceGatheringState, RTCOfferOptions, RTCSignalingState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
@@ -38,7 +38,7 @@ use dom_struct::dom_struct;
 use servo_media::streams::MediaStream as BackendMediaStream;
 use servo_media::webrtc::{
     BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
-    WebRtcController, WebRtcSignaller,
+    SignalingState, WebRtcController, WebRtcSignaller,
 };
 use servo_media::ServoMedia;
 
@@ -62,6 +62,7 @@ pub struct RTCPeerConnection {
     remote_description: MutNullableDom<RTCSessionDescription>,
     gathering_state: Cell<RTCIceGatheringState>,
     ice_connection_state: Cell<RTCIceConnectionState>,
+    signaling_state: Cell<RTCSignalingState>,
 }
 
 struct RTCSignaller {
@@ -115,6 +116,17 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
+    fn update_signaling_state(&self, state: SignalingState) {
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(update_signaling_state: move || {
+                let this = this.root();
+                this.update_signaling_state(state);
+            }),
+            &self.canceller,
+        );
+    }
+
     fn on_add_stream(&self, _: Box<BackendMediaStream>) {}
 
     fn close(&self) {
@@ -135,6 +147,7 @@ impl RTCPeerConnection {
             remote_description: Default::default(),
             gathering_state: Cell::new(RTCIceGatheringState::New),
             ice_connection_state: Cell::new(RTCIceConnectionState::New),
+            signaling_state: Cell::new(RTCSignalingState::Stable),
         }
     }
 
@@ -293,6 +306,28 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(self.upcast());
     }
 
+    fn update_signaling_state(&self, state: SignalingState) {
+        if self.closed.get() {
+            return;
+        }
+
+        let state: RTCSignalingState = state.into();
+
+        if state == self.signaling_state.get() {
+            return;
+        }
+
+        self.signaling_state.set(state);
+
+        let event = Event::new(
+            &self.global(),
+            atom!("signalingstatechange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event.upcast::<Event>().fire(self.upcast());
+    }
+
     fn create_offer(&self) {
         let generation = self.offer_answer_generation.get();
         let (task_source, canceller) = self
@@ -383,6 +418,13 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         negotiationneeded,
         GetOnnegotiationneeded,
         SetOnnegotiationneeded
+    );
+
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-signalingstatechange
+    event_handler!(
+        signalingstatechange,
+        GetOnsignalingstatechange,
+        SetOnsignalingstatechange
     );
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate
@@ -538,6 +580,11 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     fn IceConnectionState(&self) -> RTCIceConnectionState {
         self.ice_connection_state.get()
     }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-signalingstate
+    fn SignalingState(&self) -> RTCSignalingState {
+        self.signaling_state.get()
+    }
 }
 
 impl From<SessionDescription> for RTCSessionDescriptionInit {
@@ -590,6 +637,19 @@ impl From<IceConnectionState> for RTCIceConnectionState {
             IceConnectionState::Disconnected => RTCIceConnectionState::Disconnected,
             IceConnectionState::Failed => RTCIceConnectionState::Failed,
             IceConnectionState::Closed => RTCIceConnectionState::Closed,
+        }
+    }
+}
+
+impl From<SignalingState> for RTCSignalingState {
+    fn from(state: SignalingState) -> Self {
+        match state {
+            SignalingState::Stable => RTCSignalingState::Stable,
+            SignalingState::HaveLocalOffer => RTCSignalingState::Have_local_offer,
+            SignalingState::HaveRemoteOffer => RTCSignalingState::Have_remote_offer,
+            SignalingState::HaveLocalPranswer => RTCSignalingState::Have_local_pranswer,
+            SignalingState::HaveRemotePranswer => RTCSignalingState::Have_remote_pranswer,
+            SignalingState::Closed => RTCSignalingState::Closed,
         }
     }
 }

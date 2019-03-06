@@ -18,7 +18,7 @@ interface RTCPeerConnection : EventTarget {
     // readonly attribute RTCSessionDescription? currentRemoteDescription;
     // readonly attribute RTCSessionDescription? pendingRemoteDescription;
     Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate);
-    // readonly attribute RTCSignalingState      signalingState;
+    readonly attribute RTCSignalingState      signalingState;
     readonly attribute RTCIceGatheringState   iceGatheringState;
     readonly attribute RTCIceConnectionState  iceConnectionState;
     // readonly attribute RTCPeerConnectionState connectionState;
@@ -30,7 +30,7 @@ interface RTCPeerConnection : EventTarget {
              attribute EventHandler           onnegotiationneeded;
              attribute EventHandler           onicecandidate;
     //          attribute EventHandler           onicecandidateerror;
-    //          attribute EventHandler           onsignalingstatechange;
+             attribute EventHandler           onsignalingstatechange;
              attribute EventHandler           oniceconnectionstatechange;
              attribute EventHandler           onicegatheringstatechange;
     //          attribute EventHandler           onconnectionstatechange;
@@ -103,5 +103,14 @@ enum RTCIceConnectionState {
     "completed",
     "disconnected",
     "failed",
+    "closed"
+};
+
+enum RTCSignalingState {
+    "stable",
+    "have-local-offer",
+    "have-remote-offer",
+    "have-local-pranswer",
+    "have-remote-pranswer",
     "closed"
 };

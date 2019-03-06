@@ -97,6 +97,7 @@ seeked
 seeking
 select
 serif
+signalingstatechange
 srclang
 statechange
 storage
