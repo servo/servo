@@ -34,6 +34,7 @@ pub struct MouseEvent {
     button: Cell<i16>,
     related_target: MutNullableDom<EventTarget>,
     point_in_target: Cell<Option<Point2D<f32>>>,
+    // TODO Composed Flag (Step 8 of https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event)
 }
 
 impl MouseEvent {

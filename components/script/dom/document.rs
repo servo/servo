@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::document_loader::{DocumentLoader, LoadType};
-use crate::dom::activation::{synthetic_click_activation, ActivationSource};
+use crate::dom::activation::{synthetic_click_activation};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -1443,10 +1443,6 @@ impl Document {
             let msg = EmbedderMsg::Keyboard(keyboard_event.clone());
             self.send_to_embedder(msg);
 
-            // This behavior is unspecced
-            // We are supposed to dispatch synthetic click activation for Space and/or Return,
-            // however *when* we do it is up to us.
-            // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
             match keyboard_event.key {
                 Key::Character(ref letter)
@@ -1454,14 +1450,7 @@ impl Document {
                 {
                     let maybe_elem = target.downcast::<Element>();
                     if let Some(el) = maybe_elem {
-                        synthetic_click_activation(
-                            el,
-                            false,
-                            false,
-                            false,
-                            false,
-                            ActivationSource::NotFromClick,
-                        )
+                        synthetic_click_activation(el, false, false, false, false, false)
                     }
                 }
                 Key::Enter if keyboard_event.state == KeyState::Up => {

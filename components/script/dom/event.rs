@@ -144,6 +144,7 @@ impl Event {
         target: &EventTarget,
         target_override: Option<&EventTarget>,
     ) -> EventStatus {
+        let is_activation_event = false;
         assert!(!self.dispatching());
         assert!(self.initialized());
         assert_eq!(self.phase.get(), EventPhase::None);
@@ -169,6 +170,9 @@ impl Event {
         // Step 3-4.
         let path = self.construct_event_path(&target);
         rooted_vec!(let event_path <- path.into_iter());
+        if self.type_() == atom!("click") {
+            is_activation_event = true;
+        }
         // Steps 5-9. In a separate function to short-circuit various things easily.
         dispatch_to_listeners(self, target, event_path.r());
 
