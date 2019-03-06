@@ -8,7 +8,6 @@ use crate::custom_properties::CssEnvironment;
 use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
-use crate::gecko_bindings::structs::{nsPresContext, RawGeckoPresContextBorrowed};
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
@@ -28,10 +27,9 @@ use style_traits::{CSSPixel, DevicePixel};
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.
 pub struct Device {
-    /// NB: The pres context lifetime is tied to the styleset, who owns the
-    /// stylist, and thus the `Device`, so having a raw pres context pointer
-    /// here is fine.
-    pres_context: RawGeckoPresContextBorrowed,
+    /// NB: The document owns the styleset, who owns the stylist, and thus the
+    /// `Device`, so having a raw document pointer here is fine.
+    document: *const structs::Document,
     default_values: Arc<ComputedValues>,
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -81,12 +79,12 @@ unsafe impl Send for Device {}
 
 impl Device {
     /// Trivially constructs a new `Device`.
-    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
-        assert!(!pres_context.is_null());
-        let doc = unsafe { &*(*pres_context).mDocument.mRawPtr };
+    pub fn new(document: *const structs::Document) -> Self {
+        assert!(!document.is_null());
+        let doc = unsafe { &*document };
         let prefs = unsafe { &*bindings::Gecko_GetPrefSheetPrefs(doc) };
         Device {
-            pres_context,
+            document,
             default_values: ComputedValues::default_values(doc),
             // FIXME(bz): Seems dubious?
             root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
@@ -112,9 +110,14 @@ impl Device {
     /// Whether any animation name may be referenced from the style of any
     /// element.
     pub fn animation_name_may_be_referenced(&self, name: &KeyframesName) -> bool {
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return false,
+        };
+
         unsafe {
             bindings::Gecko_AnimationNameMayBeReferencedFromStyle(
-                self.pres_context(),
+                pc,
                 name.as_atom().as_ptr(),
             )
         }
@@ -156,16 +159,18 @@ impl Device {
         convert_nscolor_to_rgba(self.body_text_color.load(Ordering::Relaxed) as u32)
     }
 
-    /// Gets the pres context associated with this document.
-    #[inline]
-    pub fn pres_context(&self) -> &nsPresContext {
-        unsafe { &*self.pres_context }
-    }
-
     /// Gets the document pointer.
     #[inline]
     pub fn document(&self) -> &structs::Document {
-        unsafe { &*self.pres_context().mDocument.mRawPtr }
+        unsafe { &*self.document }
+    }
+
+    /// Gets the pres context associated with this document.
+    #[inline]
+    pub fn pres_context(&self) -> Option<&structs::nsPresContext> {
+        unsafe {
+            self.document().mPresShell.as_ref()?.mPresContext.mRawPtr.as_ref()
+        }
     }
 
     /// Gets the preference stylesheet prefs for our document.
@@ -201,13 +206,17 @@ impl Device {
 
     /// Returns the current media type of the device.
     pub fn media_type(&self) -> MediaType {
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return MediaType::screen(),
+        };
+
         // Gecko allows emulating random media with mIsEmulatingMedia and
         // mMediaEmulated.
-        let context = self.pres_context();
-        let medium_to_use = if context.mIsEmulatingMedia() != 0 {
-            context.mMediaEmulated.mRawPtr
+        let medium_to_use = if pc.mIsEmulatingMedia() != 0 {
+            pc.mMediaEmulated.mRawPtr
         } else {
-            context.mMedium
+            pc.mMedium
         };
 
         MediaType(CustomIdent(unsafe { Atom::from_raw(medium_to_use) }))
@@ -215,7 +224,11 @@ impl Device {
 
     /// Returns the current viewport size in app units.
     pub fn au_viewport_size(&self) -> Size2D<Au> {
-        let area = &self.pres_context().mVisibleArea;
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return Size2D::new(Au(0), Au(0)),
+        };
+        let area = &pc.mVisibleArea;
         Size2D::new(Au(area.width), Au(area.height))
     }
 
@@ -233,18 +246,37 @@ impl Device {
 
     /// Returns the device pixel ratio.
     pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
-        let override_dppx = self.pres_context().mOverrideDPPX;
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return TypedScale::new(1.),
+        };
+
+        let override_dppx = pc.mOverrideDPPX;
         if override_dppx > 0.0 {
             return TypedScale::new(override_dppx);
         }
-        let au_per_dpx = self.pres_context().mCurAppUnitsPerDevPixel as f32;
+
+        let au_per_dpx = pc.mCurAppUnitsPerDevPixel as f32;
         let au_per_px = AU_PER_PX as f32;
         TypedScale::new(au_per_px / au_per_dpx)
     }
 
     /// Returns whether document colors are enabled.
+    #[inline]
     pub fn use_document_colors(&self) -> bool {
-        self.pres_context().mUseDocumentColors() != 0
+        let doc = self.document();
+        if doc.mIsBeingUsedAsImage() {
+            return true;
+        }
+        let document_color_use = unsafe {
+            structs::StaticPrefs_sVarCache_browser_display_document_color_use
+        };
+        let prefs = self.pref_sheet_prefs();
+        match document_color_use {
+            1 => true,
+            2 => prefs.mIsChrome,
+            _ => !prefs.mUseAccessibilityTheme,
+        }
     }
 
     /// Returns the default background color.
@@ -252,15 +284,25 @@ impl Device {
         convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultBackgroundColor)
     }
 
+    /// Returns the current effective text zoom.
+    #[inline]
+    fn effective_text_zoom(&self) -> f32 {
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return 1.,
+        };
+        pc.mEffectiveTextZoom
+    }
+
     /// Applies text zoom to a font-size or line-height value (see nsStyleFont::ZoomText).
     #[inline]
     pub fn zoom_text(&self, size: Au) -> Au {
-        size.scale_by(self.pres_context().mEffectiveTextZoom)
+        size.scale_by(self.effective_text_zoom())
     }
 
     /// Un-apply text zoom.
     #[inline]
     pub fn unzoom_text(&self, size: Au) -> Au {
-        size.scale_by(1. / self.pres_context().mEffectiveTextZoom)
+        size.scale_by(1. / self.effective_text_zoom())
     }
 }
