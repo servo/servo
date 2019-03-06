@@ -428,7 +428,10 @@ impl<'ld> ServoLayoutDocument<'ld> {
             self.document
                 .shadow_roots()
                 .iter()
-                .map(|sr| ServoShadowRoot::from_layout_js(*sr))
+                .map(|sr| {
+                    debug_assert!(sr.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED));
+                    ServoShadowRoot::from_layout_js(*sr)
+                })
                 .collect()
         }
     }
