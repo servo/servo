@@ -20,7 +20,7 @@ interface RTCPeerConnection : EventTarget {
     Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate);
     // readonly attribute RTCSignalingState      signalingState;
     readonly attribute RTCIceGatheringState   iceGatheringState;
-    // readonly attribute RTCIceConnectionState  iceConnectionState;
+    readonly attribute RTCIceConnectionState  iceConnectionState;
     // readonly attribute RTCPeerConnectionState connectionState;
     // readonly attribute boolean?               canTrickleIceCandidates;
     // static sequence<RTCIceServer>      getDefaultIceServers();
@@ -31,7 +31,7 @@ interface RTCPeerConnection : EventTarget {
              attribute EventHandler           onicecandidate;
     //          attribute EventHandler           onicecandidateerror;
     //          attribute EventHandler           onsignalingstatechange;
-    //          attribute EventHandler           oniceconnectionstatechange;
+             attribute EventHandler           oniceconnectionstatechange;
              attribute EventHandler           onicegatheringstatechange;
     //          attribute EventHandler           onconnectionstatechange;
 
@@ -94,4 +94,14 @@ enum RTCIceGatheringState {
     "new",
     "gathering",
     "complete"
+};
+
+enum RTCIceConnectionState {
+    "new",
+    "checking",
+    "connected",
+    "completed",
+    "disconnected",
+    "failed",
+    "closed"
 };
