@@ -144,6 +144,7 @@ impl Event {
         target: &EventTarget,
         target_override: Option<&EventTarget>,
     ) -> EventStatus {
+        let is_activation_event = false;
         assert!(!self.dispatching());
         assert!(self.initialized());
         assert_eq!(self.phase.get(), EventPhase::None);
@@ -169,6 +170,9 @@ impl Event {
         // Step 3-4.
         let path = self.construct_event_path(&target);
         rooted_vec!(let event_path <- path.into_iter());
+        if self.type_() == atom!("click") {
+            is_activation_event = true;
+        }
         // Steps 5-9. In a separate function to short-circuit various things easily.
         dispatch_to_listeners(self, target, event_path.r());
 
@@ -203,7 +207,6 @@ impl Event {
     // https://dom.spec.whatwg.org/#concept-event-dispatch Steps 10-12.
     fn clear_dispatching_flags(&self) {
         assert!(self.dispatching.get());
-
         self.dispatching.set(false);
         self.stop_propagation.set(false);
         self.stop_immediate.set(false);
@@ -483,6 +486,8 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
             return;
         }
     }
+
+    //Step 9.6.1
 }
 
 // https://dom.spec.whatwg.org/#concept-event-listener-invoke

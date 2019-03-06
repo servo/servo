@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, ActivationSource};
+use crate::dom::activation::{synthetic_click_activation};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -361,14 +361,7 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
         if !self.upcast::<Element>().disabled_state() {
-            synthetic_click_activation(
-                self.upcast::<Element>(),
-                false,
-                false,
-                false,
-                false,
-                ActivationSource::FromClick,
-            )
+            synthetic_click_activation(self.upcast::<Element>(), false, false, false, false, true)
         }
     }
 

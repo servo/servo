@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
+use crate::dom::activation::{synthetic_click_activation, Activatable};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -343,7 +343,7 @@ impl Activatable for HTMLButtonElement {
                     shift_key,
                     alt_key,
                     meta_key,
-                    ActivationSource::NotFromClick,
+                    false,
                 )
             });
     }

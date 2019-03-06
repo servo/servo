@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
+use crate::dom::activation::{synthetic_click_activation, Activatable};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
@@ -73,14 +73,7 @@ impl Activatable for HTMLLabelElement {
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         if let Some(e) = self.GetControl() {
             let elem = e.upcast::<Element>();
-            synthetic_click_activation(
-                elem,
-                false,
-                false,
-                false,
-                false,
-                ActivationSource::NotFromClick,
-            );
+            synthetic_click_activation(elem, false, false, false, false, false);
         }
     }
 
