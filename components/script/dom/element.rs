@@ -489,7 +489,9 @@ impl Element {
             .shadow_root
             .or_init(|| ShadowRoot::new(self, &*self.node.owner_doc()));
 
-        self.node.owner_doc().register_shadow_root(&*shadow_root);
+        if self.is_connected() {
+            self.node.owner_doc().register_shadow_root(&*shadow_root);
+        }
 
         Ok(shadow_root)
     }
@@ -2802,7 +2804,10 @@ impl VirtualMethods for Element {
             f.bind_form_control_to_tree();
         }
 
+        let doc = document_from_node(self);
+
         if let Some(shadow_root) = self.rare_data.shadow_root.get() {
+            doc.register_shadow_root(&shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
             for node in shadow_root.children() {
@@ -2815,7 +2820,6 @@ impl VirtualMethods for Element {
             return;
         }
 
-        let doc = document_from_node(self);
         if let Some(ref value) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
                 shadow_root.register_named_element(self, value.clone());
