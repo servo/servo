@@ -17,12 +17,13 @@ use app_units::Au;
 use euclid::Size2D;
 
 fn viewport_size(device: &Device) -> Size2D<Au> {
-    let pc = device.pres_context();
-    if pc.mIsRootPaginatedDocument() != 0 {
-        // We want the page size, including unprintable areas and margins.
-        // FIXME(emilio, bug 1414600): Not quite!
-        let area = &pc.mPageSize;
-        return Size2D::new(Au(area.width), Au(area.height));
+    if let Some(pc) = device.pres_context() {
+        if pc.mIsRootPaginatedDocument() != 0 {
+            // We want the page size, including unprintable areas and margins.
+            // FIXME(emilio, bug 1414600): Not quite!
+            let area = &pc.mPageSize;
+            return Size2D::new(Au(area.width), Au(area.height));
+        }
     }
     device.au_viewport_size()
 }
