@@ -376,7 +376,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#completely-loaded
     completely_loaded: Cell<bool>,
     /// List of shadow roots bound to the document tree.
-    shadow_roots: DomRefCell<Vec<Dom<ShadowRoot>>>,
+    shadow_roots: DomRefCell<HashSet<Dom<ShadowRoot>>>,
     /// Whether any of the shadow roots need the stylesheets flushed.
     shadow_roots_styles_changed: Cell<bool>,
 }
@@ -2683,7 +2683,7 @@ impl Document {
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
-            shadow_roots: DomRefCell::new(Vec::new()),
+            shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
         }
     }
@@ -3143,16 +3143,13 @@ impl Document {
     pub fn register_shadow_root(&self, shadow_root: &ShadowRoot) {
         self.shadow_roots
             .borrow_mut()
-            .push(Dom::from_ref(shadow_root));
+            .insert(Dom::from_ref(shadow_root));
         self.invalidate_shadow_roots_stylesheets();
     }
 
     pub fn unregister_shadow_root(&self, shadow_root: &ShadowRoot) {
         let mut shadow_roots = self.shadow_roots.borrow_mut();
-        let position = shadow_roots.iter().position(|sr| **sr == *shadow_root);
-        if let Some(index) = position {
-            shadow_roots.remove(index);
-        }
+        shadow_roots.remove(&Dom::from_ref(shadow_root));
     }
 
     pub fn invalidate_shadow_roots_stylesheets(&self) {
