@@ -53,6 +53,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserve
 use crate::dom::nodelist::NodeList;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
+use crate::dom::raredata::NodeRareData;
 use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
@@ -124,10 +125,8 @@ pub struct Node {
     /// The document that this node belongs to.
     owner_doc: MutNullableDom<Document>,
 
-    /// The shadow root this node belongs to.
-    /// This is None if the node is not in a shadow tree or
-    /// if it is a ShadowRoot.
-    owner_shadow_root: MutNullableDom<ShadowRoot>,
+    /// Rare node data.
+    rare_data: Box<NodeRareData>,
 
     /// The live list of children return by .childNodes.
     child_list: MutNullableDom<NodeList>,
@@ -928,11 +927,11 @@ impl Node {
         if let Some(ref shadow_root) = self.downcast::<ShadowRoot>() {
             return Some(DomRoot::from_ref(shadow_root));
         }
-        self.owner_shadow_root.get()
+        self.rare_data.owner_shadow_root.get()
     }
 
     pub fn set_owner_shadow_root(&self, shadow_root: &ShadowRoot) {
-        self.owner_shadow_root.set(Some(shadow_root));
+        self.rare_data.owner_shadow_root.set(Some(shadow_root));
     }
 
     pub fn is_in_html_doc(&self) -> bool {
@@ -1263,7 +1262,10 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn owner_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
-        (*self.unsafe_get()).owner_shadow_root.get_inner_as_layout()
+        (*self.unsafe_get())
+            .rare_data
+            .owner_shadow_root
+            .get_inner_as_layout()
     }
 
     #[inline]
@@ -1632,7 +1634,7 @@ impl Node {
             next_sibling: Default::default(),
             prev_sibling: Default::default(),
             owner_doc: MutNullableDom::new(doc),
-            owner_shadow_root: Default::default(),
+            rare_data: Default::default(),
             child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
@@ -2261,7 +2263,7 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-getrootnode
     fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
         if options.composed {
-            if let Some(shadow_root) = self.owner_shadow_root.get() {
+            if let Some(shadow_root) = self.rare_data.owner_shadow_root.get() {
                 // shadow-including root.
                 return shadow_root.Host().upcast::<Node>().GetRootNode(options);
             }

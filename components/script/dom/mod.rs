@@ -442,6 +442,7 @@ pub mod promisenativehandler;
 pub mod promiserejectionevent;
 pub mod radionodelist;
 pub mod range;
+pub mod raredata;
 pub mod request;
 pub mod response;
 pub mod rtcicecandidate;
