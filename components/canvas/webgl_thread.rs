@@ -380,6 +380,10 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             self.webrender_api.update_resources(txn.resource_updates)
         }
 
+        // We need to make the context current so its resources can be disposed of.
+        let _ =
+            Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
+
         // Release GL context.
         self.contexts.remove(&context_id);
 
