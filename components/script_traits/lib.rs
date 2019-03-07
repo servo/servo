@@ -303,6 +303,7 @@ pub enum ConstellationControlMsg {
     UpdatePipelineId(
         PipelineId,
         BrowsingContextId,
+        TopLevelBrowsingContextId,
         PipelineId,
         UpdatePipelineIdReason,
     ),
