@@ -17,6 +17,7 @@ use crate::properties::CASCADE_PROPERTY;
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_tree::{CascadeLevel, StrongRuleNode};
 use crate::selector_parser::PseudoElement;
+use crate::stylesheets::{Origin, PerOrigin};
 use servo_arc::Arc;
 use crate::shared_lock::StylesheetGuards;
 use smallbitvec::SmallBitVec;
@@ -251,7 +252,7 @@ where
         for (declaration, cascade_level) in iter_declarations() {
             declarations.push((declaration, cascade_level));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(&declaration.name, &declaration.value);
+                builder.cascade(declaration, cascade_level.origin());
             }
         }
 
@@ -339,14 +340,8 @@ fn should_ignore_declaration_when_ignoring_document_colors(
         return false;
     }
 
-    let is_ua_or_user_rule = matches!(
-        cascade_level,
-        CascadeLevel::UANormal |
-            CascadeLevel::UserNormal |
-            CascadeLevel::UserImportant |
-            CascadeLevel::UAImportant
-    );
-
+    let is_ua_or_user_rule =
+        matches!(cascade_level.origin(), Origin::User | Origin::UserAgent);
     if is_ua_or_user_rule {
         return false;
     }
@@ -388,6 +383,7 @@ struct Cascade<'a, 'b: 'a> {
     context: &'a mut computed::Context<'b>,
     cascade_mode: CascadeMode<'a>,
     seen: LonghandIdSet,
+    reverted: PerOrigin<LonghandIdSet>,
     saved_font_size: Option<PropertyDeclaration>,
     saved_font_family: Option<PropertyDeclaration>,
 }
@@ -398,6 +394,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             context,
             cascade_mode,
             seen: LonghandIdSet::default(),
+            reverted: Default::default(),
             saved_font_size: None,
             saved_font_family: None,
         }
@@ -488,6 +485,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         for (declaration, cascade_level) in declarations {
             let declaration_id = declaration.id();
+            let origin = cascade_level.origin();
             let longhand_id = match declaration_id {
                 PropertyDeclarationId::Longhand(id) => id,
                 PropertyDeclarationId::Custom(..) => continue,
@@ -510,6 +508,10 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             };
 
             if self.seen.contains(physical_longhand_id) {
+                continue;
+            }
+
+            if self.reverted.borrow_for_origin(&origin).contains(physical_longhand_id) {
                 continue;
             }
 
@@ -538,6 +540,15 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 if should_ignore {
                     continue;
                 }
+            }
+
+            if declaration.is_revert() {
+                for origin in origin.following_including() {
+                    self.reverted
+                        .borrow_mut_for_origin(&origin)
+                        .insert(physical_longhand_id);
+                }
+                continue;
             }
 
             self.seen.insert(physical_longhand_id);

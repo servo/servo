@@ -160,7 +160,7 @@ impl CustomIdent {
         excluding: &[&str],
     ) -> Result<Self, ParseError<'i>> {
         let valid = match_ignore_ascii_case! { ident,
-            "initial" | "inherit" | "unset" | "default" => false,
+            "initial" | "inherit" | "unset" | "default" | "revert" => false,
             _ => true
         };
         if !valid {
