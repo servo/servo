@@ -11,7 +11,7 @@ use crate::font_metrics::FontMetricsProvider;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
 use crate::properties::{ComputedValues, StyleBuilder};
-use crate::properties::{LonghandId, LonghandIdSet};
+use crate::properties::{LonghandId, LonghandIdSet, CSSWideKeyword};
 use crate::properties::{PropertyDeclaration, PropertyDeclarationId, DeclarationImportanceIterator};
 use crate::properties::CASCADE_PROPERTY;
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
@@ -542,7 +542,11 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 }
             }
 
-            if declaration.is_revert() {
+            let css_wide_keyword = declaration.get_css_wide_keyword();
+            if let Some(CSSWideKeyword::Revert) = css_wide_keyword {
+                // We intentionally don't want to insert it into `self.seen`,
+                // `reverted` takes care of rejecting other declarations as
+                // needed.
                 for origin in origin.following_including() {
                     self.reverted
                         .borrow_mut_for_origin(&origin)
@@ -552,6 +556,19 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
 
             self.seen.insert(physical_longhand_id);
+
+            let unset = css_wide_keyword.map_or(false, |css_wide_keyword| {
+                match css_wide_keyword {
+                    CSSWideKeyword::Unset => true,
+                    CSSWideKeyword::Inherit => inherited,
+                    CSSWideKeyword::Initial => !inherited,
+                    CSSWideKeyword::Revert => unreachable!(),
+                }
+            });
+
+            if unset {
+                continue;
+            }
 
             // FIXME(emilio): We should avoid generating code for logical
             // longhands and just use the physical ones, then rename
@@ -811,18 +828,14 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                     self.seen.contains(LonghandId::MozMinFontSizeRatio) ||
                     self.seen.contains(LonghandId::FontFamily)
                 {
-                    use crate::properties::{CSSWideKeyword, WideKeywordDeclaration};
+                    use crate::values::computed::FontSize;
 
                     // font-size must be explicitly inherited to handle lang
                     // changes and scriptlevel changes.
                     //
                     // FIXME(emilio): That looks a bit bogus...
-                    let inherit = PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
-                        id: LonghandId::FontSize,
-                        keyword: CSSWideKeyword::Inherit,
-                    });
-
-                    self.apply_declaration_ignoring_phase(LonghandId::FontSize, &inherit);
+                    self.context.for_non_inherited_property = None;
+                    FontSize::cascade_inherit_font_size(&mut self.context);
                 }
             }
         }
