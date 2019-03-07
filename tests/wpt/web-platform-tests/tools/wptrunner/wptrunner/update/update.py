@@ -149,7 +149,7 @@ class WPTUpdate(object):
                 # If the sync path doesn't exist we defer this until it does
                 setup_paths(kwargs["sync_path"])
 
-        if kwargs["store_state"]:
+        if kwargs.get("store_state", False):
             self.state = SavedState(logger)
         else:
             self.state = UnsavedState(logger)

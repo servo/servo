@@ -49,7 +49,13 @@ class Virtualenv(object):
         self.activate()
 
     def install(self, *requirements):
-        call(self.pip_path, "install", *requirements)
+        # `--prefer-binary` guards against race conditions when installation
+        # occurs while packages are in the process of being published.
+        call(self.pip_path, "install", "--prefer-binary", *requirements)
 
     def install_requirements(self, requirements_path):
-        call(self.pip_path, "install", "-r", requirements_path)
+        # `--prefer-binary` guards against race conditions when installation
+        # occurs while packages are in the process of being published.
+        call(
+            self.pip_path, "install", "--prefer-binary", "-r", requirements_path
+        )

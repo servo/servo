@@ -10,8 +10,8 @@ from mozlog import handlers, structuredlog
 
 sys.path.insert(0, join(dirname(__file__), "..", ".."))
 
-from wptrunner import formatters
-from wptrunner.formatters import WptreportFormatter
+from wptrunner.formatters import wptreport
+from wptrunner.formatters.wptreport import WptreportFormatter
 
 
 def test_wptreport_runtime(capfd):
@@ -108,7 +108,7 @@ def test_wptreport_lone_surrogate_ucs2(capfd):
     logger = structuredlog.StructuredLogger("test_a")
     logger.add_handler(handlers.StreamHandler(output, WptreportFormatter()))
 
-    with mock.patch.object(formatters, 'surrogate_replacement', formatters.SurrogateReplacementUcs2()):
+    with mock.patch.object(wptreport, 'surrogate_replacement', wptreport.SurrogateReplacementUcs2()):
         # output a bunch of stuff
         logger.suite_start(["test-id-1"])  # no run_info arg!
         logger.test_start("test-id-1")

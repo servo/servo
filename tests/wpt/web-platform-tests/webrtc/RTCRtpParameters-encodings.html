@@ -220,8 +220,8 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const { sender } = pc.addTransceiver('audio', {
-      sendEncodings: [{ rid: 'foo' }],
+    const { sender } = pc.addTransceiver('video', {
+      sendEncodings: [{ rid: 'foo' }, { rid: 'baz' }],
     });
     await doOfferAnswerExchange(t, pc);
 

@@ -22,9 +22,9 @@ then
         echo Unrecognized release channel: $CHANNEL >&2
         exit 1
     fi
-    wget https://dl.google.com/linux/direct/$deb_archive
+    wget -O /tmp/$deb_archive https://dl.google.com/linux/direct/$deb_archive
 
-    sudo apt-get -qqy update && sudo gdebi -n $deb_archive
+    sudo apt-get -qqy update && sudo gdebi -n /tmp/$deb_archive
 fi
 
 sudo Xvfb $DISPLAY -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH} &

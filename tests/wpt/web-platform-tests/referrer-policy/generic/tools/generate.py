@@ -48,13 +48,11 @@ def permute_expansion(expansion, artifact_order, selection = {}, artifact_index 
             yield next_selection
 
 
-def generate_selection(selection, spec, subresource_path,
-                       test_html_template_basename):
+def generate_selection(selection, spec, test_html_template_basename):
     selection['spec_name'] = spec['name']
     selection['spec_title'] = spec['title']
     selection['spec_description'] = spec['description']
     selection['spec_specification_url'] = spec['specification_url']
-    selection['subresource_path'] = subresource_path
     # Oddball: it can be None, so in JS it's null.
     selection['referrer_policy_json'] = json.dumps(spec['referrer_policy'])
 
@@ -170,11 +168,8 @@ def generate_test_source_files(spec_json, target):
 
         for selection_path in output_dict:
             selection = output_dict[selection_path]
-            subresource_path = \
-                spec_json["subresource_path"][selection["subresource"]]
             generate_selection(selection,
                                spec,
-                               subresource_path,
                                html_template)
 
 

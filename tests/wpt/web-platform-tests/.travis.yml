@@ -28,11 +28,6 @@ matrix:
           secure: "EljDx50oNpDLs7rzwIv+z1PxIgB5KMnx1W0OQkpNvltR0rBW9g/aQaE+Z/c8M/sPqN1bkvKPybKzGKjb6j9Dw3/EJhah4SskH78r3yMAe2DU/ngxqqjjfXcCc2t5MKxzHAILTAxqScPj2z+lG1jeK1Z+K5hTbSP9lk+AvS0D16w="
         file: $WPT_MANIFEST_FILE.gz
         skip_cleanup: true
-    - name: "lint"
-      # lint is run both on master and on PRs
-      os: linux
-      python: "2.7"
-      env: JOB=lint SCRIPT=tools/ci/ci_lint.sh
     - name: "update-built-tests.sh"
       if: type = pull_request
       os: linux

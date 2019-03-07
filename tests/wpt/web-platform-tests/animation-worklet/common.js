@@ -16,6 +16,19 @@ function registerConstantLocalTimeAnimator(localTime) {
   `);
 }
 
+// TODO(majidvp): This is used to sidestep a bug where we currently animate
+// with currentTime=NaN when scroll timeline is not active. Remove once we fix
+// http://crbug.com/937456
+function registerPassthroughExceptNaNAnimator() {
+  return runInAnimationWorklet(`
+    registerAnimator('passthrough_except_nan', class {
+      animate(currentTime, effect) {
+        if (Number.isNaN(currentTime)) return;
+        effect.localTime = currentTime;
+      }
+    });
+  `);
+}
 
 function runInAnimationWorklet(code) {
   return CSS.animationWorklet.addModule(

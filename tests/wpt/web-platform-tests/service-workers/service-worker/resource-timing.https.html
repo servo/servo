@@ -15,7 +15,7 @@ function crossOriginUrl(path) {
 function verify(options) {
     const url = options.mode === 'cross-origin' ? crossOriginUrl(options.resource)
                                       : resourceUrl(options.resource);
-    const entryList = options.performance.getEntriesByName(url);
+    const entryList = options.performance.getEntriesByName(url, 'resource');
     if (options.should_no_performance_entry) {
         // The performance timeline may not have an entry for a resource
         // which failed to load.
@@ -137,7 +137,7 @@ promise_test(function(t) {
 
 test(() => {
     const url = resourceUrl('resources/test-helpers.sub.js');
-    const entry = window.performance.getEntriesByName(url)[0];
+    const entry = window.performance.getEntriesByName(url, 'resource')[0];
     assert_equals(entry.workerStart, 0, 'Non-controlled');
 }, 'Non-controlled resource loads');
 

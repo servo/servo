@@ -17,7 +17,10 @@ body {
       t.step_func_done(function(entryList) {
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
-        checkElement(entry, 'img', beforeRender)
+        const index = window.location.href.lastIndexOf('/');
+        const pathname = window.location.href.substring(0, index) +
+            '/resources/square20.jpg';
+        checkElement(entry, pathname, '', beforeRender);
         // Assume viewport hasn't changed, so the element occupies all of it.
         checkRect(entry,
           [0, document.documentElement.clientWidth, 0, document.documentElement.clientHeight]);

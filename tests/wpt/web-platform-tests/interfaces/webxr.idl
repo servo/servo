@@ -88,6 +88,7 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
 };
 
 enum XRReferenceSpaceType {
+  "identity",
   "stationary",
   "bounded",
   "unbounded"

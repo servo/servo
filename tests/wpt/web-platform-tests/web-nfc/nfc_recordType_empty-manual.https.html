@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Web NFC Test: push and watch empty records</title>
+<title>Web NFC Test: write and read empty records</title>
 <link rel="author" title="Intel" href="http://www.intel.com"/>
 <link rel="help" href="https://w3c.github.io/web-nfc/"/>
 <meta name="timeout" content="long">
@@ -21,14 +21,14 @@
 
 setup({ explicit_timeout: true });
 
-let desc = "Test that nfc.push and nfc.watch succeed when recordType is set to 'empty'.";
-let watchOptions = {
+const desc = "Test that write and read data succeed when recordType is set to 'empty'.";
+const readOptions = {
   recordType: "empty",
   mediaType: "",
   url: ""
 }
-let message = createMessage([createRecord('empty', '')]);
+const message = createMessage([createRecord('empty', '')]);
 
-testNFCMessage(message, watchOptions, desc);
+testNDEFMessage(message, readOptions, desc);
 
 </script>

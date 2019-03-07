@@ -181,6 +181,9 @@ class ServoRefTestExecutor(ProcessTestExecutor):
         self.tempdir = tempfile.mkdtemp()
         self.hosts_path = write_hosts_file(server_config)
 
+    def reset(self):
+        self.implementation.reset()
+
     def teardown(self):
         try:
             os.unlink(self.hosts_path)
