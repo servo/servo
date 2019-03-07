@@ -55,7 +55,7 @@ def update_expected(test_paths, serve_root, log_file_names,
                         print("disabled: %s" % test.root.test_path)
 
 
-def do_delayed_imports(serve_root):
+def do_delayed_imports(serve_root=None):
     global manifest, manifestitem
     from manifest import manifest, item as manifestitem
 
@@ -443,6 +443,7 @@ class ExpectedUpdater(object):
 def create_test_tree(metadata_path, test_manifest):
     """Create a map of test_id to TestFileData for that test.
     """
+    do_delayed_imports()
     id_test_map = {}
     exclude_types = frozenset(["stub", "helper", "manual", "support", "conformancechecker"])
     all_types = manifestitem.item_types.keys()

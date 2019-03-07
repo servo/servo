@@ -25,8 +25,20 @@ dictionary IdleOptions {
   attribute EventHandler onchange;
 };
 
-enum IdleState {
+[
+  SecureContext,
+  Exposed=(Window,Worker)
+] interface IdleState {
+  readonly attribute UserIdleState user;
+  readonly attribute ScreenIdleState screen;
+};
+
+enum UserIdleState {
     "active",
-    "idle",
-    "locked"
+    "idle"
+};
+
+enum ScreenIdleState {
+    "locked",
+    "unlocked"
 };

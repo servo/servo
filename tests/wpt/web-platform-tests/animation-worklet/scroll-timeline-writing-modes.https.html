@@ -57,14 +57,15 @@ function createAndPlayTestAnimation(elements, timeline_orientation) {
     timeRange: 1000,
     orientation: timeline_orientation
   });
-  const animation = new WorkletAnimation('passthrough', effect, timeline);
+  const animation = new WorkletAnimation('passthrough_except_nan', effect, timeline);
   animation.play();
+  return animation;
 }
 
 setup(setupAndRegisterTests, {explicit_done: true});
 
 function setupAndRegisterTests() {
-  registerPassthroughAnimator().then(() => {
+  registerPassthroughExceptNaNAnimator().then(() => {
     // Note that block horizontal-tb is tested implicitly in the basic
     // ScrollTimeline tests (as it is the default).
     async_test(
@@ -90,14 +91,14 @@ function setupAndRegisterTests() {
 
 function block_vertical_lr(t) {
   const elements = createTestDOM(true, 'vertical-lr', 'ltr');
-  createAndPlayTestAnimation(elements, 'block');
+  const animation = createAndPlayTestAnimation(elements, 'block');
 
   // Move the scroller to the 25% point.
   const maxScroll =
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
   elements.scroller.scrollLeft = 0.25 * maxScroll;
 
-  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -105,7 +106,7 @@ function block_vertical_lr(t) {
 
 function block_vertical_rl(t) {
   const elements = createTestDOM(true, 'vertical-rl', 'ltr');
-  createAndPlayTestAnimation(elements, 'block');
+  const animation = createAndPlayTestAnimation(elements, 'block');
 
   // Move the scroller to the 75% point. Since it is vertical-rl, this is
   // equivalent to the 25% point for the ScrollTimeline.
@@ -113,7 +114,7 @@ function block_vertical_rl(t) {
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
   elements.scroller.scrollLeft = 0.75 * maxScroll;
 
-  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -121,7 +122,7 @@ function block_vertical_rl(t) {
 
 function inline_horizontal_tb_rtl(t) {
   const elements = createTestDOM(true, 'horizontal-tb', 'rtl');
-  createAndPlayTestAnimation(elements, 'inline');
+  const animation = createAndPlayTestAnimation(elements, 'inline');
 
   // Move the scroller to the 75% point. Since it is direction: rtl, this is
   // equivalent to the 25% point for the ScrollTimeline.
@@ -129,7 +130,7 @@ function inline_horizontal_tb_rtl(t) {
       elements.scroller.scrollWidth - elements.scroller.clientWidth;
   elements.scroller.scrollLeft = 0.75 * maxScroll;
 
-  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -137,14 +138,14 @@ function inline_horizontal_tb_rtl(t) {
 
 function inline_vertical_writing_mode_ltr(t) {
   const elements = createTestDOM(false, 'vertical-lr', 'ltr');
-  createAndPlayTestAnimation(elements, 'inline');
+  const animation = createAndPlayTestAnimation(elements, 'inline');
 
   // Move the scroller to the 25% point.
   const maxScroll =
       elements.scroller.scrollHeight - elements.scroller.clientHeight;
   elements.scroller.scrollTop = 0.25 * maxScroll;
 
-  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));
@@ -152,7 +153,7 @@ function inline_vertical_writing_mode_ltr(t) {
 
 function inline_vertical_writing_mode_rtl(t) {
   const elements = createTestDOM(false, 'vertical-lr', 'rtl');
-  createAndPlayTestAnimation(elements, 'inline');
+  const animation = createAndPlayTestAnimation(elements, 'inline');
 
   // Move the scroller to the 75% point. Since this is a vertical writing mode
   // and direction: rtl, this is 25% of the ScrollTimeline currentTime.
@@ -160,7 +161,7 @@ function inline_vertical_writing_mode_rtl(t) {
       elements.scroller.scrollHeight - elements.scroller.clientHeight;
   elements.scroller.scrollTop = 0.75 * maxScroll;
 
-  waitForAsyncAnimationFrames(2).then(t.step_func_done(() => {
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
     assert_equals(
         getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
   }));

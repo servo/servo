@@ -359,6 +359,9 @@ class SeleniumRefTestExecutor(RefTestExecutor):
         with open(os.path.join(here, "reftest-wait_webdriver.js")) as f:
             self.wait_script = f.read()
 
+    def reset(self):
+        self.implementation.reset()
+
     def is_alive(self):
         return self.protocol.is_alive()
 
@@ -369,7 +372,8 @@ class SeleniumRefTestExecutor(RefTestExecutor):
             """return [window.outerWidth - window.innerWidth,
                        window.outerHeight - window.innerHeight];"""
         )
-        self.protocol.webdriver.set_window_rect(0, 0, 800 + width_offset, 600 + height_offset)
+        self.protocol.webdriver.set_window_size(0, 0)
+        self.protocol.webdriver.set_window_position(800 + width_offset, 600 + height_offset)
 
         result = self.implementation.run_test(test)
 

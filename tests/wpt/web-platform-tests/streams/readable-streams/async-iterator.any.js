@@ -225,14 +225,11 @@ for (const preventCancel of [false, true]) {
   }, `Cancellation behavior when manually calling return(); preventCancel = ${preventCancel}`);
 }
 
-promise_test(async () => {
+promise_test(async t => {
   const s = new ReadableStream();
   const it = s[Symbol.asyncIterator]();
   await it.return();
-  try {
-    await it.return();
-    assert_unreached();
-  } catch (e) {}
+  return promise_rejects(t, new TypeError(), it.return(), 'return should reject');
 }, 'Calling return() twice rejects');
 
 promise_test(async () => {
@@ -338,3 +335,19 @@ promise_test(async () => {
   assert_equals(readResult.value, 3, 'should read remaining chunk');
   await reader.closed;
 }, 'Acquiring a reader and reading the remaining chunks after partially async-iterating a stream with preventCancel = true');
+
+promise_test(async t => {
+  const rs = new ReadableStream();
+  const it = rs.getIterator();
+  await it.return();
+  return promise_rejects(t, new TypeError(), it.next(), 'next() should reject');
+}, 'calling next() after return() should reject');
+
+for (const preventCancel of [false, true]) {
+  test(() => {
+    const rs = new ReadableStream();
+    rs.getIterator({ preventCancel }).return();
+    // The test passes if this line doesn't throw.
+    rs.getReader();
+  }, `return() should unlock the stream synchronously when preventCancel = ${preventCancel}`);
+}

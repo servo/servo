@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>fieldset accessibility test: shadow DOM</title>
+<link rel=help href=https://w3c.github.io/html-aam/#fieldset-element-accessible-name-computation>
+<template id="my-fieldset">
+  <fieldset id=fieldset>
+    <slot name="my-text"></slot>
+    <input>
+  </fieldset>
+</template>
+
+<my-fieldset>
+  <legend slot="my-text">Foo</legend>
+</my-fieldset>
+
+<p>Expected accessible name for id=fieldset: ""
+
+<script>
+customElements.define('my-fieldset',
+  class extends HTMLElement {
+    constructor() {
+      super();
+
+      const template = document.getElementById('my-fieldset');
+      const templateContent = template.content;
+
+      this.attachShadow({mode: 'open'}).appendChild(
+        templateContent.cloneNode(true)
+      );
+    }
+  }
+);
+</script>

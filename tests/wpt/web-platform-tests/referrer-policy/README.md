@@ -165,12 +165,6 @@ git add * && git commit -m "Update generated tests"
   The schema used to check if a ```test_expansion``` is valid.
   Each test expansion can only contain fields defined by this schema.
 
-* **subresource_path**
-
-  A 1:1 mapping of a **subresource type** to the URL path of the sub-resource.
-  When adding a new sub-resource, a path to an existing file for it also must be specified.
-
-
 ### Test Expansion Patterns
 
 Each field in a test expansion can be in one of the following formats:

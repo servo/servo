@@ -149,12 +149,12 @@ class Test(object):
     def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
         timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
         protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
-        return cls(manifest_item.source_file.tests_root,
+        return cls(manifest_file.tests_root,
                    manifest_item.url,
                    inherit_metadata,
                    test_metadata,
                    timeout=timeout,
-                   path=manifest_item.source_file.path,
+                   path=os.path.join(manifest_file.tests_root, manifest_item.path),
                    protocol=protocol)
 
     @property
@@ -327,18 +327,19 @@ class TestharnessTest(Test):
         protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
         testdriver = manifest_item.testdriver if hasattr(manifest_item, "testdriver") else False
         jsshell = manifest_item.jsshell if hasattr(manifest_item, "jsshell") else False
-        script_metadata = manifest_item.source_file.script_metadata or []
+        script_metadata = manifest_item.script_metadata or []
         scripts = [v for (k, v) in script_metadata if k == b"script"]
-        return cls(manifest_item.source_file.tests_root,
+        return cls(manifest_file.tests_root,
                    manifest_item.url,
                    inherit_metadata,
                    test_metadata,
                    timeout=timeout,
-                   path=manifest_item.source_file.path,
+                   path=os.path.join(manifest_file.tests_root, manifest_item.path),
                    protocol=protocol,
                    testdriver=testdriver,
                    jsshell=jsshell,
-                   scripts=scripts)
+                   scripts=scripts
+                   )
 
     @property
     def id(self):
@@ -388,7 +389,7 @@ class ReftestTest(Test):
 
         url = manifest_test.url
 
-        node = cls(manifest_test.source_file.tests_root,
+        node = cls(manifest_file.tests_root,
                    manifest_test.url,
                    inherit_metadata,
                    test_metadata,
@@ -424,7 +425,7 @@ class ReftestTest(Test):
                                                       nodes,
                                                       references_seen)
             else:
-                reference = ReftestTest(manifest_test.source_file.tests_root,
+                reference = ReftestTest(manifest_file.tests_root,
                                         ref_url,
                                         [],
                                         None,

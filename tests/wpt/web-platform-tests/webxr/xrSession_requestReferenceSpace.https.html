@@ -14,7 +14,7 @@
     let fakeDeviceInitParams = { supportsImmersive: true };
 
     let immersiveSessionOptions = { mode: 'immersive-vr' };
-    let nonImmersiveSessionOptions = { outputContext: getOutputContext() };
+    let nonImmersiveSessionOptions = { mode: 'inline' };
 
     let testFunction = function(session, fakeDeviceController, t) {
       return promise_rejects(t, new TypeError(), session.requestReferenceSpace({ type: "foo" }))

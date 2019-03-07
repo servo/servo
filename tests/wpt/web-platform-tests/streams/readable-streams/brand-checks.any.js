@@ -92,10 +92,24 @@ promise_test(t => {
 
 test(() => {
 
+  methodThrowsForAll(ReadableStream.prototype, 'getIterator',
+                     [fakeRS(), realRSDefaultReader(), realRSDefaultController(), undefined, null]);
+
+}, 'ReadableStream.prototype.getIterator enforces a brand check');
+
+test(() => {
+
   methodThrowsForAll(ReadableStream.prototype, 'getReader',
                      [fakeRS(), realRSDefaultReader(), realRSDefaultController(), undefined, null]);
 
 }, 'ReadableStream.prototype.getReader enforces a brand check');
+
+test(() => {
+
+  getterThrowsForAll(ReadableStream.prototype, 'locked',
+                     [fakeRS(), realRSDefaultReader(), realRSDefaultController(), undefined, null]);
+
+}, 'ReadableStream.prototype.locked enforces a brand check');
 
 test(() => {
 
@@ -151,6 +165,13 @@ test(() => {
                 'Constructing a ReadableStreamDefaultController should throw');
 
 }, 'ReadableStreamDefaultController can\'t be given a fully-constructed ReadableStream');
+
+test(() => {
+
+  getterThrowsForAll(ReadableStreamDefaultController.prototype, 'desiredSize',
+                     [fakeRSDefaultController(), realRS(), realRSDefaultReader(), undefined, null]);
+
+}, 'ReadableStreamDefaultController.prototype.desiredSize enforces a brand check');
 
 test(() => {
 

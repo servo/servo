@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import httplib
 import os
@@ -76,11 +77,34 @@ class TestharnessResultConverter(object):
 testharness_result_converter = TestharnessResultConverter()
 
 
+def hash_screenshot(data):
+    """Computes the sha1 checksum of a base64-encoded screenshot."""
+    return hashlib.sha1(base64.b64decode(data)).hexdigest()
+
+
+def _ensure_hash_in_reftest_screenshots(extra):
+    """Make sure reftest_screenshots have hashes.
+
+    Marionette internal reftest runner does not produce hashes.
+    """
+    log_data = extra.get("reftest_screenshots")
+    if not log_data:
+        return
+    for item in log_data:
+        if type(item) != dict:
+            # Skip relation strings.
+            continue
+        if "hash" not in item:
+            item["hash"] = hash_screenshot(item["screenshot"])
+
+
 def reftest_result_converter(self, test, result):
+    extra = result.get("extra", {})
+    _ensure_hash_in_reftest_screenshots(extra)
     return (test.result_cls(
         result["status"],
         result["message"],
-        extra=result.get("extra", {}),
+        extra=extra,
         stack=result.get("stack")), [])
 
 
@@ -151,6 +175,11 @@ class TestExecutor(object):
         """Run cleanup steps after tests have finished"""
         if self.protocol is not None:
             self.protocol.teardown()
+
+    def reset(self):
+        """Re-initialize internal state to facilitate repeated test execution
+        as implemented by the `--rerun` command-line argument."""
+        pass
 
     def run_test(self, test):
         """Run a particular test.
@@ -256,7 +285,7 @@ class RefTestImplementation(object):
                 return False, data
 
             screenshot = data
-            hash_value = hashlib.sha1(screenshot).hexdigest()
+            hash_value = hash_screenshot(data)
 
             self.screenshot_cache[key] = (hash_value, None)
 
@@ -266,6 +295,9 @@ class RefTestImplementation(object):
 
         self.message.append("%s %s" % (test.url, rv[0]))
         return True, rv
+
+    def reset(self):
+        self.screenshot_cache.clear()
 
     def is_pass(self, lhs_hash, rhs_hash, relation):
         assert relation in ("==", "!=")
@@ -310,8 +342,11 @@ class RefTestImplementation(object):
                 if success:
                     screenshots[i] = screenshot
 
-        log_data = [{"url": nodes[0].url, "screenshot": screenshots[0]}, relation,
-                    {"url": nodes[1].url, "screenshot": screenshots[1]}]
+        log_data = [
+            {"url": nodes[0].url, "screenshot": screenshots[0], "hash": hashes[0]},
+            relation,
+            {"url": nodes[1].url, "screenshot": screenshots[1], "hash": hashes[1]},
+        ]
 
         return {"status": "FAIL",
                 "message": "\n".join(self.message),

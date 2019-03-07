@@ -1,23 +1,66 @@
-from ..item import SupportFile, URLManifestItem
-from ..sourcefile import SourceFile
+import pytest
+
+from ..item import URLManifestItem, TestharnessTest
 
 
-def test_base_meta_flags():
-    s = SourceFile("/", "a.b.c.d", "/", contents="")
-    m = SupportFile(s)
+@pytest.mark.parametrize("path", [
+    "a.https.c",
+    "a.b.https.c",
+    "a.https.b.c",
+    "a.b.https.c.d",
+    "a.serviceworker.c",
+    "a.b.serviceworker.c",
+    "a.serviceworker.b.c",
+    "a.b.serviceworker.c.d",
+])
+def test_url_https(path):
+    m = URLManifestItem("/foobar", "/" + path, "/", "/foo.bar/" + path)
 
-    assert m.meta_flags == {"b", "c"}
+    assert m.https is True
 
 
-def test_url_meta_flags():
-    s = SourceFile("/", "a.b.c", "/", contents="")
-    m = URLManifestItem(s, "/foo.bar/a.b.d.e")
+@pytest.mark.parametrize("path", [
+    "https",
+    "a.https",
+    "a.b.https",
+    "https.a",
+    "https.a.b",
+    "a.bhttps.c",
+    "a.httpsb.c",
+    "serviceworker",
+    "a.serviceworker",
+    "a.b.serviceworker",
+    "serviceworker.a",
+    "serviceworker.a.b",
+    "a.bserviceworker.c",
+    "a.serviceworkerb.c",
+])
+def test_url_not_https(path):
+    m = URLManifestItem("/foobar", "/" + path, "/", "/foo.bar/" + path)
 
-    assert m.meta_flags == {"b", "d"}
+    assert m.https is False
 
 
-def test_url_empty_meta_flags():
-    s = SourceFile("/", "a.b.c", "/", contents="")
-    m = URLManifestItem(s, "/foo.bar/abcde")
+def test_testharness_meta_key_includes_jsshell():
+    a = TestharnessTest("/foobar", "/foo", "/foo.bar", "/foo.bar/foo",
+                        jsshell=False, script_metadata=[])
+    b = TestharnessTest("/foobar", "/foo", "/foo.bar", "/foo.bar/foo",
+                        jsshell=True, script_metadata=[])
 
-    assert m.meta_flags == set()
+    assert a.meta_key() != b.meta_key()
+
+
+@pytest.mark.parametrize("script_metadata", [
+    None,
+    [],
+    [('script', '/resources/WebIDLParser.js'), ('script', '/resources/idlharness.js')],
+    [[u'script', u'/resources/WebIDLParser.js'], [u'script', u'/resources/idlharness.js']],
+])
+def test_testharness_hashable_script_metadata(script_metadata):
+    a = TestharnessTest("/",
+                        "BackgroundSync/interfaces.https.any.js",
+                        "/",
+                        "/BackgroundSync/interfaces.https.any.js",
+                        script_metadata=script_metadata)
+
+    assert hash(a) is not None

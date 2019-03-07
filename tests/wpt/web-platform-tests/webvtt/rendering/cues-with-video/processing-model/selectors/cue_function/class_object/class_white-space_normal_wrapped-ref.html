@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <title>Reference for WebVTT rendering, class object, ::cue(c), white-space: normal (cue that wraps)</title>
 <style>
 html { overflow:hidden }
@@ -17,12 +18,20 @@ body { margin:0 }
     right: 0;
     width: 50%;
     text-align: center;
+    font-family: sans-serif;
 }
 .cue > span {
-    font-family: sans-serif;
     background: rgba(0,0,0,0.8);
     color: white;
     white-space: normal
 }
 </style>
-<div class="video"><span class="cue"><span>This is a test subtitle that most likely will span over several rows since it's a pretty long cue with a lot of text.</span></span></div>
+<script src="/common/reftest-wait.js"></script>
+<div class="video">
+  <video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+  </video>
+  <span class="cue"><span>This is a test subtitle that most likely will span over several rows since it's a pretty long cue with a lot of text.</span></span>
+</div>
+</html>

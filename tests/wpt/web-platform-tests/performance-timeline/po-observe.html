@@ -53,7 +53,8 @@ PerformanceObserverInit.buffered should retrieve previously buffered entries
         buffered: false
       });
 
-      // this PerformanceObserver should be notified about the previously buffered entries
+      // this PerformanceObserver should be notified about the previously
+      // buffered mark entry only
       const bufferedEntries = [];
       new PerformanceObserver(function (entryList, observer) {
         entryList.getEntries().forEach(function(entry) {
@@ -62,15 +63,17 @@ PerformanceObserverInit.buffered should retrieve previously buffered entries
           }
 
           bufferedEntries.push(entry);
-          if (bufferedEntries.length === entryTypes.length) {
+          if (bufferedEntries.length === 1) {
             observer.disconnect();
             po_nop.disconnect();
-            checkEntries(bufferedEntries, observedEntries);
+            for (i = 0; i < bufferedEntries.length; i++) {
+              assert_equals(bufferedEntries[i].entryType, "mark")
+            }
             t.done();
           }
         });
       }).observe({
-        entryTypes,
+        type: "mark",
         buffered: true
       });
     }
