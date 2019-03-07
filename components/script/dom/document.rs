@@ -2201,7 +2201,6 @@ impl Document {
                 window,
             );
 
-        window.reflow(ReflowGoal::Full, ReflowReason::DOMContentLoaded);
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
 
         // html parsing has finished - set dom content loaded
