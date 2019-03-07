@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::platform::windows::font_list::{descriptor_from_atom, font_from_atom};
+use crate::platform::windows::font_list::font_from_atom;
 use servo_atoms::Atom;
 use std::fmt;
 use std::io;
@@ -60,9 +60,18 @@ impl FontTemplateData {
 
     pub fn native_font(&self) -> Option<NativeFontHandle> {
         if self.bytes.is_none() {
-            Some(descriptor_from_atom(&self.identifier))
-        } else {
-            None
+            let font = font_from_atom(&self.identifier);
+            let face = font.create_font_face();
+            let files = face.get_files();
+            if files.len() >= 1 {
+                if let Some(path) = files[0].get_font_file_path() {
+                    return Some(NativeFontHandle {
+                        path,
+                        index: face.get_index(),
+                    });
+                }
+            }
         }
+        None
     }
 }
