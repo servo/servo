@@ -10604,6 +10604,16 @@
      {}
     ]
    ],
+   "mozilla/webgl/clearcolor_blue.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/webgl/clearcolor_green.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/webgl/clearcolor_ref.html": [
     [
      {}
@@ -20092,6 +20102,14 @@
    "4760f382f0374985a334a5f6d0e0fe055670c61d",
    "reftest"
   ],
+  "mozilla/webgl/clearcolor_blue.html": [
+   "d534babb2a664b7cb861f1cc253020e319f281e9",
+   "support"
+  ],
+  "mozilla/webgl/clearcolor_green.html": [
+   "db11b31ab9839777d9d74cf7f2c46de00349c76e",
+   "support"
+  ],
   "mozilla/webgl/clearcolor_ref.html": [
    "49cce2cc9009057742cb17e3fd452a986bd6c177",
    "support"
@@ -20114,6 +20132,10 @@
   ],
   "mozilla/webgl/get_supported_extensions.html": [
    "691535db4766536d66769408212cb13f3f64bef6",
+   "testharness"
+  ],
+  "mozilla/webgl/history.html": [
+   "d470c229fbcca5a47d3370e8e58bae34882be491",
    "testharness"
   ],
   "mozilla/webgl/img/rust-logo-256x256.png": [
