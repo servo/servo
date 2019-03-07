@@ -8,38 +8,43 @@
 'use strict';
 
 test(() => {
-  const error = new RTCError('message', {errorDetail:'data-channel-failure'});
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
   assert_equals(error.message, 'message');
   assert_equals(error.errorDetail, 'data-channel-failure');
-}, 'RTCError constructor with message and errorDetail');
+}, 'RTCError constructor with errorDetail and message');
 
 test(() => {
-  assert_throws(new TypeError(), () => {
-    new RTCError('message');
-  });
+  const error = new RTCError({errorDetail:'data-channel-failure'});
+  assert_equals(error.message, '');
+}, 'RTCError constructor\'s message argument is optional');
+
+test(() => {
   assert_throws(new TypeError(), () => {
     new RTCError();
   });
-}, 'RTCError constructor throws TypeError if any argument is missing');
+  assert_throws(new TypeError(), () => {
+    new RTCError({});  // {errorDetail} is missing.
+  });
+}, 'RTCError constructor throws TypeError if arguments are missing');
 
 test(() => {
   assert_throws(new TypeError(), () => {
-    new RTCError('message', {errorDetail:'invalid-error-detail'});
+    new RTCError({errorDetail:'invalid-error-detail'}, 'message');
   });
 }, 'RTCError constructor throws TypeError if the errorDetail is invalid');
 
 test(() => {
-  const error = new RTCError('message', {errorDetail:'data-channel-failure'});
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
   assert_equals(error.name, 'RTCError');
 }, 'RTCError.name is \'RTCError\'');
 
 test(() => {
-  const error = new RTCError('message', {errorDetail:'data-channel-failure'});
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
   assert_equals(error.code, 0);
 }, 'RTCError.code is 0');
 
 test(() => {
-  const error = new RTCError('message', {errorDetail:'data-channel-failure'});
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
   assert_throws(new TypeError(), () => {
     error.errorDetail = 'dtls-failure';
   });
@@ -49,9 +54,9 @@ test(() => {
   // Infers what are valid RTCErrorInit objects by passing them to the RTCError
   // constructor.
   assert_throws(new TypeError(), () => {
-    new RTCError('message', {});
+    new RTCError({}, 'message');
   });
-  new RTCError('message', {errorDetail:'data-channel-failure'});
+  new RTCError({errorDetail:'data-channel-failure'}, 'message');
 }, 'RTCErrorInit.errorDetail is the only required attribute');
 
 // All of these are number types (long or unsigned long).
@@ -63,18 +68,18 @@ const nullableAttributes = ['sdpLineNumber',
 
 nullableAttributes.forEach(attribute => {
   test(() => {
-    const error = new RTCError('message', {errorDetail:'data-channel-failure'});
+    const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
     assert_equals(error[attribute], null);
   }, 'RTCError.' + attribute + ' is null by default');
 
   test(() => {
-    const error = new RTCError('message', {errorDetail:'data-channel-failure',
-                                           [attribute]: 0});
+    const error = new RTCError(
+        {errorDetail:'data-channel-failure', [attribute]: 0}, 'message');
     assert_equals(error[attribute], 0);
   }, 'RTCError.' + attribute + ' is settable by constructor');
 
   test(() => {
-    const error = new RTCError('message', {errorDetail:'data-channel-failure'});
+    const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
     assert_throws(new TypeError(), () => {
       error[attribute] = 42;
     });

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Web NFC Test: push and watch json records</title>
+<title>Web NFC Test: write and read json records</title>
 <link rel="author" title="Intel" href="http://www.intel.com"/>
 <link rel="help" href="https://w3c.github.io/web-nfc/"/>
 <meta name="timeout" content="long">
@@ -21,14 +21,14 @@
 
 setup({ explicit_timeout: true });
 
-let desc = "Test that nfc.push and nfc.watch succeed when recordType is set to 'json'.";
-let watchOptions = {
+const desc = "Test that write and read data succeed when recordType is set to 'json'.";
+const readOptions = {
   recordType : "json",
   mediaType : "application/json",
   url : ""
 }
-let message = createMessage([createJsonRecord(test_json_data)]);
+const message = createMessage([createJsonRecord(test_json_data)]);
 
-testNFCMessage(message, watchOptions, desc);
+testNDEFMessage(message, readOptions, desc);
 
 </script>

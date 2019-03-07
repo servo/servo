@@ -1,0 +1,57 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+
+const dummyContent = '<?xml version="1.0" encoding="utf-8"?>\n<root>Text.me</root>\n';
+promise_test(async (t) => {
+  const url = `resources/dummy.xml?token=${token()}`;
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'fetch';
+  link.href = url;
+  link.crossOrigin = 'anonymous';
+
+  document.head.appendChild(link);
+
+  const xhr = new XMLHttpRequest();
+  await new Promise((resolve, reject) => {
+    xhr.onloadend = resolve;
+    xhr.onloaderror = reject;
+    xhr.open('GET', url);
+    xhr.send();
+  });
+  verifyNumberOfResourceTimingEntries(url, 1);
+  assert_equals(xhr.status, 200);
+  assert_equals(xhr.responseText, dummyContent);
+
+}, 'Make an XHR request immediately after creating link rel=preload.');
+
+promise_test(async (t) => {
+  const url = `resources/dummy.xml?token=${token()}`;
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'fetch';
+  link.href = url;
+  link.crossOrigin = 'anonymous';
+
+  await new Promise((resolve, reject) => {
+    link.addEventListener('load', resolve, {once: true});
+    link.addEventListener('error', reject, {once: true});
+    document.head.appendChild(link);
+  });
+
+  const xhr = new XMLHttpRequest();
+  await new Promise((resolve, reject) => {
+    xhr.onloadend = resolve;
+    xhr.onloaderror = reject;
+    xhr.open('GET', url);
+    xhr.send();
+  });
+  verifyNumberOfResourceTimingEntries(url, 1);
+  assert_equals(xhr.status, 200);
+  assert_equals(xhr.responseText, dummyContent);
+}, 'Make an XHR request after loading link rel=preload.');
+
+</script>

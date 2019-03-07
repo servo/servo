@@ -780,6 +780,9 @@ class MarionetteRefTestExecutor(RefTestExecutor):
             self.logger.warning("Exception during reftest teardown:\n%s" %
                                 traceback.format_exc(e))
 
+    def reset(self):
+        self.implementation.reset(**self.implementation_kwargs)
+
     def is_alive(self):
         return self.protocol.is_alive
 
@@ -861,6 +864,11 @@ class InternalRefTestImplementation(object):
         self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CHROME)
         self.executor.protocol.marionette._send_message("reftest:setup", data)
 
+    def reset(self, screenshot=None):
+        # this is obvious wrong; it shouldn't be a no-op
+        # see https://github.com/web-platform-tests/wpt/issues/15604
+        pass
+
     def run_test(self, test):
         references = self.get_references(test)
         timeout = (test.timeout * 1000) * self.timeout_multiplier
@@ -884,6 +892,11 @@ class InternalRefTestImplementation(object):
             if self.executor.protocol.marionette and self.executor.protocol.marionette.session_id:
                 self.executor.protocol.marionette._send_message("reftest:teardown", {})
                 self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CONTENT)
+                # the reftest runner opens/closes a window with focus, so as
+                # with after closing a window we need to give a new window
+                # focus
+                handles = self.executor.protocol.marionette.window_handles
+                self.executor.protocol.marionette.switch_to_window(handles[0])
         except Exception as e:
             # Ignore errors during teardown
             self.logger.warning(traceback.format_exc(e))

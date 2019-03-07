@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Navigation timing of SignedHTTPExchange</title>
+<script>
+window.addEventListener('message', (event) => {
+  event.data.port.postMessage({
+      location: document.location.href,
+      timing: JSON.stringify(performance.getEntriesByType('navigation')[0]),
+      is_fallback: false});
+}, false);
+</script>

@@ -11,8 +11,11 @@ promise_test(async t => {
   assert_true(status instanceof IdleStatus,
               'query() promise resolves to an IdleStatus');
 
-  assert_true(['active', 'idle', 'locked'].includes(status.state),
-                'status has a valid state');
+  assert_true(['active', 'idle'].includes(status.state.user),
+                'status has a valid user state');
+  assert_true(['locked', 'unlocked'].includes(status.state.screen),
+                'status has a valid screen state');
+
 }, 'query() basics');
 
 promise_test(async t => {

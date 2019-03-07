@@ -7,7 +7,8 @@
 
 promise_test(async () => {
   const srcs = ['./idle-detection.idl',
-                '/interfaces/dom.idl', '/interfaces/html.idl'];
+                '/interfaces/dom.idl',
+                '/interfaces/html.idl'];
   const [idle, dom, html] = await Promise.all(
     srcs.map(i => fetch(i).then(r => r.text())));
 
@@ -21,6 +22,7 @@ promise_test(async () => {
   idl_array.add_objects({
     IdleManager: ['navigator.idle'],
     IdleStatus: ['idle'],
+    IdleState: ['idle.state']
   });
   if (self.Window) {
     idl_array.add_objects({ Navigator: ['navigator'] });

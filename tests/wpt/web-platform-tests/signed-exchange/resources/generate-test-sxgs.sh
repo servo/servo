@@ -10,6 +10,8 @@ wpt_test_remote_origin=https://www1.web-platform.test:8444
 wpt_test_alt_origin=https://not-web-platform.test:8444
 cert_url_origin=$wpt_test_origin
 sxg_content_type='content-type: application/signed-exchange;v=b3'
+variants_header=variants-04
+variant_key_header=variant-key-04
 
 set -e
 
@@ -353,8 +355,6 @@ gen-signedexchange \
   -miRecordSize 100 \
   -ignoreErrors true
 
-
-
 # Signed Exchange with payload integrity error.
 echo 'garbage' | cat sxg/sxg-location.sxg - >sxg/sxg-merkle-integrity-error.sxg
 
@@ -404,5 +404,54 @@ gen-signedexchange \
   -o sxg/sxg-validity-period-too-long-cert-on-alt-origin.sxg \
   -miRecordSize 100 \
   -ignoreErrors true
+
+# Signed Exchange with variants / variant-key that match any request.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -responseHeader "${variants_header}: accept-language;en" \
+  -responseHeader "${variant_key_header}: en" \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg/sxg-variants-match.sxg \
+  -miRecordSize 100
+
+# Signed Exchange with variants / variant-key that never match any request.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -responseHeader "${variants_header}: accept-language;en" \
+  -responseHeader "${variant_key_header}: unknown" \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg/sxg-variants-mismatch.sxg \
+  -miRecordSize 100
+
+# A valid Signed Exchange that reports navigation timing.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -content sxg-navigation-timing.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg/sxg-navigation-timing.sxg \
+  -miRecordSize 100
 
 rm -fr $tmpdir

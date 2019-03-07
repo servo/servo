@@ -12,8 +12,8 @@
 
 
 <p class="output">Actual output:</p>
-<canvas id="c" class="output" width="
-	100" height="
+<canvas id="c" class="output" width="&#xD;
+	100" height="&#xD;
 	100"><p class="fallback">FAIL (fallback content)</p></canvas>
 <p class="output expectedtext">Expected output:<p><img src="size.attributes.parse.whitespace.png" class="output expected" id="expected" alt="">
 <ul id="d"></ul>
@@ -24,8 +24,8 @@ _addTest(function(canvas, ctx) {
 _assertSame(canvas.width, 100, "canvas.width", "100");
 _assertSame(canvas.height, 100, "canvas.height", "100");
 _assertSame(window.getComputedStyle(canvas, null).getPropertyValue("width"), "100px", "window.getComputedStyle(canvas, null).getPropertyValue(\"width\")", "\"100px\"");
-_assertSame(canvas.getAttribute('width'), '\n\t\x0c100', "canvas.getAttribute('width')", "'\\n\\t\\x0c100'");
-_assertSame(canvas.getAttribute('height'), '\n\t\x0c100', "canvas.getAttribute('height')", "'\\n\\t\\x0c100'");
+_assertSame(canvas.getAttribute('width'), '\r\n\t\x0c100', "canvas.getAttribute('width')", "'\\r\\n\\t\\x0c100'");
+_assertSame(canvas.getAttribute('height'), '\r\n\t\x0c100', "canvas.getAttribute('height')", "'\\r\\n\\t\\x0c100'");
 
 
 });

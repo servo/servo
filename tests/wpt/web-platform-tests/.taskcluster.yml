@@ -89,6 +89,7 @@ tasks:
                     --this-chunk=${chunk[1]}
                     --total-chunks=${chunk[2]};
     - $if: tasks_for == "github-pull-request"
+      # PR tasks that run the tests in various configurations
       then:
         # Taskcluster responds to a number of events issued by the GitHub API
         # which should not trigger re-validation.
@@ -166,3 +167,66 @@ tasks:
                       --
                       --channel=${browser.channel}
                       ${operation.extra_args};
+    - $map:
+       - name: lint
+         description: >-
+           Lint for wpt-specific requirements
+         script: tools/ci/ci_lint.sh
+         conditions:
+           push
+           pull-request
+      each(operation):
+        # Note: jsone doesn't short-circuit evaluation so all parts of the conditional are evaluated
+        # Accessing properties using the [] notation allows them to evaluate as null in case they're undefined
+        # TODO: Allow running pushes on branches other than master
+        - $if: ("push" in operation.conditions && tasks_for == "github-push" && event['ref'] == "refs/heads/master") || ("pull-request" in operation.conditions && tasks_for == "github-pull-request" && event['action'] in ['opened', 'reopened', 'synchronize'])
+          then:
+            $let:
+              checkout_ref:
+                $if: tasks_for == "github-push"
+                then:
+                  ${event.ref}
+                else:
+                  refs/pull/${event.number}/merge
+            in:
+              taskId: {$eval: 'as_slugid(operation.name)'}
+              taskGroupId: {$eval: 'as_slugid("task group")'}
+              created: {$fromNow: ''}
+              deadline: {$fromNow: '24 hours'}
+              provisionerId: aws-provisioner-v1
+              workerType:
+                $if: event.repository.full_name == 'web-platform-tests/wpt'
+                then:
+                  wpt-docker-worker
+                else:
+                  github-worker
+              metadata:
+                name: ${operation.name}
+                description: ${operation.description}
+                owner: ${event.sender.login}@users.noreply.github.com
+                source: ${event.repository.url}
+              payload:
+                image: harjgam/web-platform-tests:0.29
+                maxRunTime: 7200
+                artifacts:
+                  public/results:
+                    path: /home/test/artifacts
+                    type: directory
+                    # Fetch the GitHub-provided merge commit (rather than the pull
+                    # request branch) so that the tasks simulate the behavior of the
+                    # submitted patch after it is merged. Using the merge commit also
+                    # simplifies detection of modified files because the first parent
+                    # of the merge commit can consistently be used to summarize the
+                    # changes.
+                command:
+                  - /bin/bash
+                  - --login
+                  - -c
+                  - set -ex;
+                    ~/start.sh
+                      ${event.repository.clone_url}
+                      ${checkout_ref}
+                      FETCH_HEAD
+                      none;
+                    cd ~/web-platform-tests;
+                    ${operation.script};

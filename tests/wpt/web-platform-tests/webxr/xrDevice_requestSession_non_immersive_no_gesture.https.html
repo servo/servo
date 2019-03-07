@@ -9,8 +9,7 @@
       (t) => {
         return XRTest.simulateDeviceConnection({ supportsImmersive:false })
           .then( (controller) => navigator.xr.requestSession({
-            mode: 'inline',
-            outputContext: getOutputContext()
+            mode: 'inline'
           }))
           .then( (session) => { assert_not_equals(session, null); });
       });

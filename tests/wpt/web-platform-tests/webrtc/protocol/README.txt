@@ -14,6 +14,8 @@ The main specifications are given in the following internet-drafts:
 - draft-ietf-rtcweb-fec
 - draft-ietf-rtcweb-data-protocol
 - draft-ietf-rtcweb-data-channel
+- draft-ietf-mmusic-sdp-simulcast
+- draft-ietf-mmusic-rid
 
 - RFC 7742, "WebRTC Video Processing and Codec Requirements"
 - RFC 7874, "WebRTC Audio Codec and Processing Requirements"

@@ -150,13 +150,6 @@ function stepStart(nsteps) {
   };
 }
 
-function framesTiming(nframes) {
-  return x => {
-    const result = Math.floor(x * nframes) / (nframes - 1);
-    return (result > 1.0 && x <= 1.0) ? 1.0 : result;
-  };
-}
-
 function waitForAnimationFrames(frameCount) {
   return new Promise(resolve => {
     function handleFrame() {

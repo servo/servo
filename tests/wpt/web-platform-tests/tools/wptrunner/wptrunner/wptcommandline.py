@@ -8,7 +8,7 @@ from datetime import timedelta
 
 import config
 import wpttest
-import formatters
+from formatters import wptreport, wptscreenshot
 
 
 def abs_path(path):
@@ -230,7 +230,7 @@ scheme host and port.""")
                                 help="Total number of chunks to use")
     chunking_group.add_argument("--this-chunk", action="store", type=int, default=1,
                                 help="Chunk number to run")
-    chunking_group.add_argument("--chunk-type", action="store", choices=["none", "equal_time", "hash", "dir_hash"],
+    chunking_group.add_argument("--chunk-type", action="store", choices=["none", "hash", "dir_hash"],
                                 default=None, help="Chunking type to use")
 
     ssl_group = parser.add_argument_group("SSL/TLS")
@@ -326,7 +326,8 @@ scheme host and port.""")
                         help="List of URLs for tests to run, or paths including tests to run. "
                              "(equivalent to --include)")
 
-    commandline.log_formatters["wptreport"] = (formatters.WptreportFormatter, "wptreport format")
+    commandline.log_formatters["wptreport"] = (wptreport.WptreportFormatter, "wptreport format")
+    commandline.log_formatters["wptscreenshot"] = (wptscreenshot.WptscreenshotFormatter, "wpt.fyi screenshots")
 
     commandline.add_logging_group(parser)
     return parser

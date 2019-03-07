@@ -199,9 +199,7 @@ test(function() {
       'Length-based timeline after the endScrollOffset point');
   scroller.scrollTop = scrollerSize - 20;
   assert_equals(
-      lengthScrollTimeline.currentTime,
-      calculateCurrentTime(
-          scrollerSize - 20, 0, scrollerSize - 20, scrollerSize),
+      lengthScrollTimeline.currentTime, null,
       'Length-based timeline at the endScrollOffset point');
   scroller.scrollTop = scrollerSize - 50;
   assert_equals(
@@ -217,9 +215,7 @@ test(function() {
       'Percentage-based timeline after the endScrollOffset point');
   scroller.scrollTop = 0.80 * scrollerSize;
   assert_equals(
-      percentageScrollTimeline.currentTime,
-      calculateCurrentTime(
-          scroller.scrollTop, 0, 0.8 * scrollerSize, scrollerSize),
+      percentageScrollTimeline.currentTime, null,
       'Percentage-based timeline at the endScrollOffset point');
   scroller.scrollTop = 0.50 * scrollerSize;
   assert_equals(
@@ -235,9 +231,7 @@ test(function() {
       'Calc-based timeline after the endScrollOffset point');
   scroller.scrollTop = 0.8 * scrollerSize + 5;
   assert_equals(
-      calcScrollTimeline.currentTime,
-      calculateCurrentTime(
-          scroller.scrollTop, 0, 0.8 * scrollerSize + 5, scrollerSize),
+      calcScrollTimeline.currentTime, null,
       'Calc-based timeline at the endScrollOffset point');
   scroller.scrollTop = 0.5 * scrollerSize;
   assert_equals(
@@ -246,6 +240,58 @@ test(function() {
           scroller.scrollTop, 0, 0.8 * scrollerSize + 5, scrollerSize),
       'Calc-based timeline before the endScrollOffset point');
 }, 'currentTime handles endScrollOffset correctly');
+
+test(function() {
+  const scroller = setupScrollTimelineTest();
+  // Set the timeRange such that currentTime maps directly to the value
+  // scrolled. The contents and scroller are square, so it suffices to compute
+  // one edge and use it for all the timelines.
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  // When the endScrollOffset is equal to the maximum scroll offset (and there
+  // are no fill modes), the endScrollOffset is treated as inclusive.
+  const inclusiveAutoScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: 'auto'
+  });
+  const inclusiveLengthScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: scrollerSize + 'px'
+  });
+  const inclusivePercentageScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: '100%'
+  });
+  const inclusiveCalcScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: 'calc(80% + ' + (0.2 * scrollerSize) + 'px)'
+  });
+
+  scroller.scrollTop = scrollerSize;
+  let expectedCurrentTime = calculateCurrentTime(
+      scroller.scrollTop, 0, scrollerSize, scrollerSize);
+
+  assert_equals(
+    inclusiveAutoScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive auto timeline at the endScrollOffset point');
+  assert_equals(
+    inclusiveLengthScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive length-based timeline at the endScrollOffset point');
+  assert_equals(
+    inclusivePercentageScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive percentage-based timeline at the endScrollOffset point');
+  assert_equals(
+    inclusiveCalcScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive calc-based timeline at the endScrollOffset point');
+}, 'currentTime handles endScrollOffset correctly (inclusive cases)');
 
 test(function() {
   const scroller = setupScrollTimelineTest();
@@ -305,4 +351,94 @@ test(function() {
   scroller.scrollTop = 150;
   assert_equals(scrollTimeline.currentTime, null);
 }, 'currentTime handles startScrollOffset > endScrollOffset correctly');
+
+test(function() {
+  const scroller = setupScrollTimelineTest();
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+  const timeRange = 100;
+  const startScrollOffset = 20;
+  const endScrollOffset = scrollerSize - 20;
+
+  const forwardsFillingScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: timeRange,
+    orientation: 'block',
+    startScrollOffset: startScrollOffset + 'px',
+    endScrollOffset: endScrollOffset + 'px',
+    fill: 'forwards'
+  });
+  const backwardsFillingScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: timeRange,
+    orientation: 'block',
+    startScrollOffset: startScrollOffset + 'px',
+    endScrollOffset: endScrollOffset + 'px',
+    fill: 'backwards'
+  });
+  const bothFillingScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: timeRange,
+    orientation: 'block',
+    startScrollOffset: startScrollOffset + 'px',
+    endScrollOffset: endScrollOffset + 'px',
+    fill: 'both'
+  });
+  // 'auto' should be equivalent to 'both'.
+  const autoFillingScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: timeRange,
+    orientation: 'block',
+    startScrollOffset: startScrollOffset + 'px',
+    endScrollOffset: endScrollOffset + 'px',
+    fill: 'auto'
+  });
+
+  // Before the startScrollOffset the current time should be 0 for backwards or
+  // both, and unresolved otherwise.
+  scroller.scrollTop = startScrollOffset - 10;
+  assert_equals(
+      forwardsFillingScrollTimeline.currentTime, null,
+      'Before startScrollOffset forwards-filling timeline');
+  assert_equals(
+      backwardsFillingScrollTimeline.currentTime, 0,
+      'Before startScrollOffset backwards-filling timeline');
+  assert_equals(
+      bothFillingScrollTimeline.currentTime, 0,
+      'Before startScrollOffset both-filling timeline');
+  assert_equals(
+      autoFillingScrollTimeline.currentTime, 0,
+      'Before startScrollOffset auto-filling timeline');
+
+  // At the endScrollOffset the current time should be time-range for
+  // forwards or both, and unresolved otherwise.
+  scroller.scrollTop = endScrollOffset;
+  assert_equals(
+      forwardsFillingScrollTimeline.currentTime, timeRange,
+      'After endScrollOffset forwards-filling timeline');
+  assert_equals(
+      backwardsFillingScrollTimeline.currentTime, null,
+      'After endScrollOffset backwards-filling timeline');
+  assert_equals(
+      bothFillingScrollTimeline.currentTime, timeRange,
+      'After endScrollOffset both-filling timeline');
+  assert_equals(
+      autoFillingScrollTimeline.currentTime, timeRange,
+      'After endScrollOffset auto-filling timeline');
+
+  // After the endScrollOffset the current time should be time-range for
+  // forwards or both, and unresolved otherwise.
+  scroller.scrollTop = endScrollOffset + 10;
+  assert_equals(
+      forwardsFillingScrollTimeline.currentTime, timeRange,
+      'After endScrollOffset forwards-filling timeline');
+  assert_equals(
+      backwardsFillingScrollTimeline.currentTime, null,
+      'After endScrollOffset backwards-filling timeline');
+  assert_equals(
+      bothFillingScrollTimeline.currentTime, timeRange,
+      'After endScrollOffset both-filling timeline');
+  assert_equals(
+      autoFillingScrollTimeline.currentTime, timeRange,
+      'After endScrollOffset auto-filling timeline');
+}, 'currentTime handles fill modes correctly');
 </script>

@@ -13,7 +13,7 @@
     let fakeDeviceInitParams = { supportsImmersive:true };
 
     let immersiveSessionOptions = { mode: 'immersive-vr' };
-    let nonImmersiveSessionOptions = { outputContext: getOutputContext() };
+    let nonImmersiveSessionOptions = { mode: 'inline' };
 
     let testFunction = (testSession) => new Promise((resolve) => {
       let counter = 0;

@@ -11,7 +11,7 @@ def main(request, response):
   response_policy = request.GET.first("policy", default="")
 
   if request_policy and response_policy:
-    response.headers.set(origin_policy_header, response_policy)
+    response.headers.set(origin_policy_header, "policy=%s" % response_policy)
     response.headers.set("Vary", "sec-origin-policy")
 
   response.headers.set("Content-Type", "text/html");

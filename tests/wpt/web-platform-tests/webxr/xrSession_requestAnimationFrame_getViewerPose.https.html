@@ -15,7 +15,7 @@
     let fakeDeviceInitParams = { supportsImmersive: true };
 
     let immersiveSessionOptions = { mode: 'immersive-vr' };
-    let nonImmersiveSessionOptions = { outputContext: getOutputContext() };
+    let nonImmersiveSessionOptions = { mode: 'inline' };
 
     // Valid matrices for  when we don't care about specific values
     const validPoseMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1];

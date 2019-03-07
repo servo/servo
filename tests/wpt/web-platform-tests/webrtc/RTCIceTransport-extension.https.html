@@ -260,7 +260,7 @@ promise_test(async t => {
     const [ localTransport, remoteTransport ] =
         makeAndGatherTwoIceTransports(t);
     localTransport.start(remoteTransport.getLocalParameters(), role);
-    localTransport.start(remoteTransport.getLocalParameters(), role);
+    remoteTransport.start(localTransport.getLocalParameters(), role);
     const localWatcher = new EventWatcher(t, localTransport, 'statechange');
     const remoteWatcher = new EventWatcher(t, remoteTransport, 'statechange');
     await Promise.all([
@@ -276,13 +276,10 @@ promise_test(async t => {
 });
 
 promise_test(async t => {
-  async function waitForConnectedThenSelectedCandidatePairChange(t, transport,
+  async function waitForSelectedCandidatePairChangeThenConnected(t, transport,
       transportName) {
     const watcher = new EventWatcher(t, transport,
         [ 'statechange', 'selectedcandidatepairchange' ]);
-    await watcher.wait_for('statechange');
-    assert_equals(transport.state, 'connected',
-        `${transportName} state should be 'connected'`);
     await watcher.wait_for('selectedcandidatepairchange');
     const selectedCandidatePair = transport.getSelectedCandidatePair();
     assert_not_equals(selectedCandidatePair, null,
@@ -300,13 +297,16 @@ promise_test(async t => {
                 candidate === selectedCandidatePair.remote.candidate),
         `${transportName} selected candidate pair local should be in the ` +
         'list of remote candidates');
+    await watcher.wait_for('statechange');
+    assert_equals(transport.state, 'connected',
+        `${transportName} state should be 'connected'`);
   }
   const [ localTransport, remoteTransport ] =
       makeGatherAndStartTwoIceTransports(t);
   await Promise.all([
-    waitForConnectedThenSelectedCandidatePairChange(t, localTransport,
+    waitForSelectedCandidatePairChangeThenConnected(t, localTransport,
         'local transport'),
-    waitForConnectedThenSelectedCandidatePairChange(t, remoteTransport,
+    waitForSelectedCandidatePairChangeThenConnected(t, remoteTransport,
         'remote transport'),
   ]);
 }, 'Selected candidate pair changes once the RTCIceTransports connect.');

@@ -766,3 +766,26 @@ def test_spec_links_whitespace(url):
     content = b"<link rel=help href='%s'>" % url
     s = create("foo/test.html", content)
     assert s.spec_links == {"http://example.com/"}
+
+
+def test_url_base():
+    contents = b"""// META: global=window,worker
+// META: variant=
+// META: variant=?wss
+test()"""
+
+    s = SourceFile("/", "html/test.any.js", "/_fake_base/", contents=contents)
+    item_type, items = s.manifest_items()
+
+    assert item_type == "testharness"
+
+    assert [item.url for item in items] == [u'/_fake_base/html/test.any.html',
+                                            u'/_fake_base/html/test.any.html?wss',
+                                            u'/_fake_base/html/test.any.serviceworker.html',
+                                            u'/_fake_base/html/test.any.serviceworker.html?wss',
+                                            u'/_fake_base/html/test.any.sharedworker.html',
+                                            u'/_fake_base/html/test.any.sharedworker.html?wss',
+                                            u'/_fake_base/html/test.any.worker.html',
+                                            u'/_fake_base/html/test.any.worker.html?wss']
+
+    assert items[0].url_base == "/_fake_base/"

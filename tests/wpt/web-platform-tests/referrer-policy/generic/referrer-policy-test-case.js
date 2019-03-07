@@ -50,6 +50,19 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
     "xhr-request": requestViaXhr
   };
 
+  const subresourcePath = {
+    "a-tag": "/referrer-policy/generic/subresource/document.py",
+    "area-tag": "/referrer-policy/generic/subresource/document.py",
+    "fetch-request": "/referrer-policy/generic/subresource/xhr.py",
+    "iframe-tag": "/referrer-policy/generic/subresource/document.py",
+    "img-tag": "/referrer-policy/generic/subresource/image.py",
+    "script-tag": "/referrer-policy/generic/subresource/script.py",
+    "worker-request": "/referrer-policy/generic/subresource/worker.py",
+    "module-worker": "/referrer-policy/generic/subresource/worker.py",
+    "shared-worker": "/referrer-policy/generic/subresource/shared-worker.py",
+    "xhr-request": "/referrer-policy/generic/subresource/xhr.py"
+  };
+
   var referrerUrlResolver = {
     "omitted": function() {
       return undefined;
@@ -85,7 +98,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       return t._scenario.target_protocol + "://" +
              domainForOrigin[t._scenario.origin] +
              normalizePort(targetPort) +
-             t._scenario["subresource_path"] +
+             subresourcePath[t._scenario.subresource] +
              "?redirection=" + t._scenario["redirection"] +
              "&cache_destroyer=" + (new Date()).getTime();
     },

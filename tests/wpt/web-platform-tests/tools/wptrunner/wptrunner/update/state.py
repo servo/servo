@@ -77,7 +77,7 @@ class BaseState(object):
 
 
     @classmethod
-    def load(self):
+    def load(cls):
         raise NotImplementedError
 
     def save(self):

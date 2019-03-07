@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCRtpSender.transport</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -35,6 +36,7 @@
     const [transceiver] = caller.getTransceivers();
     assert_equals(transceiver.sender.transport,
                   transceiver.receiver.transport);
+    assert_not_equals(sender.transport.iceTransport, null);
   }, 'RTCRtpSender/receiver.transport has a value when connected');
 
   // Test with multiple tracks, and checking details of when things show up
