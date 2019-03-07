@@ -10,7 +10,6 @@ use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
@@ -762,11 +761,7 @@ impl RangeMethods for Range {
 
         // Step 11
         let new_offset = new_offset +
-            if node.type_id() ==
-                NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
-                node.type_id() ==
-                    NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
-            {
+            if let NodeTypeId::DocumentFragment(_) = node.type_id() {
                 node.len()
             } else {
                 1
