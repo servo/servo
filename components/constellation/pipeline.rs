@@ -89,6 +89,9 @@ pub struct Pipeline {
 
     /// The history states owned by this pipeline.
     pub history_states: HashSet<HistoryStateId>,
+
+    /// Has this pipeline received a notification that it is completely loaded?
+    pub completely_loaded: bool,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -355,6 +358,7 @@ impl Pipeline {
             load_data: load_data,
             history_state_id: None,
             history_states: HashSet::new(),
+            completely_loaded: false,
         };
 
         pipeline.notify_visibility(is_visible);
