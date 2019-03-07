@@ -900,6 +900,8 @@ pub enum CSSWideKeyword {
     Inherit,
     /// The `unset` keyword.
     Unset,
+    /// The `revert` keyword.
+    Revert,
 }
 
 impl CSSWideKeyword {
@@ -908,6 +910,7 @@ impl CSSWideKeyword {
             CSSWideKeyword::Initial => "initial",
             CSSWideKeyword::Inherit => "inherit",
             CSSWideKeyword::Unset => "unset",
+            CSSWideKeyword::Revert => "revert",
         }
     }
 }
@@ -921,6 +924,7 @@ impl CSSWideKeyword {
                 "initial" => CSSWideKeyword::Initial,
                 "inherit" => CSSWideKeyword::Inherit,
                 "unset" => CSSWideKeyword::Unset,
+                "revert" => CSSWideKeyword::Revert,
                 _ => return Err(()),
             }
         };
@@ -2103,6 +2107,7 @@ impl PropertyDeclaration {
     }
 
     /// Returns a CSS-wide keyword if the declaration's value is one.
+    #[inline]
     pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
         match *self {
             PropertyDeclaration::CSSWideKeyword(ref declaration) => {
@@ -2110,6 +2115,12 @@ impl PropertyDeclaration {
             },
             _ => None,
         }
+    }
+
+    /// Whether this declaration is the `revert` keyword.
+    #[inline]
+    pub fn is_revert(&self) -> bool {
+        self.get_css_wide_keyword().map_or(false, |kw| kw == CSSWideKeyword::Revert)
     }
 
     /// Returns whether or not the property is set by a system font

@@ -452,14 +452,23 @@ impl AnimationValue {
                     % for prop in data.longhands:
                     % if prop.animatable:
                     LonghandId::${prop.camel_case} => {
+                        // FIXME(emilio, bug 1533327): I think
+                        // CSSWideKeyword::Revert handling is not fine here, but
+                        // what to do instead?
+                        //
+                        // Seems we'd need the computed value as if it was
+                        // revert, somehow. Treating it as `unset` seems fine
+                        // for now...
                         let style_struct = match declaration.keyword {
                             % if not prop.style_struct.inherited:
+                            CSSWideKeyword::Revert |
                             CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Initial => {
                                 initial.get_${prop.style_struct.name_lower}()
                             },
                             % if prop.style_struct.inherited:
+                            CSSWideKeyword::Revert |
                             CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Inherit => {

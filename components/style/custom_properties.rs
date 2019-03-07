@@ -7,8 +7,9 @@
 //! [custom]: https://drafts.csswg.org/css-variables/
 
 use crate::hash::map::Entry;
-use crate::properties::{CSSWideKeyword, CustomDeclarationValue};
+use crate::properties::{CSSWideKeyword, CustomDeclaration, CustomDeclarationValue};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
+use crate::stylesheets::{Origin, PerOrigin};
 use crate::Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use indexmap::IndexMap;
@@ -490,6 +491,7 @@ fn parse_env_function<'i, 't>(
 /// properties.
 pub struct CustomPropertiesBuilder<'a> {
     seen: PrecomputedHashSet<&'a Name>,
+    reverted: PerOrigin<PrecomputedHashSet<&'a Name>>,
     may_have_cycles: bool,
     custom_properties: Option<CustomPropertiesMap>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
@@ -504,6 +506,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
     ) -> Self {
         Self {
             seen: PrecomputedHashSet::default(),
+            reverted: Default::default(),
             may_have_cycles: false,
             custom_properties: None,
             inherited,
@@ -512,13 +515,26 @@ impl<'a> CustomPropertiesBuilder<'a> {
     }
 
     /// Cascade a given custom property declaration.
-    pub fn cascade(&mut self, name: &'a Name, specified_value: &CustomDeclarationValue) {
+    pub fn cascade(
+        &mut self,
+        declaration: &'a CustomDeclaration,
+        origin: Origin,
+    ) {
+        let CustomDeclaration {
+            ref name,
+            ref value,
+        } = *declaration;
+
+        if self.reverted.borrow_for_origin(&origin).contains(&name) {
+            return;
+        }
+
         let was_already_present = !self.seen.insert(name);
         if was_already_present {
             return;
         }
 
-        if !self.value_may_affect_style(name, specified_value) {
+        if !self.value_may_affect_style(name, value) {
             return;
         }
 
@@ -530,7 +546,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
         }
 
         let map = self.custom_properties.as_mut().unwrap();
-        match *specified_value {
+        match *value {
             CustomDeclarationValue::Value(ref unparsed_value) => {
                 let has_references = !unparsed_value.references.is_empty();
                 self.may_have_cycles |= has_references;
@@ -554,6 +570,12 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 map.insert(name.clone(), value);
             },
             CustomDeclarationValue::CSSWideKeyword(keyword) => match keyword {
+                CSSWideKeyword::Revert => {
+                    self.seen.remove(name);
+                    for origin in origin.following_including() {
+                        self.reverted.borrow_mut_for_origin(&origin).insert(name);
+                    }
+                },
                 CSSWideKeyword::Initial => {
                     map.remove(name);
                 },
@@ -587,10 +609,10 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 // not existing in the map.
                 return false;
             },
-            (Some(existing_value), &CustomDeclarationValue::Value(ref specified_value)) => {
+            (Some(existing_value), &CustomDeclarationValue::Value(ref value)) => {
                 // Don't bother overwriting an existing inherited value with
                 // the same specified value.
-                if existing_value == specified_value {
+                if existing_value == value {
                     return false;
                 }
             },
