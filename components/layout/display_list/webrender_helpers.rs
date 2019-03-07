@@ -10,8 +10,10 @@
 use crate::display_list::items::{ClipScrollNode, ClipScrollNodeType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use webrender_api::{self, ClipId, DisplayListBuilder, RasterSpace, SpaceAndClipInfo, SpatialId};
-use webrender_api::{LayoutPoint, SpecificDisplayItem};
+use webrender_api::{
+    self, ClipId, DisplayListBuilder, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId,
+};
+use webrender_api::{LayoutPoint, PropertyBinding, SpecificDisplayItem};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -209,12 +211,20 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                 stacking_context.perspective.is_some()
                         );
 
+                        let transform =
+                            match (stacking_context.transform, stacking_context.perspective) {
+                                (None, Some(p)) => p,
+                                (Some(t), None) => t,
+                                (Some(t), Some(p)) => t.pre_mul(&p),
+                                (None, None) => unreachable!(),
+                            };
+
                         let spatial_id = builder.push_reference_frame(
                             &stacking_context.bounds,
                             state.active_spatial_id,
                             stacking_context.transform_style,
-                            stacking_context.transform.map(Into::into),
-                            stacking_context.perspective,
+                            PropertyBinding::Value(transform),
+                            ReferenceFrameKind::Transform,
                         );
                         state.spatial_ids[frame_index.to_index()] = Some(spatial_id);
                         state.clip_ids[frame_index.to_index()] = Some(cur_clip_id);
@@ -233,7 +243,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     stacking_context.transform_style,
                     stacking_context.mix_blend_mode,
                     &stacking_context.filters,
+                    &[],
                     RasterSpace::Screen,
+                    /* cache_tiles = */ false,
                 );
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
@@ -273,6 +285,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             node.clip.complex.clone(),
                             None,
                             scroll_sensitivity,
+                            webrender_api::LayoutVector2D::zero(),
                         );
 
                         state.clip_ids[item.node_index.to_index()] = Some(space_clip_info.clip_id);
