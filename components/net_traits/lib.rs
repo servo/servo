@@ -468,6 +468,7 @@ pub struct ResourceFetchTiming {
     pub request_start: u64,
     pub secure_connection_start: u64,
     pub response_start: u64,
+    pub start_time: u64,
     pub fetch_start: u64,
     pub response_end: u64,
     pub redirect_start: u64,
@@ -494,6 +495,7 @@ pub enum ResourceAttribute {
     ResponseStart,
     RedirectStart(RedirectStartValue),
     RedirectEnd(RedirectEndValue),
+    StartTime,
     FetchStart,
     ConnectStart(u64),
     ConnectEnd(u64),
@@ -520,6 +522,7 @@ impl ResourceFetchTiming {
             request_start: 0,
             response_start: 0,
             fetch_start: 0,
+            start_time: 0,
             redirect_start: 0,
             redirect_end: 0,
             connect_start: 0,
@@ -555,6 +558,7 @@ impl ResourceFetchTiming {
                 RedirectEndValue::Zero => self.redirect_end = 0,
                 RedirectEndValue::ResponseEnd => self.redirect_end = self.response_end,
             },
+            ResourceAttribute::StartTime => self.start_time = precise_time_ns(),
             ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
             ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
@@ -574,6 +578,25 @@ impl ResourceFetchTiming {
         self.redirect_start = 0;
         self.connect_start = 0;
         self.connect_end = 0;
+    }
+
+    pub fn set_attribute_from(&mut self, attribute: ResourceAttribute, from: ResourceAttribute) {
+        let value = match from {
+            ResourceAttribute::RedirectCount(_) => self.redirect_count as u64,
+            ResourceAttribute::RequestStart => self.request_start,
+            ResourceAttribute::ResponseStart => self.response_start,
+            ResourceAttribute::RedirectStart(_) => self.redirect_start,
+            ResourceAttribute::StartTime => self.start_time,
+            ResourceAttribute::FetchStart => self.fetch_start,
+        };
+        match attribute {
+            ResourceAttribute::RedirectCount(_) => self.redirect_count = value as u16,
+            ResourceAttribute::RequestStart => self.request_start = value,
+            ResourceAttribute::ResponseStart => self.response_start = value,
+            ResourceAttribute::RedirectStart(_) => self.redirect_start = value,
+            ResourceAttribute::StartTime => self.start_time = value,
+            ResourceAttribute::FetchStart => self.fetch_start = value,
+        }
     }
 }
 

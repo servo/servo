@@ -55,7 +55,6 @@ pub struct PerformanceResourceTiming {
     decoded_body_size: u64, //size in octets
 }
 
-// TODO(#21254): startTime
 // TODO(#21255): duration
 // TODO(#21269): next_hop
 // TODO(#21264): worker_start

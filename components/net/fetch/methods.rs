@@ -95,6 +95,11 @@ pub fn fetch(request: &mut Request, target: Target, context: &FetchContext) {
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::FetchStart);
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute_from(ResourceAttribute::StartTime, ResourceAttribute::FetchStart);
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
