@@ -104,6 +104,9 @@ pub trait LayoutNode: Debug + GetLayoutData + TNode {
     fn traverse_preorder(self) -> TreeIterator<Self> {
         TreeIterator::new(self)
     }
+
+    /// Returns whether the node is connected.
+    fn is_connected(&self) -> bool;
 }
 
 pub struct ReverseChildrenIterator<ConcreteNode>
