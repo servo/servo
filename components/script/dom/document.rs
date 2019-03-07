@@ -376,7 +376,7 @@ pub struct Document {
     delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
     /// https://html.spec.whatwg.org/multipage/#completely-loaded
     completely_loaded: Cell<bool>,
-    /// List of shadow roots bound to the document tree.
+    /// Set of shadow roots connected to the document tree.
     shadow_roots: DomRefCell<HashSet<Dom<ShadowRoot>>>,
     /// Whether any of the shadow roots need the stylesheets flushed.
     shadow_roots_styles_changed: Cell<bool>,

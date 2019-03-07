@@ -277,25 +277,20 @@ impl DocumentOrShadowRoot {
             "Removing named element {:p}: {:p} id={}",
             self, to_unregister, id
         );
-        // Limit the scope of the borrow because id_map might be borrowed again by
-        // GetElementById through the following sequence of calls
-        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
-        {
-            let mut id_map = id_map.borrow_mut();
-            let is_empty = match id_map.get_mut(&id) {
-                None => false,
-                Some(elements) => {
-                    let position = elements
-                        .iter()
-                        .position(|element| &**element == to_unregister)
-                        .expect("This element should be in registered.");
-                    elements.remove(position);
-                    elements.is_empty()
-                },
-            };
-            if is_empty {
-                id_map.remove(&id);
-            }
+        let mut id_map = id_map.borrow_mut();
+        let is_empty = match id_map.get_mut(&id) {
+            None => false,
+            Some(elements) => {
+                let position = elements
+                    .iter()
+                    .position(|element| &**element == to_unregister)
+                    .expect("This element should be in registered.");
+                elements.remove(position);
+                elements.is_empty()
+            },
+        };
+        if is_empty {
+            id_map.remove(&id);
         }
     }
 
@@ -310,14 +305,8 @@ impl DocumentOrShadowRoot {
         debug!("Adding named element {:p}: {:p} id={}", self, element, id);
         assert!(element.upcast::<Node>().is_connected());
         assert!(!id.is_empty());
-
-        // Limit the scope of the borrow because id_map might be borrowed again by
-        // GetElementById through the following sequence of calls
-        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
-        {
-            let mut id_map = id_map.borrow_mut();
-            let elements = id_map.entry(id.clone()).or_insert(Vec::new());
-            elements.insert_pre_order(element, &root);
-        }
+        let mut id_map = id_map.borrow_mut();
+        let elements = id_map.entry(id.clone()).or_insert(Vec::new());
+        elements.insert_pre_order(element, &root);
     }
 }

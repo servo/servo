@@ -993,7 +993,7 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         unsafe {
             let mut current_node = Some(self.upcast::<Node>());
             while let Some(node) = current_node {
-                current_node = node.parent_node_ref();
+                current_node = node.composed_parent_node_ref();
                 match node.downcast::<Element>().map(|el| el.unsafe_get()) {
                     Some(elem) => {
                         if let Some(attr) =

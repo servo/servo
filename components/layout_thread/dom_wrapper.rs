@@ -232,7 +232,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     fn parent_node(&self) -> Option<Self> {
         unsafe {
             self.node
-                .parent_node_ref()
+                .composed_parent_node_ref()
                 .map(|node| self.new_with_this_lifetime(&node))
         }
     }
@@ -794,7 +794,12 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
-        unsafe { self.element.upcast().parent_node_ref().and_then(as_element) }
+        unsafe {
+            self.element
+                .upcast()
+                .composed_parent_node_ref()
+                .and_then(as_element)
+        }
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
@@ -1086,12 +1091,10 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn children(&self) -> LayoutIterator<Self::ChildrenIterator> {
-        if let Some(element) = self.node.as_element() {
-            if let Some(shadow) = element.shadow_root() {
-                return LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(
-                    shadow.as_node().to_threadsafe(),
-                ));
-            }
+        if let Some(shadow) = self.node.as_element().and_then(|e| e.shadow_root()) {
+            return LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(
+                shadow.as_node().to_threadsafe(),
+            ));
         }
         LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(*self))
     }
