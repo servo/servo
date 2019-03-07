@@ -2640,12 +2640,16 @@ where
             },
         };
 
-        let (old_pipeline_id, parent_pipeline_id) =
+        let (old_pipeline_id, parent_pipeline_id, top_level_id) =
             match self.browsing_contexts.get_mut(&browsing_context_id) {
                 Some(browsing_context) => {
                     let old_pipeline_id = browsing_context.pipeline_id;
                     browsing_context.update_current_entry(new_pipeline_id);
-                    (old_pipeline_id, browsing_context.parent_pipeline_id)
+                    (
+                        old_pipeline_id,
+                        browsing_context.parent_pipeline_id,
+                        browsing_context.top_level_id,
+                    )
                 },
                 None => {
                     return warn!(
@@ -2662,6 +2666,7 @@ where
             let msg = ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
+                top_level_id,
                 new_pipeline_id,
                 UpdatePipelineIdReason::Traversal,
             );
@@ -3581,6 +3586,7 @@ where
                     let msg = ConstellationControlMsg::UpdatePipelineId(
                         parent_pipeline_id,
                         change.browsing_context_id,
+                        change.top_level_browsing_context_id,
                         pipeline_id,
                         UpdatePipelineIdReason::Navigation,
                     );

@@ -1429,7 +1429,7 @@ impl ScriptThread {
                     NotifyVisibilityChange(id, ..) => Some(id),
                     Navigate(id, ..) => Some(id),
                     PostMessage { target: id, .. } => Some(id),
-                    UpdatePipelineId(_, _, id, _) => Some(id),
+                    UpdatePipelineId(_, _, _, id, _) => Some(id),
                     UpdateHistoryState(id, ..) => Some(id),
                     RemoveHistoryStates(id, ..) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
@@ -1617,11 +1617,13 @@ impl ScriptThread {
             ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
+                top_level_browsing_context_id,
                 new_pipeline_id,
                 reason,
             ) => self.handle_update_pipeline_id(
                 parent_pipeline_id,
                 browsing_context_id,
+                top_level_browsing_context_id,
                 new_pipeline_id,
                 reason,
             ),
@@ -2153,6 +2155,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
     ) {
@@ -2162,6 +2165,21 @@ impl ScriptThread {
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id, reason);
+        }
+
+        if let Some(window) = self.documents.borrow().find_window(new_pipeline_id) {
+            // Ensure that the state of any local window proxies accurately reflects
+            // the new pipeline.
+            let _ = self.local_window_proxy(
+                &*window,
+                browsing_context_id,
+                top_level_browsing_context_id,
+                Some(parent_pipeline_id),
+                // Any local window proxy has already been created, so there
+                // is no need to pass along existing opener information that
+                // will be discarded.
+                None,
+            );
         }
     }
 
@@ -2870,6 +2888,7 @@ impl ScriptThread {
             self.handle_update_pipeline_id(
                 parent_pipeline,
                 window_proxy.browsing_context_id(),
+                window_proxy.top_level_browsing_context_id(),
                 incomplete.pipeline_id,
                 UpdatePipelineIdReason::Navigation,
             );
