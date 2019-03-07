@@ -443,12 +443,8 @@ where
 /// We could simplify the setup moving invalidations to SheetCollection, but
 /// that would imply not sharing invalidations across origins of the same
 /// documents, which is slightly annoying.
-macro_rules! stylesheetset_impl {
-    ($set_name:expr, $set_type:ty) => {
-        impl<S> $set_type
-        where
-            S: StylesheetInDocument + PartialEq + 'static,
-        {
+macro_rules! sheet_set_methods {
+    ($set_name:expr) => {
             fn collect_invalidations_for(
                 &mut self,
                 device: Option<&Device>,
@@ -504,7 +500,6 @@ macro_rules! stylesheetset_impl {
                 let collection = self.collection_for(&sheet, guard);
                 collection.remove(&sheet)
             }
-        }
     };
 }
 
@@ -528,6 +523,8 @@ where
         let origin = sheet.origin(guard);
         self.collections.borrow_mut_for_origin(&origin)
     }
+
+    sheet_set_methods!("DocumentStylesheetSet");
 
     /// Returns the number of stylesheets in the set.
     pub fn len(&self) -> usize {
@@ -607,8 +604,6 @@ where
     }
 }
 
-stylesheetset_impl!("DocumentStylesheetSet", DocumentStylesheetSet<S>);
-
 /// The set of stylesheets effective for a given XBL binding or Shadow Root.
 #[derive(MallocSizeOf)]
 pub struct AuthorStylesheetSet<S>
@@ -673,6 +668,8 @@ where
         &mut self.collection
     }
 
+    sheet_set_methods!("AuthorStylesheetSet");
+
     /// Iterate over the list of stylesheets.
     pub fn iter(&self) -> StylesheetCollectionIterator<S> {
         self.collection.iter()
@@ -704,5 +701,3 @@ where
         }
     }
 }
-
-stylesheetset_impl!("AuthorStylesheetSet", AuthorStylesheetSet<S>);
