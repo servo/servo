@@ -30,14 +30,13 @@ use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::window::Window;
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
-use canvas_traits::webgl::WebGLVersion;
+use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::JSVal;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
-use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::ptr::NonNull;
 
