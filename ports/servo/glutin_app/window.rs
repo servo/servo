@@ -18,7 +18,7 @@ use servo::script_traits::TouchEventType;
 use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScrollLocation};
+use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation};
 use servo::webvr::VRServiceManager;
 use servo::webvr_traits::WebVRMainThreadHeartbeat;
 use std::cell::{Cell, RefCell};
@@ -702,12 +702,12 @@ impl WindowMethods for Window {
                     .get_inner_size()
                     .expect("Failed to get window inner size.");
                 let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-
                 let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
+                let framebuffer = FramebufferIntSize::from_untyped(&viewport.size.to_untyped());
 
                 EmbedderCoordinates {
-                    viewport: viewport,
-                    framebuffer: inner_size,
+                    viewport,
+                    framebuffer,
                     window: (win_size, win_origin),
                     screen: screen,
                     // FIXME: Glutin doesn't have API for available size. Fallback to screen size
@@ -719,9 +719,11 @@ impl WindowMethods for Window {
                 let dpr = self.servo_hidpi_factor();
                 let size =
                     (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_i32();
+                let viewport = DeviceIntRect::new(TypedPoint2D::zero(), size);
+                let framebuffer = FramebufferIntSize::from_untyped(&size.to_untyped());
                 EmbedderCoordinates {
-                    viewport: DeviceIntRect::new(TypedPoint2D::zero(), size),
-                    framebuffer: size,
+                    viewport,
+                    framebuffer,
                     window: (size, TypedPoint2D::zero()),
                     screen: size,
                     screen_avail: size,
