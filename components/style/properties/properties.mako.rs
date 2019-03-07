@@ -2117,12 +2117,6 @@ impl PropertyDeclaration {
         }
     }
 
-    /// Whether this declaration is the `revert` keyword.
-    #[inline]
-    pub fn is_revert(&self) -> bool {
-        self.get_css_wide_keyword().map_or(false, |kw| kw == CSSWideKeyword::Revert)
-    }
-
     /// Returns whether or not the property is set by a system font
     pub fn get_system(&self) -> Option<SystemFont> {
         match *self {
@@ -3447,22 +3441,16 @@ impl<'a> StyleBuilder<'a> {
     }
 
     % for property in data.longhands:
-    % if property.ident != "font_size":
+    % if not property.style_struct.inherited:
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
         let inherited_struct =
-        % if property.style_struct.inherited:
-            self.inherited_style.get_${property.style_struct.name_lower}();
-        % else:
             self.inherited_style_ignoring_first_line
                 .get_${property.style_struct.name_lower}();
-        % endif
 
-        % if not property.style_struct.inherited:
-        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
         self.modified_reset = true;
-        % endif
+        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
 
         % if property.ident == "content":
         self.flags.insert(ComputedValueFlags::INHERITS_CONTENT);
@@ -3484,16 +3472,12 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
-
+    % elif property.name != "font-size":
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {
         let reset_struct =
             self.reset_style.get_${property.style_struct.name_lower}();
-
-        % if not property.style_struct.inherited:
-        self.modified_reset = true;
-        % endif
 
         if self.${property.style_struct.ident}.ptr_eq(reset_struct) {
             return;
@@ -3507,6 +3491,7 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
+    % endif
 
     % if not property.is_vector:
     /// Set the `${property.ident}` to the computed value `value`.
@@ -3527,7 +3512,6 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
-    % endif
     % endif
     % endfor
     <% del property %>
