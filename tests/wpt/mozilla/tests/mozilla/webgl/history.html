@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Traversing history with webgl content does not panic</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+  /*
+     Load two pages that each create two GL contexts and draw in one of them.
+     Traverse history and attempt to draw again; this has historically caused crashes.
+  */
+  var first = "clearcolor_green.html";
+  var second = "clearcolor_blue.html";
+
+  var iframe = document.querySelector('iframe');
+  iframe.src = first;
+
+  var t = async_test();
+  onload = t.step_func(function() {
+    iframe.src = second;
+
+    iframe.onload = t.step_func(function() {
+      assert_true(iframe.contentWindow.location.href.endsWith(second));
+      iframe.contentWindow.history.back();
+
+      t.step_timeout(function() {
+        assert_true(iframe.contentWindow.location.href.endsWith(first));
+        // Try to use the previously-used GL context.
+        iframe.contentWindow.draw();
+        iframe.contentWindow.history.forward();
+
+        t.step_timeout(function() {
+          assert_true(iframe.contentWindow.location.href.endsWith(second));
+          // Try to use the previously-used GL context.
+          iframe.contentWindow.draw();
+          t.done();
+        }, 1000);
+
+      }, 1000);
+    });
+  });
+</script>

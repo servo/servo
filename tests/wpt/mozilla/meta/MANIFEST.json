@@ -7205,6 +7205,30 @@
      {}
     ]
    ],
+   "mozilla/webgl/clearcolor_blue.html": [
+    [
+     "/_mozilla/mozilla/webgl/clearcolor_blue.html",
+     [
+      [
+       "/_mozilla/mozilla/webgl/clearcolor_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/webgl/clearcolor_green.html": [
+    [
+     "/_mozilla/mozilla/webgl/clearcolor_green.html",
+     [
+      [
+       "/_mozilla/mozilla/webgl/clearcolor_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/webgl/draw_arrays_simple.html": [
     [
      "/_mozilla/mozilla/webgl/draw_arrays_simple.html",
@@ -20092,6 +20116,14 @@
    "4760f382f0374985a334a5f6d0e0fe055670c61d",
    "reftest"
   ],
+  "mozilla/webgl/clearcolor_blue.html": [
+   "3ab7a514e73f34a679c3f978ebdb84f6b569c62d",
+   "reftest"
+  ],
+  "mozilla/webgl/clearcolor_green.html": [
+   "da70bd2352a93b5dbdd276b61e0c28145bdfb888",
+   "reftest"
+  ],
   "mozilla/webgl/clearcolor_ref.html": [
    "49cce2cc9009057742cb17e3fd452a986bd6c177",
    "support"
@@ -20114,6 +20146,10 @@
   ],
   "mozilla/webgl/get_supported_extensions.html": [
    "691535db4766536d66769408212cb13f3f64bef6",
+   "testharness"
+  ],
+  "mozilla/webgl/history.html": [
+   "d470c229fbcca5a47d3370e8e58bae34882be491",
    "testharness"
   ],
   "mozilla/webgl/img/rust-logo-256x256.png": [
