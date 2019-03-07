@@ -17,7 +17,9 @@ use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gl")]
 use std::rc::Rc;
 use style_traits::DevicePixel;
-use webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, ScrollLocation};
+use webrender_api::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, FramebufferIntSize, ScrollLocation,
+};
 use webvr::VRServiceManager;
 use webvr_traits::WebVRMainThreadHeartbeat;
 
@@ -167,7 +169,7 @@ pub struct EmbedderCoordinates {
     /// Size of the native window.
     pub window: (DeviceIntSize, DeviceIntPoint),
     /// Size of the GL buffer in the window.
-    pub framebuffer: DeviceIntSize,
+    pub framebuffer: FramebufferIntSize,
     /// Coordinates of the document within the framebuffer.
     pub viewport: DeviceIntRect,
 }
