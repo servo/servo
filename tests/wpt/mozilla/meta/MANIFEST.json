@@ -10459,6 +10459,11 @@
      {}
     ]
    ],
+   "mozilla/resources/first.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/resources/http-cache.js": [
     [
      {}
@@ -10495,6 +10500,11 @@
     ]
    ],
    "mozilla/resources/range_small.txt": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/resources/second.html": [
     [
      {}
     ]
@@ -12656,6 +12666,12 @@
    "mozilla/globals/entry.worker.js": [
     [
      "/_mozilla/mozilla/globals/entry.worker.html",
+     {}
+    ]
+   ],
+   "mozilla/history.html": [
+    [
+     "/_mozilla/mozilla/history.html",
      {}
     ]
    ],
@@ -19424,6 +19440,10 @@
    "9baa0cdcd5abad00b321e8b9351a1bc162783ed5",
    "support"
   ],
+  "mozilla/history.html": [
+   "130307f1e9c8bc4c5ee6fff4d5fef8fda89a1564",
+   "testharness"
+  ],
   "mozilla/hit-test-background.html": [
    "5212954e4ee6ecb684212e7373e24a2268434b1c",
    "testharness"
@@ -19796,6 +19816,10 @@
    "5f0242874cfa47b84af35325ad651690cd9fb790",
    "support"
   ],
+  "mozilla/resources/first.html": [
+   "b4359ad2855339999cfeda0c2681a51da6fdd940",
+   "support"
+  ],
   "mozilla/resources/http-cache.js": [
    "34aaacf536f31e4d9ae003cb0891ede965201f08",
    "support"
@@ -19826,6 +19850,10 @@
   ],
   "mozilla/resources/range_small.txt": [
    "b0883f382e1a80609b7b2c7904e701fbe6760b14",
+   "support"
+  ],
+  "mozilla/resources/second.html": [
+   "c4fbe534ed193e1d192c0338997a8d9da8eb6406",
    "support"
   ],
   "mozilla/resources/ssl.https.html": [
