@@ -103,7 +103,7 @@ fn find_node_by_unique_id(
     documents.find_document(pipeline).and_then(|document| {
         document
             .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::No)
+            .traverse_preorder(ShadowIncluding::Yes)
             .find(|candidate| candidate.unique_id() == node_id)
     })
 }
