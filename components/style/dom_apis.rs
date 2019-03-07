@@ -241,11 +241,10 @@ where
     }
 
     if root.as_shadow_root().is_some() {
-        debug_assert!(element.as_node().is_in_document(), "Not connected?");
         debug_assert_eq!(
             element.containing_shadow().unwrap().as_node(),
             root,
-            "Where did this element come from?"
+            "Not connected?"
         );
         return true;
     }
@@ -277,15 +276,15 @@ where
     }
 
     if root.is_in_document() {
-        if let Some(shadow) = root.as_shadow_root() {
-            return shadow.elements_with_id(id);
-        }
-
-        if let Some(shadow) = root.as_element().and_then(|e| e.containing_shadow()) {
-            return shadow.elements_with_id(id);
-        }
-
         return root.owner_doc().elements_with_id(id);
+    }
+
+    if let Some(shadow) = root.as_shadow_root() {
+        return shadow.elements_with_id(id);
+    }
+
+    if let Some(shadow) = root.as_element().and_then(|e| e.containing_shadow()) {
+        return shadow.elements_with_id(id);
     }
 
     Err(())
