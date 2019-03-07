@@ -1166,7 +1166,7 @@ pub unsafe fn from_untrusted_node_address(
 pub trait LayoutNodeHelpers {
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
-    unsafe fn parent_node_ref(&self) -> Option<LayoutDom<Node>>;
+    unsafe fn composed_parent_node_ref(&self) -> Option<LayoutDom<Node>>;
     unsafe fn first_child_ref(&self) -> Option<LayoutDom<Node>>;
     unsafe fn last_child_ref(&self) -> Option<LayoutDom<Node>>;
     unsafe fn prev_sibling_ref(&self) -> Option<LayoutDom<Node>>;
@@ -1213,7 +1213,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn parent_node_ref(&self) -> Option<LayoutDom<Node>> {
+    unsafe fn composed_parent_node_ref(&self) -> Option<LayoutDom<Node>> {
         let parent = (*self.unsafe_get()).parent_node.get_inner_as_layout();
         if let Some(ref parent) = parent {
             if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
