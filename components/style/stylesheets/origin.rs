@@ -36,6 +36,25 @@ impl Origin {
             _ => return None,
         })
     }
+
+    fn to_index(self) -> i8 {
+        match self {
+            Origin::Author => 0,
+            Origin::User => 1,
+            Origin::UserAgent => 2,
+        }
+    }
+
+    /// Returns an iterator from this origin, towards all the less specific
+    /// origins. So for `UserAgent`, it'd iterate through all origins.
+    #[inline]
+    pub fn following_including(self) -> OriginSetIterator {
+        OriginSetIterator {
+            set: OriginSet::ORIGIN_USER | OriginSet::ORIGIN_AUTHOR | OriginSet::ORIGIN_USER_AGENT,
+            cur: self.to_index(),
+            rev: true,
+        }
+    }
 }
 
 bitflags! {
@@ -57,7 +76,7 @@ impl OriginSet {
     /// See the `OriginSet` documentation for information about the order
     /// origins are iterated.
     pub fn iter(&self) -> OriginSetIterator {
-        OriginSetIterator { set: *self, cur: 0 }
+        OriginSetIterator { set: *self, cur: 0, rev: false }
     }
 }
 
@@ -79,6 +98,7 @@ impl BitOrAssign<Origin> for OriginSet {
 pub struct OriginSetIterator {
     set: OriginSet,
     cur: i8,
+    rev: bool,
 }
 
 impl Iterator for OriginSetIterator {
@@ -88,7 +108,11 @@ impl Iterator for OriginSetIterator {
         loop {
             let origin = Origin::from_index(self.cur)?;
 
-            self.cur += 1;
+            if self.rev {
+                self.cur -= 1;
+            } else {
+                self.cur += 1;
+            }
 
             if self.set.contains(origin.into()) {
                 return Some(origin);
