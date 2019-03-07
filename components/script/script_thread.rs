@@ -51,7 +51,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
+use crate::dom::node::{
+    from_untrusted_node_address, window_from_node, Node, NodeDamage, ShadowIncluding,
+};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
@@ -3065,7 +3067,7 @@ impl ScriptThread {
                 if let Some(target) = self.topmost_mouse_over_target.get() {
                     if let Some(anchor) = target
                         .upcast::<Node>()
-                        .inclusive_ancestors()
+                        .inclusive_ancestors(ShadowIncluding::No)
                         .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                         .next()
                     {
@@ -3089,7 +3091,7 @@ impl ScriptThread {
                     if let Some(target) = prev_mouse_over_target {
                         if let Some(_) = target
                             .upcast::<Node>()
-                            .inclusive_ancestors()
+                            .inclusive_ancestors(ShadowIncluding::No)
                             .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                             .next()
                         {

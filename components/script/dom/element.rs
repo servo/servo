@@ -73,7 +73,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{BindContext, NodeDamage, NodeFlags, UnbindContext};
-use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node};
+use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
@@ -1110,7 +1110,7 @@ impl Element {
 
         let inclusive_ancestor_elements = self
             .upcast::<Node>()
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Self>);
 
         // Steps 3-4.
@@ -1226,7 +1226,7 @@ impl Element {
                 .unwrap()
         } else {
             self.upcast::<Node>()
-                .inclusive_ancestors()
+                .inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast)
                 .last()
                 .expect("We know inclusive_ancestors will return `self` which is an element")
@@ -1235,7 +1235,10 @@ impl Element {
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
     pub fn lookup_prefix(&self, namespace: Namespace) -> Option<DOMString> {
-        for node in self.upcast::<Node>().inclusive_ancestors() {
+        for node in self
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::No)
+        {
             let element = node.downcast::<Element>()?;
             // Step 1.
             if *element.namespace() == namespace {
@@ -3238,7 +3241,7 @@ impl Element {
     // https://html.spec.whatwg.org/multipage/#language
     pub fn get_lang(&self) -> String {
         self.upcast::<Node>()
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(|node| {
                 node.downcast::<Element>().and_then(|el| {
                     el.get_attribute(&ns!(xml), &local_name!("lang"))
