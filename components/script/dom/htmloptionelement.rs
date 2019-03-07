@@ -19,7 +19,7 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -251,7 +251,7 @@ impl VirtualMethods for HTMLOptionElement {
 
         if let Some(select) = context
             .parent
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLSelectElement>)
             .next()
         {

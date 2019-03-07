@@ -13,7 +13,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::mutationrecord::MutationRecord;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::script_thread::ScriptThread;
@@ -131,7 +131,7 @@ impl MutationObserver {
         let mut interested_observers: Vec<(DomRoot<MutationObserver>, Option<DOMString>)> = vec![];
 
         // Step 2 & 3
-        for node in target.inclusive_ancestors() {
+        for node in target.inclusive_ancestors(ShadowIncluding::No) {
             for registered in &*node.registered_mutation_observers() {
                 if &*node != target && !registered.options.subtree {
                     continue;

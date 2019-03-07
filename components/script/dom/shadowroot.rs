@@ -14,7 +14,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeDamage, NodeFlags};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -140,7 +140,11 @@ impl ShadowRoot {
 
     /// Associate an element present in this shadow tree with the provided id.
     pub fn register_named_element(&self, element: &Element, id: Atom) {
-        let root = self.upcast::<Node>().inclusive_ancestors().last().unwrap();
+        let root = self
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
         self.document_or_shadow_root.register_named_element(
             self.document_fragment.id_map(),
             element,
