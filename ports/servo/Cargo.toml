@@ -53,7 +53,9 @@ libc = "0.2"
 log = "0.4"
 rust-webvr = { version = "0.10.2", features = ["glwindow"] }
 tinyfiledialogs = "3.0"
-winit = {version = "0.18", features = ["icon_loading"]}
+
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+image = "0.21"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 osmesa-sys = "0.1.2"
