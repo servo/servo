@@ -933,7 +933,7 @@ impl Document {
 
         let el = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
-            node.inclusive_ancestors()
+            node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });
@@ -1124,7 +1124,7 @@ impl Document {
 
         let maybe_new_target = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
-            node.inclusive_ancestors()
+            node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });
@@ -1160,7 +1160,7 @@ impl Document {
             if !old_target_is_ancestor_of_new_target {
                 for element in old_target
                     .upcast::<Node>()
-                    .inclusive_ancestors()
+                    .inclusive_ancestors(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast::<Element>)
                 {
                     element.set_hover_state(false);
@@ -1178,7 +1178,7 @@ impl Document {
         if let Some(ref new_target) = maybe_new_target {
             for element in new_target
                 .upcast::<Node>()
-                .inclusive_ancestors()
+                .inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 if element.hover_state() {
@@ -1220,7 +1220,7 @@ impl Document {
 
         let el = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
-            node.inclusive_ancestors()
+            node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });

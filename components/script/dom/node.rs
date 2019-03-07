@@ -550,7 +550,7 @@ impl Node {
     pub fn note_dirty_descendants(&self) {
         debug_assert!(self.is_in_doc());
 
-        for ancestor in self.shadow_including_inclusive_ancestors() {
+        for ancestor in self.inclusive_ancestors(ShadowIncluding::Yes) {
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
                 return;
             }
@@ -573,7 +573,7 @@ impl Node {
             self.inclusive_descendants_version(),
             doc.inclusive_descendants_version(),
         ) + 1;
-        for ancestor in self.inclusive_ancestors() {
+        for ancestor in self.inclusive_ancestors(ShadowIncluding::No) {
             ancestor.inclusive_descendants_version.set(version);
         }
         doc.inclusive_descendants_version.set(version);
@@ -629,7 +629,7 @@ impl Node {
     }
 
     fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
-        node.shadow_including_inclusive_ancestors()
+        node.inclusive_ancestors(ShadowIncluding::Yes)
             .any(|ancestor| &*ancestor == self)
     }
 
@@ -891,25 +891,22 @@ impl Node {
         }
     }
 
-    pub fn inclusive_ancestors(&self) -> Box<Iterator<Item = DomRoot<Node>>> {
-        Box::new(SimpleNodeIterator {
-            current: Some(DomRoot::from_ref(self)),
-            next_node: |n| n.GetParentNode(),
-        })
-    }
-
     /// https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor
-    pub fn shadow_including_inclusive_ancestors(&self) -> Box<Iterator<Item = DomRoot<Node>>> {
-        Box::new(SimpleNodeIterator {
+    pub fn inclusive_ancestors(
+        &self,
+        shadow_including: ShadowIncluding,
+    ) -> impl Iterator<Item = DomRoot<Node>> {
+        SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
-            next_node: |n| {
-                if let Some(shadow_root) = n.downcast::<ShadowRoot>() {
-                    Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()))
-                } else {
-                    n.GetParentNode()
+            next_node: move |n| {
+                if shadow_including == ShadowIncluding::Yes {
+                    if let Some(shadow_root) = n.downcast::<ShadowRoot>() {
+                        return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+                    }
                 }
+                n.GetParentNode()
             },
-        })
+        }
     }
 
     pub fn owner_doc(&self) -> DomRoot<Document> {
@@ -1427,7 +1424,7 @@ impl FollowingNodeIterator {
             return current.GetNextSibling();
         }
 
-        for ancestor in current.inclusive_ancestors() {
+        for ancestor in current.inclusive_ancestors(ShadowIncluding::No) {
             if self.root == ancestor {
                 break;
             }
@@ -1536,11 +1533,11 @@ impl TreeIterator {
     }
 
     fn next_skipping_children_impl(&mut self, current: DomRoot<Node>) -> Option<DomRoot<Node>> {
-        let iter = if self.shadow_including {
-            current.shadow_including_inclusive_ancestors()
+        let iter = current.inclusive_ancestors(if self.shadow_including {
+            ShadowIncluding::Yes
         } else {
-            current.inclusive_ancestors()
-        };
+            ShadowIncluding::No
+        });
 
         for ancestor in iter {
             if self.depth == 0 {
@@ -2263,7 +2260,9 @@ impl NodeMethods for Node {
                 return shadow_root.Host().upcast::<Node>().GetRootNode(options);
             }
         }
-        self.inclusive_ancestors().last().unwrap()
+        self.inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
@@ -2668,8 +2667,12 @@ impl NodeMethods for Node {
 
         // FIXME(emilio): This will eventually need to handle attribute nodes.
 
-        let mut self_and_ancestors = self.inclusive_ancestors().collect::<SmallVec<[_; 20]>>();
-        let mut other_and_ancestors = other.inclusive_ancestors().collect::<SmallVec<[_; 20]>>();
+        let mut self_and_ancestors = self
+            .inclusive_ancestors(ShadowIncluding::No)
+            .collect::<SmallVec<[_; 20]>>();
+        let mut other_and_ancestors = other
+            .inclusive_ancestors(ShadowIncluding::No)
+            .collect::<SmallVec<[_; 20]>>();
 
         if self_and_ancestors.last() != other_and_ancestors.last() {
             let random = as_uintptr(self_and_ancestors.last().unwrap()) <

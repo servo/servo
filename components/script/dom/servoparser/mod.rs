@@ -27,7 +27,7 @@ use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -198,7 +198,7 @@ impl ServoParser {
 
         // Step 11.
         let form = context_node
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .find(|element| element.is::<HTMLFormElement>());
 
         let fragment_context = FragmentContext {

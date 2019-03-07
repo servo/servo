@@ -102,10 +102,10 @@ impl Range {
     // https://dom.spec.whatwg.org/#partially-contained
     fn partially_contains(&self, node: &Node) -> bool {
         self.StartContainer()
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .any(|n| &*n == node) !=
             self.EndContainer()
-                .inclusive_ancestors()
+                .inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| &*n == node)
     }
 
@@ -193,8 +193,14 @@ impl Range {
     // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
     fn compare_point(&self, node: &Node, offset: u32) -> Fallible<Ordering> {
         let start_node = self.StartContainer();
-        let start_node_root = start_node.inclusive_ancestors().last().unwrap();
-        let node_root = node.inclusive_ancestors().last().unwrap();
+        let start_node_root = start_node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
+        let node_root = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
         if start_node_root != node_root {
             // Step 1.
             return Err(Error::WrongDocument);
@@ -253,7 +259,10 @@ impl RangeMethods for Range {
     fn CommonAncestorContainer(&self) -> DomRoot<Node> {
         let end_container = self.EndContainer();
         // Step 1.
-        for container in self.StartContainer().inclusive_ancestors() {
+        for container in self
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+        {
             // Step 2.
             if container.is_inclusive_ancestor_of(&end_container) {
                 // Step 3.
@@ -368,8 +377,16 @@ impl RangeMethods for Range {
             // Step 1.
             return Err(Error::NotSupported);
         }
-        let this_root = self.StartContainer().inclusive_ancestors().last().unwrap();
-        let other_root = other.StartContainer().inclusive_ancestors().last().unwrap();
+        let this_root = self
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
+        let other_root = other
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
         if this_root != other_root {
             // Step 2.
             return Err(Error::WrongDocument);
@@ -429,8 +446,15 @@ impl RangeMethods for Range {
     // https://dom.spec.whatwg.org/#dom-range-intersectsnode
     fn IntersectsNode(&self, node: &Node) -> bool {
         let start_node = self.StartContainer();
-        let start_node_root = self.StartContainer().inclusive_ancestors().last().unwrap();
-        let node_root = node.inclusive_ancestors().last().unwrap();
+        let start_node_root = self
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
+        let node_root = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
         if start_node_root != node_root {
             // Step 1.
             return false;
@@ -864,9 +888,9 @@ impl RangeMethods for Range {
         let end = self.EndContainer();
 
         if start
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .any(|n| !n.is_inclusive_ancestor_of(&end) && !n.is::<Text>()) ||
-            end.inclusive_ancestors()
+            end.inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| !n.is_inclusive_ancestor_of(&start) && !n.is::<Text>())
         {
             return Err(Error::InvalidState);
@@ -1047,7 +1071,7 @@ fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Op
         }
     } else if position & NodeConstants::DOCUMENT_POSITION_CONTAINS != 0 {
         // Step 3-1, 3-2.
-        let mut b_ancestors = b_node.inclusive_ancestors();
+        let mut b_ancestors = b_node.inclusive_ancestors(ShadowIncluding::No);
         let child = b_ancestors
             .find(|child| &*child.GetParentNode().unwrap() == a_node)
             .unwrap();
