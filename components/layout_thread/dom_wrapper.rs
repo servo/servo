@@ -304,10 +304,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     fn is_in_document(&self) -> bool {
         unsafe { self.node.get_flag(NodeFlags::IS_IN_DOC) }
     }
-
-    fn is_connected(&self) -> bool {
-        unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
-    }
 }
 
 impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
@@ -337,6 +333,10 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
     unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData {
         self.get_jsmanaged().take_style_and_layout_data()
+    }
+
+    fn is_connected(&self) -> bool {
+        unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
     }
 }
 
