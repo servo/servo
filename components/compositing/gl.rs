@@ -4,7 +4,7 @@
 
 use gleam::gl;
 use image::RgbImage;
-use servo_geometry::DeviceUintLength;
+use servo_geometry::FramebufferUintLength;
 
 #[derive(Default)]
 pub struct RenderTargetInfo {
@@ -15,8 +15,8 @@ pub struct RenderTargetInfo {
 
 pub fn initialize_png(
     gl: &dyn gl::Gl,
-    width: DeviceUintLength,
-    height: DeviceUintLength,
+    width: FramebufferUintLength,
+    height: FramebufferUintLength,
 ) -> RenderTargetInfo {
     let framebuffer_ids = gl.gen_framebuffers(1);
     gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
@@ -82,8 +82,8 @@ pub fn initialize_png(
 pub fn draw_img(
     gl: &dyn gl::Gl,
     render_target_info: RenderTargetInfo,
-    width: DeviceUintLength,
-    height: DeviceUintLength,
+    width: FramebufferUintLength,
+    height: FramebufferUintLength,
 ) -> RgbImage {
     let width = width.get() as usize;
     let height = height.get() as usize;
