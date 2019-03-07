@@ -2655,6 +2655,13 @@ where
                 },
             };
 
+        if let Some(old_pipeline) = self.pipelines.get(&old_pipeline_id) {
+            old_pipeline.notify_visibility(false);
+        }
+        if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
+            new_pipeline.notify_visibility(true);
+        }
+
         self.update_activity(old_pipeline_id);
         self.update_activity(new_pipeline_id);
 
@@ -3373,6 +3380,10 @@ where
                 self.notify_history_changed(change.top_level_browsing_context_id);
             },
             Some(old_pipeline_id) => {
+                if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
+                    pipeline.notify_visibility(false);
+                }
+
                 // https://html.spec.whatwg.org/multipage/#unload-a-document
                 self.unload_document(old_pipeline_id);
                 // Deactivate the old pipeline, and activate the new one.
