@@ -78,6 +78,8 @@ pub enum WindowEvent {
     Navigation(TopLevelBrowsingContextId, TraversalDirection),
     /// Sent when the user quits the application
     Quit,
+    /// Sent when the user exits from fullscreen mode
+    ExitFullScreen(TopLevelBrowsingContextId),
     /// Sent when a key input state changes
     Keyboard(KeyboardEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
@@ -125,6 +127,7 @@ impl Debug for WindowEvent {
             WindowEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             WindowEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             WindowEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
+            WindowEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
         }
     }
 }
