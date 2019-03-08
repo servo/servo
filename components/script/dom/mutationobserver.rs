@@ -318,20 +318,18 @@ impl MutationObserverMethods for MutationObserver {
 
         // Step 8
         if add_new_observer {
-            target
-                .registered_mutation_observers()
-                .push(RegisteredObserver {
-                    observer: DomRoot::from_ref(self),
-                    options: ObserverOptions {
-                        attributes,
-                        attribute_old_value,
-                        character_data,
-                        character_data_old_value,
-                        subtree,
-                        attribute_filter,
-                        child_list,
-                    },
-                });
+            target.add_mutation_observer(RegisteredObserver {
+                observer: DomRoot::from_ref(self),
+                options: ObserverOptions {
+                    attributes,
+                    attribute_old_value,
+                    character_data,
+                    character_data_old_value,
+                    subtree,
+                    attribute_filter,
+                    child_list,
+                },
+            });
 
             self.node_list.borrow_mut().push(DomRoot::from_ref(target));
         }

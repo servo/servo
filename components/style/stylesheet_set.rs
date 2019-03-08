@@ -445,61 +445,61 @@ where
 /// documents, which is slightly annoying.
 macro_rules! sheet_set_methods {
     ($set_name:expr) => {
-            fn collect_invalidations_for(
-                &mut self,
-                device: Option<&Device>,
-                sheet: &S,
-                guard: &SharedRwLockReadGuard,
-            ) {
-                if let Some(device) = device {
-                    self.invalidations
-                        .collect_invalidations_for(device, sheet, guard);
-                }
+        fn collect_invalidations_for(
+            &mut self,
+            device: Option<&Device>,
+            sheet: &S,
+            guard: &SharedRwLockReadGuard,
+        ) {
+            if let Some(device) = device {
+                self.invalidations
+                    .collect_invalidations_for(device, sheet, guard);
             }
+        }
 
-            /// Appends a new stylesheet to the current set.
-            ///
-            /// No device implies not computing invalidations.
-            pub fn append_stylesheet(
-                &mut self,
-                device: Option<&Device>,
-                sheet: S,
-                guard: &SharedRwLockReadGuard,
-            ) {
-                debug!(concat!($set_name, "::append_stylesheet"));
-                self.collect_invalidations_for(device, &sheet, guard);
-                let collection = self.collection_for(&sheet, guard);
-                collection.append(sheet);
-            }
+        /// Appends a new stylesheet to the current set.
+        ///
+        /// No device implies not computing invalidations.
+        pub fn append_stylesheet(
+            &mut self,
+            device: Option<&Device>,
+            sheet: S,
+            guard: &SharedRwLockReadGuard,
+        ) {
+            debug!(concat!($set_name, "::append_stylesheet"));
+            self.collect_invalidations_for(device, &sheet, guard);
+            let collection = self.collection_for(&sheet, guard);
+            collection.append(sheet);
+        }
 
-            /// Insert a given stylesheet before another stylesheet in the document.
-            pub fn insert_stylesheet_before(
-                &mut self,
-                device: Option<&Device>,
-                sheet: S,
-                before_sheet: S,
-                guard: &SharedRwLockReadGuard,
-            ) {
-                debug!(concat!($set_name, "::insert_stylesheet_before"));
-                self.collect_invalidations_for(device, &sheet, guard);
+        /// Insert a given stylesheet before another stylesheet in the document.
+        pub fn insert_stylesheet_before(
+            &mut self,
+            device: Option<&Device>,
+            sheet: S,
+            before_sheet: S,
+            guard: &SharedRwLockReadGuard,
+        ) {
+            debug!(concat!($set_name, "::insert_stylesheet_before"));
+            self.collect_invalidations_for(device, &sheet, guard);
 
-                let collection = self.collection_for(&sheet, guard);
-                collection.insert_before(sheet, &before_sheet);
-            }
+            let collection = self.collection_for(&sheet, guard);
+            collection.insert_before(sheet, &before_sheet);
+        }
 
-            /// Remove a given stylesheet from the set.
-            pub fn remove_stylesheet(
-                &mut self,
-                device: Option<&Device>,
-                sheet: S,
-                guard: &SharedRwLockReadGuard,
-            ) {
-                debug!(concat!($set_name, "::remove_stylesheet"));
-                self.collect_invalidations_for(device, &sheet, guard);
+        /// Remove a given stylesheet from the set.
+        pub fn remove_stylesheet(
+            &mut self,
+            device: Option<&Device>,
+            sheet: S,
+            guard: &SharedRwLockReadGuard,
+        ) {
+            debug!(concat!($set_name, "::remove_stylesheet"));
+            self.collect_invalidations_for(device, &sheet, guard);
 
-                let collection = self.collection_for(&sheet, guard);
-                collection.remove(&sheet)
-            }
+            let collection = self.collection_for(&sheet, guard);
+            collection.remove(&sheet)
+        }
     };
 }
 

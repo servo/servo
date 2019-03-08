@@ -5,6 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use crate::document_loader::DocumentLoader;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -82,7 +83,7 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefMut, UnsafeCell};
+use std::cell::{Cell, Ref, RefMut, UnsafeCell};
 use std::cmp;
 use std::default::Default;
 use std::iter;
@@ -125,7 +126,7 @@ pub struct Node {
     owner_doc: MutNullableDom<Document>,
 
     /// Rare node data.
-    rare_data: Box<NodeRareData>,
+    rare_data: DomRefCell<Option<Box<NodeRareData>>>,
 
     /// The live list of children return by .childNodes.
     child_list: MutNullableDom<NodeList>,
@@ -430,6 +431,8 @@ impl<'a> Iterator for QuerySelectorIterator {
 }
 
 impl Node {
+    impl_rare_data!(NodeRareData);
+
     pub fn teardown(&self) {
         self.style_and_layout_data.get().map(|d| self.dispose(d));
         for kid in self.children() {
@@ -450,14 +453,26 @@ impl Node {
 
     /// Return all registered mutation observers for this node.
     pub fn registered_mutation_observers(&self) -> RefMut<Vec<RegisteredObserver>> {
-        self.rare_data.mutation_observers.borrow_mut()
+        RefMut::map(self.rare_data_mut(), |rare_data| {
+            &mut rare_data.as_mut().unwrap().mutation_observers
+        })
+    }
+
+    /// Add a new mutation observer for a given node.
+    pub fn add_mutation_observer(&self, observer: RegisteredObserver) {
+        self.rare_data_mut()
+            .as_mut()
+            .unwrap()
+            .mutation_observers
+            .push(observer);
     }
 
     /// Removes the mutation observer for a given node.
     pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
-        self.rare_data
+        self.rare_data_mut()
+            .as_mut()
+            .unwrap()
             .mutation_observers
-            .borrow_mut()
             .retain(|reg_obs| &*reg_obs.observer != observer)
     }
 
@@ -930,11 +945,16 @@ impl Node {
         if let Some(ref shadow_root) = self.downcast::<ShadowRoot>() {
             return Some(DomRoot::from_ref(shadow_root));
         }
-        self.rare_data.owner_shadow_root.get()
+        self.rare_data()
+            .as_ref()
+            .unwrap()
+            .owner_shadow_root
+            .as_ref()
+            .map(|sr| DomRoot::from_ref(&**sr))
     }
 
     pub fn set_owner_shadow_root(&self, shadow_root: &ShadowRoot) {
-        self.rare_data.owner_shadow_root.set(Some(shadow_root));
+        self.rare_data_mut().as_mut().unwrap().owner_shadow_root = Some(Dom::from_ref(shadow_root));
     }
 
     pub fn is_in_html_doc(&self) -> bool {
@@ -1266,9 +1286,12 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     #[allow(unsafe_code)]
     unsafe fn owner_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
         (*self.unsafe_get())
-            .rare_data
+            .rare_data_for_layout()
+            .as_ref()
+            .unwrap()
             .owner_shadow_root
-            .get_inner_as_layout()
+            .as_ref()
+            .map(|sr| sr.to_layout())
     }
 
     #[inline]
@@ -2264,12 +2287,12 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-getrootnode
     fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
         if options.composed {
-            if let Some(shadow_root) = self.rare_data.owner_shadow_root.get() {
+            if let Some(ref shadow_root) = self.rare_data().as_ref().unwrap().owner_shadow_root {
                 // shadow-including root.
                 return shadow_root.Host().upcast::<Node>().GetRootNode(options);
             }
         }
-        if let Some(shadow_root) = self.rare_data.owner_shadow_root.get() {
+        if let Some(ref shadow_root) = self.rare_data().as_ref().unwrap().owner_shadow_root {
             DomRoot::from_ref(shadow_root.upcast::<Node>())
         } else if self.is_in_doc() {
             DomRoot::from_ref(self.owner_doc().upcast::<Node>())

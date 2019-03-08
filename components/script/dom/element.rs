@@ -106,7 +106,7 @@ use selectors::Element as SelectorsElement;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::borrow::Cow;
-use std::cell::{Cell, Ref};
+use std::cell::{Cell, Ref, RefMut};
 use std::default::Default;
 use std::fmt;
 use std::mem;
@@ -166,7 +166,7 @@ pub struct Element {
     /// when it has exclusive access to the element.
     #[ignore_malloc_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
-    rare_data: Box<ElementRareData>,
+    rare_data: DomRefCell<Option<Box<ElementRareData>>>,
 }
 
 impl fmt::Debug for Element {
@@ -308,6 +308,8 @@ impl Element {
         )
     }
 
+    impl_rare_data!(ElementRareData);
+
     pub fn restyle(&self, damage: NodeDamage) {
         let doc = self.node.owner_doc();
         let mut restyle = doc.ensure_pending_restyle(self);
@@ -330,39 +332,49 @@ impl Element {
     }
 
     pub fn set_custom_element_state(&self, state: CustomElementState) {
-        self.rare_data.custom_element_state.set(state);
+        self.rare_data_mut().as_mut().unwrap().custom_element_state = state;
     }
 
     pub fn get_custom_element_state(&self) -> CustomElementState {
-        self.rare_data.custom_element_state.get()
+        self.rare_data().as_ref().unwrap().custom_element_state
     }
 
     pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
-        *self.rare_data.custom_element_definition.borrow_mut() = Some(definition);
+        self.rare_data_mut()
+            .as_mut()
+            .unwrap()
+            .custom_element_definition = Some(definition);
     }
 
     pub fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
-        (*self.rare_data.custom_element_definition.borrow()).clone()
+        self.rare_data()
+            .as_ref()
+            .unwrap()
+            .custom_element_definition
+            .clone()
     }
 
     pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
-        self.rare_data
+        self.rare_data_mut()
+            .as_mut()
+            .unwrap()
             .custom_element_reaction_queue
-            .borrow_mut()
             .push(CustomElementReaction::Callback(function, args));
     }
 
     pub fn push_upgrade_reaction(&self, definition: Rc<CustomElementDefinition>) {
-        self.rare_data
+        self.rare_data_mut()
+            .as_mut()
+            .unwrap()
             .custom_element_reaction_queue
-            .borrow_mut()
             .push(CustomElementReaction::Upgrade(definition));
     }
 
     pub fn clear_reaction_queue(&self) {
-        self.rare_data
+        self.rare_data_mut()
+            .as_mut()
+            .unwrap()
             .custom_element_reaction_queue
-            .borrow_mut()
             .clear();
     }
 
@@ -371,14 +383,19 @@ impl Element {
         // after clear_reaction_queue has been called.
         rooted_vec!(let mut reactions);
         while !self
-            .rare_data
+            .rare_data()
+            .as_ref()
+            .unwrap()
             .custom_element_reaction_queue
-            .borrow()
             .is_empty()
         {
             mem::swap(
                 &mut *reactions,
-                &mut *self.rare_data.custom_element_reaction_queue.borrow_mut(),
+                &mut self
+                    .rare_data_mut()
+                    .as_mut()
+                    .unwrap()
+                    .custom_element_reaction_queue,
             );
             for reaction in reactions.iter() {
                 reaction.invoke(self);
@@ -441,7 +458,7 @@ impl Element {
     }
 
     pub fn is_shadow_host(&self) -> bool {
-        self.rare_data.shadow_root.get().is_some()
+        self.rare_data().as_ref().unwrap().shadow_root.is_some()
     }
 
     /// https://dom.spec.whatwg.org/#dom-element-attachshadow
@@ -484,10 +501,8 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = self
-            .rare_data
-            .shadow_root
-            .or_init(|| ShadowRoot::new(self, &*self.node.owner_doc()));
+        let shadow_root = ShadowRoot::new(self, &*self.node.owner_doc());
+        self.rare_data_mut().as_mut().unwrap().shadow_root = Some(Dom::from_ref(&*shadow_root));
 
         if self.is_connected() {
             self.node.owner_doc().register_shadow_root(&*shadow_root);
@@ -1062,9 +1077,12 @@ impl LayoutElementHelpers for LayoutDom<Element> {
     #[allow(unsafe_code)]
     unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
         (*self.unsafe_get())
-            .rare_data
+            .rare_data_for_layout()
+            .as_ref()
+            .unwrap()
             .shadow_root
-            .get_inner_as_layout()
+            .as_ref()
+            .map(|sr| sr.to_layout())
     }
 }
 
@@ -2808,7 +2826,7 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(shadow_root) = self.rare_data.shadow_root.get() {
+        if let Some(ref shadow_root) = self.rare_data().as_ref().unwrap().shadow_root {
             doc.register_shadow_root(&shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
@@ -2846,7 +2864,7 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(shadow_root) = self.rare_data.shadow_root.get() {
+        if let Some(ref shadow_root) = self.rare_data().as_ref().unwrap().shadow_root {
             doc.unregister_shadow_root(&shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
