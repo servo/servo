@@ -2269,9 +2269,15 @@ impl NodeMethods for Node {
                 return shadow_root.Host().upcast::<Node>().GetRootNode(options);
             }
         }
-        self.inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap()
+        if let Some(shadow_root) = self.rare_data.owner_shadow_root.get() {
+            DomRoot::from_ref(shadow_root.upcast::<Node>())
+        } else if self.is_in_doc() {
+            DomRoot::from_ref(self.owner_doc().upcast::<Node>())
+        } else {
+            self.inclusive_ancestors(ShadowIncluding::No)
+                .last()
+                .unwrap()
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
