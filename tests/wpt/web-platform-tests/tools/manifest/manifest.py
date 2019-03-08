@@ -4,7 +4,7 @@ from collections import defaultdict
 from six import iteritems, iterkeys, itervalues, string_types
 
 from . import vcs
-from .item import (ManualTest, WebDriverSpecTest, Stub, RefTestNode, RefTest, RefTestBase,
+from .item import (ManualTest, WebDriverSpecTest, Stub, RefTestNode, RefTest,
                    TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest)
 from .log import get_logger
 from .utils import from_os_path, to_os_path
@@ -37,7 +37,6 @@ def iterfilter(filters, iter):
 item_classes = {"testharness": TestharnessTest,
                 "reftest": RefTest,
                 "reftest_node": RefTestNode,
-                "reftest_base": RefTestBase,
                 "manual": ManualTest,
                 "stub": Stub,
                 "wdspec": WebDriverSpecTest,

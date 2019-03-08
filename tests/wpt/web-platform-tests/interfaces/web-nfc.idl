@@ -4,6 +4,7 @@
 // Source: Web NFC API (https://w3c.github.io/web-nfc/)
 
 dictionary NDEFMessage {
+  DOMString? serialNumber;
   sequence<NDEFRecord> records;
   USVString url;
 };

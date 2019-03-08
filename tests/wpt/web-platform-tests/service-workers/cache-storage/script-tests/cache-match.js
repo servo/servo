@@ -356,4 +356,62 @@ cache_test(async (cache) => {
     assert_equals(headers.get('set-cookie'), null);
   }, 'cors-exposed header should be stored correctly.');
 
+cache_test(async (cache) => {
+    // A URL that should load a resource with a known mime type.
+    const url = '/service-workers/cache-storage/resources/blank.html';
+    const expected_mime_type = 'text/html';
+
+    // Verify we get the expected mime type from the network.  Note,
+    // we cannot use an exact match here since some browsers append
+    // character encoding information to the blob.type value.
+    const net_response = await fetch(url);
+    const net_mime_type = (await net_response.blob()).type;
+    assert_true(net_mime_type.includes(expected_mime_type),
+                'network response should include the expected mime type');
+
+    // Verify we get the exact same mime type when reading the same
+    // URL resource back out of the cache.
+    await cache.add(url);
+    const cache_response = await cache.match(url);
+    const cache_mime_type = (await cache_response.blob()).type;
+    assert_equals(cache_mime_type, net_mime_type,
+                  'network and cache response mime types should match');
+  }, 'MIME type should be set from content-header correctly.');
+
+cache_test(async (cache) => {
+    const url = '/dummy';
+    const original_type = 'text/html';
+    const init_with_headers = {
+      headers: {
+        'content-type': original_type
+      }
+    }
+
+    // Verify constructing a synthetic response with a content-type header
+    // gets the correct mime type.
+    const response = new Response('hello world', init_with_headers);
+    const original_response_type = (await response.blob()).type;
+    assert_true(original_response_type.includes(original_type),
+                'original response should include the expected mime type');
+
+    // Verify overwriting the content-type header does not change the mime
+    // type.  It should be fixed at Response construction time.
+    const overwritten_response = new Response('hello world', init_with_headers);
+    overwritten_response.headers.set('content-type', 'text/plain');
+    const overwritten_response_type = (await overwritten_response.blob()).type;
+    assert_equals(overwritten_response_type, original_response_type,
+                  'original and overwritten response mime types should match');
+
+    // Verify the Response read from Cache uses the original mime type
+    // computed when it was first constructed.
+    const tmp = new Response('hello world', init_with_headers);
+    tmp.headers.set('content-type', 'text/plain');
+    await cache.put(url, tmp);
+    const cache_response = await cache.match(url);
+    const cache_mime_type = (await cache_response.blob()).type;
+    assert_equals(cache_mime_type, original_response_type,
+                  'original and cached overwritten response mime types ' +
+                  'should match');
+  }, 'MIME type should be frozen at response construction.');
+
 done();

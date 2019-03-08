@@ -1,5 +1,5 @@
 from copy import copy
-
+from six import iteritems
 from six.moves.urllib.parse import urljoin, urlparse
 from abc import ABCMeta, abstractproperty
 
@@ -169,6 +169,14 @@ class RefTestBase(URLManifestItem):
     def dpi(self):
         return self._extras.get("dpi")
 
+    @property
+    def fuzzy(self):
+        rv = self._extras.get("fuzzy", [])
+        if isinstance(rv, list):
+            return {tuple(item[0]): item[1]
+                    for item in self._extras.get("fuzzy", [])}
+        return rv
+
     def meta_key(self):
         return (self.timeout, self.viewport_size, self.dpi)
 
@@ -181,6 +189,8 @@ class RefTestBase(URLManifestItem):
             extras["viewport_size"] = self.viewport_size
         if self.dpi is not None:
             extras["dpi"] = self.dpi
+        if self.fuzzy:
+            extras["fuzzy"] = list(iteritems(self.fuzzy))
         return rv
 
     @classmethod

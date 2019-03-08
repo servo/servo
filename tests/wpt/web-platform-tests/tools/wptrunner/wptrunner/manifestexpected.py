@@ -1,5 +1,6 @@
 import os
 import urlparse
+from collections import deque
 
 from wptmanifest.backends import static
 from wptmanifest.backends.static import ManifestItem
@@ -97,6 +98,105 @@ def leak_threshold(node):
     return rv
 
 
+def fuzzy_prop(node):
+    """Fuzzy reftest match
+
+    This can either be a list of strings or a single string. When a list is
+    supplied, the format of each item matches the description below.
+
+    The general format is
+    fuzzy = [key ":"] <prop> ";" <prop>
+    key = <test name> [reftype <reference name>]
+    reftype = "==" | "!="
+    prop = [propName "=" ] range
+    propName = "maxDifferences" | "totalPixels"
+    range = <digits> ["-" <digits>]
+
+    So for example:
+      maxDifferences=10;totalPixels=10-20
+
+      specifies that for any test/ref pair for which no other rule is supplied,
+      there must be a maximum pixel difference of exactly 10, and betwen 10 and
+      20 total pixels different.
+
+      test.html==ref.htm:10;20
+
+      specifies that for a equality comparison between test.html and ref.htm,
+      resolved relative to the test path, there can be a maximum difference
+      of 10 in the pixel value for any channel and 20 pixels total difference.
+
+      ref.html:10;20
+
+      is just like the above but applies to any comparison involving ref.html
+      on the right hand side.
+
+    The return format is [(key, (maxDifferenceRange, totalPixelsRange))], where
+    the key is either None where no specific reference is specified, the reference
+    name where there is only one component or a tuple (test, ref, reftype) when the
+    exact comparison is specified. maxDifferenceRange and totalPixelsRange are tuples
+    of integers indicating the inclusive range of allowed values.
+"""
+    rv = []
+    args = ["maxDifference", "totalPixels"]
+    try:
+        value = node.get("fuzzy")
+    except KeyError:
+        return rv
+    if not isinstance(value, list):
+        value = [value]
+    for item in value:
+        if not isinstance(item, (str, unicode)):
+            rv.append(item)
+            continue
+        parts = item.rsplit(":", 1)
+        if len(parts) == 1:
+            key = None
+            fuzzy_values = parts[0]
+        else:
+            key, fuzzy_values = parts
+            for reftype in ["==", "!="]:
+                if reftype in key:
+                    key = key.split(reftype)
+                    key.append(reftype)
+                    key = tuple(key)
+        ranges = fuzzy_values.split(";")
+        if len(ranges) != 2:
+            raise ValueError("Malformed fuzzy value %s" % item)
+        arg_values = {None: deque()}
+        for range_str_value in ranges:
+            if "=" in range_str_value:
+                name, range_str_value = [part.strip()
+                                         for part in range_str_value.split("=", 1)]
+                if name not in args:
+                    raise ValueError("%s is not a valid fuzzy property" % name)
+                if arg_values.get(name):
+                    raise ValueError("Got multiple values for argument %s" % name)
+            else:
+                name = None
+            if "-" in range_str_value:
+                range_min, range_max = range_str_value.split("-")
+            else:
+                range_min = range_str_value
+                range_max = range_str_value
+            try:
+                range_value = tuple(int(item.strip()) for item in (range_min, range_max))
+            except ValueError:
+                raise ValueError("Fuzzy value %s must be a range of integers" % range_str_value)
+            if name is None:
+                arg_values[None].append(range_value)
+            else:
+                arg_values[name] = range_value
+        range_values = []
+        for arg_name in args:
+            if arg_values.get(arg_name):
+                value = arg_values.pop(arg_name)
+            else:
+                value = arg_values[None].popleft()
+            range_values.append(value)
+        rv.append((key, tuple(range_values)))
+    return rv
+
+
 class ExpectedManifest(ManifestItem):
     def __init__(self, name, test_path, url_base):
         """Object representing all the tests in a particular manifest
@@ -183,6 +283,10 @@ class ExpectedManifest(ManifestItem):
     def lsan_max_stack_depth(self):
         return int_prop("lsan-max-stack-depth", self)
 
+    @property
+    def fuzzy(self):
+        return fuzzy_prop(self)
+
 
 class DirectoryManifest(ManifestItem):
     @property
@@ -228,6 +332,11 @@ class DirectoryManifest(ManifestItem):
     @property
     def lsan_max_stack_depth(self):
         return int_prop("lsan-max-stack-depth", self)
+
+    @property
+    def fuzzy(self):
+        return fuzzy_prop(self)
+
 
 class TestNode(ManifestItem):
     def __init__(self, name):
@@ -300,6 +409,10 @@ class TestNode(ManifestItem):
     @property
     def lsan_max_stack_depth(self):
         return int_prop("lsan-max-stack-depth", self)
+
+    @property
+    def fuzzy(self):
+        return fuzzy_prop(self)
 
     def append(self, node):
         """Add a subtest to the current test

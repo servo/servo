@@ -1,4 +1,9 @@
 'use strict';
+
+// Imported from:
+// https://github.com/WICG/import-maps/blob/master/reference-implementation/__tests__/resolving.js
+// TODO: Upstream local changes.
+
 const { URL } = require('url');
 const { parseFromString } = require('../lib/parser.js');
 const { resolve } = require('../lib/resolver.js');
@@ -201,6 +206,25 @@ describe('Mapped using the "imports" key only (no scopes)', () => {
 
     it('should use the last entry\'s address when URL-like specifiers parse to the same absolute URL', () => {
       expect(resolveUnderTest('/test')).toMatchURL('https://example.com/lib/test2.mjs');
+    });
+  });
+
+  describe('overlapping entries with trailing slashes', () => {
+    const resolveUnderTest = makeResolveUnderTest(`{
+      "imports": {
+        "a": "/1",
+        "a/": "/2/",
+        "a/b": "/3",
+        "a/b/": "/4/"
+      }
+    }`);
+
+    it('most-specific wins', () => {
+      expect(resolveUnderTest('a')).toMatchURL('https://example.com/1');
+      expect(resolveUnderTest('a/')).toMatchURL('https://example.com/2/');
+      expect(resolveUnderTest('a/b')).toMatchURL('https://example.com/3');
+      expect(resolveUnderTest('a/b/')).toMatchURL('https://example.com/4/');
+      expect(resolveUnderTest('a/b/c')).toMatchURL('https://example.com/4/c');
     });
   });
 });
