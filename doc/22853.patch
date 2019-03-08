@@ -1,0 +1,26 @@
+diff --git a/components/script/dom/document.rs b/components/script/dom/document.rs
+index 4a10298b7a..1df8e013d7 100644
+--- a/components/script/dom/document.rs
++++ b/components/script/dom/document.rs
+@@ -3225,7 +3225,7 @@ impl Document {
+ 
+         let window = self.window();
+         // Step 8
+-        let event = EmbedderMsg::SetFullscreenState(true);
++        let event = EmbedderMsg::SetFullscreenState(false);
+         self.send_to_embedder(event);
+ 
+         // Step 9
+diff --git a/ports/servo/glutin_app/window.rs b/ports/servo/glutin_app/window.rs
+index c9ab4a0ab6..26e0d163fd 100644
+--- a/ports/servo/glutin_app/window.rs
++++ b/ports/servo/glutin_app/window.rs
+@@ -323,7 +323,7 @@ impl Window {
+         match self.kind {
+             WindowKind::Window(ref window, ..) => {
+                 if self.fullscreen.get() != state {
+-                    window.set_fullscreen(None);
++                    window.set_fullscreen(Some(window.get_primary_monitor()));
+                 }
+             },
+             WindowKind::Headless(..) => {},
