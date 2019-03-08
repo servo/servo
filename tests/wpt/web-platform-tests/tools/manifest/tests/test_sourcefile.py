@@ -789,3 +789,41 @@ test()"""
                                             u'/_fake_base/html/test.any.worker.html?wss']
 
     assert items[0].url_base == "/_fake_base/"
+
+
+@pytest.mark.parametrize("fuzzy, expected", [
+    (b"ref.html:1;200", {("/foo/test.html", "/foo/ref.html", "=="): [[1, 1], [200, 200]]}),
+    (b"ref.html:0-1;100-200", {("/foo/test.html", "/foo/ref.html", "=="): [[0, 1], [100, 200]]}),
+    (b"0-1;100-200", {None: [[0,1], [100, 200]]}),
+    (b"maxDifference=1;totalPixels=200", {None: [[1, 1], [200, 200]]}),
+    (b"totalPixels=200;maxDifference=1", {None: [[1, 1], [200, 200]]}),
+    (b"totalPixels=200;1", {None: [[1, 1], [200, 200]]}),
+    (b"maxDifference=1;200", {None: [[1, 1], [200, 200]]}),])
+def test_reftest_fuzzy(fuzzy, expected):
+    content = b"""<link rel=match href=ref.html>
+<meta name=fuzzy content="%s">
+""" % fuzzy
+
+    s = create("foo/test.html", content)
+
+    assert s.content_is_ref_node
+    assert s.fuzzy == expected
+
+
+@pytest.mark.parametrize("fuzzy, expected", [
+    ([b"1;200"], {None: [[1, 1], [200, 200]]}),
+    ([b"ref-2.html:0-1;100-200"], {("/foo/test.html", "/foo/ref-2.html", "=="): [[0, 1], [100, 200]]}),
+    ([b"1;200", b"ref-2.html:0-1;100-200"],
+     {None: [[1, 1], [200, 200]],
+      ("/foo/test.html", "/foo/ref-2.html", "=="): [[0,1], [100, 200]]})])
+def test_reftest_fuzzy_multi(fuzzy, expected):
+    content = b"""<link rel=match href=ref-1.html>
+<link rel=match href=ref-2.html>
+"""
+    for item in fuzzy:
+        content += b'\n<meta name=fuzzy content="%s">' % item
+
+    s = create("foo/test.html", content)
+
+    assert s.content_is_ref_node
+    assert s.fuzzy == expected

@@ -9,12 +9,28 @@ https://github.com/whatwg/fetch/pull/853
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script>
+function wait25ms(test) {
+  return new Promise(resolve => {
+    test.step_timeout(() => {
+      resolve();
+    }, 25);
+  });
+}
+
 promise_test(async (test) => {
   var request_token = token();
 
   const response = await fetch(`stale-script.py?token=` + request_token);
   const response2 = await fetch(`stale-script.py?token=` + request_token);
 
-  assert_not_equals(response.headers.get('Unique-Id'), response2.headers.get('Unique-Id'));
-}, 'Second fetch does not return same response');
+  assert_equals(response.headers.get('Unique-Id'), response2.headers.get('Unique-Id'));
+
+  while(true) {
+    const revalidation_check = await fetch(`stale-script.py?query&token=` + request_token);
+    if (revalidation_check.headers.get('Count') == '2') {
+      break;
+    }
+    await wait25ms(test);
+  }
+}, 'Second fetch returns same response');
 </script>
