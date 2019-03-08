@@ -323,7 +323,7 @@ impl Window {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
                 if self.fullscreen.get() != state {
-                    window.set_fullscreen(None);
+                    window.set_fullscreen(Some(window.get_primary_monitor()));
                 }
             },
             WindowKind::Headless(..) => {},

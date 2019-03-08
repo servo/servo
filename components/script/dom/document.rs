@@ -3225,7 +3225,7 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = EmbedderMsg::SetFullscreenState(true);
+        let event = EmbedderMsg::SetFullscreenState(false);
         self.send_to_embedder(event);
 
         // Step 9
