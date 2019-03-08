@@ -397,6 +397,13 @@ where
                 self.compositor.maybe_start_shutting_down();
             },
 
+            WindowEvent::ExitFullScreen(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::ExitFullScreen(Some(top_level_browsing_context_id));
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending exit fullscreen to constellation failed ({:?}).", e);
+                }
+            },
+
             WindowEvent::Reload(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
