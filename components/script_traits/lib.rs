@@ -261,6 +261,8 @@ pub enum ConstellationControlMsg {
     Resize(PipelineId, WindowSizeData, WindowSizeType),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
+    /// Window switched from fullscreen mode.
+    ExitFullScreen(PipelineId),
     /// Notifies the script that the document associated with this pipeline should 'unload'.
     UnloadDocument(PipelineId),
     /// Notifies the script that a pipeline should be closed.
@@ -386,6 +388,7 @@ impl fmt::Debug for ConstellationControlMsg {
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
+            ExitFullScreen(..) => "ExitFullScreen",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
@@ -776,6 +779,8 @@ pub enum ConstellationMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
     SetCursor(Cursor),
+    /// Request to exit from fullscreen mode
+    ExitFullScreen(Option<TopLevelBrowsingContextId>),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -803,6 +808,7 @@ impl fmt::Debug for ConstellationMsg {
             SelectBrowser(..) => "SelectBrowser",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
+            ExitFullScreen(..) => "ExitFullScreen",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

@@ -1252,6 +1252,10 @@ impl ScriptThread {
                         Some(index) => sequential[index] = event,
                     }
                 },
+                FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
+                    .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
+                        self.handle_exit_fullscreen(id);
+                    }),
                 _ => {
                     sequential.push(event);
                 },
@@ -1448,6 +1452,7 @@ impl ScriptThread {
                     Reload(id, ..) => Some(id),
                     WebVREvents(id, ..) => Some(id),
                     PaintMetric(..) => None,
+                    ExitFullScreen(id, ..) => Some(id),
                 }
             },
             MixedMessage::FromDevtools(_) => None,
@@ -1676,6 +1681,7 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
+            msg @ ConstellationControlMsg::ExitFullScreen(..) |
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
@@ -1886,6 +1892,18 @@ impl ScriptThread {
             return;
         }
         warn!("resize sent to nonexistent pipeline");
+    }
+
+    fn handle_exit_fullscreen(&self, id: PipelineId) {
+        let document = self.documents.borrow().find_document(id);
+        if let Some(document) = document {
+            let _ac = JSAutoCompartment::new(
+                document.global().get_cx(),
+                document.reflector().get_jsobject().get(),
+            );
+            document.exit_fullscreen();
+            return;
+        }
     }
 
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {

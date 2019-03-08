@@ -143,7 +143,15 @@ impl Browser {
                 }
             })
             .shortcut(Modifiers::empty(), Key::Escape, || {
-                self.event_queue.push(WindowEvent::Quit);
+                let state = self.window.get_fullscreen();
+                if state {
+                    if let Some(id) = self.browser_id {
+                        let event = WindowEvent::ExitFullScreen(id);
+                        self.event_queue.push(event);
+                    }
+                } else {
+                    self.event_queue.push(WindowEvent::Quit);
+                }
             })
             .otherwise(|| self.platform_handle_key(key_event));
     }

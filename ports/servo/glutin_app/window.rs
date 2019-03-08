@@ -331,6 +331,10 @@ impl Window {
         self.fullscreen.set(state);
     }
 
+    pub fn get_fullscreen(&self) -> bool {
+        return self.fullscreen.get();
+    }
+
     fn is_animating(&self) -> bool {
         self.animation_state.get() == AnimationState::Animating && !self.suspended.get()
     }
