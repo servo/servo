@@ -922,6 +922,14 @@ where
     }
 
     fn add_pending_change(&mut self, change: SessionHistoryChange) {
+        debug!(
+            "adding pending session history change with {}",
+            if change.replace.is_some() {
+                "replacement"
+            } else {
+                "no replacement"
+            },
+        );
         self.handle_load_start_msg(
             change.top_level_browsing_context_id,
             change.browsing_context_id,
@@ -1915,13 +1923,29 @@ where
             top_level_browsing_context_id,
             new_pipeline_id,
             is_private,
-            replace,
+            mut replace,
         } = load_info.info;
 
         // If no url is specified, reload.
         let old_pipeline = load_info
             .old_pipeline_id
             .and_then(|id| self.pipelines.get(&id));
+
+        // Replacement enabled also takes into account whether the document is "completely loaded",
+        // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
+        debug!("checking old pipeline? {:?}", load_info.old_pipeline_id);
+        if let Some(old_pipeline) = old_pipeline {
+            replace |= !old_pipeline.completely_loaded;
+            debug!(
+                "old pipeline is {}completely loaded",
+                if old_pipeline.completely_loaded {
+                    ""
+                } else {
+                    "not "
+                }
+            );
+        }
+
         let load_data = load_info.load_data.unwrap_or_else(|| {
             let url = match old_pipeline {
                 Some(old_pipeline) => old_pipeline.url.clone(),
@@ -1964,6 +1988,7 @@ where
                 );
             },
         };
+
         let replace = if replace {
             Some(NeedsToReload::No(browsing_context.pipeline_id))
         } else {
@@ -2214,7 +2239,12 @@ where
         load_data: LoadData,
         replace: bool,
     ) -> Option<PipelineId> {
-        debug!("Loading {} in pipeline {}.", load_data.url, source_id);
+        debug!(
+            "Loading {} in pipeline {}, {}replacing.",
+            load_data.url,
+            source_id,
+            if replace { "" } else { "not " }
+        );
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated
         // the new load. The framing element must be notified about the
@@ -2374,6 +2404,11 @@ where
         }
         if webdriver_reset {
             self.webdriver.load_channel = None;
+        }
+
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            debug!("marking pipeline {:?} as loaded", pipeline_id);
+            pipeline.completely_loaded = true;
         }
 
         // Notify the embedder that the TopLevelBrowsingContext current document
@@ -2640,12 +2675,16 @@ where
             },
         };
 
-        let (old_pipeline_id, parent_pipeline_id) =
+        let (old_pipeline_id, parent_pipeline_id, top_level_id) =
             match self.browsing_contexts.get_mut(&browsing_context_id) {
                 Some(browsing_context) => {
                     let old_pipeline_id = browsing_context.pipeline_id;
                     browsing_context.update_current_entry(new_pipeline_id);
-                    (old_pipeline_id, browsing_context.parent_pipeline_id)
+                    (
+                        old_pipeline_id,
+                        browsing_context.parent_pipeline_id,
+                        browsing_context.top_level_id,
+                    )
                 },
                 None => {
                     return warn!(
@@ -2662,6 +2701,7 @@ where
             let msg = ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
+                top_level_id,
                 new_pipeline_id,
                 UpdatePipelineIdReason::Traversal,
             );
@@ -3581,6 +3621,7 @@ where
                     let msg = ConstellationControlMsg::UpdatePipelineId(
                         parent_pipeline_id,
                         change.browsing_context_id,
+                        change.top_level_browsing_context_id,
                         pipeline_id,
                         UpdatePipelineIdReason::Navigation,
                     );
