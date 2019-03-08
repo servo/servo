@@ -1,6 +1,7 @@
 import hashlib
 import re
 import os
+from collections import deque
 from six import binary_type
 from six.moves.urllib.parse import urljoin
 from fnmatch import fnmatch
@@ -453,6 +454,79 @@ class SourceFile(object):
         return self.dpi_nodes[0].attrib.get("content", None)
 
     @cached_property
+    def fuzzy_nodes(self):
+        """List of ElementTree Elements corresponding to nodes in a test that
+        specify reftest fuzziness"""
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='fuzzy']")
+
+    @cached_property
+    def fuzzy(self):
+        rv = {}
+        if self.root is None:
+            return rv
+
+        if not self.fuzzy_nodes:
+            return rv
+
+        args = ["maxDifference", "totalPixels"]
+
+        for node in self.fuzzy_nodes:
+            item = node.attrib.get("content", "")
+
+            parts = item.rsplit(":", 1)
+            if len(parts) == 1:
+                key = None
+                value = parts[0]
+            else:
+                key = urljoin(self.url, parts[0])
+                reftype = None
+                for ref in self.references:
+                    if ref[0] == key:
+                        reftype = ref[1]
+                        break
+                if reftype not in ("==", "!="):
+                    raise ValueError("Fuzzy key %s doesn't correspond to a references" % key)
+                key = (self.url, key, reftype)
+                value = parts[1]
+            ranges = value.split(";")
+            if len(ranges) != 2:
+                raise ValueError("Malformed fuzzy value %s" % item)
+            arg_values = {None: deque()}
+            for range_str_value in ranges:
+                if "=" in range_str_value:
+                    name, range_str_value = [part.strip()
+                                             for part in range_str_value.split("=", 1)]
+                    if name not in args:
+                        raise ValueError("%s is not a valid fuzzy property" % name)
+                    if arg_values.get(name):
+                        raise ValueError("Got multiple values for argument %s" % name)
+                else:
+                    name = None
+                if "-" in range_str_value:
+                    range_min, range_max = range_str_value.split("-")
+                else:
+                    range_min = range_str_value
+                    range_max = range_str_value
+                try:
+                    range_value = [int(x.strip()) for x in (range_min, range_max)]
+                except ValueError:
+                    raise ValueError("Fuzzy value %s must be a range of integers" %
+                                     range_str_value)
+                if name is None:
+                    arg_values[None].append(range_value)
+                else:
+                    arg_values[name] = range_value
+            rv[key] = []
+            for arg_name in args:
+                if arg_values.get(arg_name):
+                    value = arg_values.pop(arg_name)
+                else:
+                    value = arg_values[None].popleft()
+                rv[key].append(value)
+            assert list(arg_values.keys()) == [None] and len(arg_values[None]) == 0
+        return rv
+
+    @cached_property
     def testharness_nodes(self):
         """List of ElementTree Elements corresponding to nodes representing a
         testharness.js script"""
@@ -749,7 +823,8 @@ class SourceFile(object):
                     references=self.references,
                     timeout=self.timeout,
                     viewport_size=self.viewport_size,
-                    dpi=self.dpi
+                    dpi=self.dpi,
+                    fuzzy=self.fuzzy
                 )]
 
         elif self.content_is_css_visual and not self.name_is_reference:

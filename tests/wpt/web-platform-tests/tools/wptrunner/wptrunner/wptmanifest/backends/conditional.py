@@ -341,6 +341,8 @@ class ManifestItem(object):
             yield item
 
     def remove_value(self, key, value):
+        if key not in self._data:
+            return
         try:
             self._data[key].remove(value)
         except ValueError:

@@ -8,6 +8,8 @@ def main(request, response):
     if request.GET.first("query", None) != None:
       headers = [("Count", count)]
       content = ""
+      if count < 2:
+        request.server.stash.put(token, count)
       return 200, headers, content
     else:
       count = count + 1

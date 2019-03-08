@@ -416,7 +416,11 @@ class WebDriverRefTestExecutor(RefTestExecutor):
             """return [window.outerWidth - window.innerWidth,
                        window.outerHeight - window.innerHeight];"""
         )
-        self.protocol.webdriver.window.position = (0, 0)
+        try:
+            self.protocol.webdriver.window.position = (0, 0)
+        except client.InvalidArgumentException:
+            # Safari 12 throws with 0 or 1, treating them as bools; fixed in STP
+            self.protocol.webdriver.window.position = (2, 2)
         self.protocol.webdriver.window.size = (800 + width_offset, 600 + height_offset)
 
         result = self.implementation.run_test(test)

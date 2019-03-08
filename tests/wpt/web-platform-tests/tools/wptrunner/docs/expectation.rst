@@ -190,13 +190,6 @@ When used for expectation data, manifests have the following format:
  * A subsection per subtest, with the heading being the title of the
    subtest.
 
- * A key ``type`` indicating the test type. This takes the values
-   ``testharness`` and ``reftest``.
-
- * For reftests, keys ``reftype`` indicating the reference type
-   (``==`` or ``!=``) and ``refurl`` indicating the URL of the
-   reference.
-
  * A key ``expected`` giving the expectation value of each (sub)test.
 
  * A key ``disabled`` which can be set to any value to indicate that
@@ -206,6 +199,19 @@ When used for expectation data, manifests have the following format:
  * A key ``restart-after`` which can be set to any value to indicate that
    the runner should restart the browser after running this test (e.g. to
    clear out unwanted state).
+
+ * A key ``fuzzy`` that is used for reftests. This is interpreted as a
+   list containing entries like ``<meta name=fuzzy>`` content value,
+   which consists of an optional reference identifier followed by a
+   colon, then a range indicating the maximum permitted pixel
+   difference per channel, then semicolon, then a range indicating the
+   maximum permitted total number of differing pixels. The reference
+   identifier is either a single relative URL, resolved against the
+   base test URL, in which case the fuzziness applies to any
+   comparison with that URL, or takes the form lhs url, comparison,
+   rhs url, in which case the fuzziness only applies for any
+   comparison involving that specifc pair of URLs. Some illustrative
+   examples are given below.
 
  * Variables ``debug``, ``os``, ``version``, ``processor`` and
    ``bits`` that describe the configuration of the browser under
@@ -246,3 +252,18 @@ A more complex manifest with conditional properties might be::
 
 Note that ``PASS`` in the above works, but is unnecessary; ``PASS``
 (or ``OK``) is always the default expectation for (sub)tests.
+
+A manifest with fuzzy reftest values might be::
+
+  [reftest.html]
+    fuzzy: [10;200, ref1.html:20;200-300, subtest1.html==ref2.html:10-15;20]
+
+In this case the default fuzziness for any comparison would be to
+require a maximum difference per channel of less than or equal to 10
+and less than or equal to 200 total pixels different. For any
+comparison involving ref1.html on the right hand side, the limits
+would instead be a difference per channel not more than 20 and a total
+difference count of not less than 200 and not more than 300. For the
+specific comparison subtest1.html == ref2.html (both resolved against
+the test URL) these limits would instead be 10 to 15 and 0 to 20,
+respectively.

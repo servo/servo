@@ -6,6 +6,7 @@ from mock import Mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from manifest import manifest as wptmanifest
 from manifest.item import TestharnessTest
 from wptrunner import manifestexpected, wpttest
 
@@ -42,6 +43,11 @@ test_1 = """\
 test_2 = """\
 [2.html]
   lsan-max-stack-depth: 42
+"""
+
+test_fuzzy = """\
+[fuzzy.html]
+  fuzzy: fuzzy-ref.html:1;200
 """
 
 
@@ -139,3 +145,26 @@ def test_metadata_lsan_stack_depth():
     test_obj = wpttest.from_manifest(tests, test, inherit_metadata, test_metadata.get_test(test.id))
 
     assert test_obj.lsan_max_stack_depth == 42
+
+
+def test_metadata_fuzzy():
+    manifest_data = {
+        "items": {"reftest": {"a/fuzzy.html": [["/a/fuzzy.html",
+                                                [["/a/fuzzy-ref.html", "=="]],
+                                                {"fuzzy": [[["/a/fuzzy.html", '/a/fuzzy-ref.html', '=='],
+                                                            [[2, 3], [10, 15]]]]}]]}},
+        "paths": {"a/fuzzy.html": ["0"*40, "reftest"]},
+        "version": wptmanifest.CURRENT_VERSION,
+        "url_base": "/"}
+    manifest = wptmanifest.Manifest.from_json(".", manifest_data)
+    test_metadata = manifestexpected.static.compile(BytesIO(test_fuzzy),
+                                                    {},
+                                                    data_cls_getter=manifestexpected.data_cls_getter,
+                                                    test_path="a/fuzzy.html",
+                                                    url_base="/")
+
+    test = manifest.iterpath("a/fuzzy.html").next()
+    test_obj = wpttest.from_manifest(manifest, test, [], test_metadata.get_test(test.id))
+
+    assert test_obj.fuzzy == {('/a/fuzzy.html', '/a/fuzzy-ref.html', '=='): [[2, 3], [10, 15]]}
+    assert test_obj.fuzzy_override == {'/a/fuzzy-ref.html': ((1, 1), (200, 200))}

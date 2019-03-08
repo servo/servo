@@ -445,7 +445,7 @@ def create_test_tree(metadata_path, test_manifest):
     """
     do_delayed_imports()
     id_test_map = {}
-    exclude_types = frozenset(["stub", "helper", "manual", "support", "conformancechecker"])
+    exclude_types = frozenset(["stub", "helper", "manual", "support", "conformancechecker", "reftest_base"])
     all_types = manifestitem.item_types.keys()
     include_types = set(all_types) - exclude_types
     for item_type, test_path, tests in test_manifest.itertypes(*include_types):
