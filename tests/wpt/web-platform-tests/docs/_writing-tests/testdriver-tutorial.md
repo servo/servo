@@ -239,7 +239,7 @@ class SeleniumProtocol(Protocol):
 
 
 ### Firefox
-We use the [set window rect](http://marionette-client.readthedocs.io/en/master/reference.html#marionette_driver.marionette.Marionette.set_window_rect) Marionette command.
+We use the [set window rect](https://firefox-source-docs.mozilla.org/python/marionette_driver.html#marionette_driver.marionette.Marionette.set_window_rect) Marionette command.
 
 We will use [executormarionette](tools/wptrunner/wptrunner/executors/executormarionette.py) and use the Marionette Python API.
 

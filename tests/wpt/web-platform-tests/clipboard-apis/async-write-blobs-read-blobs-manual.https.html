@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard write blobs -> read blobs tests
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async function loadBlob(fileName) {
+  const fetched = await fetch(fileName);
+  return await fetched.blob();
+}
+
+promise_test(async t => {
+  const blobText = new Blob(["test text"], {type: 'text/plain'});
+  const blobImage = await loadBlob('resources/greenbox.png');
+
+  assert_equals(blobText.type, "text/plain");
+  assert_equals(blobImage.type, "image/png");
+
+  await navigator.clipboard.write([blobText, blobImage]);
+  const output = await navigator.clipboard.read();
+
+  assert_equals(output.length, 2);
+  assert_equals(output[0].type, "text/plain");
+  assert_equals(output[1].type, "image/png");
+}, "Verify write and read clipboard (multiple blobs)");
+</script>
+<p>
+  Note: This is a manual test because it writes/reads to the shared system
+  clipboard and thus cannot be run async with other tests that might interact
+  with the clipboard.
+</p>
