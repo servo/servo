@@ -175,8 +175,6 @@ pub enum ScriptMsg {
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
     RemoveIFrame(BrowsingContextId, IpcSender<Vec<PipelineId>>),
-    /// Change pipeline visibility
-    SetVisible(bool),
     /// Notifies constellation that an iframe's visibility has been changed.
     VisibilityChangeComplete(bool),
     /// A load has been requested in an IFrame.
@@ -243,7 +241,6 @@ impl fmt::Debug for ScriptMsg {
             ReplaceHistoryState(..) => "ReplaceHistoryState",
             JointSessionHistoryLength(..) => "JointSessionHistoryLength",
             RemoveIFrame(..) => "RemoveIFrame",
-            SetVisible(..) => "SetVisible",
             VisibilityChangeComplete(..) => "VisibilityChangeComplete",
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",

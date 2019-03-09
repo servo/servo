@@ -749,7 +749,6 @@ where
         load_data: LoadData,
         sandbox: IFrameSandboxState,
         is_private: bool,
-        is_visible: bool,
     ) {
         if self.shutting_down {
             return;
@@ -826,7 +825,6 @@ where
             load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
-            prev_visibility: is_visible,
             webrender_api_sender: self.webrender_api_sender.clone(),
             webrender_document: self.webrender_document,
             webgl_chan: self
@@ -1322,9 +1320,6 @@ where
                     }
                 }
             },
-            FromScriptMsg::SetVisible(is_visible) => {
-                self.handle_set_visible_msg(source_pipeline_id, is_visible);
-            },
             FromScriptMsg::VisibilityChangeComplete(is_visible) => {
                 self.handle_visibility_change_complete(source_pipeline_id, is_visible);
             },
@@ -1678,7 +1673,6 @@ where
         };
         let window_size = browsing_context.size;
         let pipeline_id = browsing_context.pipeline_id;
-        let is_visible = browsing_context.is_visible;
 
         let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(p) => p,
@@ -1715,7 +1709,6 @@ where
             load_data,
             sandbox,
             is_private,
-            is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -1818,7 +1811,6 @@ where
             load_data,
             sandbox,
             is_private,
-            is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -2006,7 +1998,6 @@ where
             load_data,
             load_info.sandbox,
             is_private,
-            browsing_context.is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -2062,7 +2053,6 @@ where
             layout_sender,
             self.compositor_proxy.clone(),
             url,
-            is_parent_visible,
             load_data,
         );
 
@@ -2128,7 +2118,6 @@ where
             layout_sender,
             self.compositor_proxy.clone(),
             url,
-            is_opener_visible,
             load_data,
         );
 
@@ -2258,14 +2247,13 @@ where
                 return None;
             },
         };
-        let (window_size, pipeline_id, parent_pipeline_id, is_private, is_visible) =
+        let (window_size, pipeline_id, parent_pipeline_id, is_private) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
                     ctx.size,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
                     ctx.is_private,
-                    ctx.is_visible,
                 ),
                 None => {
                     // This should technically never happen (since `load_url` is
@@ -2345,7 +2333,6 @@ where
                     load_data,
                     sandbox,
                     is_private,
-                    is_visible,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_browsing_context_id,
@@ -2634,7 +2621,6 @@ where
                     parent_pipeline_id,
                     window_size,
                     is_private,
-                    is_visible,
                 ) = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(ctx) => (
                         ctx.top_level_id,
@@ -2642,7 +2628,6 @@ where
                         ctx.parent_pipeline_id,
                         ctx.size,
                         ctx.is_private,
-                        ctx.is_visible,
                     ),
                     None => return warn!("No browsing context to traverse!"),
                 };
@@ -2661,7 +2646,6 @@ where
                     load_data.clone(),
                     sandbox,
                     is_private,
-                    is_visible,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_id,
@@ -3034,38 +3018,6 @@ where
             .collect();
         self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         result
-    }
-
-    fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, is_visible: bool) {
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.browsing_context_id,
-            None => {
-                return warn!(
-                    "No browsing context associated with pipeline {:?}",
-                    pipeline_id
-                );
-            },
-        };
-
-        // TODO(mandreyel): can we make a mutable version of
-        // AllBrowsingContextsIterator to directly modify a browsing context
-        // without the need for this indirection?
-        let nested_ctx_ids: Vec<BrowsingContextId> = self
-            .all_descendant_browsing_contexts_iter(browsing_context_id)
-            .filter(|ctx| ctx.is_visible != is_visible)
-            .map(|ctx| ctx.id)
-            .collect();
-
-        for ctx_id in nested_ctx_ids {
-            if let Some(browsing_context) = self.browsing_contexts.get_mut(&ctx_id) {
-                browsing_context.is_visible = is_visible;
-                for pipeline_id in browsing_context.pipelines.iter() {
-                    if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
-                        pipeline.notify_visibility(is_visible);
-                    }
-                }
-            }
-        }
     }
 
     fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
