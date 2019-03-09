@@ -14,7 +14,7 @@ use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use glutin::Icon;
-use glutin::{ContextBuilder, GlContext, GlWindow};
+use glutin::{Api, ContextBuilder, GlContext, GlWindow};
 use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
@@ -145,13 +145,14 @@ impl Window {
 
         glutin_window.show();
 
-        let gl = match gl::GlType::default() {
-            gl::GlType::Gl => unsafe {
+        let gl = match glutin_window.context().get_api() {
+            Api::OpenGl => unsafe {
                 gl::GlFns::load_with(|s| glutin_window.get_proc_address(s) as *const _)
             },
-            gl::GlType::Gles => unsafe {
+            Api::OpenGlEs => unsafe {
                 gl::GlesFns::load_with(|s| glutin_window.get_proc_address(s) as *const _)
             },
+            Api::WebGl => unreachable!("webgl is unsupported"),
         };
 
         gl.clear_color(0.6, 0.6, 0.6, 1.0);

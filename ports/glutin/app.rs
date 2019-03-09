@@ -184,12 +184,13 @@ fn get_default_url() -> ServoUrl {
     cmdline_url.or(pref_url).or(blank_url).unwrap()
 }
 
-#[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 pub fn gl_version() -> glutin::GlRequest {
-    glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 2))
-}
-
-#[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-pub fn gl_version() -> glutin::GlRequest {
-    glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0))
+    if opts::get().angle {
+        glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0))
+    } else {
+        glutin::GlRequest::GlThenGles {
+            opengl_version: (3, 2),
+            opengles_version: (3, 0),
+        }
+    }
 }
