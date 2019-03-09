@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Async Clipboard writeText -> read (text/plain Blob) tests</title>
+<title>Async Clipboard writeText -> read ([text/plain Blob]) tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
 async function readWriteTest(textInput) {
   promise_test(async t => {
     await navigator.clipboard.writeText(textInput);
-    const blobOutput = await navigator.clipboard.read();
+    const blobsOutput = await navigator.clipboard.read();
+    assert_equals(blobsOutput.length, 1);
+    const blobOutput = blobsOutput[0];
     assert_equals(blobOutput.type, "text/plain");
 
     const textOutput = await (new Response(blobOutput)).text();
@@ -15,7 +17,7 @@ async function readWriteTest(textInput) {
   }, "Verify write and read clipboard given text: " + textInput);
 }
 
-readWriteTest("Clipboard write text -> read (text/plain Blob) test");
+readWriteTest("Clipboard write text -> read ([text/plain Blob]) test");
 readWriteTest("non-Latin1 text encoding test データ");
 </script>
 <p>

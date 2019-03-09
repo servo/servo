@@ -61,7 +61,10 @@
     const animation = new WorkletAnimation('passthrough', effect, timeline);
     animation.play();
 
+    // Ensure that the WorkletAnimation will have been started on the compositor.
     waitForAsyncAnimationFrames(1).then(_ => {
+      // Now return the scroller to the world, which will cause it to be composited
+      // and the animation should update on the compositor side.
       scroller.classList.remove('removed');
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
       scroller.scrollTop = 0.5 * maxScroll;
