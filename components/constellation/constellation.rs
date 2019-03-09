@@ -2615,22 +2615,17 @@ where
 
                 // TODO: Save the sandbox state so it can be restored here.
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-                let (
-                    top_level_id,
-                    old_pipeline_id,
-                    parent_pipeline_id,
-                    window_size,
-                    is_private,
-                ) = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(ctx) => (
-                        ctx.top_level_id,
-                        ctx.pipeline_id,
-                        ctx.parent_pipeline_id,
-                        ctx.size,
-                        ctx.is_private,
-                    ),
-                    None => return warn!("No browsing context to traverse!"),
-                };
+                let (top_level_id, old_pipeline_id, parent_pipeline_id, window_size, is_private) =
+                    match self.browsing_contexts.get(&browsing_context_id) {
+                        Some(ctx) => (
+                            ctx.top_level_id,
+                            ctx.pipeline_id,
+                            ctx.parent_pipeline_id,
+                            ctx.size,
+                            ctx.is_private,
+                        ),
+                        None => return warn!("No browsing context to traverse!"),
+                    };
                 let opener = match self.pipelines.get(&old_pipeline_id) {
                     Some(pipeline) => pipeline.opener,
                     None => None,
