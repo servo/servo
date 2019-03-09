@@ -133,7 +133,6 @@ enum XREye {
 [SecureContext, Exposed=Window] interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
-  readonly attribute Float32Array viewMatrix;
   readonly attribute XRRigidTransform transform;
 };
 
@@ -150,6 +149,8 @@ interface XRRigidTransform {
   readonly attribute DOMPointReadOnly position;
   readonly attribute DOMPointReadOnly orientation;
   readonly attribute Float32Array matrix;
+
+  XRRigidTransform inverse();
 };
 
 [SecureContext, Exposed=Window,
@@ -200,6 +201,7 @@ dictionary XRWebGLLayerInit {
   boolean depth = true;
   boolean stencil = false;
   boolean alpha = true;
+  boolean ignoreDepthValues = false;
   double framebufferScaleFactor = 1.0;
 };
 
@@ -214,6 +216,7 @@ interface XRWebGLLayer : XRLayer {
   readonly attribute boolean depth;
   readonly attribute boolean stencil;
   readonly attribute boolean alpha;
+  readonly attribute boolean ignoreDepthValues;
 
   readonly attribute WebGLFramebuffer framebuffer;
   readonly attribute unsigned long framebufferWidth;
