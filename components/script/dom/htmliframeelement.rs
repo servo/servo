@@ -397,16 +397,6 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn set_visible(&self, visible: bool) {
-        let msg = ScriptMsg::SetVisible(visible);
-        let window = window_from_node(self);
-        window
-            .upcast::<GlobalScope>()
-            .script_to_constellation_chan()
-            .send(msg)
-            .unwrap();
-    }
-
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we

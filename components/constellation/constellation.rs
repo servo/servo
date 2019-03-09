@@ -1322,9 +1322,6 @@ where
                     }
                 }
             },
-            FromScriptMsg::SetVisible(is_visible) => {
-                self.handle_set_visible_msg(source_pipeline_id, is_visible);
-            },
             FromScriptMsg::VisibilityChangeComplete(is_visible) => {
                 self.handle_visibility_change_complete(source_pipeline_id, is_visible);
             },
@@ -3034,38 +3031,6 @@ where
             .collect();
         self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         result
-    }
-
-    fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, is_visible: bool) {
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.browsing_context_id,
-            None => {
-                return warn!(
-                    "No browsing context associated with pipeline {:?}",
-                    pipeline_id
-                );
-            },
-        };
-
-        // TODO(mandreyel): can we make a mutable version of
-        // AllBrowsingContextsIterator to directly modify a browsing context
-        // without the need for this indirection?
-        let nested_ctx_ids: Vec<BrowsingContextId> = self
-            .all_descendant_browsing_contexts_iter(browsing_context_id)
-            .filter(|ctx| ctx.is_visible != is_visible)
-            .map(|ctx| ctx.id)
-            .collect();
-
-        for ctx_id in nested_ctx_ids {
-            if let Some(browsing_context) = self.browsing_contexts.get_mut(&ctx_id) {
-                browsing_context.is_visible = is_visible;
-                for pipeline_id in browsing_context.pipelines.iter() {
-                    if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
-                        pipeline.notify_visibility(is_visible);
-                    }
-                }
-            }
-        }
     }
 
     fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
