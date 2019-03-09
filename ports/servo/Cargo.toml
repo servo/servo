@@ -63,6 +63,7 @@ sig = "1.0"
 x11 = "2.0.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
+mozangle = { version = "0.1", features = ["egl"] }
 winapi = { version = "0.3", features = ["wingdi", "winuser"] }
 
 [target.'cfg(any(target_os = "macos", all(target_arch = "x86_64", target_os = "linux")))'.dependencies]
