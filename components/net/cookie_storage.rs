@@ -83,7 +83,9 @@ impl CookieStorage {
             Ok(None)
         }
     }
-
+    pub fn clear_storage(&mut self) {
+        self.cookies_map.clear();
+    }
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn push(&mut self, mut cookie: Cookie, url: &ServoUrl, source: CookieSource) {
         // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 1

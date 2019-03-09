@@ -1766,6 +1766,9 @@ impl ScriptThread {
             WebDriverScriptCommand::AddCookie(params, reply) => {
                 webdriver_handlers::handle_add_cookie(&*documents, pipeline_id, params, reply)
             },
+            WebDriverScriptCommand::DeleteCookies(reply) => {
+                webdriver_handlers::handle_delete_cookies(&*documents)
+            },
             WebDriverScriptCommand::ExecuteScript(script, reply) => {
                 webdriver_handlers::handle_execute_script(&*documents, pipeline_id, script, reply)
             },

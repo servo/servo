@@ -236,6 +236,10 @@ impl ResourceChannelManager {
                     http_state,
                 ),
             },
+            CoreResourceMsg::DeleteCookies() => {
+                http_state.cookie_jar.write().unwrap().clear_storage();
+                return true;
+            },
             CoreResourceMsg::FetchRedirect(req_init, res_init, sender, cancel_chan) => self
                 .resource_manager
                 .fetch(req_init, Some(res_init), sender, http_state, cancel_chan),
