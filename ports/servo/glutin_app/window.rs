@@ -243,13 +243,14 @@ impl Window {
         };
 
         let gl = match window_kind {
-            WindowKind::Window(ref window, ..) => match gl::GlType::default() {
-                gl::GlType::Gl => unsafe {
+            WindowKind::Window(ref window, ..) => match window.get_api() {
+                Api::OpenGl => unsafe {
                     gl::GlFns::load_with(|s| window.get_proc_address(s) as *const _)
                 },
-                gl::GlType::Gles => unsafe {
+                Api::OpenGlEs => unsafe {
                     gl::GlesFns::load_with(|s| window.get_proc_address(s) as *const _)
                 },
+                Api::WebGl => unreachable!(),
             },
             WindowKind::Headless(..) => unsafe {
                 gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s))
@@ -392,14 +393,15 @@ impl Window {
         }
     }
 
-    #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
     fn gl_version() -> GlRequest {
-        return GlRequest::Specific(Api::OpenGl, (3, 2));
-    }
-
-    #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-    fn gl_version() -> GlRequest {
-        GlRequest::Specific(Api::OpenGlEs, (3, 0))
+        if opts::get().angle {
+            GlRequest::Specific(Api::OpenGlEs, (3, 0))
+        } else {
+            GlRequest::GlThenGles {
+                opengl_version: (3, 2),
+                opengles_version: (3, 0),
+            }
+        }
     }
 
     fn handle_received_character(&self, mut ch: char) {

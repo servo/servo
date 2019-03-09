@@ -76,6 +76,10 @@ pub struct Opts {
     pub load_webfonts_synchronously: bool,
 
     pub headless: bool,
+
+    /// Use ANGLE to create the GL context (Windows-only).
+    pub angle: bool,
+
     pub hard_fail: bool,
 
     /// True if we should bubble intrinsic widths sequentially (`-b`). If this is true, then
@@ -558,6 +562,7 @@ pub fn default_opts() -> Opts {
         gc_profile: false,
         load_webfonts_synchronously: false,
         headless: false,
+        angle: false,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
@@ -666,6 +671,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "",
     );
     opts.optflag("z", "headless", "Headless mode");
+    opts.optflag(
+        "",
+        "angle",
+        "Use ANGLE to create a GL context (Windows-only)",
+    );
     opts.optflag(
         "f",
         "hard-fail",
@@ -998,6 +1008,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         gc_profile: debug_options.gc_profile,
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
+        angle: opt_match.opt_present("angle"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
