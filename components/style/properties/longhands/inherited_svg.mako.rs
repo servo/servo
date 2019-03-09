@@ -110,11 +110,11 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "stroke-miterlimit",
-    "GreaterThanOrEqualToOneNumber",
+    "NonNegativeNumber",
     "From::from(4.0)",
     products="gecko",
-    animation_value_type="crate::values::computed::GreaterThanOrEqualToOneNumber",
-    spec="https://www.w3.org/TR/SVG11/painting.html#StrokeMiterlimitProperty",
+    animation_value_type="crate::values::computed::NonNegativeNumber",
+    spec="https://www.w3.org/TR/SVG2/painting.html#StrokeMiterlimitProperty",
 )}
 
 ${helpers.predefined_type(
