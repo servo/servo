@@ -595,16 +595,23 @@ class MachCommands(CommandBase):
                                 servo_exe_dir)
                 # Search for the generated nspr4.dll
                 build_path = path.join(servo_exe_dir, "build")
-                nspr4 = "nspr4.dll"
-                nspr4_path = None
-                for root, dirs, files in os.walk(build_path):
-                    if nspr4 in files:
-                        nspr4_path = path.join(root, nspr4)
-                        break
-                if nspr4_path is None:
-                    print("WARNING: could not find nspr4.dll")
-                else:
-                    shutil.copy(nspr4_path, servo_exe_dir)
+
+                def package_generated_shared_libraries(libs, build_path, servo_exe_dir):
+                    for root, dirs, files in os.walk(build_path):
+                        remaining_libs = list(libs)
+                        for lib in libs:
+                            if lib in files:
+                                shutil.copy(path.join(root, lib), servo_exe_dir)
+                                remaining_libs.remove(lib)
+                                continue
+                        libs = remaining_libs
+                        if not libs:
+                            return
+                    for lib in libs:
+                        print("WARNING: could not find " + lib)
+
+                package_generated_shared_libraries(["nspr4.dll", "libEGL.dll"], build_path, servo_exe_dir)
+
                 # copy needed gstreamer DLLs in to servo.exe dir
                 gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
                 gst_root = ""
