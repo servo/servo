@@ -22,6 +22,7 @@ enum MediaSessionAction {
   "previoustrack",
   "nexttrack",
   "skipad",
+  "stop",
 };
 
 callback MediaSessionActionHandler = void();
