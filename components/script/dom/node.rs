@@ -21,7 +21,7 @@ use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTy
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};

@@ -256,18 +256,23 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     });
 }
 
-/// Get a reference out of a rooted value.
-pub trait RootedReference<'root> {
-    /// The type of the reference.
-    type Ref: 'root;
-    /// Obtain a reference out of the rooted value.
-    fn r(&'root self) -> Self::Ref;
+/// Get a slice of references to DOM objects.
+pub trait DomSlice<T>
+where
+    T: JSTraceable + DomObject,
+{
+    /// Returns the slice of `T` references.
+    fn r(&self) -> &[&T];
 }
 
-impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
-    type Ref = &'root [&'root T];
-    fn r(&'root self) -> &'root [&'root T] {
-        unsafe { mem::transmute(self) }
+impl<T> DomSlice<T> for [Dom<T>]
+where
+    T: JSTraceable + DomObject,
+{
+    #[inline]
+    fn r(&self) -> &[&T] {
+        let _ = mem::transmute::<Dom<T>, &T>;
+        unsafe { &*(self as *const [Dom<T>] as *const [&T]) }
     }
 }
 
