@@ -5899,7 +5899,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::root::Dom',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::root::OptionalHeapSetter',
-        'crate::dom::bindings::root::RootedReference',
+        'crate::dom::bindings::root::DomSlice',
         'crate::dom::bindings::utils::AsVoidPtr',
         'crate::dom::bindings::utils::DOMClass',
         'crate::dom::bindings::utils::DOMJSClass',
