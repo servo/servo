@@ -23,7 +23,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
@@ -1292,7 +1292,7 @@ impl Element {
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
-        assert!(attr.GetOwnerElement().r() == Some(self));
+        assert!(attr.GetOwnerElement().deref() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
         if attr.namespace() == &ns!() {
@@ -1607,12 +1607,12 @@ impl Element {
                 }
             },
             AdjacentPosition::AfterBegin => {
-                Node::pre_insert(node, &self_node, self_node.GetFirstChild().r()).map(Some)
+                Node::pre_insert(node, &self_node, self_node.GetFirstChild().deref()).map(Some)
             },
             AdjacentPosition::BeforeEnd => Node::pre_insert(node, &self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
-                    Node::pre_insert(node, &parent, self_node.GetNextSibling().r()).map(Some)
+                    Node::pre_insert(node, &parent, self_node.GetNextSibling().deref()).map(Some)
                 } else {
                     Ok(None)
                 }
@@ -1652,7 +1652,7 @@ impl Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2121,7 +2121,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2171,7 +2171,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2217,7 +2217,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2268,7 +2268,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2737,7 +2737,7 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
         let fullscreen = doc.GetFullscreenElement();
-        if fullscreen.r() == Some(self) {
+        if fullscreen.deref() == Some(self) {
             doc.exit_fullscreen();
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
@@ -3392,7 +3392,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     fn run_once(self) {
         let element = self.element.root();
         let promise = self.promise.root();
-        let document = document_from_node(element.r());
+        let document = document_from_node(&*element);
 
         // Step 7.1
         if self.error || !element.fullscreen_element_ready_check() {
@@ -3442,7 +3442,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
     #[allow(unrooted_must_root)]
     fn run_once(self) {
         let element = self.element.root();
-        let document = document_from_node(element.r());
+        let document = document_from_node(&*element);
         // TODO Step 9.1-5
         // Step 9.6
         element.set_fullscreen_state(false);

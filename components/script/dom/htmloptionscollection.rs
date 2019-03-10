@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, RootedReference};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -185,14 +185,14 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         });
 
         // Step 5
-        let parent = if let Some(reference_node) = reference_node.r() {
+        let parent = if let Some(ref reference_node) = reference_node {
             reference_node.GetParentNode().unwrap()
         } else {
             root
         };
 
         // Step 6
-        Node::pre_insert(node, &parent, reference_node.r()).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.deref()).map(|_| ())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove

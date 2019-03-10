@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::TextBinding::{self, TextMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, RootedReference};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
@@ -68,7 +68,7 @@ impl TextMethods for Text {
         if let Some(ref parent) = parent {
             // Step 7.1.
             parent
-                .InsertBefore(new_node.upcast(), node.GetNextSibling().r())
+                .InsertBefore(new_node.upcast(), node.GetNextSibling().deref())
                 .unwrap();
             // Steps 7.2-3.
             node.ranges()
