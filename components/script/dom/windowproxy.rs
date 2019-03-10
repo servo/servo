@@ -47,7 +47,9 @@ use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::ptr;
+use style::attr::parse_integer;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
@@ -393,9 +395,10 @@ impl WindowProxy {
             "" => DOMString::from("_blank"),
             _ => target,
         };
-        // TODO Step 4, properly tokenize features.
+        // Step 4
+        let features = tokenize_open_features(features);
         // Step 5
-        let noopener = features.contains("noopener");
+        let noopener = parse_open_feature_boolean(&features, "noopener");
         // Step 6, 7
         let (chosen, new) = match self.choose_browsing_context(non_empty_target, noopener) {
             (Some(chosen), new) => (chosen, new),
@@ -587,6 +590,96 @@ impl WindowProxy {
 
     pub fn set_name(&self, name: DOMString) {
         *self.name.borrow_mut() = name;
+    }
+}
+
+// https://html.spec.whatwg.org/multipage/#concept-window-open-features-tokenize
+fn tokenize_open_features(features: DOMString) -> HashMap<String, String> {
+    let is_feature_sep = |c: char| ['\t', '\n', '\x0c', '\r', ' ', '=', ','].contains(&c);
+    // Step 1
+    let mut tokenized_features = HashMap::new();
+    // Step 2
+    let mut iter = features.chars();
+    let mut cur = iter.next();
+
+    // Step 3
+    while cur != None {
+        // Step 3.1 & 3.2
+        let mut name = String::new();
+        let mut value = String::new();
+        // Step 3.3
+        while let Some(cur_char) = cur {
+            if !is_feature_sep(cur_char) {
+                break;
+            }
+            cur = iter.next();
+        }
+        // Step 3.4
+        while let Some(cur_char) = cur {
+            if is_feature_sep(cur_char) {
+                break;
+            }
+            name.push(cur_char.to_ascii_lowercase());
+            cur = iter.next();
+        }
+        // Step 3.5
+        let normalized_name = String::from(match name.as_ref() {
+            "screenx" => "left",
+            "screeny" => "top",
+            "innerwidth" => "width",
+            "innerheight" => "height",
+            _ => name.as_ref(),
+        });
+        // Step 3.6
+        while let Some(cur_char) = cur {
+            if cur_char == '=' || cur_char == ',' || !is_feature_sep(cur_char) {
+                break;
+            }
+            cur = iter.next();
+        }
+        match cur {
+            // Step 3.7
+            Some(_cur_char) if is_feature_sep(_cur_char) => {
+                // Step 3.7.1
+                while let Some(cur_char) = cur {
+                    if !is_feature_sep(cur_char) || cur_char == ',' {
+                        break;
+                    }
+                    cur = iter.next();
+                }
+                // Step 3.7.2
+                while let Some(cur_char) = cur {
+                    if is_feature_sep(cur_char) {
+                        break;
+                    }
+                    value.push(cur_char.to_ascii_lowercase());
+                    cur = iter.next();
+                }
+            },
+            _ => {},
+        }
+        // Step 3.8
+        if !name.is_empty() {
+            tokenized_features.insert(normalized_name, value);
+        }
+    }
+    // Step 4
+    tokenized_features
+}
+
+// https://html.spec.whatwg.org/multipage/#concept-window-open-features-parse-boolean
+fn parse_open_feature_boolean(tokenized_features: &HashMap<String, String>, name: &str) -> bool {
+    match tokenized_features.get(name) {
+        None => false,
+        Some(value) => match value.as_ref() {
+            "" => true,
+            "yes" => true,
+            _ => match parse_integer(value.chars()) {
+                Err(_) => false,
+                Ok(0) => false,
+                Ok(_) => true,
+            },
+        },
     }
 }
 
