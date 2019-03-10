@@ -7250,9 +7250,11 @@ def camel_to_upper_snake(s):
 
 def process_arg(expr, arg):
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-        if arg.variadic or arg.type.isSequence() or arg.type.nullable() and arg.optional:
+        if arg.variadic or arg.type.isSequence():
             expr += ".r()"
-        elif arg.type.nullable() or arg.optional:
+        elif arg.type.nullable() and arg.optional and not arg.defaultValue:
+            expr += ".as_ref().map(Option::deref)"
+        elif arg.type.nullable() or arg.optional and not arg.defaultValue:
             expr += ".deref()"
         else:
             expr = "&" + expr
