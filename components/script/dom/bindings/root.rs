@@ -264,24 +264,10 @@ pub trait RootedReference<'root> {
     fn r(&'root self) -> Self::Ref;
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for DomRoot<T> {
-    type Ref = &'root T;
-    fn r(&'root self) -> &'root T {
-        self
-    }
-}
-
 impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
     type Ref = &'root [&'root T];
     fn r(&'root self) -> &'root [&'root T] {
         unsafe { mem::transmute(self) }
-    }
-}
-
-impl<'root, T: RootedReference<'root> + 'root> RootedReference<'root> for Option<T> {
-    type Ref = Option<T::Ref>;
-    fn r(&'root self) -> Option<T::Ref> {
-        self.as_ref().map(RootedReference::r)
     }
 }
 
