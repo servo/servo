@@ -44,6 +44,7 @@ use js::JSCLASS_IS_GLOBAL;
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use net_traits::ReferrerPolicy;
 use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -490,7 +491,12 @@ impl WindowProxy {
         // Step 4
         let features = WindowProxy::tokenize_open_features(features);
         // Step 5
-        let noopener = WindowProxy::parse_open_feature_boolean(&features, "noopener");
+        let noreferrer = WindowProxy::parse_open_feature_boolean(&features, "noreferrer");
+        let noopener = if noreferrer {
+            true
+        } else {
+            WindowProxy::parse_open_feature_boolean(&features, "noopener")
+        };
         // Step 6, 7
         let (chosen, new) = match self.choose_browsing_context(non_empty_target, noopener) {
             (Some(chosen), new) => (chosen, new),
@@ -516,7 +522,16 @@ impl WindowProxy {
                 Err(_) => return None, // TODO: throw a  "SyntaxError" DOMException.
             };
             // Step 10.3
-            target_window.load_url(url, new, false, target_document.get_referrer_policy());
+            target_window.load_url(
+                url,
+                new,
+                false,
+                if noreferrer {
+                    Some(ReferrerPolicy::NoReferrer)
+                } else {
+                    target_document.get_referrer_policy()
+                },
+            );
         }
         if noopener {
             // Step 11 (Dis-owning has been done in create_auxiliary_browsing_context).
