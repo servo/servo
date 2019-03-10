@@ -20,6 +20,7 @@ use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
+use indexmap::map::IndexMap;
 use ipc_channel::ipc;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
 use js::glue::{GetProxyPrivate, GetProxyReservedSlot, SetProxyReservedSlot};
@@ -48,6 +49,7 @@ use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, S
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::ptr;
+use style::attr::parse_integer;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
@@ -393,9 +395,10 @@ impl WindowProxy {
             "" => DOMString::from("_blank"),
             _ => target,
         };
-        // TODO Step 4, properly tokenize features.
+        // Step 4
+        let features = tokenize_open_features(features);
         // Step 5
-        let noopener = features.contains("noopener");
+        let noopener = parse_open_feature_boolean(&features, "noopener");
         // Step 6, 7
         let (chosen, new) = match self.choose_browsing_context(non_empty_target, noopener) {
             (Some(chosen), new) => (chosen, new),
@@ -588,6 +591,93 @@ impl WindowProxy {
     pub fn set_name(&self, name: DOMString) {
         *self.name.borrow_mut() = name;
     }
+}
+
+// https://html.spec.whatwg.org/multipage/#concept-window-open-features-tokenize
+fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
+    let is_feature_sep = |c: char| c.is_ascii_whitespace() || ['=', ','].contains(&c);
+    // Step 1
+    let mut tokenized_features = IndexMap::new();
+    // Step 2
+    let mut iter = features.chars();
+    let mut cur = iter.next();
+
+    // Step 3
+    while cur != None {
+        // Step 3.1 & 3.2
+        let mut name = String::new();
+        let mut value = String::new();
+        // Step 3.3
+        while let Some(cur_char) = cur {
+            if !is_feature_sep(cur_char) {
+                break;
+            }
+            cur = iter.next();
+        }
+        // Step 3.4
+        while let Some(cur_char) = cur {
+            if is_feature_sep(cur_char) {
+                break;
+            }
+            name.push(cur_char.to_ascii_lowercase());
+            cur = iter.next();
+        }
+        // Step 3.5
+        let normalized_name = String::from(match name.as_ref() {
+            "screenx" => "left",
+            "screeny" => "top",
+            "innerwidth" => "width",
+            "innerheight" => "height",
+            _ => name.as_ref(),
+        });
+        // Step 3.6
+        while let Some(cur_char) = cur {
+            if cur_char == '=' || cur_char == ',' || !is_feature_sep(cur_char) {
+                break;
+            }
+            cur = iter.next();
+        }
+        // Step 3.7
+        if cur.is_some() && is_feature_sep(cur.unwrap()) {
+            // Step 3.7.1
+            while let Some(cur_char) = cur {
+                if !is_feature_sep(cur_char) || cur_char == ',' {
+                    break;
+                }
+                cur = iter.next();
+            }
+            // Step 3.7.2
+            while let Some(cur_char) = cur {
+                if is_feature_sep(cur_char) {
+                    break;
+                }
+                value.push(cur_char.to_ascii_lowercase());
+                cur = iter.next();
+            }
+        }
+        // Step 3.8
+        if !name.is_empty() {
+            tokenized_features.insert(normalized_name, value);
+        }
+    }
+    // Step 4
+    tokenized_features
+}
+
+// https://html.spec.whatwg.org/multipage/#concept-window-open-features-parse-boolean
+fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, name: &str) -> bool {
+    if let Some(value) = tokenized_features.get(name) {
+        // Step 1 & 2
+        if value == "" || value == "yes" {
+            return true;
+        }
+        // Step 3 & 4
+        if let Ok(int) = parse_integer(value.chars()) {
+            return int != 0;
+        }
+    }
+    // Step 5
+    return false;
 }
 
 // This is only called from extern functions,
