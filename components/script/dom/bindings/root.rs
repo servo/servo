@@ -42,7 +42,6 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
-use std::rc::Rc;
 use style::thread_state;
 
 /// A rooted value.
@@ -272,24 +271,10 @@ impl<'root, T: DomObject + 'root> RootedReference<'root> for DomRoot<T> {
     }
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Dom<T> {
-    type Ref = &'root T;
-    fn r(&'root self) -> &'root T {
-        &self
-    }
-}
-
 impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
     type Ref = &'root [&'root T];
     fn r(&'root self) -> &'root [&'root T] {
         unsafe { mem::transmute(self) }
-    }
-}
-
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Rc<T> {
-    type Ref = &'root T;
-    fn r(&'root self) -> &'root T {
-        self
     }
 }
 

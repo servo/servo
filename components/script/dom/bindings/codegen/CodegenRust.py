@@ -7250,8 +7250,10 @@ def camel_to_upper_snake(s):
 
 def process_arg(expr, arg):
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-        if arg.type.nullable() or arg.type.isSequence() or arg.optional:
+        if arg.variadic or arg.type.isSequence() or arg.type.nullable() and arg.optional:
             expr += ".r()"
+        elif arg.type.nullable() or arg.optional:
+            expr += ".deref()"
         else:
             expr = "&" + expr
     elif isinstance(arg.type, IDLPromiseType):
