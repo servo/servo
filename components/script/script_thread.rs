@@ -271,6 +271,8 @@ pub enum MainThreadScriptMsg {
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
+    /// A task related to a not fully-active document has been throttled.
+    Inactive,
     /// Wake-up call from the task queue.
     WakeUp,
 }
@@ -285,7 +287,20 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
                 Some(&task_source)
             },
+            _ => None,
+        }
+    }
+
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        let script_msg = match self {
+            MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
+        };
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => {
+                pipeline_id.clone()
+            },
+            _ => None,
         }
     }
 
@@ -307,6 +322,10 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
         let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         MainThreadScriptMsg::Common(script_msg)
+    }
+
+    fn inactive_msg() -> Self {
+        MainThreadScriptMsg::Inactive
     }
 
     fn wake_up_msg() -> Self {
@@ -881,6 +900,29 @@ impl ScriptThread {
         })
     }
 
+    pub fn get_fully_active_document_ids() -> HashSet<PipelineId> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.get().map_or(HashSet::new(), |script_thread| {
+                let script_thread = unsafe { &*script_thread };
+                script_thread
+                    .documents
+                    .borrow()
+                    .iter()
+                    .filter_map(|(id, document)| {
+                        if document.is_fully_active() {
+                            Some(id.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .fold(HashSet::new(), |mut set, id| {
+                        let _ = set.insert(id);
+                        set
+                    })
+            })
+        })
+    }
+
     pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.get().and_then(|script_thread| {
@@ -1169,7 +1211,11 @@ impl ScriptThread {
         let mut event = select! {
             recv(self.task_queue.select()) -> msg => {
                 self.task_queue.take_tasks(msg.unwrap());
-                FromScript(self.task_queue.recv().unwrap())
+                let event = self
+                    .task_queue
+                    .recv()
+                    .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
+                FromScript(event)
             },
             recv(self.control_port) -> msg => FromConstellation(msg.unwrap()),
             recv(self.timer_event_port) -> msg => FromScheduler(msg.unwrap()),
@@ -1251,6 +1297,10 @@ impl ScriptThread {
                         },
                         Some(index) => sequential[index] = event,
                     }
+                },
+                FromScript(MainThreadScriptMsg::Inactive) => {
+                    // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
+                    // Continue without adding it to "sequential".
                 },
                 _ => {
                     sequential.push(event);
@@ -1460,6 +1510,7 @@ impl ScriptThread {
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                 MainThreadScriptMsg::DispatchJobQueue { .. } => None,
+                MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
@@ -1705,6 +1756,7 @@ impl ScriptThread {
             MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
                 self.job_queue_map.run_job(scope_url, self)
             },
+            MainThreadScriptMsg::Inactive => {},
             MainThreadScriptMsg::WakeUp => {},
         }
     }
