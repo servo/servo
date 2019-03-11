@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -24,13 +24,17 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use std::cell::Cell;
 use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
 
+#[inert::neutralize(as pub unsafe InertHTMLTableElement)]
 #[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
+    #[inert::field]
     border: Cell<Option<u32>>,
+    #[inert::field]
     cellspacing: Cell<Option<u32>>,
     tbodies: MutNullableDom<HTMLCollection>,
 }
@@ -405,6 +409,35 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-width
     make_nonzero_dimension_setter!(SetWidth, "width");
+}
+
+impl InertHTMLTableElement {
+    #[inline]
+    pub fn get_background_color(self: &Inert<HTMLTableElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
+            .and_then(AttrValue::as_color)
+            .cloned()
+    }
+
+    #[inline]
+    pub fn get_border(&self) -> Option<u32> {
+        self.border().deref().cloned()
+    }
+
+    #[inline]
+    pub fn get_cellspacing(&self) -> Option<u32> {
+        self.cellspacing().deref().cloned()
+    }
+
+    #[inline]
+    pub fn get_width(self: &Inert<HTMLTableElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
 }
 
 pub trait HTMLTableElementLayoutHelpers {

@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
@@ -32,6 +32,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use script_traits::ScriptToConstellationChan;
 use std::cell::Cell;
 use std::default::Default;
@@ -39,15 +40,73 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 
+#[inert::neutralize(as pub unsafe InertHTMLTextAreaElement)]
 #[dom_struct]
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "#7193"]
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    #[inert::field]
     placeholder: DomRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
+}
+
+impl InertHTMLTextAreaElement {
+    pub fn value_for_layout(&self) -> String {
+        let text = self.get_raw_textinput_value();
+        if text.is_empty() {
+            String::from(&***self.placeholder())
+        } else {
+            text.into()
+        }
+    }
+
+    pub fn selection_for_layout(self: &Inert<HTMLTextAreaElement>) -> Option<Range<usize>> {
+        if !self.upcast::<Element>().focus_state() {
+            return None;
+        }
+        Some(self.sorted_selection_offsets_range())
+    }
+
+    pub fn get_cols(self: &Inert<HTMLTextAreaElement>) -> u32 {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("cols"))
+            .map_or(DEFAULT_COLS, AttrValue::as_uint)
+    }
+
+    pub fn get_rows(self: &Inert<HTMLTextAreaElement>) -> u32 {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("rows"))
+            .map_or(DEFAULT_ROWS, AttrValue::as_uint)
+    }
+}
+
+// FIXME(nox): TextInput can very well implement NeutralizeUnsafe,
+// but I'm not sure whether I want to do it by hand or if I want
+// to support type parameters in inert_derive.
+#[allow(unsafe_code)]
+impl InertHTMLTextAreaElement {
+    fn get_raw_textinput_value(&self) -> DOMString {
+        unsafe {
+            self.value
+                .as_ref()
+                .textinput
+                .borrow_for_layout()
+                .get_content()
+        }
+    }
+
+    fn sorted_selection_offsets_range(&self) -> Range<usize> {
+        unsafe {
+            self.value
+                .as_ref()
+                .textinput
+                .borrow_for_layout()
+                .sorted_selection_offsets_range()
+        }
+    }
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {

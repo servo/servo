@@ -155,6 +155,7 @@ impl FrameRenderer for MediaFrameRenderer {
     }
 }
 
+#[inert::neutralize(as pub unsafe InertHTMLMediaElement)]
 #[dom_struct]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
@@ -193,6 +194,7 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "servo_media"]
     player: Box<Player>,
     #[ignore_malloc_size_of = "Arc"]
+    #[inert::field]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
@@ -1912,6 +1914,14 @@ impl VirtualMethods for HTMLMediaElement {
                 elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        }
+    }
+}
+
+impl InertHTMLMediaElement {
+    pub fn data(&self) -> HTMLMediaData {
+        HTMLMediaData {
+            current_frame: self.frame_renderer().lock().unwrap().current_frame.clone(),
         }
     }
 }

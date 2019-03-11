@@ -28,9 +28,11 @@ use servo_config::opts;
 use std::cell::Ref;
 
 // https://dom.spec.whatwg.org/#characterdata
+#[inert::neutralize(as pub unsafe InertCharacterData)]
 #[dom_struct]
 pub struct CharacterData {
     node: Node,
+    #[inert::field]
     data: DomRefCell<DOMString>,
 }
 
@@ -269,6 +271,13 @@ impl CharacterDataMethods for CharacterData {
             .following_siblings()
             .filter_map(DomRoot::downcast)
             .next()
+    }
+}
+
+impl InertCharacterData {
+    #[inline]
+    pub fn data_for_layout(&self) -> &str {
+        self.data()
     }
 }
 

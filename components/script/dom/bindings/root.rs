@@ -30,6 +30,7 @@ use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::trace::trace_reflector;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
+use inert::{Inert, NeutralizeUnsafe};
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -341,6 +342,18 @@ unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     }
 }
 
+unsafe impl<T> NeutralizeUnsafe for Dom<T>
+where
+    T: DomObject + NeutralizeUnsafe,
+{
+    type Output = Inert<T>;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        Inert::new_unchecked(self)
+    }
+}
+
 /// An unrooted reference to a DOM object for use in layout. `Layout*Helpers`
 /// traits must be implemented on this.
 #[allow_unrooted_interior]
@@ -607,6 +620,18 @@ impl<T: DomObject> MallocSizeOf for MutNullableDom<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // See comment on MallocSizeOf for Dom<T>.
         0
+    }
+}
+
+unsafe impl<T> NeutralizeUnsafe for MutNullableDom<T>
+where
+    T: DomObject + NeutralizeUnsafe,
+{
+    type Output = Option<Inert<Dom<T>>>;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        (*self.ptr.get()).neutralize_unsafe()
     }
 }
 

@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -50,6 +50,7 @@ use caseless::compatibility_caseless_match_str;
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use msg::constellation_msg::InputMethodType;
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
@@ -69,9 +70,8 @@ const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
-#[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[allow(dead_code)]
-#[derive(MallocSizeOf)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum InputType {
     Button,
     Checkbox,
@@ -217,12 +217,16 @@ enum ValueMode {
     Filename,
 }
 
+#[inert::neutralize(as pub unsafe InertHTMLInputElement)]
 #[dom_struct]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
+    #[inert::field]
     input_type: Cell<InputType>,
     checked_changed: Cell<bool>,
+    #[inert::field]
     placeholder: DomRefCell<DOMString>,
+    #[inert::field]
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
@@ -355,6 +359,97 @@ impl HTMLInputElement {
     #[inline]
     pub fn input_type(&self) -> InputType {
         self.input_type.get()
+    }
+}
+
+impl InertHTMLInputElement {
+    pub fn value_for_layout(self: &Inert<HTMLInputElement>) -> String {
+        match *Inert::get_ref(&**self.input_type()) {
+            InputType::Checkbox | InputType::Radio => String::new(),
+            InputType::File | InputType::Image => String::new(),
+            InputType::Button => self.get_raw_attr_value(""),
+            InputType::Submit => self.get_raw_attr_value(DEFAULT_SUBMIT_VALUE),
+            InputType::Reset => self.get_raw_attr_value(DEFAULT_RESET_VALUE),
+            InputType::Password => {
+                // FIXME(nox): We could just get a &str of the raw textinput value.
+                let text = self.get_raw_textinput_value();
+                if !text.is_empty() {
+                    text.chars().map(|_| PASSWORD_REPLACEMENT_CHAR).collect()
+                } else {
+                    String::from(&***self.placeholder())
+                }
+            },
+            _ => {
+                let text = self.get_raw_textinput_value();
+                if !text.is_empty() {
+                    String::from(text)
+                } else {
+                    String::from(&***self.placeholder())
+                }
+            },
+        }
+    }
+
+    pub fn size_for_layout(&self) -> u32 {
+        ***self.size()
+    }
+
+    pub fn selection_for_layout(self: &Inert<HTMLInputElement>) -> Option<Range<usize>> {
+        if !self.upcast::<Element>().focus_state() {
+            return None;
+        }
+
+        let input_type = *Inert::get_ref(&**self.input_type());
+
+        if input_type == InputType::Password {
+            // FIXME(nox): We could just get a &str of the raw textinput value.
+            let text = self.get_raw_textinput_value();
+            let sel = self.sorted_selection_offsets_range();
+
+            // Translate indices from the raw value to indices in the replacement value.
+            let char_start = text[..sel.start].chars().count();
+            let char_end = char_start + text[sel].chars().count();
+
+            let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
+            Some(char_start * bytes_per_char..char_end * bytes_per_char)
+        } else if input_type.is_textual() {
+            Some(self.sorted_selection_offsets_range())
+        } else {
+            None
+        }
+    }
+
+    fn get_raw_attr_value(self: &Inert<HTMLInputElement>, default: &str) -> String {
+        self.upcast::<Element>()
+            .get_attr_val_for_layout(&ns!(), &local_name!("value"))
+            .unwrap_or(default)
+            .to_owned()
+    }
+}
+
+// FIXME(nox): TextInput can very well implement NeutralizeUnsafe,
+// but I'm not sure whether I want to do it by hand or if I want
+// to support type parameters in inert_derive.
+#[allow(unsafe_code)]
+impl InertHTMLInputElement {
+    fn get_raw_textinput_value(&self) -> DOMString {
+        unsafe {
+            self.value
+                .as_ref()
+                .textinput
+                .borrow_for_layout()
+                .get_content()
+        }
+    }
+
+    fn sorted_selection_offsets_range(&self) -> Range<usize> {
+        unsafe {
+            self.value
+                .as_ref()
+                .textinput
+                .borrow_for_layout()
+                .sorted_selection_offsets_range()
+        }
     }
 }
 

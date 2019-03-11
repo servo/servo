@@ -4,7 +4,7 @@
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::SVGSVGElementBinding;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -14,12 +14,14 @@ use crate::dom::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use script_layout_interface::SVGSVGData;
 use style::attr::AttrValue;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
+#[inert::neutralize(as pub unsafe InertSVGSVGElement)]
 #[dom_struct]
 pub struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
@@ -47,6 +49,20 @@ impl SVGSVGElement {
             document,
             SVGSVGElementBinding::Wrap,
         )
+    }
+}
+
+impl InertSVGSVGElement {
+    pub fn data(self: &Inert<SVGSVGElement>) -> SVGSVGData {
+        let width = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map_or(DEFAULT_WIDTH, |val| val.as_uint());
+        let height = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map_or(DEFAULT_HEIGHT, |val| val.as_uint());
+        SVGSVGData { width, height }
     }
 }
 

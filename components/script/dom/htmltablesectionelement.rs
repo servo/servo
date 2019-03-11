@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -20,8 +20,10 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use style::attr::AttrValue;
 
+#[inert::neutralize(as pub unsafe InertHTMLTableSectionElement)]
 #[dom_struct]
 pub struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
@@ -83,6 +85,16 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     fn DeleteRow(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
         node.delete_cell_or_row(index, || self.Rows(), |n| n.is::<HTMLTableRowElement>())
+    }
+}
+
+impl InertHTMLTableSectionElement {
+    #[inline]
+    pub fn get_background_color(self: &Inert<HTMLTableSectionElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
+            .and_then(AttrValue::as_color)
+            .cloned()
     }
 }
 

@@ -8,6 +8,7 @@ use chrono::prelude::{Utc, Weekday};
 use chrono::{Datelike, TimeZone};
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
+use inert::NeutralizeUnsafe;
 use servo_atoms::Atom;
 use std::borrow::{Borrow, Cow, ToOwned};
 use std::default::Default;
@@ -505,6 +506,15 @@ impl Extend<char> for DOMString {
         I: IntoIterator<Item = char>,
     {
         self.0.extend(iterable)
+    }
+}
+
+unsafe impl NeutralizeUnsafe for DOMString {
+    type Output = str;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        self
     }
 }
 

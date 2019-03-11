@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -36,6 +36,7 @@ use euclid::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
 use image::png::PNGEncoder;
 use image::ColorType;
+use inert::{Inert, NeutralizeUnsafe};
 use ipc_channel::ipc::IpcSharedMemory;
 use js::error::throw_type_error;
 use js::jsapi::JSContext;
@@ -57,9 +58,11 @@ pub enum CanvasContext {
     WebGL2(Dom<WebGL2RenderingContext>),
 }
 
+#[inert::neutralize(as pub unsafe InertHTMLCanvasElement)]
 #[dom_struct]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
+    #[inert::field]
     context: DomRefCell<Option<CanvasContext>>,
 }
 
@@ -109,6 +112,102 @@ impl HTMLCanvasElement {
         match *self.context.borrow() {
             Some(CanvasContext::Context2d(ref context)) => context.origin_is_clean(),
             _ => true,
+        }
+    }
+}
+
+// FIXME(nox): I should make inert_derive support enums.
+
+pub enum InertCanvasContext {
+    // FIXME(nox): Hah: warning: variant is never constructed: `Context2d`
+    #[allow(dead_code)]
+    Context2d(Inert<Dom<CanvasRenderingContext2D>>),
+    #[allow(dead_code)]
+    WebGL(Inert<Dom<WebGLRenderingContext>>),
+    #[allow(dead_code)]
+    WebGL2(Inert<Dom<WebGL2RenderingContext>>),
+}
+
+#[allow(unsafe_code)]
+unsafe impl NeutralizeUnsafe for CanvasContext {
+    type Output = InertCanvasContext;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        &*(self as *const Self as *const Self::Output)
+    }
+}
+
+impl InertHTMLCanvasElement {
+    #[allow(unsafe_code)]
+    pub unsafe fn data(self: &Inert<HTMLCanvasElement>) -> HTMLCanvasData {
+        let source = self
+            .context()
+            .deref()
+            .map_or(HTMLCanvasDataSource::Image(None), |context| {
+                context.canvas_data_source()
+            });
+
+        let width = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map_or(DEFAULT_WIDTH, |val| val.as_uint());
+        let height = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map_or(DEFAULT_HEIGHT, |val| val.as_uint());
+
+        HTMLCanvasData {
+            source,
+            width,
+            height,
+            canvas_id: self.get_canvas_id_for_layout(),
+        }
+    }
+
+    pub fn get_width(self: &Inert<HTMLCanvasElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_uint_px_dimension)
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
+    pub fn get_height(self: &Inert<HTMLCanvasElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_uint_px_dimension)
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
+    #[inline]
+    pub fn get_canvas_id_for_layout(&self) -> CanvasId {
+        self.context()
+            .deref()
+            .map_or(CanvasId(0), |context| context.get_canvas_id())
+    }
+}
+
+impl InertCanvasContext {
+    // FIXME(nox): This is unsafe because we need to call IpcSender::clone,
+    // which AFAIK is pretty UB to call from multiple threads at once.
+    #[allow(unsafe_code)]
+    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
+        match *self {
+            Self::Context2d(ref context) => {
+                HTMLCanvasDataSource::Image(Some(context.get_ipc_renderer()))
+            },
+            Self::WebGL(ref context) => context.canvas_data_source(),
+            Self::WebGL2(ref context) => context.canvas_data_source(),
+        }
+    }
+
+    #[inline]
+    fn get_canvas_id(&self) -> CanvasId {
+        if let Self::Context2d(ref context) = *self {
+            context.get_canvas_id()
+        } else {
+            // FIXME(nox): But why?
+            CanvasId(0)
         }
     }
 }

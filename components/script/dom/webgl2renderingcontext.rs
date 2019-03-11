@@ -40,9 +40,11 @@ use js::typedarray::ArrayBufferView;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::ptr::NonNull;
 
+#[inert::neutralize(as pub unsafe InertWebGL2RenderingContext)]
 #[dom_struct]
 pub struct WebGL2RenderingContext {
     reflector_: Reflector,
+    #[inert::field]
     base: Dom<WebGLRenderingContext>,
 }
 
@@ -1070,6 +1072,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
     fn VertexAttribDivisor(&self, index: u32, divisor: u32) {
         self.base.vertex_attrib_divisor(index, divisor);
+    }
+}
+
+impl InertWebGL2RenderingContext {
+    // FIXME(nox): WebGL2RenderingContext::layout_handle uses the WebGL
+    // channel sender, which is UB to use from multiple threads at once.
+    #[allow(unsafe_code)]
+    pub unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
+        HTMLCanvasDataSource::WebGL(self.base().layout_handle())
     }
 }
 

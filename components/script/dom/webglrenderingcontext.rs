@@ -127,6 +127,7 @@ bitflags! {
     }
 }
 
+#[inert::neutralize(as pub unsafe InertWebGLRenderingContext)]
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
@@ -4009,6 +4010,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetAttachedShaders(&self, program: &WebGLProgram) -> Option<Vec<DomRoot<WebGLShader>>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(self, program.attached_shaders().map(Some), None)
+    }
+}
+
+// FIXME(nox): WebGLRenderingContext::layout_handle uses the WebGL
+// channel sender, which is UB to use from multiple threads at once.
+#[allow(unsafe_code)]
+impl InertWebGLRenderingContext {
+    #[inline]
+    pub unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
+        HTMLCanvasDataSource::WebGL(self.layout_handle())
+    }
+
+    #[inline]
+    pub unsafe fn layout_handle(&self) -> webrender_api::ImageKey {
+        self.value.as_ref().layout_handle()
     }
 }
 

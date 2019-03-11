@@ -4,6 +4,7 @@
 
 //! A shareable mutable container for the DOM.
 
+use inert::{Inert, NeutralizeUnsafe};
 use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
 use style::thread_state::{self, ThreadState};
 
@@ -113,5 +114,14 @@ impl<T> DomRefCell<T> {
     pub fn try_borrow_mut(&self) -> Result<RefMut<T>, BorrowMutError> {
         debug_assert!(thread_state::get().is_script());
         self.value.try_borrow_mut()
+    }
+}
+
+unsafe impl<T> NeutralizeUnsafe for DomRefCell<T> {
+    type Output = Inert<T>;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        self.value.neutralize_unsafe().borrow()
     }
 }

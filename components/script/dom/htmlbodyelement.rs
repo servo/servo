@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{
     self, HTMLBodyElementMethods,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -20,6 +20,7 @@ use cssparser::RGBA;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 
@@ -27,6 +28,7 @@ use style::attr::AttrValue;
 /// nanoseconds.
 const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 
+#[inert::neutralize(as pub unsafe InertHTMLBodyElement)]
 #[dom_struct]
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
@@ -94,6 +96,29 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers
     window_event_handlers!(ForwardToWindow);
+}
+
+impl InertHTMLBodyElement {
+    pub fn get_background_color(self: &Inert<HTMLBodyElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
+            .and_then(AttrValue::as_color)
+            .cloned()
+    }
+
+    pub fn get_color(self: &Inert<HTMLBodyElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("text"))
+            .and_then(AttrValue::as_color)
+            .cloned()
+    }
+
+    pub fn get_background(self: &Inert<HTMLBodyElement>) -> Option<ServoUrl> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("background"))
+            .and_then(AttrValue::as_resolved_url)
+            .cloned()
+    }
 }
 
 pub trait HTMLBodyElementLayoutHelpers {

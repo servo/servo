@@ -17,7 +17,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::conversions::{self, DerivedFrom};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
+use crate::dom::bindings::inheritance::{
+    Castable, CastableInert, CharacterDataTypeId, ElementTypeId,
+};
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -59,6 +61,7 @@ use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use html5ever::{Namespace, Prefix, QualName};
+use inert::Inert;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -95,36 +98,45 @@ use uuid::Uuid;
 //
 
 /// An HTML node.
+#[inert::neutralize(as pub unsafe InertNode)]
 #[dom_struct]
 pub struct Node {
     /// The JavaScript reflector for this node.
     eventtarget: EventTarget,
 
     /// The parent of this node.
+    #[inert::field]
     parent_node: MutNullableDom<Node>,
 
     /// The first child of this node.
+    #[inert::field]
     first_child: MutNullableDom<Node>,
 
     /// The last child of this node.
+    #[inert::field]
     last_child: MutNullableDom<Node>,
 
     /// The next sibling of this node.
+    #[inert::field]
     next_sibling: MutNullableDom<Node>,
 
     /// The previous sibling of this node.
+    #[inert::field]
     prev_sibling: MutNullableDom<Node>,
 
     /// The document that this node belongs to.
+    #[inert::field]
     owner_doc: MutNullableDom<Document>,
 
     /// The live list of children return by .childNodes.
     child_list: MutNullableDom<NodeList>,
 
     /// The live count of children of this node.
+    #[inert::field(inert_children_count)]
     children_count: Cell<u32>,
 
     /// A bitfield of flags for node items.
+    #[inert::field]
     flags: Cell<NodeFlags>,
 
     /// The maximum version of any inclusive descendant of this node.
@@ -1074,6 +1086,171 @@ pub unsafe fn from_untrusted_node_address(
     }
     let boxed_node = conversions::private_from_object(object) as *const Node;
     DomRoot::from_ref(&*boxed_node)
+}
+
+impl InertNode {
+    #[allow(unsafe_code)]
+    #[inline]
+    pub fn type_id_for_layout(&self) -> NodeTypeId {
+        // FIXME(nox): Unsafety can be removed here, just am not sure where the
+        // safe method should live.
+        unsafe { self.value.as_ref() }.type_id()
+    }
+
+    #[inline]
+    pub fn parent_node_ref(&self) -> Option<&Inert<Node>> {
+        self.parent_node().deref()
+    }
+
+    #[inline]
+    pub fn first_child_ref(&self) -> Option<&Inert<Node>> {
+        self.first_child().deref()
+    }
+
+    #[inline]
+    pub fn last_child_ref(&self) -> Option<&Inert<Node>> {
+        self.last_child().deref()
+    }
+
+    #[inline]
+    pub fn prev_sibling_ref(&self) -> Option<&Inert<Node>> {
+        self.prev_sibling().deref()
+    }
+
+    #[inline]
+    pub fn next_sibling_ref(&self) -> Option<&Inert<Node>> {
+        self.next_sibling().deref()
+    }
+
+    #[inline]
+    pub fn owner_doc_for_layout(&self) -> &Inert<Document> {
+        self.owner_doc().deref().unwrap()
+    }
+
+    #[inline]
+    pub fn is_element_for_layout(self: &Inert<Node>) -> bool {
+        self.is::<Element>()
+    }
+
+    #[inline]
+    pub fn children_count(&self) -> u32 {
+        ***self.inert_children_count()
+    }
+
+    pub fn text_content(self: &Inert<Node>) -> String {
+        if let Some(text) = self.downcast::<Text>() {
+            return text.upcast::<CharacterData>().data_for_layout().to_owned();
+        }
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            return input.value_for_layout();
+        }
+
+        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+            return area.value_for_layout();
+        }
+
+        panic!("not text!")
+    }
+
+    pub fn selection(self: &Inert<Node>) -> Option<Range<usize>> {
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            return input.selection_for_layout();
+        }
+        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+            return area.selection_for_layout();
+        }
+        None
+    }
+
+    pub fn image_url(self: &Inert<Node>) -> Option<ServoUrl> {
+        self.downcast::<HTMLImageElement>()
+            .expect("not an image!")
+            .image_url()
+    }
+
+    pub fn image_data(
+        self: &Inert<Node>,
+    ) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+        self.downcast::<HTMLImageElement>().map(|e| e.image_data())
+    }
+
+    pub fn image_density(self: &Inert<Node>) -> Option<f64> {
+        self.downcast::<HTMLImageElement>()
+            .expect("not an image!")
+            .image_density()
+    }
+
+    // FIXME(nox): This uses IPC senders and stuff like that, which are unsound
+    // to use from multiple threads at once.
+    #[allow(unsafe_code)]
+    pub unsafe fn canvas_data(self: &Inert<Node>) -> Option<HTMLCanvasData> {
+        self.downcast::<HTMLCanvasElement>()
+            .map(|canvas| canvas.data())
+    }
+
+    pub fn media_data(self: &Inert<Node>) -> Option<HTMLMediaData> {
+        self.downcast::<HTMLMediaElement>()
+            .map(|media| media.data())
+    }
+
+    pub fn svg_data(self: &Inert<Node>) -> Option<SVGSVGData> {
+        self.downcast::<SVGSVGElement>().map(|svg| svg.data())
+    }
+
+    pub fn iframe_browsing_context_id(self: &Inert<Node>) -> Option<BrowsingContextId> {
+        let iframe_element = self
+            .downcast::<HTMLIFrameElement>()
+            .expect("not an iframe element!");
+        iframe_element.browsing_context_id()
+    }
+
+    pub fn iframe_pipeline_id(self: &Inert<Node>) -> Option<PipelineId> {
+        let iframe_element = self
+            .downcast::<HTMLIFrameElement>()
+            .expect("not an iframe element!");
+        iframe_element.pipeline_id()
+    }
+
+    #[allow(unsafe_code)]
+    pub fn opaque(&self) -> OpaqueNode {
+        unsafe { OpaqueNode(self.value.as_ref().reflector().get_jsobject().get() as usize) }
+    }
+}
+
+// FIXME(nox): Accesses to the node flags, should probably be atomic.
+#[allow(unsafe_code)]
+impl InertNode {
+    #[inline]
+    pub fn get_flag(&self, flag: NodeFlags) -> bool {
+        Inert::get_ref(&**self.flags()).contains(flag)
+    }
+
+    #[inline]
+    pub unsafe fn set_flag(&self, flag: NodeFlags, value: bool) {
+        self.value.as_ref().set_flag(flag, value)
+    }
+}
+
+// FIXME(nox): Accesses to the style/layout data, should probably be atomic.
+#[allow(unsafe_code)]
+impl InertNode {
+    #[inline]
+    pub unsafe fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+        self.value.as_ref().style_and_layout_data.get()
+    }
+
+    #[inline]
+    pub unsafe fn init_style_and_layout_data(&self, val: OpaqueStyleAndLayoutData) {
+        debug_assert!(self.get_style_and_layout_data().is_none());
+        self.value.as_ref().style_and_layout_data.set(Some(val));
+    }
+
+    #[inline]
+    pub unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData {
+        let val = self.get_style_and_layout_data().unwrap();
+        self.value.as_ref().style_and_layout_data.set(None);
+        val
+    }
 }
 
 #[allow(unsafe_code)]

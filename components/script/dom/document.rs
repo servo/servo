@@ -112,6 +112,7 @@ use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
+use inert::Inert;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
@@ -263,6 +264,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 }
 
 /// <https://dom.spec.whatwg.org/#document>
+#[inert::neutralize(as pub unsafe InertDocument)]
 #[dom_struct]
 pub struct Document {
     node: Node,
@@ -273,9 +275,11 @@ pub struct Document {
     last_modified: Option<String>,
     encoding: Cell<&'static Encoding>,
     has_browsing_context: bool,
+    #[inert::field]
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
     url: DomRefCell<ServoUrl>,
+    #[inert::field(inert_quirks_mode)]
     #[ignore_malloc_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
@@ -292,6 +296,7 @@ pub struct Document {
     applets: MutNullableDom<HTMLCollection>,
     /// Lock use for style attributes and author-origin stylesheet objects in this document.
     /// Can be acquired once for accessing many objects.
+    #[inert::field(inert_style_shared_lock)]
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     stylesheets: DomRefCell<DocumentStylesheetSet<StyleSheetInDocument>>,
@@ -2485,6 +2490,40 @@ impl Document {
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
+}
+
+impl InertDocument {
+    #[inline]
+    pub fn is_html_document_for_layout(&self) -> bool {
+        **self.is_html_document()
+    }
+
+    #[inline]
+    pub fn quirks_mode(&self) -> QuirksMode {
+        *Inert::get_ref(&**self.inert_quirks_mode())
+    }
+
+    #[inline]
+    pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
+        Inert::get_ref(self.inert_style_shared_lock())
+    }
+}
+
+// FIXME(nox): All of those mutate the Document struct, which is unsound
+// to do from multiple threads at once.
+#[allow(unsafe_code)]
+impl InertDocument {
+    // TODO(nox): drain_pending_restyles is terrifying.
+
+    #[inline]
+    pub unsafe fn needs_paint_from_layout(&self) {
+        self.value.as_ref().needs_paint.set(true)
+    }
+
+    #[inline]
+    pub unsafe fn will_paint(&self) {
+        self.value.as_ref().needs_paint.set(false)
+    }
 }
 
 #[allow(unsafe_code)]

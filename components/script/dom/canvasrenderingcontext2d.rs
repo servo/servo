@@ -33,6 +33,7 @@ use cssparser::Color as CSSColor;
 use cssparser::{Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;
 use euclid::{vec2, Point2D, Rect, Size2D, Transform2D};
+use inert::Inert;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::CanRequestImages;
 use net_traits::image_cache::ImageCache;
@@ -58,10 +59,12 @@ enum CanvasFillOrStrokeStyle {
     Pattern(Dom<CanvasPattern>),
 }
 
-// https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
+/// https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
+#[inert::neutralize(as pub unsafe InertCanvasRenderingContext2D)]
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
+    #[inert::field]
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     /// For rendering contexts created by an HTML canvas element, this is Some,
@@ -77,6 +80,7 @@ pub struct CanvasRenderingContext2D {
     state: DomRefCell<CanvasContextState>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
     origin_clean: Cell<bool>,
+    #[inert::field]
     canvas_id: CanvasId,
 }
 
@@ -572,6 +576,21 @@ impl CanvasRenderingContext2D {
         }
 
         pixels
+    }
+}
+
+impl InertCanvasRenderingContext2D {
+    // FIXME(nox): We call IpcSender::clone which is not safe to call from
+    // multiple threads at once.
+    #[allow(unsafe_code)]
+    #[inline]
+    pub unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+        Inert::get_ref_unchecked(self.ipc_renderer()).clone()
+    }
+
+    #[inline]
+    pub fn get_canvas_id(&self) -> CanvasId {
+        *Inert::get_ref(self.canvas_id())
     }
 }
 

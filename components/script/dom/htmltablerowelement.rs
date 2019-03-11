@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{
 use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -24,6 +24,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use style::attr::AttrValue;
 
 #[derive(JSTraceable)]
@@ -35,6 +36,7 @@ impl CollectionFilter for CellsFilter {
     }
 }
 
+#[inert::neutralize(as pub unsafe InertHTMLTableRowElement)]
 #[dom_struct]
 pub struct HTMLTableRowElement {
     htmlelement: HTMLElement,
@@ -145,6 +147,16 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
             return -1;
         };
         self.row_index(collection)
+    }
+}
+
+impl InertHTMLTableRowElement {
+    #[inline]
+    pub fn get_background_color(self: &Inert<HTMLTableRowElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
+            .and_then(AttrValue::as_color)
+            .cloned()
     }
 }
 

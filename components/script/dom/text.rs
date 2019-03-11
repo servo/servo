@@ -18,6 +18,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
 /// An HTML text node.
+#[inert::neutralize(as pub unsafe InertText)]
 #[dom_struct]
 pub struct Text {
     characterdata: CharacterData,

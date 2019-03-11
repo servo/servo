@@ -8,7 +8,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -28,6 +28,7 @@ use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::TypedSize2D;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use profile_traits::ipc as ProfiledIpc;
@@ -67,11 +68,14 @@ enum ProcessingMode {
     NotFirstTime,
 }
 
+#[inert::neutralize(as pub unsafe InertHTMLIFrameElement)]
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     top_level_browsing_context_id: Cell<Option<TopLevelBrowsingContextId>>,
+    #[inert::field(inert_browsing_context_id)]
     browsing_context_id: Cell<Option<BrowsingContextId>>,
+    #[inert::field(inert_pipeline_id)]
     pipeline_id: Cell<Option<PipelineId>>,
     pending_pipeline_id: Cell<Option<PipelineId>>,
     about_blank_pipeline_id: Cell<Option<PipelineId>>,
@@ -421,6 +425,34 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         window.reflow(ReflowGoal::Full, ReflowReason::IFrameLoadEvent);
+    }
+}
+
+impl InertHTMLIFrameElement {
+    #[inline]
+    pub fn pipeline_id(&self) -> Option<PipelineId> {
+        *Inert::get_ref(&**self.inert_pipeline_id())
+    }
+
+    #[inline]
+    pub fn browsing_context_id(&self) -> Option<BrowsingContextId> {
+        *Inert::get_ref(&**self.inert_browsing_context_id())
+    }
+
+    pub fn get_width(self: &Inert<HTMLIFrameElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
+    pub fn get_height(self: &Inert<HTMLIFrameElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 

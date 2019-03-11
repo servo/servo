@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::HTMLTableCellElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::bindings::str::DOMString;
@@ -18,12 +18,14 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 
 const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;
 
+#[inert::neutralize(as pub unsafe InertHTMLTableCellElement)]
 #[dom_struct]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
@@ -96,6 +98,39 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
             .filter(|c| c.is::<HTMLTableCellElement>())
             .position(|c| &*c == self_node)
             .map_or(-1, |p| p as i32)
+    }
+}
+
+impl InertHTMLTableCellElement {
+    #[inline]
+    pub fn get_background_color(self: &Inert<HTMLTableCellElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
+            .and_then(AttrValue::as_color)
+            .cloned()
+    }
+
+    #[inline]
+    pub fn get_colspan(self: &Inert<HTMLTableCellElement>) -> Option<u32> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("colspan"))
+            .map(AttrValue::as_uint)
+    }
+
+    #[inline]
+    pub fn get_rowspan(self: &Inert<HTMLTableCellElement>) -> Option<u32> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("rowspan"))
+            .map(AttrValue::as_uint)
+    }
+
+    #[inline]
+    pub fn get_width(self: &Inert<HTMLTableCellElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 

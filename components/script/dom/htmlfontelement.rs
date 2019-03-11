@@ -5,7 +5,7 @@
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -16,10 +16,12 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{read_numbers, HTML_SPACE_CHARACTERS};
 
+#[inert::neutralize(as pub unsafe InertHTMLFontElement)]
 #[dom_struct]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
@@ -99,6 +101,31 @@ impl VirtualMethods for HTMLFontElement {
                 .unwrap()
                 .parse_plain_attribute(name, value),
         }
+    }
+}
+
+impl InertHTMLFontElement {
+    #[inline]
+    pub fn get_color(self: &Inert<HTMLFontElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("color"))
+            .and_then(AttrValue::as_color)
+            .cloned()
+    }
+
+    #[inline]
+    pub fn get_face(self: &Inert<HTMLFontElement>) -> Option<Atom> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("face"))
+            .map(AttrValue::as_atom)
+            .cloned()
+    }
+
+    #[inline]
+    pub fn get_size(self: &Inert<HTMLFontElement>) -> Option<u32> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("size"))
+            .map(AttrValue::as_uint)
     }
 }
 

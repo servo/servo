@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethod
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -48,6 +48,7 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
@@ -126,23 +127,32 @@ enum ImageRequestPhase {
     Pending,
     Current,
 }
+
+#[inert::neutralize(as unsafe InertImageRequest)]
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct ImageRequest {
     state: State,
+    #[inert::field]
     parsed_url: Option<ServoUrl>,
     source_url: Option<USVString>,
     blocker: Option<LoadBlocker>,
     #[ignore_malloc_size_of = "Arc"]
+    #[inert::field]
     image: Option<Arc<Image>>,
+    #[inert::field]
     metadata: Option<ImageMetadata>,
     final_url: Option<ServoUrl>,
+    #[inert::field]
     current_pixel_density: Option<f64>,
 }
+
+#[inert::neutralize(as pub unsafe InertHTMLImageElement)]
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     image_request: Cell<ImageRequestPhase>,
+    #[inert::field]
     current_request: DomRefCell<ImageRequest>,
     pending_request: DomRefCell<ImageRequest>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -1316,6 +1326,46 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
         }
+    }
+}
+
+impl InertHTMLImageElement {
+    pub fn image(&self) -> Option<Arc<Image>> {
+        self.current_request().image().deref().cloned()
+    }
+
+    pub fn image_url(&self) -> Option<ServoUrl> {
+        Inert::get_ref(self.current_request().parsed_url()).clone()
+    }
+
+    pub fn image_density(&self) -> Option<f64> {
+        self.current_request()
+            .current_pixel_density()
+            .deref()
+            .cloned()
+    }
+
+    pub fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
+        (
+            self.image(),
+            Inert::get_ref(self.current_request().metadata()).clone()
+        )
+    }
+
+    pub fn get_width(self: &Inert<HTMLImageElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
+    pub fn get_height(self: &Inert<HTMLImageElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 

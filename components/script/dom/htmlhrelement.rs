@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::HTMLHRElementBinding::{self, HTMLHRElementMethods};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, CastableInert};
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -14,8 +14,10 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use inert::Inert;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
+#[inert::neutralize(as pub unsafe InertHTMLHRElement)]
 #[dom_struct]
 pub struct HTMLHRElement {
     htmlelement: HTMLElement,
@@ -64,6 +66,23 @@ impl HTMLHRElementMethods for HTMLHRElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-width
     make_dimension_setter!(SetWidth, "width");
+}
+
+impl InertHTMLHRElement {
+    pub fn get_color(self: &Inert<HTMLHRElement>) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("color"))
+            .and_then(AttrValue::as_color)
+            .cloned()
+    }
+
+    pub fn get_width(self: &Inert<HTMLHRElement>) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
 }
 
 pub trait HTMLHRLayoutHelpers {

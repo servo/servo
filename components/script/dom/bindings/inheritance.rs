@@ -9,6 +9,7 @@ pub use crate::dom::bindings::codegen::InheritTypes::*;
 use crate::dom::bindings::conversions::get_dom_class;
 use crate::dom::bindings::conversions::{DerivedFrom, IDLInterface};
 use crate::dom::bindings::reflector::DomObject;
+use inert::{Inert, NeutralizeUnsafe};
 use std::mem;
 
 /// A trait to hold the cast functions of IDL interfaces that either derive
@@ -41,6 +42,58 @@ pub trait Castable: IDLInterface + DomObject + Sized {
             Some(unsafe { mem::transmute(self) })
         } else {
             None
+        }
+    }
+}
+
+pub trait CastableInert<T>
+where
+    T: Castable,
+{
+    fn is<U>(&self) -> bool
+    where
+        U: DerivedFrom<T>;
+
+    fn upcast<U>(&self) -> &Inert<U>
+    where
+        T: DerivedFrom<U>,
+        U: Castable + NeutralizeUnsafe;
+
+    fn downcast<U>(&self) -> Option<&Inert<U>>
+    where
+        U: DerivedFrom<T> + NeutralizeUnsafe;
+}
+
+impl<T> CastableInert<T> for Inert<T>
+where
+    T: Castable + NeutralizeUnsafe,
+{
+    #[inline]
+    fn is<U>(&self) -> bool
+    where
+        U: DerivedFrom<T>,
+    {
+        unsafe { Inert::get_ref_unchecked(self).is::<U>() }
+    }
+
+    #[inline]
+    fn upcast<U>(&self) -> &Inert<U>
+    where
+        T: DerivedFrom<U>,
+        U: Castable + NeutralizeUnsafe,
+    {
+        unsafe { Inert::new_unchecked(Inert::get_ref_unchecked(self).upcast()) }
+    }
+
+    #[inline]
+    fn downcast<U>(&self) -> Option<&Inert<U>>
+    where
+        U: DerivedFrom<T> + NeutralizeUnsafe,
+    {
+        unsafe {
+            Inert::get_ref_unchecked(self)
+                .downcast()
+                .map(|v| Inert::new_unchecked(v))
         }
     }
 }

@@ -18,6 +18,7 @@ use crate::script_thread::ScriptThread;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
+use inert::Inert;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -25,10 +26,13 @@ use std::mem;
 use style::attr::{AttrIdentifier, AttrValue};
 
 // https://dom.spec.whatwg.org/#interface-attr
+#[inert::neutralize(as pub unsafe InertAttr)]
 #[dom_struct]
 pub struct Attr {
     reflector_: Reflector,
+    #[inert::field]
     identifier: AttrIdentifier,
+    #[inert::field(inert_value)]
     value: DomRefCell<AttrValue>,
 
     /// the element that owns this attribute.
@@ -245,6 +249,20 @@ impl Attr {
             name: String::from(self.Name()),
             value: String::from(self.Value()),
         }
+    }
+}
+
+impl InertAttr {
+    pub fn namespace(&self) -> &Namespace {
+        &Inert::get_ref(self.identifier()).namespace
+    }
+
+    pub fn local_name(&self) -> &LocalName {
+        &Inert::get_ref(self.identifier()).local_name
+    }
+
+    pub fn value(&self) -> &AttrValue {
+        Inert::get_ref(&**self.inert_value())
     }
 }
 

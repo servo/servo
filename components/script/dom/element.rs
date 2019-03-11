@@ -20,7 +20,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, Scr
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::inheritance::{
+    Castable, CastableInert, ElementTypeId, HTMLElementTypeId, NodeTypeId,
+};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
@@ -90,6 +92,7 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName};
+use inert::Inert;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use msg::constellation_msg::InputMethodType;
@@ -142,20 +145,27 @@ use xml5ever::serialize::TraversalScope::IncludeNode as XmlIncludeNode;
 // and when the element enters or leaves a browsing context container.
 // https://html.spec.whatwg.org/multipage/#selector-focus
 
+#[inert::neutralize(as pub unsafe InertElement)]
 #[dom_struct]
 pub struct Element {
     node: Node,
+    #[inert::field(inert_local_name)]
     local_name: LocalName,
     tag_name: TagName,
+    #[inert::field(inert_namespace)]
     namespace: Namespace,
     prefix: DomRefCell<Option<Prefix>>,
+    #[inert::field]
     attrs: DomRefCell<Vec<Dom<Attr>>>,
+    #[inert::field(inert_id_attribute)]
     id_attribute: DomRefCell<Option<Atom>>,
     is: DomRefCell<Option<LocalName>>,
+    #[inert::field(inert_style_attribute)]
     #[ignore_malloc_size_of = "Arc"]
     style_attribute: DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
     class_list: MutNullableDom<DOMTokenList>,
+    #[inert::field]
     state: Cell<ElementState>,
     /// These flags are set by the style system to indicate the that certain
     /// operations may require restyling this element or its descendants. The
@@ -438,6 +448,404 @@ impl Element {
     }
 }
 
+impl InertElement {
+    pub fn get_attr_for_layout(
+        &self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&AttrValue> {
+        self.attrs()
+            .iter()
+            .find(|attr| **attr.local_name() == *name && **attr.namespace() == *namespace)
+            .map(|attr| attr.value())
+    }
+
+    pub fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &LocalName) -> Option<&str> {
+        self.get_attr_for_layout(namespace, name).map(|val| &**val)
+    }
+
+    pub fn focus_state(&self) -> bool {
+        Inert::get_ref(&**self.state()).contains(ElementState::IN_FOCUS_STATE)
+    }
+
+    pub fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        self.get_classes_for_layout()
+            .iter()
+            .any(|atom| case_sensitivity.eq_atom(atom, name))
+    }
+
+    pub fn get_classes_for_layout(&self) -> &[Atom] {
+        self.get_attr_for_layout(&ns!(), &local_name!("class"))
+            .map_or(&[], |val| val.as_tokens())
+    }
+
+    pub fn synthesize_presentational_hints_for_legacy_attributes<V>(
+        self: &Inert<Element>,
+        hints: &mut V,
+    ) where
+        V: Push<ApplicableDeclarationBlock>,
+    {
+        // FIXME(emilio): Just a single PDB should be enough.
+
+        let document = self.upcast::<Node>().owner_doc_for_layout();
+        let shared_lock = document.style_shared_lock();
+
+        let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
+            this.get_background_color()
+        } else {
+            None
+        };
+
+        if let Some(color) = bgcolor {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BackgroundColor(color.into()),
+            ));
+        }
+
+        let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
+            this.get_background()
+        } else {
+            None
+        };
+
+        if let Some(url) = background {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(vec![
+                    Either::Second(specified::Image::for_cascade(url.into())),
+                ])),
+            ));
+        }
+
+        let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
+            this.get_color()
+        } else if let Some(this) = self.downcast::<HTMLBodyElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-page:the-body-element-20
+            this.get_color()
+        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:presentational-hints-5
+            this.get_color()
+        } else {
+            None
+        };
+
+        if let Some(color) = color {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Color(longhands::color::SpecifiedValue(color.into())),
+            ));
+        }
+
+        let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {
+            this.get_face()
+        } else {
+            None
+        };
+
+        if let Some(font_family) = font_family {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
+                    computed::font::FontFamilyList::new(Box::new([
+                        computed::font::SingleFontFamily::from_atom(font_family),
+                    ])),
+                )),
+            ));
+        }
+
+        let font_size = self
+            .downcast::<HTMLFontElement>()
+            .and_then(|this| this.get_size());
+
+        if let Some(font_size) = font_size {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::FontSize(font_size::SpecifiedValue::from_html_size(
+                    font_size as u8,
+                )),
+            ))
+        }
+
+        let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_cellspacing()
+        } else {
+            None
+        };
+
+        if let Some(cellspacing) = cellspacing {
+            let width_value = specified::Length::from_px(cellspacing as f32);
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderSpacing(Box::new(border_spacing::SpecifiedValue::new(
+                    width_value.clone().into(),
+                    width_value.into(),
+                ))),
+            ));
+        }
+
+        let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
+            // FIXME(pcwalton): More use of atoms, please!
+            match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
+                // Not text entry widget
+                Some("hidden") |
+                Some("date") |
+                Some("month") |
+                Some("week") |
+                Some("time") |
+                Some("datetime-local") |
+                Some("number") |
+                Some("range") |
+                Some("color") |
+                Some("checkbox") |
+                Some("radio") |
+                Some("file") |
+                Some("submit") |
+                Some("image") |
+                Some("reset") |
+                Some("button") => None,
+                // Others
+                _ => match this.size_for_layout() {
+                    0 => None,
+                    s => Some(s as i32),
+                },
+            }
+        } else {
+            None
+        };
+
+        if let Some(size) = size {
+            let value =
+                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
+            ));
+        }
+
+        let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
+            this.get_width()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        // FIXME(emilio): Use from_computed value here and below.
+        match width {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let width_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Width(width_value),
+                ));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let width_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
+                        specified::AbsoluteLength::Px(length.to_f32_px()),
+                    )),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Width(width_value),
+                ));
+            },
+        }
+
+        let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
+            this.get_height()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match height {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let height_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Height(height_value),
+                ));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let height_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
+                        specified::AbsoluteLength::Px(length.to_f32_px()),
+                    )),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Height(height_value),
+                ));
+            },
+        }
+
+        let cols = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
+            match this.get_cols() {
+                0 => None,
+                c => Some(c as i32),
+            }
+        } else {
+            None
+        };
+
+        if let Some(cols) = cols {
+            // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
+            // the math for <textarea> is a little different since we need to take
+            // scrollbar size into consideration (but we don't have a scrollbar yet!)
+            //
+            // https://html.spec.whatwg.org/multipage/#textarea-effective-width
+            let value =
+                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
+            ));
+        }
+
+        let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
+            match this.get_rows() {
+                0 => None,
+                r => Some(r as i32),
+            }
+        } else {
+            None
+        };
+
+        if let Some(rows) = rows {
+            // TODO(mttr) This should take scrollbar size into consideration.
+            //
+            // https://html.spec.whatwg.org/multipage/#textarea-effective-height
+            let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(
+                rows as CSSFloat,
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Height(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
+            ));
+        }
+
+        let border = if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_border()
+        } else {
+            None
+        };
+
+        if let Some(border) = border {
+            let width_value = specified::BorderSideWidth::Length(NonNegative(
+                specified::Length::from_px(border as f32),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderTopWidth(width_value.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderLeftWidth(width_value.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderBottomWidth(width_value.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderRightWidth(width_value),
+            ));
+        }
+    }
+
+    #[inline]
+    pub fn get_colspan(self: &Inert<Element>) -> u32 {
+        self.downcast::<HTMLTableCellElement>()
+            .and_then(|cell| cell.get_colspan())
+            .unwrap_or(1)
+    }
+
+    #[inline]
+    pub fn get_rowspan(self: &Inert<Element>) -> u32 {
+        self.downcast::<HTMLTableCellElement>()
+            .and_then(|cell| cell.get_rowspan())
+            .unwrap_or(1)
+    }
+
+    #[inline]
+    pub fn is_html_element(&self) -> bool {
+        *self.namespace() == ns!(html)
+    }
+
+    #[allow(unsafe_code)]
+    pub fn id_attribute(&self) -> Option<&Atom> {
+        Inert::get_ref(&**self.inert_id_attribute()).as_ref()
+    }
+
+    pub fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+        (***self.inert_style_attribute())
+            .as_ref()
+            .map(Inert::get_ref)
+    }
+
+    #[inline]
+    pub fn local_name(&self) -> &LocalName {
+        Inert::get_ref(self.inert_local_name())
+    }
+
+    #[inline]
+    pub fn namespace(&self) -> &Namespace {
+        Inert::get_ref(self.inert_namespace())
+    }
+
+    pub fn get_lang_for_layout(self: &Inert<Element>) -> String {
+        let mut current_node = Some(self.upcast::<Node>());
+        while let Some(node) = current_node {
+            current_node = node.parent_node_ref();
+            if let Some(elem) = node.downcast::<Element>() {
+                if let Some(attr) = elem.get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+                    return attr.to_owned();
+                }
+                if let Some(attr) = elem.get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                    return attr.to_owned();
+                }
+            }
+        }
+        // TODO: Check meta tags for a pragma-set default language
+        // TODO: Check HTTP Content-Language header
+        String::new()
+    }
+}
+
 #[allow(unsafe_code)]
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_for_layout<'a>(
@@ -564,19 +972,6 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         V: Push<ApplicableDeclarationBlock>,
     {
         // FIXME(emilio): Just a single PDB should be enough.
-        #[inline]
-        fn from_declaration(
-            shared_lock: &SharedRwLock,
-            declaration: PropertyDeclaration,
-        ) -> ApplicableDeclarationBlock {
-            ApplicableDeclarationBlock::from_declarations(
-                Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
-                    declaration,
-                    Importance::Normal,
-                ))),
-                CascadeLevel::PresHints,
-            )
-        }
 
         let document = self.upcast::<Node>().owner_doc_for_layout();
         let shared_lock = document.style_shared_lock();
@@ -995,6 +1390,20 @@ impl LayoutElementHelpers for LayoutDom<Element> {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
         unsafe { (*self.unsafe_get()).selector_flags.get().contains(flags) }
     }
+}
+
+#[inline]
+fn from_declaration(
+    shared_lock: &SharedRwLock,
+    declaration: PropertyDeclaration,
+) -> ApplicableDeclarationBlock {
+    ApplicableDeclarationBlock::from_declarations(
+        Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
+            declaration,
+            Importance::Normal,
+        ))),
+        CascadeLevel::PresHints,
+    )
 }
 
 impl Element {

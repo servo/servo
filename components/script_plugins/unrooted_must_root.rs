@@ -67,6 +67,8 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
                     match_def_path(cx, did.did, &["core", "cell", "RefMut"]) ||
                     match_def_path(cx, did.did, &["core", "slice", "Iter"]) ||
                     match_def_path(cx, did.did, &["core", "slice", "IterMut"]) ||
+                    match_def_path(cx, did.did, &["inert", "Inert"]) ||
+                    match_def_path(cx, did.did, &["inert", "Neutralized"]) ||
                     match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Entry"]) ||
                     match_def_path(
                         cx,
