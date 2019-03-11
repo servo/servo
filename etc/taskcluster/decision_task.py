@@ -30,8 +30,7 @@ def main(task_for):
         linux_wpt = lambda: None  # Shadows the existing top-level function
 
         all_tests = [
-            linux_tidy_unit,
-            linux_docs,
+            linux_tidy_unit_docs,
             windows_unit,
             macos_unit,
             magicleap_dev,
@@ -57,7 +56,7 @@ def main(task_for):
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
             "try-mac": [macos_unit],
-            "try-linux": [linux_tidy_unit],
+            "try-linux": [linux_tidy_unit_docs],
             "try-windows": [windows_unit],
             "try-magicleap": [magicleap_dev],
             "try-arm": [linux_arm32_dev, linux_arm64_dev],
@@ -149,10 +148,10 @@ def tidy_untrusted():
     )
 
 
-def linux_tidy_unit():
+def linux_tidy_unit_docs():
     return (
-        linux_build_task("Tidy + dev build + unit tests")
-        .with_treeherder("Linux x64", "Tidy+Unit")
+        linux_build_task("Tidy + dev build + unit tests + docs")
+        .with_treeherder("Linux x64", "Tidy+Unit+Doc")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach build --dev
@@ -166,16 +165,8 @@ def linux_tidy_unit():
             ./etc/taskcluster/mock.py
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
-        """)
-        .find_or_create("linux_tidy_unit." + CONFIG.git_sha)
-    )
 
-def linux_docs():
-    return (
-        linux_build_task("Docs")
-        .with_treeherder("Linux x64", "Doc")
-        .with_script("""
-            ./mach doc
+            RUSTDOCFLAGS="--disable-minification" ./mach doc
             cd target/doc
             git init
             time git add .
@@ -186,6 +177,7 @@ def linux_docs():
         .with_artifacts("/repo/target/doc/docs.bundle")
         .find_or_create("docs." + CONFIG.git_sha)
     )
+
 
 def upload_docs():
     docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.git_sha)
