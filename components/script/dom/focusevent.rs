@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -72,9 +72,9 @@ impl FocusEvent {
             type_,
             bubbles,
             cancelable,
-            init.parent.view.r(),
+            init.parent.view.deref(),
             init.parent.detail,
-            init.relatedTarget.r(),
+            init.relatedTarget.deref(),
         );
         Ok(event)
     }

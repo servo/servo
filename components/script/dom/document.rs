@@ -29,7 +29,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
@@ -640,7 +640,7 @@ impl Document {
                     .upcast::<Element>()
                     .has_attribute(&local_name!("href"))
             });
-        self.base_element.set(base.r());
+        self.base_element.set(base.deref());
     }
 
     pub fn dom_count(&self) -> u32 {
@@ -766,7 +766,7 @@ impl Document {
         {
             let mut id_map = self.id_map.borrow_mut();
             let elements = id_map.entry(id.clone()).or_insert(Vec::new());
-            elements.insert_pre_order(element, root.r().upcast::<Node>());
+            elements.insert_pre_order(element, root.upcast::<Node>());
         }
         self.reset_form_owner_for_listeners(&id);
     }
@@ -817,10 +817,10 @@ impl Document {
         let target = self.find_fragment_node(fragment);
 
         // Step 1
-        self.set_target_element(target.r());
+        self.set_target_element(target.deref());
 
         let point = target
-            .r()
+            .as_ref()
             .map(|element| {
                 // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
                 // Really what needs to happen is that this needs to go through layout to ask which
@@ -858,7 +858,7 @@ impl Document {
                 y,
                 global_scope.pipeline_id().root_scroll_id(),
                 ScrollBehavior::Instant,
-                target.r(),
+                target.deref(),
             );
         }
     }
@@ -922,7 +922,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-        if self.focused == self.possibly_focused.get().r() {
+        if self.focused == self.possibly_focused.get().deref() {
             return;
         }
         if let Some(ref elem) = self.focused.get() {
@@ -937,7 +937,7 @@ impl Document {
             }
         }
 
-        self.focused.set(self.possibly_focused.get().r());
+        self.focused.set(self.possibly_focused.get().deref());
 
         if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(true);
@@ -1265,7 +1265,7 @@ impl Document {
         }
 
         // Store the current mouse over target for next frame.
-        prev_mouse_over_target.set(maybe_new_target.r());
+        prev_mouse_over_target.set(maybe_new_target.deref());
 
         self.window
             .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
@@ -2859,7 +2859,7 @@ impl Document {
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
         let doc = self.GetDocumentElement();
-        let maybe_node = doc.r().map(Castable::upcast::<Node>);
+        let maybe_node = doc.deref().map(Castable::upcast::<Node>);
         let iter = maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder())
@@ -3140,7 +3140,7 @@ impl Document {
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
-        let promise = Promise::new(self.global().r());
+        let promise = Promise::new(&self.global());
         let mut error = false;
 
         // Step 4
@@ -3211,7 +3211,7 @@ impl Document {
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
-        let promise = Promise::new(global.r());
+        let promise = Promise::new(&global);
         // Step 2
         if self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")));
@@ -3228,7 +3228,7 @@ impl Document {
         self.send_to_embedder(event);
 
         // Step 9
-        let trusted_element = Trusted::new(element.r());
+        let trusted_element = Trusted::new(&*element);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
         let pipeline_id = Some(global.pipeline_id());
@@ -3275,7 +3275,6 @@ impl Document {
         if let Some(listeners) = map.get(id) {
             for listener in listeners {
                 listener
-                    .r()
                     .as_maybe_form_control()
                     .expect("Element must be a form control")
                     .reset_form_owner();
@@ -3841,7 +3840,7 @@ impl DocumentMethods for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().r())
+                        .InsertBefore(child, parent.GetFirstChild().deref())
                         .unwrap()
                 },
             }
@@ -3926,7 +3925,7 @@ impl DocumentMethods for Document {
 
         // Step 2.
         let old_body = self.GetBody();
-        if old_body.r() == Some(new_body) {
+        if old_body.deref() == Some(new_body) {
             return Ok(());
         }
 

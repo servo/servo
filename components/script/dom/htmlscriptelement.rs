@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{
@@ -409,8 +409,8 @@ impl HTMLScriptElement {
         // Step 13.
         let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
         let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
-        match (for_attribute.r(), event_attribute.r()) {
-            (Some(for_attribute), Some(event_attribute)) => {
+        match (for_attribute, event_attribute) {
+            (Some(ref for_attribute), Some(ref event_attribute)) => {
                 let for_value = for_attribute.value().to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
@@ -441,7 +441,7 @@ impl HTMLScriptElement {
 
         // Step 18: Integrity metadata.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
-        let integrity_val = im_attribute.r().map(|a| a.value());
+        let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
             None => "",
@@ -619,7 +619,7 @@ impl HTMLScriptElement {
         self.run_a_classic_script(&script);
 
         // Step 6.
-        document.set_current_script(old_script.r());
+        document.set_current_script(old_script.deref());
 
         // Step 7.
         if let Some(doc) = neutralized_doc {

@@ -10,7 +10,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, DomSlice, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
@@ -477,7 +477,12 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
 
     // Step 6.
     for object in event_path.iter().rev() {
-        invoke(window.r(), object, event, Some(ListenerPhase::Capturing));
+        invoke(
+            window.deref(),
+            object,
+            event,
+            Some(ListenerPhase::Capturing),
+        );
         if event.stop_propagation.get() {
             return;
         }
@@ -489,7 +494,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     event.phase.set(EventPhase::AtTarget);
 
     // Step 8.
-    invoke(window.r(), target, event, None);
+    invoke(window.deref(), target, event, None);
     if event.stop_propagation.get() {
         return;
     }
@@ -505,7 +510,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
 
     // Step 9.2.
     for object in event_path {
-        invoke(window.r(), object, event, Some(ListenerPhase::Bubbling));
+        invoke(window.deref(), object, event, Some(ListenerPhase::Bubbling));
         if event.stop_propagation.get() {
             return;
         }

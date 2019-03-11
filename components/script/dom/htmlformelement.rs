@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTex
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, RootedReference};
+use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
@@ -817,7 +817,7 @@ impl HTMLFormElement {
 
     fn add_control<T: ?Sized + FormControl>(&self, control: &T) {
         let root = self.upcast::<Element>().root_element();
-        let root = root.r().upcast::<Node>();
+        let root = root.upcast::<Node>();
 
         let mut controls = self.controls.borrow_mut();
         controls.insert_pre_order(control.to_element(), root);
@@ -828,7 +828,7 @@ impl HTMLFormElement {
         let mut controls = self.controls.borrow_mut();
         controls
             .iter()
-            .position(|c| c.r() == control)
+            .position(|c| &**c == control)
             .map(|idx| controls.remove(idx));
     }
 }
@@ -1072,11 +1072,10 @@ pub trait FormControl: DomObject {
             if let Some(o) = old_owner {
                 o.remove_control(self);
             }
-            let new_owner = new_owner.as_ref().map(|o| {
-                o.add_control(self);
-                o.r()
-            });
-            self.set_form_owner(new_owner);
+            if let Some(ref new_owner) = new_owner {
+                new_owner.add_control(self);
+            }
+            self.set_form_owner(new_owner.deref());
         }
     }
 

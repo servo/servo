@@ -6,6 +6,7 @@
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
 #![feature(const_fn)]
 #![feature(drain_filter)]
+#![feature(inner_deref)]
 #![feature(plugin)]
 #![feature(type_alias_enum_variants)]
 #![deny(unsafe_code)]

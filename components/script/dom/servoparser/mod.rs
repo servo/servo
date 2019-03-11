@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::ServoParserBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
@@ -203,7 +203,7 @@ impl ServoParser {
 
         let fragment_context = FragmentContext {
             context_elem: context_node,
-            form_elem: form.r(),
+            form_elem: form.deref(),
         };
 
         let parser = ServoParser::new(

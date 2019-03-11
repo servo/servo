@@ -33,8 +33,8 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
-use crate::dom::bindings::root::{RootedReference, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::bindings::trace::JSTraceable;
@@ -2248,7 +2248,7 @@ impl ScriptThread {
                     pipeline_id
                 );
             },
-            Some(window) => window.History().r().activate_state(history_state_id, url),
+            Some(window) => window.History().activate_state(history_state_id, url),
         }
     }
 
@@ -2264,7 +2264,7 @@ impl ScriptThread {
                     pipeline_id
                 );
             },
-            Some(window) => window.History().r().remove_states(history_states),
+            Some(window) => window.History().remove_states(history_states),
         }
     }
 
@@ -2707,7 +2707,7 @@ impl ScriptThread {
             global_to_clone,
             browsing_context_id,
             top_level_browsing_context_id,
-            parent.r(),
+            parent.deref(),
             opener,
         );
         self.window_proxies
@@ -2753,8 +2753,8 @@ impl ScriptThread {
             &window,
             browsing_context_id,
             top_level_browsing_context_id,
-            iframe.r().map(Castable::upcast),
-            parent.r(),
+            iframe.deref().map(Castable::upcast),
+            parent.deref(),
             opener,
         );
         self.window_proxies

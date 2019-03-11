@@ -5899,7 +5899,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::root::Dom',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::root::OptionalHeapSetter',
-        'crate::dom::bindings::root::RootedReference',
+        'crate::dom::bindings::root::DomSlice',
         'crate::dom::bindings::utils::AsVoidPtr',
         'crate::dom::bindings::utils::DOMClass',
         'crate::dom::bindings::utils::DOMJSClass',
@@ -7250,8 +7250,12 @@ def camel_to_upper_snake(s):
 
 def process_arg(expr, arg):
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-        if arg.type.nullable() or arg.type.isSequence() or arg.optional:
+        if arg.variadic or arg.type.isSequence():
             expr += ".r()"
+        elif arg.type.nullable() and arg.optional and not arg.defaultValue:
+            expr += ".as_ref().map(Option::deref)"
+        elif arg.type.nullable() or arg.optional and not arg.defaultValue:
+            expr += ".deref()"
         else:
             expr = "&" + expr
     elif isinstance(arg.type, IDLPromiseType):
