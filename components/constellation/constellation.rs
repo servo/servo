@@ -2722,7 +2722,6 @@ where
                 self.handle_send_error(parent_pipeline_id, e);
             }
         }
-
     }
 
     fn update_pipeline(
@@ -3389,6 +3388,7 @@ where
                 if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
                     pipeline.notify_visibility(false);
                 }
+
                 // https://html.spec.whatwg.org/multipage/#unload-a-document
                 self.unload_document(old_pipeline_id);
                 // Deactivate the old pipeline, and activate the new one.
