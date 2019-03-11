@@ -749,6 +749,7 @@ where
         load_data: LoadData,
         sandbox: IFrameSandboxState,
         is_private: bool,
+        is_visible: bool,
     ) {
         if self.shutting_down {
             return;
@@ -825,6 +826,7 @@ where
             load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
+            prev_visibility: is_visible,
             webrender_api_sender: self.webrender_api_sender.clone(),
             webrender_document: self.webrender_document,
             webgl_chan: self
@@ -1673,6 +1675,7 @@ where
         };
         let window_size = browsing_context.size;
         let pipeline_id = browsing_context.pipeline_id;
+        let is_visible = browsing_context.is_visible;
 
         let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(p) => p,
@@ -1709,6 +1712,7 @@ where
             load_data,
             sandbox,
             is_private,
+            is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -1811,6 +1815,7 @@ where
             load_data,
             sandbox,
             is_private,
+            is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -1998,6 +2003,7 @@ where
             load_data,
             load_info.sandbox,
             is_private,
+            browsing_context.is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -2053,6 +2059,7 @@ where
             layout_sender,
             self.compositor_proxy.clone(),
             url,
+            is_parent_visible,
             load_data,
         );
 
@@ -2118,6 +2125,7 @@ where
             layout_sender,
             self.compositor_proxy.clone(),
             url,
+            is_opener_visible,
             load_data,
         );
 
@@ -2247,13 +2255,14 @@ where
                 return None;
             },
         };
-        let (window_size, pipeline_id, parent_pipeline_id, is_private) =
+        let (window_size, pipeline_id, parent_pipeline_id, is_private, is_visible) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
                     ctx.size,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
                     ctx.is_private,
+                    ctx.is_visible,
                 ),
                 None => {
                     // This should technically never happen (since `load_url` is
@@ -2333,6 +2342,7 @@ where
                     load_data,
                     sandbox,
                     is_private,
+                    is_visible,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_browsing_context_id,
@@ -2615,17 +2625,24 @@ where
 
                 // TODO: Save the sandbox state so it can be restored here.
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-                let (top_level_id, old_pipeline_id, parent_pipeline_id, window_size, is_private) =
-                    match self.browsing_contexts.get(&browsing_context_id) {
-                        Some(ctx) => (
-                            ctx.top_level_id,
-                            ctx.pipeline_id,
-                            ctx.parent_pipeline_id,
-                            ctx.size,
-                            ctx.is_private,
-                        ),
-                        None => return warn!("No browsing context to traverse!"),
-                    };
+                let (
+                    top_level_id,
+                    old_pipeline_id,
+                    parent_pipeline_id,
+                    window_size,
+                    is_private,
+                    is_visible,
+                ) = match self.browsing_contexts.get(&browsing_context_id) {
+                    Some(ctx) => (
+                        ctx.top_level_id,
+                        ctx.pipeline_id,
+                        ctx.parent_pipeline_id,
+                        ctx.size,
+                        ctx.is_private,
+                        ctx.is_visible,
+                    ),
+                    None => return warn!("No browsing context to traverse!"),
+                };
                 let opener = match self.pipelines.get(&old_pipeline_id) {
                     Some(pipeline) => pipeline.opener,
                     None => None,
@@ -2641,6 +2658,7 @@ where
                     load_data.clone(),
                     sandbox,
                     is_private,
+                    is_visible,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_id,

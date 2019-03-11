@@ -169,6 +169,12 @@ pub struct InitialPipelineState {
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
 
+    /// Whether the browsing context in which pipeline is embedded is visible
+    /// for the purposes of scheduling and resource management. This field is
+    /// only used to notify script and compositor threads after spawning
+    /// a pipeline.
+    pub prev_visibility: bool,
+
     /// Webrender api.
     pub webrender_api_sender: webrender_api::RenderApiSender,
 
@@ -319,6 +325,7 @@ impl Pipeline {
             pipeline_chan,
             state.compositor_proxy,
             url,
+            state.prev_visibility,
             state.load_data,
         ))
     }
@@ -334,6 +341,7 @@ impl Pipeline {
         layout_chan: IpcSender<LayoutControlMsg>,
         compositor_proxy: CompositorProxy,
         url: ServoUrl,
+        is_visible: bool,
         load_data: LoadData,
     ) -> Pipeline {
         let pipeline = Pipeline {
@@ -352,6 +360,8 @@ impl Pipeline {
             history_states: HashSet::new(),
             completely_loaded: false,
         };
+
+        pipeline.notify_visibility(is_visible);
 
         pipeline
     }
@@ -432,6 +442,17 @@ impl Pipeline {
             },
             Some(index) => self.children.remove(index),
         };
+    }
+
+    /// Notify the script thread that this pipeline is visible.
+    pub fn notify_visibility(&self, is_visible: bool) {
+        let script_msg = ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
+        let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, is_visible);
+        let err = self.event_loop.send(script_msg);
+        if let Err(e) = err {
+            warn!("Sending visibility change failed ({}).", e);
+        }
+        self.compositor_proxy.send(compositor_msg);
     }
 }
 
