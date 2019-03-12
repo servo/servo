@@ -137,7 +137,10 @@ where
     SkewY(Angle),
     /// translate(x, y) or translate(x)
     #[css(comma, function)]
-    Translate(LengthPercentage, #[css(skip_if = "Zero::is_zero")] LengthPercentage),
+    Translate(
+        LengthPercentage,
+        #[css(skip_if = "Zero::is_zero")] LengthPercentage,
+    ),
     /// translateX(x)
     #[css(function = "translateX")]
     TranslateX(LengthPercentage),
@@ -637,7 +640,14 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
 )]
 /// A value of the `translate` property
 ///
@@ -660,7 +670,10 @@ where
     /// 'none'
     None,
     /// '<length-percentage>' or '<length-percentage> <length-percentage>'
-    Translate(LengthPercentage, #[css(skip_if = "Zero::is_zero")] LengthPercentage),
+    Translate(
+        LengthPercentage,
+        #[css(skip_if = "Zero::is_zero")] LengthPercentage,
+    ),
     /// '<length-percentage> <length-percentage> <length>'
     Translate3D(LengthPercentage, LengthPercentage, Length),
 }

@@ -8,7 +8,7 @@ use super::{Animate, Procedure, ToAnimatedZero};
 use crate::properties::animated_properties::ListAnimation;
 use crate::values::animated::color::Color as AnimatedColor;
 use crate::values::computed::url::ComputedUrl;
-use crate::values::distance::{SquaredDistance, ComputeSquaredDistance};
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::svg::{SVGPaint, SVGStrokeDashArray};
 
 /// Animated SVGPaint.
