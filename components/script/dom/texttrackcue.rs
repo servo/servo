@@ -104,8 +104,8 @@ impl TextTrackCueMethods for TextTrackCue {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-texttrackcue-onenter
-    event_handler!(onenter, GetOnenter, SetOnenter);
+    event_handler!(enter, GetOnenter, SetOnenter);
 
     // https://html.spec.whatwg.org/multipage/#handler-texttrackcue-onexit
-    event_handler!(onexit, GetOnexit, SetOnexit);
+    event_handler!(exit, GetOnexit, SetOnexit);
 }

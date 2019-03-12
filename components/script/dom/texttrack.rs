@@ -148,5 +148,5 @@ impl TextTrackMethods for TextTrack {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-texttrack-oncuechange
-    event_handler!(oncuechange, GetOncuechange, SetOncuechange);
+    event_handler!(cuechange, GetOncuechange, SetOncuechange);
 }
