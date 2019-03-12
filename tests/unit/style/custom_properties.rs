@@ -7,30 +7,30 @@ use servo_arc::Arc;
 use style::custom_properties::{
     CssEnvironment, CustomPropertiesBuilder, CustomPropertiesMap, Name, SpecifiedValue,
 };
-use style::properties::CustomDeclarationValue;
+use style::properties::{CustomDeclaration, CustomDeclarationValue};
+use style::stylesheets::Origin;
 use test::{self, Bencher};
 
 fn cascade(
     name_and_value: &[(&str, &str)],
     inherited: Option<&Arc<CustomPropertiesMap>>,
 ) -> Option<Arc<CustomPropertiesMap>> {
-    let values = name_and_value
+    let declarations = name_and_value
         .iter()
         .map(|&(name, value)| {
             let mut input = ParserInput::new(value);
             let mut parser = Parser::new(&mut input);
-            (
-                Name::from(name),
-                SpecifiedValue::parse(&mut parser).unwrap(),
-            )
+            let name = Name::from(name);
+            let value = CustomDeclarationValue::Value(SpecifiedValue::parse(&mut parser).unwrap());
+            CustomDeclaration { name, value }
         })
         .collect::<Vec<_>>();
 
     let env = CssEnvironment;
     let mut builder = CustomPropertiesBuilder::new(inherited, &env);
 
-    for &(ref name, ref val) in &values {
-        builder.cascade(name, &CustomDeclarationValue::Value(val.clone()));
+    for declaration in &declarations {
+        builder.cascade(declaration, Origin::Author);
     }
 
     builder.build()
