@@ -744,7 +744,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // separately, so this boils down to just copying over the
             // font-family lists (no other aspect of the default font can be
             // configured).
-            if self.seen.contains(LonghandId::XLang) || self.seen.contains(LonghandId::FontFamily) {
+            if self.seen.contains(LonghandId::XLang) || font_family.is_some() {
                 // If just the language changed, the inherited generic is all we
                 // need.
                 let mut generic = self.context.builder.get_parent_font().gecko().mGenericID;
