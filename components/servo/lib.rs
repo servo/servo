@@ -242,6 +242,7 @@ where
                     },
                     renderer_kind: renderer_kind,
                     enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
+                    clear_color: None,
                     ..Default::default()
                 },
                 None,

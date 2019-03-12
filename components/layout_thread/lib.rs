@@ -1861,11 +1861,8 @@ impl ProfilerMetadataFactory for LayoutThread {
 // http://dev.w3.org/csswg/css-backgrounds/#background-color). However, we
 // need to propagate the background color from the root HTML/Body
 // element (http://dev.w3.org/csswg/css-backgrounds/#special-backgrounds) if
-// it is non-transparent. The phrase in the spec "If the canvas background
-// is not opaque, what shows through is UA-dependent." is handled by rust-layers
-// clearing the frame buffer to white. This ensures that setting a background
-// color on an iframe element, while the iframe content itself has a default
-// transparent background color is handled correctly.
+// it is non-transparent. The spec says "If the canvas background is not opaque,
+// what shows through is UA-dependent.". Here we fallback to white.
 fn get_root_flow_background_color(flow: &mut dyn Flow) -> webrender_api::ColorF {
     let transparent = webrender_api::ColorF {
         r: 0.0,
@@ -1894,12 +1891,17 @@ fn get_root_flow_background_color(flow: &mut dyn Flow) -> webrender_api::ColorF 
             .get_background()
             .background_color,
     );
-    webrender_api::ColorF::new(
-        color.red_f32(),
-        color.green_f32(),
-        color.blue_f32(),
-        color.alpha_f32(),
-    )
+
+    if color.alpha == 0 {
+        webrender_api::ColorF::WHITE
+    } else {
+        webrender_api::ColorF::new(
+            color.red_f32(),
+            color.green_f32(),
+            color.blue_f32(),
+            color.alpha_f32(),
+        )
+    }
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
