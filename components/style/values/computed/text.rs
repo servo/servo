@@ -38,7 +38,7 @@ pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
     ToAnimatedValue,
     ToAnimatedZero,
 )]
-pub struct LetterSpacing(Length);
+pub struct LetterSpacing(pub Length);
 
 impl LetterSpacing {
     /// Return the `normal` computed value, which is just zero.
