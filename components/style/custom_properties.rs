@@ -515,11 +515,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
     }
 
     /// Cascade a given custom property declaration.
-    pub fn cascade(
-        &mut self,
-        declaration: &'a CustomDeclaration,
-        origin: Origin,
-    ) {
+    pub fn cascade(&mut self, declaration: &'a CustomDeclaration, origin: Origin) {
         let CustomDeclaration {
             ref name,
             ref value,

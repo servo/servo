@@ -57,9 +57,7 @@ impl SVGWidth {
     /// `1px`.
     pub fn one() -> Self {
         use crate::values::generics::NonNegative;
-        generic::SVGLength::LengthPercentage(
-            NonNegative(LengthPercentage::one()),
-        )
+        generic::SVGLength::LengthPercentage(NonNegative(LengthPercentage::one()))
     }
 }
 

@@ -70,9 +70,9 @@ pub fn propagate_clauses_to_output_type(
     for bound in extra_bounds {
         let ty = bound.bounded_ty;
         let bounds = bound.bounds;
-        where_clause.predicates.push(
-            parse_quote!(<#ty as #trait_path>::#trait_output: #bounds),
-        )
+        where_clause
+            .predicates
+            .push(parse_quote!(<#ty as #trait_path>::#trait_output: #bounds))
     }
 }
 

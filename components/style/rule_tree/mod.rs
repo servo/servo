@@ -11,7 +11,7 @@ use crate::applicable_declarations::ApplicableDeclarationList;
 use crate::gecko::selector_parser::PseudoElement;
 use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use crate::stylesheets::{StyleRule, Origin};
+use crate::stylesheets::{Origin, StyleRule};
 use crate::thread_state;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -663,10 +663,8 @@ impl CascadeLevel {
     #[inline]
     pub fn origin(&self) -> Origin {
         match *self {
-            CascadeLevel::UAImportant |
-            CascadeLevel::UANormal => Origin::UserAgent,
-            CascadeLevel::UserImportant |
-            CascadeLevel::UserNormal => Origin::User,
+            CascadeLevel::UAImportant | CascadeLevel::UANormal => Origin::UserAgent,
+            CascadeLevel::UserImportant | CascadeLevel::UserNormal => Origin::User,
             CascadeLevel::PresHints |
             CascadeLevel::InnerShadowNormal |
             CascadeLevel::SameTreeAuthorNormal |

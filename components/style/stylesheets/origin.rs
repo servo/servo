@@ -76,7 +76,11 @@ impl OriginSet {
     /// See the `OriginSet` documentation for information about the order
     /// origins are iterated.
     pub fn iter(&self) -> OriginSetIterator {
-        OriginSetIterator { set: *self, cur: 0, rev: false }
+        OriginSetIterator {
+            set: *self,
+            cur: 0,
+            rev: false,
+        }
     }
 }
 
