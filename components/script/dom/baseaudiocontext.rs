@@ -51,6 +51,7 @@ use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioConte
 use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
 use servo_media::ServoMedia;
+use servo_media_auto::Backend;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
@@ -107,6 +108,8 @@ impl BaseAudioContext {
                 (opt.sample_rate, opt.channels)
             },
         };
+
+        ServoMedia::init::<Backend>();
 
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
