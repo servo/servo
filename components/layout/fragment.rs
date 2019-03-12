@@ -64,6 +64,7 @@ use style::values::computed::counters::ContentItem;
 use style::values::computed::{LengthPercentage, LengthPercentageOrAuto, Size};
 use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
+use style::Zero;
 use webrender_api::{self, LayoutTransform};
 
 // From gfxFontConstants.h in Firefox.
