@@ -2591,6 +2591,7 @@ pub mod style_structs {
                     /// Whether the border-${side} property has nonzero width.
                     #[allow(non_snake_case)]
                     pub fn border_${side}_has_nonzero_width(&self) -> bool {
+                        use crate::Zero;
                         !self.border_${side}_width.is_zero()
                     }
                 % endfor
@@ -2630,6 +2631,7 @@ pub mod style_structs {
                 /// Whether the outline-width property is non-zero.
                 #[inline]
                 pub fn outline_has_nonzero_width(&self) -> bool {
+                    use crate::Zero;
                     !self.outline_width.is_zero()
                 }
             % elif style_struct.name == "Text":
@@ -2724,11 +2726,7 @@ pub mod style_structs {
             /// Whether this is a multicol style.
             #[cfg(feature = "servo")]
             pub fn is_multicol(&self) -> bool {
-                use crate::values::Either;
-                match self.column_width {
-                    Either::First(_width) => true,
-                    Either::Second(_auto) => !self.column_count.is_auto(),
-                }
+                !self.column_width.is_auto() || !self.column_count.is_auto()
             }
         % endif
     }
