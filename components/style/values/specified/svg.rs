@@ -6,9 +6,9 @@
 
 use crate::parser::{Parse, ParserContext};
 use crate::values::generics::svg as generic;
-use crate::values::specified::AllowQuirks;
 use crate::values::specified::color::Color;
 use crate::values::specified::url::SpecifiedUrl;
+use crate::values::specified::AllowQuirks;
 use crate::values::specified::LengthPercentage;
 use crate::values::specified::{NonNegativeLengthPercentage, Opacity};
 use crate::values::CustomIdent;
@@ -52,10 +52,9 @@ macro_rules! parse_svg_length {
                 context: &ParserContext,
                 input: &mut Parser<'i, 't>,
             ) -> Result<Self, ParseError<'i>> {
-                if let Ok(lp) = input.try(|i| {
-                    <$lp>::parse_quirky(context, i, AllowQuirks::Always)
-                }) {
-                    return Ok(generic::SVGLength::LengthPercentage(lp))
+                if let Ok(lp) = input.try(|i| <$lp>::parse_quirky(context, i, AllowQuirks::Always))
+                {
+                    return Ok(generic::SVGLength::LengthPercentage(lp));
                 }
 
                 try_match_ident_ignore_ascii_case! { input,
@@ -65,7 +64,7 @@ macro_rules! parse_svg_length {
                 }
             }
         }
-    }
+    };
 }
 
 parse_svg_length!(SVGLength, LengthPercentage);
@@ -78,11 +77,7 @@ impl Parse for SVGStrokeDashArray {
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(values) = input.try(|i| {
             CommaWithSpace::parse(i, |i| {
-                NonNegativeLengthPercentage::parse_quirky(
-                    context,
-                    i,
-                    AllowQuirks::Always,
-                )
+                NonNegativeLengthPercentage::parse_quirky(context, i, AllowQuirks::Always)
             })
         }) {
             return Ok(generic::SVGStrokeDashArray::Values(values));

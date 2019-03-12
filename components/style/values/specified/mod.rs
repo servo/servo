@@ -652,7 +652,12 @@ impl ClipRect {
                 left = parse_argument(context, input, allow_quirks)?;
             }
 
-            Ok(ClipRect { top, right, bottom, left })
+            Ok(ClipRect {
+                top,
+                right,
+                bottom,
+                left,
+            })
         })
     }
 }
