@@ -19,7 +19,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::{MaxSize, Size};
+use style::values::computed::length::{MaxSize, NonNegativeLengthOrAuto, Size};
 use style::values::generics::column::ColumnCount;
 use style::values::Either;
 
@@ -114,7 +114,9 @@ impl Flow for MulticolFlow {
 
             let column_style = style.get_column();
             let mut column_count;
-            if let Either::First(column_width) = column_style.column_width {
+            if let NonNegativeLengthOrAuto::LengthPercentage(column_width) =
+                column_style.column_width
+            {
                 let column_width = Au::from(column_width);
                 column_count = max(
                     1,
