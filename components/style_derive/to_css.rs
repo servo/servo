@@ -151,7 +151,7 @@ fn derive_variant_fields_expr(
 
         if let Some(condition) = attrs.contextual_skip_if {
             expr = quote! {
-                if !#condition(#(#bindings),*) {
+                if !#condition(#(#bindings), *) {
                     #expr
                 }
             }
@@ -227,7 +227,7 @@ fn derive_single_field_expr(
 
     if let Some(condition) = attrs.contextual_skip_if {
         expr = quote! {
-            if !#condition(#(#bindings),*) {
+            if !#condition(#(#bindings), *) {
                 #expr
             }
         }
