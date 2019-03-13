@@ -70,6 +70,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::cmp;
 use std::default::Default;
 use std::ptr;
 use std::ptr::NonNull;
@@ -1073,7 +1074,23 @@ impl XMLHttpRequest {
                 headers
                     .as_ref()
                     .map(|h| *self.response_headers.borrow_mut() = h.clone());
+                {
+                    let len = headers.and_then(|h| h.typed_get::<ContentLength>());
+                    let mut response = self.response.borrow_mut();
+                    response.clear();
+                    if let Some(len) = len {
+                        // don't attempt to prereserve more than 4 MB of memory,
+                        // to avoid giving servers the ability to DOS the client by
+                        // providing arbitrarily large content-lengths.
+                        //
+                        // this number is arbitrary, it's basically big enough that most
+                        // XHR requests won't hit it, but not so big that it allows for DOS
+                        let size = cmp::min(0b100_0000000000_0000000000, len.0 as usize);
 
+                        // preallocate the buffer
+                        response.reserve(size);
+                    }
+                }
                 // Substep 3
                 if !self.sync.get() {
                     self.change_ready_state(XMLHttpRequestState::HeadersReceived);
