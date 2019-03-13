@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="match" href="1035611-1-ref.html">
+<html lang="en-US" reftest-zoom="1.0">
+<head>
+    <title>Testcase, bug 1035611</title>
+    <meta charset=UTF-8>
+    <style type="text/css">
+
+    #outer1 {
+      width: 500px;
+      height: 100px;
+      overflow:hidden;
+      background: blue;
+    }
+
+    #outer2 {
+      width: 250px;
+      height: 100px;
+      perspective: 125px;
+    }
+
+    #inner {
+      transform-origin: 0px 0px 70px;
+      transform: rotate3d(0, 1, 0, -54deg);
+      width: 128px;
+      height: 128px;
+      background: orange;
+    }
+    </style>
+</head>
+<body>
+<div id="outer1">
+  <div id="outer2">
+    <div id="inner"></div>
+  </div>
+</div>
+
+</body>
+</html>

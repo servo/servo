@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+
+<style id="dynamicStyles">
+</style>
+
+<div id="testContents" style="columns: 2; font-size: 10px;">
+</div>
+
+<script>
+/* Reference file creates only a single face in each test font-family,
+   so that it will always have the expected rendering without relying
+   on the font-matching algorithm to choose between faces. */
+function createFontFaceRules(family, descriptor, expectedMatch, unexpectedMatch) {
+    return `@font-face { font-family: ${family}; src: url(Chunkfive.otf); ${descriptor}: ${expectedMatch}; }\n`;
+}
+</script>
+
+<script src="descriptor-ranges.js"></script>

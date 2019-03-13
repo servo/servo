@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<!--
+    Any copyright is dedicated to the Public Domain.
+    http://creativecommons.org/licenses/publicdomain/
+    -->
+<link rel="match" href="image-zoom-ref.html">
+<html reftest-zoom="5">
+<head>
+<title>test image-rendering: -moz-crisp-edges</title>
+<style>
+img {
+    position:absolute;
+    left: 40px;
+    top: 40px;
+    transform: scale(5);
+}
+</style>
+</head>
+<body>
+<img style="image-rendering: -moz-crisp-edges;" width="10" height="10" src="small.png"/>
+</body>
+</html>

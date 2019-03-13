@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+<link rel="mismatch" href="blank.html">
+<html reftest-zoom="0.3" class="reftest-wait">
+<head>
+  <script>
+    function snapshot() {
+      document.documentElement.removeAttribute('class');
+    }
+  </script>
+</head>
+<!-- NOTE: Using setTimeout to wait for high-quality downscaled version of
+     image to be ready, because there's nothing better we can do. If we fix
+     Bug 1006883, we can do away with this setTimeout.
+
+     For now, the setTimeout is just here to increase the likelihood that we
+     actually test the high-quality downscaled version of the image. If the
+     setTimeout happens to fire before the high-quality downscaled rendering is
+     ready, then this the test will pass without testing what it's trying to
+     test, which is fine as long as that's rare.  -->
+<body style="margin: 0px" onload="setTimeout(snapshot, 50)">
+  <script>
+    var args = location.search.substring(1).split(',');
+    var image = document.createElement('img');
+    image.width = 205;
+    image.height = 53;
+    image.src = 'black-border-top.png';
+    document.body.appendChild(image);
+  </script>
+</body>
+</html>
