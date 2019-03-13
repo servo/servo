@@ -139,9 +139,13 @@ promise_test(async t => {
   const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
   assert_true(trackEvent.track instanceof MediaStreamTrack,
               'trackEvent.track instanceof MediaStreamTrack');
-  assert_equals(trackEvent.track.id, track.id,
-                'trackEvent.track.id == track.id');
-}, 'setRemoteDescription(offer): ontrack\'s track.id is the same as track.id');
+  assert_equals(trackEvent.streams.length, 1,
+                'trackEvent contains a single stream');
+  assert_true(trackEvent.streams[0] instanceof MediaStream,
+              'trackEvent has a MediaStream');
+  assert_equals(trackEvent.streams[0].id, stream.id,
+                'trackEvent.streams[0].id == stream.id');
+}, 'setRemoteDescription(offer): ontrack\'s stream.id is the same as stream.id');
 
 promise_test(async t => {
   const pc1 = createPeerConnectionWithCleanup(t);

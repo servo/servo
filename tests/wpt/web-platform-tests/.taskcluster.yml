@@ -84,6 +84,7 @@ tasks:
                     --
                     --channel=${browser.channel}
                     --log-wptreport=../artifacts/wpt_report.json
+                    --log-wptscreenshot=../artifacts/wpt_screenshot.txt
                     --no-fail-on-unexpected
                     --test-type=${chunk[0]}
                     --this-chunk=${chunk[1]}
@@ -111,14 +112,20 @@ tasks:
                 description: >-
                   Collect results for all tests affected by a pull request in
                   ${browser.name}.
-                extra_args: '--no-fail-on-unexpected --log-wptreport=../artifacts/wpt_report.json'
+                extra_args: >-
+                  --no-fail-on-unexpected
+                  --log-wptreport=../artifacts/wpt_report.json
+                  --log-wptscreenshot=../artifacts/wpt_screenshot.txt
               - name: wpt-${browser.name}-${browser.channel}-results-without-changes
                 checkout: FETCH_HEAD^
                 diff_range: FETCH_HEAD
                 description: >-
                   Collect results for all tests affected by a pull request in
                   ${browser.name} but without the changes in the PR.
-                extra_args: '--no-fail-on-unexpected --log-wptreport=../artifacts/wpt_report.json'
+                extra_args: >-
+                  --no-fail-on-unexpected
+                  --log-wptreport=../artifacts/wpt_report.json
+                  --log-wptscreenshot=../artifacts/wpt_screenshot.txt
             each(operation):
               taskId: {$eval: 'as_slugid(operation.name)'}
               taskGroupId: {$eval: 'as_slugid("task group")'}

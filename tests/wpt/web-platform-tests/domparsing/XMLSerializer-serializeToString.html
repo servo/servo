@@ -46,6 +46,15 @@ test(function() {
 }, 'Check if there is no redundant empty namespace declaration.');
 
 test(function() {
+  assert_equals(serialize(parse('<root><child xmlns=""/></root>')),
+                '<root><child/></root>');
+  assert_equals(serialize(parse('<root xmlns=""><child xmlns=""/></root>')),
+                '<root><child/></root>');
+  assert_equals(serialize(parse('<root xmlns="u1"><child xmlns="u1"/></root>')),
+                '<root xmlns="u1"><child/></root>');
+}, 'Check if redundant xmlns="..." is dropped.');
+
+test(function() {
   const root = parse('<root xmlns="uri1"/>');
   const child = root.ownerDocument.createElement('child');
   child.setAttributeNS(XMLNS_URI, 'xmlns', 'FAIL1');
@@ -145,8 +154,6 @@ test(function() {
 
 test(function() {
   assert_equals(serialize(parse('<root><child/></root>')), '<root><child/></root>');
-  assert_equals(serialize(parse('<root><child xmlns=""/></root>')), '<root><child/></root>');
-  assert_equals(serialize(parse('<root xmlns="u1"><child xmlns="u1"/></root>')), '<root xmlns="u1"><child/></root>');
   assert_equals(serialize(parse('<root xmlns="u1"><p:child xmlns:p="u1"/></root>')), '<root xmlns="u1"><child xmlns:p="u1"/></root>');
 }, 'Check if start tag serialization drops element prefix if the namespace is same as inherited default namespace.');
 

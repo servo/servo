@@ -19,6 +19,12 @@ def find_wptreport(args):
     return parser.parse_known_args(args)[0].log_wptreport
 
 
+def find_wptscreenshot(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--log-wptscreenshot', action='store')
+    return parser.parse_known_args(args)[0].log_wptscreenshot
+
+
 def gzip_file(filename, delete_original=True):
     with open(filename, 'rb') as f_in:
         with gzip.open('%s.gz' % filename, 'wb') as f_out:
@@ -72,6 +78,9 @@ def main(product, commit_range, wpt_args):
     wptreport = find_wptreport(wpt_args)
     if wptreport:
         gzip_file(wptreport)
+    wptscreenshot = find_wptscreenshot(wpt_args)
+    if wptscreenshot:
+        gzip_file(wptscreenshot)
 
 
 if __name__ == "__main__":
