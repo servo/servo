@@ -808,14 +808,13 @@ impl ScriptThread {
     }
 
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            unsafe {
+        SCRIPT_THREAD_ROOT.with(|root| unsafe {
             if let Some(script_thread) = root.get() {
                 (*script_thread)
                     .docs_with_no_blocking_loads
                     .borrow_mut()
                     .insert(Dom::from_ref(doc));
-            }}
+            }
         })
     }
 
