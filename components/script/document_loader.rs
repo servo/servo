@@ -77,8 +77,8 @@ impl LoadBlocker {
 
 impl Drop for LoadBlocker {
     fn drop(&mut self) {
-        if !thread::panicking() {
-            debug_assert!(self.load.is_none());
+        if let Some(script_thread) = self.load.take() {
+            self.doc.finish_load(script_thread);
         }
     }
 }
