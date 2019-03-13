@@ -2751,7 +2751,7 @@ fn static_assert() {
                           transform-style
                           rotate scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-coordinate -moz-binding will-change
-                          offset-path shape-outside contain touch-action
+                          offset-path shape-outside touch-action
                           translate scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
@@ -3170,91 +3170,6 @@ fn static_assert() {
     }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
-
-    pub fn set_contain(&mut self, v: longhands::contain::computed_value::T) {
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_NONE;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
-        use crate::properties::longhands::contain::SpecifiedValue;
-
-        if v.is_empty() {
-            self.gecko.mContain = NS_STYLE_CONTAIN_NONE as u8;
-            return;
-        }
-
-        if v.contains(SpecifiedValue::STRICT) {
-            self.gecko.mContain = (NS_STYLE_CONTAIN_STRICT | NS_STYLE_CONTAIN_ALL_BITS) as u8;
-            return;
-        }
-        if v.contains(SpecifiedValue::CONTENT) {
-            self.gecko.mContain = (NS_STYLE_CONTAIN_CONTENT | NS_STYLE_CONTAIN_CONTENT_BITS) as u8;
-            return;
-        }
-
-        let mut bitfield = 0;
-        if v.contains(SpecifiedValue::LAYOUT) {
-            bitfield |= NS_STYLE_CONTAIN_LAYOUT;
-        }
-        if v.contains(SpecifiedValue::PAINT) {
-            bitfield |= NS_STYLE_CONTAIN_PAINT;
-        }
-        if v.contains(SpecifiedValue::SIZE) {
-            bitfield |= NS_STYLE_CONTAIN_SIZE;
-        }
-
-        self.gecko.mContain = bitfield as u8;
-    }
-
-    pub fn clone_contain(&self) -> longhands::contain::computed_value::T {
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
-        use crate::properties::longhands::contain::{self, SpecifiedValue};
-
-        let mut servo_flags = contain::computed_value::T::empty();
-        let gecko_flags = self.gecko.mContain;
-
-        if gecko_flags & (NS_STYLE_CONTAIN_STRICT as u8) != 0 {
-            debug_assert_eq!(
-                gecko_flags & (NS_STYLE_CONTAIN_ALL_BITS as u8),
-                NS_STYLE_CONTAIN_ALL_BITS as u8,
-                "When strict is specified, ALL_BITS should be specified as well"
-            );
-            servo_flags.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
-            return servo_flags;
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_CONTENT as u8) != 0 {
-            debug_assert_eq!(
-                gecko_flags & (NS_STYLE_CONTAIN_CONTENT_BITS as u8),
-                NS_STYLE_CONTAIN_CONTENT_BITS as u8,
-                "When content is specified, CONTENT_BITS should be specified as well"
-            );
-            servo_flags.insert(SpecifiedValue::CONTENT | SpecifiedValue::CONTENT_BITS);
-            return servo_flags;
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_LAYOUT as u8) != 0 {
-            servo_flags.insert(SpecifiedValue::LAYOUT);
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_PAINT as u8) != 0 {
-            servo_flags.insert(SpecifiedValue::PAINT);
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_SIZE as u8) != 0 {
-            servo_flags.insert(SpecifiedValue::SIZE);
-        }
-
-        return servo_flags;
-    }
-
-    ${impl_simple_copy("contain", "mContain")}
 
     ${impl_simple_type_with_conversion("touch_action")}
 

@@ -103,6 +103,7 @@ include = [
   "ZIndex",
   "TransformOrigin",
   "WordBreak",
+  "Contain",
 ]
 item_types = ["enums", "structs", "typedefs"]
 

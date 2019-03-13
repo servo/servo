@@ -753,18 +753,21 @@ pub fn assert_touch_action_matches() {
 bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
     #[value_info(other_values = "none,strict,content,size,layout,paint")]
+    #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
+        /// `none` variant, just for convenience.
+        const NONE = 0;
         /// 'size' variant, turns on size containment
-        const SIZE = 0x01;
+        const SIZE = 1 << 0;
         /// `layout` variant, turns on layout containment
-        const LAYOUT = 0x02;
+        const LAYOUT = 1 << 1;
         /// `paint` variant, turns on paint containment
-        const PAINT = 0x04;
+        const PAINT = 1 << 2;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 0x08;
+        const STRICT = 1 << 3;
         /// 'content' variant, turns on layout and paint containment
-        const CONTENT = 0x10;
+        const CONTENT = 1 << 4;
         /// variant with all the bits that contain: strict turns on
         const STRICT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
         /// variant with all the bits that contain: content turns on
