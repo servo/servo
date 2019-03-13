@@ -19,5 +19,6 @@
     ]);
 
     assert_true(result instanceof Event, "Expected an instance of Event");
+    return document.exitFullscreen();
   }, "The 'change' event must fire before the [[orientationPendingPromise]] is resolved.");
 </script>

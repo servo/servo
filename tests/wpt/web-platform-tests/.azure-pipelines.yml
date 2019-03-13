@@ -183,7 +183,7 @@ jobs:
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: python ./wpt run --no-manifest-update --no-fail-on-unexpected --install-fonts --test-types reftest testharness --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-tbpl - --log-tbpl-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json edge_webdriver
+  - script: python ./wpt run --no-manifest-update --no-fail-on-unexpected --install-fonts --test-types reftest testharness --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-tbpl - --log-tbpl-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt edge_webdriver
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -217,7 +217,7 @@ jobs:
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --channel preview safari
+  - script: no_proxy='*' ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --channel preview safari
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'

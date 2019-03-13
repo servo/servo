@@ -1,0 +1,64 @@
+<html class="reftest-wait">
+<title>WorkletAnimation should respect delay given in options</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<meta name="assert" content="Worklet Animation should respect delay given in options">
+<link rel="match" href="worklet-animation-start-delay-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="common.js"></script>
+
+<style>
+  .box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+
+<div id="t0" class="box"></div>
+<div id="t1" class="box"></div>
+<div id="out"></div>
+<script id="visual_update"  type="text/worklet">
+  registerAnimator("t0_animator", class {
+    animate(currentTime, effect) {
+      effect.localTime = 500;
+    }
+  });
+
+  registerAnimator("t1_animator", class {
+    animate(currentTime, effect) {
+      effect.localTime = 5500;
+    }
+  });
+</script>
+
+<script>
+  runInAnimationWorklet(
+    document.getElementById('visual_update').textContent
+  ).then(()=>{
+    const keyframes = [
+      {transform: 'translateX(0)' },
+      {transform: 'translateX(200px)' }
+    ];
+    const options = {
+      duration: 1000,
+      delay: 5000,
+    };
+
+    const $t0 = document.getElementById('t0');
+    const $t0_effect = new KeyframeEffect($t0, keyframes, options);
+    const $t0_animation = new WorkletAnimation('t0_animator', $t0_effect);
+
+    const $t1 = document.getElementById('t1');
+    const $t1_effect = new KeyframeEffect($t1, keyframes, options);
+    const $t1_animation = new WorkletAnimation('t1_animator', $t1_effect);
+
+    $t0_animation.play();
+    $t1_animation.play();
+
+    waitForAsyncAnimationFrames(1).then(_ => {
+      takeScreenshot();
+    });
+  });
+</script>
