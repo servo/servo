@@ -265,6 +265,11 @@ class Manifest(object):
             if not update:
                 rel_path = source_file
                 seen_files.add(rel_path)
+                assert rel_path in self._path_hash
+                old_hash, old_type = self._path_hash[rel_path]
+                if old_type in reftest_types:
+                    manifest_items = self._data[old_type][rel_path]
+                    reftest_nodes.extend((item, old_hash) for item in manifest_items)
             else:
                 rel_path = source_file.rel_path
                 seen_files.add(rel_path)
@@ -297,9 +302,8 @@ class Manifest(object):
                 elif is_new or hash_changed:
                     self._data[new_type][rel_path] = set(manifest_items)
 
-                self._path_hash[rel_path] = (file_hash, new_type)
-
                 if is_new or hash_changed:
+                    self._path_hash[rel_path] = (file_hash, new_type)
                     changed = True
 
         deleted = prev_files - seen_files

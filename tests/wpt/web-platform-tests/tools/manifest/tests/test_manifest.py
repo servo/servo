@@ -268,6 +268,28 @@ def test_reftest_computation_chain_update_node_change():
                        ("support", test3.path, {test3})]
 
 
+def test_reftest_computation_chain_update_node_change_partial():
+    m = manifest.Manifest()
+
+    s1 = SourceFileWithTest("test1", "0"*40, item.RefTestNode, references=[("/test2", "==")])
+    s2 = SourceFileWithTest("test2", "0"*40, item.RefTestNode, references=[("/test3", "==")])
+
+    assert m.update([(s1, True), (s2, True)]) is True
+
+    test1 = s1.manifest_items()[1][0]
+    test2 = s2.manifest_items()[1][0]
+
+    assert list(m) == [("reftest", test1.path, {test1.to_RefTest()}),
+                       ("reftest_node", test2.path, {test2})]
+
+    s2 = SourceFileWithTest("test2", "1"*40, item.RefTestNode, references=[("/test3", "==")])
+
+    assert m.update([(s1.rel_path, False), (s2, True)]) is True
+
+    assert list(m) == [("reftest", test1.path, {test1.to_RefTest()}),
+                       ("reftest_node", test2.path, {test2})]
+
+
 def test_iterpath():
     m = manifest.Manifest()
 

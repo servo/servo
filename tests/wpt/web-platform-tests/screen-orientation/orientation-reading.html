@@ -78,6 +78,9 @@ test(() => {
 }, "Test that screen.orientation is always the same object");
 
 promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
   const orientation = screen.orientation;
   const orientationType = screen.orientation.type;
   const orientationAngle = screen.orientation.angle;
@@ -96,5 +99,6 @@ promise_test(async t => {
   assert_not_equals(screen.orientation.type, orientationType);
   assert_not_equals(screen.orientation.angle, orientationAngle);
   screen.orientation.unlock();
+  return document.exitFullscreen();
 }, "Test that screen.orientation values change if the orientation changes");
 </script>
