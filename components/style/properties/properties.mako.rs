@@ -42,6 +42,7 @@ use crate::values::computed;
 use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
 use crate::rule_tree::StrongRuleNode;
+use crate::Zero;
 use self::computed_value_flags::*;
 use crate::str::{CssString, CssStringBorrow, CssStringWriter};
 
@@ -899,6 +900,8 @@ pub enum CSSWideKeyword {
     Inherit,
     /// The `unset` keyword.
     Unset,
+    /// The `revert` keyword.
+    Revert,
 }
 
 impl CSSWideKeyword {
@@ -907,6 +910,7 @@ impl CSSWideKeyword {
             CSSWideKeyword::Initial => "initial",
             CSSWideKeyword::Inherit => "inherit",
             CSSWideKeyword::Unset => "unset",
+            CSSWideKeyword::Revert => "revert",
         }
     }
 }
@@ -920,6 +924,7 @@ impl CSSWideKeyword {
                 "initial" => CSSWideKeyword::Initial,
                 "inherit" => CSSWideKeyword::Inherit,
                 "unset" => CSSWideKeyword::Unset,
+                "revert" => CSSWideKeyword::Revert,
                 _ => return Err(()),
             }
         };
@@ -2102,6 +2107,7 @@ impl PropertyDeclaration {
     }
 
     /// Returns a CSS-wide keyword if the declaration's value is one.
+    #[inline]
     pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
         match *self {
             PropertyDeclaration::CSSWideKeyword(ref declaration) => {
@@ -2585,7 +2591,8 @@ pub mod style_structs {
                     /// Whether the border-${side} property has nonzero width.
                     #[allow(non_snake_case)]
                     pub fn border_${side}_has_nonzero_width(&self) -> bool {
-                        self.border_${side}_width != NonNegativeLength::zero()
+                        use crate::Zero;
+                        !self.border_${side}_width.is_zero()
                     }
                 % endfor
             % elif style_struct.name == "Font":
@@ -2624,7 +2631,8 @@ pub mod style_structs {
                 /// Whether the outline-width property is non-zero.
                 #[inline]
                 pub fn outline_has_nonzero_width(&self) -> bool {
-                    self.outline_width != NonNegativeLength::zero()
+                    use crate::Zero;
+                    !self.outline_width.is_zero()
                 }
             % elif style_struct.name == "Text":
                 /// Whether the text decoration has an underline.
@@ -2718,11 +2726,7 @@ pub mod style_structs {
             /// Whether this is a multicol style.
             #[cfg(feature = "servo")]
             pub fn is_multicol(&self) -> bool {
-                use crate::values::Either;
-                match self.column_width {
-                    Either::First(_width) => true,
-                    Either::Second(_auto) => !self.column_count.is_auto(),
-                }
+                !self.column_width.is_auto() || !self.column_count.is_auto()
             }
         % endif
     }
@@ -3435,22 +3439,16 @@ impl<'a> StyleBuilder<'a> {
     }
 
     % for property in data.longhands:
-    % if property.ident != "font_size":
+    % if not property.style_struct.inherited:
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
         let inherited_struct =
-        % if property.style_struct.inherited:
-            self.inherited_style.get_${property.style_struct.name_lower}();
-        % else:
             self.inherited_style_ignoring_first_line
                 .get_${property.style_struct.name_lower}();
-        % endif
 
-        % if not property.style_struct.inherited:
-        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
         self.modified_reset = true;
-        % endif
+        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
 
         % if property.ident == "content":
         self.flags.insert(ComputedValueFlags::INHERITS_CONTENT);
@@ -3472,16 +3470,12 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
-
+    % elif property.name != "font-size":
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {
         let reset_struct =
             self.reset_style.get_${property.style_struct.name_lower}();
-
-        % if not property.style_struct.inherited:
-        self.modified_reset = true;
-        % endif
 
         if self.${property.style_struct.ident}.ptr_eq(reset_struct) {
             return;
@@ -3495,6 +3489,7 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
+    % endif
 
     % if not property.is_vector:
     /// Set the `${property.ident}` to the computed value `value`.
@@ -3515,7 +3510,6 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
-    % endif
     % endif
     % endfor
     <% del property %>

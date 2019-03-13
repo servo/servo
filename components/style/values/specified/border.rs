@@ -12,9 +12,10 @@ use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice
 use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
-use crate::values::generics::size::Size;
+use crate::values::generics::size::Size2D;
 use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthPercentage};
 use crate::values::specified::{AllowQuirks, NonNegativeNumber, NonNegativeNumberOrPercentage};
+use crate::Zero;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -228,7 +229,7 @@ impl Parse for BorderCornerRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Size::parse_with(context, input, NonNegativeLengthPercentage::parse)
+        Size2D::parse_with(context, input, NonNegativeLengthPercentage::parse)
             .map(GenericBorderCornerRadius)
     }
 }
@@ -238,7 +239,7 @@ impl Parse for BorderSpacing {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Size::parse_with(context, input, |context, input| {
+        Size2D::parse_with(context, input, |context, input| {
             NonNegativeLength::parse_quirky(context, input, AllowQuirks::Yes).map(From::from)
         })
         .map(GenericBorderSpacing)

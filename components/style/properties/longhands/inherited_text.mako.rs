@@ -74,13 +74,13 @@ ${helpers.predefined_type(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-// TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
-${helpers.single_keyword(
+${helpers.predefined_type(
     "word-break",
-    "normal break-all keep-all",
-    gecko_constant_prefix="NS_STYLE_WORDBREAK",
+    "WordBreak",
+    "computed::WordBreak::Normal",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-word-break",
+    needs_context=False,
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
@@ -157,7 +157,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "word-spacing",
     "WordSpacing",
-    "computed::WordSpacing::normal()",
+    "computed::WordSpacing::zero()",
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-word-spacing",

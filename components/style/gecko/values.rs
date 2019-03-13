@@ -19,7 +19,7 @@ use crate::values::generics::grid::{TrackBreadth, TrackKeyword};
 use crate::values::generics::length::LengthPercentageOrAuto;
 use crate::values::generics::{CounterStyleOrNone, NonNegative};
 use crate::values::{Auto, Either, None_, Normal};
-use crate::Atom;
+use crate::{Atom, Zero};
 use app_units::Au;
 use cssparser::RGBA;
 use nsstring::{nsACString, nsCStr};

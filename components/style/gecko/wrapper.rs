@@ -1044,9 +1044,13 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         device: &Device,
     ) -> FontMetricsQueryResult {
         use crate::gecko_bindings::bindings::Gecko_GetFontMetrics;
+        let pc = match device.pres_context() {
+            Some(pc) => pc,
+            None => return FontMetricsQueryResult::NotAvailable,
+        };
         let gecko_metrics = unsafe {
             Gecko_GetFontMetrics(
-                device.pres_context(),
+                pc,
                 wm.is_vertical() && !wm.is_sideways(),
                 font.gecko(),
                 font_size.0,
@@ -1242,8 +1246,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
-        self.as_node().owner_doc().0 as *const structs::Document ==
-            device.pres_context().mDocument.mRawPtr
+        self.as_node().owner_doc().0 as *const structs::Document == device.document() as *const _
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {

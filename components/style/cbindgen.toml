@@ -13,6 +13,7 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
 class nsAtom;
 namespace mozilla {
   class WritingMode;
+  enum HalfCorner : uint8_t;
   enum LogicalSide : uint8_t;
   namespace css {
     struct URLValue;
@@ -39,8 +40,13 @@ include = ["cssparser", "style_traits"]
 derive_eq = true
 derive_neq = true
 
+[macro_expansion]
+bitflags = true
+
 [enum]
 derive_helper_methods = true
+derive_const_casts = true
+cast_assert_name = "MOZ_ASSERT"
 
 [export]
 prefix = "Style"
@@ -77,8 +83,10 @@ include = [
   "Resize",
   "Overflow",
   "LengthPercentage",
+  "LetterSpacing",
   "NonNegativeLengthPercentage",
   "LengthPercentageOrAuto",
+  "LineHeight",
   "NonNegativeLengthPercentageOrAuto",
   "Rect",
   "IntersectionObserverRootMargin",
@@ -88,16 +96,20 @@ include = [
   "Position",
   "BackgroundSize",
   "BorderImageSlice",
+  "BorderSpacing",
+  "BorderRadius",
   "NonNegativeLengthOrNumberRect",
   "Perspective",
   "ZIndex",
   "TransformOrigin",
+  "WordBreak",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
 [export.body]
 "CSSPixelLength" = """
   inline nscoord ToAppUnits() const;
+  inline bool IsZero() const;
 """
 
 "LengthPercentage" = """
@@ -114,6 +126,7 @@ item_types = ["enums", "structs", "typedefs"]
   inline bool ConvertsToPercentage() const;
   inline bool HasLengthAndPercentage() const;
   inline float ToPercentage() const;
+  inline bool IsDefinitelyZero() const;
   inline CSSCoord ResolveToCSSPixels(CSSCoord aPercentageBasisInCSSPixels) const;
   template<typename T> inline CSSCoord ResolveToCSSPixelsWith(T aPercentageGetter) const;
   template<typename T, typename U>
@@ -125,7 +138,6 @@ item_types = ["enums", "structs", "typedefs"]
 """
 
 "GenericLengthPercentageOrAuto" = """
-  inline const StyleLengthPercentage& AsLengthPercentage() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
@@ -135,8 +147,6 @@ item_types = ["enums", "structs", "typedefs"]
 """
 
 "GenericSize" = """
-  inline const StyleLengthPercentage& AsLengthPercentage() const;
-  inline StyleExtremumLength AsExtremumLength() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
@@ -148,12 +158,9 @@ item_types = ["enums", "structs", "typedefs"]
 
 "GenericFlexBasis" = """
   inline bool IsAuto() const;
-  inline const StyleSize& AsSize() const;
 """
 
 "GenericMaxSize" = """
-  inline const StyleLengthPercentage& AsLengthPercentage() const;
-  inline StyleExtremumLength AsExtremumLength() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
@@ -184,4 +191,8 @@ item_types = ["enums", "structs", "typedefs"]
   inline const T& GetBStart(mozilla::WritingMode) const;
   inline const T& GetIEnd(mozilla::WritingMode) const;
   inline const T& GetBEnd(mozilla::WritingMode) const;
+"""
+
+"GenericBorderRadius" = """
+  inline const StyleLengthPercentage& Get(mozilla::HalfCorner) const;
 """

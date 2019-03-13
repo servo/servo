@@ -7,7 +7,7 @@
 use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings::{self, RawServoStyleSet};
-use crate::gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetSizes};
+use crate::gecko_bindings::structs::{self, ServoStyleSetSizes};
 use crate::gecko_bindings::structs::{StyleSheet as DomStyleSheet, StyleSheetInfo};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
@@ -142,15 +142,15 @@ pub struct PerDocumentStyleDataImpl {
 pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
 
 impl PerDocumentStyleData {
-    /// Create a dummy `PerDocumentStyleData`.
-    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
-        let device = Device::new(pres_context);
+    /// Create a `PerDocumentStyleData`.
+    pub fn new(document: *const structs::Document) -> Self {
+        let device = Device::new(document);
 
         // FIXME(emilio, tlin): How is this supposed to work with XBL? This is
         // right now not always honored, see bug 1405543...
         //
         // Should we just force XBL Stylists to be NoQuirks?
-        let quirks_mode = unsafe { (*device.pres_context().mDocument.mRawPtr).mCompatMode };
+        let quirks_mode = device.document().mCompatMode;
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Stylist::new(device, quirks_mode.into()),
@@ -191,8 +191,7 @@ impl PerDocumentStyleDataImpl {
     /// Returns whether visited styles are enabled.
     #[inline]
     pub fn visited_styles_enabled(&self) -> bool {
-        let doc = self.stylist.device().pres_context().mDocument.mRawPtr;
-        unsafe { bindings::Gecko_VisitedStylesEnabled(doc) }
+        unsafe { bindings::Gecko_VisitedStylesEnabled(self.stylist.device().document()) }
     }
 
     /// Measure heap usage.

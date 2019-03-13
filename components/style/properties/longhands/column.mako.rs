@@ -9,8 +9,8 @@
 ${helpers.predefined_type(
     "column-width",
     "length::NonNegativeLengthOrAuto",
-    "Either::Second(Auto)",
-    initial_specified_value="Either::Second(Auto)",
+    "computed::length::NonNegativeLengthOrAuto::auto()",
+    initial_specified_value="specified::length::NonNegativeLengthOrAuto::auto()",
     extra_prefixes="moz",
     animation_value_type="NonNegativeLengthOrAuto",
     servo_pref="layout.columns.enabled",

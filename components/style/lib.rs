@@ -244,3 +244,26 @@ impl CaseSensitivityExt for selectors::attr::CaseSensitivity {
         }
     }
 }
+
+/// A trait pretty much similar to num_traits::Zero, but without the need of
+/// implementing `Add`.
+pub trait Zero {
+    /// Returns the zero value.
+    fn zero() -> Self;
+
+    /// Returns whether this value is zero.
+    fn is_zero(&self) -> bool;
+}
+
+impl<T> Zero for T
+where
+    T: num_traits::Zero,
+{
+    fn zero() -> Self {
+        <Self as num_traits::Zero>::zero()
+    }
+
+    fn is_zero(&self) -> bool {
+        <Self as num_traits::Zero>::is_zero(self)
+    }
+}

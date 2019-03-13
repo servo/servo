@@ -7,8 +7,8 @@
 use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use crate::values::computed::ExtremumLength;
+use crate::Zero;
 use cssparser::Parser;
-use num_traits::Zero;
 use style_traits::ParseError;
 
 /// A `<length-percentage> | auto` value.
@@ -64,6 +64,19 @@ impl<LengthPercentage> LengthPercentageOrAuto<LengthPercentage> {
         Ok(LengthPercentageOrAuto::LengthPercentage(parser(
             context, input,
         )?))
+    }
+}
+
+impl<LengthPercentage: Zero> Zero for LengthPercentageOrAuto<LengthPercentage> {
+    fn zero() -> Self {
+        LengthPercentageOrAuto::LengthPercentage(Zero::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        match *self {
+            LengthPercentageOrAuto::LengthPercentage(ref l) => l.is_zero(),
+            LengthPercentageOrAuto::Auto => false,
+        }
     }
 }
 
@@ -186,12 +199,15 @@ pub enum GenericLengthOrNumber<L, N> {
 
 pub use self::GenericLengthOrNumber as LengthOrNumber;
 
-impl<L, N> LengthOrNumber<L, N> {
-    /// Returns `0`.
-    pub fn zero() -> Self
-    where
-        N: Zero,
-    {
-        LengthOrNumber::Number(num_traits::Zero::zero())
+impl<L, N: Zero> Zero for LengthOrNumber<L, N> {
+    fn zero() -> Self {
+        LengthOrNumber::Number(Zero::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        match *self {
+            LengthOrNumber::Number(ref n) => n.is_zero(),
+            LengthOrNumber::Length(..) => false,
+        }
     }
 }

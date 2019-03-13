@@ -14,11 +14,11 @@ use crate::values::generics::length as generics;
 use crate::values::generics::length::{
     GenericLengthOrNumber, MaxSize as GenericMaxSize, Size as GenericSize,
 };
-use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::NonNegativeNumber;
-use crate::values::{Auto, CSSFloat, Either, Normal};
+use crate::values::{CSSFloat, Either, Normal};
+use crate::Zero;
 use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::Size2D;
@@ -477,21 +477,6 @@ impl NoCalcLength {
         })
     }
 
-    #[inline]
-    /// Returns a `zero` length.
-    pub fn zero() -> NoCalcLength {
-        NoCalcLength::Absolute(AbsoluteLength::Px(0.))
-    }
-
-    #[inline]
-    /// Checks whether the length value is zero.
-    pub fn is_zero(&self) -> bool {
-        match *self {
-            NoCalcLength::Absolute(length) => length.is_zero(),
-            _ => false,
-        }
-    }
-
     /// Get a px value without context.
     #[inline]
     pub fn to_computed_pixel_length_without_context(&self) -> Result<CSSFloat, ()> {
@@ -510,9 +495,12 @@ impl NoCalcLength {
 
 impl SpecifiedValueInfo for NoCalcLength {}
 
-impl IsZeroLength for NoCalcLength {
-    #[inline]
-    fn is_zero_length(&self) -> bool {
+impl Zero for NoCalcLength {
+    fn zero() -> Self {
+        NoCalcLength::Absolute(AbsoluteLength::Px(0.))
+    }
+
+    fn is_zero(&self) -> bool {
         match *self {
             NoCalcLength::Absolute(v) => v.is_zero(),
             NoCalcLength::FontRelative(v) => v.is_zero(),
@@ -584,12 +572,6 @@ impl Mul<CSSFloat> for ViewportPercentageLength {
 }
 
 impl Length {
-    #[inline]
-    /// Returns a `zero` length.
-    pub fn zero() -> Length {
-        Length::NoCalc(NoCalcLength::zero())
-    }
-
     #[inline]
     fn parse_internal<'i, 't>(
         context: &ParserContext,
@@ -672,6 +654,21 @@ impl Parse for Length {
     }
 }
 
+impl Zero for Length {
+    fn zero() -> Self {
+        Length::NoCalc(NoCalcLength::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        // FIXME(emilio): Seems a bit weird to treat calc() unconditionally as
+        // non-zero here?
+        match *self {
+            Length::NoCalc(ref l) => l.is_zero(),
+            Length::Calc(..) => false,
+        }
+    }
+}
+
 impl Length {
     /// Parses a length, with quirks.
     pub fn parse_quirky<'i, 't>(
@@ -711,12 +708,6 @@ impl From<Length> for NonNegativeLength {
 }
 
 impl NonNegativeLength {
-    /// Returns a `zero` length.
-    #[inline]
-    pub fn zero() -> Self {
-        Length::zero().into()
-    }
-
     /// Get an absolute length from a px value.
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> Self {
@@ -737,9 +728,6 @@ impl NonNegativeLength {
         )?))
     }
 }
-
-/// Either a NonNegativeLength or the `auto` keyword.
-pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
 
 /// A `<length-percentage>` value. This can be either a `<length>`, a
 /// `<percentage>`, or a combination of both via `calc()`.
@@ -801,12 +789,6 @@ impl Parse for LengthPercentage {
 }
 
 impl LengthPercentage {
-    #[inline]
-    /// Returns a `zero` length.
-    pub fn zero() -> LengthPercentage {
-        LengthPercentage::Length(NoCalcLength::zero())
-    }
-
     #[inline]
     /// Returns a `0%` value.
     pub fn zero_percent() -> LengthPercentage {
@@ -898,11 +880,14 @@ impl LengthPercentage {
     }
 }
 
-impl IsZeroLength for LengthPercentage {
-    #[inline]
-    fn is_zero_length(&self) -> bool {
+impl Zero for LengthPercentage {
+    fn zero() -> Self {
+        LengthPercentage::Length(NoCalcLength::zero())
+    }
+
+    fn is_zero(&self) -> bool {
         match *self {
-            LengthPercentage::Length(l) => l.is_zero_length(),
+            LengthPercentage::Length(l) => l.is_zero(),
             LengthPercentage::Percentage(p) => p.0 == 0.0,
             LengthPercentage::Calc(_) => false,
         }
@@ -913,11 +898,6 @@ impl IsZeroLength for LengthPercentage {
 pub type LengthPercentageOrAuto = generics::LengthPercentageOrAuto<LengthPercentage>;
 
 impl LengthPercentageOrAuto {
-    /// Returns a value representing a `0` length.
-    pub fn zero() -> Self {
-        generics::LengthPercentageOrAuto::LengthPercentage(LengthPercentage::zero())
-    }
-
     /// Returns a value representing `0%`.
     #[inline]
     pub fn zero_percent() -> Self {
@@ -943,11 +923,6 @@ pub type NonNegativeLengthPercentageOrAuto =
     generics::LengthPercentageOrAuto<NonNegativeLengthPercentage>;
 
 impl NonNegativeLengthPercentageOrAuto {
-    /// Returns a value representing a `0` length.
-    pub fn zero() -> Self {
-        generics::LengthPercentageOrAuto::LengthPercentage(NonNegativeLengthPercentage::zero())
-    }
-
     /// Returns a value representing `0%`.
     #[inline]
     pub fn zero_percent() -> Self {
@@ -998,12 +973,6 @@ impl Parse for NonNegativeLengthPercentage {
 
 impl NonNegativeLengthPercentage {
     #[inline]
-    /// Returns a `zero` length.
-    pub fn zero() -> Self {
-        NonNegative(LengthPercentage::zero())
-    }
-
-    #[inline]
     /// Returns a `0%` value.
     pub fn zero_percent() -> Self {
         NonNegative(LengthPercentage::zero_percent())
@@ -1025,7 +994,29 @@ impl NonNegativeLengthPercentage {
 pub type LengthOrNormal = Either<Length, Normal>;
 
 /// Either a `<length>` or the `auto` keyword.
-pub type LengthOrAuto = Either<Length, Auto>;
+///
+/// Note that we use LengthPercentage just for convenience, since it pretty much
+/// is everything we care about, but we could just add a similar LengthOrAuto
+/// instead if we think getting rid of this weirdness is worth it.
+pub type LengthOrAuto = generics::LengthPercentageOrAuto<Length>;
+
+impl LengthOrAuto {
+    /// Parses a length, allowing the unitless length quirk.
+    /// <https://quirks.spec.whatwg.org/#the-unitless-length-quirk>
+    #[inline]
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with(context, input, |context, input| {
+            Length::parse_quirky(context, input, allow_quirks)
+        })
+    }
+}
+
+/// Either a non-negative `<length>` or the `auto` keyword.
+pub type NonNegativeLengthOrAuto = generics::LengthPercentageOrAuto<NonNegativeLength>;
 
 /// Either a `<length>` or a `<number>`.
 pub type LengthOrNumber = GenericLengthOrNumber<Length, Number>;

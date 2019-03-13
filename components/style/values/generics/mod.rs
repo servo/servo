@@ -8,8 +8,8 @@
 use super::CustomIdent;
 use crate::counter_style::{parse_counter_style_name, Symbols};
 use crate::parser::{Parse, ParserContext};
+use crate::Zero;
 use cssparser::Parser;
-use num_traits::Zero;
 use std::ops::Add;
 use style_traits::{KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};
@@ -212,3 +212,26 @@ impl<T: Zero> Zero for NonNegative<T> {
     ToCss,
 )]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
+
+/// A clip rect for clip and image-region
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+)]
+#[css(function = "rect", comma)]
+pub struct ClipRect<LengthOrAuto> {
+    pub top: LengthOrAuto,
+    pub right: LengthOrAuto,
+    pub bottom: LengthOrAuto,
+    pub left: LengthOrAuto,
+}

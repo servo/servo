@@ -5,11 +5,10 @@
 //! Generic type for CSS properties that are composed by two dimensions.
 
 use crate::parser::ParserContext;
-use crate::values::animated::ToAnimatedValue;
+use crate::Zero;
 use cssparser::Parser;
-use euclid::Size2D;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A generic size, for `border-*-radius` longhand properties, or
 /// `border-spacing`.
@@ -21,29 +20,36 @@ use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
     Debug,
     MallocSizeOf,
     PartialEq,
+    SpecifiedValueInfo,
     ToAnimatedZero,
+    ToAnimatedValue,
     ToComputedValue,
 )]
-pub struct Size<L>(pub Size2D<L>);
+#[allow(missing_docs)]
+#[repr(C)]
+pub struct Size2D<L> {
+    pub width: L,
+    pub height: L,
+}
 
-impl<L> Size<L> {
+impl<L> Size2D<L> {
     #[inline]
-    /// Create a new `Size` for an area of given width and height.
-    pub fn new(width: L, height: L) -> Size<L> {
-        Size(Size2D::new(width, height))
+    /// Create a new `Size2D` for an area of given width and height.
+    pub fn new(width: L, height: L) -> Self {
+        Self { width, height }
     }
 
     /// Returns the width component.
     pub fn width(&self) -> &L {
-        &self.0.width
+        &self.width
     }
 
     /// Returns the height component.
     pub fn height(&self) -> &L {
-        &self.0.height
+        &self.height
     }
 
-    /// Parse a `Size` with a given parsing function.
+    /// Parse a `Size2D` with a given parsing function.
     pub fn parse_with<'i, 't, F>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -61,7 +67,7 @@ impl<L> Size<L> {
     }
 }
 
-impl<L> ToCss for Size<L>
+impl<L> ToCss for Size2D<L>
 where
     L: ToCss + PartialEq,
 {
@@ -69,40 +75,23 @@ where
     where
         W: Write,
     {
-        self.0.width.to_css(dest)?;
+        self.width.to_css(dest)?;
 
-        if self.0.height != self.0.width {
+        if self.height != self.width {
             dest.write_str(" ")?;
-            self.0.height.to_css(dest)?;
+            self.height.to_css(dest)?;
         }
 
         Ok(())
     }
 }
 
-impl<L> ToAnimatedValue for Size<L>
-where
-    L: ToAnimatedValue,
-{
-    type AnimatedValue = Size<L::AnimatedValue>;
-
-    #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        Size(Size2D::new(
-            self.0.width.to_animated_value(),
-            self.0.height.to_animated_value(),
-        ))
+impl<L: Zero> Zero for Size2D<L> {
+    fn zero() -> Self {
+        Self::new(L::zero(), L::zero())
     }
 
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        Size(Size2D::new(
-            L::from_animated_value(animated.0.width),
-            L::from_animated_value(animated.0.height),
-        ))
+    fn is_zero(&self) -> bool {
+        self.width.is_zero() && self.height.is_zero()
     }
-}
-
-impl<L: SpecifiedValueInfo> SpecifiedValueInfo for Size<L> {
-    const SUPPORTED_TYPES: u8 = L::SUPPORTED_TYPES;
 }

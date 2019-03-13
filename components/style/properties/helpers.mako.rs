@@ -19,6 +19,8 @@
         #[allow(unused_imports)]
         use crate::values::specified::AllowQuirks;
         #[allow(unused_imports)]
+        use crate::Zero;
+        #[allow(unused_imports)]
         use smallvec::SmallVec;
         pub use crate::values::specified::${type} as SpecifiedValue;
         pub mod computed_value {
@@ -324,29 +326,32 @@
                 PropertyDeclaration::CSSWideKeyword(ref declaration) => {
                     debug_assert_eq!(declaration.id, LonghandId::${property.camel_case});
                     match declaration.keyword {
-                        % if not data.current_style_struct.inherited:
+                        % if not property.style_struct.inherited:
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Initial => {
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_initial_font_size(context);
+                            % if not property.style_struct.inherited:
+                                debug_assert!(false, "Should be handled in apply_properties");
                             % else:
+                                % if property.name == "font-size":
+                                computed::FontSize::cascade_initial_font_size(context);
+                                % else:
                                 context.builder.reset_${property.ident}();
+                                % endif
                             % endif
                         },
-                        % if data.current_style_struct.inherited:
+                        % if property.style_struct.inherited:
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Inherit => {
-                            % if not property.style_struct.inherited:
-                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                            % endif
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_inherit_font_size(context);
+                            % if property.style_struct.inherited:
+                                debug_assert!(false, "Should be handled in apply_properties");
                             % else:
+                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
                                 context.builder.inherit_${property.ident}();
                             % endif
                         }
+                        CSSWideKeyword::Revert => unreachable!("Should never get here"),
                     }
                     return;
                 }

@@ -12,11 +12,11 @@ use crate::values::generics::length as generics;
 use crate::values::generics::length::{
     GenericLengthOrNumber, MaxSize as GenericMaxSize, Size as GenericSize,
 };
-use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
-use crate::values::{specified, Auto, CSSFloat, Either, Normal};
+use crate::values::{specified, CSSFloat, Either, Normal};
+use crate::Zero;
 use app_units::Au;
 use ordered_float::NotNan;
 use std::fmt::{self, Write};
@@ -203,12 +203,7 @@ impl LengthPercentage {
             return None;
         }
 
-        if self.clamping_mode.clamp(self.percentage.0) != self.percentage.0 {
-            debug_assert!(self.was_calc);
-            return None;
-        }
-
-        Some(self.percentage)
+        Some(Percentage(self.clamping_mode.clamp(self.percentage.0)))
     }
 
     /// Convert the computed value into used value.
@@ -347,12 +342,6 @@ impl ToComputedValue for specified::CalcLengthPercentage {
 }
 
 impl LengthPercentage {
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn zero() -> LengthPercentage {
-        LengthPercentage::new(Length::new(0.), None)
-    }
-
     /// 1px length value for SVG defaults
     #[inline]
     pub fn one() -> LengthPercentage {
@@ -433,14 +422,13 @@ impl ToComputedValue for specified::LengthPercentage {
     }
 
     fn from_computed_value(computed: &LengthPercentage) -> Self {
-        let length = computed.unclamped_length();
         if let Some(p) = computed.as_percentage() {
             return specified::LengthPercentage::Percentage(p);
         }
 
-        if !computed.has_percentage && computed.clamping_mode.clamp(length.px()) == length.px() {
+        if !computed.has_percentage {
             return specified::LengthPercentage::Length(ToComputedValue::from_computed_value(
-                &length,
+                &computed.length(),
             ));
         }
 
@@ -448,9 +436,13 @@ impl ToComputedValue for specified::LengthPercentage {
     }
 }
 
-impl IsZeroLength for LengthPercentage {
+impl Zero for LengthPercentage {
+    fn zero() -> Self {
+        LengthPercentage::new(Length::zero(), None)
+    }
+
     #[inline]
-    fn is_zero_length(&self) -> bool {
+    fn is_zero(&self) -> bool {
         self.is_definitely_zero()
     }
 }
@@ -459,12 +451,6 @@ impl IsZeroLength for LengthPercentage {
 /// length-percentage or auto.
 macro_rules! computed_length_percentage_or_auto {
     ($inner:ty) => {
-        /// Returns the `0` value.
-        #[inline]
-        pub fn zero() -> Self {
-            generics::LengthPercentageOrAuto::LengthPercentage(<$inner>::zero())
-        }
-
         /// Returns the used value.
         #[inline]
         pub fn to_used_value(&self, percentage_basis: Au) -> Option<Au> {
@@ -553,12 +539,6 @@ impl From<Au> for LengthPercentage {
 }
 
 impl NonNegativeLengthPercentage {
-    /// Get zero value.
-    #[inline]
-    pub fn zero() -> Self {
-        NonNegative(LengthPercentage::zero())
-    }
-
     /// Returns true if the computed value is absolute 0 or 0%.
     #[inline]
     pub fn is_definitely_zero(&self) -> bool {
@@ -662,11 +642,15 @@ impl CSSPixelLength {
     pub fn clamp_to_non_negative(self) -> Self {
         CSSPixelLength::new(self.0.max(0.))
     }
+}
 
-    /// Zero value
-    #[inline]
-    pub fn zero() -> Self {
+impl Zero for CSSPixelLength {
+    fn zero() -> Self {
         CSSPixelLength::new(0.)
+    }
+
+    fn is_zero(&self) -> bool {
+        self.px() == 0.
     }
 }
 
@@ -717,7 +701,10 @@ impl From<Au> for CSSPixelLength {
 pub type Length = CSSPixelLength;
 
 /// Either a computed `<length>` or the `auto` keyword.
-pub type LengthOrAuto = Either<Length, Auto>;
+pub type LengthOrAuto = generics::GenericLengthPercentageOrAuto<Length>;
+
+/// Either a non-negative `<length>` or the `auto` keyword.
+pub type NonNegativeLengthOrAuto = generics::GenericLengthPercentageOrAuto<NonNegativeLength>;
 
 /// Either a computed `<length>` or a `<number>` value.
 pub type LengthOrNumber = GenericLengthOrNumber<Length, Number>;
@@ -747,12 +734,6 @@ impl NonNegativeLength {
     #[inline]
     pub fn new(px: CSSFloat) -> Self {
         NonNegative(Length::new(px.max(0.)))
-    }
-
-    /// Return a zero value.
-    #[inline]
-    pub fn zero() -> Self {
-        Self::new(0.)
     }
 
     /// Return the pixel value of |NonNegativeLength|.
@@ -800,9 +781,6 @@ impl From<NonNegativeLength> for Au {
         Au::from(non_negative_len.0)
     }
 }
-
-/// Either a computed NonNegativeLength or the `auto` keyword.
-pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
 
 /// Either a computed NonNegativeLength or the `normal` keyword.
 pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
