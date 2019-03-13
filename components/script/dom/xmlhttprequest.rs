@@ -95,7 +95,6 @@ pub struct GenerationId(u32);
 struct XHRContext {
     xhr: TrustedXHRAddress,
     gen_id: GenerationId,
-    buf: DomRefCell<Vec<u8>>,
     sync_status: DomRefCell<Option<ErrorResult>>,
     resource_timing: ResourceFetchTiming,
 }
@@ -105,7 +104,7 @@ pub enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<HeaderMap>, Option<(u16, Vec<u8>)>),
     /// Partial progress (after receiving headers), containing portion of the response
-    Loading(GenerationId, ByteString),
+    Loading(GenerationId, Vec<u8>),
     /// Loading is done
     Done(GenerationId),
     /// There was an error (only Error::Abort, Error::Timeout or Error::Network is used)
@@ -133,7 +132,7 @@ pub struct XMLHttpRequest {
     response_url: DomRefCell<String>,
     status: Cell<u16>,
     status_text: DomRefCell<ByteString>,
-    response: DomRefCell<ByteString>,
+    response: DomRefCell<Vec<u8>>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
     response_blob: MutNullableDom<Blob>,
@@ -185,7 +184,7 @@ impl XMLHttpRequest {
             response_url: DomRefCell::new(String::new()),
             status: Cell::new(0),
             status_text: DomRefCell::new(ByteString::new(vec![])),
-            response: DomRefCell::new(ByteString::new(vec![])),
+            response: DomRefCell::new(vec![]),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
@@ -253,11 +252,8 @@ impl XMLHttpRequest {
                 }
             }
 
-            fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
-                self.buf.borrow_mut().append(&mut chunk);
-                self.xhr
-                    .root()
-                    .process_data_available(self.gen_id, self.buf.borrow().clone());
+            fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+                self.xhr.root().process_data_available(self.gen_id, chunk);
             }
 
             fn process_response_eof(
@@ -1008,7 +1004,7 @@ impl XMLHttpRequest {
     }
 
     fn process_data_available(&self, gen_id: GenerationId, payload: Vec<u8>) {
-        self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
+        self.process_partial_response(XHRProgress::Loading(gen_id, payload));
     }
 
     fn process_response_complete(
@@ -1083,12 +1079,12 @@ impl XMLHttpRequest {
                     self.change_ready_state(XMLHttpRequestState::HeadersReceived);
                 }
             },
-            XHRProgress::Loading(_, partial_response) => {
+            XHRProgress::Loading(_, mut partial_response) => {
                 // For synchronous requests, this should not fire any events, and just store data
                 // Part of step 11, send() (processing response body)
                 // XXXManishearth handle errors, if any (substep 2)
 
-                *self.response.borrow_mut() = partial_response;
+                self.response.borrow_mut().append(&mut partial_response);
                 if !self.sync.get() {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
                         self.ready_state.set(XMLHttpRequestState::Loading);
@@ -1451,7 +1447,6 @@ impl XMLHttpRequest {
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
             gen_id: self.generation_id.get(),
-            buf: DomRefCell::new(vec![]),
             sync_status: DomRefCell::new(None),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
