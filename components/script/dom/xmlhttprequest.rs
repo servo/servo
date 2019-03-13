@@ -1073,7 +1073,12 @@ impl XMLHttpRequest {
                 headers
                     .as_ref()
                     .map(|h| *self.response_headers.borrow_mut() = h.clone());
-
+                let len = headers.and_then(|h| h.typed_get::<ContentLength>());
+                let mut response = self.response.borrow_mut();
+                response.clear();
+                if let Some(len) = len {
+                    response.reserve(len.0 as usize);
+                }
                 // Substep 3
                 if !self.sync.get() {
                     self.change_ready_state(XMLHttpRequestState::HeadersReceived);
