@@ -533,6 +533,7 @@ pub mod xmldocument;
 pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
+pub mod xmlserializer;
 pub mod xr;
 pub mod xrframe;
 pub mod xrlayer;
