@@ -45,6 +45,18 @@ impl XRRigidTransform {
         )
     }
 
+    #[allow(unused)]
+    pub fn identity(window: &Window) -> DomRoot<XRRigidTransform> {
+        let global = window.global();
+        let position = DOMPointReadOnly::new(&global, 0., 0., 0., 1.);
+        let orientation = DOMPointReadOnly::new(&global, 0., 0., 0., 1.);
+        reflect_dom_object(
+            Box::new(XRRigidTransform::new_inherited(&position, &orientation)),
+            window,
+            XRRigidTransformBinding::Wrap,
+        )
+    }
+
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform
     pub fn Constructor(
         window: &Window,

@@ -5,8 +5,9 @@
 use crate::dom::bindings::codegen::Bindings::XRStationaryReferenceSpaceBinding;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
+use crate::dom::xrrigidtransform::XRRigidTransform;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -16,16 +17,17 @@ pub struct XRStationaryReferenceSpace {
 
 #[allow(unused)]
 impl XRStationaryReferenceSpace {
-    pub fn new_inherited() -> XRStationaryReferenceSpace {
+    pub fn new_inherited(transform: &XRRigidTransform) -> XRStationaryReferenceSpace {
         XRStationaryReferenceSpace {
-            xrreferencespace: XRReferenceSpace::new_inherited(),
+            xrreferencespace: XRReferenceSpace::new_inherited(transform),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<XRStationaryReferenceSpace> {
+    pub fn new(window: &Window) -> DomRoot<XRStationaryReferenceSpace> {
+        let transform = XRRigidTransform::identity(window);
         reflect_dom_object(
-            Box::new(XRStationaryReferenceSpace::new_inherited()),
-            global,
+            Box::new(XRStationaryReferenceSpace::new_inherited(&transform)),
+            window,
             XRStationaryReferenceSpaceBinding::Wrap,
         )
     }
