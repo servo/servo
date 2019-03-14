@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::{
     DOMPointReadOnlyMethods, Wrap,
 };
@@ -49,6 +50,10 @@ impl DOMPointReadOnly {
         w: f64,
     ) -> Fallible<DomRoot<DOMPointReadOnly>> {
         Ok(DOMPointReadOnly::new(global, x, y, z, w))
+    }
+
+    pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> DomRoot<DOMPointReadOnly> {
+        DOMPointReadOnly::new(global, p.x, p.y, p.z, p.w)
     }
 }
 
