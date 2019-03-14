@@ -104,6 +104,7 @@ include = [
   "TransformOrigin",
   "WordBreak",
   "Contain",
+  "RestyleHint",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -196,4 +197,10 @@ item_types = ["enums", "structs", "typedefs"]
 
 "GenericBorderRadius" = """
   inline const StyleLengthPercentage& Get(mozilla::HalfCorner) const;
+"""
+
+"RestyleHint" = """
+  static inline StyleRestyleHint RestyleSubtree();
+  static inline StyleRestyleHint RecascadeSubtree();
+  static inline StyleRestyleHint ForAnimations();
 """

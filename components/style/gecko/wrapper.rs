@@ -44,7 +44,6 @@ use crate::gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWThe
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
-use crate::gecko_bindings::structs::nsRestyleHint;
 use crate::gecko_bindings::structs::Document_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use crate::gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
@@ -58,6 +57,7 @@ use crate::gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLB
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
+use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
@@ -802,11 +802,10 @@ impl<'le> GeckoElement<'le> {
     /// Also this function schedules style flush.
     pub unsafe fn note_explicit_hints(
         &self,
-        restyle_hint: nsRestyleHint,
+        restyle_hint: RestyleHint,
         change_hint: nsChangeHint,
     ) {
         use crate::gecko::restyle_damage::GeckoRestyleDamage;
-        use crate::invalidation::element::restyle_hints::RestyleHint;
 
         let damage = GeckoRestyleDamage::new(change_hint);
         debug!(
@@ -814,7 +813,6 @@ impl<'le> GeckoElement<'le> {
             self, restyle_hint, change_hint
         );
 
-        let restyle_hint: RestyleHint = restyle_hint.into();
         debug_assert!(
             !(restyle_hint.has_animation_hint() && restyle_hint.has_non_animation_hint()),
             "Animation restyle hints should not appear with non-animation restyle hints"
@@ -1516,7 +1514,7 @@ impl<'le> TElement for GeckoElement<'le> {
             );
             unsafe {
                 self.note_explicit_hints(
-                    nsRestyleHint::eRestyle_Subtree,
+                    RestyleHint::restyle_subtree(),
                     nsChangeHint::nsChangeHint_Empty,
                 );
             }
