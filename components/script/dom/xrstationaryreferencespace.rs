@@ -8,6 +8,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
+use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -17,16 +18,21 @@ pub struct XRStationaryReferenceSpace {
 
 #[allow(unused)]
 impl XRStationaryReferenceSpace {
-    pub fn new_inherited(transform: &XRRigidTransform) -> XRStationaryReferenceSpace {
+    pub fn new_inherited(
+        session: &XRSession,
+        transform: &XRRigidTransform,
+    ) -> XRStationaryReferenceSpace {
         XRStationaryReferenceSpace {
-            xrreferencespace: XRReferenceSpace::new_inherited(transform),
+            xrreferencespace: XRReferenceSpace::new_inherited(session, transform),
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<XRStationaryReferenceSpace> {
+    pub fn new(window: &Window, session: &XRSession) -> DomRoot<XRStationaryReferenceSpace> {
         let transform = XRRigidTransform::identity(window);
         reflect_dom_object(
-            Box::new(XRStationaryReferenceSpace::new_inherited(&transform)),
+            Box::new(XRStationaryReferenceSpace::new_inherited(
+                session, &transform,
+            )),
             window,
             XRStationaryReferenceSpaceBinding::Wrap,
         )

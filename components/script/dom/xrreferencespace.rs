@@ -9,6 +9,7 @@ use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
+use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
 
@@ -19,9 +20,9 @@ pub struct XRReferenceSpace {
 }
 
 impl XRReferenceSpace {
-    pub fn new_inherited(transform: &XRRigidTransform) -> XRReferenceSpace {
+    pub fn new_inherited(session: &XRSession, transform: &XRRigidTransform) -> XRReferenceSpace {
         XRReferenceSpace {
-            xrspace: XRSpace::new_inherited(),
+            xrspace: XRSpace::new_inherited(session),
             transform: MutDom::new(transform),
         }
     }
@@ -29,12 +30,13 @@ impl XRReferenceSpace {
     #[allow(unused)]
     pub fn new(
         global: &Window,
+        session: &XRSession,
         position: &DOMPointReadOnly,
         orientation: &DOMPointReadOnly,
     ) -> DomRoot<XRReferenceSpace> {
         let transform = XRRigidTransform::identity(global);
         reflect_dom_object(
-            Box::new(XRReferenceSpace::new_inherited(&transform)),
+            Box::new(XRReferenceSpace::new_inherited(session, &transform)),
             global,
             XRReferenceSpaceBinding::Wrap,
         )
