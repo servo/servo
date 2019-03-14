@@ -130,11 +130,11 @@ impl TextTrackListMethods for TextTrackList {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-texttracklist-onchange
-    event_handler!(onchange, GetOnchange, SetOnchange);
+    event_handler!(change, GetOnchange, SetOnchange);
 
     // https://html.spec.whatwg.org/multipage/#handler-texttracklist-onaddtrack
-    event_handler!(onaddtrack, GetOnaddtrack, SetOnaddtrack);
+    event_handler!(addtrack, GetOnaddtrack, SetOnaddtrack);
 
     // https://html.spec.whatwg.org/multipage/#handler-texttracklist-onremovetrack
-    event_handler!(onremovetrack, GetOnremovetrack, SetOnremovetrack);
+    event_handler!(removetrack, GetOnremovetrack, SetOnremovetrack);
 }
