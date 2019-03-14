@@ -34,6 +34,16 @@ impl XRReferenceSpace {
         position: &DOMPointReadOnly,
         orientation: &DOMPointReadOnly,
     ) -> DomRoot<XRReferenceSpace> {
+        let transform = XRRigidTransform::new(global, position, orientation);
+        reflect_dom_object(
+            Box::new(XRReferenceSpace::new_inherited(session, &transform)),
+            global,
+            XRReferenceSpaceBinding::Wrap,
+        )
+    }
+
+    #[allow(unused)]
+    pub fn identity(global: &Window, session: &XRSession) -> DomRoot<XRReferenceSpace> {
         let transform = XRRigidTransform::identity(global);
         reflect_dom_object(
             Box::new(XRReferenceSpace::new_inherited(session, &transform)),
