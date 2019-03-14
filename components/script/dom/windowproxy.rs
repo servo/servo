@@ -391,32 +391,32 @@ impl WindowProxy {
         target: DOMString,
         features: DOMString,
     ) -> Option<DomRoot<WindowProxy>> {
-        // Step 3.
+        // Step 4.
         let non_empty_target = match target.as_ref() {
             "" => DOMString::from("_blank"),
             _ => target,
         };
-        // Step 4
-        let features = tokenize_open_features(features);
         // Step 5
+        let features = tokenize_open_features(features);
+        // Step 6-9
         let noreferrer = parse_open_feature_boolean(&features, "noreferrer");
         let noopener = if noreferrer {
             true
         } else {
             parse_open_feature_boolean(&features, "noopener")
         };
-        // Step 6, 7
+        // Step 10, 11
         let (chosen, new) = match self.choose_browsing_context(non_empty_target, noopener) {
             (Some(chosen), new) => (chosen, new),
             (None, _) => return None,
         };
-        // TODO Step 8, set up browsing context features.
+        // TODO Step 12, set up browsing context features.
         let target_document = match chosen.document() {
             Some(target_document) => target_document,
             None => return None,
         };
         let target_window = target_document.window();
-        // Step 9, and 10.2, will have happened elsewhere,
+        // Step 13, and 14.4, will have happened elsewhere,
         // since we've created a new browsing context and loaded it with about:blank.
         if !url.is_empty() {
             let existing_document = self
@@ -424,12 +424,12 @@ impl WindowProxy {
                 .get()
                 .and_then(|id| ScriptThread::find_document(id))
                 .unwrap();
-            // Step 10.1
+            // Step 14.1
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
                 Err(_) => return None, // TODO: throw a  "SyntaxError" DOMException.
             };
-            // Step 10.3
+            // Step 14.3, 14.5
             target_window.load_url(
                 url,
                 new,
@@ -442,10 +442,10 @@ impl WindowProxy {
             );
         }
         if noopener {
-            // Step 11 (Dis-owning has been done in create_auxiliary_browsing_context).
+            // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).
             return None;
         }
-        // Step 12.
+        // Step 16.
         return target_document.browsing_context();
     }
 
