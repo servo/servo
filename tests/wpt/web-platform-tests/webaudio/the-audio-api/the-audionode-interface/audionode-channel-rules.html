@@ -14,7 +14,8 @@
     <script id="layout-test-code">
       let audit = Audit.createTaskRunner();
       let context = 0;
-      let sampleRate = 44100;
+      // Use a power of two to eliminate round-off converting frames to time.
+      let sampleRate = 32768;
       let renderNumberOfChannels = 8;
       let singleTestFrameLength = 8;
       let testBuffers;

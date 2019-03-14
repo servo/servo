@@ -51,7 +51,7 @@ use crate::ServoArc;
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{is_image_data, LayoutElementType, LayoutNodeType};
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::collections::LinkedList;
@@ -419,8 +419,17 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 SpecificFragmentInfo::Media(Box::new(MediaFragmentInfo::new(data)))
             },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
+                let elem = node.as_element().unwrap();
+                let type_and_data = (
+                    elem.get_attr(&ns!(), &local_name!("type")),
+                    elem.get_attr(&ns!(), &local_name!("data")),
+                );
+                let object_data = match type_and_data {
+                    (None, Some(uri)) if is_image_data(uri) => ServoUrl::parse(uri).ok(),
+                    _ => None,
+                };
                 let image_info = Box::new(ImageFragmentInfo::new(
-                    node.object_data(),
+                    object_data,
                     None,
                     node,
                     &self.layout_context,
@@ -1015,7 +1024,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
 
         let node_style = node.style(self.style_context());
-        if is_empty && node_style.has_padding_or_border() {
+        if is_empty && has_padding_or_border(&node_style) {
             // An empty inline box needs at least one fragment to draw its background and borders.
             let info = SpecificFragmentInfo::UnscannedText(Box::new(
                 UnscannedTextFragmentInfo::new(Box::<str>::from(""), None),
@@ -1976,7 +1985,15 @@ where
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => true,
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
-                self.has_object_data()
+                let elem = self.as_element().unwrap();
+                let type_and_data = (
+                    elem.get_attr(&ns!(), &local_name!("type")),
+                    elem.get_attr(&ns!(), &local_name!("data")),
+                );
+                match type_and_data {
+                    (None, Some(uri)) => is_image_data(uri),
+                    _ => false,
+                }
             },
             Some(LayoutNodeType::Element(_)) => false,
             None => self.get_pseudo_element_type().is_replaced_content(),
@@ -2007,61 +2024,7 @@ where
     }
 }
 
-/// Methods for interacting with HTMLObjectElement nodes
-trait ObjectElement {
-    /// Returns true if this node has object data that is correct uri.
-    fn has_object_data(&self) -> bool;
-
-    /// Returns the "data" attribute value parsed as a URL
-    fn object_data(&self) -> Option<ServoUrl>;
-}
-
-impl<N> ObjectElement for N
-where
-    N: ThreadSafeLayoutNode,
-{
-    fn has_object_data(&self) -> bool {
-        let elem = self.as_element().unwrap();
-        let type_and_data = (
-            elem.get_attr(&ns!(), &local_name!("type")),
-            elem.get_attr(&ns!(), &local_name!("data")),
-        );
-        match type_and_data {
-            (None, Some(uri)) => is_image_data(uri),
-            _ => false,
-        }
-    }
-
-    fn object_data(&self) -> Option<ServoUrl> {
-        let elem = self.as_element().unwrap();
-        let type_and_data = (
-            elem.get_attr(&ns!(), &local_name!("type")),
-            elem.get_attr(&ns!(), &local_name!("data")),
-        );
-        match type_and_data {
-            (None, Some(uri)) if is_image_data(uri) => ServoUrl::parse(uri).ok(),
-            _ => None,
-        }
-    }
-}
-
-// This must not be public because only the layout constructor can call these
-// methods.
-trait FlowConstructionUtils {
-    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
-    /// it's present.
-    fn add_new_child(&mut self, new_child: FlowRef);
-
-    /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
-    /// This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic --
-    /// inline-size) calculation, unless the global `bubble_inline-sizes_separately` flag is on.
-    ///
-    /// All flows must be finished at some point, or they will not have their intrinsic inline-
-    /// sizes properly computed. (This is not, however, a memory safety problem.)
-    fn finish(&mut self);
-}
-
-impl FlowConstructionUtils for FlowRef {
+impl FlowRef {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
         {
@@ -2207,26 +2170,19 @@ where
     )
 }
 
-/// Convenience methods for computed CSS values
-trait ComputedValueUtils {
-    /// Returns true if this node has non-zero padding or border.
-    fn has_padding_or_border(&self) -> bool;
-}
+/// Returns true if this node has non-zero padding or border.
+fn has_padding_or_border(values: &ComputedValues) -> bool {
+    let padding = values.get_padding();
+    let border = values.get_border();
 
-impl ComputedValueUtils for ComputedValues {
-    fn has_padding_or_border(&self) -> bool {
-        let padding = self.get_padding();
-        let border = self.get_border();
-
-        !padding.padding_top.is_definitely_zero() ||
-            !padding.padding_right.is_definitely_zero() ||
-            !padding.padding_bottom.is_definitely_zero() ||
-            !padding.padding_left.is_definitely_zero() ||
-            border.border_top_width.px() != 0. ||
-            border.border_right_width.px() != 0. ||
-            border.border_bottom_width.px() != 0. ||
-            border.border_left_width.px() != 0.
-    }
+    !padding.padding_top.is_definitely_zero() ||
+        !padding.padding_right.is_definitely_zero() ||
+        !padding.padding_bottom.is_definitely_zero() ||
+        !padding.padding_left.is_definitely_zero() ||
+        border.border_top_width.px() != 0. ||
+        border.border_right_width.px() != 0. ||
+        border.border_bottom_width.px() != 0. ||
+        border.border_left_width.px() != 0.
 }
 
 /// Maintains a stack of anonymous boxes needed to ensure that the flow tree is *legal*. The tree
@@ -2471,4 +2427,10 @@ impl Legalizer {
             .create_similar_anonymous_fragment(new_style, specific_fragment_info);
         FlowRef::new(Arc::new(constructor(fragment)))
     }
+}
+
+pub fn is_image_data(uri: &str) -> bool {
+    static TYPES: &'static [&'static str] =
+        &["data:image/png", "data:image/gif", "data:image/jpeg"];
+    TYPES.iter().any(|&type_| uri.starts_with(type_))
 }

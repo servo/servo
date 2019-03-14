@@ -92,8 +92,14 @@ class FontInstaller(object):
 
         gdi32 = ctypes.WinDLL('gdi32')
         if gdi32.AddFontResourceW(font_path):
-            return bool(ctypes.windll.user32.SendMessageW(hwnd_broadcast,
-                                                          wm_fontchange))
+            from ctypes import wintypes
+            wparam = 0
+            lparam = 0
+            SendMessageW = ctypes.windll.user32.SendMessageW
+            SendMessageW.argtypes = [wintypes.HANDLE, wintypes.UINT,
+                                     wintypes.WPARAM, wintypes.LPARAM]
+            return bool(SendMessageW(hwnd_broadcast, wm_fontchange,
+                                     wparam, lparam))
 
     def remove_linux_font(self, font_name, _):
         if self.created_dir:
@@ -120,5 +126,11 @@ class FontInstaller(object):
 
         gdi32 = ctypes.WinDLL('gdi32')
         if gdi32.RemoveFontResourceW(font_path):
-            return bool(ctypes.windll.user32.SendMessageW(hwnd_broadcast,
-                                                          wm_fontchange))
+            from ctypes import wintypes
+            wparam = 0
+            lparam = 0
+            SendMessageW = ctypes.windll.user32.SendMessageW
+            SendMessageW.argtypes = [wintypes.HANDLE, wintypes.UINT,
+                                     wintypes.WPARAM, wintypes.LPARAM]
+            return bool(SendMessageW(hwnd_broadcast, wm_fontchange,
+                                     wparam, lparam))

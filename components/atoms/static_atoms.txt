@@ -30,16 +30,19 @@ error
 fantasy
 fetch
 file
+formdata
 fullscreenchange
 fullscreenerror
 gattserverdisconnected
 hashchange
 hidden
+icecandidate
 image
 input
 invalid
 keydown
 keypress
+kind
 left
 ltr
 load
@@ -52,6 +55,7 @@ message
 monospace
 month
 mouseover
+negotiationneeded
 none
 number
 onchange
@@ -63,6 +67,7 @@ pause
 play
 playing
 popstate
+postershown
 print
 progress
 radio
@@ -74,6 +79,7 @@ rejectionhandled
 removetrack
 reset
 resize
+resourcetimingbufferfull
 right
 rtl
 sans-serif
@@ -89,6 +95,7 @@ seeked
 seeking
 select
 serif
+srclang
 statechange
 storage
 submit

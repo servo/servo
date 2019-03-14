@@ -29,10 +29,16 @@ interface mixin TextEncoderCommon {
   readonly attribute DOMString encoding;
 };
 
+dictionary TextEncoderEncodeIntoResult {
+  unsigned long long read;
+  unsigned long long written;
+};
+
 [Constructor,
  Exposed=(Window,Worker)]
 interface TextEncoder {
   [NewObject] Uint8Array encode(optional USVString input = "");
+  TextEncoderEncodeIntoResult encodeInto(USVString source, Uint8Array destination);
 };
 TextEncoder includes TextEncoderCommon;
 

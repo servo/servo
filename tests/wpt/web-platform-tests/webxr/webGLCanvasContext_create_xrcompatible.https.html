@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas id="webgl-canvas"></canvas>
+  <script>
+    xr_promise_test("An XR-compatible webglCanvasContext can be created",
+      (t) => {
+        return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+          .then( (controller) => {
+            webglCanvas = document.getElementById('webgl-canvas');
+            gl = webglCanvas.getContext('webgl', {xrCompatible: true});
+            assert_true(gl.getContextAttributes().xrCompatible);
+
+            // Check that an offscreen context behaves no different.
+            let offscreenCanvas = document.createElement('canvas');
+            let offscreenGl = webglCanvas.getContext(
+              'webgl', {xrCompatible: true});
+            assert_true(offscreenGl.getContextAttributes().xrCompatible);
+          });
+      });
+
+  </script>
+</body>

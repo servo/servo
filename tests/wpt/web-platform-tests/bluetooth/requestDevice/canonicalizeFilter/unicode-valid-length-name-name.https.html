@@ -12,10 +12,11 @@ const test_desc = 'A name containing unicode characters whose utf8 length ' +
 // 9 chars * 3 bytes/char = 27 bytes
 const valid_unicode_name = '\u2764'.repeat(9);
 
-bluetooth_test(() => setUpPreconnectedDevice({name: valid_unicode_name})
-    .then(() => requestDeviceWithTrustedClick({
-      filters: [{name: valid_unicode_name}]
-    }))
-    .then(device => assert_equals(device.name, valid_unicode_name)),
+bluetooth_test(
+    () => setUpPreconnectedDevice({name: valid_unicode_name})
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{name: valid_unicode_name}]}))
+              .then(device => assert_equals(device.name, valid_unicode_name)),
     test_desc);
 </script>

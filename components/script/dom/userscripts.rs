@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::node::Node;
+use crate::dom::node::document_from_node;
 use js::jsval::UndefinedValue;
 use servo_config::opts;
 use std::fs::{read_dir, File};
@@ -13,14 +14,18 @@ use std::io::Read;
 use std::path::PathBuf;
 
 pub fn load_script(head: &HTMLHeadElement) {
-    if let Some(ref path_str) = opts::get().userscripts {
-        let node = head.upcast::<Node>();
-        let doc = node.owner_doc();
-        let win = doc.window();
+    let path_str = match opts::get().userscripts.clone() {
+        Some(p) => p,
+        None => return,
+    };
+    let doc = document_from_node(head);
+    let win = Trusted::new(doc.window());
+    doc.add_delayed_task(task!(UserScriptExecute: move || {
+        let win = win.root();
         let cx = win.get_cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
 
-        let path = PathBuf::from(path_str);
+        let path = PathBuf::from(&path_str);
         let mut files = read_dir(&path)
             .expect("Bad path passed to --userscripts")
             .filter_map(|e| e.ok())
@@ -35,7 +40,12 @@ pub fn load_script(head: &HTMLHeadElement) {
             f.read_to_end(&mut contents).unwrap();
             let script_text = String::from_utf8_lossy(&contents);
             win.upcast::<GlobalScope>()
-                .evaluate_js_on_global_with_result(&script_text, rval.handle_mut());
+                .evaluate_script_on_global_with_result(
+                    &script_text,
+                    &file.to_string_lossy(),
+                    rval.handle_mut(),
+                    1,
+                );
         }
-    }
+    }));
 }

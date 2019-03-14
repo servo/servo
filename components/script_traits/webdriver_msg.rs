@@ -26,6 +26,7 @@ pub enum WebDriverScriptCommand {
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ()>>),
     FindElementsCSS(String, IpcSender<Result<Vec<String>, ()>>),
+    FindElementElementCSS(String, String, IpcSender<Result<Option<String>, ()>>),
     FocusElement(String, IpcSender<Result<(), ()>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),

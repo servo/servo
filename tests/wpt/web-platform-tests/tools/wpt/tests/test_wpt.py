@@ -165,51 +165,6 @@ def test_list_tests_invalid_manifest(manifest_dir):
 @pytest.mark.remote_network
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="Tests currently don't work on Windows for path reasons")
-def test_run_firefox(manifest_dir):
-    # TODO: It seems like there's a bug in argparse that makes this argument order required
-    # should try to work around that
-    if is_port_8000_in_use():
-        pytest.skip("port 8000 already in use")
-
-    if sys.platform == "darwin":
-        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "Firefox Nightly.app")
-    else:
-        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "firefox")
-    if os.path.exists(fx_path):
-        shutil.rmtree(fx_path)
-    with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--no-pause", "--install-browser", "--yes",
-                       # The use of `--binary-args` is intentional: it
-                       # demonstrates that internally-managed command-line
-                       # arguments are properly merged with those specified by
-                       # the user. See
-                       # https://github.com/web-platform-tests/wpt/pull/13154
-                       "--binary-arg=-headless",
-                       "--metadata", manifest_dir,
-                       "firefox", "/dom/nodes/Element-tagName.html"])
-    assert os.path.exists(fx_path)
-    shutil.rmtree(fx_path)
-    assert excinfo.value.code == 0
-
-
-@pytest.mark.slow
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="Tests currently don't work on Windows for path reasons")
-def test_run_chrome(manifest_dir):
-    if is_port_8000_in_use():
-        pytest.skip("port 8000 already in use")
-
-    with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "--metadata", manifest_dir,
-                       "chrome", "/dom/nodes/Element-tagName.html"])
-    assert excinfo.value.code == 0
-
-
-@pytest.mark.slow
-@pytest.mark.remote_network
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="Tests currently don't work on Windows for path reasons")
 def test_run_zero_tests():
     """A test execution describing zero tests should be reported as an error
     even in the presence of the `--no-fail-on-unexpected` option."""
@@ -402,7 +357,7 @@ def test_tests_affected_idlharness(capsys, manifest_dir):
         wpt.main(argv=["tests-affected", "--metadata", manifest_dir, "%s~..%s" % (commit, commit)])
     assert excinfo.value.code == 0
     out, err = capsys.readouterr()
-    assert "webrtc/idlharness.https.window.js\n" == out
+    assert "webrtc-stats/idlharness.window.js\nwebrtc/idlharness.https.window.js\n" == out
 
 
 @pytest.mark.slow  # this updates the manifest
@@ -457,6 +412,5 @@ def test_serve():
 
 # The following commands are slow running and used implicitly in other CI
 # jobs, so we skip them here:
-# wpt check-stability
 # wpt manifest
 # wpt lint

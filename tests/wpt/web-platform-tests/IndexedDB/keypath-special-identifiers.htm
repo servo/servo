@@ -54,6 +54,8 @@
         const result = request.result;
         assert_key_equals(result[testcase.property], key,
                           'Property should be used as key');
+      });
+      tx.oncomplete = t.step_func(function() {
         t.done();
       });
     },

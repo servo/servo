@@ -4,9 +4,10 @@
 
 use crate::block::AbsoluteAssignBSizesTraversal;
 use crate::context::{LayoutContext, LayoutFontContext};
-use crate::display_list::items::OpaqueNode;
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
+use crate::display_list::items::{DisplayListSection, OpaqueNode};
+use crate::display_list::{
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionState,
+};
 use crate::floats::{FloatKind, Floats, PlacementInfo};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
 use crate::flow::{EarlyAbsolutePositionInfo, FlowFlags, GetBaseFlow, OpaqueFlow};
@@ -20,11 +21,12 @@ use crate::text;
 use crate::traversal::PreorderFlowTraversal;
 use crate::ServoArc;
 use app_units::{Au, MIN_AU};
-use euclid::{Point2D, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::font::FontMetrics;
 use gfx_traits::print_tree::PrintTree;
 use range::{Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;
+use servo_geometry::MaxRect;
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -1427,6 +1429,25 @@ impl InlineFlow {
         }
         None
     }
+
+    fn build_display_list_for_inline_fragment_at_index(
+        &mut self,
+        state: &mut DisplayListBuildState,
+        index: usize,
+    ) {
+        let fragment = self.fragments.fragments.get_mut(index).unwrap();
+        let stacking_relative_border_box = self
+            .base
+            .stacking_relative_border_box_for_display_list(fragment);
+        fragment.build_display_list(
+            state,
+            stacking_relative_border_box,
+            BorderPaintingMode::Separate,
+            DisplayListSection::Content,
+            self.base.clip,
+            None,
+        );
+    }
 }
 
 impl Flow for InlineFlow {
@@ -1830,11 +1851,77 @@ impl Flow for InlineFlow {
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
-        self.collect_stacking_contexts_for_inline(state);
+        self.base.stacking_context_id = state.current_stacking_context_id;
+        self.base.clipping_and_scrolling = Some(state.current_clipping_and_scrolling);
+        self.base.clip = state
+            .clip_stack
+            .last()
+            .cloned()
+            .unwrap_or_else(Rect::max_rect);
+
+        let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
+
+        for fragment in self.fragments.fragments.iter_mut() {
+            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
+
+            let abspos_containing_block = fragment.style.get_box().position != Position::Static;
+            if abspos_containing_block {
+                state.containing_block_clipping_and_scrolling =
+                    state.current_clipping_and_scrolling;
+            }
+
+            // We clear this here, but it might be set again if we create a stacking context for
+            // this fragment.
+            fragment.established_reference_frame = None;
+
+            if !fragment.collect_stacking_contexts_for_blocklike_fragment(state) {
+                if !fragment.establishes_stacking_context() {
+                    fragment.stacking_context_id = state.current_stacking_context_id;
+                } else {
+                    fragment.create_stacking_context_for_inline_block(&self.base, state);
+                }
+            }
+
+            // Reset the containing block clipping and scrolling before each loop iteration,
+            // so we don't pollute subsequent fragments.
+            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
+        }
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        self.build_display_list_for_inline(state);
+        debug!(
+            "Flow: building display list for {} inline fragments",
+            self.fragments.len()
+        );
+
+        // We iterate using an index here, because we want to avoid doing a doing
+        // a double-borrow of self (one mutable for the method call and one immutable
+        // for the self.fragments.fragment iterator itself).
+        for index in 0..self.fragments.fragments.len() {
+            let (establishes_stacking_context, stacking_context_id) = {
+                let fragment = self.fragments.fragments.get(index).unwrap();
+                (
+                    self.base.stacking_context_id != fragment.stacking_context_id,
+                    fragment.stacking_context_id,
+                )
+            };
+
+            let parent_stacking_context_id = state.current_stacking_context_id;
+            if establishes_stacking_context {
+                state.current_stacking_context_id = stacking_context_id;
+            }
+
+            self.build_display_list_for_inline_fragment_at_index(state, index);
+
+            if establishes_stacking_context {
+                state.current_stacking_context_id = parent_stacking_context_id
+            }
+        }
+
+        if !self.fragments.fragments.is_empty() {
+            self.base
+                .build_display_items_for_debugging_tint(state, self.fragments.fragments[0].node);
+        }
     }
 
     fn repair_style(&mut self, _: &ServoArc<ComputedValues>) {}

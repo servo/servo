@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/content-security-policy/support/testharness-helper.js"></script>
+</head>
+<body>
+
+  <!-- Some elements for the tests to act on. -->
+  <a id="anchor" href="#">anchor</a>
+  <div id="div"></div>
+  <script id="script-src" src=""></script>
+  <script id="script"></script>
+
+  <script>
+  // CSP insists the "trusted-types: ..." directives are deliverd as headers
+  // (rather than as "<meta http-equiv" tags). This test assumes the following
+  // headers are set in the .headers file:
+  //
+  //   Content-Security-Policy-Report-Only: trusted-types ...; report-uri ...
+
+  // Return function that returns a promise that resolves on the given
+  // violation report.
+  function expect_violation(filter) {
+    return new Promise((resolve, reject) => {
+      function handler(e) {
+        if (e.originalPolicy.includes(filter)) {
+          document.removeEventListener("securitypolicyviolation", handler);
+          e.stopPropagation();
+          resolve(e);
+        }
+      }
+      document.addEventListener("securitypolicyviolation", handler);
+    });
+  }
+
+  // A sample policy we use to test TrustedTypes.createPolicy behaviour.
+  const id = x => x;
+  const policy = TrustedTypes.createPolicy("two", {
+    createHTML: id,
+    createScriptURL: id,
+    createURL: id,
+    createScript: id,
+  });
+
+
+  promise_test(t => {
+    let p = expect_violation("trusted-types two");
+    document.getElementById("anchor").href = "#abc";
+    assert_true(document.getElementById("anchor").href.endsWith("#abc"));
+    return p;
+  }, "Trusted Type violation report-only: assign string to url");
+
+  promise_test(t => {
+    let p = expect_violation("trusted-types two");
+    document.getElementById("div").innerHTML = "abc";
+    assert_equals(document.getElementById("div").textContent, "abc");
+    return p;
+  }, "Trusted Type violation report-only: assign string to html");
+
+  promise_test(t => {
+    let p = expect_violation("trusted-types two");
+    document.getElementById("script-src").src = "#";
+    assert_true(document.getElementById("script-src").src.endsWith("#"));
+    return p;
+  }, "Trusted Type violation report-only: assign string to script.src");
+
+  promise_test(t => {
+    let p = expect_violation("trusted-types two");
+    document.getElementById("script").innerHTML = "con" + "sole.log('Hello');";
+    assert_true(document.getElementById("script").textContent.startsWith("consol"));
+    return p;
+  }, "Trusted Type violation report-only: assign string to script content");
+
+  promise_test(t => {
+    let p = expect_violation("trusted-types two");
+    document.getElementById("anchor").href = "#def";
+    return p.then(report => {
+      assert_equals(report.documentURI, "" + window.location);
+      assert_equals(report.disposition, "report");
+      assert_equals(report.effectiveDirective, "trusted-types");
+      assert_equals(report.violatedDirective, "trusted-types");
+      assert_true(report.originalPolicy.startsWith("trusted-types two;"));
+    });
+  }, "Trusted Type violation report: check report contents");
+
+  </script>
+
+</body>

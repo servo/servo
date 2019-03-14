@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas></canvas>
+  <script>
+
+    let immersiveTestName =
+      "Immersive XRSession requestReferenceSpace returns expected objects";
+    let nonImmersiveTestName =
+      "Non-immersive XRSession requestReferenceSpace returns expected objects";
+
+    let fakeDeviceInitParams = { supportsImmersive: true };
+
+    let immersiveSessionOptions = { mode: 'immersive-vr' };
+    let nonImmersiveSessionOptions = { mode: 'inline' };
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      return promise_rejects(t, new TypeError(), session.requestReferenceSpace({ type: "foo" }))
+        .then(() => promise_rejects(t, "NotSupportedError", session.requestReferenceSpace({ type: "stationary" })))
+        .then(() => promise_rejects(t, new TypeError(), session.requestReferenceSpace({ type: "stationary", subtype: "bar" })))
+        .then(() => Promise.all([
+        session.requestReferenceSpace({ type: "identity" }).then( (referenceSpace) => {
+            t.step(() => {
+              assert_true(referenceSpace instanceof XRSpace,
+                "identity reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRReferenceSpace,
+                "identity reference space is not correct type.");
+            });
+          }),
+          session.requestReferenceSpace({ type: "stationary", subtype: "position-disabled" }).then( (referenceSpace) => {
+            t.step(() => {
+              assert_true(referenceSpace instanceof XRSpace,
+                "position-disabled stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRReferenceSpace,
+                "position-disabled stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRStationaryReferenceSpace,
+                "position-disabled stationary reference space is not correct type.");
+            });
+          }),
+          session.requestReferenceSpace({ type: "stationary", subtype: "eye-level" }).then( (referenceSpace) => {
+            t.step(() => {
+              assert_true(referenceSpace instanceof XRSpace,
+                "eye-level stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRReferenceSpace,
+                "eye-level stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRStationaryReferenceSpace,
+                "eye-level stationary reference space is not correct type.");
+            });
+          }),
+          session.requestReferenceSpace({ type: "stationary", subtype: "floor-level" }).then( (referenceSpace) => {
+            t.step(() => {
+              assert_true(referenceSpace instanceof XRSpace,
+                "floor-level stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRReferenceSpace,
+                "floor-level stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRStationaryReferenceSpace,
+                "floor-level stationary reference space is not correct type.");
+            });
+          })
+        ]))
+        .then(() => {
+          if (!session.immersive) {
+            // Bounded reference spaces are not allowed in inline sessions.
+            return promise_rejects(t, "NotSupportedError", session.requestReferenceSpace({ type: "bounded" }))
+          }
+        })
+        .then(() => {
+          if (!session.immersive) {
+            // Unbounded reference spaces are not allowed in inline sessions.
+            return promise_rejects(t, "NotSupportedError", session.requestReferenceSpace({ type: "unbounded" }))
+          }
+        })
+    };
+
+    xr_session_promise_test(
+      immersiveTestName, testFunction, fakeDeviceInitParams, immersiveSessionOptions);
+    xr_session_promise_test(
+      nonImmersiveTestName, testFunction, fakeDeviceInitParams, nonImmersiveSessionOptions);
+
+  </script>
+</body>

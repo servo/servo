@@ -165,7 +165,7 @@
   }, "script_url = identity function");
 
   test(t => {
-    createScriptURLTest('TestPolicyScriptURL2', { createScriptURL: s => null }, "", t);
+    createScriptURLTest('TestPolicyScriptURL2', { createScriptURL: s => null }, "null", t);
   }, "script_url = null");
 
   var scriptURLstr = '#duck';
@@ -240,7 +240,7 @@
   }, "url = identity function");
 
   test(t => {
-    createURLTest('TestPolicyURL2', { createURL: s => null }, "", t);
+    createURLTest('TestPolicyURL2', { createURL: s => null }, "null", t);
   }, "url = null");
 
   var URLstr = '#x';

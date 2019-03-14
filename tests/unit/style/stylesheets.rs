@@ -17,20 +17,16 @@ use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
-use style::properties::longhands::{self, animation_timing_function};
+use style::properties::longhands;
 use style::properties::{CSSWideKeyword, CustomDeclaration};
 use style::properties::{CustomDeclarationValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::keyframes_rule::{Keyframe, KeyframePercentage, KeyframeSelector};
 use style::stylesheets::{
-    CssRule, CssRules, KeyframesRule, NamespaceRule, StyleRule, Stylesheet, StylesheetContents,
+    CssRule, CssRules, NamespaceRule, StyleRule, Stylesheet, StylesheetContents,
 };
 use style::stylesheets::{Namespaces, Origin};
-use style::values::computed::Percentage;
-use style::values::specified::TimingFunction;
-use style::values::specified::{LengthOrPercentageOrAuto, PositionComponent};
-use style::values::{CustomIdent, KeyframesName};
+use style::values::specified::PositionComponent;
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where
@@ -61,14 +57,6 @@ fn test_parse_stylesheet() {
             display: block;
         }
         #d1 > .ok { background: blue; }
-        @keyframes foo {
-            from { width: 0% }
-            to {
-                width: 100%;
-                width: 50% !important; /* !important not allowed here */
-                animation-name: 'foo'; /* animation properties not allowed here */
-                animation-timing-function: ease; /* … except animation-timing-function */
-            }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
     let lock = SharedRwLock::new();
@@ -276,56 +264,6 @@ fn test_parse_stylesheet() {
                         source_location: SourceLocation {
                             line: 15,
                             column: 9,
-                        },
-                    }))),
-                    CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
-                        name: KeyframesName::Ident(CustomIdent("foo".into())),
-                        keyframes: vec![
-                            Arc::new(stylesheet.shared_lock.wrap(Keyframe {
-                                selector: KeyframeSelector::new_for_unit_testing(vec![
-                                    KeyframePercentage::new(0.),
-                                ]),
-                                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![(
-                                    PropertyDeclaration::Width(
-                                        LengthOrPercentageOrAuto::Percentage(Percentage(0.)),
-                                    ),
-                                    Importance::Normal,
-                                )]))),
-                                source_location: SourceLocation {
-                                    line: 17,
-                                    column: 13,
-                                },
-                            })),
-                            Arc::new(stylesheet.shared_lock.wrap(Keyframe {
-                                selector: KeyframeSelector::new_for_unit_testing(vec![
-                                    KeyframePercentage::new(1.),
-                                ]),
-                                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
-                                    (
-                                        PropertyDeclaration::Width(
-                                            LengthOrPercentageOrAuto::Percentage(Percentage(1.)),
-                                        ),
-                                        Importance::Normal,
-                                    ),
-                                    (
-                                        PropertyDeclaration::AnimationTimingFunction(
-                                            animation_timing_function::SpecifiedValue(vec![
-                                                TimingFunction::ease(),
-                                            ]),
-                                        ),
-                                        Importance::Normal,
-                                    ),
-                                ]))),
-                                source_location: SourceLocation {
-                                    line: 18,
-                                    column: 13,
-                                },
-                            })),
-                        ],
-                        vendor_prefix: None,
-                        source_location: SourceLocation {
-                            line: 16,
-                            column: 19,
                         },
                     }))),
                 ],

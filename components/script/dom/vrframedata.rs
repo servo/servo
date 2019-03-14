@@ -58,10 +58,12 @@ impl VRFrameData {
             VRFrameDataBinding::Wrap,
         );
         let cx = global.get_cx();
-        create_typed_array(cx, &matrix, &root.left_proj);
-        create_typed_array(cx, &matrix, &root.left_view);
-        create_typed_array(cx, &matrix, &root.right_proj);
-        create_typed_array(cx, &matrix, &root.right_view);
+        unsafe {
+            create_typed_array(cx, &matrix, &root.left_proj);
+            create_typed_array(cx, &matrix, &root.left_view);
+            create_typed_array(cx, &matrix, &root.right_proj);
+            create_typed_array(cx, &matrix, &root.right_view);
+        }
 
         root
     }
@@ -71,12 +73,11 @@ impl VRFrameData {
     }
 }
 
+/// FIXME(#22526) this should be in a better place
 #[allow(unsafe_code)]
-fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
+pub unsafe fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
     rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-    unsafe {
-        let _ = Float32Array::create(cx, CreateWith::Slice(src), array.handle_mut());
-    }
+    let _ = Float32Array::create(cx, CreateWith::Slice(src), array.handle_mut());
     (*dst).set(array.get());
 }
 

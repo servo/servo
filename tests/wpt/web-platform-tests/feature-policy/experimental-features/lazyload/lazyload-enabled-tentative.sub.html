@@ -16,7 +16,7 @@ iframe {
 
 .spacer {
   width: 100%;
-  height: 300%;
+  height: 10000px;
 }
 </style>
 <div class="spacer"></div>
@@ -31,12 +31,12 @@ iframe {
 
   window.scrollTo(0, 0);
 
-  // Sanity-check: Make sure lazyload='on' works as intended.
+  // Sanity-check: Make sure load='lazy' works as intended.
   promise_test(async(t) => {
-    // Add a frame with lazyload="on".
+    // Add a frame with load="lazy".
     let frame_on = createIframe(document.body, {
         id: "ON",
-        lazyload: "on",
+        load: "lazy",
         src: `${cross_origin_url}?id=ON`
       });
     // Sanity-check: The frame is not visible.
@@ -48,17 +48,17 @@ iframe {
         await waitForMessageOrTimeout(t, "ON", load_timeout);
     assert_equals(msg_or_timeout_attr_on,
                   expected_timeout_msg,
-                  "With lazyload='on', the frame should not load.");
+                  "With load='lazy', the frame should not load.");
   }, "Sanity-check: Contents do not load immediately (no eager-loading) " +
-     "when the lazyload attribute is 'on' and frame is in viewport.");
+     "when the load attribute is 'lazy' and frame is in viewport.");
 
   // When feature is enabled, a frame can turn off lazy loading by setting the
   // attribute to 'off'.
   promise_test(async(t) => {
-    // Add a frame with lazyload="off".
+    // Add a frame with load="eager".
     let frame_off = createIframe(document.body, {
         id: "OFF",
-        lazyload: "off",
+        load: "eager",
         src: `${cross_origin_url}?id=OFF`
       });
     // Sanity-check: The frame is not visible.
@@ -71,7 +71,7 @@ iframe {
 
     assert_equals(msg_or_timeout_attr_off,
                   expected_load_msg,
-                  "With lazyload='off', the frame should load.");
+                  "With load='eager', the frame should load.");
   }, "When 'lazyload' feature is enabled, a frame can avoid lazyloading by " +
-     "setting 'lazyload' attribute to 'off'");
+     "setting 'load' attribute to 'eager'");
 </script>

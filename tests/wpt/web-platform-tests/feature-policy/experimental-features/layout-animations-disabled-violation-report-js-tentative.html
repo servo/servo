@@ -7,7 +7,7 @@
 <body>
 <script>
   test(() => {
-    document.policy.allowedFeatures().forEach((enabled_feature) => {
+    document.featurePolicy.allowedFeatures().forEach((enabled_feature) => {
       assert_not_equals(enabled_feature, "layout-animations");
     });
   },

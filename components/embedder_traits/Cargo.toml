@@ -17,6 +17,8 @@ keyboard-types = "0.4.3"
 lazy_static = "1"
 log = "0.4"
 msg = {path = "../msg"}
+num-traits = "0.2"
+num-derive = "0.2"
 serde = "1.0"
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits", features = ["servo"]}

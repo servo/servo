@@ -399,3 +399,15 @@ promise_test(t => {
     });
   });
 }, 'close() should not reject until no sink methods are in flight');
+
+promise_test(() => {
+  const ws = new WritableStream();
+  const writer1 = ws.getWriter();
+  return writer1.close().then(() => {
+    writer1.releaseLock();
+    const writer2 = ws.getWriter();
+    const ready = writer2.ready;
+    assert_equals(ready.constructor, Promise);
+    return ready;
+  });
+}, 'ready promise should be initialised as fulfilled for a writer on a closed stream');

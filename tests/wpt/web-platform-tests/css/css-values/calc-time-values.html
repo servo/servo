@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: calc() function with time values</title>
+
+  <!--
+
+  Original test is:
+
+  https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793f5b9668cc/third_party/WebKit/LayoutTests/css3/calc/calc-with-time-angle-and-frequency-values.html
+
+  Issue 917718: [css-values] calc-with-time-angle-and-frequency-values
+  test is highly unreliable, transition-delay testing causes side effects
+  https://bugs.chromium.org/p/chromium/issues/detail?id=917718
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#calc-computed-value">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#time">
+
+  <meta content="This test checks that additions, substractions, multiplications and divisions in calc() function when applied to time units." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <div id="log"></div>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+    var targetElement = document.getElementById("target");
+
+    function compareValue(property_name, calcValue, expectedValue, description)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, "inherit");
+
+      /*
+      Since we are running many consecutive tests on the same
+      element, then it is necessary to 'reset' its property
+      to an initial value before actually re-testing it.
+      */
+
+      targetElement.style.setProperty(property_name, calcValue);
+
+      var computedCalcValue = getComputedStyle(targetElement)[property_name];
+
+      targetElement.style.setProperty(property_name, expectedValue);
+
+      var computedExpectedValue = getComputedStyle(targetElement)[property_name];
+
+      assert_equals(computedCalcValue, computedExpectedValue);
+
+      }, description);
+
+    }
+
+
+    /* Testing time units  */
+
+ /* compareValue(property_name, calcValue, expectedValue, description)  */
+
+    compareValue("transition-delay", "calc(4s + 1s)", "5s", "addition of 2 time units: s plus s");
+
+    compareValue("transition-delay", "calc(4s + 1ms)", "4.001s", "addition of 2 time units: s plus ms");
+
+    compareValue("transition-delay", "calc(4ms + 1ms)", "0.005s", "addition of 2 time units: ms plus ms");
+
+    compareValue("transition-delay", "calc(4s - 1s)", "3s", "substraction of time unit: s minus s");
+
+    compareValue("transition-delay", "calc(4s - 1ms)", "3.999s", "substraction of time unit: s minus ms");
+
+    compareValue("transition-delay", "calc(4 * 1s)", "4s", "multiplication of integer with a time unit: int multiplied by s");
+
+    compareValue("transition-delay", "calc(4 * 1ms)", "0.004s", "multiplication of integer with a time unit: int multiplied by ms");
+
+    compareValue("transition-delay", "calc(4s / 2)", "2s", "division of time unit with integer: s divided by int");
+
+    compareValue("transition-delay", "calc(4ms / 2)", "0.002s", "division of time unit with integer: ms divided by int");
+
+ /* compareValue(property_name, calcValue, expectedValue, description)  */
+
+
+
+  /* Testing conversion of time unit  */
+
+ /* compareValue(property_name, calcValue, expectedValue, description)  */
+
+    compareValue("transition-delay", "calc(4000ms)", "4s", "conversion of time unit: ms into s");
+
+  }
+
+  startTesting();
+
+  </script>

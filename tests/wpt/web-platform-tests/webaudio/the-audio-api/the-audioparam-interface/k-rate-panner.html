@@ -131,16 +131,20 @@
 
         // Set listener properties to "random" values so that motion on one of
         // the attributes actually changes things relative to the panner
-        // location.
+        // location.  And the up and forward directions should have a simple
+        // relationship between them.
         listener.positionX.value = -1;
         listener.positionY.value = 1;
         listener.positionZ.value = -1;
         listener.forwardX.value = -1;
         listener.forwardY.value = 1;
         listener.forwardZ.value = -1;
+        // Make the up vector not parallel or perpendicular to the forward and
+        // position vectors so that automations of the up vector produce
+        // noticeable differences.
         listener.upX.value = 1;
         listener.upY.value = 1;
-        listener.upZ.value = 1;
+        listener.upZ.value = 2;
 
         let audioParam = listener[options.param];
         audioParam.automationRate = 'k-rate';

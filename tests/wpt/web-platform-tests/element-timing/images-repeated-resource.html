@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe elements with the same resource</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  let numEntries = 0;
+  let responseEnd1;
+  let responseEnd2;
+  const index = window.location.href.lastIndexOf('/');
+  const pathname = window.location.href.substring(0, index) +
+      '/resources/square100.png';
+  async_test(function (t) {
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        entryList.getEntries().forEach(entry => {
+          checkElement(entry, pathname, entry.identifier, beforeRender);
+          if (entry.identifier === 'my_image') {
+            ++numEntries;
+            responseEnd1 = entry.responseEnd;
+          }
+          else if (entry.identifier === 'my_image2') {
+            ++numEntries;
+            responseEnd2 = entry.responseEnd;
+          }
+        });
+        if (numEntries == 2) {
+          assert_equals(responseEnd1, responseEnd2);
+          t.done();
+        }
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the images during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    window.onload = () => {
+      // Add image of width and height equal to 100.
+      const img = document.createElement('img');
+      img.src = 'resources/square100.png';
+      img.setAttribute('elementtiming', 'my_image');
+      document.body.appendChild(img);
+
+      const img2 = document.createElement('img');
+      img2.src = 'resources/square100.png';
+      img2.setAttribute('elementtiming', 'my_image2');
+      document.body.appendChild(img2);
+
+      beforeRender = performance.now();
+    };
+  }, 'Element with elementtiming attribute is observable.');
+</script>
+
+</body>

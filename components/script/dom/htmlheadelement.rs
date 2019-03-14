@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, RootedReference};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
@@ -49,7 +49,7 @@ impl HTMLHeadElement {
     pub fn set_document_referrer(&self) {
         let doc = document_from_node(self);
 
-        if doc.GetHead().r() != Some(self) {
+        if doc.GetHead().deref() != Some(self) {
             return;
         }
 
@@ -65,7 +65,7 @@ impl HTMLHeadElement {
             });
 
         for meta in candidates {
-            if let Some(content) = meta.get_attribute(&ns!(), &local_name!("content")).r() {
+            if let Some(ref content) = meta.get_attribute(&ns!(), &local_name!("content")) {
                 let content = content.value();
                 let content_val = content.trim();
                 if !content_val.is_empty() {

@@ -11,6 +11,8 @@ use std::borrow::Borrow;
 use std::fmt;
 use std::ops::Deref;
 
+/// In Gecko namespaces are just regular atoms, so this is a simple macro to
+/// forward one macro to the other.
 #[macro_export]
 macro_rules! ns {
     () => {

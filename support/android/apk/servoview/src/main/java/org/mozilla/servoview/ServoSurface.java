@@ -36,6 +36,7 @@ public class ServoSurface {
     private Surface mASurface;
     private int mWidth;
     private int mHeight;
+    private long mVRExternalContext;
     private Servo mServo;
     private Client mClient = null;
     private String mServoArgs;
@@ -51,6 +52,11 @@ public class ServoSurface {
         mGLThread = new GLThread();
     }
 
+    public void onSurfaceChanged(Surface surface) {
+      mASurface = surface;
+      mGLThread.onSurfaceChanged();
+    }
+
     public void setClient(Client client) {
         mClient = client;
     }
@@ -62,6 +68,10 @@ public class ServoSurface {
 
     public void setActivity(Activity activity) {
         mActivity = activity;
+    }
+
+    public void setVRExternalContext(long context) {
+        mVRExternalContext = context;
     }
 
     public void runLoop() {
@@ -230,6 +240,13 @@ public class ServoSurface {
             mMainLooperHandler.post(r);
         }
 
+        public void onSurfaceChanged() {
+          Log.d(LOGTAG, "GLThread::onSurfaceChanged");
+          mSurface.destroy();
+          mSurface = new GLSurface(mASurface);
+          mServo.resetGfxCallbacks(mSurface);
+        }
+
         public void shutdown() {
             Log.d(LOGTAG, "GLThread::shutdown");
             mSurface.destroy();
@@ -253,6 +270,7 @@ public class ServoSurface {
               options.logStr = mServoLog;
               options.enableLogs = true;
               options.enableSubpixelTextAntialiasing = false;
+              options.VRExternalContext = mVRExternalContext;
 
               mServo = new Servo(options, this, mSurface, mClient, mActivity);
             });

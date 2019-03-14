@@ -47,7 +47,7 @@ use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::Evaluate2;
-use js::rust::{get_object_class, CompileOptionsWrapper, Runtime};
+use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::PipelineId;
@@ -709,6 +709,16 @@ impl GlobalScope {
             return worker.file_reading_task_source();
         }
         unreachable!();
+    }
+
+    pub fn runtime_handle(&self) -> ParentRuntime {
+        if self.is::<Window>() {
+            ScriptThread::runtime_handle()
+        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.runtime_handle()
+        } else {
+            unreachable!()
+        }
     }
 
     /// Returns the ["current"] global object.

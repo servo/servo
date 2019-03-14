@@ -4,13 +4,18 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackListBinding::{self, TextTrackListMethods};
+use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::texttrack::TextTrack;
+use crate::dom::trackevent::TrackEvent;
 use crate::dom::window::Window;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -56,8 +61,40 @@ impl TextTrackList {
         // Only add a track if it does not exist in the list
         if self.find(track).is_none() {
             self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
-        };
-        self.upcast::<EventTarget>().fire_event(atom!("addtrack"));
+
+            let this = Trusted::new(self);
+            let (source, canceller) = &self
+                .global()
+                .as_window()
+                .task_manager()
+                .media_element_task_source_with_canceller();
+
+            let idx = match self.find(&track) {
+                Some(t) => t,
+                None => return,
+            };
+
+            let _ = source.queue_with_canceller(
+                task!(track_event_queue: move || {
+                    let this = this.root();
+
+                    if let Some(track) = this.item(idx) {
+                        let event = TrackEvent::new(
+                            &this.global(),
+                            atom!("addtrack"),
+                            false,
+                            false,
+                            &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
+                                DomRoot::from_ref(&track)
+                            )),
+                        );
+
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>());
+                    }
+                }),
+                &canceller,
+            );
+        }
     }
 
     // FIXME(#22314, dlrobertson) allow TextTracks to be

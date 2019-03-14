@@ -5,8 +5,8 @@
   // test case name. This is useful to avoid lock interference between
   // test cases.
   let res_num = 0;
-  self.uniqueName = testCase => {
-    return `${self.location.pathname}-${testCase.name}-${++res_num}`;
+  self.uniqueName = (testCase, prefix) => {
+    return `${self.location.pathname}-${prefix}-${testCase.name}-${++res_num}`;
   };
 
   // Inject an iframe showing the given url into the page, and resolve

@@ -14,8 +14,8 @@
     %>
     ${helpers.predefined_type(
         "margin-%s" % side[0],
-        "LengthOrPercentageOrAuto",
-        "computed::LengthOrPercentageOrAuto::Length(computed::Length::new(0.))",
+        "LengthPercentageOrAuto",
+        "computed::LengthPercentageOrAuto::zero()",
         alias=maybe_moz_logical_alias(product, side, "-moz-margin-%s"),
         allow_quirks=not side[1],
         animation_value_type="ComputedValue",
@@ -25,5 +25,20 @@
         flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
         allowed_in_page_rule=True,
         servo_restyle_damage="reflow"
+    )}
+% endfor
+
+% for side in ALL_SIDES:
+    ${helpers.predefined_type(
+        "scroll-margin-%s" % side[0],
+        "Length",
+        "computed::Length::zero()",
+        products="gecko",
+        gecko_pref="layout.css.scroll-snap-v1.enabled",
+        logical=side[1],
+        logical_group="scroll-margin",
+        spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-%s" % side[0],
+        flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE",
+        animation_value_type="ComputedValue",
     )}
 % endfor

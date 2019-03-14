@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Fraction bar visibility</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
+    <meta name="assert" content="The CSS visible property affects the rendering of the fraction bar.">
+    <link rel="match" href="frac-visibility-001-ref.html">
+  </head>
+  <body>
+    <p>This test passes if you see a green square and no red.</p>
+    <div style="background: green; width: 200px; height: 200px;">
+      <math>
+        <mfrac style="visibility: hidden; color: red">
+          <mspace width="200px" height="20px"></mspace>
+          <mspace width="200px" height="20px"></mspace>
+        </mfrac>
+      </math>
+    </div>
+  </body>
+</html>

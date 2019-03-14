@@ -21,6 +21,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use style::context::QuirksMode;
+use style::dom::OpaqueNode;
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
@@ -81,7 +82,7 @@ pub enum Msg {
     /// Creates a new layout thread.
     ///
     /// This basically exists to keep the script-layout dependency one-way.
-    CreateLayoutThread(NewLayoutThreadInfo),
+    CreateLayoutThread(LayoutThreadInit),
 
     /// Set the final Url.
     SetFinalUrl(ServoUrl),
@@ -111,16 +112,20 @@ pub enum NodesFromPointQueryType {
 
 #[derive(Debug, PartialEq)]
 pub enum QueryMsg {
-    ContentBoxQuery(TrustedNodeAddress),
-    ContentBoxesQuery(TrustedNodeAddress),
-    NodeScrollIdQuery(TrustedNodeAddress),
-    NodeGeometryQuery(TrustedNodeAddress),
-    NodeScrollGeometryQuery(TrustedNodeAddress),
-    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
-    OffsetParentQuery(TrustedNodeAddress),
-    StyleQuery(TrustedNodeAddress),
-    TextIndexQuery(TrustedNodeAddress, Point2D<f32>),
+    ContentBoxQuery(OpaqueNode),
+    ContentBoxesQuery(OpaqueNode),
+    NodeGeometryQuery(OpaqueNode),
+    NodeScrollGeometryQuery(OpaqueNode),
+    OffsetParentQuery(OpaqueNode),
+    TextIndexQuery(OpaqueNode, Point2D<f32>),
     NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
+
+    // FIXME(nox): The following queries use the TrustedNodeAddress to
+    // access actual DOM nodes, but those values can be constructed from
+    // garbage values such as `0xdeadbeef as *const _`, this is unsound.
+    NodeScrollIdQuery(TrustedNodeAddress),
+    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
+    StyleQuery(TrustedNodeAddress),
     ElementInnerTextQuery(TrustedNodeAddress),
 }
 
@@ -138,18 +143,18 @@ impl ReflowGoal {
     pub fn needs_display_list(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations => true,
-            ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
-                &QueryMsg::NodesFromPointQuery(..) |
-                &QueryMsg::TextIndexQuery(..) |
-                &QueryMsg::ElementInnerTextQuery(_) => true,
-                &QueryMsg::ContentBoxQuery(_) |
-                &QueryMsg::ContentBoxesQuery(_) |
-                &QueryMsg::NodeGeometryQuery(_) |
-                &QueryMsg::NodeScrollGeometryQuery(_) |
-                &QueryMsg::NodeScrollIdQuery(_) |
-                &QueryMsg::ResolvedStyleQuery(..) |
-                &QueryMsg::OffsetParentQuery(_) |
-                &QueryMsg::StyleQuery(_) => false,
+            ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
+                QueryMsg::NodesFromPointQuery(..) |
+                QueryMsg::TextIndexQuery(..) |
+                QueryMsg::ElementInnerTextQuery(_) => true,
+                QueryMsg::ContentBoxQuery(_) |
+                QueryMsg::ContentBoxesQuery(_) |
+                QueryMsg::NodeGeometryQuery(_) |
+                QueryMsg::NodeScrollGeometryQuery(_) |
+                QueryMsg::NodeScrollIdQuery(_) |
+                QueryMsg::ResolvedStyleQuery(..) |
+                QueryMsg::OffsetParentQuery(_) |
+                QueryMsg::StyleQuery(_) => false,
             },
         }
     }
@@ -159,18 +164,18 @@ impl ReflowGoal {
     pub fn needs_display(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations => true,
-            ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
-                &QueryMsg::NodesFromPointQuery(..) |
-                &QueryMsg::TextIndexQuery(..) |
-                &QueryMsg::ElementInnerTextQuery(_) => true,
-                &QueryMsg::ContentBoxQuery(_) |
-                &QueryMsg::ContentBoxesQuery(_) |
-                &QueryMsg::NodeGeometryQuery(_) |
-                &QueryMsg::NodeScrollGeometryQuery(_) |
-                &QueryMsg::NodeScrollIdQuery(_) |
-                &QueryMsg::ResolvedStyleQuery(..) |
-                &QueryMsg::OffsetParentQuery(_) |
-                &QueryMsg::StyleQuery(_) => false,
+            ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
+                QueryMsg::NodesFromPointQuery(..) |
+                QueryMsg::TextIndexQuery(..) |
+                QueryMsg::ElementInnerTextQuery(_) => true,
+                QueryMsg::ContentBoxQuery(_) |
+                QueryMsg::ContentBoxesQuery(_) |
+                QueryMsg::NodeGeometryQuery(_) |
+                QueryMsg::NodeScrollGeometryQuery(_) |
+                QueryMsg::NodeScrollIdQuery(_) |
+                QueryMsg::ResolvedStyleQuery(..) |
+                QueryMsg::OffsetParentQuery(_) |
+                QueryMsg::StyleQuery(_) => false,
             },
         }
     }
@@ -209,7 +214,7 @@ pub struct ScriptReflow {
     pub dom_count: u32,
 }
 
-pub struct NewLayoutThreadInfo {
+pub struct LayoutThreadInit {
     pub id: PipelineId,
     pub url: ServoUrl,
     pub is_parent: bool,

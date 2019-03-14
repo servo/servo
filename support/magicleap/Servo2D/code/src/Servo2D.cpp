@@ -48,9 +48,15 @@ void logger(MLLogLevel lvl, char* msg) {
 }
 
 // A function which updates the history ui, suitable for passing into Servo
-typedef void (*MLHistoryUpdate)(Servo2D* app, bool canGoBack, char* url, bool canGoForward);
-void history(Servo2D* app, bool canGoBack, char* url, bool canGoForward) {
-  app->updateHistory(canGoBack, url, canGoForward);
+typedef void (*MLHistoryUpdate)(Servo2D* app, bool canGoBack, bool canGoForward);
+void history(Servo2D* app, bool canGoBack, bool canGoForward) {
+  app->updateHistory(canGoBack, canGoForward);
+}
+
+// A function which updates the url ui, suitable for passing into Servo
+typedef void (*MLURLUpdate)(Servo2D* app, char* url);
+void url(Servo2D* app, char* url) {
+  app->updateUrl(url);
 }
 
 // A function to show or hide the keyboard
@@ -61,7 +67,7 @@ void keyboard(Servo2D* app, bool visible) {
 
 // The functions Servo provides for hooking up to the ML.
 extern "C" ServoInstance* init_servo(EGLContext, EGLSurface, EGLDisplay,
-                                     Servo2D*, MLLogger, MLHistoryUpdate, MLKeyboard,
+                                     Servo2D*, MLLogger, MLHistoryUpdate, MLURLUpdate, MLKeyboard,
                                      const char* url, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance*);
 extern "C" void keyboard_servo(ServoInstance*, char32_t code, lumin::ui::KeyType keyType);
@@ -165,7 +171,7 @@ int Servo2D::init() {
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
   // Hook into servo
-  servo_ = init_servo(ctx, surf, dpy, this, logger, history, keyboard, HOME_PAGE, VIEWPORT_W, VIEWPORT_H, HIDPI);
+  servo_ = init_servo(ctx, surf, dpy, this, logger, history, url, keyboard, HOME_PAGE, VIEWPORT_W, VIEWPORT_H, HIDPI);
   if (!servo_) {
     ML_LOG(Error, "Servo2D Failed to init servo instance");
     abort();
@@ -401,8 +407,11 @@ bool Servo2D::keyboardEventListener(const lumin::ui::KeyboardEvent::EventData& e
   return true;
 }
 
-void Servo2D::updateHistory(bool canGoBack, const char* url, bool canGoForward) {
+void Servo2D::updateUrl(const char* url) {
+  url_bar_->setText(url);
+}
+
+void Servo2D::updateHistory(bool canGoBack, bool canGoForward) {
   back_button_->setEnabled(canGoBack);
   fwd_button_->setEnabled(canGoForward);
-  url_bar_->setText(url);
 }

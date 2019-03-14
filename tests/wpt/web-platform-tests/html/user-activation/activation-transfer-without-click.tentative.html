@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+    https://github.com/whatwg/html/issues/4364
+
+-->
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <h1>User activation transfer request from an inactive frame is ignored.</h1>
+  <iframe id="child" width="200" height="200"></iframe>
+  <script>
+    async_test(function(t) {
+      var child = document.getElementById("child");
+      var is_page_loaded = false;
+      var is_child_four_loaded = false;
+      assert_false(navigator.userActivation.isActive);
+      assert_false(navigator.userActivation.hasBeenActive);
+
+      function tryPostMessaging() {
+        if (is_page_loaded && is_child_four_loaded)
+          child.contentWindow.postMessage("transfer_user_activation", {transferUserActivation: true});
+      }
+
+      window.addEventListener("message", t.step_func(event => {
+        var msg = JSON.parse(event.data);
+        if (msg.type == 'child-four-loaded') {
+          // state should be false after load
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+          is_child_four_loaded = true;
+
+          tryPostMessaging();
+        } else if (msg.type == 'child-four-report') {
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+          assert_false(navigator.userActivation.isActive);
+          assert_false(navigator.userActivation.hasBeenActive);
+          t.done();
+        }
+      }));
+
+      window.addEventListener("load", function(event) {
+          is_page_loaded = true;
+          tryPostMessaging();
+      });
+      child.src = "resources/child-four.html";
+    }, "User activation transfer from inactive frame");
+  </script>
+</body>
+</html>

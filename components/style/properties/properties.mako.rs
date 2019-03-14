@@ -42,6 +42,7 @@ use crate::values::computed;
 use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
 use crate::rule_tree::StrongRuleNode;
+use crate::Zero;
 use self::computed_value_flags::*;
 use crate::str::{CssString, CssStringBorrow, CssStringWriter};
 
@@ -899,6 +900,8 @@ pub enum CSSWideKeyword {
     Inherit,
     /// The `unset` keyword.
     Unset,
+    /// The `revert` keyword.
+    Revert,
 }
 
 impl CSSWideKeyword {
@@ -907,6 +910,7 @@ impl CSSWideKeyword {
             CSSWideKeyword::Initial => "initial",
             CSSWideKeyword::Inherit => "inherit",
             CSSWideKeyword::Unset => "unset",
+            CSSWideKeyword::Revert => "revert",
         }
     }
 }
@@ -920,6 +924,7 @@ impl CSSWideKeyword {
                 "initial" => CSSWideKeyword::Initial,
                 "inherit" => CSSWideKeyword::Inherit,
                 "unset" => CSSWideKeyword::Unset,
+                "revert" => CSSWideKeyword::Revert,
                 _ => return Err(()),
             }
         };
@@ -2102,6 +2107,7 @@ impl PropertyDeclaration {
     }
 
     /// Returns a CSS-wide keyword if the declaration's value is one.
+    #[inline]
     pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
         match *self {
             PropertyDeclaration::CSSWideKeyword(ref declaration) => {
@@ -2585,7 +2591,8 @@ pub mod style_structs {
                     /// Whether the border-${side} property has nonzero width.
                     #[allow(non_snake_case)]
                     pub fn border_${side}_has_nonzero_width(&self) -> bool {
-                        self.border_${side}_width != NonNegativeLength::zero()
+                        use crate::Zero;
+                        !self.border_${side}_width.is_zero()
                     }
                 % endfor
             % elif style_struct.name == "Font":
@@ -2624,7 +2631,8 @@ pub mod style_structs {
                 /// Whether the outline-width property is non-zero.
                 #[inline]
                 pub fn outline_has_nonzero_width(&self) -> bool {
-                    self.outline_width != NonNegativeLength::zero()
+                    use crate::Zero;
+                    !self.outline_width.is_zero()
                 }
             % elif style_struct.name == "Text":
                 /// Whether the text decoration has an underline.
@@ -2718,11 +2726,7 @@ pub mod style_structs {
             /// Whether this is a multicol style.
             #[cfg(feature = "servo")]
             pub fn is_multicol(&self) -> bool {
-                use crate::values::Either;
-                match self.column_width {
-                    Either::First(_width) => true,
-                    Either::Second(_auto) => !self.column_count.is_auto(),
-                }
+                !self.column_width.is_auto() || !self.column_count.is_auto()
             }
         % endif
     }
@@ -2890,7 +2894,6 @@ impl ComputedValues {
 impl ComputedValues {
     /// Create a new refcounted `ComputedValues`
     pub fn new(
-        _: &Device,
         _: Option<<&PseudoElement>,
         custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -3017,7 +3020,7 @@ impl ComputedValuesInner {
 
     /// Get the logical computed inline size.
     #[inline]
-    pub fn content_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
+    pub fn content_inline_size(&self) -> computed::Size {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() {
             position_style.height
@@ -3028,42 +3031,42 @@ impl ComputedValuesInner {
 
     /// Get the logical computed block size.
     #[inline]
-    pub fn content_block_size(&self) -> computed::LengthOrPercentageOrAuto {
+    pub fn content_block_size(&self) -> computed::Size {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.width } else { position_style.height }
     }
 
     /// Get the logical computed min inline size.
     #[inline]
-    pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_inline_size(&self) -> computed::Size {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
     }
 
     /// Get the logical computed min block size.
     #[inline]
-    pub fn min_block_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_block_size(&self) -> computed::Size {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
     }
 
     /// Get the logical computed max inline size.
     #[inline]
-    pub fn max_inline_size(&self) -> computed::LengthOrPercentageOrNone {
+    pub fn max_inline_size(&self) -> computed::MaxSize {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.max_height } else { position_style.max_width }
     }
 
     /// Get the logical computed max block size.
     #[inline]
-    pub fn max_block_size(&self) -> computed::LengthOrPercentageOrNone {
+    pub fn max_block_size(&self) -> computed::MaxSize {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.max_width } else { position_style.max_height }
     }
 
     /// Get the logical computed padding for this writing mode.
     #[inline]
-    pub fn logical_padding(&self) -> LogicalMargin<computed::LengthOrPercentage> {
+    pub fn logical_padding(&self) -> LogicalMargin<computed::LengthPercentage> {
         let padding_style = self.get_padding();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             padding_style.padding_top.0,
@@ -3093,7 +3096,7 @@ impl ComputedValuesInner {
 
     /// Gets the logical computed margin from this style.
     #[inline]
-    pub fn logical_margin(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
+    pub fn logical_margin(&self) -> LogicalMargin<computed::LengthPercentageOrAuto> {
         let margin_style = self.get_margin();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             margin_style.margin_top,
@@ -3105,7 +3108,7 @@ impl ComputedValuesInner {
 
     /// Gets the logical position from this style.
     #[inline]
-    pub fn logical_position(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
+    pub fn logical_position(&self) -> LogicalMargin<computed::LengthPercentageOrAuto> {
         // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
         let position_style = self.get_position();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
@@ -3359,7 +3362,7 @@ impl<'a> StyleBuilder<'a> {
         debug_assert!(parent_style.is_none() ||
                       std::ptr::eq(parent_style.unwrap(),
                                      parent_style_ignoring_first_line.unwrap()) ||
-                      parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
+                      parent_style.unwrap().is_first_line_style());
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
         let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
@@ -3403,7 +3406,7 @@ impl<'a> StyleBuilder<'a> {
         let inherited_style = parent_style.unwrap_or(reset_style);
         #[cfg(feature = "gecko")]
         debug_assert!(parent_style.is_none() ||
-                      parent_style.unwrap().pseudo() != Some(PseudoElement::FirstLine));
+                      !parent_style.unwrap().is_first_line_style());
         StyleBuilder {
             device,
             inherited_style,
@@ -3436,22 +3439,16 @@ impl<'a> StyleBuilder<'a> {
     }
 
     % for property in data.longhands:
-    % if property.ident != "font_size":
+    % if not property.style_struct.inherited:
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
         let inherited_struct =
-        % if property.style_struct.inherited:
-            self.inherited_style.get_${property.style_struct.name_lower}();
-        % else:
             self.inherited_style_ignoring_first_line
                 .get_${property.style_struct.name_lower}();
-        % endif
 
-        % if not property.style_struct.inherited:
-        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
         self.modified_reset = true;
-        % endif
+        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
 
         % if property.ident == "content":
         self.flags.insert(ComputedValueFlags::INHERITS_CONTENT);
@@ -3473,16 +3470,12 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
-
+    % elif property.name != "font-size":
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {
         let reset_struct =
             self.reset_style.get_${property.style_struct.name_lower}();
-
-        % if not property.style_struct.inherited:
-        self.modified_reset = true;
-        % endif
 
         if self.${property.style_struct.ident}.ptr_eq(reset_struct) {
             return;
@@ -3496,6 +3489,7 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
+    % endif
 
     % if not property.is_vector:
     /// Set the `${property.ident}` to the computed value `value`.
@@ -3508,18 +3502,14 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset = true;
         % endif
 
-        <% props_need_device = ["content", "list_style_type", "font_variant_alternates"] %>
         self.${property.style_struct.ident}.mutate()
             .set_${property.ident}(
                 value,
                 % if property.logical:
                 self.writing_mode,
-                % elif product == "gecko" and property.ident in props_need_device:
-                self.device,
                 % endif
             );
     }
-    % endif
     % endif
     % endfor
     <% del property %>
@@ -3627,11 +3617,12 @@ impl<'a> StyleBuilder<'a> {
                  Position::Absolute | Position::Fixed)
     }
 
-    /// Whether this style has a top-layer style. That's implemented in Gecko
-    /// via the -moz-top-layer property, but servo doesn't have any concept of a
-    /// top layer (yet, it's needed for fullscreen).
+    /// Whether this style has a top-layer style.
     #[cfg(feature = "servo")]
-    pub fn in_top_layer(&self) -> bool { false }
+    pub fn in_top_layer(&self) -> bool {
+        matches!(self.get_box().clone__servo_top_layer(),
+                 longhands::_servo_top_layer::computed_value::T::Top)
+    }
 
     /// Whether this style has a top-layer style.
     #[cfg(feature = "gecko")]
@@ -3654,7 +3645,6 @@ impl<'a> StyleBuilder<'a> {
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
     pub fn build(self) -> Arc<ComputedValues> {
         ComputedValues::new(
-            self.device,
             self.pseudo,
             self.custom_properties,
             self.writing_mode,
@@ -3821,7 +3811,14 @@ impl AliasId {
     }
 }
 
-// NOTE(emilio): Callers are responsible to deal with prefs.
+/// Call the given macro with tokens like this for each longhand and shorthand properties
+/// that is enabled in content:
+///
+/// ```
+/// [CamelCaseName, SetCamelCaseName, PropertyId::Longhand(LonghandId::CamelCaseName)],
+/// ```
+///
+/// NOTE(emilio): Callers are responsible to deal with prefs.
 #[macro_export]
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
@@ -3844,6 +3841,14 @@ macro_rules! css_properties_accessors {
     }
 }
 
+/// Call the given macro with tokens like this for each longhand properties:
+///
+/// ```
+/// { snake_case_ident, true }
+/// ```
+///
+/// … where the boolean indicates whether the property value type
+/// is wrapped in a `Box<_>` in the corresponding `PropertyDeclaration` variant.
 #[macro_export]
 macro_rules! longhand_properties_idents {
     ($macro_name: ident) => {

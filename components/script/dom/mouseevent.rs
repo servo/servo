@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -115,7 +115,7 @@ impl MouseEvent {
             type_,
             bubbles,
             cancelable,
-            init.parent.parent.view.r(),
+            init.parent.parent.view.deref(),
             init.parent.parent.detail,
             init.screenX,
             init.screenY,
@@ -126,7 +126,7 @@ impl MouseEvent {
             init.parent.shiftKey,
             init.parent.metaKey,
             init.button,
-            init.relatedTarget.r(),
+            init.relatedTarget.deref(),
             None,
         );
         Ok(event)

@@ -83,6 +83,11 @@ def main(request, response):
                                                   "mixed-content",
                                                   "generic",
                                                   "worker.js"), "rb").read()
+            elif content_type == "text/javascript":
+                response_data = open(os.path.join(request.doc_root,
+                                                  "mixed-content",
+                                                  "generic",
+                                                  "script.js"), "rb").read()
             else:
                 response_data = "/* purged */"
         elif action == "take":

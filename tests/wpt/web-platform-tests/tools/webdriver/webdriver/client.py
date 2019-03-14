@@ -356,7 +356,7 @@ class UserPrompt(object):
     @text.setter
     @command
     def text(self, value):
-        body = {"value": list(value)}
+        body = {"text": value}
         self.session.send_session_command("POST", "alert/text", body=body)
 
 
@@ -566,7 +566,7 @@ class Session(object):
     @command
     def close(self):
         handles = self.send_session_command("DELETE", "window")
-        if len(handles) == 0:
+        if handles is not None and len(handles) == 0:
             # With no more open top-level browsing contexts, the session is closed.
             self.session_id = None
 

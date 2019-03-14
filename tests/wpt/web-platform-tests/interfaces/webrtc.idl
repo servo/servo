@@ -402,6 +402,7 @@ dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
 };
 
 [Exposed=Window] interface RTCDtlsTransport : EventTarget {
+    [SameObject]
     readonly        attribute RTCIceTransport iceTransport;
     readonly        attribute RTCDtlsTransportState state;
     sequence<ArrayBuffer> getRemoteCertificates();
@@ -627,7 +628,7 @@ enum RTCErrorDetailType {
           };
 
 [Exposed=Window,
- Constructor(DOMString type, RTCErrorEventInit eventInitDict)]
+ Constructor(DOMString type, optional RTCErrorEventInit eventInitDict)]
 interface RTCErrorEvent : Event {
     readonly        attribute RTCError? error;
 };

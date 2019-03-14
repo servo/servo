@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas id="webgl-canvas"></canvas>
+  <script>
+
+    xr_promise_test(
+      "A lost webglCanvasContext should not be able to set xr compatibility",
+     (t) => {
+      return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+        .then( (controller) => {
+          webglCanvas = document.getElementById('webgl-canvas');
+          gl = webglCanvas.getContext('webgl', {xrCompatible: true});
+          gl.getExtension('WEBGL_lose_context').loseContext();
+          return promise_rejects(t, 'InvalidStateError', gl.makeXRCompatible());
+        });
+    });
+
+  </script>
+</body>

@@ -15,7 +15,7 @@
     <style>
       div.flexbox {
         width: 200px;
-        max-height: 20px; /* Short, to force us to wrap */
+        max-height: 10px; /* Short, to force us to wrap */
         display: flex;
         flex-direction: column;
         flex-wrap: wrap;
@@ -24,19 +24,19 @@
       }
       div.a {
         width: 10px;
-        height: 20px;
+        height: 10px;
         flex: none;
         background: lightgreen;
       }
       div.b {
         width: auto; /* width comes from contents */
-        height: 20px;
+        height: 10px;
         flex: none;
         background: pink;
       }
       div.c {
         width: 40px;
-        height: 20px;
+        height: 10px;
         flex: none;
         background: orange;
       }
@@ -44,7 +44,7 @@
       /* Inside of 'b': */
       div.fixedSizeChild {
         width: 30px;
-        height: 10px;
+        height: 5px;
         background: purple;
       }
     </style>

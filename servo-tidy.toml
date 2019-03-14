@@ -32,9 +32,14 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "base64",
+  "block-buffer",
+  "byte-tools",
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
+  "digest",
+  "generic-array",
   "rand",
   "unicase",
   "winapi",
@@ -51,9 +56,10 @@ files = [
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./tests/wpt/mozilla/meta/MANIFEST.json",
+  # Long encoded string
+  "./tests/wpt/mozilla/tests/mozilla/resources/brotli.py",
   "./tests/wpt/webgl/meta/MANIFEST.json",
   "./support/android/openssl.sh",
-  "./support/linux/gstreamer/gstreamer.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/webgl/tests",
   # Our import script is not currently respecting the lint.
@@ -71,6 +77,7 @@ files = [
 directories = [
   # Upstream
   "./support/android/apk",
+  "./support/linux/gstreamer",
   "./support/magicleap/Servo2D/.vscode",
   "./support/magicleap/Servo2D/code/inc.gen",
   "./support/magicleap/Servo2D/code/src.gen",

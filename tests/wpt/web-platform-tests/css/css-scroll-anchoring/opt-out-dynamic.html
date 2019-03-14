@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#scroller {
+  overflow: scroll;
+  width: 300px;
+  height: 300px;
+}
+#before { height: 50px; }
+#content { margin-top: 100px; margin-bottom: 600px; }
+.no { overflow-anchor: none; }
+
+</style>
+<div id="scroller">
+  <div id="before"></div>
+  <div id="content">content</div>
+</div>
+<script>
+
+// Tests that dynamic styling 'overflow-anchor' on an anchor node has the
+// same effect as initial styling
+
+test(() => {
+  let scroller = document.querySelector("#scroller");
+  let before = document.querySelector("#before");
+  let content = document.querySelector("#content");
+
+  // Scroll down so that #content is the first element in the viewport
+  scroller.scrollTop = 100;
+
+  // Change the height of #before to trigger a scroll adjustment. This ensures
+  // that #content was selected as a scroll anchor
+  before.style.height = "100px";
+  assert_equals(scroller.scrollTop, 150);
+
+  // Now set 'overflow-anchor: none' on #content. This should invalidate the
+  // scroll anchor, and #scroller should recalculate its anchor. There are no
+  // other valid anchors in the viewport, so there should be no anchor.
+  content.className = 'no';
+
+  // Change the height of #before and make sure we don't adjust. This ensures
+  // that #content was not selected as a scroll anchor
+  before.style.height = "150px";
+  assert_equals(scroller.scrollTop, 150);
+}, "Dynamically styling 'overflow-anchor: none' on the anchor node should prevent scroll anchoring");
+
+</script>

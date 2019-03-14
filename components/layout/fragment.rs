@@ -61,9 +61,10 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::computed::counters::ContentItem;
-use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthPercentage, LengthPercentageOrAuto, Size};
 use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
+use style::Zero;
 use webrender_api::{self, LayoutTransform};
 
 // From gfxFontConstants.h in Firefox.
@@ -985,9 +986,17 @@ impl Fragment {
         if flags.contains(
             QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED,
         ) {
-            specified =
-                MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
-            specified = max(style.min_inline_size().to_used_value(Au(0)), specified);
+            specified = style
+                .content_inline_size()
+                .to_used_value(Au(0))
+                .unwrap_or(Au(0));
+            specified = max(
+                style
+                    .min_inline_size()
+                    .to_used_value(Au(0))
+                    .unwrap_or(Au(0)),
+                specified,
+            );
             if let Some(max) = style.max_inline_size().to_used_value(Au(0)) {
                 specified = min(specified, max)
             }
@@ -1448,14 +1457,14 @@ impl Fragment {
     pub fn relative_position(&self, containing_block_size: &LogicalSize<Au>) -> LogicalSize<Au> {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>) -> LogicalSize<Au> {
             let offsets = style.logical_position();
-            let offset_i = if offsets.inline_start != LengthOrPercentageOrAuto::Auto {
+            let offset_i = if offsets.inline_start != LengthPercentageOrAuto::Auto {
                 MaybeAuto::from_style(offsets.inline_start, container_size.inline)
                     .specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.inline_end, container_size.inline)
                     .specified_or_zero()
             };
-            let offset_b = if offsets.block_start != LengthOrPercentageOrAuto::Auto {
+            let offset_b = if offsets.block_start != LengthPercentageOrAuto::Auto {
                 MaybeAuto::from_style(offsets.block_start, container_size.block).specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.block_end, container_size.block).specified_or_zero()
@@ -1610,32 +1619,28 @@ impl Fragment {
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Svg(_) => {
-                let mut inline_size = match self.style.content_inline_size() {
-                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Percentage(_) => {
-                        // We have to initialize the `border_padding` field first to make
-                        // the size constraints work properly.
-                        // TODO(stshine): Find a cleaner way to do this.
-                        let padding = self.style.logical_padding();
-                        self.border_padding.inline_start =
-                            padding.inline_start.to_used_value(Au(0));
-                        self.border_padding.inline_end = padding.inline_end.to_used_value(Au(0));
-                        self.border_padding.block_start = padding.block_start.to_used_value(Au(0));
-                        self.border_padding.block_end = padding.block_end.to_used_value(Au(0));
-                        let border = self.border_width();
-                        self.border_padding.inline_start += border.inline_start;
-                        self.border_padding.inline_end += border.inline_end;
-                        self.border_padding.block_start += border.block_start;
-                        self.border_padding.block_end += border.block_end;
-                        let (result_inline, _) = self.calculate_replaced_sizes(None, None);
-                        result_inline
-                    },
-                    LengthOrPercentageOrAuto::Length(length) => Au::from(length),
-                    LengthOrPercentageOrAuto::Calc(calc) => {
-                        // TODO(nox): This is probably wrong, because it accounts neither for
-                        // clamping (not sure if necessary here) nor percentage.
-                        Au::from(calc.unclamped_length())
-                    },
+                let inline_size = match self.style.content_inline_size() {
+                    Size::Auto => None,
+                    Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(None),
                 };
+
+                let mut inline_size = inline_size.unwrap_or_else(|| {
+                    // We have to initialize the `border_padding` field first to make
+                    // the size constraints work properly.
+                    // TODO(stshine): Find a cleaner way to do this.
+                    let padding = self.style.logical_padding();
+                    self.border_padding.inline_start = padding.inline_start.to_used_value(Au(0));
+                    self.border_padding.inline_end = padding.inline_end.to_used_value(Au(0));
+                    self.border_padding.block_start = padding.block_start.to_used_value(Au(0));
+                    self.border_padding.block_end = padding.block_end.to_used_value(Au(0));
+                    let border = self.border_width();
+                    self.border_padding.inline_start += border.inline_start;
+                    self.border_padding.inline_end += border.inline_end;
+                    self.border_padding.block_start += border.block_start;
+                    self.border_padding.block_end += border.block_end;
+                    let (result_inline, _) = self.calculate_replaced_sizes(None, None);
+                    result_inline
+                });
 
                 let size_constraint = self.size_constraint(None, Direction::Inline);
                 inline_size = size_constraint.clamp(inline_size);
@@ -1654,7 +1659,9 @@ impl Fragment {
                 handle_text(text_fragment_info, self, &mut result)
             },
 
-            SpecificFragmentInfo::TruncatedFragment(_) => return IntrinsicISizesContribution::new(),
+            SpecificFragmentInfo::TruncatedFragment(_) => {
+                return IntrinsicISizesContribution::new()
+            },
 
             SpecificFragmentInfo::UnscannedText(..) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
@@ -2432,16 +2439,8 @@ impl Fragment {
                             content_inline_metrics.space_below_baseline
                     }
                 },
-                VerticalAlign::Length(LengthOrPercentage::Length(length)) => {
-                    offset -= Au::from(length)
-                },
-                VerticalAlign::Length(LengthOrPercentage::Percentage(percentage)) => {
-                    offset -= minimum_line_metrics.space_needed().scale_by(percentage.0)
-                },
-                VerticalAlign::Length(LengthOrPercentage::Calc(formula)) => {
-                    offset -= formula
-                        .to_used_value(Some(minimum_line_metrics.space_needed()))
-                        .unwrap()
+                VerticalAlign::Length(ref lp) => {
+                    offset -= lp.to_used_value(minimum_line_metrics.space_needed());
                 },
             }
         }
@@ -2519,12 +2518,12 @@ impl Fragment {
                             continue;
                         }
                         if inline_context_node.style.logical_margin().inline_end !=
-                            LengthOrPercentageOrAuto::Length(Length::new(0.))
+                            LengthPercentageOrAuto::zero()
                         {
                             return false;
                         }
                         if inline_context_node.style.logical_padding().inline_end !=
-                            LengthOrPercentage::Length(Length::new(0.))
+                            LengthPercentage::zero()
                         {
                             return false;
                         }
@@ -2545,12 +2544,12 @@ impl Fragment {
                             continue;
                         }
                         if inline_context_node.style.logical_margin().inline_start !=
-                            LengthOrPercentageOrAuto::Length(Length::new(0.))
+                            LengthPercentageOrAuto::zero()
                         {
                             return false;
                         }
                         if inline_context_node.style.logical_padding().inline_start !=
-                            LengthOrPercentage::Length(Length::new(0.))
+                            LengthPercentage::zero()
                         {
                             return false;
                         }

@@ -114,4 +114,22 @@
     }));
   }, `setRemoteDescription(rollback) should ignore invalid sdp content and succeed`);
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    // We don't use this right away
+    const offer1 = await pc1.createOffer({offerToReceiveAudio: true});
+
+    // Create offer from pc2, apply and rollback on pc1
+    const offer2 = await pc2.createOffer({offerToReceiveAudio: true});
+    await pc1.setRemoteDescription(offer2);
+    await pc1.setRemoteDescription({type: "rollback"});
+
+    // Then try applying pc1's old offer
+    await pc1.setLocalDescription(offer1);
+  }, `local offer created before setRemoteDescription(remote offer) then rollback should still be usable`);
+
 </script>

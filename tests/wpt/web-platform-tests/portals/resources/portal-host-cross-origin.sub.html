@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    let forwardingIframe = document.createElement('iframe');
+    let channelName = new URL(location).searchParams.get('broadcastchannel');
+    forwardingIframe.src = `http://{{host}}:{{ports[http][0]}}/portals/resources/portal-forward-with-broadcast.html?broadcastchannel=${channelName}`;
+    forwardingIframe.onload = () => {
+      let message = {
+        hasHost: !!window.portalHost
+      };
+      forwardingIframe.contentWindow.postMessage(message, '*');
+    }
+    document.body.appendChild(forwardingIframe);
+  </script>
+</body>

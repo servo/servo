@@ -7,3 +7,7 @@
 interface AmbientLightSensor : Sensor {
   readonly attribute double? illuminance;
 };
+
+dictionary AmbientLightReadingValues {
+  required double? illuminance;
+};

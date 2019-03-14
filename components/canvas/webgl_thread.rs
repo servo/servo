@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::gl_context::{GLContextFactory, GLContextWrapper};
+use super::gl_context::{map_attrs_to_script_attrs, GLContextFactory, GLContextWrapper};
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
-use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
 use std::thread;
@@ -115,6 +115,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     /// Handles a generic WebGLMsg message
     #[inline]
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
+        trace!("processing {:?}", msg);
         match msg {
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
                 let result = self.create_webgl_context(version, size, attributes);
@@ -207,15 +208,19 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
 
     /// Handles a WebVRCommand for a specific WebGLContext
     fn handle_webvr_command(&mut self, context_id: WebGLContextId, command: WebVRCommand) {
-        Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
-        let texture = match command {
-            WebVRCommand::SubmitFrame(..) => self.cached_context_info.get(&context_id),
-            _ => None,
-        };
-        self.webvr_compositor
-            .as_mut()
-            .unwrap()
-            .handle(command, texture.map(|t| (t.texture_id, t.size)));
+        if let Some(context) =
+            Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
+        {
+            let texture = match command {
+                WebVRCommand::SubmitFrame(..) => self.cached_context_info.get(&context_id),
+                _ => None,
+            };
+            self.webvr_compositor.as_mut().unwrap().handle(
+                context.ctx.gl(),
+                command,
+                texture.map(|t| (t.texture_id, t.size)),
+            );
+        }
     }
 
     /// Handles a lock external callback received from webrender::ExternalImageHandler
@@ -228,6 +233,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                 .expect("WebGLContext not found in a WebGLMsg::Lock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
+        info.render_state = ContextRenderState::Locked(None);
         // Insert a OpenGL Fence sync object that sends a signal when all the WebGL commands are finished.
         // The related gl().wait_sync call is performed in the WR thread. See WebGLExternalImageApi for mor details.
         let gl_sync = data.ctx.gl().fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -247,6 +253,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                 .expect("WebGLContext not found in a WebGLMsg::Unlock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
+        info.render_state = ContextRenderState::Unlocked;
         if let Some(gl_sync) = info.gl_sync.take() {
             // Release the GLSync object.
             data.ctx.gl().delete_sync(gl_sync);
@@ -299,6 +306,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 image_key: None,
                 share_mode,
                 gl_sync: None,
+                render_state: ContextRenderState::Unlocked,
             },
         );
 
@@ -319,9 +327,19 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         )
         .expect("Missing WebGL context!");
         match data.ctx.resize(size) {
-            Ok(_) => {
+            Ok(old_draw_buffer) => {
                 let (real_size, texture_id, _) = data.ctx.get_info();
                 let info = self.cached_context_info.get_mut(&context_id).unwrap();
+                if let ContextRenderState::Locked(ref mut in_use) = info.render_state {
+                    // If there's already an outdated draw buffer present, we can ignore
+                    // the newly resized one since it's not in use by the renderer.
+                    if in_use.is_none() {
+                        // We're resizing the context while WR is actively rendering
+                        // it, so we need to retain the GL resources until WR is
+                        // finished with them.
+                        *in_use = Some(old_draw_buffer);
+                    }
+                }
                 // Update webgl texture size. Texture id may change too.
                 info.texture_id = texture_id;
                 info.size = real_size;
@@ -361,6 +379,10 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
 
             self.webrender_api.update_resources(txn.resource_updates)
         }
+
+        // We need to make the context current so its resources can be disposed of.
+        let _ =
+            Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
 
         // Release GL context.
         self.contexts.remove(&context_id);
@@ -682,6 +704,14 @@ impl<VR: WebVRRenderHandler + 'static> Drop for WebGLThread<VR> {
     }
 }
 
+enum ContextRenderState {
+    /// The context is not being actively rendered.
+    Unlocked,
+    /// The context is actively being rendered. If a DrawBuffer value is present,
+    /// it is outdated but in use as long as the context is locked.
+    Locked(Option<DrawBuffer>),
+}
+
 /// Helper struct to store cached WebGLContext information.
 struct WebGLContextInfo {
     /// Render to texture identifier used by the WebGLContext.
@@ -696,6 +726,8 @@ struct WebGLContextInfo {
     share_mode: WebGLContextShareMode,
     /// GLSync Object used for a correct synchronization with Webrender external image callbacks.
     gl_sync: Option<gl::GLsync>,
+    /// The status of this context with respect to external consumers.
+    render_state: ContextRenderState,
 }
 
 /// This trait is used as a bridge between the `WebGLThreads` implementation and
@@ -765,9 +797,9 @@ impl WebGLImpl {
         _backtrace: WebGLCommandBacktrace,
     ) {
         match command {
-            WebGLCommand::GetContextAttributes(ref sender) => {
-                sender.send(*ctx.borrow_attributes()).unwrap()
-            },
+            WebGLCommand::GetContextAttributes(ref sender) => sender
+                .send(map_attrs_to_script_attrs(*ctx.borrow_attributes()))
+                .unwrap(),
             WebGLCommand::ActiveTexture(target) => ctx.gl().active_texture(target),
             WebGLCommand::AttachShader(program_id, shader_id) => {
                 ctx.gl().attach_shader(program_id.get(), shader_id.get())
@@ -1079,7 +1111,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    Cow::Borrowed(data),
+                    Cow::Borrowed(&*data),
                 );
 
                 ctx.gl()
@@ -1119,7 +1151,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    Cow::Borrowed(data),
+                    Cow::Borrowed(&*data),
                 );
 
                 ctx.gl()

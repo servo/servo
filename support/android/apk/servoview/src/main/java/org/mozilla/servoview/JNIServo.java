@@ -73,6 +73,7 @@ public class JNIServo {
       public int height = 0;
       public float density = 1;
       public boolean enableSubpixelTextAntialiasing = true;
+      public long VRExternalContext = 0;
       public String logStr;
       public boolean enableLogs = false;
     }
@@ -97,8 +98,6 @@ public class JNIServo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onShutdownComplete();
-
-        byte[] readfile(String file);
     }
 }
 

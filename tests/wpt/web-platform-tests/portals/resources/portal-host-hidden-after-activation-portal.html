@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script>
+  window.addEventListener("portalactivate", function(e) {
+    var bc = new BroadcastChannel("portals-host-hidden-after-activation");
+    bc.postMessage({ hasHost: !!window.portalHost });
+    bc.close();
+  });
+
+  var bc = new BroadcastChannel("portals-host-hidden-after-activation");
+  bc.postMessage({hasHost: !!window.portalHost });
+  bc.close();
+
+  bc = new BroadcastChannel("portal");
+  bc.postMessage("loaded");
+  bc.close();
+
+</script>

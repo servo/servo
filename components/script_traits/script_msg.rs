@@ -9,11 +9,12 @@ use crate::IFrameLoadInfo;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
+use crate::WindowSizeType;
 use crate::WorkerGlobalScopeInit;
 use crate::WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{Cursor, EmbedderMsg};
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -25,10 +26,27 @@ use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::fmt;
-use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webrender_api::{DeviceIntPoint, DeviceIntSize};
+
+/// A particular iframe's size, associated with a browsing context.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct IFrameSize {
+    /// The child browsing context for this iframe.
+    pub id: BrowsingContextId,
+    /// The size of the iframe.
+    pub size: TypedSize2D<f32, CSSPixel>,
+}
+
+/// An iframe sizing operation.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct IFrameSizeMsg {
+    /// The iframe sizing data.
+    pub data: IFrameSize,
+    /// The kind of sizing operation.
+    pub type_: WindowSizeType,
+}
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -36,12 +54,12 @@ pub enum LayoutMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Inform the constellation of the size of the iframe's viewport.
-    IFrameSizes(Vec<(BrowsingContextId, TypedSize2D<f32, CSSPixel>)>),
+    IFrameSizes(Vec<IFrameSizeMsg>),
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
     PendingPaintMetric(PipelineId, Epoch),
     /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursor(CursorKind),
+    SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
 }
@@ -134,7 +152,16 @@ pub enum ScriptMsg {
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
-    PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
+    PostMessage {
+        /// The target of the posted message.
+        target: BrowsingContextId,
+        /// The source of the posted message.
+        source: PipelineId,
+        /// The expected origin of the target.
+        target_origin: Option<ImmutableOrigin>,
+        /// The data to be posted.
+        data: Vec<u8>,
+    },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
     NavigatedToFragment(ServoUrl, bool),
     /// HTMLIFrameElement Forward or Back traversal.
@@ -148,8 +175,6 @@ pub enum ScriptMsg {
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
     RemoveIFrame(BrowsingContextId, IpcSender<Vec<PipelineId>>),
-    /// Change pipeline visibility
-    SetVisible(bool),
     /// Notifies constellation that an iframe's visibility has been changed.
     VisibilityChangeComplete(bool),
     /// A load has been requested in an IFrame.
@@ -209,14 +234,13 @@ impl fmt::Debug for ScriptMsg {
             LoadComplete => "LoadComplete",
             LoadUrl(..) => "LoadUrl",
             AbortLoadUrl => "AbortLoadUrl",
-            PostMessage(..) => "PostMessage",
+            PostMessage { .. } => "PostMessage",
             NavigatedToFragment(..) => "NavigatedToFragment",
             TraverseHistory(..) => "TraverseHistory",
             PushHistoryState(..) => "PushHistoryState",
             ReplaceHistoryState(..) => "ReplaceHistoryState",
             JointSessionHistoryLength(..) => "JointSessionHistoryLength",
             RemoveIFrame(..) => "RemoveIFrame",
-            SetVisible(..) => "SetVisible",
             VisibilityChangeComplete(..) => "VisibilityChangeComplete",
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",

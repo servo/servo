@@ -42,6 +42,9 @@
 //!   fields in structs, because it makes it clear that the Box is being
 //!   measured as well as the thing it points to. E.g.
 //!   `<Box<_> as MallocSizeOf>::size_of(field, ops)`.
+//!
+//!   Note: WebRender has a reduced for of this crate, so that we can avoid
+//!   publishing this crate on crates.io.
 
 extern crate app_units;
 #[cfg(feature = "servo")]
@@ -855,8 +858,6 @@ malloc_size_of_is_0!(webrender_api::BorderRadius);
 malloc_size_of_is_0!(webrender_api::BorderStyle);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ClipAndScrollInfo);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ColorF);
 #[cfg(feature = "webrender_api")]

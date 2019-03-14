@@ -96,7 +96,7 @@ The ```./generic/tools/clean.py``` utility will only work if there is a valid ``
 
 ## Updating the tests
 
-The main test logic lives in ```./generic/referrer-policy-test-case.js``` with helper functions defined in ```./generic/common.js``` so you should probably start there.
+The main test logic lives in ```./generic/referrer-policy-test-case.js``` with helper functions defined in ```./common/security-features/resources/common.js``` so you should probably start there.
 
 For updating the test suite you will most likely do **a subset** of the following:
 
@@ -164,12 +164,6 @@ git add * && git commit -m "Update generated tests"
 
   The schema used to check if a ```test_expansion``` is valid.
   Each test expansion can only contain fields defined by this schema.
-
-* **subresource_path**
-
-  A 1:1 mapping of a **subresource type** to the URL path of the sub-resource.
-  When adding a new sub-resource, a path to an existing file for it also must be specified.
-
 
 ### Test Expansion Patterns
 

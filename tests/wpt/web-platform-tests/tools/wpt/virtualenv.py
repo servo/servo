@@ -9,11 +9,13 @@ from tools.wpt.utils import call
 logger = logging.getLogger(__name__)
 
 class Virtualenv(object):
-    def __init__(self, path):
+    def __init__(self, path, skip_virtualenv_setup):
         self.path = path
-        self.virtualenv = find_executable("virtualenv")
-        if not self.virtualenv:
-            raise ValueError("virtualenv must be installed and on the PATH")
+        self.skip_virtualenv_setup = skip_virtualenv_setup
+        if not skip_virtualenv_setup:
+            self.virtualenv = find_executable("virtualenv")
+            if not self.virtualenv:
+                raise ValueError("virtualenv must be installed and on the PATH")
 
     @property
     def exists(self):
@@ -47,7 +49,13 @@ class Virtualenv(object):
         self.activate()
 
     def install(self, *requirements):
-        call(self.pip_path, "install", *requirements)
+        # `--prefer-binary` guards against race conditions when installation
+        # occurs while packages are in the process of being published.
+        call(self.pip_path, "install", "--prefer-binary", *requirements)
 
     def install_requirements(self, requirements_path):
-        call(self.pip_path, "install", "-r", requirements_path)
+        # `--prefer-binary` guards against race conditions when installation
+        # occurs while packages are in the process of being published.
+        call(
+            self.pip_path, "install", "--prefer-binary", "-r", requirements_path
+        )

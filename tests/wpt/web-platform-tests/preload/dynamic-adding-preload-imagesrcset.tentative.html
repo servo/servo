@@ -17,15 +17,14 @@
         link.imageSizes = "400px";
         link.onload = t.step_func(function() {
             t.step_timeout(function() {
-                verifyNumberOfDownloads("resources/square.png?default", 0);
-                verifyNumberOfDownloads("resources/square.png?200", 0);
-                verifyNumberOfDownloads("resources/square.png?400", 1);
-                verifyNumberOfDownloads("resources/square.png?800", 0);
+                verifyNumberOfResourceTimingEntries("resources/square.png?default", 0);
+                verifyNumberOfResourceTimingEntries("resources/square.png?200", 0);
+                verifyNumberOfResourceTimingEntries("resources/square.png?400", 1);
+                verifyNumberOfResourceTimingEntries("resources/square.png?800", 0);
                 t.done();
             }, 0);
         });
         document.body.appendChild(link);
     });
 </script>
-<script src="resources/dummy.js?pipe=trickle(d5)&dynamic-adding-preload"></script>
 </body>

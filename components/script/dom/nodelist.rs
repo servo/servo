@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -132,7 +132,7 @@ impl ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: Dom::from_ref(node),
-            last_visited: MutNullableDom::new(last_visited.r()),
+            last_visited: MutNullableDom::new(last_visited.deref()),
             last_index: Cell::new(0u32),
         }
     }
@@ -315,7 +315,7 @@ impl ChildrenList {
     }
 
     fn reset(&self) {
-        self.last_visited.set(self.node.GetFirstChild().r());
+        self.last_visited.set(self.node.GetFirstChild().deref());
         self.last_index.set(0u32);
     }
 }

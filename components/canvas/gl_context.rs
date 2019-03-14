@@ -3,14 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::webgl_thread::{GLState, WebGLImpl};
-use canvas_traits::webgl::{WebGLCommand, WebGLCommandBacktrace, WebGLVersion};
+use canvas_traits::webgl::{
+    GLContextAttributes, GLLimits, WebGLCommand, WebGLCommandBacktrace, WebGLVersion,
+};
 use compositing::compositor_thread::{self, CompositorProxy};
 use euclid::Size2D;
 use gleam::gl;
 use offscreen_gl_context::{
-    ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher,
+    ColorAttachmentType, DrawBuffer, GLContext, GLContextAttributes as RawGLContextAttributes,
+    GLContextDispatcher,
 };
-use offscreen_gl_context::{GLLimits, GLVersion};
+use offscreen_gl_context::{GLLimits as RawGLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use std::sync::{Arc, Mutex};
@@ -52,6 +55,7 @@ impl GLContextFactory {
         size: Size2D<u32>,
         attributes: GLContextAttributes,
     ) -> Result<GLContextWrapper, &'static str> {
+        let attributes = map_attrs(attributes);
         Ok(match *self {
             GLContextFactory::Native(ref handle, ref dispatcher) => {
                 let dispatcher = dispatcher.as_ref().map(|d| Box::new(d.clone()) as Box<_>);
@@ -88,6 +92,7 @@ impl GLContextFactory {
         size: Size2D<u32>,
         attributes: GLContextAttributes,
     ) -> Result<GLContextWrapper, &'static str> {
+        let attributes = map_attrs(attributes);
         Ok(match *self {
             GLContextFactory::Native(..) => {
                 GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
@@ -189,7 +194,7 @@ impl GLContextWrapper {
 
                 let limits = ctx.borrow_limits().clone();
 
-                (real_size, texture_id, limits)
+                (real_size, texture_id, map_limits(limits))
             },
             GLContextWrapper::OSMesa(ref ctx) => {
                 let (real_size, texture_id) = {
@@ -202,12 +207,12 @@ impl GLContextWrapper {
 
                 let limits = ctx.borrow_limits().clone();
 
-                (real_size, texture_id, limits)
+                (real_size, texture_id, map_limits(limits))
             },
         }
     }
 
-    pub fn resize(&mut self, size: Size2D<u32>) -> Result<(), &'static str> {
+    pub fn resize(&mut self, size: Size2D<u32>) -> Result<DrawBuffer, &'static str> {
         match *self {
             GLContextWrapper::Native(ref mut ctx) => {
                 // FIXME(nox): Why are those i32 values?
@@ -241,5 +246,42 @@ impl GLContextDispatcher for MainThreadDispatcher {
             .lock()
             .unwrap()
             .send(compositor_thread::Msg::Dispatch(f));
+    }
+}
+
+fn map_limits(limits: RawGLLimits) -> GLLimits {
+    GLLimits {
+        max_vertex_attribs: limits.max_vertex_attribs,
+        max_tex_size: limits.max_tex_size,
+        max_cube_map_tex_size: limits.max_cube_map_tex_size,
+        max_combined_texture_image_units: limits.max_combined_texture_image_units,
+        max_fragment_uniform_vectors: limits.max_fragment_uniform_vectors,
+        max_renderbuffer_size: limits.max_renderbuffer_size,
+        max_texture_image_units: limits.max_texture_image_units,
+        max_varying_vectors: limits.max_varying_vectors,
+        max_vertex_texture_image_units: limits.max_vertex_texture_image_units,
+        max_vertex_uniform_vectors: limits.max_vertex_uniform_vectors,
+    }
+}
+
+pub fn map_attrs(attrs: GLContextAttributes) -> RawGLContextAttributes {
+    RawGLContextAttributes {
+        alpha: attrs.alpha,
+        depth: attrs.depth,
+        stencil: attrs.stencil,
+        antialias: attrs.antialias,
+        premultiplied_alpha: attrs.premultiplied_alpha,
+        preserve_drawing_buffer: attrs.preserve_drawing_buffer,
+    }
+}
+
+pub fn map_attrs_to_script_attrs(attrs: RawGLContextAttributes) -> GLContextAttributes {
+    GLContextAttributes {
+        alpha: attrs.alpha,
+        depth: attrs.depth,
+        stencil: attrs.stencil,
+        antialias: attrs.antialias,
+        premultiplied_alpha: attrs.premultiplied_alpha,
+        preserve_drawing_buffer: attrs.preserve_drawing_buffer,
     }
 }

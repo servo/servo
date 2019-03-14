@@ -6,12 +6,12 @@
 
 use crate::block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
-use crate::model::MaybeAuto;
 use crate::table::InternalTable;
 use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use app_units::Au;
@@ -21,6 +21,7 @@ use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
+use style::values::computed::length::Size;
 use style::values::computed::Color;
 use style::values::generics::box_::VerticalAlign;
 use style::values::specified::BorderStyle;
@@ -161,8 +162,12 @@ impl TableCellFlow {
     // Call after block size calculation
     pub fn total_block_size(&mut self) -> Au {
         // TODO: Percentage block-size
-        let specified = MaybeAuto::from_style(self.fragment().style().content_block_size(), Au(0))
-            .specified_or_zero();
+        let specified = self
+            .fragment()
+            .style()
+            .content_block_size()
+            .to_used_value(Au(0))
+            .unwrap_or(Au(0));
         specified + self.fragment().border_padding.block_start_end()
     }
 }
@@ -197,11 +202,11 @@ impl Flow for TableCellFlow {
         );
 
         self.block_flow.bubble_inline_sizes_for_block(true);
-        let specified_inline_size = MaybeAuto::from_style(
-            self.block_flow.fragment.style().content_inline_size(),
-            Au(0),
-        )
-        .specified_or_zero();
+        let specified_inline_size = match self.block_flow.fragment.style().content_inline_size() {
+            Size::Auto => Au(0),
+            Size::LengthPercentage(ref lp) => lp.to_used_value(Au(0)),
+        };
+
         if self
             .block_flow
             .base

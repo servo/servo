@@ -7,7 +7,7 @@
 <body>
 <script>
 promise_test(async (t) => {
-  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg-utf8-inner-url.sxg';
+  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-utf8-inner-url.sxg';
   const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
   assert_equals(message.location, new URL(innerURLOrigin() + '/signed-exchange/resources/\uD83C\uDF10\uD83D\uDCE6.html').href);
   assert_false(message.is_fallback);

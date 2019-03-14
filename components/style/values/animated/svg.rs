@@ -8,10 +8,8 @@ use super::{Animate, Procedure, ToAnimatedZero};
 use crate::properties::animated_properties::ListAnimation;
 use crate::values::animated::color::Color as AnimatedColor;
 use crate::values::computed::url::ComputedUrl;
-use crate::values::computed::{LengthOrPercentage, Number, NumberOrPercentage};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::svg::{SVGLength, SVGPaint, SvgLengthOrPercentageOrNumber};
-use crate::values::generics::svg::{SVGOpacity, SVGStrokeDashArray};
+use crate::values::generics::svg::{SVGPaint, SVGStrokeDashArray};
 
 /// Animated SVGPaint.
 pub type IntermediateSVGPaint = SVGPaint<AnimatedColor, ComputedUrl>;
@@ -23,63 +21,6 @@ impl ToAnimatedZero for IntermediateSVGPaint {
             kind: self.kind.to_animated_zero()?,
             fallback: self.fallback.and_then(|v| v.to_animated_zero().ok()),
         })
-    }
-}
-
-// FIXME: We need to handle calc here properly, see
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
-fn to_number_or_percentage(
-    value: &SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number>,
-) -> Result<NumberOrPercentage, ()> {
-    Ok(match *value {
-        SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref l) => match *l {
-            LengthOrPercentage::Length(ref l) => NumberOrPercentage::Number(l.px()),
-            LengthOrPercentage::Percentage(ref p) => NumberOrPercentage::Percentage(*p),
-            LengthOrPercentage::Calc(..) => return Err(()),
-        },
-        SvgLengthOrPercentageOrNumber::Number(ref n) => NumberOrPercentage::Number(*n),
-    })
-}
-
-impl Animate for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let this = to_number_or_percentage(self)?;
-        let other = to_number_or_percentage(other)?;
-
-        match (this, other) {
-            (NumberOrPercentage::Number(ref this), NumberOrPercentage::Number(ref other)) => Ok(
-                SvgLengthOrPercentageOrNumber::Number(this.animate(other, procedure)?),
-            ),
-            (
-                NumberOrPercentage::Percentage(ref this),
-                NumberOrPercentage::Percentage(ref other),
-            ) => Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                LengthOrPercentage::Percentage(this.animate(other, procedure)?),
-            )),
-            _ => Err(()),
-        }
-    }
-}
-
-impl ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        to_number_or_percentage(self)?.compute_squared_distance(&to_number_or_percentage(other)?)
-    }
-}
-
-impl<L> Animate for SVGLength<L>
-where
-    L: Animate + Clone,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
-                Ok(SVGLength::Length(this.animate(other, procedure)?))
-            },
-            _ => Err(()),
-        }
     }
 }
 
@@ -112,39 +53,6 @@ where
         match (self, other) {
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
                 this.squared_distance_repeatable_list(other)
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl<L> ToAnimatedZero for SVGStrokeDashArray<L>
-where
-    L: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SVGStrokeDashArray::Values(ref values) => Ok(SVGStrokeDashArray::Values(
-                values
-                    .iter()
-                    .map(ToAnimatedZero::to_animated_zero)
-                    .collect::<Result<Vec<_>, _>>()?,
-            )),
-            SVGStrokeDashArray::ContextValue => Ok(SVGStrokeDashArray::ContextValue),
-        }
-    }
-}
-
-impl<O> Animate for SVGOpacity<O>
-where
-    O: Animate + Clone,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&SVGOpacity::Opacity(ref this), &SVGOpacity::Opacity(ref other)) => {
-                Ok(SVGOpacity::Opacity(this.animate(other, procedure)?))
             },
             _ => Err(()),
         }

@@ -1,0 +1,46 @@
+<!doctype html>
+<title>Escaped EOF</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta name="author" title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#consume-escaped-code-point">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#consume-string-token">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#consume-token">
+
+<style>foo { --foo:foo\</style>
+<style>foo { --foo:1foo\</style>
+<style>foo { --foo:url(foo\</style>
+<style>foo { --foo:"foo\</style>
+
+<script>
+test(()=>{
+    assert_throws("SyntaxError", ()=>{document.querySelector("#123");}, "numeric hash token is invalid in a selector");
+    document.querySelector("#foo\\"); // escaped-EOF in a hash token is valid in a selector
+}, "Escaped EOF turns into a U+FFFD in a hash token, makes it 'ID' type.");
+
+test(()=>{
+    const sh = document.styleSheets[0];
+    const val = sh.cssRules[0].style.getPropertyValue("--foo");
+    assert_equals("foo\ufffd", val);
+}, "Escaped EOF turns into a U+FFFD in an ident token.");
+
+test(()=>{
+    const sh = document.styleSheets[1];
+    const val = sh.cssRules[0].style.getPropertyValue("--foo");
+    assert_equals("1foo\ufffd", val);
+}, "Escaped EOF turns into a U+FFFD in a dimension token.");
+
+test(()=>{
+    const sh = document.styleSheets[2];
+    const val = sh.cssRules[0].style.getPropertyValue("--foo");
+    assert_equals("url(foo\ufffd)", val);
+}, "Escaped EOF turns into a U+FFFD in a url token.");
+
+test(()=>{
+    const sh = document.styleSheets[3];
+    const val = sh.cssRules[0].style.getPropertyValue("--foo");
+    assert_equals(`"foo"`, val);
+}, "Escaped EOF in a string is ignored.");
+
+</script>

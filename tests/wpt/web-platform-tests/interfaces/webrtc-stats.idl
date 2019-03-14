@@ -3,12 +3,6 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Identifiers for WebRTC's Statistics API (https://w3c.github.io/webrtc-stats/)
 
-dictionary RTCStats {
-DOMHighResTimeStamp timestamp;
-RTCStatsType type;
-DOMString id;
-    };
-
 enum RTCStatsType {
 "codec",
 "inbound-rtp",
@@ -314,7 +308,7 @@ partial dictionary RTCIceCandidatePairStats {
           unsigned long long priority;
           };
 
-partial dictionary RTCRTPStreamStats {
+partial dictionary RTCRtpStreamStats {
              DOMString mediaType;
              double averageRTCPInterval;
 };

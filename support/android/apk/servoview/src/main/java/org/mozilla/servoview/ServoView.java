@@ -292,7 +292,6 @@ public class ServoView extends GLSurfaceView
     }
 
     public boolean onSingleTapUp(MotionEvent e) {
-        mServo.click((int) e.getX(), (int) e.getY());
         return false;
     }
 

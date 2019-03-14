@@ -12,6 +12,7 @@
     ComputeSquaredDistance,
     Copy,
     Debug,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedValue,
@@ -19,9 +20,12 @@
     ToComputedValue,
     ToCss,
 )]
-pub enum FlexBasis<Width> {
+#[repr(C)]
+pub enum GenericFlexBasis<S> {
     /// `content`
     Content,
     /// `<width>`
-    Width(Width),
+    Size(S),
 }
+
+pub use self::GenericFlexBasis as FlexBasis;

@@ -8,13 +8,23 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 setup({ explicit_done: true, explicit_timeout: true });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
 const basicCardMethod = Object.freeze({
   supportedMethods: "basic-card",
 });
 const validMethod = Object.freeze({
   supportedMethods: "this-is-just-for-testings-will-never-match",
 });
-const methods = Object.freeze([basicCardMethod, validMethod]);
+const methods = Object.freeze([basicCardMethod, validMethod, applePay]);
 const validAmount = Object.freeze({
   currency: "USD",
   value: "5.00",

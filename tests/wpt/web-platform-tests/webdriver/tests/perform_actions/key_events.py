@@ -1,8 +1,9 @@
 # META: timeout=long
 
 import pytest
+import copy
 
-from tests.perform_actions.support.keys import ALL_EVENTS, Keys
+from tests.perform_actions.support.keys import ALL_EVENTS, Keys, ALTERNATIVE_KEY_NAMES
 from tests.perform_actions.support.refine import filter_dict, get_events, get_keys
 
 
@@ -31,6 +32,9 @@ def test_modifier_key_sends_correct_events(session, key_reporter, key_chain, key
     code = ALL_EVENTS[event]["code"]
     value = ALL_EVENTS[event]["key"]
 
+    if session.capabilities["browserName"] == "internet explorer":
+        key_reporter.click()
+        session.execute_script("resetEvents();")
     key_chain \
         .key_down(key) \
         .key_up(key) \
@@ -72,16 +76,24 @@ def test_non_printable_key_sends_events(session, key_reporter, key_chain, key, e
         {"code": code, "key": value, "type": "keyup"},
     ]
 
+    # Make a copy for alternate key property values
+    # Note: only keydown and keyup are affected by alternate key names
+    alt_expected = copy.deepcopy(expected)
+    if event in ALTERNATIVE_KEY_NAMES:
+        alt_expected[0]["key"] = ALTERNATIVE_KEY_NAMES[event]
+        alt_expected[2]["key"] = ALTERNATIVE_KEY_NAMES[event]
+
     events = [filter_dict(e, expected[0]) for e in all_events]
     if len(events) > 0 and events[0]["code"] is None:
         # Remove 'code' entry if browser doesn't support it
         expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
+        alt_expected = [filter_dict(e, {"key": "", "type": ""}) for e in alt_expected]
         events = [filter_dict(e, expected[0]) for e in events]
     if len(events) == 2:
         # most browsers don't send a keypress for non-printable keys
-        assert events == [expected[0], expected[2]]
+        assert events == [expected[0], expected[2]] or events == [alt_expected[0], alt_expected[2]]
     else:
-        assert events == expected
+        assert events == expected or events == alt_expected
 
     assert len(get_keys(key_reporter)) == 0
 
@@ -177,7 +189,7 @@ def test_special_key_sends_keydown(session, key_reporter, key_chain, name, expec
             document.body.addEventListener("keydown",
                     function(e) { e.preventDefault() });
         """)
-    if (session.capabilities["browserName"] == 'internet explorer'):
+    if session.capabilities["browserName"] == "internet explorer":
         key_reporter.click()
         session.execute_script("resetEvents();")
     key_chain.key_down(getattr(Keys, name)).perform()
@@ -189,6 +201,11 @@ def test_special_key_sends_keydown(session, key_reporter, key_chain, name, expec
 
     del expected["value"]
 
+    # make another copy for alternative key names
+    alt_expected = copy.deepcopy(expected)
+    if name in ALTERNATIVE_KEY_NAMES:
+        alt_expected["key"] = ALTERNATIVE_KEY_NAMES[name]
+
     # check and remove keys that aren't in expected
     assert first_event["type"] == "keydown"
     assert first_event["repeat"] is False
@@ -196,7 +213,8 @@ def test_special_key_sends_keydown(session, key_reporter, key_chain, name, expec
     if first_event["code"] is None:
         del first_event["code"]
         del expected["code"]
-    assert first_event == expected
+        del alt_expected["code"]
+    assert first_event == expected or first_event == alt_expected
     # only printable characters should be recorded in input field
     entered_keys = get_keys(key_reporter)
     if len(expected["key"]) == 1:

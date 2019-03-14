@@ -7,11 +7,18 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
  *      a. Alternatively, you can clone `https://github.com/eqrion/cbindgen` and use a tagged release
  *   2. Run `rustup run nightly cbindgen toolkit/library/rust/ --lockfile Cargo.lock --crate style -o layout/style/ServoStyleConsts.h`
  */
+#include "nsCoord.h"
+#include "Units.h"
+#include "mozilla/gfx/Types.h"
 class nsAtom;
 namespace mozilla {
+  class WritingMode;
+  enum HalfCorner : uint8_t;
+  enum LogicalSide : uint8_t;
   namespace css {
     struct URLValue;
   }
+
   // Work-around weird cbindgen renaming.
   typedef css::URLValue StyleURLValue;
   typedef nsAtom StylensAtom;
@@ -27,14 +34,19 @@ namespaces = ["mozilla"]
 
 [parse]
 parse_deps = true
-include = ["cssparser"]
+include = ["cssparser", "style_traits"]
 
 [struct]
 derive_eq = true
 derive_neq = true
 
+[macro_expansion]
+bitflags = true
+
 [enum]
 derive_helper_methods = true
+derive_const_casts = true
+cast_assert_name = "MOZ_ASSERT"
 
 [export]
 prefix = "Style"
@@ -48,8 +60,11 @@ include = [
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",
   "ComputedTimingFunction",
+  "CursorKind",
   "Display",
   "DisplayMode",
+  "PrefersColorScheme",
+  "ExtremumLength",
   "FillRule",
   "FontDisplay",
   "FontFaceSourceListComponent",
@@ -61,9 +76,123 @@ include = [
   "UserSelect",
   "Float",
   "OverscrollBehavior",
+  "ScrollSnapAlign",
   "ScrollSnapType",
+  "OverflowAnchor",
   "OverflowClipBox",
   "Resize",
   "Overflow",
+  "LengthPercentage",
+  "LetterSpacing",
+  "NonNegativeLengthPercentage",
+  "LengthPercentageOrAuto",
+  "LineHeight",
+  "NonNegativeLengthPercentageOrAuto",
+  "Rect",
+  "IntersectionObserverRootMargin",
+  "Size",
+  "MaxSize",
+  "FlexBasis",
+  "Position",
+  "BackgroundSize",
+  "BorderImageSlice",
+  "BorderSpacing",
+  "BorderRadius",
+  "NonNegativeLengthOrNumberRect",
+  "Perspective",
+  "ZIndex",
+  "TransformOrigin",
+  "WordBreak",
 ]
 item_types = ["enums", "structs", "typedefs"]
+
+[export.body]
+"CSSPixelLength" = """
+  inline nscoord ToAppUnits() const;
+  inline bool IsZero() const;
+"""
+
+"LengthPercentage" = """
+  // Defined in nsStyleCoord.h
+  static constexpr inline StyleLengthPercentage Zero();
+  static inline StyleLengthPercentage FromAppUnits(nscoord);
+  static inline StyleLengthPercentage FromPixels(CSSCoord);
+  static inline StyleLengthPercentage FromPercentage(float);
+  inline CSSCoord LengthInCSSPixels() const;
+  inline float Percentage() const;
+  inline bool HasPercent() const;
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline bool HasLengthAndPercentage() const;
+  inline float ToPercentage() const;
+  inline bool IsDefinitelyZero() const;
+  inline CSSCoord ResolveToCSSPixels(CSSCoord aPercentageBasisInCSSPixels) const;
+  template<typename T> inline CSSCoord ResolveToCSSPixelsWith(T aPercentageGetter) const;
+  template<typename T, typename U>
+  inline nscoord Resolve(T aPercentageGetter, U aPercentRoundingFunction) const;
+  template<typename T>
+  inline nscoord Resolve(nscoord aPercentageBasis, T aPercentRoundingFunction) const;
+  template<typename T> inline nscoord Resolve(T aPercentageGetter) const;
+  inline nscoord Resolve(nscoord aPercentageBasis) const;
+"""
+
+"GenericLengthPercentageOrAuto" = """
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+"""
+
+"GenericSize" = """
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+  inline bool BehavesLikeInitialValueOnBlockAxis() const;
+"""
+
+"GenericFlexBasis" = """
+  inline bool IsAuto() const;
+"""
+
+"GenericMaxSize" = """
+  inline bool ConvertsToLength() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+  inline bool HasPercent() const;
+  inline bool HasLengthAndPercentage() const;
+  inline bool BehavesLikeInitialValueOnBlockAxis() const;
+"""
+
+"GenericPosition" = """
+  inline bool DependsOnPositioningAreaSize() const;
+  static inline StyleGenericPosition FromPercentage(float);
+"""
+
+"GenericBackgroundSize" = """
+  bool IsInitialValue() const;
+"""
+
+"Rect" = """
+  // Defined in nsStyleCoord.h
+  template<typename Predicate> inline bool All(Predicate) const;
+  template<typename Predicate> inline bool Any(Predicate) const;
+
+  // Defined in WritingModes.h
+  inline const T& Get(mozilla::Side) const;
+  inline const T& Get(mozilla::WritingMode, mozilla::LogicalSide) const;
+  inline const T& GetIStart(mozilla::WritingMode) const;
+  inline const T& GetBStart(mozilla::WritingMode) const;
+  inline const T& GetIEnd(mozilla::WritingMode) const;
+  inline const T& GetBEnd(mozilla::WritingMode) const;
+"""
+
+"GenericBorderRadius" = """
+  inline const StyleLengthPercentage& Get(mozilla::HalfCorner) const;
+"""

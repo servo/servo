@@ -9,6 +9,6 @@
       "Tests requestSession resolves when supported",
       (session) => {
         assert_not_equals(session, null);
-      }, { supportsImmersive:true }, { immersive: true });
+      }, { supportsImmersive:true }, { mode: 'immersive-vr' });
   </script>
 </body>

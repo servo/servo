@@ -16,15 +16,29 @@
     %>
     ${helpers.predefined_type(
         "padding-%s" % side[0],
-        "NonNegativeLengthOrPercentage",
-        "computed::NonNegativeLengthOrPercentage::zero()",
+        "NonNegativeLengthPercentage",
+        "computed::NonNegativeLengthPercentage::zero()",
         alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
-        animation_value_type="NonNegativeLengthOrPercentage",
+        animation_value_type="NonNegativeLengthPercentage",
         logical=side[1],
         logical_group="padding",
         spec=spec,
         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER GETCS_NEEDS_LAYOUT_FLUSH",
         allow_quirks=not side[1],
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
+    )}
+% endfor
+
+% for side in ALL_SIDES:
+    ${helpers.predefined_type(
+        "scroll-padding-%s" % side[0],
+        "NonNegativeLengthPercentageOrAuto",
+        "computed::NonNegativeLengthPercentageOrAuto::auto()",
+        products="gecko",
+        gecko_pref="layout.css.scroll-snap-v1.enabled",
+        logical=side[1],
+        logical_group="scroll-padding",
+        spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-%s" % side[0],
+        animation_value_type="NonNegativeLengthPercentageOrAuto",
     )}
 % endfor

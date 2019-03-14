@@ -20,13 +20,13 @@ img {
 
 #image-container {
   position: absolute;
-  top: 400%;
+  top: 10000px;
 }
 </style>
 <body>
   <p>Image inserted further below.</p>
   <div id="image-container">
-    <img id="off" lazyload="off" src="http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"></img>
+    <img id="off" load="eager" src="http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"></img>
   </div>
   <script>
     var img = document.querySelector("img");
@@ -40,6 +40,6 @@ img {
     promise_test( async(t) => {
       await window.load_complete;
       assert_true(img.did_load, "Image should have loaded.");
-    }, "When feature is enabled, lazyload=OFF works as expected.");
+    }, "When feature is enabled, load=eager works as expected.");
  </script>
 </body>

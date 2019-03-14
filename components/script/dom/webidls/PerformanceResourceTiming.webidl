@@ -6,14 +6,15 @@
  * https://w3c.github.io/resource-timing/
  */
 
+// https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
 [Exposed=(Window,Worker)]
 interface PerformanceResourceTiming : PerformanceEntry {
     readonly attribute DOMString           initiatorType;
     readonly attribute DOMString           nextHopProtocol;
     // readonly attribute DOMHighResTimeStamp workerStart;
-    // readonly attribute DOMHighResTimeStamp redirectStart;
+    readonly attribute DOMHighResTimeStamp redirectStart;
     // readonly attribute DOMHighResTimeStamp redirectEnd;
-    // readonly attribute DOMHighResTimeStamp fetchStart;
+    readonly attribute DOMHighResTimeStamp fetchStart;
     // readonly attribute DOMHighResTimeStamp domainLookupStart;
     // readonly attribute DOMHighResTimeStamp domainLookupEnd;
     // readonly attribute DOMHighResTimeStamp connectStart;
@@ -27,9 +28,3 @@ interface PerformanceResourceTiming : PerformanceEntry {
     /// readonly attribute unsigned long long  decodedBodySize;
     // [Default] object toJSON();
 };
-
-// partial interface Performance {
-//  void clearResourceTimings();
-//  void setResourceTimingBufferSize(unsigned long maxSize);
-//              attribute EventHandler onresourcetimingbufferfull;
-// };

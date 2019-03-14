@@ -47,7 +47,9 @@ promise_test(async t => {
   return requestPictureInPictureWithTrustedClick(video)
   .then(() => {
     video.disablePictureInPicture = true;
-    assert_equals(document.pictureInPictureElement, null);
+    video.addEventListener('leavepictureinpicture', t.step_func(() => {
+      assert_equals(document.pictureInPictureElement, null);
+    }));
   });
 }, 'pictureInPictureElement is unset if disablePictureInPicture becomes true');
 

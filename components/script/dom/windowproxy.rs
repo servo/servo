@@ -8,7 +8,7 @@ use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr, WindowProxyHandler};
@@ -488,7 +488,7 @@ impl WindowProxy {
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
-        self.frame_element.r()
+        self.frame_element.deref()
     }
 
     pub fn document(&self) -> Option<DomRoot<Document>> {
@@ -498,7 +498,7 @@ impl WindowProxy {
     }
 
     pub fn parent(&self) -> Option<&WindowProxy> {
-        self.parent.r()
+        self.parent.deref()
     }
 
     pub fn top(&self) -> &WindowProxy {

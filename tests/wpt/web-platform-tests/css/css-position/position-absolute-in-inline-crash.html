@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <title>Should not crash with split inline abspos container, and flex ancestor</title>
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#def-cb">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>test(()=>{})</script>
+</head>
+<!-- There should be a green square below -->
+<body style="font-family: Ahem;font-size: 20px;">
+<div id="container">
+  <span id="split" style="position:relative;color:green">
+    AAA
+    <div style="display:flex">
+      <a>
+        <span id="target" style="position:absolute;color:green;top:20px">XXX</span></a>
+    </div>
+    ZZZ
+  </span>
+</div>
+</body>
+</html>

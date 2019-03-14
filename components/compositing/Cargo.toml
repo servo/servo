@@ -28,6 +28,7 @@ keyboard-types = "0.4.3"
 log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+num-traits = "0.2"
 pixels = {path = "../pixels", optional = true}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
@@ -38,6 +39,8 @@ style_traits = {path = "../style_traits"}
 time = "0.1.17"
 webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webvr_traits = {path = "../webvr_traits"}
+webvr = {path = "../webvr"}
 
 [build-dependencies]
 toml = "0.4.5"

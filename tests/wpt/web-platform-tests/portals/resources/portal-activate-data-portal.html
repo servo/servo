@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script>
+const bc = new BroadcastChannel('portal-activate-data');
+let logic = new Function('event', (new URL(location)).searchParams.get('logic'));
+onload = () => bc.postMessage('ready');
+onportalactivate = event => {
+  try {
+    bc.postMessage(logic(event));
+  } finally {
+    bc.close();
+  }
+};
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Background Test: There should be no gap between border-collapsed backgrounds</title>
+    <link rel="author" title="schenney" href="mailto:schenney@chromium.org">
+    <link rel="help" href="http://www.w3.org/TR/css3-background">
+    <link rel="match" href="reference/background-border-collapsed-gradient-ref.html">
+    <style>
+      div {
+        background: linear-gradient(to bottom,#222,#666);
+        float: left;
+        padding: 32px;
+        color: white;
+        border-collapse: collapse;
+      }
+    </style>
+</head>
+<body>
+    <div style="height:18px;width:11.5625px;"></div>
+    <div style="height:18px;width:11.4375px;"></div>
+</body>
+</html>

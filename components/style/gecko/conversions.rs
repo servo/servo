@@ -5,6 +5,8 @@
 //! This module contains conversion helpers between Servo and Gecko types
 //! Ideally, it would be in geckolib itself, but coherence
 //! forces us to keep the traits and implementations here
+//!
+//! FIXME(emilio): This file should generally just die.
 
 #![allow(unsafe_code)]
 
@@ -18,143 +20,63 @@ use crate::stylesheets::{Origin, RulesMutateError};
 use crate::values::computed::image::LineDirection;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
-use crate::values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use crate::values::computed::{Integer, LengthOrPercentage};
-use crate::values::computed::{LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto};
-use crate::values::computed::{Percentage, TextAlign};
+use crate::values::computed::{Angle, Gradient, Image};
+use crate::values::computed::{Integer, LengthPercentage};
+use crate::values::computed::{Length, Percentage, TextAlign};
 use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
 use crate::values::generics::rect::Rect;
+use crate::Zero;
 use app_units::Au;
 use std::f32::consts::PI;
+use style_traits::values::specified::AllowedNumericType;
 
-impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
-    fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
-        let has_percentage = other.percentage.is_some();
+impl From<LengthPercentage> for nsStyleCoord_CalcValue {
+    fn from(other: LengthPercentage) -> nsStyleCoord_CalcValue {
+        debug_assert!(
+            other.was_calc || !other.has_percentage || other.unclamped_length() == Length::zero()
+        );
         nsStyleCoord_CalcValue {
             mLength: other.unclamped_length().to_i32_au(),
-            mPercent: other.percentage.map_or(0., |p| p.0),
-            mHasPercent: has_percentage,
+            mPercent: other.percentage(),
+            mHasPercent: other.has_percentage,
         }
     }
 }
 
-impl From<nsStyleCoord_CalcValue> for CalcLengthOrPercentage {
-    fn from(other: nsStyleCoord_CalcValue) -> CalcLengthOrPercentage {
+impl From<nsStyleCoord_CalcValue> for LengthPercentage {
+    fn from(other: nsStyleCoord_CalcValue) -> LengthPercentage {
         let percentage = if other.mHasPercent {
             Some(Percentage(other.mPercent))
         } else {
             None
         };
-        Self::new(Au(other.mLength).into(), percentage)
+        Self::with_clamping_mode(
+            Au(other.mLength).into(),
+            percentage,
+            AllowedNumericType::All,
+            /* was_calc = */ true,
+        )
     }
 }
-
-impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
-    fn from(other: LengthOrPercentage) -> nsStyleCoord_CalcValue {
-        match other {
-            LengthOrPercentage::Length(px) => nsStyleCoord_CalcValue {
-                mLength: px.to_i32_au(),
-                mPercent: 0.0,
-                mHasPercent: false,
-            },
-            LengthOrPercentage::Percentage(pc) => nsStyleCoord_CalcValue {
-                mLength: 0,
-                mPercent: pc.0,
-                mHasPercent: true,
-            },
-            LengthOrPercentage::Calc(calc) => calc.into(),
-        }
-    }
-}
-
-impl LengthOrPercentageOrAuto {
-    /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
-    pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
-        match *self {
-            LengthOrPercentageOrAuto::Length(px) => Some(nsStyleCoord_CalcValue {
-                mLength: px.to_i32_au(),
-                mPercent: 0.0,
-                mHasPercent: false,
-            }),
-            LengthOrPercentageOrAuto::Percentage(pc) => Some(nsStyleCoord_CalcValue {
-                mLength: 0,
-                mPercent: pc.0,
-                mHasPercent: true,
-            }),
-            LengthOrPercentageOrAuto::Calc(calc) => Some(calc.into()),
-            LengthOrPercentageOrAuto::Auto => None,
-        }
-    }
-}
-
-impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
-    fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentage {
-        match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentage::Length(Au(other.mLength).into()),
-            (true, 0) => LengthOrPercentage::Percentage(Percentage(other.mPercent)),
-            _ => LengthOrPercentage::Calc(other.into()),
-        }
-    }
-}
-
-impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
-    fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentageOrAuto {
-        match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength).into()),
-            (true, 0) => LengthOrPercentageOrAuto::Percentage(Percentage(other.mPercent)),
-            _ => LengthOrPercentageOrAuto::Calc(other.into()),
-        }
-    }
-}
-
-// FIXME(emilio): A lot of these impl From should probably become explicit or
-// disappear as we move more stuff to cbindgen.
-impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
-    fn from(other: nsStyleCoord_CalcValue) -> Self {
-        use crate::values::generics::NonNegative;
-        use style_traits::values::specified::AllowedNumericType;
-        NonNegative(if other.mLength < 0 || other.mPercent < 0. {
-            LengthOrPercentageOrAuto::Calc(CalcLengthOrPercentage::with_clamping_mode(
-                Au(other.mLength).into(),
-                if other.mHasPercent {
-                    Some(Percentage(other.mPercent))
-                } else {
-                    None
-                },
-                AllowedNumericType::NonNegative,
-            ))
-        } else {
-            other.into()
-        })
-    }
-}
-
 impl From<Angle> for CoordDataValue {
     fn from(reference: Angle) -> Self {
         CoordDataValue::Degree(reference.degrees())
     }
 }
 
-fn line_direction(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) -> LineDirection {
+fn line_direction(horizontal: LengthPercentage, vertical: LengthPercentage) -> LineDirection {
     use crate::values::computed::position::Position;
     use crate::values::specified::position::{X, Y};
 
-    let horizontal_percentage = match horizontal {
-        LengthOrPercentage::Percentage(percentage) => Some(percentage.0),
-        _ => None,
-    };
-
-    let vertical_percentage = match vertical {
-        LengthOrPercentage::Percentage(percentage) => Some(percentage.0),
-        _ => None,
-    };
+    let horizontal_percentage = horizontal.as_percentage();
+    let vertical_percentage = vertical.as_percentage();
 
     let horizontal_as_corner = horizontal_percentage.and_then(|percentage| {
-        if percentage == 0.0 {
+        if percentage.0 == 0.0 {
             Some(X::Left)
-        } else if percentage == 1.0 {
+        } else if percentage.0 == 1.0 {
             Some(X::Right)
         } else {
             None
@@ -162,9 +84,9 @@ fn line_direction(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) 
     });
 
     let vertical_as_corner = vertical_percentage.and_then(|percentage| {
-        if percentage == 0.0 {
+        if percentage.0 == 0.0 {
             Some(Y::Top)
-        } else if percentage == 1.0 {
+        } else if percentage.0 == 1.0 {
             Some(Y::Bottom)
         } else {
             None
@@ -176,13 +98,13 @@ fn line_direction(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) 
     }
 
     if let Some(hc) = horizontal_as_corner {
-        if vertical_percentage == Some(0.5) {
+        if vertical_percentage == Some(Percentage(0.5)) {
             return LineDirection::Horizontal(hc);
         }
     }
 
     if let Some(vc) = vertical_as_corner {
-        if horizontal_percentage == Some(0.5) {
+        if horizontal_percentage == Some(Percentage(0.5)) {
             return LineDirection::Vertical(vc);
         }
     }
@@ -510,8 +432,8 @@ impl nsStyleImage {
             .as_ref()
             .unwrap();
         let angle = Angle::from_gecko_style_coord(&gecko_gradient.mAngle);
-        let horizontal_style = LengthOrPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosX);
-        let vertical_style = LengthOrPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosY);
+        let horizontal_style = LengthPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosX);
+        let vertical_style = LengthPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosY);
 
         let kind = match gecko_gradient.mShape as u32 {
             structs::NS_STYLE_GRADIENT_SHAPE_LINEAR => {
@@ -572,20 +494,18 @@ impl nsStyleImage {
                     structs::NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL => {
                         let length_percentage_keyword = match gecko_gradient.mSize as u32 {
                             structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => match (
-                                LengthOrPercentage::from_gecko_style_coord(
-                                    &gecko_gradient.mRadiusX,
-                                ),
-                                LengthOrPercentage::from_gecko_style_coord(
-                                    &gecko_gradient.mRadiusY,
-                                ),
+                                LengthPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusX),
+                                LengthPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusY),
                             ) {
                                 (Some(x), Some(y)) => Ellipse::Radii(x, y),
                                 _ => {
-                                    debug_assert!(false,
-                                                      "mRadiusX, mRadiusY could not convert to LengthOrPercentage");
+                                    debug_assert!(
+                                        false,
+                                        "mRadiusX, mRadiusY could not convert to LengthPercentage"
+                                    );
                                     Ellipse::Radii(
-                                        LengthOrPercentage::zero(),
-                                        LengthOrPercentage::zero(),
+                                        LengthPercentage::zero(),
+                                        LengthPercentage::zero(),
                                     )
                                 },
                             },
@@ -604,11 +524,11 @@ impl nsStyleImage {
                     _ => {
                         debug_assert!(
                             false,
-                            "mRadiusX, mRadiusY could not convert to LengthOrPercentage"
+                            "mRadiusX, mRadiusY could not convert to LengthPercentage"
                         );
                         Position {
-                            horizontal: LengthOrPercentage::zero(),
-                            vertical: LengthOrPercentage::zero(),
+                            horizontal: LengthPercentage::zero(),
+                            vertical: LengthPercentage::zero(),
                         }
                     },
                 };
@@ -623,13 +543,13 @@ impl nsStyleImage {
             .map(|ref stop| {
                 if stop.mIsInterpolationHint {
                     GradientItem::InterpolationHint(
-                        LengthOrPercentage::from_gecko_style_coord(&stop.mLocation)
-                            .expect("mLocation could not convert to LengthOrPercentage"),
+                        LengthPercentage::from_gecko_style_coord(&stop.mLocation)
+                            .expect("mLocation could not convert to LengthPercentage"),
                     )
                 } else {
                     GradientItem::ColorStop(ColorStop {
                         color: stop.mColor.into(),
-                        position: LengthOrPercentage::from_gecko_style_coord(&stop.mLocation),
+                        position: LengthPercentage::from_gecko_style_coord(&stop.mLocation),
                     })
                 }
             })
@@ -656,28 +576,23 @@ pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
 
     use crate::gecko::values::GeckoStyleCoordConvertible;
-    use crate::gecko_bindings::structs;
-    use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
+    use crate::gecko_bindings::structs::nsStyleCoord;
     use crate::gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use crate::gecko_bindings::structs::{
         StyleGeometryBox, StyleShapeSource, StyleShapeSourceType,
     };
-    use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use crate::gecko_bindings::sugar::refptr::RefPtr;
     use crate::values::computed::basic_shape::{
         BasicShape, ClippingShape, FloatAreaShape, ShapeRadius,
     };
-    use crate::values::computed::border::{BorderCornerRadius, BorderRadius};
-    use crate::values::computed::length::LengthOrPercentage;
+    use crate::values::computed::length::LengthPercentage;
     use crate::values::computed::motion::OffsetPath;
-    use crate::values::computed::position;
     use crate::values::computed::url::ComputedUrl;
     use crate::values::generics::basic_shape::{
         BasicShape as GenericBasicShape, InsetRect, Polygon,
     };
     use crate::values::generics::basic_shape::{Circle, Ellipse, Path, PolygonCoord};
     use crate::values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
-    use crate::values::generics::border::BorderRadius as GenericBorderRadius;
     use crate::values::generics::rect::Rect;
     use crate::values::specified::SVGPathData;
     use std::borrow::Borrow;
@@ -784,12 +699,11 @@ pub mod basic_shape {
         fn from(other: &'a StyleBasicShape) -> Self {
             match other.mType {
                 StyleBasicShapeType::Inset => {
-                    let t = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[0]);
-                    let r = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[1]);
-                    let b = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
-                    let l = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
-                    let round: BorderRadius = (&other.mRadius).into();
-                    let round = if round.all_zero() { None } else { Some(round) };
+                    let t = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[0]);
+                    let r = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[1]);
+                    let b = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
+                    let l = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
+                    let round = other.mRadius;
                     let rect = Rect::new(
                         t.expect("inset() offset should be a length, percentage, or calc value"),
                         r.expect("inset() offset should be a length, percentage, or calc value"),
@@ -800,12 +714,12 @@ pub mod basic_shape {
                 },
                 StyleBasicShapeType::Circle => GenericBasicShape::Circle(Circle {
                     radius: (&other.mCoordinates[0]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Ellipse => GenericBasicShape::Ellipse(Ellipse {
                     semiaxis_x: (&other.mCoordinates[0]).into(),
                     semiaxis_y: (&other.mCoordinates[1]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Polygon => {
                     let mut coords = Vec::with_capacity(other.mCoordinates.len() / 2);
@@ -813,12 +727,12 @@ pub mod basic_shape {
                         let x = 2 * i;
                         let y = x + 1;
                         coords.push(PolygonCoord(
-                            LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[x])
+                            LengthPercentage::from_gecko_style_coord(&other.mCoordinates[x])
                                 .expect(
                                     "polygon() coordinate should be a length, percentage, \
                                      or calc value",
                                 ),
-                            LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[y])
+                            LengthPercentage::from_gecko_style_coord(&other.mCoordinates[y])
                                 .expect(
                                     "polygon() coordinate should be a length, percentage, \
                                      or calc value",
@@ -834,84 +748,11 @@ pub mod basic_shape {
         }
     }
 
-    impl<'a> From<&'a nsStyleCorners> for BorderRadius {
-        fn from(other: &'a nsStyleCorners) -> Self {
-            let get_corner = |index| {
-                BorderCornerRadius::new(
-                    LengthOrPercentage::from_gecko_style_coord(&other.data_at(index))
-                        .expect("<border-radius> should be a length, percentage, or calc value"),
-                    LengthOrPercentage::from_gecko_style_coord(&other.data_at(index + 1))
-                        .expect("<border-radius> should be a length, percentage, or calc value"),
-                )
-            };
-
-            GenericBorderRadius {
-                top_left: get_corner(0),
-                top_right: get_corner(2),
-                bottom_right: get_corner(4),
-                bottom_left: get_corner(6),
-            }
-        }
-    }
-
-    // Can't be a From impl since we need to set an existing
-    // nsStyleCorners, not create a new one
-    impl BorderRadius {
-        /// Set this `BorderRadius` into a given `nsStyleCoord`.
-        pub fn set_corners(&self, other: &mut nsStyleCorners) {
-            let mut set_corner = |field: &BorderCornerRadius, index| {
-                field
-                    .0
-                    .width()
-                    .to_gecko_style_coord(&mut other.data_at_mut(index));
-                field
-                    .0
-                    .height()
-                    .to_gecko_style_coord(&mut other.data_at_mut(index + 1));
-            };
-            set_corner(&self.top_left, 0);
-            set_corner(&self.top_right, 2);
-            set_corner(&self.bottom_right, 4);
-            set_corner(&self.bottom_left, 6);
-        }
-    }
-
-    /// We use None for a nonexistant radius, but Gecko uses (0 0 0 0 / 0 0 0 0)
-    pub fn set_corners_from_radius(radius: Option<BorderRadius>, other: &mut nsStyleCorners) {
-        if let Some(radius) = radius {
-            radius.set_corners(other);
-        } else {
-            for i in 0..8 {
-                other.data_at_mut(i).set_value(CoordDataValue::Coord(0));
-            }
-        }
-    }
-
-    // Can't be a From impl since we need to set an existing
-    // Position, not create a new one
-    impl From<position::Position> for structs::Position {
-        fn from(other: position::Position) -> Self {
-            structs::Position {
-                mXPosition: other.horizontal.into(),
-                mYPosition: other.vertical.into(),
-            }
-        }
-    }
-
     impl<'a> From<&'a nsStyleCoord> for ShapeRadius {
         fn from(other: &'a nsStyleCoord) -> Self {
             let other = other.borrow();
             ShapeRadius::from_gecko_style_coord(other)
                 .expect("<shape-radius> should be a length, percentage, calc, or keyword value")
-        }
-    }
-
-    impl<'a> From<&'a structs::Position> for position::Position {
-        fn from(other: &'a structs::Position) -> Self {
-            position::Position {
-                horizontal: other.mXPosition.into(),
-                vertical: other.mYPosition.into(),
-            }
         }
     }
 
@@ -993,11 +834,11 @@ impl From<Origin> for SheetType {
     }
 }
 
-impl TrackSize<LengthOrPercentage> {
+impl TrackSize<LengthPercentage> {
     /// Return TrackSize from given two nsStyleCoord
     pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
         use crate::gecko_bindings::structs::root::nsStyleUnit;
-        use crate::values::computed::length::LengthOrPercentage;
+        use crate::values::computed::length::LengthPercentage;
         use crate::values::generics::grid::{TrackBreadth, TrackSize};
 
         if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
@@ -1007,8 +848,8 @@ impl TrackSize<LengthOrPercentage> {
                     gecko_max.unit() == nsStyleUnit::eStyleUnit_Calc
             );
             return TrackSize::FitContent(
-                LengthOrPercentage::from_gecko_style_coord(gecko_max)
-                    .expect("gecko_max could not convert to LengthOrPercentage"),
+                LengthPercentage::from_gecko_style_coord(gecko_max)
+                    .expect("gecko_max could not convert to LengthPercentage"),
             );
         }
 
@@ -1048,7 +889,7 @@ impl TrackSize<LengthOrPercentage> {
     }
 }
 
-impl TrackListValue<LengthOrPercentage, Integer> {
+impl TrackListValue<LengthPercentage, Integer> {
     /// Return TrackSize from given two nsStyleCoord
     pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
         TrackListValue::TrackSize(TrackSize::from_gecko_style_coords(gecko_min, gecko_max))

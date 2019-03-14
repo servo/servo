@@ -7,7 +7,6 @@ ReferrerPolicyTestCase(
     "source_protocol": "%(source_protocol)s",
     "target_protocol": "%(target_protocol)s",
     "subresource": "%(subresource)s",
-    "subresource_path": "%(subresource_path)s",
     "referrer_url": "%(referrer_url)s"
   },
   document.querySelector("meta[name=assert]").content,

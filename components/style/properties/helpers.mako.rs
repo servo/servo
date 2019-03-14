@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%!
-    from data import Keyword, to_rust_ident, to_camel_case
-    from data import LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES, SYSTEM_FONT_LONGHANDS
+    from data import Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
+    from data import LOGICAL_CORNERS, PHYSICAL_CORNERS, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
@@ -18,6 +18,8 @@
         use cssparser::{Color as CSSParserColor, RGBA};
         #[allow(unused_imports)]
         use crate::values::specified::AllowQuirks;
+        #[allow(unused_imports)]
+        use crate::Zero;
         #[allow(unused_imports)]
         use smallvec::SmallVec;
         pub use crate::values::specified::${type} as SpecifiedValue;
@@ -324,29 +326,32 @@
                 PropertyDeclaration::CSSWideKeyword(ref declaration) => {
                     debug_assert_eq!(declaration.id, LonghandId::${property.camel_case});
                     match declaration.keyword {
-                        % if not data.current_style_struct.inherited:
+                        % if not property.style_struct.inherited:
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Initial => {
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_initial_font_size(context);
+                            % if not property.style_struct.inherited:
+                                debug_assert!(false, "Should be handled in apply_properties");
                             % else:
+                                % if property.name == "font-size":
+                                computed::FontSize::cascade_initial_font_size(context);
+                                % else:
                                 context.builder.reset_${property.ident}();
+                                % endif
                             % endif
                         },
-                        % if data.current_style_struct.inherited:
+                        % if property.style_struct.inherited:
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Inherit => {
-                            % if not property.style_struct.inherited:
-                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                            % endif
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_inherit_font_size(context);
+                            % if property.style_struct.inherited:
+                                debug_assert!(false, "Should be handled in apply_properties");
                             % else:
+                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
                                 context.builder.inherit_${property.ident}();
                             % endif
                         }
+                        CSSWideKeyword::Revert => unreachable!("Should never get here"),
                     }
                     return;
                 }
@@ -793,6 +798,58 @@
     % endif
 </%def>
 
+// A shorthand of kind `<property-1> <property-2>?` where both properties have
+// the same type.
+<%def name="two_properties_shorthand(
+    name,
+    first_property,
+    second_property,
+    parser_function,
+    needs_context=True,
+    **kwargs
+)">
+<%call expr="self.shorthand(name, sub_properties=' '.join([first_property, second_property]), **kwargs)">
+    #[allow(unused_imports)]
+    use crate::parser::Parse;
+    use crate::values::specified;
+
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let parse_one = |_c: &ParserContext, input: &mut Parser<'i, 't>| {
+            % if needs_context:
+            ${parser_function}(_c, input)
+            % else:
+            ${parser_function}(input)
+            % endif
+        };
+
+        let first = parse_one(context, input)?;
+        let second =
+            input.try(|input| parse_one(context, input)).unwrap_or_else(|_| first.clone());
+        Ok(expanded! {
+            ${to_rust_ident(first_property)}: first,
+            ${to_rust_ident(second_property)}: second,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            let first = &self.${to_rust_ident(first_property)};
+            let second = &self.${to_rust_ident(second_property)};
+
+            first.to_css(dest)?;
+            if first != second {
+                dest.write_str(" ")?;
+                second.to_css(dest)?;
+            }
+            Ok(())
+        }
+    }
+</%call>
+</%def>
+
 <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function,
                                  needs_context=True, allow_quirks=False, **kwargs)">
     <% sub_properties=' '.join(sub_property_pattern % side for side in PHYSICAL_SIDES) %>
@@ -842,12 +899,16 @@
     <%
         side = None
         size = None
+        corner = None
         maybe_side = [s for s in LOGICAL_SIDES if s in name]
         maybe_size = [s for s in LOGICAL_SIZES if s in name]
+        maybe_corner = [s for s in LOGICAL_CORNERS if s in name]
         if len(maybe_side) == 1:
             side = maybe_side[0]
         elif len(maybe_size) == 1:
             size = maybe_size[0]
+        elif len(maybe_corner) == 1:
+            corner = maybe_corner[0]
         def phys_ident(side, phy_side):
             return to_rust_ident(name.replace(side, phy_side).replace("inset-", ""))
     %>
@@ -857,6 +918,15 @@
             % for phy_side in PHYSICAL_SIDES:
                 PhysicalSide::${phy_side.title()} => {
                     ${caller.inner(physical_ident=phys_ident(side, phy_side))}
+                }
+            % endfor
+        }
+    % elif corner is not None:
+        use crate::logical_geometry::PhysicalCorner;
+        match wm.${to_rust_ident(corner)}_physical_corner() {
+            % for phy_corner in PHYSICAL_CORNERS:
+                PhysicalCorner::${to_camel_case(phy_corner)} => {
+                    ${caller.inner(physical_ident=phys_ident(corner, phy_corner))}
                 }
             % endfor
         }

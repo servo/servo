@@ -36,7 +36,7 @@
     assert_equals(el.title, INPUTS.URL);
 
     el.title = policy.createURL(INPUTS.HTML);
-    assert_equals(el.title, "");
+    assert_equals(el.title, INPUTS.HTML);
   }, "Attributes without type constraints will work as before.");
 
   test(t => {
@@ -71,14 +71,14 @@
 
   const urlTestCases = [
     [ s => s, INPUTS.SCRIPTURL ],
-    [ s => null, "" ],
+    [ s => null, "null" ],
     [ s => s + "#duck", INPUTS.SCRIPTURL + "#duck" ],
     [ s => { throw new Error() }, new Error() ],
     [ s => s + "#" + aGlobalVarForSideEffectTesting,
       INPUTS.SCRIPTURL + "#global" ],
     [ anotherGlobalFunction.bind(aGlobalObject), INPUTS.SCRIPTURL + "#well," ],
     [ s => anotherGlobalFunction(s),
-      INPUTS.SCRIPTURL + "#a%20global%20var%20named%20foo" ],
+      INPUTS.SCRIPTURL + "#a global var named foo" ],
   ];
 
   function policyBuilder(trustedMethodName, trustedType, defaultArg) {

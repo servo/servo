@@ -213,9 +213,6 @@ class SeleniumProtocol(Protocol):
                                                                             resolve_ip=False),
                                           desired_capabilities=self.capabilities)
 
-    def after_conect(self):
-        pass
-
     def teardown(self):
         self.logger.debug("Hanging up on Selenium session")
         try:
@@ -359,10 +356,11 @@ class SeleniumRefTestExecutor(RefTestExecutor):
         self.close_after_done = close_after_done
         self.has_window = False
 
-        with open(os.path.join(here, "reftest.js")) as f:
-            self.script = f.read()
         with open(os.path.join(here, "reftest-wait_webdriver.js")) as f:
             self.wait_script = f.read()
+
+    def reset(self):
+        self.implementation.reset()
 
     def is_alive(self):
         return self.protocol.is_alive()
@@ -370,7 +368,12 @@ class SeleniumRefTestExecutor(RefTestExecutor):
     def do_test(self, test):
         self.logger.info("Test requires OS-level window focus")
 
-        self.protocol.webdriver.set_window_size(600, 600)
+        width_offset, height_offset = self.protocol.webdriver.execute_script(
+            """return [window.outerWidth - window.innerWidth,
+                       window.outerHeight - window.innerHeight];"""
+        )
+        self.protocol.webdriver.set_window_size(0, 0)
+        self.protocol.webdriver.set_window_position(800 + width_offset, 600 + height_offset)
 
         result = self.implementation.run_test(test)
 

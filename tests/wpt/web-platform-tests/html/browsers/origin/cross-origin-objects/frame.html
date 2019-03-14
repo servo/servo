@@ -2,6 +2,10 @@
 <html>
 <head>
 <script>
+  if (location.search == "?setdomain") {
+    document.domain = document.domain;
+  }
+
   // Override the |frames| property to test that such overrides are
   // properly ignored cross-origin.
   window.frames = "override";

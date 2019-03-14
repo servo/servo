@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+let constructor_test_name = "XRRay constructors work";
+
+let constructor_tests = function() {
+  // Constructor tests for XRRay.
+  // Spec: https://immersive-web.github.io/webxr/#xrray-interface
+
+  //
+  // Constructor 1 - from origin and direction
+  //
+
+  {
+    // Check defaults - should be 0,0,0,1 for origin and 0,0,-1,0 for direction,
+    // identity matrix for the transform:
+    let xrRay = new XRRay();
+    assert_point_approx_equals(
+      xrRay.origin, {x : 0.0, y : 0.0, z : 0.0, w : 1.0},
+      FLOAT_EPSILON, "origin-default:");
+    assert_point_approx_equals(
+      xrRay.direction, {x : 0.0, y : 0.0, z : -1.0, w : 0.0},
+      FLOAT_EPSILON, "direction-default:");
+    assert_matrix_approx_equals(
+      xrRay.matrix, IDENTITY_MATRIX,
+      FLOAT_EPSILON, "matrix-default:");
+  }
+
+  {
+    // Check custom value for origin, default for direction:
+    let originDict = {x : 11.0, y : 12.0, z : 13.0, w : 1.0};
+    let xrRay2 = new XRRay(DOMPoint.fromPoint(originDict));
+    let xrRay3 = new XRRay(DOMPointReadOnly.fromPoint(originDict));
+    let matrix1 = [ 1,  0,  0, 0,
+                    0,  1,  0, 0,
+                    0,  0,  1, 0,
+                   11, 12, 13, 1];
+
+    assert_point_approx_equals(
+      xrRay2.origin, originDict,
+      FLOAT_EPSILON, "origin-custom-direction-default:");
+    assert_point_approx_equals(
+      xrRay2.direction, {x : 0.0, y : 0.0, z : -1.0, w : 0.0},
+      FLOAT_EPSILON, "direction-custom-direction-default:");
+    assert_matrix_approx_equals(
+      xrRay2.matrix, matrix1,
+      FLOAT_EPSILON, "matrix-custom-direction-default:");
+
+    assert_ray_approx_equals(xrRay2, xrRay3, FLOAT_EPSILON, "ray2-ray3-direction-default:");
+  }
+
+  {
+    // Check custom values - ray rotated from -Z onto +X,
+    // not placed at origin:
+    // - from DOMPoint
+    // - from DOMPointReadOnly
+    let originDict = {x : 10.0, y : 10.0, z : 10.0, w : 1.0};
+    let directionDict = {x : 10.0, y : 0.0, z : 0.0, w : 0.0};
+    let directionNorm = {x :  1.0, y : 0.0, z : 0.0, w : 0.0};
+    // column-major
+    let matrix1 = [ 0,  0,  1,  0,
+                    0,  1,  0,  0,
+                   -1,  0,  0,  0,
+                   10, 10, 10,  1];
+
+    let xrRay2 = new XRRay(
+      DOMPoint.fromPoint(originDict),
+      DOMPoint.fromPoint(directionDict));
+
+    let xrRay3 = new XRRay(
+      DOMPointReadOnly.fromPoint(originDict),
+      DOMPointReadOnly.fromPoint(directionDict));
+
+    assert_point_approx_equals(
+      xrRay2.origin, originDict,
+      FLOAT_EPSILON, "origin-custom:");
+    assert_point_approx_equals(
+      xrRay2.direction, directionNorm,
+      FLOAT_EPSILON, "direction-custom:");
+    assert_matrix_approx_equals(
+      xrRay2.matrix, matrix1,
+      FLOAT_EPSILON, "matrix-custom:");
+
+    assert_ray_approx_equals(xrRay2, xrRay3, FLOAT_EPSILON, "ray2-ray3:");
+  }
+
+  {
+    // Check that we don't crash on direction too close to 0,0,0:
+    let originDict = {x : 10.0, y : 10.0, z : 10.0, w : 1.0};
+    let directionDict = {x : 0.0, y : 0.0, z : 0.0, w : 0.0};
+
+    let xrRay = new XRRay(
+      DOMPoint.fromPoint(originDict),
+      DOMPoint.fromPoint(directionDict));
+
+    assert_point_approx_equals(
+      xrRay.origin, originDict,
+      FLOAT_EPSILON, "origin-custom-direction-zero:");
+
+    // cannot validate direction's & matrix's values w/o making it depend on current
+    // implementation, just check that they're not null
+    assert_not_equals(xrRay.direction, null, "origin-custom-direction-zero:direction should not be null");
+    assert_not_equals(xrRay.matrix, null, "origin-custom-direction-zero:matrix should not be null");
+  }
+
+  //
+  // Constructor 2 - from rigid transform.
+  //
+
+  {
+    // Not placed at origin, ray rotated by 135 degrees around Y:
+    let originDict = {x : 10.0, y : 10.0, z : 10.0, w : 1.0};
+    let directionQuaternionDict = { x : 0, y : 0.9239, z : 0, w : 0.3827 };
+    let directionNorm2 = { x : -0.707, y : 0.0, z : 0.707, w : 0.0 };
+    let matrix2 = [-0.707,  0,  -0.707,   0,
+                    0.,     1,   0,       0,
+                    0.707,  0,  -0.707,   0,
+                   10.,    10,  10.,      1];
+
+    let xrRay4 = new XRRay(
+      new XRRigidTransform(
+        DOMPoint.fromPoint(originDict),
+        DOMPoint.fromPoint(directionQuaternionDict)));
+
+    assert_point_approx_equals(
+      xrRay4.origin, originDict,
+      FLOAT_EPSILON, "origin-custom-rigid:");
+    assert_point_approx_equals(
+      xrRay4.direction, directionNorm2,
+      FLOAT_EPSILON, "direction-custom-rigid:");
+
+    assert_matrix_approx_equals(
+      xrRay4.matrix, matrix2,
+      FLOAT_EPSILON, "matrix-custom-rigid:");
+  }
+};
+
+test(constructor_tests, constructor_test_name);
+
+</script>

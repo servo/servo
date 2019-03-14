@@ -9,6 +9,12 @@ use synstructure::BindStyle;
 
 pub fn derive(mut input: DeriveInput) -> TokenStream {
     let mut where_clause = input.generics.where_clause.take();
+    cg::propagate_clauses_to_output_type(
+        &mut where_clause,
+        &input.generics,
+        parse_quote!(crate::values::animated::ToAnimatedValue),
+        parse_quote!(AnimatedValue),
+    );
     for param in input.generics.type_params() {
         cg::add_predicate(
             &mut where_clause,

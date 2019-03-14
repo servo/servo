@@ -177,6 +177,7 @@ test(t => {
 
 const candidate1 = new RTCIceCandidate({
   candidate: 'candidate:1 1 udp 2113929471 203.0.113.100 10100 typ host',
+  sdpMid: '',
 });
 
 test(() => {
@@ -191,7 +192,7 @@ test(() => {
   const iceTransport = new RTCIceTransport();
   assert_throws('OperationError',
     () => iceTransport.addRemoteCandidate(
-      new RTCIceCandidate({ candidate: 'invalid' })));
+      new RTCIceCandidate({ candidate: 'invalid', sdpMid: '' })));
   assert_array_equals(iceTransport.getRemoteCandidates(), []);
 }, 'addRemoteCandidate() throws on invalid candidate');
 
@@ -254,14 +255,31 @@ promise_test(async t => {
   ]);
 }, 'Two RTCIceTransports connect to each other');
 
+['controlling', 'controlled'].forEach(role => {
+  promise_test(async t => {
+    const [ localTransport, remoteTransport ] =
+        makeAndGatherTwoIceTransports(t);
+    localTransport.start(remoteTransport.getLocalParameters(), role);
+    remoteTransport.start(localTransport.getLocalParameters(), role);
+    const localWatcher = new EventWatcher(t, localTransport, 'statechange');
+    const remoteWatcher = new EventWatcher(t, remoteTransport, 'statechange');
+    await Promise.all([
+      localWatcher.wait_for('statechange').then(() => {
+        assert_equals(localTransport.state, 'connected');
+      }),
+      remoteWatcher.wait_for('statechange').then(() => {
+        assert_equals(remoteTransport.state, 'connected');
+      }),
+    ]);
+  }, `Two RTCIceTransports configured with the ${role} role resolve the ` +
+      'conflict in band and still connect.');
+});
+
 promise_test(async t => {
-  async function waitForConnectedThenSelectedCandidatePairChange(t, transport,
+  async function waitForSelectedCandidatePairChangeThenConnected(t, transport,
       transportName) {
     const watcher = new EventWatcher(t, transport,
         [ 'statechange', 'selectedcandidatepairchange' ]);
-    await watcher.wait_for('statechange');
-    assert_equals(transport.state, 'connected',
-        `${transportName} state should be 'connected'`);
     await watcher.wait_for('selectedcandidatepairchange');
     const selectedCandidatePair = transport.getSelectedCandidatePair();
     assert_not_equals(selectedCandidatePair, null,
@@ -279,13 +297,16 @@ promise_test(async t => {
                 candidate === selectedCandidatePair.remote.candidate),
         `${transportName} selected candidate pair local should be in the ` +
         'list of remote candidates');
+    await watcher.wait_for('statechange');
+    assert_equals(transport.state, 'connected',
+        `${transportName} state should be 'connected'`);
   }
   const [ localTransport, remoteTransport ] =
       makeGatherAndStartTwoIceTransports(t);
   await Promise.all([
-    waitForConnectedThenSelectedCandidatePairChange(t, localTransport,
+    waitForSelectedCandidatePairChangeThenConnected(t, localTransport,
         'local transport'),
-    waitForConnectedThenSelectedCandidatePairChange(t, remoteTransport,
+    waitForSelectedCandidatePairChangeThenConnected(t, remoteTransport,
         'remote transport'),
   ]);
 }, 'Selected candidate pair changes once the RTCIceTransports connect.');

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Should not crash when inserting an element inside a :first-line pseudo.</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/">
+<style>
+p:first-line, p:first-letter {
+  font-family: serif;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p id=target>
+  test<sup>sup</sup>
+</p>
+<script>
+test(()=>{
+  const target = document.getElementById('target');
+  target.insertBefore(document.createElement('img'), target.lastChild)
+});
+</script>

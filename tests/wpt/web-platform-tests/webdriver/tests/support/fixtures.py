@@ -152,8 +152,9 @@ def session(capabilities, configuration, request):
         if not _current_session.session_id:
             raise
 
-    # Enforce a fixed default window size
+    # Enforce a fixed default window size and position
     _current_session.window.size = defaults.WINDOW_SIZE
+    _current_session.window.position = defaults.WINDOW_POSITION
 
     yield _current_session
 

@@ -22,7 +22,8 @@ try {
     registerPaint('foo', class { paint() { } });
     registerPaint('foo', class { paint() { } });
 } catch(ex) {
-    if (ex.name == "NotSupportedError" && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': A class with name:'foo' is already registered.")
+    // 'foo' gets registered twice.
+    if (ex.name == 'InvalidModificationError')
         testsPassed = true;
 }
 

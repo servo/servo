@@ -54,18 +54,11 @@ class Protocol(object):
 
             msg = "Post-connection steps failed"
             self.after_connect()
-        except IOError:
-            self.logger.warning("Timed out waiting for browser to start")
-            self.executor.runner.send_message("init_failed")
-            return
         except Exception:
             if msg is not None:
                 self.logger.warning(msg)
-            self.logger.error(traceback.format_exc())
-            self.executor.runner.send_message("init_failed")
-            return
-        else:
-            self.executor.runner.send_message("init_succeeded")
+            self.logger.warning(traceback.format_exc())
+            raise
 
     @abstractmethod
     def connect(self):
@@ -272,6 +265,7 @@ class ClickProtocolPart(ProtocolPart):
         :param element: A protocol-specific handle to an element."""
         pass
 
+
 class SendKeysProtocolPart(ProtocolPart):
     """Protocol part for performing trusted clicks"""
     __metaclass__ = ABCMeta
@@ -284,6 +278,20 @@ class SendKeysProtocolPart(ProtocolPart):
 
         :param element: A protocol-specific handle to an element.
         :param keys: A protocol-specific handle to a string of input keys."""
+        pass
+
+
+class GenerateTestReportProtocolPart(ProtocolPart):
+    """Protocol part for generating test reports"""
+    __metaclass__ = ABCMeta
+
+    name = "generate_test_report"
+
+    @abstractmethod
+    def generate_test_report(self, message):
+        """Generate a test report.
+
+        :param message: The message to be contained in the report."""
         pass
 
 

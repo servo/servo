@@ -5,6 +5,7 @@
 <link rel="help" href="https://fetch.spec.whatwg.org/#concept-bodyinit-extract">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./resources/targetted-form.js"></script>
 
 <iframe name="frame1" id="frame1"></iframe>
 <form accept-charset="iso-8859-1" target="frame1" action="/common/blank.html" id="form1">
@@ -46,4 +47,68 @@ async_test(t => {
   form2.submit.click();
 }, 'The button cannot be setted if it is not a submitter.');
 
+test(() => {
+  let didCallHandler = false;
+  let wasBubbles = false;
+  let wasCancelable = true;
+  let form = populateForm();
+  document.addEventListener('formdata', e => {
+    didCallHandler = true;
+    wasBubbles = e.bubbles;
+    wasCancelable = e.cancelable;
+  });
+  new FormData(form);
+  assert_true(didCallHandler);
+  assert_true(wasBubbles);
+  assert_false(wasCancelable);
+}, '"formdata" event bubbles, and is not cancelable.');
+
+test(() => {
+  let didCallHandler = false;
+  let form = populateForm();
+  let orphanRoot = document.createElement('div');
+  orphanRoot.appendChild(form);
+  orphanRoot.addEventListener('formdata', e => {
+    didCallHandler = true;
+  });
+  new FormData(form);
+  assert_true(didCallHandler);
+}, '"formdata" event bubbles in an orphan tree.');
+
+test(() => {
+  let listener1ok = false;
+  let listeern2ok = false;
+  let form = populateForm('<input name=n1 value=v1>');
+  form.addEventListener('formdata', e => {
+    listener1ok = e.formData.get('n1') == 'v1';
+    e.formData.append('h1', 'vh1');
+    e.formData.append('h2', 'vh2');
+  });
+  form.addEventListener('formdata', e => {
+    if (e.formData.get('h1') == 'vh1' && e.formData.get('h2') == 'vh2')
+      listener2ok = true;
+  });
+  form.submit();
+  assert_true(listener1ok);
+  assert_true(listener2ok);
+}, '"formData" IDL attribute should have entries for form-associated elements' +
+     ' in the first event handler, and the second handler can read entries ' +
+     'set by the first handler.');
+
+let t1 = async_test('Entries added to "formData" IDL attribute should be submitted.');
+t1.step(() => {
+  let form = populateForm('<input name=n1 value=v1>');
+  form.addEventListener('formdata', e => {
+    e.formData.append('h1', 'vh1');
+  });
+  let iframe = form.previousSibling;
+  iframe.onload = t1.step_func(() => {
+    // The initial about:blank load event can be fired before the form navigation occurs.
+    // See https://github.com/whatwg/html/issues/490 for more information.
+    if (iframe.contentWindow.location.href == "about:blank") { return; }
+    assert_true(iframe.contentWindow.location.search.indexOf('n1=v1&h1=vh1') != -1);
+    t1.done();
+  });
+  form.submit();
+});
 </script>

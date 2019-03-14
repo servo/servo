@@ -22,7 +22,9 @@
       // Calculate the index for disconnection.
       function getDisconnectIndex(disconnectTime) {
         let disconnectIndex = disconnectTime * sampleRate;
-        return disconnectIndex -= (disconnectIndex) % renderQuantum;
+        disconnectIndex = renderQuantum *
+            Math.floor((disconnectIndex + renderQuantum - 1) / renderQuantum);
+        return disconnectIndex;
       }
 
       // Get the index of value change.
@@ -35,7 +37,6 @@
 
       // Task 1: test disconnect(AudioParam) method.
       audit.define('disconnect(AudioParam)', (task, should) => {
-
         // Creates a buffer source with value [1] and then connect it to two
         // gain nodes in series. The output of the buffer source is lowered by
         // half
@@ -89,14 +90,12 @@
               should(channelData, 'Channel #0').containValues([2.25, 1.5]);
               should(valueChangeIndex, 'The index of value change')
                   .beEqualTo(disconnectIndex);
-
             })
             .then(() => task.done());
       });
 
       // Task 2: test disconnect(AudioParam, output) method.
       audit.define('disconnect(AudioParam, output)', (task, should) => {
-
         // Create a 2-channel buffer source with [1, 2] in each channel and
         // make a serial connection through gain1 and gain 2. The make the
         // buffer source half with a gain node and connect it to a 2-output
@@ -168,7 +167,6 @@
                   valueChangeIndexCh1,
                   'The index of value change in channel #1')
                   .beEqualTo(disconnectIndex);
-
             })
             .then(() => task.done());
       });
@@ -191,19 +189,28 @@
         gain3.connect(context.destination);
 
         // gain1 is not connected to gain3.gain. Exception should be thrown.
-        should(function() {
-          gain1.disconnect(gain3.gain);
-        }, 'gain1.disconnect(gain3.gain)').throw(DOMException, 'InvalidAccessError');
+        should(
+            function() {
+              gain1.disconnect(gain3.gain);
+            },
+            'gain1.disconnect(gain3.gain)')
+            .throw(DOMException, 'InvalidAccessError');
 
         // When the output index is good but the destination is invalid.
-        should(function() {
-          splitter.disconnect(gain1.gain, 1);
-        }, 'splitter.disconnect(gain1.gain, 1)').throw(DOMException, 'InvalidAccessError');
+        should(
+            function() {
+              splitter.disconnect(gain1.gain, 1);
+            },
+            'splitter.disconnect(gain1.gain, 1)')
+            .throw(DOMException, 'InvalidAccessError');
 
         // When both arguments are wrong, throw IndexSizeError first.
-        should(function() {
-          splitter.disconnect(gain1.gain, 2);
-        }, 'splitter.disconnect(gain1.gain, 2)').throw(DOMException, 'IndexSizeError');
+        should(
+            function() {
+              splitter.disconnect(gain1.gain, 2);
+            },
+            'splitter.disconnect(gain1.gain, 2)')
+            .throw(DOMException, 'IndexSizeError');
 
         task.done();
       });

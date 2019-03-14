@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <title>Custom Elements: CEReactions on HTMLButtonElement interface</title>
 <meta name="author" title="Zhang Xiaoyu" href="xiaoyux.zhang@intel.com">
-<meta name="assert" content=" autofocus, disabled, formAction, formEnctype, formMethod, formNoValidate, formTarget, name, type, value of HTMLButtonElement interface must have CEReactions">
+<meta name="assert" content=" autofocus, disabled, formAction, formEnctype,
+  formMethod, formNoValidate, formTarget, name, type, value
+  of HTMLButtonElement interface must have CEReactions">
 <meta name="help" content="https://html.spec.whatwg.org/#htmlbuttonelement">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -10,98 +12,69 @@
 <body>
 <script>
 
-testReflectAttributeWithContentValues('autofocus', 'autofocus', true, 'true', false, 'false', 'autofocus on HTMLButtonElement', 'button', HTMLButtonElement);
-testReflectAttributeWithContentValues('disabled', 'disabled', true, 'true', false, 'false', 'disabled on HTMLButtonElement', 'button', HTMLButtonElement);
-testReflectAttribute('name', 'name', 'intel', 'intel1', 'name on HTMLButtonElement', 'button', HTMLButtonElement);
-testReflectAttribute('value', 'value', 'HTML', 'CSS', 'value on HTMLButtonElement', 'button', HTMLButtonElement);
-testReflectAttrWithParentNode('type', 'type', 'submit', 'submit', 'reset', 'reset', 'type on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
-testReflectAttrWithDepAttr('formAction', 'formaction', 'type', 'intel.asp', 'intel1.asp', 'submit', 'formAction on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
-testReflectAttrWithDepAttr('formEnctype', 'formenctype', 'type', 'text/plain', 'multipart/form-data', 'submit', 'formEnctype on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
-testReflectAttrWithDepAttr('formMethod', 'formmethod', 'type', 'get', 'post', 'submit', 'formMethod on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
-testReflectAttrWithContentValuesAndDepAttr('formNoValidate', 'formnovalidate', 'type', true, 'true', false, 'false', 'submit', 'formNoValidate on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
-testReflectAttrWithDepAttr('formTarget', 'formtarget', 'type', '_blank', '_self', 'submit', 'formTarget on HTMLButtonElement', 'button', 'form', HTMLButtonElement);
-
-//In parent node, sub node's observeAttribute can enqueue by changing attribute value 
-//Test reflect attribute with content values and parent node
-function testReflectAttrWithParentNode(jsAtName, coAtName, jsAtValue1, coAtValue1, jsAtValue2, coAtValue2, name, elementName, pElementName, interfaceName) {
-    var parentElement = document.createElement(pElementName);
-    document.body.appendChild(parentElement);
-
-    test(() => {
-        var element = define_build_in_custom_element([coAtName], interfaceName, elementName);
-        var instance = document.createElement(elementName, { is: element.name });
-
-        assert_array_equals(element.takeLog().types(), ['constructed']);
-        parentElement.appendChild(instance);
-        assert_array_equals(element.takeLog().types(), ['connected']);
-        instance[jsAtName] = jsAtValue1;
-        var logEntries = element.takeLog();
-        assert_array_equals(logEntries.types(), ['attributeChanged']);
-        assert_attribute_log_entry(logEntries.last(), { name: coAtName, oldValue: null, newValue: coAtValue1, namespace: null });
-
-    }, name + ' must enqueue an attributeChanged reaction when adding a new attribute');
-
-    test(() => {
-        var element = define_build_in_custom_element([coAtName], interfaceName, elementName);
-        var instance = document.createElement(elementName, { is: element.name });
-        parentElement.appendChild(instance);
-
-        assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
-        instance[jsAtName] = jsAtValue1;
-        assert_array_equals(element.takeLog().types(), ['attributeChanged']);
-        instance[jsAtName] = jsAtValue2;
-        var logEntries = element.takeLog();
-        assert_array_equals(logEntries.types(), ['attributeChanged']);
-        assert_attribute_log_entry(logEntries.last(), { name: coAtName, oldValue: coAtValue1, newValue: coAtValue2, namespace: null });
-
-    }, name + ' must enqueue an attributeChanged reaction when replacing an existing attribute');
-
-    parentElement.parentNode.removeChild(parentElement);
+function getParentElement(parentElementName) {
+  let parentElement = document.createElement(parentElementName);
+  document.body.appendChild(parentElement);
+  return parentElement;
 }
 
-//In parent node, sub node's observeAttribute which depends another attribute can enqueue by changing attribute value
-//Test reflect attribute with content values and dependent attribute 
-function testReflectAttrWithContentValuesAndDepAttr(jsAtName, coAtName, deAtName, jsAtValue1, coAtValue1, jsAtValue2, coAtValue2, deAtValue, name, elementName, pElementName, interfaceName) {
-    var parentElement = document.createElement(pElementName);
-    document.body.appendChild(parentElement);
-
-    test(() => {
-        var element = define_build_in_custom_element([coAtName], interfaceName, elementName);
-        var instance = document.createElement(elementName, { is: element.name });
-
-        assert_array_equals(element.takeLog().types(), ['constructed']);
-        parentElement.appendChild(instance);
-        assert_array_equals(element.takeLog().types(), ['connected']);
-        instance.setAttribute(deAtName, deAtValue);
-        instance[jsAtName] = jsAtValue1;
-        var logEntries = element.takeLog();
-        assert_array_equals(logEntries.types(), ['attributeChanged']);
-        assert_attribute_log_entry(logEntries.last(), { name: coAtName, oldValue: null, newValue: coAtValue1, namespace: null });
-
-    }, name + ' must enqueue an attributeChanged reaction when adding a new attribute');
-
-    test(() => {
-        var element = define_build_in_custom_element([coAtName], interfaceName, elementName);
-        var instance = document.createElement(elementName, { is: element.name });
-        parentElement.appendChild(instance);
-        instance.setAttribute(deAtName, deAtValue);
-        instance[jsAtName] = jsAtValue1;
-
-        assert_array_equals(element.takeLog().types(), ['constructed', 'connected', 'attributeChanged']);
-        instance[jsAtName] = jsAtValue2;
-        var logEntries = element.takeLog();
-        assert_array_equals(logEntries.types(), ['attributeChanged']);
-        assert_attribute_log_entry(logEntries.last(), { name: coAtName, oldValue: coAtValue1, newValue: coAtValue2, namespace: null });
-
-    }, name + ' must enqueue an attributeChanged reaction when replacing an existing attribute');
-
-    parentElement.parentNode.removeChild(parentElement);
+function setAttributes(instance) {
+  instance.setAttribute('type', 'submit');
 }
 
-//Package reflect attribute with dependent attribute
-function testReflectAttrWithDepAttr(jsAtName, coAtName, deAtName, jsAtValue1, jsAtValue2, deAtValue, name, elementName, pElementName, interfaceName) {
-    testReflectAttrWithContentValuesAndDepAttr(jsAtName, coAtName, deAtName, jsAtValue1, jsAtValue1, jsAtValue2, jsAtValue2, deAtValue, name, elementName, pElementName, interfaceName);
-}
+testReflectBooleanAttribute(
+  'autofocus', 'autofocus', 'autofocus on HTMLButtonElement',
+  'button', HTMLButtonElement
+);
+testReflectBooleanAttribute(
+  'disabled', 'disabled','disabled on HTMLButtonElement',
+  'button', HTMLButtonElement
+);
+testReflectAttribute(
+  'name', 'name', 'intel',
+  'intel1', 'name on HTMLButtonElement', 'button',
+  HTMLButtonElement
+);
+testReflectAttribute(
+  'value', 'value', 'HTML',
+  'CSS', 'value on HTMLButtonElement', 'button',
+  HTMLButtonElement
+);
+testReflectAttributeWithParentNode(
+  'type', 'type', 'submit',
+  'reset',  'type on HTMLButtonElement', 'button',
+  () => getParentElement('form'), HTMLButtonElement
+);
+testReflectAttributeWithDependentAttributes(
+  'formAction', 'formaction', 'intel.asp',
+  'intel1.asp', 'formAction on HTMLButtonElement', 'button',
+  () => getParentElement('form'), instance => setAttributes(instance),
+  HTMLButtonElement
+);
+testReflectAttributeWithDependentAttributes(
+  'formEnctype', 'formenctype', 'text/plain', 'multipart/form-data',
+  'formEnctype on HTMLButtonElement', 'button', () => getParentElement('form'),
+  instance => setAttributes(instance),
+  HTMLButtonElement
+);
+testReflectAttributeWithDependentAttributes(
+  'formMethod', 'formmethod', 'get',
+  'post', 'formMethod on HTMLButtonElement', 'button',
+  () => getParentElement('form'), instance => setAttributes(instance),
+  HTMLButtonElement
+);
+testReflectBooleanAttributeWithDependentAttributes(
+  'formNoValidate', 'formnovalidate', 'formNoValidate on HTMLButtonElement',
+  'button', () => getParentElement('form'),
+  instance => setAttributes(instance),
+  HTMLButtonElement
+);
+testReflectAttributeWithDependentAttributes(
+  'formTarget', 'formtarget', '_blank',
+  '_self', 'formTarget on HTMLButtonElement', 'button',
+  () => getParentElement('form'), instance => setAttributes(instance),
+  HTMLButtonElement
+);
 
 </script>
 </body>

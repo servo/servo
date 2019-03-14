@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
+use crate::compositor_thread::CompositorReceiver;
 use crate::compositor_thread::{InitialCompositorState, Msg};
 #[cfg(feature = "gl")]
 use crate::gl;
@@ -13,6 +13,7 @@ use crate::windowing::{
 use crate::CompositionPipeline;
 use crate::SendableFrameTree;
 use crossbeam_channel::Sender;
+use embedder_traits::Cursor;
 use euclid::{TypedPoint2D, TypedScale, TypedVector2D};
 use gfx_traits::Epoch;
 #[cfg(feature = "gl")]
@@ -21,6 +22,7 @@ use ipc_channel::ipc;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
+use num_traits::FromPrimitive;
 #[cfg(feature = "gl")]
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
@@ -36,12 +38,12 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollLocation};
+use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -175,6 +177,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The webrender interface, if enabled.
     webrender_api: webrender_api::RenderApi,
 
+    /// Some VR displays want to be sent a heartbeat from the main thread.
+    webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
+
     /// Map of the pending paint metrics per layout thread.
     /// The layout thread for each specific pipeline expects the compositor to
     /// paint frames with specific given IDs (epoch). Once the compositor paints
@@ -248,45 +253,6 @@ enum CompositeTarget {
     PngFile,
 }
 
-#[derive(Clone)]
-pub struct RenderNotifier {
-    compositor_proxy: CompositorProxy,
-}
-
-impl RenderNotifier {
-    pub fn new(compositor_proxy: CompositorProxy) -> RenderNotifier {
-        RenderNotifier {
-            compositor_proxy: compositor_proxy,
-        }
-    }
-}
-
-impl webrender_api::RenderNotifier for RenderNotifier {
-    fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
-        Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
-    }
-
-    fn wake_up(&self) {
-        self.compositor_proxy
-            .recomposite(CompositingReason::NewWebRenderFrame);
-    }
-
-    fn new_frame_ready(
-        &self,
-        _document_id: webrender_api::DocumentId,
-        scrolled: bool,
-        composite_needed: bool,
-        _render_time_ns: Option<u64>,
-    ) {
-        if scrolled {
-            self.compositor_proxy
-                .send(Msg::NewScrollFrameReady(composite_needed));
-        } else {
-            self.wake_up();
-        }
-    }
-}
-
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState) -> Self {
         let composite_target = match opts::get().output_file {
@@ -321,6 +287,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
+            webvr_heartbeats: state.webvr_heartbeats,
             pending_paint_metrics: HashMap::new(),
         }
     }
@@ -742,7 +709,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
 
-            if let Some(cursor) = CursorKind::from_u8(item.tag.1 as _).ok() {
+            if let Some(cursor) = Cursor::from_u8(item.tag.1 as _) {
                 let msg = ConstellationMsg::SetCursor(cursor);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending event to constellation failed ({:?}).", e);
@@ -957,7 +924,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 pipeline_ids.push(*pipeline_id);
             }
         }
-        let animation_state = if pipeline_ids.is_empty() {
+        let animation_state = if pipeline_ids.is_empty() && !self.webvr_heartbeats_racing() {
             windowing::AnimationState::Idle
         } else {
             windowing::AnimationState::Animating
@@ -966,6 +933,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for pipeline_id in &pipeline_ids {
             self.tick_animations_for_pipeline(*pipeline_id)
         }
+    }
+
+    fn webvr_heartbeats_racing(&self) -> bool {
+        self.webvr_heartbeats.iter().any(|hb| hb.heart_racing())
     }
 
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
@@ -1381,6 +1352,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.composition_request {
             CompositionRequest::NoCompositingNecessary => {},
             CompositionRequest::CompositeNow(_) => self.composite(),
+        }
+
+        // Send every VR display that wants one a main-thread heartbeat
+        for webvr_heartbeat in &mut self.webvr_heartbeats {
+            webvr_heartbeat.heartbeat();
         }
 
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {

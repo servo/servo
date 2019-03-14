@@ -8,10 +8,13 @@ PHYSICAL_SIDES = ["top", "right", "bottom", "left"]
 LOGICAL_SIDES = ["block-start", "block-end", "inline-start", "inline-end"]
 PHYSICAL_SIZES = ["width", "height"]
 LOGICAL_SIZES = ["block-size", "inline-size"]
+PHYSICAL_CORNERS = ["top-left", "top-right", "bottom-right", "bottom-left"]
+LOGICAL_CORNERS = ["start-start", "start-end", "end-start", "end-end"]
 
 # bool is True when logical
 ALL_SIDES = [(side, False) for side in PHYSICAL_SIDES] + [(side, True) for side in LOGICAL_SIDES]
 ALL_SIZES = [(size, False) for size in PHYSICAL_SIZES] + [(size, True) for size in LOGICAL_SIZES]
+ALL_CORNERS = [(corner, False) for corner in PHYSICAL_CORNERS] + [(corner, True) for corner in LOGICAL_CORNERS]
 
 SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
                            font_variant_caps font_stretch font_kerning
@@ -239,12 +242,14 @@ class Longhand(object):
     def all_physical_mapped_properties(self):
         assert self.logical
         logical_side = None
-        for s in LOGICAL_SIDES + LOGICAL_SIZES:
+        for s in LOGICAL_SIDES + LOGICAL_SIZES + LOGICAL_CORNERS:
             if s in self.name:
                 assert not logical_side
                 logical_side = s
         assert logical_side
-        physical = PHYSICAL_SIDES if logical_side in LOGICAL_SIDES else PHYSICAL_SIZES
+        physical = PHYSICAL_SIDES if logical_side in LOGICAL_SIDES \
+            else PHYSICAL_SIZES if logical_side in LOGICAL_SIZES \
+            else LOGICAL_CORNERS
         return [self.name.replace(logical_side, physical_side).replace("inset-", "")
                 for physical_side in physical]
 
@@ -326,6 +331,7 @@ class Longhand(object):
                 "Opacity",
                 "OutlineStyle",
                 "Overflow",
+                "OverflowAnchor",
                 "OverflowClipBox",
                 "OverflowWrap",
                 "OverscrollBehavior",
@@ -333,6 +339,7 @@ class Longhand(object):
                 "Resize",
                 "SVGOpacity",
                 "SVGPaintOrder",
+                "ScrollSnapAlign",
                 "ScrollSnapType",
                 "TextAlign",
                 "TextDecorationLine",
@@ -340,6 +347,7 @@ class Longhand(object):
                 "TouchAction",
                 "TransformStyle",
                 "UserSelect",
+                "WordBreak",
                 "XSpan",
                 "XTextZoom",
                 "ZIndex",
@@ -388,12 +396,12 @@ class Shorthand(object):
             and allowed_in_keyframe_block != "False"
 
     def get_animatable(self):
-        animatable = False
+        if self.ident == "all":
+            return False
         for sub in self.sub_properties:
             if sub.animatable:
-                animatable = True
-                break
-        return animatable
+                return True
+        return False
 
     def get_transitionable(self):
         transitionable = False

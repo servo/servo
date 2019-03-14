@@ -12,6 +12,7 @@ import platform
 import shutil
 import subprocess
 from subprocess import PIPE
+from zipfile import BadZipfile
 
 import servo.packages as packages
 from servo.util import extract, download_file, host_triple
@@ -300,6 +301,21 @@ def windows_msvc(context, force=False):
                 return True
         return False
 
+    def prepare_file(zip_path, full_spec):
+        if not os.path.isfile(zip_path):
+            zip_url = "{}{}.zip".format(deps_url, full_spec)
+            download_file(full_spec, zip_url, zip_path)
+
+        print("Extracting {}...".format(full_spec), end='')
+        try:
+            extract(zip_path, deps_dir)
+        except BadZipfile:
+            print("\nError: %s.zip is not a valid zip file, redownload..." % full_spec)
+            os.remove(zip_path)
+            prepare_file(zip_path, full_spec)
+        else:
+            print("done")
+
     to_install = {}
     for package in packages.WINDOWS_MSVC:
         # Don't install CMake if it already exists in PATH
@@ -321,13 +337,7 @@ def windows_msvc(context, force=False):
             os.makedirs(parent_dir)
 
         zip_path = package_dir(package) + ".zip"
-        if not os.path.isfile(zip_path):
-            zip_url = "{}{}.zip".format(deps_url, full_spec)
-            download_file(full_spec, zip_url, zip_path)
-
-        print("Extracting {}...".format(full_spec), end='')
-        extract(zip_path, deps_dir)
-        print("done")
+        prepare_file(zip_path, full_spec)
 
         extracted_path = os.path.join(deps_dir, full_spec)
         os.rename(extracted_path, package_dir(package))
@@ -356,6 +366,21 @@ def get_linux_distribution():
             base_version = '16.04'
         elif major == '17':
             base_version = '14.04'
+        else:
+            raise Exception('unsupported version of %s: %s' % (distro, version))
+
+        distro, version = 'Ubuntu', base_version
+    elif distro.lower() == 'elementary':
+        if version == '5.0':
+            base_version = '18.04'
+        elif version[0:3] == '0.4':
+            base_version = '16.04'
+        elif version[0:3] == '0.3':
+            base_version = '14.04'
+        elif version == '0.2':
+            base_version = '12.04'
+        elif version == '0.1':
+            base_version = '10.10'
         else:
             raise Exception('unsupported version of %s: %s' % (distro, version))
 

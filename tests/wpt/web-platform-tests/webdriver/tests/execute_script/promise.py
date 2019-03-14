@@ -1,6 +1,4 @@
-import pytest
-
-from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
+from tests.support.asserts import assert_error, assert_success
 
 
 def execute_script(session, script, args=None):
@@ -45,10 +43,23 @@ def test_promise_all_resolve(session):
 
 def test_await_promise_resolve(session):
     response = execute_script(session, """
-        const res = await Promise.resolve('foobar');
+        let res = await Promise.resolve('foobar');
         return res;
         """)
     assert_success(response, "foobar")
+
+
+def test_promise_resolve_timeout(session):
+    session.timeouts.script = .1
+    response = execute_script(session, """
+        return new Promise(
+            (resolve) => setTimeout(
+                () => resolve(),
+                1000
+            )
+        );
+        """)
+    assert_error(response, "script timeout")
 
 
 def test_promise_reject(session):
@@ -88,19 +99,6 @@ def test_await_promise_reject(session):
     assert_error(response, "javascript error")
 
 
-def test_promise_resolve_timeout(session):
-    session.timeouts.script = .1
-    response = execute_script(session, """
-        return new Promise(
-            (resolve) => setTimeout(
-                () => resolve(),
-                1000
-            )
-        );
-        """)
-    assert_error(response, "timeout error")
-
-
 def test_promise_reject_timeout(session):
     session.timeouts.script = .1
     response = execute_script(session, """
@@ -111,4 +109,4 @@ def test_promise_reject_timeout(session):
             )
         );
         """)
-    assert_error(response, "timeout error")
+    assert_error(response, "script timeout")

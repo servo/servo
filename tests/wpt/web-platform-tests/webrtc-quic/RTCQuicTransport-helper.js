@@ -7,21 +7,11 @@
 //   makeIceTransport
 //   makeGatherAndStartTwoIceTransports
 
-// Return a promise to generate an RTCCertificate with the given keygen
-// algorithm or a default one if none provided.
-function generateCertificate(keygenAlgorithm) {
-  return RTCPeerConnection.generateCertificate({
-    name: 'ECDSA',
-    namedCurve: 'P-256',
-    ...keygenAlgorithm,
-  });
-}
-
 // Construct an RTCQuicTransport instance with the given RTCIceTransport
 // instance and the given certificates. The RTCQuicTransport instance will be
 // automatically cleaned up when the test finishes.
-function makeQuicTransport(t, iceTransport, certificates) {
-  const quicTransport = new RTCQuicTransport(iceTransport, certificates);
+function makeQuicTransport(t, iceTransport) {
+  const quicTransport = new RTCQuicTransport(iceTransport);
   t.add_cleanup(() => quicTransport.stop());
   return quicTransport;
 }
@@ -30,9 +20,8 @@ function makeQuicTransport(t, iceTransport, certificates) {
 // and a single, newly-generated certificate. The RTCQuicTransport and
 // RTCIceTransport instances will be automatically cleaned up when the test
 // finishes.
-async function makeStandaloneQuicTransport(t) {
-  const certificate = await generateCertificate();
-  return makeQuicTransport(t, makeIceTransport(t), [ certificate ]);
+function makeStandaloneQuicTransport(t) {
+  return makeQuicTransport(t, makeIceTransport(t));
 }
 
 // Construct two RTCQuicTransport instances and each call start() with the other
@@ -40,17 +29,16 @@ async function makeStandaloneQuicTransport(t) {
 // Returns a 2-list:
 //     [ server RTCQuicTransport,
 //       client RTCQuicTransport ]
-async function makeAndStartTwoQuicTransports(t) {
-  const [ localCertificate, remoteCertificate ] =
-      await Promise.all([ generateCertificate(), generateCertificate() ]);
+function makeAndStartTwoQuicTransports(t) {
   const [ localIceTransport, remoteIceTransport ] =
       makeGatherAndStartTwoIceTransports(t);
   const localQuicTransport =
-      makeQuicTransport(t, localIceTransport, [ localCertificate ]);
+      makeQuicTransport(t, localIceTransport);
   const remoteQuicTransport =
-      makeQuicTransport(t, remoteIceTransport, [ remoteCertificate ]);
-  localQuicTransport.start(remoteQuicTransport.getLocalParameters());
-  remoteQuicTransport.start(localQuicTransport.getLocalParameters());
+      makeQuicTransport(t, remoteIceTransport);
+  const remote_key = remoteQuicTransport.getKey();
+  localQuicTransport.listen(remote_key);
+  remoteQuicTransport.connect();
   return [ localQuicTransport, remoteQuicTransport ];
 }
 

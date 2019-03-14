@@ -84,7 +84,6 @@ impl Permissions {
         )
     }
 
-    #[allow(unrooted_must_root)]
     // https://w3c.github.io/permissions/#dom-permissions-query
     // https://w3c.github.io/permissions/#dom-permissions-request
     // https://w3c.github.io/permissions/#dom-permissions-revoke
@@ -197,21 +196,18 @@ impl Permissions {
 }
 
 impl PermissionsMethods for Permissions {
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-query
     unsafe fn Query(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
         self.manipulate(Operation::Query, cx, permissionDesc, None)
     }
 
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-request
     unsafe fn Request(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
         self.manipulate(Operation::Request, cx, permissionDesc, None)
     }
 
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-revoke
     unsafe fn Revoke(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
@@ -308,26 +304,26 @@ pub fn get_descriptor_permission_state(
     // The current solution is a workaround with a message box to warn about this,
     // if the feature is not allowed in non-secure contexcts,
     // and let the user decide to grant the permission or not.
-    let state = match allowed_in_nonsecure_contexts(&permission_name) {
-        true => PermissionState::Prompt,
-        false => match PREFS
+    let state = if allowed_in_nonsecure_contexts(&permission_name) {
+        PermissionState::Prompt
+    } else {
+        if PREFS
             .get("dom.permissions.testing.allowed_in_nonsecure_contexts")
             .as_boolean()
             .unwrap_or(false)
         {
-            true => PermissionState::Granted,
-            false => {
-                settings
-                    .as_window()
-                    .permission_state_invocation_results()
-                    .borrow_mut()
-                    .remove(&permission_name.to_string());
-                prompt_user(&format!(
-                    "The {} {}",
-                    permission_name, NONSECURE_DIALOG_MESSAGE
-                ))
-            },
-        },
+            PermissionState::Granted
+        } else {
+            settings
+                .as_window()
+                .permission_state_invocation_results()
+                .borrow_mut()
+                .remove(&permission_name.to_string());
+            prompt_user(&format!(
+                "The {} {}",
+                permission_name, NONSECURE_DIALOG_MESSAGE
+            ))
+        }
     };
 
     // Step 3.

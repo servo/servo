@@ -26,7 +26,7 @@ ipc-channel = "0.11"
 keyboard-types = "0.4.3"
 libc = "0.2"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 pixels = {path = "../pixels"}

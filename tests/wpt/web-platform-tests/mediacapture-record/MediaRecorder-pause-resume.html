@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaRecorder Pause and Resume</title>
+    <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="200" height="200">
+</canvas>
+<script>
+    function createVideoStream() {
+        let canvas = document.getElementById("canvas");
+        canvas.getContext('2d');
+        return canvas.captureStream();
+    }
+
+    function recordEvents(target, events) {
+        let arr = [];
+        for (let ev of events) {
+            target.addEventListener(ev, _ => arr.push(ev));
+        }
+        return arr;
+    }
+
+    promise_test(async () => {
+        let video = createVideoStream();
+        let recorder = new MediaRecorder(video);
+        let events = recordEvents(recorder,
+            ["start", "stop", "dataavailable", "pause", "resume", "error"]);
+
+        recorder.start();
+        assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+
+        recorder.pause();
+        assert_equals(recorder.state, "paused", "MediaRecorder should be paused immediately following pause()");
+
+        // A second call to pause should be idempotent
+        recorder.pause();
+        assert_equals(recorder.state, "paused", "MediaRecorder should be paused immediately following pause()");
+
+        let event = await new Promise(r => recorder.onpause = r);
+        assert_equals(event.type, "pause", "the event type should be pause");
+        assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
+
+        recorder.resume();
+        assert_equals(recorder.state, "recording", "MediaRecorder state should be recording immediately following resume() call");
+
+        // A second call to resume should be idempotent
+        recorder.resume();
+        assert_equals(recorder.state, "recording", "MediaRecorder state should be recording immediately following resume() call");
+
+        event = await new Promise(r => recorder.onresume = r);
+        assert_equals(event.type, "resume", "the event type should be resume");
+        assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
+
+        recorder.stop();
+        await new Promise(r => recorder.onstop = r);
+
+        assert_array_equals(events, ["start", "pause", "resume", "dataavailable", "stop"],
+            "Should have gotten expected events");
+    }, "MediaRecorder handles pause() and resume() calls appropriately in state and events");
+</script>
+</body>
+</html>

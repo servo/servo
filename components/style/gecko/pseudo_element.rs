@@ -8,7 +8,7 @@
 //! `pseudo_element_definition.mako.rs`. If you touch that file, you probably
 //! need to update the checked-in files for Servo.
 
-use crate::gecko_bindings::structs::{self, CSSPseudoElementType};
+use crate::gecko_bindings::structs::{self, PseudoStyleType};
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::{ComputedValues, PropertyFlags};
 use crate::selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};

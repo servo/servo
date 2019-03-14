@@ -29,7 +29,7 @@ async function waitForPerformanceEntries(url) {
 }
 
 promise_test(async (t) => {
-  const url = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg-location.sxg';
+  const url = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-location.sxg';
   addPrefetch(url);
   return waitForPerformanceEntries(url).then((entries) => {
     assert_equals(entries.length, 1, "Should have only one resource timing entry");

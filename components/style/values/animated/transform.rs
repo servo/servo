@@ -16,13 +16,13 @@ use crate::values::computed::transform::TransformOperation as ComputedTransformO
 use crate::values::computed::transform::Translate as ComputedTranslate;
 use crate::values::computed::transform::{DirectionVector, Matrix, Matrix3D};
 use crate::values::computed::Angle;
-use crate::values::computed::{Length, LengthOrPercentage};
+use crate::values::computed::{Length, LengthPercentage};
 use crate::values::computed::{Number, Percentage};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::transform::{self, Transform, TransformOperation};
 use crate::values::generics::transform::{Rotate, Scale, Translate};
 use crate::values::CSSFloat;
-use num_traits::Zero;
+use crate::Zero;
 use std::cmp;
 
 // ------------------------------------
@@ -1003,18 +1003,12 @@ impl Animate for ComputedTransformOperation {
             (&TransformOperation::Matrix(ref this), &TransformOperation::Matrix(ref other)) => {
                 Ok(TransformOperation::Matrix(this.animate(other, procedure)?))
             },
-            (&TransformOperation::Skew(ref fx, None), &TransformOperation::Skew(ref tx, None)) => {
-                Ok(TransformOperation::Skew(fx.animate(tx, procedure)?, None))
-            },
             (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
             ) => Ok(TransformOperation::Skew(
                 fx.animate(tx, procedure)?,
-                Some(
-                    fy.unwrap_or(Angle::zero())
-                        .animate(&ty.unwrap_or(Angle::zero()), procedure)?,
-                ),
+                fy.animate(ty, procedure)?,
             )),
             (&TransformOperation::SkewX(ref f), &TransformOperation::SkewX(ref t)) => {
                 Ok(TransformOperation::SkewX(f.animate(t, procedure)?))
@@ -1031,21 +1025,11 @@ impl Animate for ComputedTransformOperation {
                 fz.animate(tz, procedure)?,
             )),
             (
-                &TransformOperation::Translate(ref fx, None),
-                &TransformOperation::Translate(ref tx, None),
-            ) => Ok(TransformOperation::Translate(
-                fx.animate(tx, procedure)?,
-                None,
-            )),
-            (
                 &TransformOperation::Translate(ref fx, ref fy),
                 &TransformOperation::Translate(ref tx, ref ty),
             ) => Ok(TransformOperation::Translate(
                 fx.animate(tx, procedure)?,
-                Some(
-                    fy.unwrap_or(LengthOrPercentage::zero())
-                        .animate(&ty.unwrap_or(LengthOrPercentage::zero()), procedure)?,
-                ),
+                fy.animate(ty, procedure)?,
             )),
             (&TransformOperation::TranslateX(ref f), &TransformOperation::TranslateX(ref t)) => {
                 Ok(TransformOperation::TranslateX(f.animate(t, procedure)?))
@@ -1073,22 +1057,12 @@ impl Animate for ComputedTransformOperation {
             (&TransformOperation::ScaleZ(ref f), &TransformOperation::ScaleZ(ref t)) => Ok(
                 TransformOperation::ScaleZ(animate_multiplicative_factor(*f, *t, procedure)?),
             ),
-            (&TransformOperation::Scale(ref f, None), &TransformOperation::Scale(ref t, None)) => {
-                Ok(TransformOperation::Scale(
-                    animate_multiplicative_factor(*f, *t, procedure)?,
-                    None,
-                ))
-            },
             (
                 &TransformOperation::Scale(ref fx, ref fy),
                 &TransformOperation::Scale(ref tx, ref ty),
             ) => Ok(TransformOperation::Scale(
                 animate_multiplicative_factor(*fx, *tx, procedure)?,
-                Some(animate_multiplicative_factor(
-                    fy.unwrap_or(*fx),
-                    ty.unwrap_or(*tx),
-                    procedure,
-                )?),
+                animate_multiplicative_factor(*fy, *ty, procedure)?,
             )),
             (
                 &TransformOperation::Rotate3D(fx, fy, fz, fa),
@@ -1167,17 +1141,6 @@ impl Animate for ComputedTransformOperation {
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1318591#c0.
 impl ComputeSquaredDistance for ComputedTransformOperation {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        // For translate, We don't want to require doing layout in order to calculate the result, so
-        // drop the percentage part. However, dropping percentage makes us impossible to
-        // compute the distance for the percentage-percentage case, but Gecko uses the
-        // same formula, so it's fine for now.
-        // Note: We use pixel value to compute the distance for translate, so we have to
-        // convert Au into px.
-        let extract_pixel_length = |lop: &LengthOrPercentage| match *lop {
-            LengthOrPercentage::Length(px) => px.px(),
-            LengthOrPercentage::Percentage(_) => 0.,
-            LengthOrPercentage::Calc(calc) => calc.length().px(),
-        };
         match (self, other) {
             (&TransformOperation::Matrix3D(ref this), &TransformOperation::Matrix3D(ref other)) => {
                 this.compute_squared_distance(other)
@@ -1199,10 +1162,16 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 &TransformOperation::Translate3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Translate3D(ref tx, ref ty, ref tz),
             ) => {
-                let fx = extract_pixel_length(&fx);
-                let fy = extract_pixel_length(&fy);
-                let tx = extract_pixel_length(&tx);
-                let ty = extract_pixel_length(&ty);
+                // For translate, We don't want to require doing layout in order
+                // to calculate the result, so drop the percentage part.
+                //
+                // However, dropping percentage makes us impossible to compute
+                // the distance for the percentage-percentage case, but Gecko
+                // uses the same formula, so it's fine for now.
+                let fx = fx.length_component().px();
+                let fy = fy.length_component().px();
+                let tx = tx.length_component().px();
+                let ty = ty.length_component().px();
 
                 Ok(fx.compute_squared_distance(&tx)? +
                     fy.compute_squared_distance(&ty)? +
@@ -1388,15 +1357,15 @@ impl ComputeSquaredDistance for ComputedRotate {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-translate>
 impl ComputedTranslate {
-    fn resolve(&self) -> (LengthOrPercentage, LengthOrPercentage, Length) {
+    fn resolve(&self) -> (LengthPercentage, LengthPercentage, Length) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified translations default to 0px
         match *self {
             Translate::None => (
-                LengthOrPercentage::zero(),
-                LengthOrPercentage::zero(),
+                LengthPercentage::zero(),
+                LengthPercentage::zero(),
                 Length::zero(),
             ),
             Translate::Translate3D(tx, ty, tz) => (tx, ty, tz),

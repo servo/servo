@@ -166,4 +166,59 @@
       assert_unreached(`Unexpected promise rejection: ${err}`)));
   }, 'bufferedAmount should increase by byte length for each message sent');
 
+  promise_test(async t => {
+    const [channel1, channel2] = await createDataChannelPair();
+    channel1.addEventListener('bufferedamountlow', t.step_func_done(() => {
+      assert_true(channel1.bufferedAmount <= channel1.bufferedAmountLowThreshold);
+    }));
+    const eventWatcher = new EventWatcher(t, channel1, ['bufferedamountlow']);
+    channel1.send(helloString);
+    await eventWatcher.wait_for(['bufferedamountlow']);
+  }, 'Data channel bufferedamountlow event fires after send() is complete');
+
+  promise_test(async t => {
+    const [channel1, channel2] = await createDataChannelPair();
+    channel1.send(helloString);
+    assert_equals(channel1.bufferedAmount, helloString.length);
+    await awaitMessage(channel2);
+    assert_equals(channel1.bufferedAmount, 0);
+  }, 'Data channel bufferedamount is data.length on send(data)');
+
+  promise_test(async t => {
+    const [channel1, channel2] = await createDataChannelPair();
+    channel1.send(helloString);
+    assert_equals(channel1.bufferedAmount, helloString.length);
+    assert_equals(channel1.bufferedAmount, helloString.length);
+  }, 'Data channel bufferedamount returns the same amount if no more data is' +
+     ' sent on the channel');
+
+  promise_test(async t => {
+    const [channel1, channel2] = await createDataChannelPair();
+    let eventFireCount = 0;
+    channel1.addEventListener('bufferedamountlow', t.step_func(() => {
+      assert_true(channel1.bufferedAmount <= channel1.bufferedAmountLowThreshold);
+      assert_equals(++eventFireCount, 1);
+    }));
+    const eventWatcher = new EventWatcher(t, channel1, ['bufferedamountlow']);
+    channel1.send(helloString);
+    assert_equals(channel1.bufferedAmount, helloString.length);
+    channel1.send(helloString);
+    assert_equals(channel1.bufferedAmount, 2 * helloString.length);
+    await eventWatcher.wait_for(['bufferedamountlow']);
+  }, 'Data channel bufferedamountlow event fires only once after multiple' +
+    ' consecutive send() calls');
+
+  promise_test(async t => {
+    const [channel1, channel2] = await createDataChannelPair();
+    const eventWatcher = new EventWatcher(t, channel1, ['bufferedamountlow']);
+    channel1.send(helloString);
+    assert_equals(channel1.bufferedAmount, helloString.length);
+    await eventWatcher.wait_for(['bufferedamountlow']);
+    assert_equals(await awaitMessage(channel2), helloString);
+    channel1.send(helloString);
+    assert_equals(channel1.bufferedAmount, helloString.length);
+    await eventWatcher.wait_for(['bufferedamountlow']);
+    assert_equals(await awaitMessage(channel2), helloString);
+  }, 'Data channel bufferedamountlow event fires after each sent message');
+
 </script>

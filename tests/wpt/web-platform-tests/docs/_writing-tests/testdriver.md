@@ -5,7 +5,9 @@ order: 8.5
 ---
 
 testdriver.js provides a means to automate tests that cannot be
-written purely using web platform APIs.
+written purely using web platform APIs. Outside of automation
+contexts, it allows human operators to provide expected input
+manually (for operations which may be described in simple terms).
 
 It is currently supported only for [testharness.js][testharness]
 tests.

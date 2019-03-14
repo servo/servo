@@ -50,8 +50,8 @@ class Git(object):
                 return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
             except Exception as e:
                 if platform.uname()[0] == "Windows" and isinstance(e, WindowsError):
-                        full_cmd[0] = "git.bat"
-                        return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
+                    full_cmd[0] = "git.bat"
+                    return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
                 else:
                     raise
         return git
@@ -60,10 +60,13 @@ class Git(object):
     def for_path(cls, path, url_base, cache_path, manifest_path=None, rebuild=False):
         git = Git.get_func(path)
         try:
-            return cls(git("rev-parse", "--show-toplevel").rstrip(), url_base, cache_path,
-                       manifest_path=manifest_path, rebuild=rebuild)
+            # this needs to be a command that fails if we aren't in a git repo
+            git("rev-parse", "--show-toplevel")
         except (subprocess.CalledProcessError, OSError):
             return None
+        else:
+            return cls(path, url_base, cache_path,
+                       manifest_path=manifest_path, rebuild=rebuild)
 
     def _local_changes(self):
         changes = {}
@@ -97,16 +100,15 @@ class Git(object):
         for result in self.git(*cmd).split("\0")[:-1]:
             rel_path = result.split("\t")[-1]
             hash = result.split()[2]
-            if not os.path.isdir(os.path.join(self.root, rel_path)):
-                if rel_path in local_changes:
-                    contents = self._show_file(rel_path)
-                else:
-                    contents = None
-                yield SourceFile(self.root,
-                                 rel_path,
-                                 self.url_base,
-                                 hash,
-                                 contents=contents), True
+            if rel_path in local_changes:
+                contents = self._show_file(rel_path)
+            else:
+                contents = None
+            yield SourceFile(self.root,
+                             rel_path,
+                             self.url_base,
+                             hash,
+                             contents=contents), True
 
     def dump_caches(self):
         pass

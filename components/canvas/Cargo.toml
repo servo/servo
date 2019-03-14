@@ -26,7 +26,7 @@ half = "1"
 ipc-channel = "0.11"
 log = "0.4"
 num-traits = "0.2"
-offscreen_gl_context = {version = "0.21", features = ["serde", "osmesa"]}
+offscreen_gl_context = {version = "0.22", features = ["serde", "osmesa"]}
 pixels = {path = "../pixels"}
 serde_bytes = "0.10"
 servo_config = {path = "../config"}

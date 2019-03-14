@@ -51,6 +51,7 @@ or
 # run echo client to test IETF HyBi 00 protocol
  run with --protocol-version=hybi00
 """
+from __future__ import print_function
 
 
 import base64
@@ -940,15 +941,15 @@ class EchoClient(object):
             for line in self._options.message.split(','):
                 self._stream.send_message(line)
                 if self._options.verbose:
-                    print 'Send: %s' % line
+                    print('Send: %s' % line)
                 try:
                     received = self._stream.receive_message()
 
                     if self._options.verbose:
-                        print 'Recv: %s' % received
+                        print('Recv: %s' % received)
                 except Exception, e:
                     if self._options.verbose:
-                        print 'Error: %s' % e
+                        print('Error: %s' % e)
                     raise
 
             self._do_closing_handshake()
@@ -964,15 +965,15 @@ class EchoClient(object):
             self._logger.info('Wait for server-initiated closing handshake')
             message = self._stream.receive_message()
             if message is None:
-                print 'Recv close'
-                print 'Send ack'
+                print('Recv close')
+                print('Send ack')
                 self._logger.info(
                     'Received closing handshake and sent ack')
                 return
-        print 'Send close'
+        print('Send close')
         self._stream.close_connection()
         self._logger.info('Sent closing handshake')
-        print 'Recv ack'
+        print('Recv ack')
         self._logger.info('Received ack')
 
 

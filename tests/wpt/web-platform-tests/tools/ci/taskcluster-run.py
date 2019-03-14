@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 
 browser_specific_args = {
     "firefox": ["--install-browser"]
@@ -16,6 +17,12 @@ def find_wptreport(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--log-wptreport', action='store')
     return parser.parse_known_args(args)[0].log_wptreport
+
+
+def find_wptscreenshot(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--log-wptscreenshot', action='store')
+    return parser.parse_known_args(args)[0].log_wptscreenshot
 
 
 def gzip_file(filename, delete_original=True):
@@ -38,8 +45,7 @@ def main(product, commit_range, wpt_args):
     )
     logger.addHandler(handler)
 
-    child = subprocess.Popen(['python', './wpt', 'manifest-download'])
-    child.wait()
+    subprocess.call(['python', './wpt', 'manifest-download'])
 
     if commit_range:
         logger.info(
@@ -56,7 +62,8 @@ def main(product, commit_range, wpt_args):
         "--no-pause",
         "--no-restart-on-unexpected",
         "--install-fonts",
-        "--no-headless"
+        "--no-headless",
+        "--verify-log-full"
     ]
     wpt_args += browser_specific_args.get(product, [])
 
@@ -64,11 +71,16 @@ def main(product, commit_range, wpt_args):
 
     logger.info("Executing command: %s" % " ".join(command))
 
-    subprocess.check_call(command)
+    retcode = subprocess.call(command)
+    if retcode != 0:
+        sys.exit(retcode)
 
     wptreport = find_wptreport(wpt_args)
     if wptreport:
         gzip_file(wptreport)
+    wptscreenshot = find_wptscreenshot(wpt_args)
+    if wptscreenshot:
+        gzip_file(wptscreenshot)
 
 
 if __name__ == "__main__":

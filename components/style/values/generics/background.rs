@@ -4,9 +4,14 @@
 
 //! Generic types for CSS values related to backgrounds.
 
-use crate::values::IsAuto;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
+use crate::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrAuto};
+
+fn width_and_height_are_auto<L>(
+    width: &LengthPercentageOrAuto<L>,
+    height: &LengthPercentageOrAuto<L>,
+) -> bool {
+    width.is_auto() && height.is_auto()
+}
 
 /// A generic value for the `background-size` property.
 #[derive(
@@ -21,14 +26,20 @@ use style_traits::{CssWriter, ToCss};
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
+    ToCss,
 )]
-pub enum BackgroundSize<LengthOrPercentageOrAuto> {
+#[repr(C, u8)]
+pub enum GenericBackgroundSize<LengthPercent> {
     /// `<width> <height>`
-    Explicit {
+    ExplicitSize {
         /// Explicit width.
-        width: LengthOrPercentageOrAuto,
+        width: GenericLengthPercentageOrAuto<LengthPercent>,
         /// Explicit height.
-        height: LengthOrPercentageOrAuto,
+        /// NOTE(emilio): We should probably simplify all these in case `width`
+        /// and `height` are the same, but all other browsers agree on only
+        /// special-casing `auto`.
+        #[css(contextual_skip_if = "width_and_height_are_auto")]
+        height: GenericLengthPercentageOrAuto<LengthPercent>,
     },
     /// `cover`
     #[animation(error)]
@@ -38,28 +49,14 @@ pub enum BackgroundSize<LengthOrPercentageOrAuto> {
     Contain,
 }
 
-impl<LengthOrPercentageOrAuto> ToCss for BackgroundSize<LengthOrPercentageOrAuto>
-where
-    LengthOrPercentageOrAuto: ToCss + IsAuto,
-{
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match self {
-            BackgroundSize::Explicit { width, height } => {
-                width.to_css(dest)?;
-                // NOTE(emilio): We should probably simplify all these in case
-                // `width == `height`, but all other browsers agree on only
-                // special-casing `auto`.
-                if !width.is_auto() || !height.is_auto() {
-                    dest.write_str(" ")?;
-                    height.to_css(dest)?;
-                }
-                Ok(())
-            },
-            BackgroundSize::Cover => dest.write_str("cover"),
-            BackgroundSize::Contain => dest.write_str("contain"),
+pub use self::GenericBackgroundSize as BackgroundSize;
+
+impl<LengthPercentage> BackgroundSize<LengthPercentage> {
+    /// Returns `auto auto`.
+    pub fn auto() -> Self {
+        GenericBackgroundSize::ExplicitSize {
+            width: LengthPercentageOrAuto::Auto,
+            height: LengthPercentageOrAuto::Auto,
         }
     }
 }

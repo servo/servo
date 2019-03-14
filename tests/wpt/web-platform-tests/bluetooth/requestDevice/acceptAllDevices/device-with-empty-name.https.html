@@ -9,8 +9,10 @@
 const test_desc = 'Device with empty name and no UUIDs nearby. Should be ' +
     'found if acceptAllDevices is true.';
 
-bluetooth_test(() => setUpPreconnectedDevice({name: ''})
-    .then(() => requestDeviceWithTrustedClick({acceptAllDevices: true}))
-    .then(device => assert_equals(device.name, '')),
+bluetooth_test(
+    () =>
+        setUpPreconnectedDevice({name: ''})
+            .then(() => requestDeviceWithTrustedClick({acceptAllDevices: true}))
+            .then(device => assert_equals(device.name, '')),
     test_desc);
 </script>

@@ -32,6 +32,11 @@
       assert_equals(Image.prototype, HTMLImageElement.prototype, "Image.prototype is same as HTMLImageElement.prototype");
       assert_equals(new Image().__proto__, HTMLImageElement.prototype, "Image __proto__ is HTMLImageElement prototype ");
       assert_equals(Image.prototype.__proto__, HTMLElement.prototype, "Image.prototype __proto__ is HTMLElement prototype");
+
+      const desc = Object.getOwnPropertyDescriptor(Image, "prototype");
+      assert_false(desc.configurable, "Image.prototype is not configurable");
+      assert_false(desc.enumerable, "Image.prototype is not enumerable");
+      assert_false(desc.writable, "Image.prototype is not writable");
   }, "NamedConstructor creates the correct object structure.");
 
 </script>

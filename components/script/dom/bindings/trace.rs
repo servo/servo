@@ -38,13 +38,14 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
-use crate::dom::htmlmediaelement::MediaFrameRenderer;
+use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
     CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
 };
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
+use canvas_traits::webgl::GLLimits;
 use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, TexDataType, TexFormat};
 use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
@@ -82,10 +83,8 @@ use net_traits::response::HttpsState;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads};
-use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_traits::DrawAPaintImageResult;
@@ -102,8 +101,9 @@ use servo_media::audio::graph::NodeId;
 use servo_media::audio::panner_node::{DistanceModel, PanningModel};
 use servo_media::audio::param::ParamType;
 use servo_media::player::Player;
+use servo_media::streams::MediaStream as BackendMediaStream;
+use servo_media::webrtc::WebRtcController;
 use servo_media::Backend;
-use servo_media::Error as ServoMediaError;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::cell::{Cell, RefCell, UnsafeCell};
@@ -117,6 +117,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
+use style::dom::OpaqueNode;
 use style::element_state::*;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
@@ -130,7 +131,7 @@ use style::values::specified::Length;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
 use tendril::{StrTendril, TendrilSink};
-use time::Duration;
+use time::{Duration, Timespec};
 use uuid::Uuid;
 use webrender_api::{DocumentId, ImageKey, RenderApiSender};
 use webvr_traits::WebVRGamepadHand;
@@ -420,7 +421,7 @@ unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode, StrTendril);
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(HeaderMap, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
-unsafe_no_jsmanaged_fields!(UntrustedNodeAddress);
+unsafe_no_jsmanaged_fields!(UntrustedNodeAddress, OpaqueNode);
 unsafe_no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(StorageType);
@@ -456,7 +457,6 @@ unsafe_no_jsmanaged_fields!(Instant);
 unsafe_no_jsmanaged_fields!(RelativePos);
 unsafe_no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 unsafe_no_jsmanaged_fields!(PathBuf);
-unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
 unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
@@ -484,10 +484,14 @@ unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
 unsafe_no_jsmanaged_fields!(NodeId);
 unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
-unsafe_no_jsmanaged_fields!(dyn Player<Error = ServoMediaError>);
+unsafe_no_jsmanaged_fields!(dyn Player);
+unsafe_no_jsmanaged_fields!(WebRtcController);
+unsafe_no_jsmanaged_fields!(dyn BackendMediaStream);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
+unsafe_no_jsmanaged_fields!(Timespec);
+unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -497,13 +501,6 @@ unsafe impl<'a> JSTraceable for &'a str {
 }
 
 unsafe impl<A, B> JSTraceable for fn(A) -> B {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<'a, A, B> JSTraceable for fn(&A) -> B {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing

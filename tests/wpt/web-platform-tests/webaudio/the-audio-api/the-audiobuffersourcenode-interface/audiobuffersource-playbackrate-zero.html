@@ -74,6 +74,42 @@
             .then(() => task.done());
       });
 
+      audit.define('subsample start with playback rate 0', (task, should) => {
+        let context = new OfflineAudioContext(1, renderLength, sampleRate);
+        let rampBuffer = new AudioBuffer(
+            {length: renderLength, sampleRate: context.sampleRate});
+        let data = new Float32Array(renderLength);
+        let startValue = 5;
+        for (let k = 0; k < data.length; ++k) {
+          data[k] = k + startValue;
+        }
+        rampBuffer.copyToChannel(data, 0);
+
+        let src = new AudioBufferSourceNode(
+            context, {buffer: rampBuffer, playbackRate: 0});
+
+        src.connect(context.destination);
+
+        // Purposely start the source between frame boundaries
+        let startFrame = 27.3;
+        src.start(startFrame / context.sampleRate);
+
+        context.startRendering()
+            .then(audioBuffer => {
+              let actualStartFrame = Math.ceil(startFrame);
+              let audio = audioBuffer.getChannelData(0);
+
+              should(
+                  audio.slice(0, actualStartFrame),
+                  `output[0:${actualStartFrame - 1}]`)
+                  .beConstantValueOf(0);
+              should(
+                  audio.slice(actualStartFrame), `output[${actualStartFrame}:]`)
+                  .beConstantValueOf(startValue);
+            })
+            .then(() => task.done());
+      });
+
       audit.run();
     </script>
   </body>

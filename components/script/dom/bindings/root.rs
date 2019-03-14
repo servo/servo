@@ -42,7 +42,6 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
-use std::rc::Rc;
 use style::thread_state;
 
 /// A rooted value.
@@ -257,46 +256,23 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     });
 }
 
-/// Get a reference out of a rooted value.
-pub trait RootedReference<'root> {
-    /// The type of the reference.
-    type Ref: 'root;
-    /// Obtain a reference out of the rooted value.
-    fn r(&'root self) -> Self::Ref;
+/// Get a slice of references to DOM objects.
+pub trait DomSlice<T>
+where
+    T: JSTraceable + DomObject,
+{
+    /// Returns the slice of `T` references.
+    fn r(&self) -> &[&T];
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for DomRoot<T> {
-    type Ref = &'root T;
-    fn r(&'root self) -> &'root T {
-        self
-    }
-}
-
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Dom<T> {
-    type Ref = &'root T;
-    fn r(&'root self) -> &'root T {
-        &self
-    }
-}
-
-impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
-    type Ref = &'root [&'root T];
-    fn r(&'root self) -> &'root [&'root T] {
-        unsafe { mem::transmute(self) }
-    }
-}
-
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Rc<T> {
-    type Ref = &'root T;
-    fn r(&'root self) -> &'root T {
-        self
-    }
-}
-
-impl<'root, T: RootedReference<'root> + 'root> RootedReference<'root> for Option<T> {
-    type Ref = Option<T::Ref>;
-    fn r(&'root self) -> Option<T::Ref> {
-        self.as_ref().map(RootedReference::r)
+impl<T> DomSlice<T> for [Dom<T>]
+where
+    T: JSTraceable + DomObject,
+{
+    #[inline]
+    fn r(&self) -> &[&T] {
+        let _ = mem::transmute::<Dom<T>, &T>;
+        unsafe { &*(self as *const [Dom<T>] as *const [&T]) }
     }
 }
 

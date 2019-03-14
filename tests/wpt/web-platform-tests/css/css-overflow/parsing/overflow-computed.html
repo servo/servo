@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: getComputedValue().overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow">
+<meta name="assert" content="visible/clip compute to auto/hidden (respectively) if one of overflow-x or overflow-y is neither visible nor clip.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("overflow", 'visible');
+test_computed_value("overflow", 'hidden');
+test_computed_value("overflow", 'clip');
+test_computed_value("overflow", 'scroll');
+test_computed_value("overflow", 'auto');
+
+test_computed_value("overflow", 'auto auto', 'auto');
+test_computed_value("overflow", 'auto clip', 'auto hidden');
+test_computed_value("overflow", 'auto visible', 'auto');
+test_computed_value("overflow", 'clip auto', 'hidden auto');
+test_computed_value("overflow", 'clip clip', 'clip');
+test_computed_value("overflow", 'clip hidden', 'hidden');
+test_computed_value("overflow", 'clip scroll', 'hidden scroll')
+test_computed_value("overflow", 'hidden clip', 'hidden');
+test_computed_value("overflow", 'hidden visible', 'hidden auto');
+test_computed_value("overflow", 'scroll auto');
+test_computed_value("overflow", 'scroll clip', 'scroll hidden');
+test_computed_value("overflow", 'scroll visible', 'scroll auto');
+test_computed_value("overflow", 'visible auto', 'auto');
+test_computed_value("overflow", 'visible hidden', 'auto hidden');
+test_computed_value("overflow", 'visible scroll', 'auto scroll');
+test_computed_value("overflow", 'visible visible', 'visible');
+
+
+test_computed_value("overflow-x", 'scroll');
+test_computed_value("overflow-x", 'hidden');
+test_computed_value("overflow-x", 'visible');
+test_computed_value("overflow-y", 'clip');
+test_computed_value("overflow-y", 'auto');
+test_computed_value("overflow-y", 'visible');
+test_computed_value("overflow-block", 'hidden');
+test_computed_value("overflow-block", 'clip');
+test_computed_value("overflow-block", 'visible');
+test_computed_value("overflow-inline", 'scroll');
+test_computed_value("overflow-inline", 'visible');
+</script>
+</body>
+</html>

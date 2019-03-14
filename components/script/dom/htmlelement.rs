@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::document::{Document, FocusType};
@@ -403,7 +403,7 @@ impl HTMLElementMethods for HTMLElement {
 
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (element, _) = window.offset_parent_query(node.to_trusted_node_address());
+        let (element, _) = window.offset_parent_query(node);
 
         element
     }
@@ -416,7 +416,7 @@ impl HTMLElementMethods for HTMLElement {
 
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.origin.y.to_nearest_px()
     }
@@ -429,7 +429,7 @@ impl HTMLElementMethods for HTMLElement {
 
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.origin.x.to_nearest_px()
     }
@@ -438,7 +438,7 @@ impl HTMLElementMethods for HTMLElement {
     fn OffsetWidth(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.size.width.to_nearest_px()
     }
@@ -447,7 +447,7 @@ impl HTMLElementMethods for HTMLElement {
     fn OffsetHeight(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
-        let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.size.height.to_nearest_px()
     }
@@ -694,7 +694,7 @@ impl HTMLElement {
             .take_while(|elem| !elem.is_labelable_element())
             .filter_map(DomRoot::downcast::<HTMLLabelElement>)
             .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
-            .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
+            .filter(|elem| elem.first_labelable_descendant().deref() == Some(self))
             .map(DomRoot::upcast::<Node>);
 
         let id = element.Id();

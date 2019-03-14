@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Shadow Parts - Interaction with placeholder</title>
+    <meta href="mailto:fergal@chromium.org" rel="author" title="Fergal Daly">
+    <link href="http://www.google.com/" rel="author" title="Google">
+    <link href="https://drafts.csswg.org/css-shadow-parts/" rel="help">
+  </head>
+  <body>
+    <style>
+      #placeholder-i::placeholder { color: green; }
+    </style>
+    <div>
+      The following text should be green:
+      <input id="placeholder-i" part="placeholder-p" placeholder="this text"></input>
+    </div>
+  </body>
+</html>

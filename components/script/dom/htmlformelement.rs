@@ -15,13 +15,16 @@ use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTex
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, RootedReference};
+use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
+use crate::dom::formdata::FormData;
+use crate::dom::formdataevent::FormDataEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlcollection::CollectionFilter;
@@ -68,6 +71,8 @@ pub struct GenerationId(u32);
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/#constructing-entry-list
+    constructing_entry_list: Cell<bool>,
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
@@ -82,6 +87,7 @@ impl HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             marked_for_reset: Cell::new(false),
+            constructing_entry_list: Cell::new(false),
             elements: Default::default(),
             generation_id: Cell::new(GenerationId(0)),
             controls: DomRefCell::new(Vec::new()),
@@ -312,10 +318,19 @@ impl HTMLFormElement {
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
+        if self.upcast::<Element>().cannot_navigate() {
+            return;
+        }
+
+        // Step 2
+        if self.constructing_entry_list.get() {
+            return;
+        }
+        // Step 3
         let doc = document_from_node(self);
         let base = doc.base_url();
-        // TODO: Handle browsing contexts (Step 2, 3)
-        // Step 4
+        // TODO: Handle browsing contexts (Step 4, 5)
+        // Step 6
         if submit_method_flag == SubmittedFrom::NotFromForm && !submitter.no_validate(self) {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements
@@ -323,7 +338,7 @@ impl HTMLFormElement {
                 return;
             }
         }
-        // Step 5
+        // Step 7
         if submit_method_flag == SubmittedFrom::NotFromForm {
             let event = self
                 .upcast::<EventTarget>()
@@ -331,31 +346,45 @@ impl HTMLFormElement {
             if event.DefaultPrevented() {
                 return;
             }
-        }
-        // Step 6
-        let mut form_data = self.get_form_dataset(Some(submitter));
 
-        // Step 7
-        let encoding = self.pick_encoding();
+            // Step 7-3
+            if self.upcast::<Element>().cannot_navigate() {
+                return;
+            }
+        }
 
         // Step 8
-        let mut action = submitter.action();
+        let encoding = self.pick_encoding();
 
         // Step 9
+        let mut form_data = match self.get_form_dataset(Some(submitter)) {
+            Some(form_data) => form_data,
+            None => return,
+        };
+
+        // Step 10
+        if self.upcast::<Element>().cannot_navigate() {
+            return;
+        }
+
+        // Step 11
+        let mut action = submitter.action();
+
+        // Step 12
         if action.is_empty() {
             action = DOMString::from(base.as_str());
         }
-        // Step 10-11
+        // Step 13-14
         let action_components = match base.join(&action) {
             Ok(url) => url,
             Err(_) => return,
         };
-        // Step 12-15
+        // Step 15-17
         let scheme = action_components.scheme().to_owned();
         let enctype = submitter.enctype();
         let method = submitter.method();
 
-        // Step 16, 17
+        // Step 18-21
         let target_attribute_value = submitter.target();
         let source = doc.browsing_context().unwrap();
         let (maybe_chosen, _new) = source.choose_browsing_context(target_attribute_value, false);
@@ -375,7 +404,7 @@ impl HTMLFormElement {
             Some(target_document.url()),
         );
 
-        // Step 18
+        // Step 22
         match (&*scheme, method) {
             (_, FormMethod::FormDialog) => {
                 // TODO: Submit dialog
@@ -597,18 +626,18 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
-    /// Steps range from 1 to 3
+    /// Steps range from 3 to 5
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
         let mut data_set = Vec::new();
         for child in controls.iter() {
-            // Step 3.1: The field element is disabled.
+            // Step 5.1: The field element is disabled.
             if child.disabled_state() {
                 continue;
             }
             let child = child.upcast::<Node>();
 
-            // Step 3.1: The field element has a datalist element ancestor.
+            // Step 5.1: The field element has a datalist element ancestor.
             if child
                 .ancestors()
                 .any(|a| DomRoot::downcast::<HTMLDataListElement>(a).is_some())
@@ -657,7 +686,7 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
-    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Option<Vec<FormDatum>> {
         fn clean_crlf(s: &str) -> DOMString {
             // Step 4
             let mut buf = "".to_owned();
@@ -689,9 +718,16 @@ impl HTMLFormElement {
             DOMString::from(buf)
         }
 
-        // Step 1-3
+        // Step 1
+        if self.constructing_entry_list.get() {
+            return None;
+        }
+
+        // Step 2
+        self.constructing_entry_list.set(true);
+
+        // Step 3-6
         let mut ret = self.get_unclean_dataset(submitter);
-        // Step 4
         for datum in &mut ret {
             match &*datum.ty {
                 "file" | "textarea" => (), // TODO
@@ -704,8 +740,28 @@ impl HTMLFormElement {
                 },
             }
         }
-        // Step 5
-        ret
+
+        let window = window_from_node(self);
+
+        // Step 6
+        let form_data = FormData::new(Some(ret), &window.global());
+
+        // Step 7
+        let event = FormDataEvent::new(
+            &window.global(),
+            atom!("formdata"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            &form_data,
+        );
+
+        event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+
+        // Step 8
+        self.constructing_entry_list.set(false);
+
+        // Step 9
+        Some(form_data.datums())
     }
 
     pub fn reset(&self, _reset_method_flag: ResetFrom) {
@@ -761,7 +817,7 @@ impl HTMLFormElement {
 
     fn add_control<T: ?Sized + FormControl>(&self, control: &T) {
         let root = self.upcast::<Element>().root_element();
-        let root = root.r().upcast::<Node>();
+        let root = root.upcast::<Node>();
 
         let mut controls = self.controls.borrow_mut();
         controls.insert_pre_order(control.to_element(), root);
@@ -772,7 +828,7 @@ impl HTMLFormElement {
         let mut controls = self.controls.borrow_mut();
         controls
             .iter()
-            .position(|c| c.r() == control)
+            .position(|c| &**c == control)
             .map(|idx| controls.remove(idx));
     }
 }
@@ -1016,11 +1072,10 @@ pub trait FormControl: DomObject {
             if let Some(o) = old_owner {
                 o.remove_control(self);
             }
-            let new_owner = new_owner.as_ref().map(|o| {
-                o.add_control(self);
-                o.r()
-            });
-            self.set_form_owner(new_owner);
+            if let Some(ref new_owner) = new_owner {
+                new_owner.add_control(self);
+            }
+            self.set_form_owner(new_owner.deref());
         }
     }
 

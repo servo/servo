@@ -22,7 +22,6 @@ use crate::dom::{LayoutIterator, NodeInfo, OpaqueNode, TDocument, TElement, TNod
 use crate::element_state::{DocumentState, ElementState};
 use crate::font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use crate::gecko::data::GeckoStyleSheet;
-use crate::gecko::global_style_data::GLOBAL_STYLE_DATA;
 use crate::gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::gecko::snapshot_helpers;
 use crate::gecko_bindings::bindings;
@@ -45,8 +44,8 @@ use crate::gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWThe
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
-use crate::gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::nsRestyleHint;
+use crate::gecko_bindings::structs::Document_DocumentTheme as DocumentTheme;
 use crate::gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use crate::gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
 use crate::gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
@@ -57,6 +56,7 @@ use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
 use crate::gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
+use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
@@ -107,9 +107,9 @@ fn elements_with_id<'a, 'le>(
     }
 }
 
-/// A simple wrapper over `nsIDocument`.
+/// A simple wrapper over `Document`.
 #[derive(Clone, Copy)]
-pub struct GeckoDocument<'ld>(pub &'ld structs::nsIDocument);
+pub struct GeckoDocument<'ld>(pub &'ld structs::Document);
 
 impl<'ld> TDocument for GeckoDocument<'ld> {
     type ConcreteNode = GeckoNode<'ld>;
@@ -121,7 +121,7 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 
     #[inline]
     fn is_html_document(&self) -> bool {
-        self.0.mType == structs::root::nsIDocument_Type::eHTML
+        self.0.mType == structs::Document_Type::eHTML
     }
 
     #[inline]
@@ -1044,9 +1044,13 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         device: &Device,
     ) -> FontMetricsQueryResult {
         use crate::gecko_bindings::bindings::Gecko_GetFontMetrics;
+        let pc = match device.pres_context() {
+            Some(pc) => pc,
+            None => return FontMetricsQueryResult::NotAvailable,
+        };
         let gecko_metrics = unsafe {
             Gecko_GetFontMetrics(
-                device.pres_context(),
+                pc,
                 wm.is_vertical() && !wm.is_sideways(),
                 font.gecko(),
                 font_size.0,
@@ -1242,11 +1246,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
-        self.as_node().owner_doc().0 as *const structs::nsIDocument ==
-            device
-                .pres_context()
-                .mDocument
-                .raw::<structs::nsIDocument>()
+        self.as_node().owner_doc().0 as *const structs::Document == device.document() as *const _
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
@@ -1501,9 +1501,6 @@ impl<'le> TElement for GeckoElement<'le> {
 
     /// Process various tasks that are a result of animation-only restyle.
     fn process_post_animation(&self, tasks: PostAnimationTasks) {
-        use crate::gecko_bindings::structs::nsChangeHint_nsChangeHint_Empty;
-        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree;
-
         debug_assert!(!tasks.is_empty(), "Should be involved a task");
 
         // If display style was changed from none to other, we need to resolve
@@ -1519,8 +1516,8 @@ impl<'le> TElement for GeckoElement<'le> {
             );
             unsafe {
                 self.note_explicit_hints(
-                    nsRestyleHint_eRestyle_Subtree,
-                    nsChangeHint_nsChangeHint_Empty,
+                    nsRestyleHint::eRestyle_Subtree,
+                    nsChangeHint::nsChangeHint_Empty,
                 );
             }
         }

@@ -4,10 +4,10 @@
 
 use crate::utils::{in_derive_expn, match_def_path};
 use rustc::hir::intravisit as visit;
-use rustc::hir::{self, ExprKind};
+use rustc::hir::{self, ExprKind, HirId};
 use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
 use rustc::ty;
-use syntax::{ast, source_map, symbol::Ident};
+use syntax::{ast, source_map};
 
 declare_lint!(
     UNROOTED_MUST_ROOT,
@@ -45,12 +45,24 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
     let mut ret = false;
     ty.maybe_walk(|t| {
         match t.sty {
-            ty::Adt(did, _) => {
+            ty::Adt(did, substs) => {
                 if cx.tcx.has_attr(did.did, "must_root") {
                     ret = true;
                     false
                 } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
                     false
+                } else if match_def_path(cx, did.did, &["alloc", "rc", "Rc"]) {
+                    // Rc<Promise> is okay
+                    let inner = substs.type_at(0);
+                    if let ty::Adt(did, _) = inner.sty {
+                        if cx.tcx.has_attr(did.did, "allow_unrooted_in_rc") {
+                            false
+                        } else {
+                            true
+                        }
+                    } else {
+                        true
+                    }
                 } else if match_def_path(cx, did.did, &["core", "cell", "Ref"]) ||
                     match_def_path(cx, did.did, &["core", "cell", "RefMut"]) ||
                     match_def_path(cx, did.did, &["core", "slice", "Iter"]) ||
@@ -88,6 +100,10 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
 }
 
 impl LintPass for UnrootedPass {
+    fn name(&self) -> &'static str {
+        "ServoUnrootedPass"
+    }
+
     fn get_lints(&self) -> LintArray {
         lint_array!(UNROOTED_MUST_ROOT)
     }
@@ -97,19 +113,22 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     /// All structs containing #[must_root] types must be #[must_root] themselves
     fn check_struct_def(
         &mut self,
-        cx: &LateContext,
-        def: &hir::VariantData,
+        cx: &LateContext<'a, 'tcx>,
+        def: &'tcx hir::VariantData,
         _n: ast::Name,
-        _gen: &hir::Generics,
-        id: ast::NodeId,
+        _gen: &'tcx hir::Generics,
+        id: HirId,
     ) {
-        let item = match cx.tcx.hir().get(id) {
+        let item = match cx.tcx.hir().get_by_hir_id(id) {
             hir::Node::Item(item) => item,
-            _ => cx.tcx.hir().expect_item(cx.tcx.hir().get_parent(id)),
+            _ => cx
+                .tcx
+                .hir()
+                .expect_item_by_hir_id(cx.tcx.hir().get_parent_item(id)),
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields() {
-                let def_id = cx.tcx.hir().local_def_id(field.id);
+                let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
                 if is_unrooted_ty(cx, cx.tcx.type_of(def_id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
@@ -122,15 +141,15 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant, _gen: &hir::Generics) {
         let ref map = cx.tcx.hir();
         if map
-            .expect_item(map.get_parent(var.node.data.id()))
+            .expect_item_by_hir_id(map.get_parent_item(var.node.data.hir_id()))
             .attrs
             .iter()
             .all(|a| !a.check_name("must_root"))
         {
             match var.node.data {
-                hir::VariantData::Tuple(ref fields, _) => {
+                hir::VariantData::Tuple(ref fields, ..) => {
                     for ref field in fields {
-                        let def_id = cx.tcx.hir().local_def_id(field.id);
+                        let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
                         if is_unrooted_ty(cx, cx.tcx.type_of(def_id), false) {
                             cx.span_lint(
                                 UNROOTED_MUST_ROOT,
@@ -149,22 +168,21 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     fn check_fn(
         &mut self,
         cx: &LateContext<'a, 'tcx>,
-        kind: visit::FnKind,
+        kind: visit::FnKind<'tcx>,
         decl: &'tcx hir::FnDecl,
         body: &'tcx hir::Body,
         span: source_map::Span,
-        id: ast::NodeId,
+        id: HirId,
     ) {
         let in_new_function = match kind {
-            visit::FnKind::ItemFn(n, _, _, _, _) |
-            visit::FnKind::Method(Ident { name: n, .. }, _, _, _) => {
+            visit::FnKind::ItemFn(n, _, _, _, _) | visit::FnKind::Method(n, _, _, _) => {
                 &*n.as_str() == "new" || n.as_str().starts_with("new_")
             },
             visit::FnKind::Closure(_) => return,
         };
 
         if !in_derive_expn(span) {
-            let def_id = cx.tcx.hir().local_def_id(id);
+            let def_id = cx.tcx.hir().local_def_id_from_hir_id(id);
             let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
@@ -242,8 +260,8 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         // are implemented, the `Unannotated` case could cause false-positives.
         // These should be fixable by adding an explicit `ref`.
         match pat.node {
-            hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, _, _, _) |
-            hir::PatKind::Binding(hir::BindingAnnotation::Mutable, _, _, _) => {
+            hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
+            hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
                 let ty = cx.tables.pat_ty(pat);
                 if is_unrooted_ty(cx, ty, self.in_new_function) {
                     cx.span_lint(

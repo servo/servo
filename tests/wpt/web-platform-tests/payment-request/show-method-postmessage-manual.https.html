@@ -12,34 +12,6 @@ setup({
   allow_uncaught_exception: true,
 });
 
-const defaultMethods = Object.freeze([
-  { supportedMethods: "basic-card" },
-  { supportedMethods: "https://apple.com/apple-pay" },
-]);
-
-const defaultDetails = Object.freeze({
-  id: "fail",
-  total: {
-    label: "Total",
-    amount: {
-      currency: "USD",
-      value: "1.00",
-    },
-  },
-});
-
-test(() => {
-  assert_throws(
-    "SecurityError",
-    () => {
-      const request = new PaymentRequest(defaultMethods, defaultDetails);
-      request.show(); // <--- should throw here
-      request.abort();
-    },
-    "throws a SecurityError if not triggered by user activation"
-  );
-});
-
 async function runUserActivation(button) {
   button.disabled = true;
   const { contentWindow: iframeWindow } = document.getElementById("iframe");

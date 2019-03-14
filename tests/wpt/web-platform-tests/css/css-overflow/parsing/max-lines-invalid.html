@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing max-lines with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-max-lines">
+<meta name="assert" content="max-lines supports only the grammar 'none | <integer>'.">
+<meta name="assert" content="Zero or negative integers are invalid.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("max-lines", 'auto');
+test_invalid_value("max-lines", '0');
+test_invalid_value("max-lines", '-5');
+
+test_invalid_value("max-lines", 'none none');
+test_invalid_value("max-lines", '1 none');
+test_invalid_value("max-lines", 'none 2');
+test_invalid_value("max-lines", '3 4');
+</script>
+</body>
+</html>

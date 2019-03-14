@@ -109,7 +109,7 @@ ALL_KEYS = getmembers(Keys, lambda x: type(x) == unicode)
 
 ALL_EVENTS = {
     "ADD": {
-        "code": "",
+        "code": "NumpadAdd",
         "ctrl": False,
         "key": "+",
         "location": 3,
@@ -496,7 +496,7 @@ ALL_EVENTS = {
         "value": u"\ue023",
     },
     "PAGE_DOWN": {
-        "code": "",
+        "code": "PageDown",
         "ctrl": False,
         "key": "PageDown",
         "location": 0,
@@ -505,7 +505,7 @@ ALL_EVENTS = {
         "value": u"\ue00f",
     },
     "PAGE_UP": {
-        "code": "",
+        "code": "PageUp",
         "ctrl": False,
         "key": "PageUp",
         "location": 0,
@@ -676,7 +676,7 @@ ALL_EVENTS = {
         "value": u"\ue018",
     },
     "SEPARATOR": {
-        "code": "NumpadSubtract",
+        "code": "NumpadComma",
         "ctrl": False,
         "key": ",",
         "location": 3,
@@ -703,7 +703,7 @@ ALL_EVENTS = {
         "value": u"\ue00d",
     },
     "SUBTRACT": {
-        "code": "",
+        "code": "NumpadSubtract",
         "ctrl": False,
         "key": "-",
         "location": 3,
@@ -738,6 +738,27 @@ ALL_EVENTS = {
         "shift": False,
         "value": u"\ue040",
     }
+}
+
+ALTERNATIVE_KEY_NAMES = {
+    "ADD": "Add",
+    "DECIMAL": "Decimal",
+    "DELETE": "Del",
+    "DIVIDE": "Divide",
+    "DOWN": "Down",
+    "ESCAPE": "Esc",
+    "LEFT": "Left",
+    "MULTIPLY": "Multiply",
+    "R_ARROWDOWN": "Down",
+    "R_ARROWLEFT": "Left",
+    "R_ARROWRIGHT": "Right",
+    "R_ARROWUP": "Up",
+    "R_DELETE": "Del",
+    "RIGHT": "Right",
+    "SEPARATOR": "Separator",
+    "SPACE": "Spacebar",
+    "SUBTRACT": "Subtract",
+    "UP": "Up",
 }
 
 if sys.platform == "darwin":

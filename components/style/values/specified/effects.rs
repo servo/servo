@@ -20,6 +20,7 @@ use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::{Angle, NumberOrPercentage};
 #[cfg(not(feature = "gecko"))]
 use crate::values::Impossible;
+use crate::Zero;
 use cssparser::{self, BasicParseErrorKind, Parser, Token};
 use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 
