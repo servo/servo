@@ -402,7 +402,12 @@ fn handle_range_request(
         (&(Bound::Included(beginning), Bound::Included(end)), Some(ref complete_resource)) => {
             if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
                 let b = beginning as usize;
-                let e = end as usize + 1;
+                let e = {
+                    match end.checked_add(1) {
+                        Some(end) => end as usize,
+                        _ => return None,
+                    }
+                };
                 let requested = body.get(b..e);
                 if let Some(bytes) = requested {
                     let new_resource =
@@ -428,12 +433,31 @@ fn handle_range_request(
                     },
                     _ => continue,
                 };
-                if res_beginning - 1 < beginning && res_end + 1 > end {
+                let (res_beginning_minus_one, res_end_plus_one) = {
+                    match (res_beginning.checked_sub(1), res_end.checked_add(1)) {
+                        (Some(minus_one), Some(plus_one)) => (minus_one, plus_one),
+                        _ => continue,
+                    }
+                };
+                if res_beginning_minus_one < beginning && res_end_plus_one > end {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
                         &ResponseBody::Done(ref body) => {
-                            let b = beginning as usize - res_beginning as usize;
-                            let e = end as usize - res_beginning as usize + 1;
+                            let (b, e) = {
+                                match (
+                                    beginning.checked_sub(res_beginning),
+                                    end.checked_sub(res_beginning),
+                                ) {
+                                    (Some(b), Some(e)) => (b as usize, e),
+                                    _ => continue,
+                                }
+                            };
+                            let e = {
+                                match e.checked_add(1) {
+                                    Some(e) => e as usize,
+                                    _ => continue,
+                                }
+                            };
                             body.get(b..e)
                         },
                         _ => continue,
@@ -474,11 +498,22 @@ fn handle_range_request(
                 } else {
                     continue;
                 };
-                if res_beginning < beginning && res_end == total - 1 {
+                let total_minus_one = {
+                    match total.checked_sub(1) {
+                        Some(minus_one) => minus_one,
+                        _ => continue,
+                    }
+                };
+                if res_beginning < beginning && res_end == total_minus_one {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
                         &ResponseBody::Done(ref body) => {
-                            let from_byte = beginning as usize - res_beginning as usize;
+                            let from_byte = {
+                                match beginning.checked_sub(res_beginning) {
+                                    Some(from_byte) => from_byte as usize,
+                                    _ => continue,
+                                }
+                            };
                             body.get(from_byte..)
                         },
                         _ => continue,
@@ -519,7 +554,23 @@ fn handle_range_request(
                 } else {
                     continue;
                 };
-                if (total - res_beginning) > (offset - 1) && (total - res_end) < offset + 1 {
+                let (total_minus_res_beginning, total_minus_res_end) = {
+                    match (total.checked_sub(res_beginning), total.checked_sub(res_end)) {
+                        (Some(minus_res_beginning), Some(minus_res_end)) => {
+                            (minus_res_beginning, minus_res_end)
+                        },
+                        _ => continue,
+                    }
+                };
+                let (offset_minus_one, offset_plus_one) = {
+                    match (offset.checked_sub(1), offset.checked_add(1)) {
+                        (Some(minus_one), Some(plus_one)) => (minus_one, plus_one),
+                        _ => continue,
+                    }
+                };
+                if total_minus_res_beginning > offset_minus_one &&
+                    total_minus_res_end < offset_plus_one
+                {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
                         &ResponseBody::Done(ref body) => {
