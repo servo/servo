@@ -12,9 +12,10 @@ use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice
 use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
-use crate::values::generics::size::Size;
-use crate::values::specified::length::{Length, LengthOrPercentage, NonNegativeLength};
-use crate::values::specified::{AllowQuirks, Number, NumberOrPercentage};
+use crate::values::generics::size::Size2D;
+use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthPercentage};
+use crate::values::specified::{AllowQuirks, NonNegativeNumber, NonNegativeNumberOrPercentage};
+use crate::Zero;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -30,6 +31,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
     Copy,
     Debug,
     Eq,
+    FromPrimitive,
     MallocSizeOf,
     Ord,
     Parse,
@@ -71,36 +73,53 @@ pub enum BorderSideWidth {
     /// `thick`
     Thick,
     /// `<length>`
-    Length(Length),
+    Length(NonNegativeLength),
 }
 
 /// A specified value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
 /// A specified value for a single side of a `border-image-width` property.
-pub type BorderImageSideWidth = GenericBorderImageSideWidth<LengthOrPercentage, Number>;
+pub type BorderImageSideWidth =
+    GenericBorderImageSideWidth<NonNegativeLengthPercentage, NonNegativeNumber>;
 
 /// A specified value for the `border-image-slice` property.
-pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
+pub type BorderImageSlice = GenericBorderImageSlice<NonNegativeNumberOrPercentage>;
 
 /// A specified value for the `border-radius` property.
-pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
+pub type BorderRadius = GenericBorderRadius<NonNegativeLengthPercentage>;
 
 /// A specified value for the `border-*-radius` longhand properties.
-pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
+pub type BorderCornerRadius = GenericBorderCornerRadius<NonNegativeLengthPercentage>;
 
 /// A specified value for the `border-spacing` longhand properties.
 pub type BorderSpacing = GenericBorderSpacing<NonNegativeLength>;
 
+impl BorderImageSlice {
+    /// Returns the `100%` value.
+    #[inline]
+    pub fn hundred_percent() -> Self {
+        GenericBorderImageSlice {
+            offsets: Rect::all(NonNegativeNumberOrPercentage::hundred_percent()),
+            fill: false,
+        }
+    }
+}
+
 impl BorderSideWidth {
+    /// Returns the `0px` value.
+    #[inline]
+    pub fn zero() -> Self {
+        BorderSideWidth::Length(NonNegativeLength::zero())
+    }
+
     /// Parses, with quirks.
     pub fn parse_quirky<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(length) =
-            input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks))
+        if let Ok(length) = input.try(|i| NonNegativeLength::parse_quirky(context, i, allow_quirks))
         {
             return Ok(BorderSideWidth::Length(length));
         }
@@ -130,9 +149,9 @@ impl ToComputedValue for BorderSideWidth {
         // Spec: https://drafts.csswg.org/css-backgrounds-3/#line-width
         // Gecko: https://bugzilla.mozilla.org/show_bug.cgi?id=1312155#c0
         match *self {
-            BorderSideWidth::Thin => Length::from_px(1.).to_computed_value(context),
-            BorderSideWidth::Medium => Length::from_px(3.).to_computed_value(context),
-            BorderSideWidth::Thick => Length::from_px(5.).to_computed_value(context),
+            BorderSideWidth::Thin => NonNegativeLength::from_px(1.).to_computed_value(context),
+            BorderSideWidth::Medium => NonNegativeLength::from_px(3.).to_computed_value(context),
+            BorderSideWidth::Thick => NonNegativeLength::from_px(5.).to_computed_value(context),
             BorderSideWidth::Length(ref length) => length.to_computed_value(context),
         }
         .into()
@@ -140,7 +159,7 @@ impl ToComputedValue for BorderSideWidth {
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderSideWidth::Length(ToComputedValue::from_computed_value(&computed.0))
+        BorderSideWidth::Length(ToComputedValue::from_computed_value(computed))
     }
 }
 
@@ -148,7 +167,7 @@ impl BorderImageSideWidth {
     /// Returns `1`.
     #[inline]
     pub fn one() -> Self {
-        GenericBorderImageSideWidth::Number(Number::new(1.))
+        GenericBorderImageSideWidth::Number(NonNegativeNumber::new(1.))
     }
 }
 
@@ -161,11 +180,11 @@ impl Parse for BorderImageSideWidth {
             return Ok(GenericBorderImageSideWidth::Auto);
         }
 
-        if let Ok(len) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+        if let Ok(len) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
             return Ok(GenericBorderImageSideWidth::Length(len));
         }
 
-        let num = Number::parse_non_negative(context, input)?;
+        let num = NonNegativeNumber::parse(context, input)?;
         Ok(GenericBorderImageSideWidth::Number(num))
     }
 }
@@ -176,14 +195,11 @@ impl Parse for BorderImageSlice {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
-        let offsets = Rect::parse_with(context, input, NumberOrPercentage::parse_non_negative)?;
+        let offsets = Rect::parse_with(context, input, NonNegativeNumberOrPercentage::parse)?;
         if !fill {
             fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
         }
-        Ok(GenericBorderImageSlice {
-            offsets: offsets,
-            fill: fill,
-        })
+        Ok(GenericBorderImageSlice { offsets, fill })
     }
 }
 
@@ -192,9 +208,9 @@ impl Parse for BorderRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let widths = Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?;
+        let widths = Rect::parse_with(context, input, NonNegativeLengthPercentage::parse)?;
         let heights = if input.try(|i| i.expect_delim('/')).is_ok() {
-            Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?
+            Rect::parse_with(context, input, NonNegativeLengthPercentage::parse)?
         } else {
             widths.clone()
         };
@@ -213,7 +229,7 @@ impl Parse for BorderCornerRadius {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Size::parse_with(context, input, LengthOrPercentage::parse_non_negative)
+        Size2D::parse_with(context, input, NonNegativeLengthPercentage::parse)
             .map(GenericBorderCornerRadius)
     }
 }
@@ -223,8 +239,8 @@ impl Parse for BorderSpacing {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Size::parse_with(context, input, |context, input| {
-            Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes).map(From::from)
+        Size2D::parse_with(context, input, |context, input| {
+            NonNegativeLength::parse_quirky(context, input, AllowQuirks::Yes).map(From::from)
         })
         .map(GenericBorderSpacing)
     }

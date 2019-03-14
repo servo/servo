@@ -7,8 +7,8 @@
 #[macro_use]
 extern crate log;
 
+pub use crate::compositor::CompositingReason;
 pub use crate::compositor::IOCompositor;
-pub use crate::compositor::RenderNotifier;
 pub use crate::compositor::ShutdownState;
 pub use crate::compositor_thread::CompositorProxy;
 use ipc_channel::ipc::IpcSender;

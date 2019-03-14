@@ -13,11 +13,9 @@ use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
-use simpleservo::{
-    self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
-};
+use simpleservo::{self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO};
 use std::os::raw::{c_char, c_int, c_void};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 
 struct HostCallbacks {
@@ -66,7 +64,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         // debug!() will only show in a debug build. Use info!() if logs
         // should show up in adb logcat with a release build.
         let filters = [
+            "servo",
             "simpleservo",
+            "simpleservo::jniapi",
             "simpleservo::gl_glue::egl",
             // Show JS errors by default.
             "script::dom::bindings::error",
@@ -101,11 +101,10 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     };
 
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
-    let readfile = Box::new(ReadFileCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
     if let Err(err) =
-        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, readfile, callbacks))
+        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, callbacks))
     {
         throw(&env, err)
     };
@@ -201,7 +200,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
 ) {
     debug!("scrollStart");
     call(&env, |s| {
-        s.scroll_start(dx as i32, dy as i32, x as u32, y as u32)
+        s.scroll_start(dx as f32, dy as f32, x as i32, y as i32)
     });
 }
 
@@ -216,7 +215,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
 ) {
     debug!("scrollEnd");
     call(&env, |s| {
-        s.scroll_end(dx as i32, dy as i32, x as u32, y as u32)
+        s.scroll_end(dx as f32, dy as f32, x as i32, y as i32)
     });
 }
 
@@ -230,7 +229,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scroll(
     y: jint,
 ) {
     debug!("scroll");
-    call(&env, |s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| s.scroll(dx as f32, dy as f32, x as i32, y as i32));
 }
 
 #[no_mangle]
@@ -322,7 +321,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
     debug!("click");
-    call(&env, |s| s.click(x as u32, y as u32));
+    call(&env, |s| s.click(x as f32, y as f32));
 }
 
 pub struct WakeupCallback {
@@ -349,39 +348,6 @@ impl EventLoopWaker for WakeupCallback {
         let env = self.jvm.attach_current_thread().unwrap();
         env.call_method(self.callback.as_obj(), "wakeup", "()V", &[])
             .unwrap();
-    }
-}
-
-pub struct ReadFileCallback {
-    callback: Mutex<GlobalRef>,
-    jvm: JavaVM,
-}
-
-impl ReadFileCallback {
-    pub fn new(callback: GlobalRef, env: &JNIEnv) -> ReadFileCallback {
-        let jvm = env.get_java_vm().unwrap();
-        let callback = Mutex::new(callback);
-        ReadFileCallback { callback, jvm }
-    }
-}
-
-impl ReadFileTrait for ReadFileCallback {
-    fn readfile(&self, file: &str) -> Vec<u8> {
-        // FIXME: we'd rather use attach_current_thread but it detaches the VM too early.
-        let env = self.jvm.attach_current_thread_as_daemon().unwrap();
-        let s = match new_string(&env, &file) {
-            Ok(s) => s,
-            Err(_) => return vec![],
-        };
-        let s = JValue::from(JObject::from(s));
-        let array = env.call_method(
-            self.callback.lock().unwrap().as_obj(),
-            "readfile",
-            "(Ljava/lang/String;)[B",
-            &[s],
-        );
-        let array = array.unwrap().l().unwrap().into_inner();
-        env.convert_byte_array(array).unwrap()
     }
 }
 
@@ -488,6 +454,8 @@ impl HostTrait for HostCallbacks {
         )
         .unwrap();
     }
+
+    fn on_ime_state_changed(&self, _show: bool) {}
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
@@ -686,6 +654,9 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         get_non_null_field(env, opts, "enableSubpixelTextAntialiasing", "Z")?
             .z()
             .map_err(|_| "enableSubpixelTextAntialiasing not a boolean")?;
+    let vr_pointer = get_non_null_field(env, opts, "VRExternalContext", "J")?
+        .j()
+        .map_err(|_| "VRExternalContext is not a long")? as *mut c_void;
     let opts = InitOptions {
         args,
         url,
@@ -693,6 +664,11 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         height,
         density,
         enable_subpixel_text_antialiasing,
+        vr_pointer: if vr_pointer.is_null() {
+            None
+        } else {
+            Some(vr_pointer)
+        },
     };
     Ok((opts, log, log_str))
 }

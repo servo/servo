@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
-pub type ServoGl = Rc<dyn servo::gl::Gl>;
+pub type ServoGl = std::rc::Rc<dyn servo::gl::Gl>;
 
 #[cfg(any(target_os = "android", target_os = "windows"))]
 #[allow(non_camel_case_types)]
@@ -56,7 +54,7 @@ pub mod egl {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn init() -> Result<Rc<Gl>, &'static str> {
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         info!("Loading EGL...");
 
         let dll = b"libEGL.dll\0" as &[u8];
@@ -77,10 +75,80 @@ pub mod egl {
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
+#[cfg(target_os = "windows")]
 pub mod gl {
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
-        // FIXME: Add an OpenGL version
-        unimplemented!()
+        unimplemented!();
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub mod gl {
+    use core_foundation::base::TCFType;
+    use core_foundation::bundle::{
+        CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName,
+    };
+    use core_foundation::string::CFString;
+    use servo::gl::GlFns;
+    use std::os::raw::c_void;
+    use std::str;
+
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
+        info!("Loading OpenGL...");
+        let gl = unsafe {
+            GlFns::load_with(|addr| {
+                let symbol_name: CFString = str::FromStr::from_str(addr).unwrap();
+                let framework_name: CFString = str::FromStr::from_str("com.apple.opengl").unwrap();
+                let framework =
+                    CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef());
+                let symbol =
+                    CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef());
+                symbol as *const c_void
+            })
+        };
+        info!("OpenGL loaded");
+        Ok(gl)
+    }
+}
+
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "openbsd"
+))]
+pub mod gl {
+    use libloading::{Library, Symbol};
+    use servo::gl::GlFns;
+    use std::ffi::CString;
+    use std::os::raw::c_void;
+
+    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
+        info!("Loading OpenGL");
+
+        pub mod glx {
+            include!(concat!(env!("OUT_DIR"), "/glx_bindings.rs"));
+        }
+
+        let lib = match Library::new("libGL.so.1").or_else(|_| Library::new("libGL.so")) {
+            Ok(lib) => lib,
+            Err(_) => return Err("Can't find libGL.so, OpenGL isn't configured/installed"),
+        };
+
+        let glx = glx::Glx::load_with(|sym| unsafe {
+            let symbol: Symbol<*const c_void> = lib.get(sym.as_bytes()).unwrap();
+            *symbol.into_raw()
+        });
+
+        let gl = unsafe {
+            GlFns::load_with(|addr| {
+                let addr = CString::new(addr.as_bytes()).unwrap();
+                glx.GetProcAddress(addr.as_ptr() as *const _) as *const _
+            })
+        };
+
+        info!("OpenGL is loaded");
+
+        Ok(gl)
     }
 }

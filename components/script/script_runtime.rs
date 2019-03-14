@@ -42,6 +42,8 @@ use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;
 use js::rust::IntoHandle;
+use js::rust::JSEngine;
+use js::rust::ParentRuntime;
 use js::rust::Runtime as RustRuntime;
 use malloc_size_of::MallocSizeOfOps;
 use msg::constellation_msg::PipelineId;
@@ -56,6 +58,7 @@ use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
+use std::sync::Arc;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
 
@@ -322,10 +325,28 @@ impl Deref for Runtime {
     }
 }
 
+lazy_static! {
+    static ref JS_ENGINE: Arc<JSEngine> = JSEngine::init().unwrap();
+}
+
 #[allow(unsafe_code)]
-pub unsafe fn new_rt_and_cx() -> Runtime {
+pub unsafe fn new_child_runtime(parent: ParentRuntime) -> Runtime {
+    new_rt_and_cx_with_parent(Some(parent))
+}
+
+#[allow(unsafe_code)]
+pub fn new_rt_and_cx() -> Runtime {
+    unsafe { new_rt_and_cx_with_parent(None) }
+}
+
+#[allow(unsafe_code)]
+unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
     LiveDOMReferences::initialize();
-    let runtime = RustRuntime::new().unwrap();
+    let runtime = if let Some(parent) = parent {
+        RustRuntime::create_with_parent(parent)
+    } else {
+        RustRuntime::new(JS_ENGINE.clone())
+    };
     let cx = runtime.cx();
 
     JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());

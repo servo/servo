@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-constants.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/xr-test-asserts.js"></script>
+<canvas></canvas>
+
+<script>
+
+let immersiveTestName = "XRFrame.getPose works for immersive sessions";
+let nonImmersiveTestName = "XRFrame.getPose works for non-immersive sessions";
+
+let fakeDeviceInitParams = { supportsImmersive:true };
+let immersiveSessionOptions = { mode: 'immersive-vr' };
+let nonImmersiveSessionOptions = { outputContext: getOutputContext() };
+
+let testFunction = function(session, fakeDeviceController, t) {
+  // Need to have a valid pose or input events don't process.
+  fakeDeviceController.setXRPresentationFrameData(VALID_POSE_MATRIX, [{
+      eye:"left",
+      projectionMatrix: VALID_PROJECTION_MATRIX,
+      viewMatrix: VALID_VIEW_MATRIX
+    }, {
+      eye:"right",
+      projectionMatrix: VALID_PROJECTION_MATRIX,
+      viewMatrix: VALID_VIEW_MATRIX
+    }]);
+
+  return Promise.all([
+    session.requestReferenceSpace({ type: "stationary", subtype: "eye-level" }),
+    session.requestReferenceSpace({ type: "stationary", subtype: "eye-level" })
+  ]).then((spaces) => new Promise((resolve) => {
+    function onFrame(time, xrFrame) {
+      const radians = Math.PI / 2.0; // 90 degrees
+
+      // Both eye-level spaces start out with originOffset = identity matrix.
+      let space1 = spaces[0];
+      let space2 = spaces[1];
+
+      // Rotate 90 degrees about x axis, then move 1 meter along y axis.
+      space1.originOffset = new XRRigidTransform(
+        DOMPointReadOnly.fromPoint({
+          x : 0,
+          y : 1,
+          z : 0,
+          w : 0
+        }),
+        DOMPointReadOnly.fromPoint({
+          x : Math.sin(radians / 2),
+          y : 0,
+          z : 0,
+          w : Math.cos(radians / 2)
+        })
+      );
+
+      // Rotate 90 degrees about z axis, then move 1 meter along x axis.
+      space2.originOffset = new XRRigidTransform(
+        DOMPointReadOnly.fromPoint({
+          x : 1,
+          y : 0,
+          z : 0,
+          w : 0
+        }),
+        DOMPointReadOnly.fromPoint({
+          x : 0,
+          y : 0,
+          z : Math.sin(radians / 2),
+          w : Math.cos(radians / 2)
+        })
+      );
+
+      let space1_from_space2 = xrFrame.getPose(space1, space2);
+      const EXPECTED_POSE_MATRIX = [
+        0, 0, -1, 0, // 1st column
+        -1, 0, 0, 0, // 2nd column
+        0, 1, 0, 0, // 3rd column
+        1, 0, 1, 1 // 4th column
+      ];
+      assert_matrix_approx_equals(space1_from_space2.transform.matrix, EXPECTED_POSE_MATRIX, FLOAT_EPSILON);
+
+      // Finished test.
+      resolve();
+    }
+
+    session.requestAnimationFrame(onFrame);
+  }));
+};
+
+xr_session_promise_test(immersiveTestName, testFunction,
+  fakeDeviceInitParams, immersiveSessionOptions);
+xr_session_promise_test(nonImmersiveTestName, testFunction,
+  fakeDeviceInitParams, nonImmersiveSessionOptions);
+
+</script>

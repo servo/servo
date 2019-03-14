@@ -125,6 +125,7 @@ impl Parse for Impossible {
     Copy,
     MallocSizeOf,
     PartialEq,
+    Parse,
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToAnimatedZero,
@@ -147,19 +148,6 @@ impl<A: Debug, B: Debug> Debug for Either<A, B> {
     }
 }
 
-impl<A: Parse, B: Parse> Parse for Either<A, B> {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Either<A, B>, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| A::parse(context, i)) {
-            Ok(Either::First(v))
-        } else {
-            B::parse(context, input).map(Either::Second)
-        }
-    }
-}
-
 /// <https://drafts.csswg.org/css-values-4/#custom-idents>
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct CustomIdent(pub Atom);
@@ -172,7 +160,7 @@ impl CustomIdent {
         excluding: &[&str],
     ) -> Result<Self, ParseError<'i>> {
         let valid = match_ignore_ascii_case! { ident,
-            "initial" | "inherit" | "unset" | "default" => false,
+            "initial" | "inherit" | "unset" | "default" | "revert" => false,
             _ => true
         };
         if !valid {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas></canvas>
+
+  <script>
+    xr_promise_test("Requested session has it's mode set",
+     (t) => {
+      return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+        .then( (controller) => new Promise((resolve) => {
+          XRTest.simulateUserActivation( () => {
+            resolve(navigator.xr.requestSession({ mode: 'immersive-vr' }).then( (session) => {
+              assert_equals(session.mode, 'immersive-vr');
+            }));
+          });
+        }));
+    });
+  </script>
+</body>
+

@@ -23,7 +23,7 @@ interface HTMLMediaElement : HTMLElement {
   const unsigned short NETWORK_NO_SOURCE = 3;
   readonly attribute unsigned short networkState;
   [CEReactions] attribute DOMString preload;
-  // readonly attribute TimeRanges buffered;
+  readonly attribute TimeRanges buffered;
   void load();
   CanPlayTypeResult canPlayType(DOMString type);
 
@@ -46,7 +46,7 @@ interface HTMLMediaElement : HTMLElement {
   [Throws] attribute double playbackRate;
   readonly attribute TimeRanges played;
   // readonly attribute TimeRanges seekable;
-  // readonly attribute boolean ended;
+  readonly attribute boolean ended;
   [CEReactions] attribute boolean autoplay;
   // [CEReactions] attribute boolean loop;
   Promise<void> play();
@@ -55,12 +55,12 @@ interface HTMLMediaElement : HTMLElement {
   // controls
   // [CEReactions] attribute boolean controls;
   [Throws] attribute double volume;
-  // attribute boolean muted;
-  // [CEReactions] attribute boolean defaultMuted;
+  attribute boolean muted;
+  [CEReactions] attribute boolean defaultMuted;
 
   // tracks
-  // readonly attribute AudioTrackList audioTracks;
-  // readonly attribute VideoTrackList videoTracks;
+  readonly attribute AudioTrackList audioTracks;
+  readonly attribute VideoTrackList videoTracks;
   readonly attribute TextTrackList textTracks;
   TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
 };

@@ -237,9 +237,10 @@ impl AudioNodeMethods for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
-                if value != 1 {
-                    return Err(Error::InvalidState);
-                }
+                return Err(Error::InvalidState);
+            },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
+                return Err(Error::InvalidState);
             },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
@@ -280,9 +281,10 @@ impl AudioNodeMethods for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
-                if value != ChannelCountMode::Explicit {
-                    return Err(Error::InvalidState);
-                }
+                return Err(Error::InvalidState);
+            },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
+                return Err(Error::InvalidState);
             },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
@@ -301,14 +303,22 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation
-    fn SetChannelInterpretation(&self, value: ChannelInterpretation) {
+    fn SetChannelInterpretation(&self, value: ChannelInterpretation) -> ErrorResult {
         // Channel interpretation mode has no effect for nodes with no inputs.
         if self.number_of_inputs == 0 {
-            return;
+            return Ok(());
         }
+
+        match self.upcast::<EventTarget>().type_id() {
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
+                return Err(Error::InvalidState);
+            },
+            _ => (),
+        };
 
         self.channel_interpretation.set(value);
         self.message(AudioNodeMessage::SetChannelInterpretation(value.into()));
+        Ok(())
     }
 }
 

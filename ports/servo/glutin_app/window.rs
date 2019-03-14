@@ -5,20 +5,21 @@
 //! A windowing implementation using winit.
 
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
-#[cfg(target_os = "windows")]
-use gdi32;
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
 use keyboard_types::{Key, KeyboardEvent, KeyState};
+use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
-use servo::embedder_traits::EventLoopWaker;
+use servo::embedder_traits::{Cursor, EventLoopWaker};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
+use servo::servo_config::prefs::PREFS;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::style_traits::cursor::CursorKind;
 use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScrollLocation};
+use servo::webvr::VRServiceManager;
+use servo::webvr_traits::WebVRMainThreadHeartbeat;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -31,7 +32,7 @@ use std::thread;
 use std::time;
 use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
-use user32;
+use winapi;
 use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -159,8 +160,8 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 
 #[cfg(target_os = "windows")]
 fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-    let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
-    let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+    let hdc = unsafe { winapi::um::winuser::GetDC(::std::ptr::null_mut()) };
+    let ppi = unsafe { winapi::um::wingdi::GetDeviceCaps(hdc, winapi::um::wingdi::LOGPIXELSY) };
     TypedScale::new(ppi as f32 / 96.0)
 }
 
@@ -443,6 +444,13 @@ impl Window {
     }
 
     fn winit_event_to_servo_event(&self, event: winit::Event) {
+        if let WindowKind::Window(ref window, _) = self.kind {
+            if let Event::WindowEvent { window_id, .. } = event {
+                if window.id() != window_id {
+                     return;
+                }
+            }
+        }
         match event {
             Event::WindowEvent {
                 event: winit::WindowEvent::ReceivedCharacter(ch),
@@ -619,47 +627,46 @@ impl Window {
         }
     }
 
-    pub fn set_cursor(&self, cursor: CursorKind) {
+    pub fn set_cursor(&self, cursor: Cursor) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
                 use winit::MouseCursor;
 
                 let winit_cursor = match cursor {
-                    CursorKind::Auto => MouseCursor::Default,
-                    CursorKind::Default => MouseCursor::Default,
-                    CursorKind::Pointer => MouseCursor::Hand,
-                    CursorKind::ContextMenu => MouseCursor::ContextMenu,
-                    CursorKind::Help => MouseCursor::Help,
-                    CursorKind::Progress => MouseCursor::Progress,
-                    CursorKind::Wait => MouseCursor::Wait,
-                    CursorKind::Cell => MouseCursor::Cell,
-                    CursorKind::Crosshair => MouseCursor::Crosshair,
-                    CursorKind::Text => MouseCursor::Text,
-                    CursorKind::VerticalText => MouseCursor::VerticalText,
-                    CursorKind::Alias => MouseCursor::Alias,
-                    CursorKind::Copy => MouseCursor::Copy,
-                    CursorKind::Move => MouseCursor::Move,
-                    CursorKind::NoDrop => MouseCursor::NoDrop,
-                    CursorKind::NotAllowed => MouseCursor::NotAllowed,
-                    CursorKind::Grab => MouseCursor::Grab,
-                    CursorKind::Grabbing => MouseCursor::Grabbing,
-                    CursorKind::EResize => MouseCursor::EResize,
-                    CursorKind::NResize => MouseCursor::NResize,
-                    CursorKind::NeResize => MouseCursor::NeResize,
-                    CursorKind::NwResize => MouseCursor::NwResize,
-                    CursorKind::SResize => MouseCursor::SResize,
-                    CursorKind::SeResize => MouseCursor::SeResize,
-                    CursorKind::SwResize => MouseCursor::SwResize,
-                    CursorKind::WResize => MouseCursor::WResize,
-                    CursorKind::EwResize => MouseCursor::EwResize,
-                    CursorKind::NsResize => MouseCursor::NsResize,
-                    CursorKind::NeswResize => MouseCursor::NeswResize,
-                    CursorKind::NwseResize => MouseCursor::NwseResize,
-                    CursorKind::ColResize => MouseCursor::ColResize,
-                    CursorKind::RowResize => MouseCursor::RowResize,
-                    CursorKind::AllScroll => MouseCursor::AllScroll,
-                    CursorKind::ZoomIn => MouseCursor::ZoomIn,
-                    CursorKind::ZoomOut => MouseCursor::ZoomOut,
+                    Cursor::Default => MouseCursor::Default,
+                    Cursor::Pointer => MouseCursor::Hand,
+                    Cursor::ContextMenu => MouseCursor::ContextMenu,
+                    Cursor::Help => MouseCursor::Help,
+                    Cursor::Progress => MouseCursor::Progress,
+                    Cursor::Wait => MouseCursor::Wait,
+                    Cursor::Cell => MouseCursor::Cell,
+                    Cursor::Crosshair => MouseCursor::Crosshair,
+                    Cursor::Text => MouseCursor::Text,
+                    Cursor::VerticalText => MouseCursor::VerticalText,
+                    Cursor::Alias => MouseCursor::Alias,
+                    Cursor::Copy => MouseCursor::Copy,
+                    Cursor::Move => MouseCursor::Move,
+                    Cursor::NoDrop => MouseCursor::NoDrop,
+                    Cursor::NotAllowed => MouseCursor::NotAllowed,
+                    Cursor::Grab => MouseCursor::Grab,
+                    Cursor::Grabbing => MouseCursor::Grabbing,
+                    Cursor::EResize => MouseCursor::EResize,
+                    Cursor::NResize => MouseCursor::NResize,
+                    Cursor::NeResize => MouseCursor::NeResize,
+                    Cursor::NwResize => MouseCursor::NwResize,
+                    Cursor::SResize => MouseCursor::SResize,
+                    Cursor::SeResize => MouseCursor::SeResize,
+                    Cursor::SwResize => MouseCursor::SwResize,
+                    Cursor::WResize => MouseCursor::WResize,
+                    Cursor::EwResize => MouseCursor::EwResize,
+                    Cursor::NsResize => MouseCursor::NsResize,
+                    Cursor::NeswResize => MouseCursor::NeswResize,
+                    Cursor::NwseResize => MouseCursor::NwseResize,
+                    Cursor::ColResize => MouseCursor::ColResize,
+                    Cursor::RowResize => MouseCursor::RowResize,
+                    Cursor::AllScroll => MouseCursor::AllScroll,
+                    Cursor::ZoomIn => MouseCursor::ZoomIn,
+                    Cursor::ZoomOut => MouseCursor::ZoomOut,
                     _ => MouseCursor::Default,
                 };
                 window.set_cursor(winit_cursor);
@@ -778,6 +785,39 @@ impl WindowMethods for Window {
             }
         };
         true
+    }
+
+    fn register_vr_services(
+        &self,
+        services: &mut VRServiceManager,
+        heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>
+    ) {
+        if PREFS.get("dom.webvr.test").as_boolean().unwrap_or(false) {
+            warn!("Creating test VR display");
+            // TODO: support dom.webvr.test in headless environments
+            if let WindowKind::Window(_, ref events_loop) = self.kind {
+                // This is safe, because register_vr_services is called from the main thread.
+                let name = String::from("Test VR Display");
+                let size = self.inner_size.get().to_f64();
+                let size = LogicalSize::new(size.width, size.height);
+                let mut window_builder = winit::WindowBuilder::new()
+                    .with_title(name.clone())
+                    .with_dimensions(size)
+                    .with_visibility(false)
+                    .with_multitouch();
+                window_builder = builder_with_platform_options(window_builder);
+                let context_builder = ContextBuilder::new()
+                    .with_gl(Window::gl_version())
+                    .with_vsync(false); // Assume the browser vsync is the same as the test VR window vsync
+                let gl_window = GlWindow::new(window_builder, context_builder, &*events_loop.borrow())
+                    .expect("Failed to create window.");
+                let gl = self.gl.clone();
+                let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
+
+                services.register(Box::new(service));
+                heartbeats.push(Box::new(heartbeat));
+            }
+        }
     }
 }
 

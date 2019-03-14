@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: undefined values</title>
+<!-- https://github.com/wicg/kv-storage/commit/5bf31109f37d1371f619ea33d0e2391f10e8b8f5 -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { StorageArea } from "std:kv-storage";
+import { testWithArea } from "./helpers/kvs-tests.js";
+import { assertAsyncIteratorEquals } from "./helpers/equality-asserters.js";
+
+testWithArea(async (area) => {
+  assert_equals(await area.get("key"), undefined);
+}, "Get on a non-existant key returns undefined");
+
+testWithArea(async (area) => {
+  await area.set("key", undefined);
+  assert_equals(await area.get("key"), undefined);
+
+  await assertAsyncIteratorEquals(area.keys(), [], "keys");
+  await assertAsyncIteratorEquals(area.values(), [], "values");
+  await assertAsyncIteratorEquals(area.entries(), [], "entries");
+}, "Setting undefined as a value when nothing was present is a no-op");
+
+testWithArea(async (area) => {
+  await area.set("key", "value");
+  await area.set("key", undefined);
+
+  assert_equals(await area.get("key"), undefined);
+
+  await assertAsyncIteratorEquals(area.keys(), [], "keys");
+  await assertAsyncIteratorEquals(area.values(), [], "values");
+  await assertAsyncIteratorEquals(area.entries(), [], "entries");
+}, "Setting undefined as a value deletes what was previously there");
+</script>

@@ -69,7 +69,7 @@ use base64;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender, TryRecvError};
-use cssparser::{Parser, ParserInput};
+use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -94,7 +94,6 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
-use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
@@ -103,7 +102,7 @@ use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
-use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -120,7 +119,8 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use style::error_reporting::ParseErrorReporter;
+use style::dom::OpaqueNode;
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::{ComputedValues, PropertyId};
@@ -248,7 +248,7 @@ pub struct Window {
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DomRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
+    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
@@ -390,7 +390,7 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Vector2D<f32>>) {
+    pub fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32>>) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
@@ -509,12 +509,9 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         return Err(Error::InvalidCharacter);
     }
 
-    match base64::decode(&input) {
-        Ok(data) => Ok(DOMString::from(
-            data.iter().map(|&b| b as char).collect::<String>(),
-        )),
-        Err(..) => Err(Error::InvalidCharacter),
-    }
+    let data = base64::decode_config(&input, base64::STANDARD.decode_allow_trailing_bits(true))
+        .map_err(|_| Error::InvalidCharacter)?;
+    Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 
 impl WindowMethods for Window {
@@ -859,14 +856,13 @@ impl WindowMethods for Window {
         message: HandleValue,
         origin: DOMString,
     ) -> ErrorResult {
+        let source_global = GlobalScope::incumbent().expect("no incumbent global??");
+        let source = source_global.as_window();
+
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
-            "/" => {
-                // TODO(#12715): Should be the origin of the incumbent settings
-                //               object, not self's.
-                Some(self.Document().origin().immutable().clone())
-            },
+            "/" => Some(source.Document().origin().immutable().clone()),
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
@@ -878,7 +874,7 @@ impl WindowMethods for Window {
         let data = StructuredCloneData::write(cx, message)?;
 
         // Step 9.
-        self.post_message(origin, data);
+        self.post_message(origin, &*source.window_proxy(), data);
         Ok(())
     }
 
@@ -1138,7 +1134,6 @@ impl WindowMethods for Window {
         mql
     }
 
-    #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(
         &self,
@@ -1573,42 +1568,38 @@ impl Window {
         &*self.layout_rpc
     }
 
-    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxQuery(content_box_request)) {
+    pub fn content_box_query(&self, node: &Node) -> Option<Rect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBoxQuery(node.to_opaque())) {
             return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
-    pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(content_boxes_request)) {
+    pub fn content_boxes_query(&self, node: &Node) -> Vec<Rect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node.to_opaque())) {
             return vec![];
         }
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
     }
 
-    pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node_geometry_request)) {
+    pub fn client_rect_query(&self, node: &Node) -> Rect<i32> {
+        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
     }
 
-    pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
+    pub fn scroll_area_query(&self, node: &Node) -> Rect<i32> {
+        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_scroll_area().client_rect
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
-        if let Some(scroll_offset) = self
-            .scroll_offsets
-            .borrow()
-            .get(&node.to_untrusted_node_address())
-        {
+        if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
             return *scroll_offset;
         }
         Vector2D::new(0.0, 0.0)
@@ -1623,10 +1614,9 @@ impl Window {
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
-        self.scroll_offsets.borrow_mut().insert(
-            node.to_untrusted_node_address(),
-            Vector2D::new(x_ as f32, y_ as f32),
-        );
+        self.scroll_offsets
+            .borrow_mut()
+            .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
 
         let NodeScrollIdResponse(scroll_id) = self.layout_rpc.node_scroll_id();
 
@@ -1654,14 +1644,13 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(
-        &self,
-        node: TrustedNodeAddress,
-    ) -> (Option<DomRoot<Element>>, Rect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node)) {
+    pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, Rect<Au>) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node.to_opaque())) {
             return (None, Rect::zero());
         }
 
+        // FIXME(nox): Layout can reply with a garbage value which doesn't
+        // actually correspond to an element, that's unsound.
         let response = self.layout_rpc.offset_parent();
         let js_runtime = self.js_runtime.borrow();
         let js_runtime = js_runtime.as_ref().unwrap();
@@ -1679,12 +1668,8 @@ impl Window {
         self.layout_rpc.style().0
     }
 
-    pub fn text_index_query(
-        &self,
-        node: TrustedNodeAddress,
-        point_in_node: Point2D<f32>,
-    ) -> TextIndexResponse {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
+    pub fn text_index_query(&self, node: &Node, point_in_node: Point2D<f32>) -> TextIndexResponse {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery(node.to_opaque(), point_in_node)) {
             return TextIndexResponse(None);
         }
         self.layout_rpc.text_index()
@@ -2195,11 +2180,14 @@ impl Window {
     pub fn post_message(
         &self,
         target_origin: Option<ImmutableOrigin>,
+        source: &WindowProxy,
         serialize_with_transfer_result: StructuredCloneData,
     ) {
         let this = Trusted::new(self);
+        let source = Trusted::new(source);
         let task = task!(post_serialised_message: move || {
             let this = this.root();
+            let source = source.root();
 
             // Step 7.1.
             if let Some(target_origin) = target_origin {
@@ -2227,7 +2215,8 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
-                None
+                None,
+                Some(&*source),
             );
         });
         // FIXME(nox): Why are errors silenced here?
@@ -2243,5 +2232,43 @@ impl Window {
             self.pipeline_id(),
             TaskSourceName::DOMManipulation,
         ));
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct CSSErrorReporter {
+    pub pipelineid: PipelineId,
+    // Arc+Mutex combo is necessary to make this struct Sync,
+    // which is necessary to fulfill the bounds required by the
+    // uses of the ParseErrorReporter trait.
+    #[ignore_malloc_size_of = "Arc is defined in libstd"]
+    pub script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
+}
+unsafe_no_jsmanaged_fields!(CSSErrorReporter);
+
+impl ParseErrorReporter for CSSErrorReporter {
+    fn report_error(&self, url: &ServoUrl, location: SourceLocation, error: ContextualParseError) {
+        if log_enabled!(log::Level::Info) {
+            info!(
+                "Url:\t{}\n{}:{} {}",
+                url.as_str(),
+                location.line,
+                location.column,
+                error
+            )
+        }
+
+        //TODO: report a real filename
+        let _ = self
+            .script_chan
+            .lock()
+            .unwrap()
+            .send(ConstellationControlMsg::ReportCSSError(
+                self.pipelineid,
+                url.to_string(),
+                location.line,
+                location.column,
+                error.to_string(),
+            ));
     }
 }

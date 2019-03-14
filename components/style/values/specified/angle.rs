@@ -9,6 +9,7 @@ use crate::values::computed::angle::Angle as ComputedAngle;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified::calc::CalcNode;
 use crate::values::CSSFloat;
+use crate::Zero;
 use cssparser::{Parser, Token};
 use std::f32::consts::PI;
 use std::fmt::{self, Write};
@@ -30,6 +31,21 @@ pub enum AngleDimension {
     /// An angle with turn unit.
     #[css(dimension)]
     Turn(CSSFloat),
+}
+
+impl Zero for AngleDimension {
+    fn zero() -> Self {
+        AngleDimension::Deg(0.)
+    }
+
+    fn is_zero(&self) -> bool {
+        match *self {
+            AngleDimension::Deg(ref f) |
+            AngleDimension::Grad(ref f) |
+            AngleDimension::Rad(ref f) |
+            AngleDimension::Turn(ref f) => *f == 0.,
+        }
+    }
 }
 
 impl AngleDimension {
@@ -56,6 +72,19 @@ impl AngleDimension {
 pub struct Angle {
     value: AngleDimension,
     was_calc: bool,
+}
+
+impl Zero for Angle {
+    fn zero() -> Self {
+        Self {
+            value: Zero::zero(),
+            was_calc: false,
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.value.is_zero()
+    }
 }
 
 impl ToCss for Angle {
@@ -101,6 +130,11 @@ impl Angle {
         }
     }
 
+    /// Return `0deg`.
+    pub fn zero() -> Self {
+        Self::from_degrees(0.0, false)
+    }
+
     /// Returns the value of the angle in degrees, mostly for `calc()`.
     #[inline]
     pub fn degrees(&self) -> CSSFloat {
@@ -111,12 +145,6 @@ impl Angle {
     #[inline]
     pub fn was_calc(&self) -> bool {
         self.was_calc
-    }
-
-    /// Returns `0deg`.
-    #[inline]
-    pub fn zero() -> Self {
-        Self::from_degrees(0.0, false)
     }
 
     /// Returns an `Angle` parsed from a `calc()` expression.

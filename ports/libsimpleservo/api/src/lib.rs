@@ -7,20 +7,25 @@ extern crate log;
 
 pub mod gl_glue;
 
+pub use servo::script_traits::MouseButton;
+
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods,
 };
-use servo::embedder_traits::resources::{self, Resource};
+use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::EmbedderMsg;
 use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
-use servo::script_traits::{MouseButton, TouchEventType, TouchId};
+use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::prefs::{PrefValue, PREFS};
 use servo::servo_url::ServoUrl;
+use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRServiceManager};
 use servo::{self, gl, webrender_api, BrowserId, Servo};
 use std::cell::{Cell, RefCell};
 use std::mem;
+use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -39,12 +44,8 @@ pub struct InitOptions {
     pub width: u32,
     pub height: u32,
     pub density: f32,
+    pub vr_pointer: Option<*mut c_void>,
     pub enable_subpixel_text_antialiasing: bool,
-}
-
-/// Delegate resource file reading to the embedder.
-pub trait ReadFileTrait {
-    fn readfile(&self, file: &str) -> Vec<u8>;
 }
 
 /// Callbacks. Implemented by embedder. Called by Servo.
@@ -84,6 +85,8 @@ pub trait HostTrait {
     fn on_animating_changed(&self, animating: bool);
     /// Servo finished shutting down.
     fn on_shutdown_complete(&self);
+    /// A text input is focused.
+    fn on_ime_state_changed(&self, show: bool);
 }
 
 pub struct ServoGlue {
@@ -112,10 +115,9 @@ pub fn init(
     init_opts: InitOptions,
     gl: Rc<dyn gl::Gl>,
     waker: Box<dyn EventLoopWaker>,
-    readfile: Box<dyn ReadFileTrait + Send + Sync>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
-    resources::set(Box::new(ResourceReader(readfile)));
+    resources::set(Box::new(ResourceReaderInstance::new()));
 
     if let Some(args) = init_opts.args {
         let mut args: Vec<String> = serde_json::from_str(&args)
@@ -152,6 +154,7 @@ pub fn init(
         width: Cell::new(init_opts.width),
         height: Cell::new(init_opts.height),
         density: init_opts.density,
+        vr_pointer: init_opts.vr_pointer,
         waker,
     });
 
@@ -278,12 +281,12 @@ impl ServoGlue {
     /// Start scrolling.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll_start(&mut self, dx: i32, dy: i32, x: u32, y: u32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx as f32, dy as f32);
+    pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+        let delta = TypedVector2D::new(dx, dy);
         let scroll_location = webrender_api::ScrollLocation::Delta(delta);
         let event = WindowEvent::Scroll(
             scroll_location,
-            TypedPoint2D::new(x as i32, y as i32),
+            TypedPoint2D::new(x, y),
             TouchEventType::Down,
         );
         self.process_event(event)
@@ -292,12 +295,12 @@ impl ServoGlue {
     /// Scroll.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll(&mut self, dx: i32, dy: i32, x: u32, y: u32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx as f32, dy as f32);
+    pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+        let delta = TypedVector2D::new(dx, dy);
         let scroll_location = webrender_api::ScrollLocation::Delta(delta);
         let event = WindowEvent::Scroll(
             scroll_location,
-            TypedPoint2D::new(x as i32, y as i32),
+            TypedPoint2D::new(x, y),
             TouchEventType::Move,
         );
         self.process_event(event)
@@ -306,14 +309,11 @@ impl ServoGlue {
     /// End scrolling.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll_end(&mut self, dx: i32, dy: i32, x: u32, y: u32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx as f32, dy as f32);
+    pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+        let delta = TypedVector2D::new(dx, dy);
         let scroll_location = webrender_api::ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(
-            scroll_location,
-            TypedPoint2D::new(x as i32, y as i32),
-            TouchEventType::Up,
-        );
+        let event =
+            WindowEvent::Scroll(scroll_location, TypedPoint2D::new(x, y), TouchEventType::Up);
         self.process_event(event)
     }
 
@@ -357,6 +357,27 @@ impl ServoGlue {
         self.process_event(event)
     }
 
+    /// Register a mouse movement.
+    pub fn move_mouse(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
+        let point = TypedPoint2D::new(x, y);
+        let event = WindowEvent::MouseWindowMoveEventClass(point);
+        self.process_event(event)
+    }
+
+    /// Register a mouse button press.
+    pub fn mouse_down(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
+        let point = TypedPoint2D::new(x, y);
+        let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(button, point));
+        self.process_event(event)
+    }
+
+    /// Register a mouse button release.
+    pub fn mouse_up(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
+        let point = TypedPoint2D::new(x, y);
+        let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(button, point));
+        self.process_event(event)
+    }
+
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
@@ -376,11 +397,28 @@ impl ServoGlue {
     }
 
     /// Perform a click.
-    pub fn click(&mut self, x: u32, y: u32) -> Result<(), &'static str> {
-        let mouse_event =
-            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x as f32, y as f32));
+    pub fn click(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
+        let mouse_event = MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x, y));
         let event = WindowEvent::MouseWindowEventClass(mouse_event);
         self.process_event(event)
+    }
+
+    pub fn key_down(&mut self, key: Key) -> Result<(), &'static str> {
+        let key_event = KeyboardEvent {
+            state: KeyState::Down,
+            key,
+            ..KeyboardEvent::default()
+        };
+        self.process_event(WindowEvent::Keyboard(key_event))
+    }
+
+    pub fn key_up(&mut self, key: Key) -> Result<(), &'static str> {
+        let key_event = KeyboardEvent {
+            state: KeyState::Up,
+            key,
+            ..KeyboardEvent::default()
+        };
+        self.process_event(WindowEvent::Keyboard(key_event))
     }
 
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
@@ -495,6 +533,7 @@ struct ServoCallbacks {
     width: Cell<u32>,
     height: Cell<u32>,
     density: f32,
+    vr_pointer: Option<*mut c_void>,
 }
 
 impl WindowMethods for ServoCallbacks {
@@ -536,33 +575,55 @@ impl WindowMethods for ServoCallbacks {
             hidpi_factor: TypedScale::new(self.density),
         }
     }
+
+    fn register_vr_services(
+        &self,
+        services: &mut VRServiceManager,
+        _: &mut Vec<Box<VRMainThreadHeartbeat>>,
+    ) {
+        if let Some(ptr) = self.vr_pointer {
+            services.register_vrexternal(VRExternalShmemPtr::new(ptr));
+        }
+    }
 }
 
-struct ResourceReader(Box<dyn ReadFileTrait + Send + Sync>);
+struct ResourceReaderInstance;
 
-impl resources::ResourceReaderMethods for ResourceReader {
-    fn read(&self, file: Resource) -> Vec<u8> {
-        let file = match file {
-            Resource::Preferences => "prefs.json",
-            Resource::BluetoothBlocklist => "gatt_blocklist.txt",
-            Resource::DomainList => "public_domains.txt",
-            Resource::HstsPreloadList => "hsts_preload.json",
-            Resource::SSLCertificates => "certs",
-            Resource::BadCertHTML => "badcert.html",
-            Resource::NetErrorHTML => "neterror.html",
-            Resource::UserAgentCSS => "user-agent.css",
-            Resource::ServoCSS => "servo.css",
-            Resource::PresentationalHintsCSS => "presentational-hints.css",
-            Resource::QuirksModeCSS => "quirks-mode.css",
-            Resource::RippyPNG => "rippy.png",
-        };
-        info!("ResourceReader::read({})", file);
-        self.0.readfile(file)
+impl ResourceReaderInstance {
+    fn new() -> ResourceReaderInstance {
+        ResourceReaderInstance
     }
-    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
+}
+
+impl ResourceReaderMethods for ResourceReaderInstance {
+    fn read(&self, res: Resource) -> Vec<u8> {
+        Vec::from(match res {
+            Resource::Preferences => &include_bytes!("../../../../resources/prefs.json")[..],
+            Resource::HstsPreloadList => {
+                &include_bytes!("../../../../resources/hsts_preload.json")[..]
+            },
+            Resource::SSLCertificates => &include_bytes!("../../../../resources/certs")[..],
+            Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
+            Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],
+            Resource::UserAgentCSS => &include_bytes!("../../../../resources/user-agent.css")[..],
+            Resource::ServoCSS => &include_bytes!("../../../../resources/servo.css")[..],
+            Resource::PresentationalHintsCSS => {
+                &include_bytes!("../../../../resources/presentational-hints.css")[..]
+            },
+            Resource::QuirksModeCSS => &include_bytes!("../../../../resources/quirks-mode.css")[..],
+            Resource::RippyPNG => &include_bytes!("../../../../resources/rippy.png")[..],
+            Resource::DomainList => &include_bytes!("../../../../resources/public_domains.txt")[..],
+            Resource::BluetoothBlocklist => {
+                &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
+            },
+        })
+    }
+
+    fn sandbox_access_files(&self) -> Vec<PathBuf> {
         vec![]
     }
-    fn sandbox_access_files(&self) -> Vec<PathBuf> {
+
+    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![]
     }
 }

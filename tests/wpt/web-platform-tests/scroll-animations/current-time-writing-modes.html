@@ -300,9 +300,7 @@ test(function() {
       'Length-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 20;
   assert_equals(
-      lengthScrollTimeline.currentTime,
-      calculateCurrentTime(
-          scrollerSize - 20, 0, scrollerSize - 20, scrollerSize),
+      lengthScrollTimeline.currentTime, null,
       'Length-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 50;
   assert_equals(
@@ -318,9 +316,7 @@ test(function() {
       'Percentage-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 0.20 * scrollerSize;
   assert_equals(
-      percentageScrollTimeline.currentTime,
-      calculateCurrentTime(
-          0.8 * scrollerSize, 0, 0.8 * scrollerSize, scrollerSize),
+      percentageScrollTimeline.currentTime, null,
       'Percentage-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 0.4 * scrollerSize;
   assert_equals(
@@ -336,9 +332,7 @@ test(function() {
       'Calc-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 0.2 * scrollerSize - 5;
   assert_equals(
-      calcScrollTimeline.currentTime,
-      calculateCurrentTime(
-          0.8 * scrollerSize + 5, 0, 0.8 * scrollerSize + 5, scrollerSize),
+      calcScrollTimeline.currentTime, null,
       'Calc-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 0.2 * scrollerSize;
   assert_equals(
@@ -347,4 +341,62 @@ test(function() {
           0.8 * scrollerSize, 0, 0.8 * scrollerSize + 5, scrollerSize),
       'Calc-based timeline before the endScrollOffset point');
 }, 'currentTime handles endScrollOffset with direction: rtl correctly');
+
+test(function() {
+  const scrollerOverrides = new Map([['direction', 'rtl']]);
+  const scroller = setupScrollTimelineTest(scrollerOverrides);
+  // Set the timeRange such that currentTime maps directly to the value
+  // scrolled. The contents and scroller are square, so it suffices to compute
+  // one edge and use it for all the timelines.
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  // When the endScrollOffset is equal to the maximum scroll offset (and there
+  // are no fill modes), the endScrollOffset is treated as inclusive.
+  const inclusiveAutoScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: 'auto'
+  });
+  const inclusiveLengthScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: scrollerSize + 'px'
+  });
+  const inclusivePercentageScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: '100%'
+  });
+  const inclusiveCalcScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: 'calc(80% + ' + (0.2 * scrollerSize) + 'px)'
+  });
+
+  // With direction rtl offsets are inverted, such that scrollLeft ==
+  // scrollerSize is the 'zero' point for currentTime. However the
+  // endScrollOffset is an absolute distance along the offset, so doesn't need
+  // adjusting.
+
+  scroller.scrollLeft = 0;
+  let expectedCurrentTime = calculateCurrentTime(
+      scroller.scrollLeft, 0, scrollerSize, scrollerSize);
+
+  assert_equals(
+    inclusiveAutoScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive auto timeline at the endScrollOffset point');
+  assert_equals(
+    inclusiveLengthScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive length-based timeline at the endScrollOffset point');
+  assert_equals(
+    inclusivePercentageScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive percentage-based timeline at the endScrollOffset point');
+  assert_equals(
+    inclusiveCalcScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive calc-based timeline at the endScrollOffset point');
+}, 'currentTime handles endScrollOffset (inclusive case) with direction: rtl correctly');
 </script>

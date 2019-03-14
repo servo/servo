@@ -65,9 +65,11 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
-use compositing::compositor_thread::{CompositorProxy, CompositorReceiver, InitialCompositorState};
+use compositing::compositor_thread::{
+    CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
+};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use compositing::{IOCompositor, RenderNotifier, ShutdownState};
+use compositing::{CompositingReason, IOCompositor, ShutdownState};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -107,9 +109,10 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use webrender::{RendererKind, ShaderPrecacheFlags};
-use webvr::{WebVRCompositorHandler, WebVRThread};
+use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
 
 pub use gleam::gl;
+pub use keyboard_types;
 pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
@@ -130,6 +133,45 @@ pub struct Servo<Window: WindowMethods + 'static> {
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+}
+
+#[derive(Clone)]
+struct RenderNotifier {
+    compositor_proxy: CompositorProxy,
+}
+
+impl RenderNotifier {
+    pub fn new(compositor_proxy: CompositorProxy) -> RenderNotifier {
+        RenderNotifier {
+            compositor_proxy: compositor_proxy,
+        }
+    }
+}
+
+impl webrender_api::RenderNotifier for RenderNotifier {
+    fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
+        Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
+    }
+
+    fn wake_up(&self) {
+        self.compositor_proxy
+            .recomposite(CompositingReason::NewWebRenderFrame);
+    }
+
+    fn new_frame_ready(
+        &self,
+        _document_id: webrender_api::DocumentId,
+        scrolled: bool,
+        composite_needed: bool,
+        _render_time_ns: Option<u64>,
+    ) {
+        if scrolled {
+            self.compositor_proxy
+                .send(Msg::NewScrollFrameReady(composite_needed));
+        } else {
+            self.wake_up();
+        }
+    }
 }
 
 impl<Window> Servo<Window>
@@ -216,6 +258,16 @@ where
         // can't defer it after `create_constellation` has started.
         script::init();
 
+        let mut webvr_heartbeats = Vec::new();
+        let webvr_services = if PREFS.is_webvr_enabled() {
+            let mut services = VRServiceManager::new();
+            services.register_defaults();
+            window.register_vr_services(&mut services, &mut webvr_heartbeats);
+            Some(services)
+        } else {
+            None
+        };
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -232,6 +284,7 @@ where
             webrender_document,
             webrender_api_sender,
             window.gl(),
+            webvr_services,
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -256,6 +309,7 @@ where
                 webrender,
                 webrender_document,
                 webrender_api,
+                webvr_heartbeats,
             },
         );
 
@@ -510,6 +564,7 @@ fn create_constellation(
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
     window_gl: Rc<dyn gl::Gl>,
+    webvr_services: Option<VRServiceManager>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
@@ -529,19 +584,20 @@ fn create_constellation(
 
     let resource_sender = public_resource_threads.sender();
 
-    let (webvr_chan, webvr_constellation_sender, webvr_compositor) = if PREFS.is_webvr_enabled() {
-        // WebVR initialization
-        let (mut handler, sender) = WebVRCompositorHandler::new();
-        let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender);
-        handler.set_webvr_thread_sender(webvr_thread.clone());
-        (
-            Some(webvr_thread),
-            Some(constellation_sender),
-            Some(handler),
-        )
-    } else {
-        (None, None, None)
-    };
+    let (webvr_chan, webvr_constellation_sender, webvr_compositor) =
+        if let Some(services) = webvr_services {
+            // WebVR initialization
+            let (mut handler, sender) = WebVRCompositorHandler::new();
+            let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender, services);
+            handler.set_webvr_thread_sender(webvr_thread.clone());
+            (
+                Some(webvr_thread),
+                Some(constellation_sender),
+                Some(handler),
+            )
+        } else {
+            (None, None, None)
+        };
 
     // GLContext factory used to create WebGL Contexts
     let gl_factory = if opts::get().should_use_osmesa() {

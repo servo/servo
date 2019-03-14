@@ -55,11 +55,16 @@ function _getNELResourceURL(subdomain, suffix) {
  */
 
 function getURLForResourceWithBasicPolicy(subdomain) {
-  return _getNELResourceURL(subdomain, "pass.png?id="+reportID);
+  return _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=1.0");
 }
 
 function fetchResourceWithBasicPolicy(subdomain) {
   const url = getURLForResourceWithBasicPolicy(subdomain);
+  return fetch(url, {mode: "no-cors"});
+}
+
+function fetchResourceWithZeroSuccessFractionPolicy(subdomain) {
+  const url = _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=0.0");
   return fetch(url, {mode: "no-cors"});
 }
 
@@ -206,4 +211,29 @@ async function reportExists(expected) {
     }
   }
   return false;
+}
+
+/*
+ * Verifies that reports were uploaded that contains all of the fields in
+ * expected.
+ */
+
+async function reportsExist(expected_reports) {
+  const timeout = 10;
+  let reportLocation =
+    "/network-error-logging/support/report.py?op=retrieve_report&timeout=" +
+    timeout + "&reportID=" + reportID;
+  // There must be the report of pass.png, so adding 1.
+  const min_count = expected_reports.length + 1;
+  reportLocation += "&min_count=" + min_count;
+  const response = await fetch(reportLocation);
+  const json = await response.json();
+  for (const expected of expected_reports) {
+    const found = json.some((report) => {
+      return _isSubsetOf(expected, report);
+    });
+    if (!found)
+      return false;
+  }
+  return true;
 }

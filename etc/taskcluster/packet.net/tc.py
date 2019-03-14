@@ -22,8 +22,8 @@ def check():
 
 
 def livelog():
-    win2016 = api("awsProvisioner", "workerType", "servo-win2016")
-    files = win2016["secrets"]["files"]
+    win2016 = secret("worker-type:aws-provisioner-v1/servo-win2016")
+    files = win2016["files"]
     assert all(f["encoding"] == "base64" for f in files)
     files = {f.get("description"): f["content"] for f in files}
     cert = files["SSL certificate for livelog"]
@@ -33,7 +33,7 @@ def livelog():
         "livelog_key_base64": key,
         "livelog_cert": base64.b64decode(cert),
         "livelog_key": base64.b64decode(key),
-        "livelog_secret": win2016["secrets"]["generic-worker"]["config"]["livelogSecret"],
+        "livelog_secret": win2016["config"]["livelogSecret"],
     }
 
 

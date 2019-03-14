@@ -7,7 +7,16 @@
 <script>
 "use strict";
 const testMethod = Object.freeze({ supportedMethods: "not-a-real-method" });
-const applePay = Object.freeze({ supportedMethods: "https://apple.com/apple-pay" });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  },
+});
 const defaultMethods = Object.freeze([testMethod, applePay]);
 const defaultDetails = Object.freeze({
   total: {

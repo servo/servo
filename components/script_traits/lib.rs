@@ -24,6 +24,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use embedder_traits::Cursor;
 use euclid::{Length, Point2D, Rect, TypedScale, TypedSize2D, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
@@ -50,7 +51,6 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style_traits::cursor::CursorKind;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webrender_api::{
@@ -61,7 +61,9 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 pub use crate::script_msg::{
     DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
 };
-pub use crate::script_msg::{EventResult, LayoutMsg, LogEntry, ScriptMsg};
+pub use crate::script_msg::{
+    EventResult, IFrameSize, IFrameSizeMsg, LayoutMsg, LogEntry, ScriptMsg,
+};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -284,12 +286,24 @@ pub enum ConstellationControlMsg {
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     Navigate(PipelineId, BrowsingContextId, LoadData, bool),
     /// Post a message to a given window.
-    PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
+    PostMessage {
+        /// The target of the message.
+        target: PipelineId,
+        /// The source of the message.
+        source: PipelineId,
+        /// The top level browsing context associated with the source pipeline.
+        source_browsing_context: TopLevelBrowsingContextId,
+        /// The expected origin of the target.
+        target_origin: Option<ImmutableOrigin>,
+        /// The data to be posted.
+        data: Vec<u8>,
+    },
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
     UpdatePipelineId(
         PipelineId,
         BrowsingContextId,
+        TopLevelBrowsingContextId,
         PipelineId,
         UpdatePipelineIdReason,
     ),
@@ -358,7 +372,7 @@ impl fmt::Debug for ConstellationControlMsg {
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
-            PostMessage(..) => "PostMessage",
+            PostMessage { .. } => "PostMessage",
             UpdatePipelineId(..) => "UpdatePipelineId",
             UpdateHistoryState(..) => "UpdateHistoryState",
             RemoveHistoryStates(..) => "RemoveHistoryStates",
@@ -762,7 +776,7 @@ pub enum ConstellationMsg {
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
-    SetCursor(CursorKind),
+    SetCursor(Cursor),
 }
 
 impl fmt::Debug for ConstellationMsg {

@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
@@ -83,7 +83,7 @@ impl HTMLMetaElement {
 
     fn process_attributes(&self) {
         let element = self.upcast::<Element>();
-        if let Some(name) = element.get_attribute(&ns!(), &local_name!("name")).r() {
+        if let Some(ref name) = element.get_attribute(&ns!(), &local_name!("name")) {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
@@ -106,7 +106,7 @@ impl HTMLMetaElement {
             return;
         }
         let element = self.upcast::<Element>();
-        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")).r() {
+        if let Some(ref content) = element.get_attribute(&ns!(), &local_name!("content")) {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
@@ -136,7 +136,7 @@ impl HTMLMetaElement {
 
     fn process_referrer_attribute(&self) {
         let element = self.upcast::<Element>();
-        if let Some(name) = element.get_attribute(&ns!(), &local_name!("name")).r() {
+        if let Some(ref name) = element.get_attribute(&ns!(), &local_name!("name")) {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 

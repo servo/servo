@@ -23,7 +23,7 @@ interface WebSocket : EventTarget {
     attribute EventHandler onclose;
     //readonly attribute DOMString extensions;
     readonly attribute DOMString protocol;
-    [Throws] void close([Clamp] optional unsigned short code, optional USVString reason);
+    [Throws] void close(optional [Clamp] unsigned short code, optional USVString reason);
 
     //messaging
     attribute EventHandler onmessage;

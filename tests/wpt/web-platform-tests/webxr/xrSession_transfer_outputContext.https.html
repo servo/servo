@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script>
+    xr_promise_test(
+      "Ensure that XRPresentationContexts are properly transfered between session",
+      (t) => {
+        return XRTest.simulateDeviceConnection({ supportsImmersive:false })
+          .then( (controller) => {
+            Promise.all([
+              navigator.xr.requestSession({ mode: 'inline'}),
+              navigator.xr.requestSession({ mode: 'inline'})
+            ]).then((sessions) => {
+              assert_not_equals(sessions[0], null);
+              assert_not_equals(sessions[1], null);
+
+              let outputContext = getOutputContext();
+
+              sessions[0].updateRenderState({
+                baseLayer: new XRWebGLLayer(session, gl),
+                outputContext: outputContext
+              });
+
+              sessions[0].requestAnimationFrame((time, xrFrame) => {
+                sessions[1].updateRenderState({
+                  baseLayer: new XRWebGLLayer(session, gl),
+                  outputContext: outputContext
+                });
+
+                // outputContext reassignment should not happen until the next frame is processed.
+                assert_equals(sessions[0].renderState.outputContext, outputContext);
+                assert_equals(sessions[1].renderState.outputContext, null);
+
+                sessions[1].requestAnimationFrame((time, xrFrame) => {
+                  // Ensure the outputContext was properly reassigned from one context to the other.
+                  assert_equals(sessions[0].renderState.outputContext, null);
+                  assert_equals(sessions[1].renderState.outputContext, outputContext);
+                });
+              });
+            });
+          });
+      });
+  </script>
+</body>

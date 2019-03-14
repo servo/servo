@@ -128,47 +128,9 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
     }
 }
 
-/// A value of <length> | <percentage> | <number> for svg which allow unitless length.
-/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToAnimatedValue,
-    ToAnimatedZero,
-    ToComputedValue,
-    ToCss,
-)]
-pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
-    /// <length> | <percentage>
-    LengthOrPercentage(LengthOrPercentage),
-    /// <number>
-    Number(Number),
-}
-
-/// Parsing the SvgLengthOrPercentageOrNumber. At first, we need to parse number
-/// since prevent converting to the length.
-impl<LengthOrPercentageType: Parse, NumberType: Parse> Parse
-    for SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-{
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(num) = input.try(|i| NumberType::parse(context, i)) {
-            return Ok(SvgLengthOrPercentageOrNumber::Number(num));
-        }
-
-        let lop = LengthOrPercentageType::parse(context, input)?;
-        Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop))
-    }
-}
-
 /// An SVG length value supports `context-value` in addition to length.
 #[derive(
+    Animate,
     Clone,
     ComputeSquaredDistance,
     Copy,
@@ -181,10 +143,11 @@ impl<LengthOrPercentageType: Parse, NumberType: Parse> Parse
     ToComputedValue,
     ToCss,
 )]
-pub enum SVGLength<LengthType> {
+pub enum SVGLength<L> {
     /// `<length> | <percentage> | <number>`
-    Length(LengthType),
+    LengthPercentage(L),
     /// `context-value`
+    #[animation(error)]
     ContextValue,
 }
 
@@ -196,13 +159,14 @@ pub enum SVGLength<LengthType> {
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedValue,
+    ToAnimatedZero,
     ToComputedValue,
     ToCss,
 )]
-pub enum SVGStrokeDashArray<LengthType> {
+pub enum SVGStrokeDashArray<L> {
     /// `[ <length> | <percentage> | <number> ]#`
     #[css(comma)]
-    Values(#[css(if_empty = "none", iterable)] Vec<LengthType>),
+    Values(#[css(if_empty = "none", iterable)] Vec<L>),
     /// `context-value`
     ContextValue,
 }
@@ -210,12 +174,14 @@ pub enum SVGStrokeDashArray<LengthType> {
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
 #[derive(
+    Animate,
     Clone,
     ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
     PartialEq,
+    Parse,
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
@@ -225,7 +191,9 @@ pub enum SVGOpacity<OpacityType> {
     /// `<opacity-value>`
     Opacity(OpacityType),
     /// `context-fill-opacity`
+    #[animation(error)]
     ContextFillOpacity,
     /// `context-stroke-opacity`
+    #[animation(error)]
     ContextStrokeOpacity,
 }

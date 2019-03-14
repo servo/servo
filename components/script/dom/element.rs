@@ -23,7 +23,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
@@ -128,6 +128,7 @@ use style::selector_parser::{
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::thread_state;
+use style::values::generics::NonNegative;
 use style::values::{computed, specified};
 use style::values::{CSSFloat, Either};
 use style::CaseSensitivityExt;
@@ -717,7 +718,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::Length(value)),
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
             ));
         }
 
@@ -742,19 +745,20 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match width {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Percentage(
-                    computed::Percentage(percentage),
-                );
+                let width_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value),
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value =
-                    specified::LengthOrPercentageOrAuto::Length(specified::NoCalcLength::Absolute(
+                let width_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
                         specified::AbsoluteLength::Px(length.to_f32_px()),
-                    ));
+                    )),
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value),
@@ -775,19 +779,20 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match height {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::LengthOrPercentageOrAuto::Percentage(
-                    computed::Percentage(percentage),
-                );
+                let height_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value),
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let height_value =
-                    specified::LengthOrPercentageOrAuto::Length(specified::NoCalcLength::Absolute(
+                let height_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
                         specified::AbsoluteLength::Px(length.to_f32_px()),
-                    ));
+                    )),
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value),
@@ -814,7 +819,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::Length(value)),
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
             ));
         }
 
@@ -836,7 +843,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             ));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Height(specified::LengthOrPercentageOrAuto::Length(value)),
+                PropertyDeclaration::Height(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
             ));
         }
 
@@ -847,8 +856,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         };
 
         if let Some(border) = border {
-            let width_value =
-                specified::BorderSideWidth::Length(specified::Length::from_px(border as f32));
+            let width_value = specified::BorderSideWidth::Length(NonNegative(
+                specified::Length::from_px(border as f32),
+            ));
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BorderTopWidth(width_value.clone()),
@@ -1097,7 +1107,6 @@ impl Element {
             local_name!("input") |
             local_name!("keygen") |
             local_name!("link") |
-            local_name!("menuitem") |
             local_name!("meta") |
             local_name!("param") |
             local_name!("source") |
@@ -1283,7 +1292,7 @@ impl Element {
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
-        assert!(attr.GetOwnerElement().r() == Some(self));
+        assert!(attr.GetOwnerElement().deref() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
         if attr.namespace() == &ns!() {
@@ -1499,6 +1508,11 @@ impl Element {
             .unwrap_or_else(|_| USVString(value.to_owned()))
     }
 
+    pub fn set_url_attribute(&self, local_name: &LocalName, value: USVString) {
+        assert!(*local_name == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::String(value.to_string()));
+    }
+
     pub fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
         match self.get_attribute(&ns!(), local_name) {
             Some(x) => x.Value(),
@@ -1593,12 +1607,12 @@ impl Element {
                 }
             },
             AdjacentPosition::AfterBegin => {
-                Node::pre_insert(node, &self_node, self_node.GetFirstChild().r()).map(Some)
+                Node::pre_insert(node, &self_node, self_node.GetFirstChild().deref()).map(Some)
             },
             AdjacentPosition::BeforeEnd => Node::pre_insert(node, &self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
-                    Node::pre_insert(node, &parent, self_node.GetNextSibling().r()).map(Some)
+                    Node::pre_insert(node, &parent, self_node.GetNextSibling().deref()).map(Some)
                 } else {
                     Ok(None)
                 }
@@ -1638,7 +1652,7 @@ impl Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2107,7 +2121,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2157,7 +2171,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2203,7 +2217,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2254,7 +2268,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2519,13 +2533,14 @@ impl ElementMethods for Element {
         let position = position.parse::<AdjacentPosition>()?;
 
         let context = match position {
-            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => match self
-                .upcast::<Node>()
-                .GetParentNode()
-            {
-                Some(ref node) if node.is::<Document>() => return Err(Error::NoModificationAllowed),
-                None => return Err(Error::NoModificationAllowed),
-                Some(node) => node,
+            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
+                match self.upcast::<Node>().GetParentNode() {
+                    Some(ref node) if node.is::<Document>() => {
+                        return Err(Error::NoModificationAllowed)
+                    },
+                    None => return Err(Error::NoModificationAllowed),
+                    Some(node) => node,
+                }
             },
             AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => {
                 DomRoot::from_ref(self.upcast::<Node>())
@@ -2566,7 +2581,6 @@ impl ElementMethods for Element {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
-    #[allow(unrooted_must_root)]
     fn RequestFullscreen(&self) -> Rc<Promise> {
         let doc = document_from_node(self);
         doc.enter_fullscreen(self)
@@ -2723,7 +2737,7 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
         let fullscreen = doc.GetFullscreenElement();
-        if fullscreen.r() == Some(self) {
+        if fullscreen.deref() == Some(self) {
             doc.exit_fullscreen();
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
@@ -3222,6 +3236,18 @@ impl Element {
         let root = node.GetRootNode();
         root.is::<Document>()
     }
+
+    // https://html.spec.whatwg.org/multipage/#cannot-navigate
+    pub fn cannot_navigate(&self) -> bool {
+        let document = document_from_node(self);
+
+        // Step 1.
+        !document.is_fully_active() ||
+            (
+                // Step 2.
+                !self.is::<HTMLAnchorElement>() && !self.is_connected()
+            )
+    }
 }
 
 impl Element {
@@ -3366,7 +3392,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     fn run_once(self) {
         let element = self.element.root();
         let promise = self.promise.root();
-        let document = document_from_node(element.r());
+        let document = document_from_node(&*element);
 
         // Step 7.1
         if self.error || !element.fullscreen_element_ready_check() {
@@ -3416,7 +3442,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
     #[allow(unrooted_must_root)]
     fn run_once(self) {
         let element = self.element.root();
-        let document = document_from_node(element.r());
+        let document = document_from_node(&*element);
         // TODO Step 9.1-5
         // Step 9.6
         element.set_fullscreen_state(false);

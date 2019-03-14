@@ -1,0 +1,40 @@
+<html>
+<title>WorkletAnimation should continue to be in effect forever, even if its duration is passed</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<link rel="match" href="worklet-animation-duration-ref.html">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<div id="box"></div>
+
+<script>
+  promise_test(async t => {
+    await registerConstantLocalTimeAnimator(0.5);
+
+    const box = document.getElementById('box');
+    const effect = new KeyframeEffect(box,
+      [
+        {transform: 'translateY(0px)' },
+        {transform: 'translateY(200px)' }
+      ], {
+        duration: 1,
+      }
+    );
+
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+
+    let expected_transform = "matrix(1, 0, 0, 1, 0, 100)";
+    await waitForAnimationFrameWithCondition(_ => {
+      return getComputedStyle(box).transform == expected_transform;
+    });
+
+    // The animation is specified to last for 1 millisecond
+    await new Promise(resolve => step_timeout(resolve, 500));
+
+    assert_equals(getComputedStyle(document.getElementById("box")).transform, expected_transform);
+  }, "WorkletAnimation should continue to be in effect forever, even if its duration is passed");
+</script>

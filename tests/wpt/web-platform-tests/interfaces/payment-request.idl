@@ -92,7 +92,6 @@ interface PaymentAddress {
   readonly attribute DOMString postalCode;
   readonly attribute DOMString recipient;
   readonly attribute DOMString region;
-  readonly attribute DOMString regionCode;
   readonly attribute DOMString sortingCode;
   readonly attribute FrozenArray<DOMString> addressLine;
 };
@@ -101,7 +100,6 @@ dictionary AddressInit {
   DOMString country;
   sequence<DOMString> addressLine;
   DOMString region;
-  DOMString regionCode;
   DOMString city;
   DOMString dependentLocality;
   DOMString postalCode;
@@ -121,7 +119,6 @@ dictionary AddressErrors {
   DOMString postalCode;
   DOMString recipient;
   DOMString region;
-  DOMString regionCode;
   DOMString sortingCode;
 };
 

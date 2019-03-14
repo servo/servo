@@ -18,9 +18,7 @@ set -o pipefail
 #    (some are Email-only), column 30 is printed, the raw certificate.
 # 6. All CA certs trusted for Websites are stored into the `certs` file.
 
-domain="ccadb-public.secure.force.com";
-curl "https://${domain}/mozilla/IncludedCACertificateReportPEMCSV" -sSf | \
-gawk -v RS="\"\n" -F'","|^"' \
+url="https://ccadb-public.secure.force.com/mozilla/IncludedCACertificateReportPEMCSV"
+curl "${url}" -sSf | gawk -v RS="\"\n" -F'","|^"' \
 '{gsub("\047","",$(30));gsub("\"","",$(30));if($(13)~/Websites/)print $(30)}' \
 > certs
-

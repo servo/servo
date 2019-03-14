@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCDtlsTransport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// The following helper functions are called from RTCPeerConnection-helper.js:
+//   exchangeIceCandidates
+//   doSignalingHandshake
+//   trackFactories.audio()
+
+/*
+    5.5.  RTCDtlsTransport Interface
+      interface RTCDtlsTransport : EventTarget {
+        readonly attribute RTCDtlsTransportState state;
+        sequence<ArrayBuffer> getRemoteCertificates();
+                 attribute EventHandler          onstatechange;
+                 attribute EventHandler          onerror;
+        ...
+      };
+
+      enum RTCDtlsTransportState {
+        "new",
+        "connecting",
+        "connected",
+        "closed",
+        "failed"
+      };
+
+*/
+function resolveWhen(t, dtlstransport, state) {
+  return new Promise((resolve, reject) => {
+    if (dtlstransport.state == state) { resolve(); }
+    dtlstransport.addEventListener('statechange', t.step_func(e => {
+      if (dtlstransport.state == state) {
+        resolve();
+      }
+    }));
+  });
+}
+
+// Helper class to exchange ice candidates between
+// two local peer connections
+class CandidateChannel {
+  constructor(source, dest) {
+    source.addEventListener('icecandidate', event => {
+      const { candidate } = event;
+      if (candidate && this.activated
+          && this.destination.signalingState !== 'closed') {
+        this.destination.addIceCandidate(candidate);
+      } else {
+        this.queue.push(candidate);
+      }
+    });
+    this.destination = dest;
+    this.activated = false;
+    this.queue = [];
+  }
+  activate() {
+    this.activated = true;
+    for (const candidate of this.queue) {
+      this.destination.addIceCandidate(candidate);
+    }
+  }
+}
+
+function coupleCandidates(pc1, pc2) {
+  const ch1 = new CandidateChannel(pc1, pc2);
+  const ch2 = new CandidateChannel(pc2, pc1);
+  return [ch1, ch2];
+}
+
+async function setupConnections(t) {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTrack(trackFactories.audio());
+  const channels = coupleCandidates(pc1, pc2);
+  await doSignalingHandshake(pc1, pc2);
+  for (const channel of channels) {
+    channel.activate();
+  }
+  return [pc1, pc2];
+}
+
+promise_test(async t => {
+  const [pc1, pc2] = await setupConnections(t);
+  const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
+  const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
+  assert_true(dtlsTransport1 instanceof RTCDtlsTransport);
+  assert_true(dtlsTransport2 instanceof RTCDtlsTransport);
+  await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
+                     resolveWhen(t, dtlsTransport2, 'connected')]);
+}, 'DTLS transport goes to connected state');
+
+promise_test(async t => {
+  const [pc1, pc2] = await setupConnections(t);
+
+  const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
+  const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
+  await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
+                     resolveWhen(t, dtlsTransport2, 'connected')]);
+  pc1.close();
+  assert_equals(dtlsTransport1.state, 'closed');
+}, 'close() causes the local transport to close immediately');
+
+promise_test(async t => {
+  const [pc1, pc2] = await setupConnections(t);
+  const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
+  const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
+  await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
+                     resolveWhen(t, dtlsTransport2, 'connected')]);
+  pc1.close();
+  await resolveWhen(t, dtlsTransport2, 'closed');
+}, 'close() causes the other end\'s DTLS transport to close');
+
+</script>

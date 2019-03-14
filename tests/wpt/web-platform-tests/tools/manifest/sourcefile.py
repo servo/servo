@@ -1,6 +1,7 @@
 import hashlib
 import re
 import os
+from collections import deque
 from six import binary_type
 from six.moves.urllib.parse import urljoin
 from fnmatch import fnmatch
@@ -13,7 +14,7 @@ import html5lib
 
 from . import XMLParser
 from .item import Stub, ManualTest, WebDriverSpecTest, RefTestNode, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
-from .utils import rel_path_to_url, ContextManagerBytesIO, cached_property
+from .utils import ContextManagerBytesIO, cached_property
 
 wd_pattern = "*.py"
 js_meta_re = re.compile(b"//\s*META:\s*(\w*)=(.*)$")
@@ -233,8 +234,13 @@ class SourceFile(object):
         return os.path.join(self.tests_root, self.rel_path)
 
     @cached_property
+    def rel_url(self):
+        assert not os.path.isabs(self.rel_path), self.rel_path
+        return self.rel_path.replace(os.sep, "/")
+
+    @cached_property
     def url(self):
-        return rel_path_to_url(self.rel_path, self.url_base)
+        return urljoin(self.url_base, self.rel_url)
 
     @cached_property
     def hash(self):
@@ -335,7 +341,7 @@ class SourceFile(object):
     def name_is_reference(self):
         """Check if the file name matches the conditions for the file to
         be a reference file (not a reftest)"""
-        return "/reference/" in self.url or "/reftest/" in self.url or bool(reference_file_re.search(self.name))
+        return "/reference/" in self.url or bool(reference_file_re.search(self.name))
 
     @property
     def markup_type(self):
@@ -446,6 +452,79 @@ class SourceFile(object):
             return None
 
         return self.dpi_nodes[0].attrib.get("content", None)
+
+    @cached_property
+    def fuzzy_nodes(self):
+        """List of ElementTree Elements corresponding to nodes in a test that
+        specify reftest fuzziness"""
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='fuzzy']")
+
+    @cached_property
+    def fuzzy(self):
+        rv = {}
+        if self.root is None:
+            return rv
+
+        if not self.fuzzy_nodes:
+            return rv
+
+        args = ["maxDifference", "totalPixels"]
+
+        for node in self.fuzzy_nodes:
+            item = node.attrib.get("content", "")
+
+            parts = item.rsplit(":", 1)
+            if len(parts) == 1:
+                key = None
+                value = parts[0]
+            else:
+                key = urljoin(self.url, parts[0])
+                reftype = None
+                for ref in self.references:
+                    if ref[0] == key:
+                        reftype = ref[1]
+                        break
+                if reftype not in ("==", "!="):
+                    raise ValueError("Fuzzy key %s doesn't correspond to a references" % key)
+                key = (self.url, key, reftype)
+                value = parts[1]
+            ranges = value.split(";")
+            if len(ranges) != 2:
+                raise ValueError("Malformed fuzzy value %s" % item)
+            arg_values = {None: deque()}
+            for range_str_value in ranges:
+                if "=" in range_str_value:
+                    name, range_str_value = [part.strip()
+                                             for part in range_str_value.split("=", 1)]
+                    if name not in args:
+                        raise ValueError("%s is not a valid fuzzy property" % name)
+                    if arg_values.get(name):
+                        raise ValueError("Got multiple values for argument %s" % name)
+                else:
+                    name = None
+                if "-" in range_str_value:
+                    range_min, range_max = range_str_value.split("-")
+                else:
+                    range_min = range_str_value
+                    range_max = range_str_value
+                try:
+                    range_value = [int(x.strip()) for x in (range_min, range_max)]
+                except ValueError:
+                    raise ValueError("Fuzzy value %s must be a range of integers" %
+                                     range_str_value)
+                if name is None:
+                    arg_values[None].append(range_value)
+                else:
+                    arg_values[name] = range_value
+            rv[key] = []
+            for arg_name in args:
+                if arg_values.get(arg_name):
+                    value = arg_values.pop(arg_name)
+                else:
+                    value = arg_values[None].popleft()
+                rv[key].append(value)
+            assert list(arg_values.keys()) == [None] and len(arg_values[None]) == 0
+        return rv
 
     @cached_property
     def testharness_nodes(self):
@@ -599,22 +678,54 @@ class SourceFile(object):
             return self.items_cache
 
         if self.name_is_non_test:
-            rv = "support", [SupportFile(self)]
+            rv = "support", [
+                SupportFile(
+                    self.tests_root,
+                    self.rel_path
+                )]
 
         elif self.name_is_stub:
-            rv = Stub.item_type, [Stub(self, self.url)]
+            rv = Stub.item_type, [
+                Stub(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url
+                )]
 
         elif self.name_is_manual:
-            rv = ManualTest.item_type, [ManualTest(self, self.url)]
+            rv = ManualTest.item_type, [
+                ManualTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url
+                )]
 
         elif self.name_is_conformance:
-            rv = ConformanceCheckerTest.item_type, [ConformanceCheckerTest(self, self.url)]
+            rv = ConformanceCheckerTest.item_type, [
+                ConformanceCheckerTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url
+                )]
 
         elif self.name_is_conformance_support:
-            rv = "support", [SupportFile(self)]
+            rv = "support", [
+                SupportFile(
+                    self.tests_root,
+                    self.rel_path
+                )]
 
         elif self.name_is_visual:
-            rv = VisualTest.item_type, [VisualTest(self, self.url)]
+            rv = VisualTest.item_type, [
+                VisualTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url
+                )]
 
         elif self.name_is_multi_global:
             globals = b""
@@ -624,53 +735,113 @@ class SourceFile(object):
                     break
 
             tests = [
-                TestharnessTest(self, global_variant_url(self.url, suffix) + variant, timeout=self.timeout,
-                                jsshell=jsshell)
+                TestharnessTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    global_variant_url(self.rel_url, suffix) + variant,
+                    timeout=self.timeout,
+                    jsshell=jsshell,
+                    script_metadata=self.script_metadata
+                )
                 for (suffix, jsshell) in sorted(global_suffixes(globals))
                 for variant in self.test_variants
             ]
             rv = TestharnessTest.item_type, tests
 
         elif self.name_is_worker:
-            test_url = replace_end(self.url, ".worker.js", ".worker.html")
+            test_url = replace_end(self.rel_url, ".worker.js", ".worker.html")
             tests = [
-                TestharnessTest(self, test_url + variant, timeout=self.timeout)
+                TestharnessTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    test_url + variant,
+                    timeout=self.timeout,
+                    script_metadata=self.script_metadata
+                )
                 for variant in self.test_variants
             ]
             rv = TestharnessTest.item_type, tests
 
         elif self.name_is_window:
-            test_url = replace_end(self.url, ".window.js", ".window.html")
+            test_url = replace_end(self.rel_url, ".window.js", ".window.html")
             tests = [
-                TestharnessTest(self, test_url + variant, timeout=self.timeout)
+                TestharnessTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    test_url + variant,
+                    timeout=self.timeout,
+                    script_metadata=self.script_metadata
+                )
                 for variant in self.test_variants
             ]
             rv = TestharnessTest.item_type, tests
 
         elif self.name_is_webdriver:
-            rv = WebDriverSpecTest.item_type, [WebDriverSpecTest(self, self.url,
-                                                                 timeout=self.timeout)]
+            rv = WebDriverSpecTest.item_type, [
+                WebDriverSpecTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url,
+                    timeout=self.timeout
+                )]
 
         elif self.content_is_css_manual and not self.name_is_reference:
-            rv = ManualTest.item_type, [ManualTest(self, self.url)]
+            rv = ManualTest.item_type, [
+                ManualTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url
+                )]
 
         elif self.content_is_testharness:
             rv = TestharnessTest.item_type, []
             testdriver = self.has_testdriver
             for variant in self.test_variants:
-                url = self.url + variant
-                rv[1].append(TestharnessTest(self, url, timeout=self.timeout, testdriver=testdriver))
+                url = self.rel_url + variant
+                rv[1].append(TestharnessTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    url,
+                    timeout=self.timeout,
+                    testdriver=testdriver,
+                    script_metadata=self.script_metadata
+                ))
 
         elif self.content_is_ref_node:
-            rv = (RefTestNode.item_type,
-                  [RefTestNode(self, self.url, self.references, timeout=self.timeout,
-                               viewport_size=self.viewport_size, dpi=self.dpi)])
+            rv = RefTestNode.item_type, [
+                RefTestNode(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url,
+                    references=self.references,
+                    timeout=self.timeout,
+                    viewport_size=self.viewport_size,
+                    dpi=self.dpi,
+                    fuzzy=self.fuzzy
+                )]
 
         elif self.content_is_css_visual and not self.name_is_reference:
-            rv = VisualTest.item_type, [VisualTest(self, self.url)]
+            rv = VisualTest.item_type, [
+                VisualTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url
+                )]
 
         else:
-            rv = "support", [SupportFile(self)]
+            rv = "support", [
+                SupportFile(
+                    self.tests_root,
+                    self.rel_path
+                )]
 
         self.items_cache = rv
 

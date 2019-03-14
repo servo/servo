@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import print_function, unicode_literals
 
 import json
 import os
@@ -57,22 +57,19 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
                                                manifest_download=kwargs["manifest_download"]).load()
 
     manifest_filters = []
-    meta_filters = []
 
-    if kwargs["include"] or kwargs["exclude"] or kwargs["include_manifest"]:
+    if kwargs["include"] or kwargs["exclude"] or kwargs["include_manifest"] or kwargs["default_exclude"]:
         manifest_filters.append(testloader.TestFilter(include=kwargs["include"],
                                                       exclude=kwargs["exclude"],
                                                       manifest_path=kwargs["include_manifest"],
-                                                      test_manifests=test_manifests))
-    if kwargs["tags"]:
-        meta_filters.append(testloader.TagFilter(tags=kwargs["tags"]))
+                                                      test_manifests=test_manifests,
+                                                      explicit=kwargs["default_exclude"]))
 
     ssl_enabled = sslutils.get_cls(kwargs["ssl_type"]).ssl_enabled
     test_loader = testloader.TestLoader(test_manifests,
                                         kwargs["test_types"],
                                         run_info,
                                         manifest_filters=manifest_filters,
-                                        meta_filters=meta_filters,
                                         chunk_type=kwargs["chunk_type"],
                                         total_chunks=kwargs["total_chunks"],
                                         chunk_number=kwargs["this_chunk"],
@@ -90,7 +87,7 @@ def list_test_groups(test_paths, product, **kwargs):
                                        run_info_extras=run_info_extras, **kwargs)
 
     for item in sorted(test_loader.groups(kwargs["test_types"])):
-        print item
+        print(item)
 
 
 def list_disabled(test_paths, product, **kwargs):
@@ -106,7 +103,7 @@ def list_disabled(test_paths, product, **kwargs):
     for test_type, tests in test_loader.disabled_tests.iteritems():
         for test in tests:
             rv.append({"test": test.id, "reason": test.disabled()})
-    print json.dumps(rv, indent=2)
+    print(json.dumps(rv, indent=2))
 
 
 def list_tests(test_paths, product, **kwargs):
@@ -118,7 +115,7 @@ def list_tests(test_paths, product, **kwargs):
                                        run_info_extras=run_info_extras, **kwargs)
 
     for test in test_loader.test_ids:
-        print test
+        print(test)
 
 
 def get_pause_after_test(test_loader, **kwargs):
@@ -169,6 +166,12 @@ def run_tests(config, test_paths, product, **kwargs):
         test_total = 0
         unexpected_total = 0
 
+        if len(test_loader.test_ids) == 0 and kwargs["test_list"]:
+            logger.error("Unable to find any tests at the path(s):")
+            for path in kwargs["test_list"]:
+                logger.error("  %s" % path)
+            logger.error("Please check spelling and make sure there are tests in the specified path(s).")
+            return False
         kwargs["pause_after_test"] = get_pause_after_test(test_loader, **kwargs)
 
         ssl_config = {"type": kwargs["ssl_type"],
@@ -286,15 +289,19 @@ def run_tests(config, test_paths, product, **kwargs):
                 logger.suite_end()
                 if repeat_until_unexpected and unexpected_total > 0:
                     break
-                if len(test_loader.test_ids) == skipped_tests:
+                if repeat_count == 1 and len(test_loader.test_ids) == skipped_tests:
                     break
 
     if test_total == 0:
         if skipped_tests > 0:
             logger.warning("All requested tests were skipped")
         else:
-            logger.error("No tests ran")
-            return False
+            if kwargs["default_exclude"]:
+                logger.info("No tests ran")
+                return True
+            else:
+                logger.error("No tests ran")
+                return False
 
     if unexpected_total and not kwargs["fail_on_unexpected"]:
         logger.info("Tolerating %s unexpected results" % unexpected_total)
@@ -350,7 +357,7 @@ def main():
         if kwargs["pdb"]:
             import pdb
             import traceback
-            print traceback.format_exc()
+            print(traceback.format_exc())
             pdb.post_mortem()
         else:
             raise

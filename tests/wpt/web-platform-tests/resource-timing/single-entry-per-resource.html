@@ -6,6 +6,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <body>
 <script>
+async_test(t => {
   var img_entries = 0;
   var observed = 0;
   var img_url = "resources/blue.png";
@@ -26,12 +27,11 @@
   observer.observe({entryTypes: ["resource"]});
   window.onload = function() {
     // A timeout is needed as PerformanceObserver is not guaranteed to run before onload triggered.
-    setTimeout(function() {
-      test(function(){
+    t.step_timeout(function() {
         assert_equals(observed, 1);
         assert_equals(img_entries, 1);
-      }, "Only one resource entry per resource");
-    },0)
+        t.done();
+    }, 0);
   };
   // Images are added dynamically to make sure the observer is registered before their download finishes.
   var img1 = document.createElement("img");
@@ -40,6 +40,7 @@
   var img2 = document.createElement("img");
   img2.src = img_url;
   document.body.appendChild(img2);
+}, "A single resource used in two elements produces a single entry.");
 </script>
 <h1>One resource when reusing data</h1>
 <p>

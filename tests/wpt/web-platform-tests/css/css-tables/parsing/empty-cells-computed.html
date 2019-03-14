@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Table Module: getComputedValue().emptyCells</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#propdef-empty-cells">
+<meta name="assert" content="empty-cells computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("empty-cells", "show");
+test_computed_value("empty-cells", "hide");
+</script>
+</body>
+</html>

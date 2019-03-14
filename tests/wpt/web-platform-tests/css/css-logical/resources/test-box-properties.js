@@ -67,6 +67,41 @@ export function createBoxPropertyGroup(property, descriptor) {
 }
 
 /**
+ * Creates a group physical and logical box-corner properties.
+ *
+ * @param {string} property
+ *        A string representing the property names, like "border-*-radius".
+ * @param {Object} descriptor
+ * @param {string|string[]} descriptor.type
+ *        Describes the kind of values accepted by the property, like "length".
+ *        Must be a key or a collection of keys from the `testValues` object.
+ * @param {Object={}} descriptor.prerequisites
+ *        Represents property declarations that are needed by `property` to work.
+ *        For example, border-width properties require a border style.
+ */
+export function createCornerPropertyGroup(property, descriptor) {
+  const logical = {};
+  const physical = {};
+  const shorthands = {};
+  for (const logicalCorner of ["start-start", "start-end", "end-start", "end-end"]) {
+    const prop = property.replace("*", logicalCorner);
+    const [block_side, inline_side] = logicalCorner.split("-");
+    const b = "block" + block_side.charAt(0).toUpperCase() + block_side.slice(1);
+    const i = "inline" + inline_side.charAt(0).toUpperCase() + inline_side.slice(1);
+    const index = b + "-" + i; // e.g. "blockStart-inlineEnd"
+    logical[index] = prop;
+  }
+  let prerequisites = "";
+  for (const physicalCorner of ["top-left", "top-right", "bottom-left", "bottom-right"]) {
+    const prop = property.replace("*", physicalCorner);
+    physical[physicalCorner] = prop;
+    prerequisites += makeDeclaration(descriptor.prerequisites, physicalCorner);
+  }
+  const type = [].concat(descriptor.type);
+  return {logical, physical, shorthands, type, prerequisites, property};
+}
+
+/**
  * Creates a group of physical and logical sizing properties.
  *
  * @param {string} prefix
@@ -101,6 +136,7 @@ export function runTests(group) {
   const logicals = Object.values(group.logical);
   const physicals = Object.values(group.physical);
   const shorthands = group.shorthands ? Object.entries(group.shorthands) : null;
+  const is_corner = group.property == "border-*-radius";
 
   test(function() {
     const expected = [];
@@ -141,7 +177,22 @@ export function runTests(group) {
 
       const associated = {};
       for (const [logicalSide, logicalProp] of Object.entries(group.logical)) {
-        const physicalProp = group.physical[writingMode[logicalSide]];
+        let physicalProp;
+        if (is_corner) {
+          const [ block_side, inline_side] = logicalSide.split("-");
+          const physicalSide1 = writingMode[block_side];
+          const physicalSide2 = writingMode[inline_side];
+          let physicalCorner;
+          // mirror "left-top" to "top-left" etc
+          if (["top", "bottom"].includes(physicalSide1)) {
+            physicalCorner = physicalSide1 + "-" + physicalSide2;
+          } else {
+            physicalCorner = physicalSide2 + "-" + physicalSide1;
+          }
+          physicalProp = group.physical[physicalCorner];
+        } else {
+          physicalProp = group.physical[writingMode[logicalSide]];
+        }
         associated[logicalProp] = physicalProp;
         associated[physicalProp] = logicalProp;
       }

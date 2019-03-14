@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas></canvas>
+
+  <script>
+
+    let immersiveTestName =
+      "Identity reference space provides correct poses for immersive sessions";
+    let inlineTestName =
+      "Identity reference space provides correct poses for inline sessions";
+
+    let fakeDeviceInitParams = { supportsImmersive: true };
+
+    let immersiveSessionOptions = { mode: 'immersive-vr' };
+    let inlineSessionOptions = { mode: 'inline' };
+
+    const identityMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+
+    // Valid matrices for  when we don't care about specific values
+    const validPoseMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1];
+    const validProjectionMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 3, 2, -1, -1, 0, 0, -0.2, 0];
+    const validViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      return session.requestReferenceSpace({ type: 'identity' })
+        .then((referenceSpace) => new Promise((resolve, reject) => {
+          let counter = 0;
+          function onFrame(time, xrFrame) {
+            session.requestAnimationFrame(onFrame);
+            if (counter == 0) {
+              t.step( () => {
+                // Expect to always get a pose, even if none has been supplied.
+                let pose = xrFrame.getViewerPose(referenceSpace);
+                assert_not_equals(pose, null);
+
+                let poseMatrix = pose.transform.matrix;
+                assert_not_equals(poseMatrix, null);
+
+                for(let i = 0; i < poseMatrix.length; i++) {
+                  assert_equals(poseMatrix[i], identityMatrix[i]);
+                }
+
+                fakeDeviceController.setXRPresentationFrameData(
+                  validPoseMatrix, [{
+                    eye:"left",
+                    projectionMatrix: validProjectionMatrix,
+                    viewMatrix: validViewMatrix
+                  }, {
+                    eye:"right",
+                    projectionMatrix: validProjectionMatrix,
+                    viewMatrix: validViewMatrix
+                  }]);
+              });
+            } else {
+              t.step( () => {
+                // Assert that the identity matrix is always given as the pose
+                // even when a valid pose is set by the device.
+                let pose = xrFrame.getViewerPose(referenceSpace);
+                assert_not_equals(pose, null);
+
+                let poseMatrix = pose.transform.matrix;
+                assert_not_equals(poseMatrix, null);
+
+                for(let i = 0; i < poseMatrix.length; i++) {
+                  assert_equals(poseMatrix[i], identityMatrix[i]);
+                }
+              });
+
+              // Finished.
+              resolve();
+            }
+            counter++;
+          }
+
+          session.requestAnimationFrame(onFrame);
+        }));
+    };
+
+    xr_session_promise_test(inlineTestName, testFunction,
+      fakeDeviceInitParams, inlineSessionOptions);
+    xr_session_promise_test(immersiveTestName, testFunction,
+      fakeDeviceInitParams, immersiveSessionOptions);
+
+  </script>
+</body>

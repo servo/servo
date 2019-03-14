@@ -5,6 +5,11 @@ import tarfile
 import zipfile
 from io import BytesIO
 
+try:
+    from typing import Any
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)
 
 

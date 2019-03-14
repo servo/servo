@@ -22,7 +22,7 @@ use std::collections::HashMap;
 use std::iter;
 use std::rc::Rc;
 use std::str;
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -39,7 +39,7 @@ pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
 pub const GSUB: u32 = ot_tag!('G', 'S', 'U', 'B');
 pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
 
-static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables

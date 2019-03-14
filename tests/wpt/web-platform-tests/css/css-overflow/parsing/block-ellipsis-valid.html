@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing block-ellipsis with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-block-ellipsis">
+<meta name="assert" content="block-ellipsis supports the full grammar 'none | auto | <string>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("block-ellipsis", 'none');
+test_valid_value("block-ellipsis", 'auto');
+test_valid_value("block-ellipsis", '" etc., etc. "');
+</script>
+</body>
+</html>

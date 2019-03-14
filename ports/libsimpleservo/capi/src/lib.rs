@@ -5,12 +5,11 @@
 #[macro_use]
 extern crate log;
 
-use simpleservo::{
-    self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
-};
+use env_logger;
+use simpleservo::{self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO};
 use std::ffi::{CStr, CString};
 use std::mem;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
 
 fn call<F>(f: F)
 where
@@ -41,6 +40,7 @@ pub struct CHostCallbacks {
     pub on_history_changed: extern "C" fn(can_go_back: bool, can_go_forward: bool),
     pub on_animating_changed: extern "C" fn(animating: bool),
     pub on_shutdown_complete: extern "C" fn(),
+    pub on_ime_state_changed: extern "C" fn(show: bool),
 }
 
 /// Servo options
@@ -51,6 +51,7 @@ pub struct CInitOptions {
     pub width: u32,
     pub height: u32,
     pub density: f32,
+    pub vr_pointer: *mut c_void,
     pub enable_subpixel_text_antialiasing: bool,
 }
 
@@ -68,9 +69,10 @@ fn init(
     opts: CInitOptions,
     gl: gl_glue::ServoGl,
     wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
 ) {
+    crate::env_logger::init();
+
     let args = unsafe { CStr::from_ptr(opts.args) };
     let args = args.to_str().map(|s| s.to_string()).ok();
 
@@ -83,14 +85,18 @@ fn init(
         width: opts.width,
         height: opts.height,
         density: opts.density,
+        vr_pointer: if opts.vr_pointer.is_null() {
+            None
+        } else {
+            Some(opts.vr_pointer)
+        },
         enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
     };
 
     let wakeup = Box::new(WakeupCallback::new(wakeup));
-    let readfile = Box::new(ReadFileCallback::new(readfile));
     let callbacks = Box::new(HostCallbacks::new(callbacks));
 
-    simpleservo::init(opts, gl, wakeup, readfile, callbacks).unwrap();
+    simpleservo::init(opts, gl, wakeup, callbacks).unwrap();
 }
 
 #[cfg(target_os = "windows")]
@@ -98,11 +104,10 @@ fn init(
 pub extern "C" fn init_with_egl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
 ) {
     let gl = gl_glue::egl::init().unwrap();
-    init(opts, gl, wakeup, readfile, callbacks)
+    init(opts, gl, wakeup, callbacks)
 }
 
 #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
@@ -110,11 +115,10 @@ pub extern "C" fn init_with_egl(
 pub extern "C" fn init_with_gl(
     opts: CInitOptions,
     wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
 ) {
     let gl = gl_glue::gl::init().unwrap();
-    init(opts, gl, wakeup, readfile, callbacks)
+    init(opts, gl, wakeup, callbacks)
 }
 
 #[no_mangle]
@@ -188,19 +192,19 @@ pub extern "C" fn go_forward() {
 #[no_mangle]
 pub extern "C" fn scroll_start(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll_start");
-    call(|s| s.scroll_start(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll_start(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
 pub extern "C" fn scroll_end(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll_end");
-    call(|s| s.scroll_end(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll_end(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
 pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) {
     debug!("scroll");
-    call(|s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
+    call(|s| s.scroll(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
@@ -248,7 +252,7 @@ pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
 #[no_mangle]
 pub extern "C" fn click(x: i32, y: i32) {
     debug!("click");
-    call(|s| s.click(x as u32, y as u32));
+    call(|s| s.click(x as f32, y as f32));
 }
 
 pub struct WakeupCallback(extern "C" fn());
@@ -265,25 +269,6 @@ impl EventLoopWaker for WakeupCallback {
     }
     fn wake(&self) {
         (self.0)();
-    }
-}
-
-pub struct ReadFileCallback(extern "C" fn(*const c_char) -> *const c_char);
-
-impl ReadFileCallback {
-    fn new(callback: extern "C" fn(*const c_char) -> *const c_char) -> ReadFileCallback {
-        ReadFileCallback(callback)
-    }
-}
-
-impl ReadFileTrait for ReadFileCallback {
-    fn readfile(&self, file: &str) -> Vec<u8> {
-        debug!("readfile: {}", file);
-        let file = CString::new(file).expect("Can't create string");
-        let file_ptr = file.as_ptr();
-        let content = (self.0)(file_ptr);
-        let content = unsafe { CStr::from_ptr(content) };
-        content.to_bytes().to_owned()
     }
 }
 
@@ -345,5 +330,10 @@ impl HostTrait for HostCallbacks {
     fn on_shutdown_complete(&self) {
         debug!("on_shutdown_complete");
         (self.0.on_shutdown_complete)();
+    }
+
+    fn on_ime_state_changed(&self, show: bool) {
+        debug!("on_ime_state_changed");
+        (self.0.on_ime_state_changed)(show);
     }
 }

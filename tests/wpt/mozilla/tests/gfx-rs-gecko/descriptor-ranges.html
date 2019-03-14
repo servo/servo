@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="match" href="descriptor-ranges-ref.html">
+<meta charset=utf-8>
+
+<style id="dynamicStyles">
+</style>
+
+<div id="testContents" style="columns: 2; font-size: 10px;">
+</div>
+
+<script>
+/* Create font-family with two faces; the testcase to use the face with the
+   'expectedMatch' descriptor, and not the 'unexpectedMatch'. So any testcase
+   whose text is replaced by Ahem glyphs has failed font-matching. */
+function createFontFaceRules(family, descriptor, expectedMatch, unexpectedMatch) {
+    return `@font-face { font-family: ${family}; src: url(Chunkfive.otf); ${descriptor}: ${expectedMatch}; }\n` +
+           `@font-face { font-family: ${family}; src: url(/fonts/Ahem.ttf); ${descriptor}: ${unexpectedMatch}; }\n`;
+}
+</script>
+
+<script src="descriptor-ranges.js"></script>

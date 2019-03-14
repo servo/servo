@@ -5,12 +5,13 @@
 //! Specified types for CSS values that are related to transformations.
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
+use crate::values::computed::{Context, LengthPercentage as ComputedLengthPercentage};
 use crate::values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use crate::values::generics::transform as generic;
 use crate::values::generics::transform::{Matrix, Matrix3D};
 use crate::values::specified::position::{Side, X, Y};
-use crate::values::specified::{self, Angle, Integer, Length, LengthOrPercentage, Number};
+use crate::values::specified::{self, Angle, Integer, Length, LengthPercentage, Number};
+use crate::Zero;
 use cssparser::Parser;
 use style_traits::{ParseError, StyleParseErrorKind};
 
@@ -18,7 +19,7 @@ pub use crate::values::generics::transform::TransformStyle;
 
 /// A single operation in a specified CSS `transform`
 pub type TransformOperation =
-    generic::TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>;
+    generic::TransformOperation<Angle, Number, Length, Integer, LengthPercentage>;
 
 /// A specified CSS `transform`
 pub type Transform = generic::Transform<TransformOperation>;
@@ -105,20 +106,20 @@ impl Transform {
                         }))
                     },
                     "translate" => {
-                        let sx = specified::LengthOrPercentage::parse(context, input)?;
+                        let sx = specified::LengthPercentage::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
-                            let sy = specified::LengthOrPercentage::parse(context, input)?;
-                            Ok(generic::TransformOperation::Translate(sx, Some(sy)))
+                            let sy = specified::LengthPercentage::parse(context, input)?;
+                            Ok(generic::TransformOperation::Translate(sx, sy))
                         } else {
-                            Ok(generic::TransformOperation::Translate(sx, None))
+                            Ok(generic::TransformOperation::Translate(sx, Zero::zero()))
                         }
                     },
                     "translatex" => {
-                        let tx = specified::LengthOrPercentage::parse(context, input)?;
+                        let tx = specified::LengthPercentage::parse(context, input)?;
                         Ok(generic::TransformOperation::TranslateX(tx))
                     },
                     "translatey" => {
-                        let ty = specified::LengthOrPercentage::parse(context, input)?;
+                        let ty = specified::LengthPercentage::parse(context, input)?;
                         Ok(generic::TransformOperation::TranslateY(ty))
                     },
                     "translatez" => {
@@ -126,9 +127,9 @@ impl Transform {
                         Ok(generic::TransformOperation::TranslateZ(tz))
                     },
                     "translate3d" => {
-                        let tx = specified::LengthOrPercentage::parse(context, input)?;
+                        let tx = specified::LengthPercentage::parse(context, input)?;
                         input.expect_comma()?;
-                        let ty = specified::LengthOrPercentage::parse(context, input)?;
+                        let ty = specified::LengthPercentage::parse(context, input)?;
                         input.expect_comma()?;
                         let tz = specified::Length::parse(context, input)?;
                         Ok(generic::TransformOperation::Translate3D(tx, ty, tz))
@@ -137,9 +138,9 @@ impl Transform {
                         let sx = Number::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let sy = Number::parse(context, input)?;
-                            Ok(generic::TransformOperation::Scale(sx, Some(sy)))
+                            Ok(generic::TransformOperation::Scale(sx, sy))
                         } else {
-                            Ok(generic::TransformOperation::Scale(sx, None))
+                            Ok(generic::TransformOperation::Scale(sx, sx))
                         }
                     },
                     "scalex" => {
@@ -193,9 +194,9 @@ impl Transform {
                         let ax = specified::Angle::parse_with_unitless(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let ay = specified::Angle::parse_with_unitless(context, input)?;
-                            Ok(generic::TransformOperation::Skew(ax, Some(ay)))
+                            Ok(generic::TransformOperation::Skew(ax, ay))
                         } else {
-                            Ok(generic::TransformOperation::Skew(ax, None))
+                            Ok(generic::TransformOperation::Skew(ax, Zero::zero()))
                         }
                     },
                     "skewx" => {
@@ -231,12 +232,12 @@ impl Parse for Transform {
 }
 
 /// The specified value of a component of a CSS `<transform-origin>`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum OriginComponent<S> {
     /// `center`
     Center,
-    /// `<lop>`
-    Length(LengthOrPercentage),
+    /// `<length-percentage>`
+    Length(LengthPercentage),
     /// `<side>`
     Side(S),
 }
@@ -295,40 +296,21 @@ impl Parse for TransformOrigin {
     }
 }
 
-impl<S> Parse for OriginComponent<S>
-where
-    S: Parse,
-{
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("center")).is_ok() {
-            return Ok(OriginComponent::Center);
-        }
-        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse(context, i)) {
-            return Ok(OriginComponent::Length(lop));
-        }
-        let keyword = S::parse(context, input)?;
-        Ok(OriginComponent::Side(keyword))
-    }
-}
-
 impl<S> ToComputedValue for OriginComponent<S>
 where
     S: Side,
 {
-    type ComputedValue = ComputedLengthOrPercentage;
+    type ComputedValue = ComputedLengthPercentage;
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             OriginComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(ComputedPercentage(0.5))
+                ComputedLengthPercentage::new_percent(ComputedPercentage(0.5))
             },
             OriginComponent::Length(ref length) => length.to_computed_value(context),
             OriginComponent::Side(ref keyword) => {
                 let p = ComputedPercentage(if keyword.is_start() { 0. } else { 1. });
-                ComputedLengthOrPercentage::Percentage(p)
+                ComputedLengthPercentage::new_percent(p)
             },
         }
     }
@@ -341,7 +323,7 @@ where
 impl<S> OriginComponent<S> {
     /// `0%`
     pub fn zero() -> Self {
-        OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage::zero()))
+        OriginComponent::Length(LengthPercentage::Percentage(ComputedPercentage::zero()))
     }
 }
 
@@ -393,7 +375,7 @@ impl Parse for Rotate {
 }
 
 /// A specified CSS `translate`
-pub type Translate = generic::Translate<LengthOrPercentage, Length>;
+pub type Translate = generic::Translate<LengthPercentage, Length>;
 
 impl Parse for Translate {
     fn parse<'i, 't>(
@@ -404,8 +386,8 @@ impl Parse for Translate {
             return Ok(generic::Translate::None);
         }
 
-        let tx = specified::LengthOrPercentage::parse(context, input)?;
-        if let Ok(ty) = input.try(|i| specified::LengthOrPercentage::parse(context, i)) {
+        let tx = specified::LengthPercentage::parse(context, input)?;
+        if let Ok(ty) = input.try(|i| specified::LengthPercentage::parse(context, i)) {
             if let Ok(tz) = input.try(|i| specified::Length::parse(context, i)) {
                 // 'translate: <length-percentage> <length-percentage> <length>'
                 return Ok(generic::Translate::Translate3D(tx, ty, tz));
@@ -418,7 +400,7 @@ impl Parse for Translate {
         // 'translate: <length-percentage> '
         Ok(generic::Translate::Translate(
             tx,
-            specified::LengthOrPercentage::zero(),
+            specified::LengthPercentage::zero(),
         ))
     }
 }

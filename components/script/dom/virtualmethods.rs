@@ -6,6 +6,7 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::ElementTypeId;
 use crate::dom::bindings::inheritance::HTMLElementTypeId;
+use crate::dom::bindings::inheritance::HTMLMediaElementTypeId;
 use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::inheritance::SVGElementTypeId;
 use crate::dom::bindings::inheritance::SVGGraphicsElementTypeId;
@@ -49,6 +50,7 @@ use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
+use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use crate::dom::svgsvgelement::SVGSVGElement;
 use html5ever::LocalName;
@@ -208,8 +210,13 @@ pub fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
             node.downcast::<HTMLLinkElement>().unwrap() as &dyn VirtualMethods
         },
-        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_))) => {
-            node.downcast::<HTMLMediaElement>().unwrap() as &dyn VirtualMethods
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(
+            media_el,
+        ))) => match media_el {
+            HTMLMediaElementTypeId::HTMLVideoElement => {
+                node.downcast::<HTMLVideoElement>().unwrap() as &dyn VirtualMethods
+            },
+            _ => node.downcast::<HTMLMediaElement>().unwrap() as &dyn VirtualMethods,
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
             node.downcast::<HTMLMetaElement>().unwrap() as &dyn VirtualMethods

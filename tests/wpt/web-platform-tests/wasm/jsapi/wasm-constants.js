@@ -28,6 +28,7 @@ var kWasmV3 = 0;
 
 var kHeaderSize = 8;
 var kPageSize = 65536;
+var kSpecMaxPages = 65535;
 
 function bytesWithHeader() {
   var buffer = new ArrayBuffer(kHeaderSize + arguments.length);
@@ -52,18 +53,17 @@ let kDeclNoLocals = 0;
 
 // Section declaration constants
 let kUnknownSectionCode = 0;
-let kTypeSectionCode = 1;      // Function signature declarations
-let kImportSectionCode = 2;    // Import declarations
-let kFunctionSectionCode = 3;  // Function declarations
-let kTableSectionCode = 4;     // Indirect function table and other tables
-let kMemorySectionCode = 5;    // Memory attributes
-let kGlobalSectionCode = 6;    // Global declarations
-let kExportSectionCode = 7;    // Exports
-let kStartSectionCode = 8;     // Start function declaration
-let kElementSectionCode = 9;  // Elements section
-let kCodeSectionCode = 10;      // Function code
-let kDataSectionCode = 11;     // Data segments
-let kNameSectionCode = 12;     // Name section (encoded as string)
+let kTypeSectionCode = 1;        // Function signature declarations
+let kImportSectionCode = 2;      // Import declarations
+let kFunctionSectionCode = 3;    // Function declarations
+let kTableSectionCode = 4;       // Indirect function table and other tables
+let kMemorySectionCode = 5;      // Memory attributes
+let kGlobalSectionCode = 6;      // Global declarations
+let kExportSectionCode = 7;      // Exports
+let kStartSectionCode = 8;       // Start function declaration
+let kElementSectionCode = 9;     // Elements section
+let kCodeSectionCode = 10;       // Function code
+let kDataSectionCode = 11;       // Data segments
 
 // Name section types
 let kModuleNameCode = 0;
@@ -74,6 +74,7 @@ let kWasmFunctionTypeForm = 0x60;
 let kWasmAnyFunctionTypeForm = 0x70;
 
 let kHasMaximumFlag = 1;
+let kResizableMaximumFlag = 1;
 
 // Function declaration flags
 let kDeclFunctionName   = 0x01;
@@ -87,6 +88,7 @@ let kWasmI32 = 0x7f;
 let kWasmI64 = 0x7e;
 let kWasmF32 = 0x7d;
 let kWasmF64 = 0x7c;
+let kWasmS128 = 0x7b;
 
 let kExternalFunction = 0;
 let kExternalTable = 1;
@@ -102,6 +104,8 @@ let kSig_l_l = makeSig([kWasmI64], [kWasmI64]);
 let kSig_i_l = makeSig([kWasmI64], [kWasmI32]);
 let kSig_i_ii = makeSig([kWasmI32, kWasmI32], [kWasmI32]);
 let kSig_i_iii = makeSig([kWasmI32, kWasmI32, kWasmI32], [kWasmI32]);
+let kSig_v_iiii = makeSig([kWasmI32, kWasmI32, kWasmI32, kWasmI32], []);
+let kSig_f_ff = makeSig([kWasmF32, kWasmF32], [kWasmF32]);
 let kSig_d_dd = makeSig([kWasmF64, kWasmF64], [kWasmF64]);
 let kSig_l_ll = makeSig([kWasmI64, kWasmI64], [kWasmI64]);
 let kSig_i_dd = makeSig([kWasmF64, kWasmF64], [kWasmI32]);
@@ -117,6 +121,11 @@ let kSig_v_l = makeSig([kWasmI64], []);
 let kSig_v_d = makeSig([kWasmF64], []);
 let kSig_v_dd = makeSig([kWasmF64, kWasmF64], []);
 let kSig_v_ddi = makeSig([kWasmF64, kWasmF64, kWasmI32], []);
+
+let kSig_v_f = makeSig([kWasmF32], []);
+let kSig_f_f = makeSig([kWasmF32], [kWasmF32]);
+let kSig_f_d = makeSig([kWasmF64], [kWasmF32]);
+let kSig_d_d = makeSig([kWasmF64], [kWasmF64]);
 
 function makeSig(params, results) {
   return {params: params, results: results};
@@ -357,19 +366,19 @@ function assertTraps(trap, code) {
   throw new MjsUnitAssertionError('Did not trap, expected: ' + kTrapMsgs[trap]);
 }
 
-function assertWasmThrows(value, code) {
-  assertEquals('number', typeof value);
-  try {
-    if (typeof code === 'function') {
-      code();
-    } else {
-      eval(code);
-    }
-  } catch (e) {
-    assertEquals('number', typeof e);
-    assertEquals(value, e);
-    // Success.
-    return;
+function wasmI32Const(val) {
+  let bytes = [kExprI32Const];
+  for (let i = 0; i < 4; ++i) {
+    bytes.push(0x80 | ((val >> (7 * i)) & 0x7f));
   }
-  throw new MjsUnitAssertionError('Did not throw, expected: ' + value);
+  bytes.push((val >> (7 * 4)) & 0x7f);
+  return bytes;
+}
+
+function wasmF32Const(f) {
+  return [kExprF32Const].concat(Array.from(new Uint8Array((new Float32Array([f])).buffer)));
+}
+
+function wasmF64Const(f) {
+  return [kExprF64Const].concat(Array.from(new Uint8Array((new Float64Array([f])).buffer)));
 }

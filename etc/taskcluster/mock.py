@@ -62,4 +62,7 @@ decision_task.main("github-push")
 print("\n# Daily:")
 decision_task.main("daily")
 
+print("\n# PR:")
+decision_task.main("github-pull-request")
+
 print()

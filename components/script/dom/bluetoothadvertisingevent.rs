@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMe
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -80,7 +80,6 @@ impl BluetoothAdvertisingEvent {
         init: &BluetoothAdvertisingEventInit,
     ) -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
         let global = window.upcast::<GlobalScope>();
-        let device = init.device.r();
         let name = init.name.clone();
         let appearance = init.appearance.clone();
         let txPower = init.txPower.clone();
@@ -92,7 +91,7 @@ impl BluetoothAdvertisingEvent {
             Atom::from(type_),
             bubbles,
             cancelable,
-            device,
+            &init.device,
             name,
             appearance,
             txPower,

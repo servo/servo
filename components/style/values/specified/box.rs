@@ -11,7 +11,7 @@ use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use crate::values::specified::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
 use crate::values::specified::{AllowQuirks, Number};
 use crate::values::{CustomIdent, KeyframesName};
 use crate::Atom;
@@ -271,17 +271,16 @@ impl Display {
 }
 
 /// A specified value for the `vertical-align` property.
-pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;
+pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
 
 impl Parse for VerticalAlign {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) =
-            input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+        if let Ok(lp) = input.try(|i| LengthPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
-            return Ok(GenericVerticalAlign::Length(lop));
+            return Ok(GenericVerticalAlign::Length(lp));
         }
 
         try_match_ident_ignore_ascii_case! { input,
@@ -393,6 +392,76 @@ pub enum ScrollSnapType {
     Proximity,
 }
 
+/// Specified value of scroll-snap-align keyword value.
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(u8)]
+pub enum ScrollSnapAlignKeyword {
+    None,
+    Start,
+    End,
+    Center,
+}
+
+/// https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[repr(C)]
+pub struct ScrollSnapAlign {
+    block: ScrollSnapAlignKeyword,
+    inline: ScrollSnapAlignKeyword,
+}
+
+impl ScrollSnapAlign {
+    /// Returns `none`.
+    #[inline]
+    pub fn none() -> Self {
+        ScrollSnapAlign {
+            block: ScrollSnapAlignKeyword::None,
+            inline: ScrollSnapAlignKeyword::None,
+        }
+    }
+}
+
+impl Parse for ScrollSnapAlign {
+    /// [ none | start | end | center ]{1,2}
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<ScrollSnapAlign, ParseError<'i>> {
+        let block = ScrollSnapAlignKeyword::parse(input)?;
+        let inline = input.try(ScrollSnapAlignKeyword::parse).unwrap_or(block);
+        Ok(ScrollSnapAlign { block, inline })
+    }
+}
+
+impl ToCss for ScrollSnapAlign {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        self.block.to_css(dest)?;
+        if self.block != self.inline {
+            dest.write_str(" ")?;
+            self.inline.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
@@ -411,6 +480,26 @@ pub enum ScrollSnapType {
 pub enum OverscrollBehavior {
     Auto,
     Contain,
+    None,
+}
+
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(u8)]
+pub enum OverflowAnchor {
+    Auto,
     None,
 }
 
@@ -663,25 +752,23 @@ pub fn assert_touch_action_matches() {
 
 bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
-    #[value_info(other_values = "none,strict,content,size,layout,style,paint")]
+    #[value_info(other_values = "none,strict,content,size,layout,paint")]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
         /// 'size' variant, turns on size containment
         const SIZE = 0x01;
         /// `layout` variant, turns on layout containment
         const LAYOUT = 0x02;
-        /// `style` variant, turns on style containment
-        const STYLE = 0x04;
         /// `paint` variant, turns on paint containment
-        const PAINT = 0x08;
+        const PAINT = 0x04;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 0x10;
-        /// 'content' variant, turns on style, layout, and paint containment
-        const CONTENT = 0x20;
+        const STRICT = 0x08;
+        /// 'content' variant, turns on layout and paint containment
+        const CONTENT = 0x10;
         /// variant with all the bits that contain: strict turns on
-        const STRICT_BITS = Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits | Contain::SIZE.bits;
+        const STRICT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
         /// variant with all the bits that contain: content turns on
-        const CONTENT_BITS = Contain::STYLE.bits | Contain::LAYOUT.bits | Contain::PAINT.bits;
+        const CONTENT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits;
     }
 }
 
@@ -714,7 +801,6 @@ impl ToCss for Contain {
         }
         maybe_write_value!(Contain::SIZE => "size");
         maybe_write_value!(Contain::LAYOUT => "layout");
-        maybe_write_value!(Contain::STYLE => "style");
         maybe_write_value!(Contain::PAINT => "paint");
 
         debug_assert!(has_any);
@@ -723,7 +809,7 @@ impl ToCss for Contain {
 }
 
 impl Parse for Contain {
-    /// none | strict | content | [ size || layout || style || paint ]
+    /// none | strict | content | [ size || layout || paint ]
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -733,7 +819,6 @@ impl Parse for Contain {
             let flag = match_ignore_ascii_case! { &name,
                 "size" => Some(Contain::SIZE),
                 "layout" => Some(Contain::LAYOUT),
-                "style" => Some(Contain::STYLE),
                 "paint" => Some(Contain::PAINT),
                 "strict" if result.is_empty() => return Ok(Contain::STRICT | Contain::STRICT_BITS),
                 "content" if result.is_empty() => return Ok(Contain::CONTENT | Contain::CONTENT_BITS),
@@ -762,20 +847,6 @@ impl Parse for Contain {
 
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;
-
-impl Parse for Perspective {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(GenericPerspective::None);
-        }
-        Ok(GenericPerspective::Length(NonNegativeLength::parse(
-            context, input,
-        )?))
-    }
-}
 
 /// A given transition property, that is either `All`, a longhand or shorthand
 /// property, or an unsupported or custom property.

@@ -5,6 +5,8 @@ import sys
 from io import BytesIO
 
 from .. import metadata, manifestupdate
+from ..update import WPTUpdate
+from ..update.base import StepRunner, Step
 from mozlog import structuredlog, handlers, formatters
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
@@ -22,7 +24,7 @@ def rel_path_to_url(rel_path, url_base="/"):
 
 def SourceFileWithTest(path, hash, cls, *args):
     s = mock.Mock(rel_path=path, hash=hash)
-    test = cls(s, rel_path_to_url(path), *args)
+    test = cls("/foobar", path, "/", rel_path_to_url(path), *args)
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
     return s
 
@@ -56,17 +58,12 @@ def create_updater(tests, url_base="/", **kwargs):
     expected_data = {}
     metadata.load_expected = lambda _, __, test_path, *args: expected_data[test_path]
 
+    id_test_map = metadata.create_test_tree(None, m)
+
     for test_path, test_ids, test_type, manifest_str in tests:
-        tests = list(m.iterpath(test_path))
-        if isinstance(test_ids, (str, unicode)):
-            test_ids = [test_ids]
-        test_data = metadata.TestFileData("/", "testharness", None, test_path, tests)
         expected_data[test_path] = manifestupdate.compile(BytesIO(manifest_str),
                                                           test_path,
                                                           url_base)
-
-        for test_id in test_ids:
-            id_test_map[test_id] = test_data
 
     return id_test_map, metadata.ExpectedUpdater(id_test_map, **kwargs)
 
@@ -595,7 +592,8 @@ def test_update_wptreport_0():
 
 
 def test_update_wptreport_1():
-    tests = [("path/to/__dir__", ["path/to/__dir__"], None, "")]
+    tests = [("path/to/test.htm", ["/path/to/test.htm"], "testharness", ""),
+             ("path/to/__dir__", ["path/to/__dir__"], None, "")]
 
     log = {"run_info": {},
            "results": [],
@@ -606,3 +604,124 @@ def test_update_wptreport_1():
 
     assert len(updated) == 1
     assert updated[0][1].get("lsan-allowed") == ["baz"]
+
+
+def test_update_leak_total_0():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, "")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 100,
+                                          "threshold": 0,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("leak-threshold") == ['default:51200']
+
+
+def test_update_leak_total_1():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, "")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 100,
+                                          "threshold": 1000,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    assert not updated
+
+
+def test_update_leak_total_2():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, """
+leak-total: 110""")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 100,
+                                          "threshold": 110,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    assert not updated
+
+
+def test_update_leak_total_3():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, """
+leak-total: 100""")]
+
+    log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
+                                          "process": "default",
+                                          "bytes": 1000,
+                                          "threshold": 100,
+                                          "objects": []})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("leak-threshold") == ['default:51200']
+
+
+def test_update_leak_total_4():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, """
+leak-total: 110""")]
+
+    log_0 = suite_log([
+        ("lsan_leak", {"scope": "path/to/",
+                       "frames": ["foo", "bar"]}),
+        ("mozleak_total", {"scope": "path/to/",
+                           "process": "default",
+                           "bytes": 100,
+                           "threshold": 110,
+                           "objects": []})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.has_key("leak-threshold") is False
+
+
+class TestStep(Step):
+    def create(self, state):
+        test_id = "/path/to/test.htm"
+        tests = [("path/to/test.htm", [test_id], "testharness", "")]
+        state.foo = create_test_manifest(tests)
+
+class UpdateRunner(StepRunner):
+    steps = [TestStep]
+
+def test_update_pickle():
+    logger = structuredlog.StructuredLogger("expected_test")
+    args = {
+        "test_paths": {
+            "/": {"tests_path": ""},
+        },
+        "abort": False,
+        "continue": False,
+        "sync": False,
+    }
+    args2 = args.copy()
+    args2["abort"] = True
+    wptupdate = WPTUpdate(logger, **args2)
+    wptupdate = WPTUpdate(logger, runner_cls=UpdateRunner, **args)
+    wptupdate.run()

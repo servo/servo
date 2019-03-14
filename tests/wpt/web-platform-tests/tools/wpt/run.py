@@ -171,7 +171,8 @@ class BrowserSetup(object):
             return self.browser.install(venv.path, channel)
 
     def install_requirements(self):
-        self.venv.install_requirements(os.path.join(wpt_root, "tools", "wptrunner", self.browser.requirements))
+        if not self.venv.skip_virtualenv_setup:
+            self.venv.install_requirements(os.path.join(wpt_root, "tools", "wptrunner", self.browser.requirements))
 
     def setup(self, kwargs):
         self.setup_kwargs(kwargs)
@@ -422,7 +423,7 @@ class Servo(BrowserSetup):
             binary = self.browser.find_binary(self.venv.path, None)
 
             if binary is None:
-                raise WptrunError("Unable to find servo binary on the PATH")
+                raise WptrunError("Unable to find servo binary in PATH")
             kwargs["binary"] = binary
 
 
@@ -442,6 +443,29 @@ class WebKit(BrowserSetup):
         pass
 
 
+class Epiphany(BrowserSetup):
+    name = "epiphany"
+    browser_cls = browser.Epiphany
+
+    def install(self, venv, channel=None):
+        raise NotImplementedError
+
+    def setup_kwargs(self, kwargs):
+        if kwargs["binary"] is None:
+            binary = self.browser.find_binary()
+
+            if binary is None:
+                raise WptrunError("Unable to find epiphany in PATH")
+            kwargs["binary"] = binary
+
+        if kwargs["webdriver_binary"] is None:
+            webdriver_binary = self.browser.find_webdriver()
+
+            if webdriver_binary is None:
+                raise WptrunError("Unable to find WebKitWebDriver in PATH")
+            kwargs["webdriver_binary"] = webdriver_binary
+
+
 product_setup = {
     "fennec": Fennec,
     "firefox": Firefox,
@@ -456,6 +480,7 @@ product_setup = {
     "sauce": Sauce,
     "opera": Opera,
     "webkit": WebKit,
+    "epiphany": Epiphany,
 }
 
 
@@ -510,11 +535,9 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
             files_changed, manifest_path=kwargs.get("manifest_path"), manifest_update=kwargs["manifest_update"])
         test_list = tests_changed | tests_affected
         logger.info("Identified %s affected tests" % len(test_list))
-        if not test_list and not kwargs["test_list"]:
-            logger.info("Quitting because no tests were affected.")
-            exit()
         test_list = [os.path.relpath(item, wpt_root) for item in test_list]
         kwargs["test_list"] += test_list
+        kwargs["default_exclude"] = True
 
     if install_browser and not kwargs["channel"]:
         logger.info("--install-browser is given but --channel is not set, default to nightly channel")
@@ -541,7 +564,8 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     wptrunner_path = os.path.join(wpt_root, "tools", "wptrunner")
 
-    venv.install_requirements(os.path.join(wptrunner_path, "requirements.txt"))
+    if not venv.skip_virtualenv_setup:
+        venv.install_requirements(os.path.join(wptrunner_path, "requirements.txt"))
 
     kwargs['browser_version'] = setup_cls.browser.version(binary=kwargs.get("binary"),
                                                           webdriver_binary=kwargs.get("webdriver_binary"))

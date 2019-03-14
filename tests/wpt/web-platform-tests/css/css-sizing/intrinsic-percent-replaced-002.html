@@ -1,0 +1,14 @@
+<!-- quirks mode -->
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<meta name="assert" content="Checks that a replaced element, with an aspect ratio, converts a percent height into an intrinsic width." />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+#float { float: left; height: 100px; background: green; }
+canvas { height: 100%; }
+</style>
+<p style="margin-top: 1em;">Test passes if there is a filled green square.</p>
+<div id=float>
+  <div>
+    <canvas width=10 height=10></canvas>
+  </div>
+</div>

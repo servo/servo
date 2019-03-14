@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: white-space - break-spaces</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" title="3. White Space and Wrapping: the white-space property" href="https://www.w3.org/TR/css-text-3/#white-space-property">
+<link rel="help" title="5.2. Breaking Rules for Letters: the word-break property" href="https://drafts.csswg.org/css-text-3/#word-break-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-word-break-break-all">
+<link rel="match" href="reference/white-space-break-spaces-005-ref.html">
+<meta name="flags" content="ahem">
+<meta name="assert" content="A single leading white-space should be used, honoring white-space: break-spaces, to avoid overflow; however, a single preserved white-space at the end of the line cannot be wrapped, hence it hangs when breaking after it to move the rest of the text to the next line.">
+<style>
+div {
+   position: relative;
+   font: 25px/1 Ahem;
+}
+.fail {
+  position: absolute;
+  color: red;
+  z-index: -1;
+}
+span { color: green; }
+.test {
+  color: green;
+  width: 4ch;
+
+  white-space: break-spaces;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <div class="fail"><span>XXXX</span><br>XXXX<br>XXX<span>X</span><br><span>XXXX</span></div>
+  <div class="test"> XXXX XXX</div>
+</body>

@@ -14,7 +14,7 @@
     <span class="yellow"></span>
   </div>
 </section>
-<section id="secondSection"></section>
+<section id="shadowHost"></section>
 <section id="thirdSection"></section>
 
 <script>
@@ -27,7 +27,8 @@ const yellowStyleText = ".yellow { color: yellow; }";
 
 const firstDiv = document.querySelector('#firstSection > div');
 const secondDiv = firstDiv.cloneNode(true);
-const shadowRoot = document.querySelector('#secondSection').attachShadow({mode: 'open'});
+const shadowHost = document.querySelector('#shadowHost');
+const shadowRoot = shadowHost.attachShadow({mode: 'open'});
 shadowRoot.appendChild(secondDiv);
 
 const greenSpan = firstDiv.children[0];
@@ -208,6 +209,59 @@ promise_test(() => {
     assert_equals(getComputedStyle(yellowShadowSpan).color, "rgb(255, 255, 0)");
   });
 }, 'Constructed style sheets can be applied on shadow root');
+
+promise_test(() => {
+  return Promise.all(createAllSheetsPromise()).then(values => {
+    const greenStyleSheet = values[0];
+    const redStyleSheet = values[1];
+    shadowRoot.adoptedStyleSheets = [greenStyleSheet];
+    assert_equals(getComputedStyle(greenShadowSpan).color, "rgb(0, 128, 0)", "Style applies connected");
+    assert_equals(getComputedStyle(redShadowSpan).color, "rgb(0, 0, 0)", "Style applies when connected");
+    let hostParent = shadowHost.parentNode;
+    hostParent.removeChild(shadowHost);
+    assert_equals(getComputedStyle(greenShadowSpan).color, "", "Style doesn't apply when detached");
+    assert_equals(getComputedStyle(redShadowSpan).color, "", "Style doesn't apply when detached");
+    shadowRoot.adoptedStyleSheets = [redStyleSheet, greenStyleSheet];
+    hostParent.appendChild(shadowHost);
+    assert_equals(getComputedStyle(greenShadowSpan).color, "rgb(0, 128, 0)", "Style applies after reattach");
+    assert_equals(getComputedStyle(redShadowSpan).color, "rgb(255, 0, 0)", "Style applies after reattach");
+  });
+}, 'Re-attaching shadow host with adopted stylesheets work');
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(":host { color: red; }");
+  const host = document.createElement("div");
+  let sr = host.attachShadow({mode: "open"});
+  sr.adoptedStyleSheets = [sheet];
+  document.body.appendChild(host);
+  assert_equals(getComputedStyle(host).color, "rgb(255, 0, 0)", "Style applies when connected");
+  sheet.replaceSync(":host { color: blue; }");
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 255)", "Style update applies when connected");
+}, 'Attaching a shadow root that already has adopted stylesheets work');
+
+test(() => {
+
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(":host([red]) { color: red; } :host(.blue) { color: blue; }");
+  const host = document.createElement("div");
+  host.toggleAttribute("red");
+  document.body.appendChild(host);
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 0)", "No style applies yet");
+
+  let sr = host.attachShadow({mode: "open"});
+  sr.adoptedStyleSheets = [sheet];
+
+  assert_equals(getComputedStyle(host).color, "rgb(255, 0, 0)", "Style applies after adding style");
+  document.body.removeChild(host);
+  document.body.appendChild(host);
+  assert_equals(getComputedStyle(host).color, "rgb(255, 0, 0)", "Style applies after reattachment");
+  host.toggleAttribute("red");
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 0)", "Attribute updates to the element after reattachment apply");
+  host.classList.toggle("blue");
+  assert_equals(getComputedStyle(host).color, "rgb(0, 0, 255)", "Class updates to the element after reattachment apply");
+
+}, "Re-attaching shadow host and updating attributes work");
 
 promise_test(() => {
   const plainSheet = new CSSStyleSheet();
@@ -501,15 +555,18 @@ test(() => {
   span.shadowRoot.adoptedStyleSheets = [sheet];
   assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)");
 
+  document.adoptNode(span);
+  assert_equals(span.shadowRoot.adoptedStyleSheets.length, 1);
+  assert_equals(span.shadowRoot.adoptedStyleSheets[0], sheet);
+
   const iframe = document.createElement("iframe");
   document.body.appendChild(iframe);
   iframe.contentDocument.adoptNode(span);
   iframe.contentDocument.body.appendChild(span);
   assert_not_equals(span.shadowRoot, null);
-  assert_equals(span.shadowRoot.adoptedStyleSheets.length, 1);
-  assert_equals(span.shadowRoot.adoptedStyleSheets[0], sheet);
+  assert_equals(span.shadowRoot.adoptedStyleSheets.length, 0);
   assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
-}, 'Adopting a shadow host will move adoptedStyleSheets but it is not applied');
+}, 'Adopting a shadow host will empty adoptedStyleSheets if adopting to a different document');
 
 </script>
 

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>CSS Position Absolute: css-position-3</title>
+<link rel="author" href="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/">
+<meta name="assert" content="abspos resolves %-ge sizes correctly.">
+<style>
+
+#container {
+  position: relative;
+}
+
+#image-wrapper {
+  display: flex;
+  position: absolute;
+  height: 100%;
+  background: green;
+}
+
+#content-wrapper {
+  margin-left: 30%;
+}
+
+#target {
+  display: block;
+  min-height: 100%;
+  opacity: 0.5;
+}
+</style>
+<!-- IMG height is 100% of image wrapper height.
+  IMG width is 100% of image wrapper width.
+  IMG width equals IMG height -->
+<div id="container">
+  <div id="image-wrapper">
+    <!-- 1x1 green pixel -->
+    <img id="target" src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==">
+  </div>
+  <div id="content-wrapper">
+    Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+test(() => {
+  let target = document.querySelector("#target");
+  assert_equals(target.offsetWidth, target.offsetHeight);
+  assert_equals(target.offsetWidth, document.querySelector("#image-wrapper").offsetWidth);
+  assert_equals(target.offsetHeight, document.querySelector("#content-wrapper").offsetHeight);
+}, '#target height matches containing block height, and target parent width matches #target width' );
+
+test(() => {
+  document.body.style.marginLeft = "300px";
+  let target = document.querySelector("#target");
+  assert_equals(target.offsetWidth, target.offsetHeight);
+  assert_equals(target.offsetWidth, document.querySelector("#image-wrapper").offsetWidth);
+  assert_equals(target.offsetHeight, document.querySelector("#content-wrapper").offsetHeight);
+}, '#target height matches containing block height, and target parent width matches #target width after resize');
+</script>

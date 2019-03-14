@@ -32,16 +32,14 @@ extern crate atomic_refcell;
 extern crate bitflags;
 #[allow(unused_extern_crates)]
 extern crate byteorder;
-#[cfg(feature = "gecko")]
-#[macro_use]
-#[no_link]
-extern crate cfg_if;
 #[cfg(feature = "servo")]
 extern crate crossbeam_channel;
 #[macro_use]
 extern crate cssparser;
 #[macro_use]
 extern crate debug_unreachable;
+#[macro_use]
+extern crate derive_more;
 extern crate euclid;
 extern crate fallible;
 extern crate fxhash;
@@ -52,6 +50,7 @@ extern crate hashglobe;
 #[cfg(feature = "servo")]
 #[macro_use]
 extern crate html5ever;
+extern crate indexmap;
 extern crate itertools;
 extern crate itoa;
 #[macro_use]
@@ -243,5 +242,28 @@ impl CaseSensitivityExt for selectors::attr::CaseSensitivity {
             selectors::attr::CaseSensitivity::CaseSensitive => a == b,
             selectors::attr::CaseSensitivity::AsciiCaseInsensitive => a.eq_ignore_ascii_case(b),
         }
+    }
+}
+
+/// A trait pretty much similar to num_traits::Zero, but without the need of
+/// implementing `Add`.
+pub trait Zero {
+    /// Returns the zero value.
+    fn zero() -> Self;
+
+    /// Returns whether this value is zero.
+    fn is_zero(&self) -> bool;
+}
+
+impl<T> Zero for T
+where
+    T: num_traits::Zero,
+{
+    fn zero() -> Self {
+        <Self as num_traits::Zero>::zero()
+    }
+
+    fn is_zero(&self) -> bool {
+        <Self as num_traits::Zero>::is_zero(self)
     }
 }

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    let message = {
+      hasHost: !!window.portalHost
+    };
+    let broadcastChannel = new BroadcastChannel(new URL(location).searchParams.get('broadcastchannel'));
+    try {
+      broadcastChannel.postMessage(message);
+    } finally {
+      broadcastChannel.close();
+    }
+  </script>
+</body>

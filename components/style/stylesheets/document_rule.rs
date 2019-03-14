@@ -198,7 +198,7 @@ impl DocumentMatchingFunction {
                 MediaDocumentKind::Video => "video",
             },
         });
-        unsafe { Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func) }
+        unsafe { Gecko_DocumentRule_UseForPresentation(device.document(), &*pattern, func) }
     }
 
     #[cfg(not(feature = "gecko"))]

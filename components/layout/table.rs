@@ -7,9 +7,9 @@
 use crate::block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use crate::display_list::{
-    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionFlags,
+    StackingContextCollectionState,
 };
 use crate::flow::{
     BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils,
@@ -33,7 +33,7 @@ use style::logical_geometry::LogicalSize;
 use style::properties::style_structs::Background;
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::Size;
 use style::values::CSSFloat;
 
 #[allow(unsafe_code)]
@@ -301,16 +301,16 @@ impl Flow for TableFlow {
                 self.column_intrinsic_inline_sizes
                     .push(ColumnIntrinsicInlineSize {
                         minimum_length: match *specified_inline_size {
-                            LengthOrPercentageOrAuto::Auto |
-                            LengthOrPercentageOrAuto::Calc(_) |
-                            LengthOrPercentageOrAuto::Percentage(_) => Au(0),
-                            LengthOrPercentageOrAuto::Length(length) => Au::from(length),
+                            Size::Auto => Au(0),
+                            Size::LengthPercentage(ref lp) => {
+                                lp.maybe_to_used_value(None).unwrap_or(Au(0))
+                            },
                         },
                         percentage: match *specified_inline_size {
-                            LengthOrPercentageOrAuto::Auto |
-                            LengthOrPercentageOrAuto::Calc(_) |
-                            LengthOrPercentageOrAuto::Length(_) => 0.0,
-                            LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
+                            Size::Auto => 0.0,
+                            Size::LengthPercentage(ref lp) => {
+                                lp.0.as_percentage().map_or(0.0, |p| p.0)
+                            },
                         },
                         preferred: Au(0),
                         constrained: false,

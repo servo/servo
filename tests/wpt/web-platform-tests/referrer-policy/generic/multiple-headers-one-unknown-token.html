@@ -5,7 +5,8 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
 
-    <script src="/referrer-policy/generic/common.js"></script>
+    <script src="/common/security-features/resources/common.js"></script>
+    <script src="/referrer-policy/generic/referrer-policy-test-case.js"></script>
   </head>
   <body>
     <h1>Referrer Policy: multiple Referrer-Policy headers with one invalid</h1>
@@ -14,14 +15,15 @@
     <pre id="received_message">Running...</pre>
 
     <script>
-      var test = async_test("Image uses last recognized referrer policy token from Referrer-Policy headers");
-      var urlPath = '/referrer-policy/generic/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
-      var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
-                urlPath;
-      queryImage(url, test.step_func(function(message) {
-        assert_equals(message.referrer, document.location.origin + "/");
-        test.done();
-      }), null, 'no-referrer', test);
+      promise_test(() => {
+        var urlPath = '/referrer-policy/generic/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
+        var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
+                  urlPath;
+        return requestViaImageForReferrerPolicy(url, null, 'no-referrer')
+          .then(function(message) {
+              assert_equals(message.referrer, document.location.origin + "/");
+            });
+      }, "Image uses last recognized referrer policy token from Referrer-Policy headers");
     </script>
 
     <div id="log"></div>

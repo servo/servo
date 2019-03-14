@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    let channelName = new URL(location).searchParams.get('broadcastchannel');
+    window.location.href = `http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-host-cross-origin.sub.html?broadcastchannel=${channelName}`;
+  </script>
+</body>

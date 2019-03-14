@@ -109,7 +109,6 @@ impl Worklet {
 }
 
 impl WorkletMethods for Worklet {
-    #[allow(unrooted_must_root)]
     /// <https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule>
     fn AddModule(&self, module_url: USVString, options: &WorkletOptions) -> Rc<Promise> {
         // Step 1.
@@ -471,7 +470,7 @@ impl WorkletThread {
                 global_init: init.global_init,
                 global_scopes: HashMap::new(),
                 control_buffer: None,
-                runtime: unsafe { new_rt_and_cx() },
+                runtime: new_rt_and_cx(),
                 should_gc: false,
                 gc_threshold: MIN_GC_THRESHOLD,
             });

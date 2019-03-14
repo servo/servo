@@ -23,7 +23,6 @@ use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::{self, SmallVec};
 use std::cmp;
 use std::iter;
-use std::ops::{Add, AddAssign};
 use std::ptr;
 use std::slice;
 
@@ -222,42 +221,11 @@ impl SpecificityAndFlags {
 
 const MAX_10BIT: u32 = (1u32 << 10) - 1;
 
-#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Add, AddAssign, Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
 struct Specificity {
     id_selectors: u32,
     class_like_selectors: u32,
     element_selectors: u32,
-}
-
-impl AddAssign for Specificity {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        self.id_selectors += rhs.id_selectors;
-        self.class_like_selectors += rhs.class_like_selectors;
-        self.element_selectors += rhs.element_selectors;
-    }
-}
-
-impl Add for Specificity {
-    type Output = Specificity;
-
-    fn add(self, rhs: Specificity) -> Specificity {
-        Specificity {
-            id_selectors: self.id_selectors + rhs.id_selectors,
-            class_like_selectors: self.class_like_selectors + rhs.class_like_selectors,
-            element_selectors: self.element_selectors + rhs.element_selectors,
-        }
-    }
-}
-
-impl Default for Specificity {
-    fn default() -> Specificity {
-        Specificity {
-            id_selectors: 0,
-            class_like_selectors: 0,
-            element_selectors: 0,
-        }
-    }
 }
 
 impl From<u32> for Specificity {

@@ -67,7 +67,7 @@ use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::LengthPercentageOrAuto;
 use webrender_api::LayoutTransform;
 
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
@@ -1068,13 +1068,13 @@ impl BaseFlow {
                         flags.insert(FlowFlags::IS_ABSOLUTELY_POSITIONED);
 
                         let logical_position = style.logical_position();
-                        if logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
-                            logical_position.inline_end == LengthOrPercentageOrAuto::Auto
+                        if logical_position.inline_start == LengthPercentageOrAuto::Auto &&
+                            logical_position.inline_end == LengthPercentageOrAuto::Auto
                         {
                             flags.insert(FlowFlags::INLINE_POSITION_IS_STATIC);
                         }
-                        if logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
-                            logical_position.block_end == LengthOrPercentageOrAuto::Auto
+                        if logical_position.block_start == LengthPercentageOrAuto::Auto &&
+                            logical_position.block_end == LengthPercentageOrAuto::Auto
                         {
                             flags.insert(FlowFlags::BLOCK_POSITION_IS_STATIC);
                         }
@@ -1161,13 +1161,13 @@ impl BaseFlow {
                 let logical_position = style.logical_position();
                 self.flags.set(
                     FlowFlags::INLINE_POSITION_IS_STATIC,
-                    logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
-                        logical_position.inline_end == LengthOrPercentageOrAuto::Auto,
+                    logical_position.inline_start == LengthPercentageOrAuto::Auto &&
+                        logical_position.inline_end == LengthPercentageOrAuto::Auto,
                 );
                 self.flags.set(
                     FlowFlags::BLOCK_POSITION_IS_STATIC,
-                    logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
-                        logical_position.block_end == LengthOrPercentageOrAuto::Auto,
+                    logical_position.block_start == LengthPercentageOrAuto::Auto &&
+                        logical_position.block_end == LengthPercentageOrAuto::Auto,
                 );
             }
         }

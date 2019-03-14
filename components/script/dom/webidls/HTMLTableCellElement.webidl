@@ -40,6 +40,6 @@ partial interface HTMLTableCellElement {
   // [CEReactions]
   //          attribute DOMString vAlign;
 
-  [CEReactions, TreatNullAs=EmptyString]
-  attribute DOMString bgColor;
+  [CEReactions]
+  attribute [TreatNullAs=EmptyString] DOMString bgColor;
 };

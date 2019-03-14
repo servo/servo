@@ -29,6 +29,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
+use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
 use script_traits::{
@@ -61,8 +62,14 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
                 Some(&task_source)
             },
-            _ => return None,
+            _ => None,
         }
+    }
+
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        // Workers always return None, since the pipeline_id is only used to check for document activity,
+        // and this check does not apply to worker event-loops.
+        None
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {
@@ -83,6 +90,11 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
         let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg))
+    }
+
+    fn inactive_msg() -> Self {
+        // Inactive is only relevant in the context of a browsing-context event-loop.
+        panic!("Workers should never receive messages marked as inactive");
     }
 
     fn wake_up_msg() -> Self {
@@ -292,7 +304,7 @@ impl ServiceWorkerGlobalScope {
                         },
                     };
 
-                let runtime = unsafe { new_rt_and_cx() };
+                let runtime = new_rt_and_cx();
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER

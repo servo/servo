@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+
+let testName = "XRRigidTransform constructor works";
+let fakeDeviceInitParams = { supportsImmersive: true };
+let requestSessionOptions =  { mode: 'immersive-vr' };
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve, reject) => {
+  let coordDict = function(coords) {
+    let tempDict = {
+        x : coords[0],
+        y : coords[1],
+        z : coords[2]
+    }
+
+    if (coords.length >= 4) {
+        tempDict["w"] = coords[3];
+    }
+
+    return tempDict;
+  };
+
+  let createDOMPoint = function(coords) {
+    return DOMPoint.fromPoint(coordDict(coords));
+  };
+
+  let createDOMPointReadOnly = function(coords) {
+    return DOMPointReadOnly.fromPoint(coordDict(coords));
+  };
+
+  let quaternionLength = function(point) {
+    return Math.sqrt(
+        (point.x * point.x) +
+        (point.y * point.y) +
+        (point.z * point.z) +
+        (point.w * point.w));
+  };
+
+  let checkDOMPoint = function(point, x, y, z, w) {
+    t.step(() => {
+      assert_approx_equals(point.x, x, FLOAT_EPSILON);
+      assert_approx_equals(point.y, y, FLOAT_EPSILON);
+      assert_approx_equals(point.z, z, FLOAT_EPSILON);
+      assert_approx_equals(point.w, w, FLOAT_EPSILON);
+    });
+  };
+
+  let checkTransform = function(transformObj) {
+    t.step(() => {
+      assert_not_equals(transformObj, null);
+      assert_not_equals(transformObj.position, null);
+      assert_not_equals(transformObj.orientation, null);
+      assert_not_equals(transformObj.matrix, null);
+      assert_equals(transformObj.matrix.length, 16);
+    });
+  };
+
+  // test creating transform with specified position and orientation
+  // make sure that orientation was normalized to have length = 1.0
+  let transform = new XRRigidTransform(
+      createDOMPoint([1.0, 2.0, 3.0]),
+      createDOMPoint([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform);
+  checkDOMPoint(transform.position, 1.0, 2.0, 3.0, 1.0);
+  assert_approx_equals(quaternionLength(transform.orientation), 1.0, FLOAT_EPSILON);
+
+  // test creating identity transform
+  let identity = new XRRigidTransform();
+  checkTransform(identity);
+  checkDOMPoint(identity.position, 0.0, 0.0, 0.0, 1.0);
+  checkDOMPoint(identity.orientation, 0.0, 0.0, 0.0, 1.0);
+
+  // test creating transform with quaternion of length 0
+  // constructor should not crash
+  let zeroLength = new XRRigidTransform(
+      createDOMPoint([1.0, 2.0, 3.0]),
+      createDOMPoint([0.0, 0.0, 0.0, 0.0]));
+  checkTransform(zeroLength);
+
+  // create transform with only position specified
+  transform = new XRRigidTransform(createDOMPoint([1.0, 2.0, 3.0]));
+  checkTransform(transform);
+
+  // create transform with only orientation specified
+  transform = new XRRigidTransform(undefined, createDOMPoint([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform);
+
+  // create transform with DOMPointReadOnly
+  transform = new XRRigidTransform(
+      createDOMPointReadOnly([1.0, 2.0, 3.0]),
+      createDOMPointReadOnly([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform);
+
+  // create transform with dictionary
+  transform = new XRRigidTransform(
+      coordDict([1.0, 2.0, 3.0]),
+      coordDict([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform);
+
+  resolve();
+});
+
+xr_session_promise_test(testName, testFunction, fakeDeviceInitParams,
+  requestSessionOptions);
+
+</script>

@@ -54,7 +54,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "color-adjust",
     "economy exact", products="gecko",
-    gecko_pref="layout.css.color-adjust.enabled",
+    gecko_enum_prefix="StyleColorAdjust",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-color/#propdef-color-adjust",
 )}
@@ -77,6 +77,5 @@ ${helpers.single_keyword(
     products="gecko",
     gecko_enum_prefix="StyleImageOrientation",
     animation_value_type="discrete",
-    gecko_pref="layout.css.image-orientation.enabled",
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation",
 )}

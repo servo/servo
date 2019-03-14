@@ -22,26 +22,26 @@ use crate::display_list::items::{PopAllTextShadowsDisplayItem, PushTextShadowDis
 use crate::display_list::items::{StackingContext, StackingContextType, StickyFrameData};
 use crate::display_list::items::{TextOrientation, WebRenderImageInfo};
 use crate::display_list::ToLayout;
-use crate::flex::FlexFlow;
 use crate::flow::{BaseFlow, Flow, FlowFlags};
 use crate::flow_ref::FlowRef;
 use crate::fragment::SpecificFragmentInfo;
 use crate::fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo};
-use crate::inline::{InlineFlow, InlineFragmentNodeFlags};
-use crate::list_item::ListItemFlow;
+use crate::inline::InlineFragmentNodeFlags;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
+use embedder_traits::Cursor;
 use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use ipc_channel::ipc;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
+use script_traits::IFrameSize;
 use servo_config::opts;
 use servo_geometry::MaxRect;
 use std::default::Default;
@@ -58,46 +58,18 @@ use style::properties::{style_structs, ComputedValues};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::Image as ComputedImage;
-use style::values::computed::Gradient;
+use style::values::computed::{Gradient, LengthOrAuto};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
-use style::values::generics::ui::Cursor;
+use style::values::specified::ui::CursorKind;
 use style::values::{Either, RGBA};
-use style_traits::cursor::CursorKind;
-use style_traits::CSSPixel;
 use style_traits::ToCss;
-use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
-use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect};
-use webrender_api::{LayoutSize, LayoutTransform, LayoutVector2D, LineStyle, NinePatchBorder};
-use webrender_api::{NinePatchBorderSource, NormalBorder, ScrollSensitivity, StickyOffsetBounds};
-
-fn establishes_containing_block_for_absolute(
-    flags: StackingContextCollectionFlags,
-    positioning: StylePosition,
-    established_reference_frame: bool,
-) -> bool {
-    if established_reference_frame {
-        return true;
-    }
-
-    !flags.contains(StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK) &&
-        StylePosition::Static != positioning
-}
-
-trait RgbColor {
-    fn rgb(r: u8, g: u8, b: u8) -> Self;
-}
-
-impl RgbColor for ColorF {
-    fn rgb(r: u8, g: u8, b: u8) -> Self {
-        ColorF {
-            r: (r as f32) / (255.0 as f32),
-            g: (g as f32) / (255.0 as f32),
-            b: (b as f32) / (255.0 as f32),
-            a: 1.0 as f32,
-        }
-    }
-}
+use webrender_api::{
+    self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
+    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect, LayoutSize,
+    LayoutTransform, LayoutVector2D, LineStyle, NinePatchBorder, NinePatchBorderSource,
+    NormalBorder, ScrollSensitivity, StickyOffsetBounds,
+};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {
@@ -347,7 +319,7 @@ pub struct DisplayListBuildState<'a> {
 
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
-    pub iframe_sizes: Vec<(BrowsingContextId, TypedSize2D<f32, CSSPixel>)>,
+    pub iframe_sizes: Vec<IFrameSize>,
 
     /// Stores text runs to answer text queries used to place a cursor inside text.
     pub indexable_text: IndexableText,
@@ -408,7 +380,7 @@ impl<'a> DisplayListBuildState<'a> {
         bounds: Rect<Au>,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
-        cursor: Option<CursorKind>,
+        cursor: Option<Cursor>,
         section: DisplayListSection,
     ) -> BaseDisplayItem {
         let clipping_and_scrolling = if self.is_background_or_border_of_clip_scroll_node(section) {
@@ -418,7 +390,25 @@ impl<'a> DisplayListBuildState<'a> {
         } else {
             self.current_clipping_and_scrolling
         };
+        self.create_base_display_item_with_clipping_and_scrolling(
+            bounds,
+            clip_rect,
+            node,
+            cursor,
+            section,
+            clipping_and_scrolling,
+        )
+    }
 
+    fn create_base_display_item_with_clipping_and_scrolling(
+        &self,
+        bounds: Rect<Au>,
+        clip_rect: Rect<Au>,
+        node: OpaqueNode,
+        cursor: Option<Cursor>,
+        section: DisplayListSection,
+        clipping_and_scrolling: ClippingAndScrolling,
+    ) -> BaseDisplayItem {
         BaseDisplayItem::new(
             bounds.to_layout(),
             DisplayItemMetadata {
@@ -581,230 +571,6 @@ impl<'a> DisplayListBuildState<'a> {
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
-pub trait FragmentDisplayListBuilding {
-    fn collect_stacking_contexts_for_blocklike_fragment(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-    ) -> bool;
-
-    fn create_stacking_context_for_inline_block(
-        &mut self,
-        base: &BaseFlow,
-        state: &mut StackingContextCollectionState,
-    ) -> bool;
-
-    /// Adds the display items necessary to paint the background of this fragment to the display
-    /// list if necessary.
-    fn build_display_list_for_background_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-    );
-
-    /// Same as build_display_list_for_background_if_applicable, but lets you
-    /// override the actual background used
-    fn build_display_list_for_background_if_applicable_with_background(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        background: &style_structs::Background,
-        background_color: RGBA,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-    );
-
-    /// Adds the display items necessary to paint a webrender image of this fragment to the
-    /// appropriate section of the display list.
-    fn build_display_list_for_webrender_image(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-        webrender_image: WebRenderImageInfo,
-        index: usize,
-    );
-
-    /// Calculates the webrender image for a paint worklet.
-    /// Returns None if the worklet is not registered.
-    /// If the worklet has missing image URLs, it passes them to the image cache for loading.
-    fn get_webrender_image_for_paint_worklet(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        paint_worklet: &PaintWorklet,
-        size: Size2D<Au>,
-    ) -> Option<WebRenderImageInfo>;
-
-    /// Adds the display items necessary to paint the background linear gradient of this fragment
-    /// to the appropriate section of the display list.
-    fn build_display_list_for_background_gradient(
-        &self,
-        state: &mut DisplayListBuildState,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-        gradient: &Gradient,
-        style: &ComputedValues,
-        index: usize,
-    );
-
-    /// Adds the display items necessary to paint the borders of this fragment to a display list if
-    /// necessary.
-    fn build_display_list_for_borders_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        inline_node_info: Option<InlineNodeBorderInfo>,
-        border_painting_mode: BorderPaintingMode,
-        bounds: Rect<Au>,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-    );
-
-    /// Add display item for image border.
-    ///
-    /// Returns `Some` if the addition was successful.
-    fn build_display_list_for_border_image(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        base: BaseDisplayItem,
-        bounds: Rect<Au>,
-        image: &ComputedImage,
-        border_width: SideOffsets2D<Au>,
-    ) -> Option<()>;
-
-    /// Adds the display items necessary to paint the outline of this fragment to the display list
-    /// if necessary.
-    fn build_display_list_for_outline_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        bounds: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Adds the display items necessary to paint the box shadow of this fragment to the display
-    /// list if necessary.
-    fn build_display_list_for_box_shadow_if_applicable(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        display_list_section: DisplayListSection,
-        absolute_bounds: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Adds display items necessary to draw debug boxes around a scanned text fragment.
-    fn build_debug_borders_around_text_fragments(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        stacking_relative_border_box: Rect<Au>,
-        stacking_relative_content_box: Rect<Au>,
-        text_fragment: &ScannedTextFragmentInfo,
-        clip: Rect<Au>,
-    );
-
-    /// Adds display items necessary to draw debug boxes around this fragment.
-    fn build_debug_borders_around_fragment(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Adds the display items for this fragment to the given display list.
-    ///
-    /// Arguments:
-    ///
-    /// * `state`: The display building state, including the display list currently
-    ///   under construction and other metadata useful for constructing it.
-    /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
-    /// * `clip`: The region to clip the display items to.
-    /// * `overflow_content_size`: The size of content associated with this fragment
-    ///      that must have overflow handling applied to it. For a scrollable block
-    ///      flow, it is expected that this is the size of the child boxes.
-    fn build_display_list(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        border_painting_mode: BorderPaintingMode,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-        overflow_content_size: Option<Size2D<Au>>,
-    );
-
-    /// build_display_list, but don't update the restyle damage
-    ///
-    /// Must be paired with a self.restyle_damage.remove(REPAINT) somewhere
-    fn build_display_list_no_damage(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        border_painting_mode: BorderPaintingMode,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-        overflow_content_size: Option<Size2D<Au>>,
-    );
-
-    /// Builds the display items necessary to paint the selection and/or caret for this fragment,
-    /// if any.
-    fn build_display_items_for_selection_if_necessary(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        display_list_section: DisplayListSection,
-        clip: Rect<Au>,
-    );
-
-    /// Creates the text display item for one text fragment. This can be called multiple times for
-    /// one fragment if there are text shadows.
-    ///
-    /// `text_shadow` will be `Some` if this is rendering a shadow.
-    fn build_display_list_for_text_fragment(
-        &self,
-        state: &mut DisplayListBuildState,
-        text_fragment: &ScannedTextFragmentInfo,
-        stacking_relative_content_box: Rect<Au>,
-        text_shadows: &[SimpleShadow],
-        clip: Rect<Au>,
-    );
-
-    /// Creates the display item for a text decoration: underline, overline, or line-through.
-    fn build_display_list_for_text_decoration(
-        &self,
-        state: &mut DisplayListBuildState,
-        color: &RGBA,
-        stacking_relative_box: &LogicalRect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// A helper method that `build_display_list` calls to create per-fragment-type display items.
-    fn build_fragment_type_specific_display_items(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        clip: Rect<Au>,
-    );
-
-    /// Creates a stacking context for associated fragment.
-    fn create_stacking_context(
-        &self,
-        id: StackingContextId,
-        base_flow: &BaseFlow,
-        context_type: StackingContextType,
-        established_reference_frame: Option<ClipScrollNodeIndex>,
-        parent_clipping_and_scrolling: ClippingAndScrolling,
-    ) -> StackingContext;
-
-    fn unique_id(&self) -> u64;
-
-    fn fragment_type(&self) -> FragmentType;
-}
-
 /// Get the border radius for the rectangle inside of a rounded border. This is useful
 /// for building the clip for the content inside the border.
 fn build_border_radius_for_inner_rect(
@@ -823,8 +589,8 @@ fn build_border_radius_for_inner_rect(
     border::inner_radii(radii, border_widths)
 }
 
-impl FragmentDisplayListBuilding for Fragment {
-    fn collect_stacking_contexts_for_blocklike_fragment(
+impl Fragment {
+    pub fn collect_stacking_contexts_for_blocklike_fragment(
         &mut self,
         state: &mut StackingContextCollectionState,
     ) -> bool {
@@ -852,7 +618,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
-    fn create_stacking_context_for_inline_block(
+    pub fn create_stacking_context_for_inline_block(
         &mut self,
         base: &BaseFlow,
         state: &mut StackingContextCollectionState,
@@ -881,6 +647,8 @@ impl FragmentDisplayListBuilding for Fragment {
         true
     }
 
+    /// Adds the display items necessary to paint the background of this fragment to the display
+    /// list if necessary.
     fn build_display_list_for_background_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -902,6 +670,8 @@ impl FragmentDisplayListBuilding for Fragment {
         )
     }
 
+    /// Same as build_display_list_for_background_if_applicable, but lets you
+    /// override the actual background used
     fn build_display_list_for_background_if_applicable_with_background(
         &self,
         state: &mut DisplayListBuildState,
@@ -940,7 +710,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 bounds,
                 bounds,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -993,11 +763,13 @@ impl FragmentDisplayListBuilding for Fragment {
                     let background_size =
                         get_cyclic(&style.get_background().background_size.0, i).clone();
                     let size = match background_size {
-                        BackgroundSize::Explicit { width, height } => Size2D::new(
-                            MaybeAuto::from_style(width.0, bounding_box_size.width)
-                                .specified_or_default(bounding_box_size.width),
-                            MaybeAuto::from_style(height.0, bounding_box_size.height)
-                                .specified_or_default(bounding_box_size.height),
+                        BackgroundSize::ExplicitSize { width, height } => Size2D::new(
+                            width
+                                .to_used_value(bounding_box_size.width)
+                                .unwrap_or(bounding_box_size.width),
+                            height
+                                .to_used_value(bounding_box_size.height)
+                                .unwrap_or(bounding_box_size.height),
                         ),
                         _ => bounding_box_size,
                     };
@@ -1028,6 +800,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Adds the display items necessary to paint a webrender image of this fragment to the
+    /// appropriate section of the display list.
     fn build_display_list_for_webrender_image(
         &self,
         state: &mut DisplayListBuildState,
@@ -1069,7 +843,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 placement.bounds,
                 placement.clip_rect,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
 
@@ -1088,6 +862,9 @@ impl FragmentDisplayListBuilding for Fragment {
         });
     }
 
+    /// Calculates the webrender image for a paint worklet.
+    /// Returns None if the worklet is not registered.
+    /// If the worklet has missing image URLs, it passes them to the image cache for loading.
     fn get_webrender_image_for_paint_worklet(
         &self,
         state: &mut DisplayListBuildState,
@@ -1148,6 +925,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Adds the display items necessary to paint the background linear gradient of this fragment
+    /// to the appropriate section of the display list.
     fn build_display_list_for_background_gradient(
         &self,
         state: &mut DisplayListBuildState,
@@ -1179,7 +958,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 placement.bounds,
                 placement.clip_rect,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
 
@@ -1220,6 +999,8 @@ impl FragmentDisplayListBuilding for Fragment {
         });
     }
 
+    /// Adds the display items necessary to paint the box shadow of this fragment to the display
+    /// list if necessary.
     fn build_display_list_for_box_shadow_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -1243,7 +1024,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 bounds,
                 clip,
                 self.node,
-                style.get_cursor(CursorKind::Default),
+                get_cursor(&style, Cursor::Default),
                 display_list_section,
             );
             let border_radius = border::radii(absolute_bounds, style.get_border());
@@ -1269,6 +1050,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Adds the display items necessary to paint the borders of this fragment to a display list if
+    /// necessary.
     fn build_display_list_for_borders_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -1325,7 +1108,7 @@ impl FragmentDisplayListBuilding for Fragment {
             bounds,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             display_list_section,
         );
 
@@ -1381,6 +1164,9 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Add display item for image border.
+    ///
+    /// Returns `Some` if the addition was successful.
     fn build_display_list_for_border_image(
         &self,
         state: &mut DisplayListBuildState,
@@ -1483,6 +1269,8 @@ impl FragmentDisplayListBuilding for Fragment {
         Some(())
     }
 
+    /// Adds the display items necessary to paint the outline of this fragment to the display list
+    /// if necessary.
     fn build_display_list_for_outline_if_applicable(
         &self,
         state: &mut DisplayListBuildState,
@@ -1519,7 +1307,7 @@ impl FragmentDisplayListBuilding for Fragment {
             bounds,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             DisplayListSection::Outlines,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1532,6 +1320,7 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Adds display items necessary to draw debug boxes around a scanned text fragment.
     fn build_debug_borders_around_text_fragments(
         &self,
         state: &mut DisplayListBuildState,
@@ -1549,7 +1338,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_border_box,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1557,7 +1346,7 @@ impl FragmentDisplayListBuilding for Fragment {
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
-                    ColorF::rgb(0, 0, 200),
+                    ColorU::new(0, 0, 200, 1).into(),
                     webrender_api::BorderStyle::Solid,
                 )),
             },
@@ -1578,7 +1367,7 @@ impl FragmentDisplayListBuilding for Fragment {
             baseline,
             clip,
             self.node,
-            style.get_cursor(CursorKind::Default),
+            get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
@@ -1588,12 +1377,13 @@ impl FragmentDisplayListBuilding for Fragment {
             webrender_api::LineDisplayItem {
                 orientation: webrender_api::LineOrientation::Horizontal,
                 wavy_line_thickness,
-                color: ColorF::rgb(0, 200, 0),
+                color: ColorU::new(0, 200, 0, 1).into(),
                 style: LineStyle::Dashed,
             },
         )));
     }
 
+    /// Adds display items necessary to draw debug boxes around this fragment.
     fn build_debug_borders_around_fragment(
         &self,
         state: &mut DisplayListBuildState,
@@ -1605,7 +1395,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_border_box,
             clip,
             self.node,
-            self.style.get_cursor(CursorKind::Default),
+            get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1613,7 +1403,7 @@ impl FragmentDisplayListBuilding for Fragment {
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
-                    ColorF::rgb(0, 0, 200),
+                    ColorU::new(0, 0, 200, 1).into(),
                     webrender_api::BorderStyle::Solid,
                 )),
             },
@@ -1621,6 +1411,8 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
+    /// Builds the display items necessary to paint the selection and/or caret for this fragment,
+    /// if any.
     fn build_display_items_for_selection_if_necessary(
         &self,
         state: &mut DisplayListBuildState,
@@ -1645,7 +1437,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 stacking_relative_border_box,
                 clip,
                 self.node,
-                self.style.get_cursor(CursorKind::Default),
+                get_cursor(&self.style, Cursor::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -1676,7 +1468,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 INSERTION_POINT_LOGICAL_WIDTH,
                 stacking_relative_border_box.size.height,
             );
-            cursor = CursorKind::Text;
+            cursor = Cursor::Text;
         } else {
             insertion_point_bounds = rect(
                 stacking_relative_border_box.origin.x,
@@ -1684,14 +1476,14 @@ impl FragmentDisplayListBuilding for Fragment {
                 stacking_relative_border_box.size.width,
                 INSERTION_POINT_LOGICAL_WIDTH,
             );
-            cursor = CursorKind::VerticalText;
+            cursor = Cursor::VerticalText;
         };
 
         let base = state.create_base_display_item(
             insertion_point_bounds,
             clip,
             self.node,
-            self.style.get_cursor(cursor),
+            get_cursor(&self.style, cursor),
             display_list_section,
         );
         state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -1702,7 +1494,18 @@ impl FragmentDisplayListBuilding for Fragment {
         )));
     }
 
-    fn build_display_list(
+    /// Adds the display items for this fragment to the given display list.
+    ///
+    /// Arguments:
+    ///
+    /// * `state`: The display building state, including the display list currently
+    ///   under construction and other metadata useful for constructing it.
+    /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
+    /// * `clip`: The region to clip the display items to.
+    /// * `overflow_content_size`: The size of content associated with this fragment
+    ///      that must have overflow handling applied to it. For a scrollable block
+    ///      flow, it is expected that this is the size of the child boxes.
+    pub fn build_display_list(
         &mut self,
         state: &mut DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
@@ -1729,6 +1532,9 @@ impl FragmentDisplayListBuilding for Fragment {
         state.current_clipping_and_scrolling = previous_clipping_and_scrolling;
     }
 
+    /// build_display_list, but don't update the restyle damage
+    ///
+    /// Must be paired with a self.restyle_damage.remove(REPAINT) somewhere
     fn build_display_list_no_damage(
         &self,
         state: &mut DisplayListBuildState,
@@ -1854,15 +1660,15 @@ impl FragmentDisplayListBuilding for Fragment {
             // of this fragment's background but behind its content. This ensures that any
             // hit tests inside the content box but not on actual content target the current
             // scrollable ancestor.
-            let content_size = TypedRect::from_size(content_size);
-            let base = state.create_base_display_item(
+            let content_size = TypedRect::new(stacking_relative_border_box.origin, content_size);
+            let base = state.create_base_display_item_with_clipping_and_scrolling(
                 content_size,
                 content_size,
                 self.node,
-                self.style
-                    .get_cursor(CursorKind::Default)
-                    .or_else(|| Some(CursorKind::Default)),
-                DisplayListSection::Content,
+                // FIXME(emilio): Why does this ignore pointer-events?
+                get_cursor(&self.style, Cursor::Default).or(Some(Cursor::Default)),
+                display_list_section,
+                state.current_clipping_and_scrolling,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
@@ -1886,6 +1692,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(
         &self,
         state: &mut DisplayListBuildState,
@@ -1911,7 +1718,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 stacking_relative_content_box,
                 stacking_relative_border_box,
                 self.node,
-                self.style.get_cursor(CursorKind::Default),
+                get_cursor(&self.style, Cursor::Default),
                 DisplayListSection::Content,
             )
         };
@@ -2001,9 +1808,10 @@ impl FragmentDisplayListBuilding for Fragment {
                     }));
 
                     let size = Size2D::new(item.bounds().size.width, item.bounds().size.height);
-                    state
-                        .iframe_sizes
-                        .push((browsing_context_id, TypedSize2D::from_untyped(&size)));
+                    state.iframe_sizes.push(IFrameSize {
+                        id: browsing_context_id,
+                        size: TypedSize2D::from_untyped(&size),
+                    });
 
                     state.add_display_item(item);
                 }
@@ -2087,6 +1895,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Creates a stacking context for associated fragment.
     fn create_stacking_context(
         &self,
         id: StackingContextId,
@@ -2129,6 +1938,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border_box.to_layout(),
             overflow.to_layout(),
             self.effective_z_index(),
+            self.style().get_box()._servo_top_layer,
             filters,
             self.style().get_effects().mix_blend_mode.to_layout(),
             self.transform_matrix(&border_box),
@@ -2139,6 +1949,10 @@ impl FragmentDisplayListBuilding for Fragment {
         )
     }
 
+    /// Creates the text display item for one text fragment. This can be called multiple times for
+    /// one fragment if there are text shadows.
+    ///
+    /// `text_shadow` will be `Some` if this is rendering a shadow.
     fn build_display_list_for_text_fragment(
         &self,
         state: &mut DisplayListBuildState,
@@ -2162,9 +1976,9 @@ impl FragmentDisplayListBuilding for Fragment {
         let (_orientation, cursor) = if self.style.writing_mode.is_vertical() {
             // TODO: Distinguish between 'sideways-lr' and 'sideways-rl' writing modes in CSS
             // Writing Modes Level 4.
-            (TextOrientation::SidewaysRight, CursorKind::VerticalText)
+            (TextOrientation::SidewaysRight, Cursor::VerticalText)
         } else {
-            (TextOrientation::Upright, CursorKind::Text)
+            (TextOrientation::Upright, Cursor::Text)
         };
 
         // Compute location of the baseline.
@@ -2182,7 +1996,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_content_box,
             clip,
             self.node,
-            self.style().get_cursor(cursor),
+            get_cursor(&self.style, cursor),
             DisplayListSection::Content,
         );
 
@@ -2290,6 +2104,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    /// Creates the display item for a text decoration: underline, overline, or line-through.
     fn build_display_list_for_text_decoration(
         &self,
         state: &mut DisplayListBuildState,
@@ -2305,7 +2120,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_box,
             clip,
             self.node,
-            self.style.get_cursor(CursorKind::Default),
+            get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
 
@@ -2342,81 +2157,6 @@ bitflags! {
         /// This flow never creates a stacking context.
         const NEVER_CREATES_STACKING_CONTEXT = 0b100;
     }
-}
-
-pub trait BlockFlowDisplayListBuilding {
-    fn collect_stacking_contexts_for_block(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        flags: StackingContextCollectionFlags,
-    );
-
-    fn transform_clip_to_coordinate_space(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        preserved_state: &mut SavedStackingContextCollectionState,
-    );
-    fn setup_clipping_for_block(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        preserved_state: &mut SavedStackingContextCollectionState,
-        stacking_context_type: Option<StackingContextType>,
-        established_reference_frame: Option<ClipScrollNodeIndex>,
-        flags: StackingContextCollectionFlags,
-    ) -> ClippingAndScrolling;
-    fn setup_clip_scroll_node_for_position(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        border_box: Rect<Au>,
-    );
-    fn setup_clip_scroll_node_for_overflow(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        border_box: Rect<Au>,
-    );
-    fn setup_clip_scroll_node_for_css_clip(
-        &mut self,
-        state: &mut StackingContextCollectionState,
-        preserved_state: &mut SavedStackingContextCollectionState,
-        stacking_relative_border_box: Rect<Au>,
-    );
-    fn create_pseudo_stacking_context_for_block(
-        &mut self,
-        stacking_context_type: StackingContextType,
-        parent_stacking_context_id: StackingContextId,
-        parent_clip_and_scroll_info: ClippingAndScrolling,
-        state: &mut StackingContextCollectionState,
-    );
-    fn create_real_stacking_context_for_block(
-        &mut self,
-        parent_stacking_context_id: StackingContextId,
-        parent_clipping_and_scrolling: ClippingAndScrolling,
-        established_reference_frame: Option<ClipScrollNodeIndex>,
-        state: &mut StackingContextCollectionState,
-    );
-    fn build_display_list_for_block(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        border_painting_mode: BorderPaintingMode,
-    );
-    fn build_display_list_for_block_no_damage(
-        &self,
-        state: &mut DisplayListBuildState,
-        border_painting_mode: BorderPaintingMode,
-    );
-    fn build_display_list_for_background_if_applicable_with_background(
-        &self,
-        state: &mut DisplayListBuildState,
-        background: &style_structs::Background,
-        background_color: RGBA,
-    );
-
-    fn stacking_context_type(
-        &self,
-        flags: StackingContextCollectionFlags,
-    ) -> Option<StackingContextType>;
-
-    fn is_reference_frame(&self, context_type: Option<StackingContextType>) -> bool;
 }
 
 /// This structure manages ensuring that modification to StackingContextCollectionState is
@@ -2498,7 +2238,7 @@ impl SavedStackingContextCollectionState {
     }
 }
 
-impl BlockFlowDisplayListBuilding for BlockFlow {
+impl BlockFlow {
     fn transform_clip_to_coordinate_space(
         &mut self,
         state: &mut StackingContextCollectionState,
@@ -2576,7 +2316,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
     }
 
-    fn collect_stacking_contexts_for_block(
+    pub fn collect_stacking_contexts_for_block(
         &mut self,
         state: &mut StackingContextCollectionState,
         flags: StackingContextCollectionFlags,
@@ -2614,11 +2354,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             flags,
         );
 
-        if establishes_containing_block_for_absolute(
-            flags,
-            self.positioning(),
-            established_reference_frame.is_some(),
-        ) {
+        let creates_containing_block = !flags
+            .contains(StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK);
+        let abspos_containing_block = established_reference_frame.is_some() ||
+            (creates_containing_block && self.positioning() != StylePosition::Static);
+        if abspos_containing_block {
             state.containing_block_clipping_and_scrolling = state.current_clipping_and_scrolling;
         }
 
@@ -2887,19 +2627,22 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             _ => return,
         }
 
+        fn extract_clip_component(p: &LengthOrAuto) -> Option<Au> {
+            match *p {
+                LengthOrAuto::Auto => None,
+                LengthOrAuto::LengthPercentage(ref length) => Some(Au::from(*length)),
+            }
+        }
+
         let clip_origin = Point2D::new(
             stacking_relative_border_box.origin.x +
-                style_clip_rect.left.map(Au::from).unwrap_or(Au(0)),
+                extract_clip_component(&style_clip_rect.left).unwrap_or_default(),
             stacking_relative_border_box.origin.y +
-                style_clip_rect.top.map(Au::from).unwrap_or(Au(0)),
+                extract_clip_component(&style_clip_rect.top).unwrap_or_default(),
         );
-        let right = style_clip_rect
-            .right
-            .map(Au::from)
+        let right = extract_clip_component(&style_clip_rect.right)
             .unwrap_or(stacking_relative_border_box.size.width);
-        let bottom = style_clip_rect
-            .bottom
-            .map(Au::from)
+        let bottom = extract_clip_component(&style_clip_rect.bottom)
             .unwrap_or(stacking_relative_border_box.size.height);
         let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
 
@@ -2970,7 +2713,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.collect_stacking_contexts_for_children(state);
     }
 
-    fn build_display_list_for_block_no_damage(
+    pub fn build_display_list_for_block_no_damage(
         &self,
         state: &mut DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
@@ -3005,7 +2748,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         state.processing_scrolling_overflow_element = false;
     }
 
-    fn build_display_list_for_block(
+    pub fn build_display_list_for_block(
         &mut self,
         state: &mut DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
@@ -3016,7 +2759,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.build_display_list_for_block_no_damage(state, border_painting_mode);
     }
 
-    fn build_display_list_for_background_if_applicable_with_background(
+    pub fn build_display_list_for_background_if_applicable_with_background(
         &self,
         state: &mut DisplayListBuildState,
         background: &style_structs::Background,
@@ -3071,164 +2814,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     }
 }
 
-pub trait InlineFlowDisplayListBuilding {
-    fn collect_stacking_contexts_for_inline(&mut self, state: &mut StackingContextCollectionState);
-    fn build_display_list_for_inline_fragment_at_index(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        index: usize,
-    );
-    fn build_display_list_for_inline(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl InlineFlowDisplayListBuilding for InlineFlow {
-    fn collect_stacking_contexts_for_inline(&mut self, state: &mut StackingContextCollectionState) {
-        self.base.stacking_context_id = state.current_stacking_context_id;
-        self.base.clipping_and_scrolling = Some(state.current_clipping_and_scrolling);
-        self.base.clip = state
-            .clip_stack
-            .last()
-            .cloned()
-            .unwrap_or_else(Rect::max_rect);
-
-        let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
-
-        for fragment in self.fragments.fragments.iter_mut() {
-            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
-
-            if establishes_containing_block_for_absolute(
-                StackingContextCollectionFlags::empty(),
-                fragment.style.get_box().position,
-                false,
-            ) {
-                state.containing_block_clipping_and_scrolling =
-                    state.current_clipping_and_scrolling;
-            }
-
-            // We clear this here, but it might be set again if we create a stacking context for
-            // this fragment.
-            fragment.established_reference_frame = None;
-
-            if !fragment.collect_stacking_contexts_for_blocklike_fragment(state) {
-                if !fragment.establishes_stacking_context() {
-                    fragment.stacking_context_id = state.current_stacking_context_id;
-                } else {
-                    fragment.create_stacking_context_for_inline_block(&self.base, state);
-                }
-            }
-
-            // Reset the containing block clipping and scrolling before each loop iteration,
-            // so we don't pollute subsequent fragments.
-            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
-        }
-    }
-
-    fn build_display_list_for_inline_fragment_at_index(
-        &mut self,
-        state: &mut DisplayListBuildState,
-        index: usize,
-    ) {
-        let fragment = self.fragments.fragments.get_mut(index).unwrap();
-        let stacking_relative_border_box = self
-            .base
-            .stacking_relative_border_box_for_display_list(fragment);
-        fragment.build_display_list(
-            state,
-            stacking_relative_border_box,
-            BorderPaintingMode::Separate,
-            DisplayListSection::Content,
-            self.base.clip,
-            None,
-        );
-    }
-
-    fn build_display_list_for_inline(&mut self, state: &mut DisplayListBuildState) {
-        debug!(
-            "Flow: building display list for {} inline fragments",
-            self.fragments.len()
-        );
-
-        // We iterate using an index here, because we want to avoid doing a doing
-        // a double-borrow of self (one mutable for the method call and one immutable
-        // for the self.fragments.fragment iterator itself).
-        for index in 0..self.fragments.fragments.len() {
-            let (establishes_stacking_context, stacking_context_id) = {
-                let fragment = self.fragments.fragments.get(index).unwrap();
-                (
-                    self.base.stacking_context_id != fragment.stacking_context_id,
-                    fragment.stacking_context_id,
-                )
-            };
-
-            let parent_stacking_context_id = state.current_stacking_context_id;
-            if establishes_stacking_context {
-                state.current_stacking_context_id = stacking_context_id;
-            }
-
-            self.build_display_list_for_inline_fragment_at_index(state, index);
-
-            if establishes_stacking_context {
-                state.current_stacking_context_id = parent_stacking_context_id
-            }
-        }
-
-        if !self.fragments.fragments.is_empty() {
-            self.base
-                .build_display_items_for_debugging_tint(state, self.fragments.fragments[0].node);
-        }
-    }
-}
-
-pub trait ListItemFlowDisplayListBuilding {
-    fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl ListItemFlowDisplayListBuilding for ListItemFlow {
-    fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState) {
-        // Draw the marker, if applicable.
-        for marker in &mut self.marker_fragments {
-            let stacking_relative_border_box = self
-                .block_flow
-                .base
-                .stacking_relative_border_box_for_display_list(marker);
-            marker.build_display_list(
-                state,
-                stacking_relative_border_box,
-                BorderPaintingMode::Separate,
-                DisplayListSection::Content,
-                self.block_flow.base.clip,
-                None,
-            );
-        }
-
-        // Draw the rest of the block.
-        self.block_flow
-            .build_display_list_for_block(state, BorderPaintingMode::Separate)
-    }
-}
-
-pub trait FlexFlowDisplayListBuilding {
-    fn build_display_list_for_flex(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl FlexFlowDisplayListBuilding for FlexFlow {
-    fn build_display_list_for_flex(&mut self, state: &mut DisplayListBuildState) {
-        // Draw the rest of the block.
-        self.as_mut_block()
-            .build_display_list_for_block(state, BorderPaintingMode::Separate)
-    }
-}
-
-trait BaseFlowDisplayListBuilding {
-    fn build_display_items_for_debugging_tint(
-        &self,
-        state: &mut DisplayListBuildState,
-        node: OpaqueNode,
-    );
-}
-
-impl BaseFlowDisplayListBuilding for BaseFlow {
-    fn build_display_items_for_debugging_tint(
+impl BaseFlow {
+    pub fn build_display_items_for_debugging_tint(
         &self,
         state: &mut DisplayListBuildState,
         node: OpaqueNode,
@@ -3266,31 +2853,54 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
     }
 }
 
-trait ComputedValuesCursorUtility {
-    fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind>;
-}
-
-impl ComputedValuesCursorUtility for ComputedValues {
-    /// Gets the cursor to use given the specific ComputedValues.  `default_cursor` specifies
-    /// the cursor to use if `cursor` is `auto`. Typically, this will be `PointerCursor`, but for
-    /// text display items it may be `TextCursor` or `VerticalTextCursor`.
-    #[inline]
-    fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind> {
-        match (
-            self.get_inherited_ui().pointer_events,
-            &self.get_inherited_ui().cursor,
-        ) {
-            (PointerEvents::None, _) => None,
-            (
-                PointerEvents::Auto,
-                &Cursor {
-                    keyword: CursorKind::Auto,
-                    ..
-                },
-            ) => Some(default_cursor),
-            (PointerEvents::Auto, &Cursor { keyword, .. }) => Some(keyword),
-        }
+/// Gets the cursor to use given the specific ComputedValues.  `default_cursor` specifies
+/// the cursor to use if `cursor` is `auto`. Typically, this will be `PointerCursor`, but for
+/// text display items it may be `TextCursor` or `VerticalTextCursor`.
+#[inline]
+fn get_cursor(values: &ComputedValues, default_cursor: Cursor) -> Option<Cursor> {
+    let inherited_ui = values.get_inherited_ui();
+    if inherited_ui.pointer_events == PointerEvents::None {
+        return None;
     }
+
+    Some(match inherited_ui.cursor.keyword {
+        CursorKind::Auto => default_cursor,
+        CursorKind::None => Cursor::None,
+        CursorKind::Default => Cursor::Default,
+        CursorKind::Pointer => Cursor::Pointer,
+        CursorKind::ContextMenu => Cursor::ContextMenu,
+        CursorKind::Help => Cursor::Help,
+        CursorKind::Progress => Cursor::Progress,
+        CursorKind::Wait => Cursor::Wait,
+        CursorKind::Cell => Cursor::Cell,
+        CursorKind::Crosshair => Cursor::Crosshair,
+        CursorKind::Text => Cursor::Text,
+        CursorKind::VerticalText => Cursor::VerticalText,
+        CursorKind::Alias => Cursor::Alias,
+        CursorKind::Copy => Cursor::Copy,
+        CursorKind::Move => Cursor::Move,
+        CursorKind::NoDrop => Cursor::NoDrop,
+        CursorKind::NotAllowed => Cursor::NotAllowed,
+        CursorKind::Grab => Cursor::Grab,
+        CursorKind::Grabbing => Cursor::Grabbing,
+        CursorKind::EResize => Cursor::EResize,
+        CursorKind::NResize => Cursor::NResize,
+        CursorKind::NeResize => Cursor::NeResize,
+        CursorKind::NwResize => Cursor::NwResize,
+        CursorKind::SResize => Cursor::SResize,
+        CursorKind::SeResize => Cursor::SeResize,
+        CursorKind::SwResize => Cursor::SwResize,
+        CursorKind::WResize => Cursor::WResize,
+        CursorKind::EwResize => Cursor::EwResize,
+        CursorKind::NsResize => Cursor::NsResize,
+        CursorKind::NeswResize => Cursor::NeswResize,
+        CursorKind::NwseResize => Cursor::NwseResize,
+        CursorKind::ColResize => Cursor::ColResize,
+        CursorKind::RowResize => Cursor::RowResize,
+        CursorKind::AllScroll => Cursor::AllScroll,
+        CursorKind::ZoomIn => Cursor::ZoomIn,
+        CursorKind::ZoomOut => Cursor::ZoomOut,
+    })
 }
 
 /// Adjusts `content_rect` as necessary for the given spread, and blur so that the resulting

@@ -9,11 +9,13 @@
 const test_desc = '[SameObject] test for BluetoothRemoteGATTServer\'s device.';
 let device, fake_peripheral;
 
-bluetooth_test(() => getDiscoveredHealthThermometerDevice()
-    .then(_ => ({device, fake_peripheral} = _))
-    .then(() =>
-      fake_peripheral.setNextGATTConnectionResponse({code: HCI_SUCCESS}))
-    .then(() => device.gatt.connect())
-    .then(gatt => assert_equals(gatt.device, gatt.device)),
+bluetooth_test(
+    () => getDiscoveredHealthThermometerDevice()
+              .then(_ => ({device, fake_peripheral} = _))
+              .then(
+                  () => fake_peripheral.setNextGATTConnectionResponse(
+                      {code: HCI_SUCCESS}))
+              .then(() => device.gatt.connect())
+              .then(gatt => assert_equals(gatt.device, gatt.device)),
     test_desc);
 </script>

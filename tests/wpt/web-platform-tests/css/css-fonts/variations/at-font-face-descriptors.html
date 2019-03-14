@@ -147,6 +147,8 @@
             { value: "oblique 20deg",           isValid: true,  expectedValue: "oblique", description: "'oblique' followed by default 20deg angle" },
             { value: "oblique 90deg",           isValid: true,  description: "'oblique' followed by maxumum 90 degree angle" },
             { value: "oblique -90deg",          isValid: true,  description: "'oblique' followed by minimum -90 degree angle" },
+            { value: "oblique calc(91deg)",     isValid: true,  expectedValue: "oblique 90deg", description: "'oblique' followed by calc with out of range value (should be clamped)" },
+            { value: "oblique calc(-91deg)",    isValid: true,  expectedValue: "oblique -90deg", description: "'oblique' followed by calc with out of range value (should be clamped)" },
             { value: "oblique 0rad",            isValid: true,  expectedValue: "oblique 0deg", description: "'oblique' followed by  angle in radians" },
             { value: "oblique 20",              isValid: false, description: "'oblique' followed by unit-less number" },
             { value: "oblique 20px",            isValid: false, description: "'oblique' followed by non-angle" },

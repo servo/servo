@@ -13,11 +13,10 @@ use crate::values::computed::text::TextOverflow as ComputedTextOverflow;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::MozTabSize as GenericMozTabSize;
 use crate::values::generics::text::Spacing;
+use crate::values::specified::length::NonNegativeLengthPercentage;
 use crate::values::specified::length::{FontRelativeLength, Length};
-use crate::values::specified::length::{LengthOrPercentage, NoCalcLength};
-use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
+use crate::values::specified::length::{LengthPercentage, NoCalcLength};
 use crate::values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
@@ -34,10 +33,10 @@ pub type InitialLetter = GenericInitialLetter<Number, Integer>;
 pub type LetterSpacing = Spacing<Length>;
 
 /// A specified value for the `word-spacing` property.
-pub type WordSpacing = Spacing<LengthOrPercentage>;
+pub type WordSpacing = Spacing<LengthPercentage>;
 
 /// A specified value for the `line-height` property.
-pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthOrPercentage>;
+pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthPercentage>;
 
 impl Parse for InitialLetter {
     fn parse<'i, 't>(
@@ -70,7 +69,7 @@ impl Parse for WordSpacing {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Spacing::parse_with(context, input, |c, i| {
-            LengthOrPercentage::parse_quirky(c, i, AllowQuirks::Yes)
+            LengthPercentage::parse_quirky(c, i, AllowQuirks::Yes)
         })
     }
 }
@@ -83,8 +82,8 @@ impl Parse for LineHeight {
         if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
             return Ok(GenericLineHeight::Number(number));
         }
-        if let Ok(nlop) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
-            return Ok(GenericLineHeight::Length(nlop));
+        if let Ok(nlp) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
+            return Ok(GenericLineHeight::Length(nlp));
         }
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
@@ -116,17 +115,17 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Number(number) => {
                 GenericLineHeight::Number(number.to_computed_value(context))
             },
-            GenericLineHeight::Length(ref non_negative_lop) => {
-                let result = match non_negative_lop.0 {
-                    LengthOrPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
+            GenericLineHeight::Length(ref non_negative_lp) => {
+                let result = match non_negative_lp.0 {
+                    LengthPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
                         context
                             .maybe_zoom_text(abs.to_computed_value(context).into())
                             .0
                     },
-                    LengthOrPercentage::Length(ref length) => length.to_computed_value(context),
-                    LengthOrPercentage::Percentage(ref p) => FontRelativeLength::Em(p.0)
+                    LengthPercentage::Length(ref length) => length.to_computed_value(context),
+                    LengthPercentage::Percentage(ref p) => FontRelativeLength::Em(p.0)
                         .to_computed_value(context, FontBaseSize::CurrentStyle),
-                    LengthOrPercentage::Calc(ref calc) => {
+                    LengthPercentage::Calc(ref calc) => {
                         let computed_calc =
                             calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
                         let font_relative_length =
@@ -420,7 +419,7 @@ pub enum TextAlignKeyword {
 
 /// Specified value of text-align property.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextAlign {
     /// Keyword value of text-align property.
     Keyword(TextAlignKeyword),
@@ -434,27 +433,6 @@ pub enum TextAlign {
     #[cfg(feature = "gecko")]
     #[css(skip)]
     MozCenterOrInherit,
-}
-
-impl Parse for TextAlign {
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        // MozCenterOrInherit cannot be parsed, only set directly on the elements
-        if let Ok(key) = input.try(TextAlignKeyword::parse) {
-            return Ok(TextAlign::Keyword(key));
-        }
-        #[cfg(feature = "gecko")]
-        {
-            input.expect_ident_matching("match-parent")?;
-            return Ok(TextAlign::MatchParent);
-        }
-        #[cfg(feature = "servo")]
-        {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-    }
 }
 
 impl TextAlign {
@@ -835,23 +813,31 @@ impl From<TextEmphasisPosition> for u8 {
     }
 }
 
-/// A specified value for the `-moz-tab-size` property.
-pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
-
-impl Parse for MozTabSize {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
-            // Numbers need to be parsed first because `0` must be recognised
-            // as the number `0` and not the length `0px`.
-            return Ok(GenericMozTabSize::Number(number));
-        }
-        Ok(GenericMozTabSize::Length(NonNegativeLength::parse(
-            context, input,
-        )?))
-    }
+/// Values for the `word-break` property.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[allow(missing_docs)]
+pub enum WordBreak {
+    Normal,
+    BreakAll,
+    KeepAll,
+    /// The break-word value, needed for compat.
+    ///
+    /// Specifying `word-break: break-word` makes `overflow-wrap` behave as
+    /// `anywhere`, and `word-break` behave like `normal`.
+    #[cfg(feature = "gecko")]
+    BreakWord,
 }
 
 /// Values for the `overflow-wrap` property.

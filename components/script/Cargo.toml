@@ -32,7 +32,7 @@ tinyfiledialogs = "3.0"
 [dependencies]
 app_units = "0.7"
 backtrace = {version = "0.3", optional = true}
-base64 = "0.9"
+base64 = "0.10.1"
 bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
@@ -63,20 +63,20 @@ indexmap = "1.0.2"
 ipc-channel = "0.11"
 itertools = "0.8"
 jstraceable_derive = {path = "../jstraceable_derive"}
+js = {package = "mozjs", version = "0.10.0"}
 keyboard-types = "0.4.4"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+malloc_size_of_derive = "0.1"
 metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
-mime = "0.3"
+mime = "0.3.13"
 mime_guess = "2.0.0-alpha.6"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.2"
-offscreen_gl_context = {version = "0.21", features = ["serde"]}
 parking_lot = "0.6"
 phf = "0.7.18"
 pixels = {path = "../pixels"}
@@ -114,9 +114,3 @@ webvr_traits = {path = "../webvr_traits"}
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = "0.1"
-
-[target.'cfg(target_os = "android")'.dependencies]
-js = {package = "mozjs", version = "0.9.5", features=["init_once"]}
-
-[target.'cfg(not(target_os = "android"))'.dependencies]
-js = {package = "mozjs", version = "0.9.5"}

@@ -3,6 +3,11 @@
  * @author burnik@google.com (Kristijan Burnik)
  */
 
+function wrapResult(server_data) {
+  // Currently the returned value is not used in mixed-content tests.
+  return null;
+}
+
 /**
  * MixedContentTestCase exercises all the tests for checking browser behavior
  * when resources regarded as mixed-content are requested. A single run covers

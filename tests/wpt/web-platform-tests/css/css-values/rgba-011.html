@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: rgba() function syntax (complex)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-color-3/#rgba-color">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#rgb-functions">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#combine-integers">
+
+  <meta name="flags" content="">
+  <meta name="assert" content="This test checks the syntax allowed by rgba() function. White space characters, instead of commas, are allowed between numerical values. <alpha-value> can be omitted for rgba() function, in which case it must defaults to 100%. Finally, rgba() function can take real numbers but their computed values will be rounded to the nearest integer, with values halfway between adjacent integers rounded towards positive infinity.">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <div id="log"></div>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+    var targetElement = document.getElementById("target");
+
+    function compareValue(property_name, calcValue, expectedValue, description)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, calcValue);
+
+      var computedCalcValue = getComputedStyle(targetElement)[property_name];
+
+      targetElement.style.setProperty(property_name, expectedValue);
+
+      var computedExpectedValue = getComputedStyle(targetElement)[property_name];
+
+      assert_equals(computedCalcValue, computedExpectedValue);
+
+      }, description);
+    }
+
+    compareValue("background-color", "rgba(0.4 127.5 0.3)", "rgb(0, 128, 0)", "testing background-color: rgba(0.4 127.5 0.3)");
+
+  }
+
+  startTesting();
+
+  </script>

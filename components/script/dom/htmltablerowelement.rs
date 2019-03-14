@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTM
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, RawLayoutElementHelpers};
@@ -31,7 +31,7 @@ struct CellsFilter;
 impl CollectionFilter for CellsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
         (elem.is::<HTMLTableCellElement>()) &&
-            elem.upcast::<Node>().GetParentNode().r() == Some(root)
+            elem.upcast::<Node>().GetParentNode().deref() == Some(root)
     }
 }
 

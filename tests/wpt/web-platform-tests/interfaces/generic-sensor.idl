@@ -28,3 +28,93 @@ interface SensorErrorEvent : Event {
 dictionary SensorErrorEventInit : EventInit {
   required DOMException error;
 };
+
+dictionary MockSensorConfiguration {
+  required MockSensorType mockSensorType;
+  boolean connected = true;
+  double? maxSamplingFrequency;
+  double? minSamplingFrequency;
+};
+
+dictionary MockSensor {
+  double maxSamplingFrequency;
+  double minSamplingFrequency;
+  double requestedSamplingFrequency;
+};
+
+enum MockSensorType {
+  "ambient-light",
+  "accelerometer",
+  "linear-acceleration",
+  "gravity",
+  "gyroscope",
+  "magnetometer",
+  "uncalibrated-magnetometer",
+  "absolute-orientation",
+  "relative-orientation",
+  "geolocation",
+  "proximity",
+};
+
+dictionary MockSensorReadingValues {
+};
+
+dictionary AmbientLightReadingValues {
+  required double? illuminance;
+};
+
+dictionary AccelerometerReadingValues {
+  required double? x;
+  required double? y;
+  required double? z;
+};
+
+dictionary LinearAccelerationReadingValues : AccelerometerReadingValues {
+};
+
+dictionary GravityReadingValues : AccelerometerReadingValues {
+};
+
+dictionary GyroscopeReadingValues {
+  required double? x;
+  required double? y;
+  required double? z;
+};
+
+dictionary MagnetometerReadingValues {
+  required double? x;
+  required double? y;
+  required double? z;
+};
+
+dictionary UncalibratedMagnetometerReadingValues {
+  required double? x;
+  required double? y;
+  required double? z;
+  required double? xBias;
+  required double? yBias;
+  required double? zBias;
+};
+
+dictionary AbsoluteOrientationReadingValues {
+  required FrozenArray<double>? quaternion;
+};
+
+dictionary RelativeOrientationReadingValues : AbsoluteOrientationReadingValues {
+};
+
+dictionary GeolocationReadingValues {
+  required double? latitude;
+  required double? longitude;
+  required double? altitude;
+  required double? accuracy;
+  required double? altitudeAccuracy;
+  required double? heading;
+  required double? speed;
+};
+
+dictionary ProximityReadingValues {
+  required double? distance;
+  required double? max;
+  required boolean? near;
+};

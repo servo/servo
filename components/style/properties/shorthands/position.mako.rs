@@ -762,3 +762,28 @@
         }
     }
 </%helpers:shorthand>
+
+// See https://github.com/w3c/csswg-drafts/issues/3525 for the quirks stuff.
+${helpers.four_sides_shorthand(
+    "inset",
+    "%s",
+    "specified::LengthPercentageOrAuto::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset",
+    allow_quirks=False,
+)}
+
+${helpers.two_properties_shorthand(
+    "inset-block",
+    "inset-block-start",
+    "inset-block-end",
+    "specified::LengthPercentageOrAuto::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset-block"
+)}
+
+${helpers.two_properties_shorthand(
+    "inset-inline",
+    "inset-inline-start",
+    "inset-inline-end",
+    "specified::LengthPercentageOrAuto::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset-inline"
+)}

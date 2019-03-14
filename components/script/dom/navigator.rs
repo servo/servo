@@ -4,20 +4,21 @@
 
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
-use crate::dom::bindings::codegen::Bindings::VRBinding::VRBinding::VRMethods;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepadlist::GamepadList;
+use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mimetypearray::MimeTypeArray;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
-use crate::dom::vr::VR;
 use crate::dom::window::Window;
+use crate::dom::xr::XR;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -28,7 +29,8 @@ pub struct Navigator {
     plugins: MutNullableDom<PluginArray>,
     mime_types: MutNullableDom<MimeTypeArray>,
     service_worker: MutNullableDom<ServiceWorkerContainer>,
-    vr: MutNullableDom<VR>,
+    xr: MutNullableDom<XR>,
+    mediadevices: MutNullableDom<MediaDevices>,
     gamepads: MutNullableDom<GamepadList>,
     permissions: MutNullableDom<Permissions>,
 }
@@ -41,7 +43,8 @@ impl Navigator {
             plugins: Default::default(),
             mime_types: Default::default(),
             service_worker: Default::default(),
-            vr: Default::default(),
+            xr: Default::default(),
+            mediadevices: Default::default(),
             gamepads: Default::default(),
             permissions: Default::default(),
         }
@@ -135,7 +138,7 @@ impl NavigatorMethods for Navigator {
             .gamepads
             .or_init(|| GamepadList::new(&self.global(), &[]));
 
-        let vr_gamepads = self.Vr().get_gamepads();
+        let vr_gamepads = self.Xr().get_gamepads();
         root.add_if_not_exists(&vr_gamepads);
         // TODO: Add not VR related gamepads
         root
@@ -147,14 +150,24 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
-    #[allow(unrooted_must_root)]
     fn GetVRDisplays(&self) -> Rc<Promise> {
-        self.Vr().GetDisplays()
+        let promise = Promise::new(&self.global());
+        let displays = self.Xr().get_displays();
+        match displays {
+            Ok(displays) => promise.resolve_native(&displays),
+            Err(_) => promise.reject_error(Error::Security),
+        }
+        promise
     }
-}
 
-impl Navigator {
-    pub fn Vr(&self) -> DomRoot<VR> {
-        self.vr.or_init(|| VR::new(&self.global()))
+    /// https://immersive-web.github.io/webxr/#dom-navigator-xr
+    fn Xr(&self) -> DomRoot<XR> {
+        self.xr.or_init(|| XR::new(&self.global()))
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices
+    fn MediaDevices(&self) -> DomRoot<MediaDevices> {
+        self.mediadevices
+            .or_init(|| MediaDevices::new(&self.global()))
     }
 }

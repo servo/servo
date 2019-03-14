@@ -7,21 +7,22 @@
 use super::CSSFloat;
 use crate::values::animated::transform::{Perspective, Scale3D, Translate3D};
 use crate::values::animated::ToAnimatedZero;
-use crate::values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
+use crate::values::computed::{Angle, Integer, Length, LengthPercentage, Number, Percentage};
 use crate::values::generics::transform as generic;
+use crate::Zero;
 use euclid::{Transform3D, Vector3D};
-use num_traits::Zero;
 
 pub use crate::values::generics::transform::TransformStyle;
 
 /// A single operation in a computed CSS `transform`
 pub type TransformOperation =
-    generic::TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>;
+    generic::TransformOperation<Angle, Number, Length, Integer, LengthPercentage>;
 /// A computed CSS `transform`
 pub type Transform = generic::Transform<TransformOperation>;
 
 /// The computed value of a CSS `<transform-origin>`
-pub type TransformOrigin = generic::TransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;
+pub type TransformOrigin =
+    generic::GenericTransformOrigin<LengthPercentage, LengthPercentage, Length>;
 
 /// A vector to represent the direction vector (rotate axis) for Rotate3D.
 pub type DirectionVector = Vector3D<CSSFloat>;
@@ -31,8 +32,8 @@ impl TransformOrigin {
     #[inline]
     pub fn initial_value() -> Self {
         Self::new(
-            LengthOrPercentage::Percentage(Percentage(0.5)),
-            LengthOrPercentage::Percentage(Percentage(0.5)),
+            LengthPercentage::new_percent(Percentage(0.5)),
+            LengthPercentage::new_percent(Percentage(0.5)),
             Length::new(0.),
         )
     }
@@ -370,28 +371,27 @@ impl TransformOperation {
     pub fn to_translate_3d(&self) -> Self {
         match *self {
             generic::TransformOperation::Translate3D(..) => self.clone(),
-            generic::TransformOperation::TranslateX(ref x) |
-            generic::TransformOperation::Translate(ref x, None) => {
+            generic::TransformOperation::TranslateX(ref x) => {
                 generic::TransformOperation::Translate3D(
                     x.clone(),
-                    LengthOrPercentage::zero(),
+                    LengthPercentage::zero(),
                     Length::zero(),
                 )
             },
-            generic::TransformOperation::Translate(ref x, Some(ref y)) => {
+            generic::TransformOperation::Translate(ref x, ref y) => {
                 generic::TransformOperation::Translate3D(x.clone(), y.clone(), Length::zero())
             },
             generic::TransformOperation::TranslateY(ref y) => {
                 generic::TransformOperation::Translate3D(
-                    LengthOrPercentage::zero(),
+                    LengthPercentage::zero(),
                     y.clone(),
                     Length::zero(),
                 )
             },
             generic::TransformOperation::TranslateZ(ref z) => {
                 generic::TransformOperation::Translate3D(
-                    LengthOrPercentage::zero(),
-                    LengthOrPercentage::zero(),
+                    LengthPercentage::zero(),
+                    LengthPercentage::zero(),
                     z.clone(),
                 )
             },
@@ -425,10 +425,7 @@ impl TransformOperation {
     pub fn to_scale_3d(&self) -> Self {
         match *self {
             generic::TransformOperation::Scale3D(..) => self.clone(),
-            generic::TransformOperation::Scale(s, None) => {
-                generic::TransformOperation::Scale3D(s, s, 1.)
-            },
-            generic::TransformOperation::Scale(x, Some(y)) => {
+            generic::TransformOperation::Scale(x, y) => {
                 generic::TransformOperation::Scale3D(x, y, 1.)
             },
             generic::TransformOperation::ScaleX(x) => {
@@ -493,7 +490,7 @@ impl ToAnimatedZero for TransformOperation {
                 Ok(generic::TransformOperation::Scale3D(1.0, 1.0, 1.0))
             },
             generic::TransformOperation::Scale(_, _) => {
-                Ok(generic::TransformOperation::Scale(1.0, Some(1.0)))
+                Ok(generic::TransformOperation::Scale(1.0, 1.0))
             },
             generic::TransformOperation::ScaleX(..) => Ok(generic::TransformOperation::ScaleX(1.0)),
             generic::TransformOperation::ScaleY(..) => Ok(generic::TransformOperation::ScaleY(1.0)),
@@ -576,7 +573,7 @@ impl Rotate {
 }
 
 /// A computed CSS `translate`
-pub type Translate = generic::Translate<LengthOrPercentage, Length>;
+pub type Translate = generic::Translate<LengthPercentage, Length>;
 
 impl Translate {
     /// Convert TransformOperation to Translate.
@@ -584,7 +581,7 @@ impl Translate {
         match *self {
             generic::Translate::None => None,
             generic::Translate::Translate(tx, ty) => {
-                Some(generic::TransformOperation::Translate(tx, Some(ty)))
+                Some(generic::TransformOperation::Translate(tx, ty))
             },
             generic::Translate::Translate3D(tx, ty, tz) => {
                 Some(generic::TransformOperation::Translate3D(tx, ty, tz))
@@ -595,9 +592,7 @@ impl Translate {
     /// Convert Translate to TransformOperation.
     pub fn from_transform_operation(operation: &TransformOperation) -> Translate {
         match *operation {
-            generic::TransformOperation::Translate(tx, Some(ty)) => {
-                generic::Translate::Translate(tx, ty)
-            },
+            generic::TransformOperation::Translate(tx, ty) => generic::Translate::Translate(tx, ty),
             generic::TransformOperation::Translate3D(tx, ty, tz) => {
                 generic::Translate::Translate3D(tx, ty, tz)
             },
@@ -614,7 +609,7 @@ impl Scale {
     pub fn to_transform_operation(&self) -> Option<TransformOperation> {
         match *self {
             generic::Scale::None => None,
-            generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, Some(sy))),
+            generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, sy)),
             generic::Scale::Scale3D(sx, sy, sz) => {
                 Some(generic::TransformOperation::Scale3D(sx, sy, sz))
             },
@@ -624,8 +619,7 @@ impl Scale {
     /// Convert Scale to TransformOperation.
     pub fn from_transform_operation(operation: &TransformOperation) -> Scale {
         match *operation {
-            generic::TransformOperation::Scale(sx, Some(sy)) => generic::Scale::Scale(sx, sy),
-            generic::TransformOperation::Scale(sx, None) => generic::Scale::Scale(sx, sx),
+            generic::TransformOperation::Scale(sx, sy) => generic::Scale::Scale(sx, sy),
             generic::TransformOperation::Scale3D(sx, sy, sz) => generic::Scale::Scale3D(sx, sy, sz),
             _ => unreachable!("Found unexpected value for scale"),
         }

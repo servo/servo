@@ -5,6 +5,7 @@ patch < pref-main-thread.patch
 patch < callback-location.patch
 patch < union-typedef.patch
 patch < inline.patch
+patch < undo-dictionary-optional.patch
 
 wget https://hg.mozilla.org/mozilla-central/archive/tip.tar.gz/dom/bindings/parser/tests/ -O tests.tar.gz
 rm -r tests

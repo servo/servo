@@ -84,7 +84,11 @@ impl CookieStorage {
         }
     }
     pub fn clear_storage(&mut self) {
-        self.cookies_map.clear();
+        for (_, cookies) in self.cookies_map.iter_mut() {
+            for cookie in cookies.iter_mut() {
+                cookie.set_expiry_time_negative();
+            }
+        }
     }
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn push(&mut self, mut cookie: Cookie, url: &ServoUrl, source: CookieSource) {

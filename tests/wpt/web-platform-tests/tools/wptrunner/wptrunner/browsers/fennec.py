@@ -146,7 +146,7 @@ class FennecBrowser(FirefoxBrowser):
                                       "network.preload": True})
         if self.test_type == "reftest":
             self.logger.info("Setting android reftest preferences")
-            self.profile.set_preferences({"browser.viewport.desktopWidth": 600,
+            self.profile.set_preferences({"browser.viewport.desktopWidth": 800,
                                           # Disable high DPI
                                           "layout.css.devPixelsPerPx": "1.0",
                                           # Ensure that the full browser element
@@ -154,7 +154,7 @@ class FennecBrowser(FirefoxBrowser):
                                           "apz.allow_zooming": False,
                                           "android.widget_paints_background": False,
                                           # Ensure that scrollbars are always painted
-                                          "ui.scrollbarFadeBeginDelay": 100000})
+                                          "layout.testing.overlay-scrollbars.always-visible": True})
 
         if self.install_fonts:
             self.logger.debug("Copying Ahem font to profile")

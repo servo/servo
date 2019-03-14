@@ -28,21 +28,22 @@
 <link rel=preload href="non-existent/dummy.xml?foo" as=foobarxmlthing onerror="gibberishFailed = true;">
 <link rel=preload href="non-existent/dummy.xml?fetch" as=fetch onerror="fetchFailed = true;">
 <link rel=preload href="non-existent/dummy.xml?empty" onerror="emptyFailed = true;">
-<script src="resources/dummy.js?pipe=trickle(d5)&onerror-event"></script>
 <script>
     window.onload = t.step_func(function() {
-        verifyPreloadAndRTSupport();
-        assert_true(styleFailed, "style triggered error event");
-        assert_true(scriptFailed, "script triggered error event");
-        assert_true(imageFailed, "image triggered error event");
-        assert_true(fontFailed, "font triggered error event");
-        assert_true(videoFailed, "video triggered error event");
-        assert_true(audioFailed, "audio triggered error event");
-        assert_true(trackFailed, "track triggered error event");
-        assert_false(gibberishFailed, "gibberish as value did not trigger error event");
-        assert_true(fetchFailed, "fetch as triggered error event");
-        assert_false(emptyFailed, "empty as triggered error event");
-        t.done();
+        t.step_timeout(function() {
+            verifyPreloadAndRTSupport();
+            assert_true(styleFailed, "style triggered error event");
+            assert_true(scriptFailed, "script triggered error event");
+            assert_true(imageFailed, "image triggered error event");
+            assert_true(fontFailed, "font triggered error event");
+            assert_true(videoFailed, "video triggered error event");
+            assert_true(audioFailed, "audio triggered error event");
+            assert_true(trackFailed, "track triggered error event");
+            assert_false(gibberishFailed, "gibberish as value did not trigger error event");
+            assert_true(fetchFailed, "fetch as triggered error event");
+            assert_false(emptyFailed, "empty as triggered error event");
+            t.done();
+        }, 5000);
     });
 </script>
 </body>

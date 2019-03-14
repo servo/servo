@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<title>Verify that WorkletAnimation is correctly created</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<style>
+  .scroller {
+    height: 100px;
+    width: 100px;
+    overflow: scroll;
+  }
+  .content {
+    height: 500px;
+    width: 500px;
+  }
+</style>
+
+<script>
+function CreateKeyframeEffect(element) {
+  return new KeyframeEffect(
+      element,
+      [
+        { transform: 'translateY(0%)' },
+        { transform: 'translateY(100%)' }
+      ],
+      { duration: 3000, fill: 'forwards' }
+  );
+}
+</script>
+<script id="simple_animate" type="text/worklet">
+  registerAnimator("test-animator", class {
+    animate(currentTime, effect) {}
+  });
+</script>
+
+<div id='element'></div>
+<div id='element2'></div>
+<div class='scroller'>
+  <div class='content'></div>
+</div>
+
+<script>
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let effect = CreateKeyframeEffect(document.querySelector('#element'));
+    let workletAnimation = new WorkletAnimation('test-animator', effect);
+    assert_equals(workletAnimation.playState, 'idle');
+    assert_equals(workletAnimation.timeline, document.timeline);
+  }, 'WorkletAnimation creation without timeline should use default documentation timeline');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let effect = CreateKeyframeEffect(document.querySelector('#element'));
+    let workletAnimation = new WorkletAnimation('test-animator', effect);
+    assert_equals(workletAnimation.playState, 'idle');
+  }, 'WorkletAnimation creation with timeline should work');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let effect = CreateKeyframeEffect(document.querySelector('#element'));
+    let options = { my_param: 'foo', my_other_param: true };
+    let workletAnimation = new WorkletAnimation(
+        'test-animator', effect, document.timeline, options);
+    assert_equals(workletAnimation.playState, 'idle');
+  }, 'WorkletAnimation creation with timeline and options should work');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let effect = CreateKeyframeEffect(document.querySelector('#element'));
+    let scroller = document.querySelector('.scroller');
+    let scrollTimeline = new ScrollTimeline(
+        { scrollSource: scroller, timeRange: 100, orientation: 'inline' });
+    let workletAnimation = new WorkletAnimation(
+        'test-animator', effect, scrollTimeline);
+    assert_equals(workletAnimation.playState, 'idle');
+  }, 'ScrollTimeline is a valid timeline for a WorkletAnimation');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let constructorFunc = function() { new WorkletAnimation(
+        'test-animator', []); };
+    assert_throws('NotSupportedError', constructorFunc);
+  }, 'If there are no effects specified, object construction should fail');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let effect = CreateKeyframeEffect(document.querySelector('#element'));
+
+    let otherDoc = document.implementation.createHTMLDocument();
+    let otherElement = otherDoc.createElement('div');
+    otherDoc.body.appendChild(otherElement);
+    let otherEffect = CreateKeyframeEffect(otherElement);
+
+    let constructorFunc = function() { new WorkletAnimation(
+        'test-animator', [ effect, otherEffect ]); };
+    assert_throws('NotSupportedError', constructorFunc);
+  }, 'If the effects are from different documents, object construction should fail');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    // TODO(crbug.com/781816): Allow KeyframeEffects with no target in AnimationWorklet.
+    let effect = CreateKeyframeEffect(null);
+    let effect2 = CreateKeyframeEffect(document.querySelector('#element'));
+
+    let constructorFunc = function() { new WorkletAnimation(
+        'test-animator', [ effect, effect2 ]); };
+    assert_throws('NotSupportedError', constructorFunc);
+
+    let constructorFunc2 = function() { new WorkletAnimation(
+        'test-animator', [ effect2, effect ]); };
+    assert_throws('NotSupportedError', constructorFunc2);
+  }, 'If an effect has no target, object construction should fail');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let effect = CreateKeyframeEffect(document.querySelector('#element'));
+    let constructorFunc = function() {
+        new WorkletAnimation('unregistered-animator', effect);
+    };
+    assert_throws('InvalidStateError', constructorFunc);
+  }, 'Constructing worklet animation for unregisested animator should throw');
+</script>

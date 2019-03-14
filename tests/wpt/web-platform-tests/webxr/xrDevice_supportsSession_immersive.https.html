@@ -5,11 +5,10 @@
   <script src="resources/webxr_util.js"></script>
   <script>
     xr_promise_test(
-      "supportsSession resolves when immersive options supported",
+      "supportsSessionMode resolves when immersive options supported",
       () => {
         return XRTest.simulateDeviceConnection({ supportsImmersive:true })
-          .then( (controller) => { return navigator.xr.requestDevice() })
-          .then( (device) => device.supportsSession({ immersive: true }));
+          .then( (controller) => navigator.xr.supportsSessionMode('immersive-vr'));
       });
   </script>
 </body>

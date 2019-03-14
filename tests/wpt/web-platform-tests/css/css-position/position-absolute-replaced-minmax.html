@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<title>CSS Position: absolute position, replaced elements, and minmax</title>
+<link rel="author" title="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#min-max-widths">
+<meta name="assert" content="Min/max width and height interact properly with abspos replaced elements">
+<style>
+.container {
+  position: relative;
+  display: inline-block;
+  width: 400px;
+  height: 200px;
+  border: 1px solid black;
+}
+.target {
+  position: absolute;
+  padding: 10px;
+  bottom: 0;
+  right: 0;
+  border-width: 3px 7px 9px 11px;
+  border-color: yellow;
+  border-style: solid;
+}
+</style>
+<!-- test all combinations of minmax from section 10.4 table at
+  https://www.w3.org/TR/CSS2/visudet.html#min-max-widths -->
+
+<!-- IFRAME tests -->
+<!-- iframe: intrinsic size is 300x150, no aspect ratio -->
+<div class="container">
+  <iframe class="target"
+  data-expected-width="338" data-expected-height="182" data-offset-y="18" data-offset-x="62"
+  >
+  </iframe>
+</div>
+<!-- spec 1: w > max-width -->
+<div class="container">
+  <iframe class="target" style="max-width:100px"
+  data-expected-width="138" data-expected-height="182" data-offset-y="18" data-offset-x="262"
+  >
+  </iframe>
+</div>
+<!-- spec 2: w < min-width -->
+<div class="container">
+  <iframe class="target" style="min-width: 350px"
+  data-expected-width="388" data-expected-height="182" data-offset-y="18" data-offset-x="12"
+  >
+  </iframe>
+</div>
+<!-- spec 3: h > max-height -->
+<div class="container">
+  <iframe class="target" style="max-height: 150px"
+  data-expected-width="338" data-expected-height="182" data-offset-y="18" data-offset-x="62"
+  >
+  </iframe>
+</div>
+<!-- spec 4: h < min-height -->
+<div class="container">
+  <iframe class="target" style="min-height: 165px"
+  data-expected-width="338" data-expected-height="197" data-offset-y="3" data-offset-x="62"
+  >
+  </iframe>
+</div>
+<!-- spec 5: (w > max-width) and (h > max-height), where (max-width/w ≤ max-height/h) -->
+<div class="container">
+  <iframe class="target" style="max-width: 240px; max-height: 135px"
+  data-expected-width="278" data-expected-height="167" data-offset-y="33" data-offset-x="122"
+  >
+  </iframe>
+</div>
+<!-- spec 6: (w > max-width) and (h > max-height), where (max-width/w > max-height/h) -->
+<div class="container">
+  <iframe class="target" style="max-width: 270px; max-height: 120px"
+  data-expected-width="308" data-expected-height="152" data-offset-y="48" data-offset-x="92"
+  >
+  </iframe>
+</div>
+<!-- spec 7: (w < min-width) and (h < min-height), where (min-width/w ≤ min-height/h) -->
+<div class="container">
+  <iframe class="target" style="min-width: 360px; min-height: 165px"
+  data-expected-width="398" data-expected-height="197" data-offset-y="3" data-offset-x="2"
+  >
+  </iframe>
+</div>
+<!-- spec 8: (w < min-width) and (h < min-height), where (min-width/w > min-height/h) -->
+<div class="container">
+  <iframe class="target" style="min-width: 330px; min-height: 180px"
+  data-expected-width="368" data-expected-height="212" data-offset-y="-12" data-offset-x="32"
+  >
+  </iframe>
+</div>
+<!-- spec 9: (w < min-width) and (h > max-height) -->
+<div class="container">
+  <iframe class="target" style="min-width: 330px; max-height: 135px"
+  data-expected-width="368" data-expected-height="167" data-offset-y="33" data-offset-x="32"
+  >
+  </iframe>
+</div>
+<!-- spec 10: (w > max-width) and (h < min-height) -->
+<div class="container">
+  <iframe class="target" style="max-width: 240px; min-height: 165px"
+  data-expected-width="278" data-expected-height="197" data-offset-y="3" data-offset-x="122"
+  >
+  </iframe>
+</div>
+
+<!-- IMG png tests -->
+<!-- image dimensions: 200x150. images has intrinic size and aspect ratio -->
+<div class="container">
+  <img class="target png"
+  data-expected-width="238" data-expected-height="182" data-offset-y="18" data-offset-x="162"
+  >
+</div>
+<!-- spec 1: w > max-width -->
+<div class="container">
+  <img class="target png" style="max-width: 180px"
+  data-expected-width="218" data-expected-height="167" data-offset-y="33" data-offset-x="182"
+  >
+</div>
+<!-- spec 2: w < min-width -->
+<div class="container">
+  <img class="target png" style="min-width: 220px"
+  data-expected-width="258" data-expected-height="197" data-offset-y="3" data-offset-x="142"
+  >
+</div>
+
+<!-- spec 3: h > max-height -->
+<div class="container">
+  <img class="target png" style="max-height: 135px"
+  data-expected-width="218" data-expected-height="167" data-offset-y="33" data-offset-x="182"
+  >
+</div>
+<!-- spec 4: h < min-height -->
+<div class="container">
+  <img class="target png" style="min-height: 165px"
+  data-expected-width="258" data-expected-height="197" data-offset-y="3" data-offset-x="142"
+  >
+</div>
+<!-- spec 5: (w > max-width) and (h > max-height), where (max-width/w ≤ max-height/h) -->
+<div class="container">
+  <img class="target png" style="max-width: 160px; max-height: 135px"
+  data-expected-width="198" data-expected-height="152" data-offset-y="48" data-offset-x="202"
+  >
+</div>
+<!-- spec 6: (w > max-width) and (h > max-height), where (max-width/w > max-height/h) -->
+<div class="container">
+  <img class="target png" style="max-width: 180px; max-height: 120px"
+  data-expected-width="198" data-expected-height="152" data-offset-y="48" data-offset-x="202"
+  >
+</div>
+<!-- spec 7: (w < min-width) and (h < min-height), where (min-width/w ≤ min-height/h) -->
+<div class="container">
+  <img class="target png" style="min-width: 240px;min-height: 165px"
+  data-expected-width="278" data-expected-height="212" data-offset-y="-12" data-offset-x="122"
+  >
+</div>
+<!-- spec 8: (w < min-width) and (h < min-height), where (min-width/w > min-height/h) -->
+<div class="container">
+  <img class="target png" style="min-width: 220px;min-height: 180px"
+  data-expected-width="278" data-expected-height="212" data-offset-y="-12" data-offset-x="122"
+  >
+</div>
+<!-- spec 9: (w < min-width) and (h > max-height) -->
+<div class="container">
+  <img class="target png" style="min-width: 220px; max-height: 130px"
+  data-expected-width="258" data-expected-height="162" data-offset-y="38" data-offset-x="142"
+  >
+</div>
+<!-- spec 10: (w > max-width) and (h < min-height) -->
+<div class="container">
+  <img class="target png" style="max-width: 180px; min-height: 165px"
+  data-expected-width="218" data-expected-height="197" data-offset-y="3" data-offset-x="182"
+  >
+</div>
+<!-- IMG SVG tests -->
+<!-- image dimensions: 200x150. images has no intrinic size and no aspect ratio -->
+<div class="container">
+  <img class="target svg"
+  data-expected-width="338" data-expected-height="182" data-offset-y="18" data-offset-x="62"
+  >
+</div>
+<!-- spec 1: w > max-width -->
+<div class="container">
+  <img class="target svg" style="max-width: 180px"
+  data-expected-width="218" data-expected-height="182" data-offset-y="18" data-offset-x="182"
+  >
+</div>
+<!-- spec 2: w < min-width -->
+<div class="container">
+  <img class="target svg" style="min-width: 220px"
+  data-expected-width="338" data-expected-height="182" data-offset-y="18" data-offset-x="62"
+  >
+</div>
+
+<!-- spec 3: h > max-height -->
+<div class="container">
+  <img class="target svg" style="max-height: 135px"
+  data-expected-width="338" data-expected-height="167" data-offset-y="33" data-offset-x="62"
+  >
+</div>
+<!-- spec 4: h < min-height -->
+<div class="container">
+  <img class="target svg" style="min-height: 165px"
+  data-expected-width="338" data-expected-height="197" data-offset-y="3" data-offset-x="62"
+  >
+</div>
+<!-- spec 5: (w > max-width) and (h > max-height), where (max-width/w ≤ max-height/h) -->
+<div class="container">
+  <img class="target svg" style="max-width: 160px; max-height: 135px"
+  data-expected-width="198" data-expected-height="167" data-offset-y="33" data-offset-x="202"
+  >
+</div>
+<!-- spec 6: (w > max-width) and (h > max-height), where (max-width/w > max-height/h) -->
+<div class="container">
+  <img class="target svg" style="max-width: 180px; max-height: 120px"
+  data-expected-width="218" data-expected-height="152" data-offset-y="48" data-offset-x="182"
+  >
+</div>
+<!-- spec 7: (w < min-width) and (h < min-height), where (min-width/w ≤ min-height/h) -->
+<div class="container">
+  <img class="target svg" style="min-width: 240px;min-height: 165px"
+  data-expected-width="338" data-expected-height="197" data-offset-y="3" data-offset-x="62"
+  >
+</div>
+<!-- spec 8: (w < min-width) and (h < min-height), where (min-width/w > min-height/h) -->
+<div class="container">
+  <img class="target svg" style="min-width: 220px;min-height: 180px"
+  data-expected-width="338" data-expected-height="212" data-offset-y="-12" data-offset-x="62"
+  >
+</div>
+<!-- spec 9: (w < min-width) and (h > max-height) -->
+<div class="container">
+  <img class="target svg" style="min-width: 220px; max-height: 130px"
+  data-expected-width="338" data-expected-height="162" data-offset-y="38" data-offset-x="62"
+  >
+</div>
+<!-- spec 10: (w > max-width) and (h < min-height) -->
+<div class="container">
+  <img class="target svg" style="max-width: 180px; min-height: 165px"
+  data-expected-width="218" data-expected-height="197" data-offset-y="3" data-offset-x="182"
+  >
+</div>
+<!-- SVG tests -->
+<!-- SVGs are special: any combination of intrinsic_size and aspect_ratio
+  can happen. -->
+<!-- Just viewbox. Has intrinsic aspect ratio, but no width/height -->
+<div class="container">
+  <img class="target" src="data:image/svg+xml,%3Csvg  xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E" style=""
+  data-expected-width="338" data-expected-height="182" data-offset-y="18" data-offset-x="62"
+  >
+</div>
+<!-- Just viewbox. Has aspect_ration, but no intrinsic size
+ inline_width defaults to container width -->
+<div class="container">
+  <img class="target" src="data:image/svg+xml,%3Csvg viewBox='0 0 100 10' xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E"
+  data-expected-width="400" data-expected-height="68" data-offset-y="132" data-offset-x="0"
+  >
+</div>
+<!-- Viewbox + svg width. Has aspect_ratio and width. Height is scaled -->
+<div class="container">
+  <img class="target" src="data:image/svg+xml,%3Csvg viewBox='0 0 100 10' width='100px' xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E"
+  data-expected-width="138" data-expected-height="42" data-offset-y="158" data-offset-x="262"
+  >
+</div>
+<!-- Viewbox + svg height. Has aspect_ratio and height. Width is scaled -->
+<div class="container">
+  <img class="target" src="data:image/svg+xml,%3Csvg viewBox='0 0 100 10' height='20px' xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E"
+  data-expected-width="238" data-expected-height="52" data-offset-y="148" data-offset-x="162"
+  >
+</div>
+<script>
+  // initialize png images with  200x150 green png
+  let pngSrc="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAACWAQMAAAChElVaAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABlBMVEUAgAD///8UPy9PAAAAAWJLR0QB/wIt3gAAAAd0SU1FB+MBDwkdA1Cz/EMAAAAbSURBVEjH7cGBAAAAAMOg+VPf4ARVAQAAAM8ADzwAAeM8wQsAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTktMDEtMTVUMTc6Mjk6MDMtMDg6MDCYDy9IAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE5LTAxLTE1VDE3OjI5OjAzLTA4OjAw6VKX9AAAAABJRU5ErkJggg=="
+;
+  let images = document.querySelectorAll("img.png");
+  for (let i=0; i<images.length; ++i) {
+    images[i].src = pngSrc;
+  }
+
+  // SVG with no intrinsic width/height
+  let svgSrc="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E ";
+  images = document.querySelectorAll("img.svg");
+  for (let i=0; i<images.length; ++i) {
+    images[i].src = svgSrc;
+  }
+
+  function makeTest(el) {
+    return function() {
+      if (!el.getAttribute("data-expected-width")) {
+        // This code is used to generate reference data for the tests.
+        let text = `data-expected-width="${el.offsetWidth}" data-expected-height="${el.offsetHeight}" data-offset-y="${el.offsetTop}" data-offset-x="${el.offsetLeft}"`;
+        el.parentElement.innerText = text;
+        return;
+      }
+      assert_equals(el.offsetWidth + "", el.getAttribute("data-expected-width"), "incorrect offsetWidth");
+      assert_equals(el.offsetHeight + "", el.getAttribute("data-expected-height"), "incorrect offsetHeight");
+      assert_equals(el.offsetTop + "", el.getAttribute("data-offset-y"), "incorrect offsetTop");
+      assert_equals(el.offsetLeft + "", el.getAttribute("data-offset-x"), "incorrect offsetLeft");
+    }
+  };
+
+
+  let testNameIndex = 1;
+  function getTestName(el) {
+    let svg = el.classList.contains("svg") ? " svg" : "";
+    return "minmax replaced " + el.nodeName + svg + " " + testNameIndex++;
+  };
+
+  function testAfterImageLoads(img, test) {
+    let asyncTest = async_test(getTestName(img));
+    img.addEventListener("load", _ => {
+      asyncTest.step(test);
+      asyncTest.done();
+    });
+  };
+
+  let testElements = document.querySelectorAll(".target");
+
+  for (let i=0; i<testElements.length; ++i) {
+    let myTest = makeTest(testElements[i]);
+    if (testElements[i].nodeName == "IMG" && !testElements[i].complete) {
+      testAfterImageLoads(testElements[i], myTest);
+    } else {
+      test(myTest, getTestName(testElements[i]));
+    }
+  }
+</script>

@@ -23,7 +23,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{new_child_runtime, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -35,7 +35,7 @@ use js::jsapi::JS_AddInterruptCallback;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
-use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{load_whole_resource, IpcSend};
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
@@ -101,8 +101,14 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, source_name) => {
                 Some(&source_name)
             },
-            _ => return None,
+            _ => None,
         }
+    }
+
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        // Workers always return None, since the pipeline_id is only used to check for document activity,
+        // and this check does not apply to worker event-loops.
+        None
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {
@@ -129,6 +135,11 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
         let (worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         DedicatedWorkerScriptMsg::CommonWorker(worker.unwrap(), WorkerScriptMsg::Common(script_msg))
+    }
+
+    fn inactive_msg() -> Self {
+        // Inactive is only relevant in the context of a browsing-context event-loop.
+        panic!("Workers should never receive messages marked as inactive");
     }
 
     fn wake_up_msg() -> Self {
@@ -272,11 +283,9 @@ impl DedicatedWorkerGlobalScope {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
-        let origin = GlobalScope::current()
-            .expect("No current global object")
-            .origin()
-            .immutable()
-            .clone();
+        let current_global = GlobalScope::current().expect("No current global object");
+        let origin = current_global.origin().immutable().clone();
+        let parent = current_global.runtime_handle();
 
         thread::Builder::new()
             .name(name)
@@ -327,7 +336,7 @@ impl DedicatedWorkerGlobalScope {
                 let url = metadata.final_url;
                 let source = String::from_utf8_lossy(&bytes);
 
-                let runtime = unsafe { new_rt_and_cx() };
+                let runtime = unsafe { new_child_runtime(parent) };
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER.route_ipc_receiver_to_crossbeam_sender(
@@ -424,7 +433,7 @@ impl DedicatedWorkerGlobalScope {
                     JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
-                MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), None);
+                MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), None, None);
             },
             WorkerScriptMsg::Common(msg) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);

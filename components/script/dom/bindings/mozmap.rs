@@ -93,7 +93,9 @@ where
 
             let property = match T::from_jsval(cx, property.handle(), config.clone())? {
                 ConversionResult::Success(property) => property,
-                ConversionResult::Failure(message) => return Ok(ConversionResult::Failure(message)),
+                ConversionResult::Failure(message) => {
+                    return Ok(ConversionResult::Failure(message))
+                },
             };
 
             // TODO: Is this guaranteed to succeed?

@@ -6,15 +6,15 @@
 
 use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
 use crate::flow::{
     EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow,
 };
 use crate::flow_list::MutFlowListIterator;
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
-use crate::model::MaybeAuto;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
 use app_units::Au;
@@ -29,7 +29,7 @@ use style::computed_values::border_spacing::T as BorderSpacing;
 use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{Color, LengthOrPercentageOrAuto};
+use style::values::computed::{Color, Size};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}
@@ -207,16 +207,15 @@ impl TableRowFlow {
             &mut max_block_size,
         );
 
-        let mut block_size = max_block_size;
         // TODO: Percentage block-size
-        block_size = match MaybeAuto::from_style(
-            self.block_flow.fragment.style().content_block_size(),
-            Au(0),
-        ) {
-            MaybeAuto::Auto => block_size,
-            MaybeAuto::Specified(value) => max(value, block_size),
-        };
-        block_size
+        let block_size = self
+            .block_flow
+            .fragment
+            .style()
+            .content_block_size()
+            .to_used_value(Au(0))
+            .unwrap_or(max_block_size);
+        max(block_size, max_block_size)
     }
 
     pub fn assign_block_size_to_self_and_children(
@@ -430,25 +429,18 @@ impl Flow for TableRowFlow {
                 let child_base = kid.mut_base();
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
                     minimum_length: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Percentage(_) => {
-                            child_base.intrinsic_inline_sizes.minimum_inline_size
-                        },
-                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
-                    },
+                        Size::Auto => None,
+                        Size::LengthPercentage(ref lp) => lp.0.maybe_to_used_value(None),
+                    }
+                    .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
                     percentage: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Length(_) => 0.0,
-                        LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
+                        Size::Auto => 0.0,
+                        Size::LengthPercentage(ref lp) => lp.0.as_percentage().map_or(0.0, |p| p.0),
                     },
                     preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                     constrained: match child_specified_inline_size {
-                        LengthOrPercentageOrAuto::Length(_) => true,
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Percentage(_) => false,
+                        Size::Auto => false,
+                        Size::LengthPercentage(ref lp) => lp.0.maybe_to_used_value(None).is_some(),
                     },
                 };
                 min_inline_size = min_inline_size + child_column_inline_size.minimum_length;

@@ -1,5 +1,6 @@
 // META: global=worker,jsshell
 // META: script=../resources/rs-utils.js
+// META: script=../resources/test-utils.js
 'use strict';
 
 test(() => {
@@ -184,6 +185,32 @@ promise_test(() => {
 
 }, 'ReadableStream teeing: canceling both branches should aggregate the cancel reasons into an array');
 
+promise_test(() => {
+
+  const reason1 = new Error('This little one\'s not worth the effort.');
+  const reason2 = new Error('Come, let me get you something.');
+
+  let resolve;
+  const promise = new Promise(r => resolve = r);
+  const rs = new ReadableStream({
+    cancel(reason) {
+      assert_array_equals(reason, [reason1, reason2],
+                          'the cancel reason should be an array containing those from the branches');
+      resolve();
+    }
+  });
+
+  const branch = rs.tee();
+  const branch1 = branch[0];
+  const branch2 = branch[1];
+  return Promise.all([
+    branch2.cancel(reason2),
+    branch1.cancel(reason1),
+    promise
+  ]);
+
+}, 'ReadableStream teeing: canceling both branches in reverse order should aggregate the cancel reasons into an array');
+
 promise_test(t => {
 
   const theError = { name: 'I\'ll be careful.' };
@@ -204,19 +231,46 @@ promise_test(t => {
 
 }, 'ReadableStream teeing: failing to cancel the original stream should cause cancel() to reject on branches');
 
-test(t => {
+test(() => {
 
   let controller;
   const stream = new ReadableStream({ start(c) { controller = c; } });
   const [branch1, branch2] = stream.tee();
 
-  const promise = controller.error("error");
+  controller.error("error");
 
   branch1.cancel().catch(_=>_);
   branch2.cancel().catch(_=>_);
 
-  return promise;
 }, 'ReadableStream teeing: erroring a teed stream should properly handle canceled branches');
+
+promise_test(t => {
+
+  let controller;
+  const stream = new ReadableStream({ start(c) { controller = c; } });
+  const [branch1, branch2] = stream.tee();
+
+  const error = new Error();
+  error.name = 'distinctive';
+
+  // Ensure neither branch is waiting in ReadableStreamDefaultReaderRead().
+  controller.enqueue();
+  controller.enqueue();
+
+  return delay(0).then(() => {
+    // This error will have to be detected via [[closedPromise]].
+    controller.error(error);
+
+    const reader1 = branch1.getReader();
+    const reader2 = branch2.getReader();
+
+    return Promise.all([
+      promise_rejects(t, error, reader1.closed, 'reader1.closed should reject'),
+      promise_rejects(t, error, reader2.closed, 'reader2.closed should reject')
+    ]);
+  });
+
+}, 'ReadableStream teeing: erroring a teed stream should error both branches');
 
 promise_test(() => {
 

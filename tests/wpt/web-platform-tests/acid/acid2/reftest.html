@@ -1,6 +1,8 @@
 <!doctype html>
+<html class=reftest-wait>
 <title>Acid2 reftest</title>
-<link rel="match" href="reference.html">
+<link rel="match" href="px-reference.html">
+<script src="/common/reftest-wait.js"></script>
 <style>
 * {
   margin: 0;
@@ -12,4 +14,12 @@ iframe {
   height: 300px;
 }
 </style>
-<iframe src="test.html#top"></iframe>
+<script>
+function frameLoaded(frame) {
+  let fwin = frame.contentWindow;
+  let fdoc = frame.contentDocument;
+  fdoc.querySelector("#top").scrollIntoView();
+  takeScreenshot();
+}
+</script>
+<iframe src="test.html" onload="frameLoaded(this)"></iframe>

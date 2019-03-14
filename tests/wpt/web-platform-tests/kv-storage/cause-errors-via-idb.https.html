@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: causing errors by directly manipulating the IDB</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/IndexedDB/support-promises.js"></script>
+
+<script type="module">
+import { testWithArea, testWithAreaNoCleanup } from "./helpers/kvs-tests.js";
+
+const mustFail = {
+  "set()": area => area.set(1, "value 1"),
+  "get()": area => area.get(1),
+  "delete()": area => area.delete(1),
+  "keys()": area => {
+    const iter = area.keys();
+    return iter.next();
+  },
+  "values()": area => {
+    const iter = area.values();
+    return iter.next();
+  },
+  "entries()": area => {
+    const iter = area.entries();
+    return iter.next();
+  }
+};
+
+for (const [method, testFn] of Object.entries(mustFail)) {
+  testWithArea(async (area, t) => {
+    const { database, version } = area.backingStore;
+    const db = await migrateNamedDatabase(t, database, version + 1, () => {});
+
+    const result = testFn(area);
+
+    await promise_rejects(t, "VersionError", result);
+  }, `${method}: upgrading the database must cause a "VersionError" DOMException`);
+
+  testWithAreaNoCleanup(async (area, t) => {
+    const { database } = area.backingStore;
+
+    // Set up a new database with that name, but with no object stores!
+    // NB: this depends on the fact that createNameDatabase sets the initial version to 1, which is
+    // the same as the database version used/expected by KV Storage.
+    const db = await createNamedDatabase(t, database, () => {});
+
+    const result = testFn(area);
+
+    await promise_rejects(t, "InvalidStateError", result);
+  }, `${method}: creating a same-named database with no object store must cause an "InvalidStateError" DOMException`);
+
+  testWithAreaNoCleanup(async (area, t) => {
+    const { database } = area.backingStore;
+
+    const db = await createNamedDatabase(t, database, db => {
+      db.createObjectStore("wrongName");
+    });
+
+    const result = testFn(area);
+
+    await promise_rejects(t, "InvalidStateError", result);
+  }, `${method}: creating a same-named database with a single object store with the wrong name must cause an "InvalidStateError" DOMException`);
+
+  testWithAreaNoCleanup(async (area, t) => {
+    const { database, store } = area.backingStore;
+
+    const db = await createNamedDatabase(t, database, db => {
+      db.createObjectStore(store);
+      db.createObjectStore("wrongName");
+    });
+
+    const result = testFn(area);
+
+    await promise_rejects(t, "InvalidStateError", result);
+  }, `${method}: creating a same-named database with more than one object store must cause an "InvalidStateError" DOMException`);
+
+  testWithAreaNoCleanup(async (area, t) => {
+    const { database, store } = area.backingStore;
+
+    const db = await createNamedDatabase(t, database, db => {
+      db.createObjectStore(store, { autoIncrement: true });
+    });
+
+    const result = testFn(area);
+
+    await promise_rejects(t, "InvalidStateError", result);
+  }, `${method}: creating a same-named database the right object store but a bad schema (autoIncrement = true) must cause an "InvalidStateError" DOMException`);
+
+  testWithAreaNoCleanup(async (area, t) => {
+    const { database, store } = area.backingStore;
+
+    const db = await createNamedDatabase(t, database, db => {
+      db.createObjectStore(store, { keyPath: "somekey" });
+    });
+
+    const result = testFn(area);
+
+    await promise_rejects(t, "InvalidStateError", result);
+  }, `${method}: creating a same-named database the right object store but a bad schema (keyPath != null) must cause an "InvalidStateError" DOMException`);
+
+  testWithAreaNoCleanup(async (area, t) => {
+    const { database, store } = area.backingStore;
+
+    const db = await createNamedDatabase(t, database, db => {
+      const s = db.createObjectStore(store);
+      s.createIndex("index", "indexKey");
+    });
+
+    const result = testFn(area);
+
+    await promise_rejects(t, "InvalidStateError", result);
+  }, `${method}: creating a same-named database the right object store but a bad schema (has indices) must cause an "InvalidStateError" DOMException`);
+}
+</script>

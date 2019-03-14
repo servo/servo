@@ -34,7 +34,7 @@ use js::rust::HandleValue;
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{NonHTTP, HTTP};
-use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookieForUrl,DeleteCookies};
+use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
 use script_traits::webdriver_msg::WebDriverCookieError;
 use script_traits::webdriver_msg::{
@@ -203,6 +203,23 @@ pub fn handle_find_elements_css(
     reply.send(node_ids).unwrap();
 }
 
+pub fn handle_find_element_element_css(
+    documents: &Documents,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    reply: IpcSender<Result<Option<String>, ()>>,
+) {
+    let node_id = find_node_by_unique_id(documents, pipeline, element_id)
+        .ok_or(())
+        .and_then(|node| {
+            node.query_selector(DOMString::from(selector))
+                .map_err(|_| ())
+        })
+        .map(|node| node.map(|x| x.upcast::<Node>().unique_id()));
+    reply.send(node_id).unwrap();
+}
+
 pub fn handle_focus_element(
     documents: &Documents,
     pipeline: PipelineId,
@@ -339,15 +356,33 @@ pub fn handle_add_cookie(
         .unwrap();
 }
 
-pub fn handle_delete_cookies(documents: &Documents,reply: IpcSender<Result<()>>) {
-    for (id, document) in documents.iter() {
-        document
-            .window()
-            .upcast::<GlobalScope>()
-            .resource_threads()
-            .send(DeleteCookies());
-    }
-    reply.send(Ok(())).unwrap();
+pub fn handle_delete_cookies(
+    documents: &Documents,
+    pipeline: PipelineId,
+    reply: IpcSender<Result<(), WebDriverCookieError>>,
+) {
+    let document = match documents.find_document(pipeline) {
+        Some(document) => document,
+        None => {
+            return reply
+                .send(Err(WebDriverCookieError::UnableToDeleteCookies))
+                .unwrap();
+        },
+    };
+    reply
+        .send(
+            match document
+                .window()
+                .upcast::<GlobalScope>()
+                .resource_threads()
+                .send(DeleteCookies())
+                .unwrap()
+            {
+                () => Ok(()),
+                //Used match to add Error Handling Cases later on
+            },
+        )
+        .unwrap();
 }
 
 pub fn handle_get_title(documents: &Documents, pipeline: PipelineId, reply: IpcSender<String>) {

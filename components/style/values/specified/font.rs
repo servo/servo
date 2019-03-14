@@ -16,8 +16,8 @@ use crate::values::generics::font::{self as generics, FeatureTagValue, FontSetti
 use crate::values::generics::font::{KeywordSize, VariationValue};
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
-use crate::values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage};
-use crate::values::specified::{NoCalcLength, Number, Percentage};
+use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
+use crate::values::specified::{NoCalcLength, NonNegativeNumber, Number, Percentage};
 use crate::values::CustomIdent;
 use crate::Atom;
 use app_units::Au;
@@ -81,7 +81,7 @@ pub const MAX_FONT_WEIGHT: f32 = 1000.;
 /// A specified font-weight value.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum FontWeight {
     /// `<font-weight-absolute>`
     Absolute(AbsoluteFontWeight),
@@ -108,22 +108,6 @@ impl FontWeight {
         debug_assert!(kw % 100 == 0);
         debug_assert!(kw as f32 <= MAX_FONT_WEIGHT);
         FontWeight::Absolute(AbsoluteFontWeight::Weight(Number::new(kw as f32)))
-    }
-}
-
-impl Parse for FontWeight {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<FontWeight, ParseError<'i>> {
-        if let Ok(absolute) = input.try(|input| AbsoluteFontWeight::parse(context, input)) {
-            return Ok(FontWeight::Absolute(absolute));
-        }
-
-        Ok(try_match_ident_ignore_ascii_case! { input,
-            "bolder" => FontWeight::Bolder,
-            "lighter" => FontWeight::Lighter,
-        })
     }
 }
 
@@ -335,7 +319,7 @@ impl SpecifiedFontStyle {
 }
 
 /// The specified value of the `font-style` property.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 #[allow(missing_docs)]
 pub enum FontStyle {
     Specified(SpecifiedFontStyle),
@@ -368,20 +352,11 @@ impl ToComputedValue for FontStyle {
     }
 }
 
-impl Parse for FontStyle {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        Ok(FontStyle::Specified(SpecifiedFontStyle::parse(
-            context, input,
-        )?))
-    }
-}
-
 /// A value for the `font-stretch` property.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
+///
+/// TODO(emilio): We could derive Parse if we had NonNegativePercentage.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 #[repr(u8)]
@@ -510,7 +485,7 @@ impl ToComputedValue for FontStretch {
 /// A specified font-size value
 pub enum FontSize {
     /// A length; e.g. 10px.
-    Length(LengthOrPercentage),
+    Length(LengthPercentage),
     /// A keyword value, along with a ratio and absolute offset.
     /// The ratio in any specified keyword value
     /// will be 1 (with offset 0), but we cascade keywordness even
@@ -531,8 +506,8 @@ pub enum FontSize {
     System(SystemFont),
 }
 
-impl From<LengthOrPercentage> for FontSize {
-    fn from(other: LengthOrPercentage) -> Self {
+impl From<LengthPercentage> for FontSize {
+    fn from(other: LengthPercentage) -> Self {
         FontSize::Length(other)
     }
 }
@@ -628,13 +603,13 @@ impl Parse for FamilyName {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Preserve the readability of text when font fallback occurs
 pub enum FontSizeAdjust {
     /// None variant
     None,
     /// Number variant
-    Number(Number),
+    Number(NonNegativeNumber),
     /// system font
     #[css(skip)]
     System(SystemFont),
@@ -657,7 +632,9 @@ impl ToComputedValue for FontSizeAdjust {
         match *self {
             FontSizeAdjust::None => computed::FontSizeAdjust::None,
             FontSizeAdjust::Number(ref n) => {
-                computed::FontSizeAdjust::Number(n.to_computed_value(context))
+                // The computed version handles clamping of animated values
+                // itself.
+                computed::FontSizeAdjust::Number(n.to_computed_value(context).0)
             },
             FontSizeAdjust::System(_) => self.compute_system(context),
         }
@@ -666,29 +643,10 @@ impl ToComputedValue for FontSizeAdjust {
     fn from_computed_value(computed: &computed::FontSizeAdjust) -> Self {
         match *computed {
             computed::FontSizeAdjust::None => FontSizeAdjust::None,
-            computed::FontSizeAdjust::Number(ref v) => {
-                FontSizeAdjust::Number(Number::from_computed_value(v))
+            computed::FontSizeAdjust::Number(v) => {
+                FontSizeAdjust::Number(NonNegativeNumber::from_computed_value(&v.into()))
             },
         }
-    }
-}
-
-impl Parse for FontSizeAdjust {
-    /// none | <number>
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<FontSizeAdjust, ParseError<'i>> {
-        if input
-            .try(|input| input.expect_ident_matching("none"))
-            .is_ok()
-        {
-            return Ok(FontSizeAdjust::None);
-        }
-
-        Ok(FontSizeAdjust::Number(Number::parse_non_negative(
-            context, input,
-        )?))
     }
 }
 
@@ -863,7 +821,7 @@ impl FontSize {
         };
         let mut info = None;
         let size = match *self {
-            FontSize::Length(LengthOrPercentage::Length(NoCalcLength::FontRelative(value))) => {
+            FontSize::Length(LengthPercentage::Length(NoCalcLength::FontRelative(value))) => {
                 if let FontRelativeLength::Em(em) = value {
                     // If the parent font was keyword-derived, this is too.
                     // Tack the em unit onto the factor
@@ -871,22 +829,22 @@ impl FontSize {
                 }
                 value.to_computed_value(context, base_size).into()
             },
-            FontSize::Length(LengthOrPercentage::Length(NoCalcLength::ServoCharacterWidth(
+            FontSize::Length(LengthPercentage::Length(NoCalcLength::ServoCharacterWidth(
                 value,
             ))) => value.to_computed_value(base_size.resolve(context)).into(),
-            FontSize::Length(LengthOrPercentage::Length(NoCalcLength::Absolute(ref l))) => {
+            FontSize::Length(LengthPercentage::Length(NoCalcLength::Absolute(ref l))) => {
                 context.maybe_zoom_text(l.to_computed_value(context).into())
             },
-            FontSize::Length(LengthOrPercentage::Length(ref l)) => {
+            FontSize::Length(LengthPercentage::Length(ref l)) => {
                 l.to_computed_value(context).into()
             },
-            FontSize::Length(LengthOrPercentage::Percentage(pc)) => {
+            FontSize::Length(LengthPercentage::Percentage(pc)) => {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
                 info = compose_keyword(pc.0);
                 base_size.resolve(context).scale_by(pc.0).into()
             },
-            FontSize::Length(LengthOrPercentage::Calc(ref calc)) => {
+            FontSize::Length(LengthPercentage::Calc(ref calc)) => {
                 let parent = context.style().get_parent_font().clone_font_size();
                 // if we contain em/% units and the parent was keyword derived, this is too
                 // Extract the ratio/offset and compose it
@@ -916,9 +874,7 @@ impl FontSize {
                     info = parent.keyword_info.map(|i| i.compose(ratio, abs.into()));
                 }
                 let calc = calc.to_computed_value_zoomed(context, base_size);
-                calc.to_used_value(Some(base_size.resolve(context)))
-                    .unwrap()
-                    .into()
+                calc.to_used_value(base_size.resolve(context)).into()
             },
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived
@@ -966,7 +922,7 @@ impl ToComputedValue for FontSize {
 
     #[inline]
     fn from_computed_value(computed: &computed::FontSize) -> Self {
-        FontSize::Length(LengthOrPercentage::Length(
+        FontSize::Length(LengthPercentage::Length(
             ToComputedValue::from_computed_value(&computed.size.0),
         ))
     }
@@ -987,10 +943,10 @@ impl FontSize {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<FontSize, ParseError<'i>> {
-        if let Ok(lop) =
-            input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+        if let Ok(lp) =
+            input.try(|i| LengthPercentage::parse_non_negative_quirky(context, i, allow_quirks))
         {
-            return Ok(FontSize::Length(lop));
+            return Ok(FontSize::Length(lp));
         }
 
         if let Ok(kw) = input.try(KeywordSize::parse) {

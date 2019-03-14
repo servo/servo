@@ -4,6 +4,7 @@
 
 let ReadableStreamDefaultReader;
 let ReadableStreamDefaultController;
+let ReadableStreamAsyncIteratorPrototype;
 
 test(() => {
 
@@ -22,6 +23,13 @@ test(() => {
   });
 
 }, 'Can get the ReadableStreamDefaultController constructor indirectly');
+
+test(() => {
+
+  const rs = new ReadableStream();
+  ReadableStreamAsyncIteratorPrototype = Object.getPrototypeOf(rs.getIterator());
+
+}, 'Can get ReadableStreamAsyncIteratorPrototype object indirectly');
 
 function fakeRS() {
   return Object.setPrototypeOf({
@@ -68,6 +76,13 @@ function realRSDefaultController() {
   return controller;
 }
 
+function fakeRSAsyncIterator() {
+  return Object.setPrototypeOf({
+    next() { },
+    return(value = undefined) { }
+  }, ReadableStreamAsyncIteratorPrototype);
+}
+
 promise_test(t => {
 
   return methodRejectsForAll(t, ReadableStream.prototype, 'cancel',
@@ -77,10 +92,24 @@ promise_test(t => {
 
 test(() => {
 
+  methodThrowsForAll(ReadableStream.prototype, 'getIterator',
+                     [fakeRS(), realRSDefaultReader(), realRSDefaultController(), undefined, null]);
+
+}, 'ReadableStream.prototype.getIterator enforces a brand check');
+
+test(() => {
+
   methodThrowsForAll(ReadableStream.prototype, 'getReader',
                      [fakeRS(), realRSDefaultReader(), realRSDefaultController(), undefined, null]);
 
 }, 'ReadableStream.prototype.getReader enforces a brand check');
+
+test(() => {
+
+  getterThrowsForAll(ReadableStream.prototype, 'locked',
+                     [fakeRS(), realRSDefaultReader(), realRSDefaultController(), undefined, null]);
+
+}, 'ReadableStream.prototype.locked enforces a brand check');
 
 test(() => {
 
@@ -139,6 +168,13 @@ test(() => {
 
 test(() => {
 
+  getterThrowsForAll(ReadableStreamDefaultController.prototype, 'desiredSize',
+                     [fakeRSDefaultController(), realRS(), realRSDefaultReader(), undefined, null]);
+
+}, 'ReadableStreamDefaultController.prototype.desiredSize enforces a brand check');
+
+test(() => {
+
   methodThrowsForAll(ReadableStreamDefaultController.prototype, 'close',
                      [fakeRSDefaultController(), realRS(), realRSDefaultReader(), undefined, null]);
 
@@ -157,3 +193,17 @@ test(() => {
                      [fakeRSDefaultController(), realRS(), realRSDefaultReader(), undefined, null]);
 
 }, 'ReadableStreamDefaultController.prototype.error enforces a brand check');
+
+promise_test(t => {
+
+  return methodRejectsForAll(t, ReadableStreamAsyncIteratorPrototype, 'next',
+                             [fakeRSAsyncIterator(), realRS(), realRSDefaultReader(), undefined, null]);
+
+}, 'ReadableStreamAsyncIteratorPrototype.next enforces a brand check');
+
+promise_test(t => {
+
+  return methodRejectsForAll(t, ReadableStreamAsyncIteratorPrototype, 'return',
+                             [fakeRSAsyncIterator(), realRS(), realRSDefaultReader(), undefined, null]);
+
+}, 'ReadableStreamAsyncIteratorPrototype.return enforces a brand check');

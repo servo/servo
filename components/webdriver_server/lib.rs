@@ -766,6 +766,42 @@ impl Handler {
         }
     }
 
+    // https://w3c.github.io/webdriver/#find-element-from-element
+    fn handle_find_element_element(
+        &self,
+        element: &WebElement,
+        parameters: &LocatorParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        if parameters.using != LocatorStrategy::CSSSelector {
+            return Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation,
+                "Unsupported locator strategy",
+            ));
+        }
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::FindElementElementCSS(
+            parameters.value.clone(),
+            element.id.clone(),
+            sender,
+        );
+
+        self.browsing_context_script_command(cmd)?;
+
+        match receiver.recv().unwrap() {
+            Ok(value) => {
+                let value_resp = serde_json::to_value(
+                    value.map(|x| serde_json::to_value(WebElement::new(x)).unwrap()),
+                )?;
+                Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+            },
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::InvalidSelector,
+                "Invalid selector",
+            )),
+        }
+    }
+
     // https://w3c.github.io/webdriver/webdriver-spec.html#get-element-rect
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -930,12 +966,16 @@ impl Handler {
                     ErrorStatus::UnableToSetCookie,
                     "Unable to set cookie",
                 )),
+                WebDriverCookieError::UnableToDeleteCookies => Err(WebDriverError::new(
+                    ErrorStatus::UnsupportedOperation,
+                    "Unsupported Command For Add Cookie",
+                )),
             },
         }
     }
 
     fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
-        let (sender,_) = ipc::channel().unwrap();
+        let (sender, _) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
         self.browsing_context_script_command(cmd)?;
         Ok(WebDriverResponse::Void)
@@ -1199,6 +1239,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
+            WebDriverCommand::FindElementElement(ref element, ref parameters) => {
+                self.handle_find_element_element(element, parameters)
+            },
             WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),

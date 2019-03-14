@@ -38,6 +38,7 @@ class Config:
     def __init__(self):
         self.task_name_template = "%s"
         self.index_prefix = "garbage.servo-decisionlib"
+        self.index_read_only = False
         self.scopes_for_all_subtasks = []
         self.routes_for_all_subtasks = []
         self.docker_image_buil_worker_type = None
@@ -265,7 +266,8 @@ class Task:
         except taskcluster.TaskclusterRestFailure as e:
             if e.status_code != 404:  # pragma: no cover
                 raise
-            self.routes.append("index.%s.%s" % (CONFIG.index_prefix, index_path))
+            if not CONFIG.index_read_only:
+                self.routes.append("index.%s.%s" % (CONFIG.index_prefix, index_path))
             task_id = self.create()
 
         SHARED.found_or_created_indexed_tasks[index_path] = task_id
@@ -429,14 +431,15 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             cd repo
         """
         if sparse_checkout:
+            self.with_mounts({
+                "file": "sparse-checkout",
+                "content": {"raw": "\n".join(sparse_checkout)},
+            })
             git += """
                 git config core.sparsecheckout true
-                echo %SPARSE_CHECKOUT_BASE64% > .git\\info\\sparse.b64
-                certutil -decode .git\\info\\sparse.b64 .git\\info\\sparse-checkout
+                copy ..\\sparse-checkout .git\\info\\sparse-checkout
                 type .git\\info\\sparse-checkout
             """
-            self.env["SPARSE_CHECKOUT_BASE64"] = base64.b64encode(
-                "\n".join(sparse_checkout).encode("utf-8"))
         git += """
             git fetch --depth 1 %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%

@@ -3,7 +3,7 @@
 <title>CSS Grid Layout Test: Grid positioned items unknown named grid line</title>
 <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
-<meta name="assert" content="This test checks that grid placement properties of absolutely positioned items using unknown named grid lines are treated as 'auto'.">
+<meta name="assert" content="This test checks that grid placement properties of absolutely positioned items can reference implicit grid lines.">
 <link rel="stylesheet" href="support/grid.css">
 <style>
 
@@ -58,7 +58,7 @@
     data-offset-x="15" data-offset-y="15" data-expected-width="515" data-expected-height="315">
   </div>
   <div class="absolute sizedToGridArea startUnknownLine"
-    data-offset-x="0" data-offset-y="0" data-expected-width="315" data-expected-height="215">
+    data-offset-x="315" data-offset-y="215" data-expected-width="215" data-expected-height="115">
   </div>
 </div>
 
@@ -70,7 +70,7 @@
     data-offset-x="0" data-offset-y="15" data-expected-width="515" data-expected-height="315">
   </div>
   <div class="absolute sizedToGridArea startUnknownLine"
-    data-offset-x="215" data-offset-y="0" data-expected-width="315" data-expected-height="215">
+    data-offset-x="0" data-offset-y="215" data-expected-width="215" data-expected-height="115">
   </div>
 </div>
 

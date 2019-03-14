@@ -109,6 +109,24 @@ test_interpolation(
 test_interpolation(
   {
     property: 'transform',
+    from: 'rotate3d(1, 1, 1, -60deg) translateX(100px)',
+    to: 'rotate3d(2, 2, 2, 60deg) translateY(200px)',
+  }, [{ at: 0.25, expect: 'rotate3d(1, 1, 1, -30deg) translate(75px, 50px)' }],
+  'Match on rotation using collinear rotation axes'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'rotate3d(1, 0, 0, 360deg) translateX(100px)',
+    to: 'rotate3d(0, 1, 0, -720deg) translateY(200px)',
+  }, [{ at: 0.25, expect: 'rotate3d(0, 0, 1, 0deg) translate(75px, 50px)' }],
+  'Match on rotation with spherical interpolation'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
     from: 'rotate(0deg) translate(100px)',
     to: 'rotate(720deg) scale(2) translate(200px)',
   },
@@ -134,6 +152,56 @@ test_interpolation(
   },
   [{ at: 0.25, expect: 'matrix(2, 0, 0, 2, 100, 0)' }],
   'Complete mismatch including length'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'rotate(0deg) scaleX(1)',
+    to: 'rotate(720deg) translateX(0px) scaleX(2)'
+  },
+  [{at: 0.25, expect: 'rotate(180deg) matrix(1.25, 0, 0, 1, 0, 0)'}],
+  'Mismatched lengths (from is shorter), partial match'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'rotate(720deg) translateX(0px) scaleX(2)',
+    to: 'rotate(0deg) scaleX(1)'
+  },
+  [{at: 0.25, expect: 'rotate(540deg) matrix(1.75, 0, 0, 1, 0, 0)'}],
+  'Mismatched lengths (to is shorter), partial match'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'scaleX(-3) scaleY(2)',
+    to: 'scaleY(-3) translateX(0px) scaleX(2)'
+  },
+  [{at: 0.25, expect: 'scale(-2, 0) matrix(1.25, 0, 0, 1.75, 0, 0)'}],
+  'Mismatched lengths (from is shorter), partial match on primitive'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'scaleY(-3) translateX(0px) scaleX(2)',
+    to: 'scaleX(-3) scaleY(2)'
+  },
+  [{at: 0.25, expect: 'scale(0, -2) matrix(1.75, 0, 0, 1.25, 0, 0)'}],
+  'Mismatched lengths (to is shorter), partial match on primitive'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'scaleY(-3) translateX(0px)',
+    to: 'scaleX(-3) scaleY(2)'
+  },
+  [{at: 0.25, expect: 'scale(0, -2) matrix(1, 0, 0, 1.25, 0, 0)'}],
+  'Common prefix on primitive'
 );
 </script>
 </body>

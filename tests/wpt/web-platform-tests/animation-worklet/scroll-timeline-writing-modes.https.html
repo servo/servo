@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<title>Tests that ScrollTimeline works properly with writing mode and directionality</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+
+<script>
+// Creates a DOM structure like:
+//   - container
+//     - box {100x100}
+//     - scroller {100x100, writing-mode, direction}
+//       - contents
+function createTestDOM(x_scroll_axis, writing_mode, direction) {
+  const elements = {};
+
+  elements.container = document.createElement('div');
+
+  elements.box = document.createElement('div');
+  elements.box.style.height = '100px';
+  elements.box.style.width = '100px';
+
+  elements.scroller = document.createElement('div');
+  elements.scroller.style.height = '100px';
+  elements.scroller.style.width = '100px';
+  if (x_scroll_axis)
+    elements.scroller.style.overflowX = 'scroll';
+  else
+    elements.scroller.style.overflowY = 'scroll';
+  elements.scroller.style.direction = direction;
+  elements.scroller.style.writingMode = writing_mode;
+
+  // Callers don't need access to this.
+  const contents = document.createElement('div');
+  contents.style.height = x_scroll_axis ? '100%' : '1000px';
+  contents.style.width = x_scroll_axis ? '1000px' : '100%';
+
+  elements.scroller.appendChild(contents);
+  elements.container.appendChild(elements.box);
+  elements.container.appendChild(elements.scroller);
+  document.body.appendChild(elements.container);
+
+  return elements;
+}
+
+function createAndPlayTestAnimation(elements, timeline_orientation) {
+  const effect = new KeyframeEffect(
+      elements.box,
+      [{transform: 'translateY(0)'}, {transform: 'translateY(200px)'}], {
+        duration: 1000,
+      });
+
+  const timeline = new ScrollTimeline({
+    scrollSource: elements.scroller,
+    timeRange: 1000,
+    orientation: timeline_orientation
+  });
+  const animation = new WorkletAnimation('passthrough_except_nan', effect, timeline);
+  animation.play();
+  return animation;
+}
+
+setup(setupAndRegisterTests, {explicit_done: true});
+
+function setupAndRegisterTests() {
+  registerPassthroughExceptNaNAnimator().then(() => {
+    // Note that block horizontal-tb is tested implicitly in the basic
+    // ScrollTimeline tests (as it is the default).
+    async_test(
+        block_vertical_lr,
+        'A block ScrollTimeline should produce the correct current time for vertical-lr');
+    async_test(
+        block_vertical_rl,
+        'A block ScrollTimeline should produce the correct current time for vertical-rl');
+    // Again, inline for horizontal-tb and direction: ltr is the default
+    // inline mode and so is tested elsewhere.
+    async_test(
+        inline_horizontal_tb_rtl,
+        'An inline ScrollTimeline should produce the correct current time for horizontal-tb and direction: rtl');
+    async_test(
+        inline_vertical_writing_mode_ltr,
+        'An inline ScrollTimeline should produce the correct current time for vertical writing mode');
+    async_test(
+        inline_vertical_writing_mode_rtl,
+        'An inline ScrollTimeline should produce the correct current time for vertical writing mode and direction: rtl');
+    done();
+  });
+}
+
+function block_vertical_lr(t) {
+  const elements = createTestDOM(true, 'vertical-lr', 'ltr');
+  const animation = createAndPlayTestAnimation(elements, 'block');
+
+  // Move the scroller to the 25% point.
+  const maxScroll =
+      elements.scroller.scrollWidth - elements.scroller.clientWidth;
+  elements.scroller.scrollLeft = 0.25 * maxScroll;
+
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
+    assert_equals(
+        getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
+  }));
+}
+
+function block_vertical_rl(t) {
+  const elements = createTestDOM(true, 'vertical-rl', 'ltr');
+  const animation = createAndPlayTestAnimation(elements, 'block');
+
+  // Move the scroller to the 75% point. Since it is vertical-rl, this is
+  // equivalent to the 25% point for the ScrollTimeline.
+  const maxScroll =
+      elements.scroller.scrollWidth - elements.scroller.clientWidth;
+  elements.scroller.scrollLeft = 0.75 * maxScroll;
+
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
+    assert_equals(
+        getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
+  }));
+}
+
+function inline_horizontal_tb_rtl(t) {
+  const elements = createTestDOM(true, 'horizontal-tb', 'rtl');
+  const animation = createAndPlayTestAnimation(elements, 'inline');
+
+  // Move the scroller to the 75% point. Since it is direction: rtl, this is
+  // equivalent to the 25% point for the ScrollTimeline.
+  const maxScroll =
+      elements.scroller.scrollWidth - elements.scroller.clientWidth;
+  elements.scroller.scrollLeft = 0.75 * maxScroll;
+
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
+    assert_equals(
+        getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
+  }));
+}
+
+function inline_vertical_writing_mode_ltr(t) {
+  const elements = createTestDOM(false, 'vertical-lr', 'ltr');
+  const animation = createAndPlayTestAnimation(elements, 'inline');
+
+  // Move the scroller to the 25% point.
+  const maxScroll =
+      elements.scroller.scrollHeight - elements.scroller.clientHeight;
+  elements.scroller.scrollTop = 0.25 * maxScroll;
+
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
+    assert_equals(
+        getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
+  }));
+}
+
+function inline_vertical_writing_mode_rtl(t) {
+  const elements = createTestDOM(false, 'vertical-lr', 'rtl');
+  const animation = createAndPlayTestAnimation(elements, 'inline');
+
+  // Move the scroller to the 75% point. Since this is a vertical writing mode
+  // and direction: rtl, this is 25% of the ScrollTimeline currentTime.
+  const maxScroll =
+      elements.scroller.scrollHeight - elements.scroller.clientHeight;
+  elements.scroller.scrollTop = 0.75 * maxScroll;
+
+  waitForNotNullLocalTime(animation).then(t.step_func_done(() => {
+    assert_equals(
+        getComputedStyle(elements.box).transform, 'matrix(1, 0, 0, 1, 0, 50)');
+  }));
+}
+</script>

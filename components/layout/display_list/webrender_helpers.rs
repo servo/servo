@@ -7,55 +7,67 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use crate::display_list::items::{ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
+use crate::display_list::items::{ClipScrollNode, ClipScrollNodeType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, RasterSpace};
+use webrender_api::{self, ClipId, DisplayListBuilder, RasterSpace, SpaceAndClipInfo, SpatialId};
 use webrender_api::{LayoutPoint, SpecificDisplayItem};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
 }
 
+struct ClipScrollState {
+    clip_ids: Vec<Option<ClipId>>,
+    spatial_ids: Vec<Option<SpatialId>>,
+    active_clip_id: ClipId,
+    active_spatial_id: SpatialId,
+}
+
 trait WebRenderDisplayItemConverter {
     fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo;
     fn convert_to_webrender(
         &self,
-        builder: &mut DisplayListBuilder,
         clip_scroll_nodes: &[ClipScrollNode],
-        clip_ids: &mut Vec<Option<ClipId>>,
-        current_clip_and_scroll_info: &mut ClipAndScrollInfo,
+        state: &mut ClipScrollState,
+        builder: &mut DisplayListBuilder,
     );
 }
 
 impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
-        let mut builder = DisplayListBuilder::with_capacity(
-            pipeline_id.to_webrender(),
-            self.bounds().size,
-            1024 * 1024,
-        ); // 1 MB of space
-
-        let mut current_clip_and_scroll_info = pipeline_id.root_clip_and_scroll_info();
-        builder.push_clip_and_scroll_info(current_clip_and_scroll_info);
-
-        let mut clip_ids = Vec::with_capacity(self.clip_scroll_nodes.len());
-        clip_ids.resize(self.clip_scroll_nodes.len(), None);
+        let mut clip_ids = vec![None; self.clip_scroll_nodes.len()];
+        let mut spatial_ids = vec![None; self.clip_scroll_nodes.len()];
 
         // We need to add the WebRender root reference frame and root scroll node ids
         // here manually, because WebRender creates these automatically.
+        // We also follow the "old" WebRender API for clip/scroll for now,
+        // hence both arrays are initialized based on FIRST_SPATIAL_NODE_INDEX,
+        // while FIRST_CLIP_NODE_INDEX is not taken into account.
+
         let webrender_pipeline = pipeline_id.to_webrender();
-        clip_ids[0] = Some(ClipId::root_reference_frame(webrender_pipeline));
-        clip_ids[1] = Some(ClipId::root_scroll_node(webrender_pipeline));
+        clip_ids[0] = Some(ClipId::root(webrender_pipeline));
+        clip_ids[1] = Some(ClipId::root(webrender_pipeline));
+        spatial_ids[0] = Some(SpatialId::root_reference_frame(webrender_pipeline));
+        spatial_ids[1] = Some(SpatialId::root_scroll_node(webrender_pipeline));
+
+        let mut state = ClipScrollState {
+            clip_ids,
+            spatial_ids,
+            active_clip_id: ClipId::root(webrender_pipeline),
+            active_spatial_id: SpatialId::root_scroll_node(webrender_pipeline),
+        };
+
+        let mut builder = DisplayListBuilder::with_capacity(
+            webrender_pipeline,
+            self.bounds().size,
+            1024 * 1024, // 1 MB of space
+        );
 
         for item in &self.list {
-            item.convert_to_webrender(
-                &mut builder,
-                &self.clip_scroll_nodes,
-                &mut clip_ids,
-                &mut current_clip_and_scroll_info,
-            );
+            item.convert_to_webrender(&self.clip_scroll_nodes, &mut state, &mut builder);
         }
+
         builder
     }
 }
@@ -77,158 +89,214 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
     fn convert_to_webrender(
         &self,
-        builder: &mut DisplayListBuilder,
         clip_scroll_nodes: &[ClipScrollNode],
-        clip_ids: &mut Vec<Option<ClipId>>,
-        current_clip_and_scroll_info: &mut ClipAndScrollInfo,
+        state: &mut ClipScrollState,
+        builder: &mut DisplayListBuilder,
     ) {
-        let get_id = |clip_ids: &[Option<ClipId>], index: ClipScrollNodeIndex| -> ClipId {
-            match clip_ids[index.to_index()] {
-                Some(id) => id,
-                None => unreachable!("Tried to use WebRender ClipId before it was defined."),
-            }
-        };
+        // Note: for each time of a display item, if we register one of `clip_ids` or `spatial_ids`,
+        // we also register the other one as inherited from the current state or the stack.
+        // This is not an ideal behavior, but it is compatible with the old WebRender model
+        // of the clip-scroll tree.
 
         let clip_and_scroll_indices = self.base().clipping_and_scrolling;
-        let scrolling_id = get_id(clip_ids, clip_and_scroll_indices.scrolling);
-        let clip_and_scroll_info = match clip_and_scroll_indices.clipping {
-            None => ClipAndScrollInfo::simple(scrolling_id),
-            Some(index) => ClipAndScrollInfo::new(scrolling_id, get_id(clip_ids, index)),
-        };
+        trace!("converting {:?}", clip_and_scroll_indices);
 
-        if clip_and_scroll_info != *current_clip_and_scroll_info {
-            builder.pop_clip_id();
-            builder.push_clip_and_scroll_info(clip_and_scroll_info);
-            *current_clip_and_scroll_info = clip_and_scroll_info;
+        let cur_spatial_id = state.spatial_ids[clip_and_scroll_indices.scrolling.to_index()]
+            .expect("Tried to use WebRender SpatialId before it was defined.");
+        if cur_spatial_id != state.active_spatial_id {
+            state.active_spatial_id = cur_spatial_id;
         }
 
+        let internal_clip_id = clip_and_scroll_indices
+            .clipping
+            .unwrap_or(clip_and_scroll_indices.scrolling);
+        let cur_clip_id = state.clip_ids[internal_clip_id.to_index()]
+            .expect("Tried to use WebRender ClipId before it was defined.");
+        if cur_clip_id != state.active_clip_id {
+            state.active_clip_id = cur_clip_id;
+        }
+
+        let space_clip_info = SpaceAndClipInfo {
+            spatial_id: state.active_spatial_id,
+            clip_id: state.active_clip_id,
+        };
         match *self {
             DisplayItem::Rectangle(ref item) => {
                 builder.push_item(
                     &SpecificDisplayItem::Rectangle(item.item),
                     &self.prim_info(),
+                    &space_clip_info,
                 );
             },
             DisplayItem::Text(ref item) => {
-                builder.push_item(&SpecificDisplayItem::Text(item.item), &self.prim_info());
+                builder.push_item(
+                    &SpecificDisplayItem::Text(item.item),
+                    &self.prim_info(),
+                    &space_clip_info,
+                );
                 builder.push_iter(item.data.iter());
             },
             DisplayItem::Image(ref item) => {
-                builder.push_item(&SpecificDisplayItem::Image(item.item), &self.prim_info());
+                builder.push_item(
+                    &SpecificDisplayItem::Image(item.item),
+                    &self.prim_info(),
+                    &space_clip_info,
+                );
             },
             DisplayItem::Border(ref item) => {
                 if !item.data.is_empty() {
                     builder.push_stops(item.data.as_ref());
                 }
-                builder.push_item(&SpecificDisplayItem::Border(item.item), &self.prim_info());
+                builder.push_item(
+                    &SpecificDisplayItem::Border(item.item),
+                    &self.prim_info(),
+                    &space_clip_info,
+                );
             },
             DisplayItem::Gradient(ref item) => {
                 builder.push_stops(item.data.as_ref());
-                builder.push_item(&SpecificDisplayItem::Gradient(item.item), &self.prim_info());
+                builder.push_item(
+                    &SpecificDisplayItem::Gradient(item.item),
+                    &self.prim_info(),
+                    &space_clip_info,
+                );
             },
             DisplayItem::RadialGradient(ref item) => {
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(
                     &SpecificDisplayItem::RadialGradient(item.item),
                     &self.prim_info(),
+                    &space_clip_info,
                 );
             },
             DisplayItem::Line(ref item) => {
-                builder.push_item(&SpecificDisplayItem::Line(item.item), &self.prim_info());
+                builder.push_item(
+                    &SpecificDisplayItem::Line(item.item),
+                    &self.prim_info(),
+                    &space_clip_info,
+                );
             },
             DisplayItem::BoxShadow(ref item) => {
                 builder.push_item(
                     &SpecificDisplayItem::BoxShadow(item.item),
                     &self.prim_info(),
+                    &space_clip_info,
                 );
             },
             DisplayItem::PushTextShadow(ref item) => {
-                builder.push_shadow(&self.prim_info(), item.shadow);
+                builder.push_shadow(&self.prim_info(), &space_clip_info, item.shadow);
             },
             DisplayItem::PopAllTextShadows(_) => {
                 builder.pop_all_shadows();
             },
             DisplayItem::Iframe(ref item) => {
-                builder.push_iframe(&self.prim_info(), item.iframe.to_webrender(), true);
+                builder.push_iframe(
+                    &self.prim_info(),
+                    &space_clip_info,
+                    item.iframe.to_webrender(),
+                    true,
+                );
             },
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
                 let mut info = webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds);
-                if let Some(frame_index) = stacking_context.established_reference_frame {
-                    debug_assert!(
-                        stacking_context.transform.is_some() ||
-                            stacking_context.perspective.is_some()
-                    );
+                let spatial_id =
+                    if let Some(frame_index) = stacking_context.established_reference_frame {
+                        debug_assert!(
+                            stacking_context.transform.is_some() ||
+                                stacking_context.perspective.is_some()
+                        );
 
-                    let clip_id = builder.push_reference_frame(
-                        &info.clone(),
-                        stacking_context.transform.map(Into::into),
-                        stacking_context.perspective,
-                    );
-                    clip_ids[frame_index.to_index()] = Some(clip_id);
+                        let spatial_id = builder.push_reference_frame(
+                            &stacking_context.bounds,
+                            state.active_spatial_id,
+                            stacking_context.transform_style,
+                            stacking_context.transform.map(Into::into),
+                            stacking_context.perspective,
+                        );
+                        state.spatial_ids[frame_index.to_index()] = Some(spatial_id);
+                        state.clip_ids[frame_index.to_index()] = Some(cur_clip_id);
 
-                    info.rect.origin = LayoutPoint::zero();
-                    info.clip_rect.origin = LayoutPoint::zero();
-                    builder.push_clip_id(clip_id);
-                }
+                        info.rect.origin = LayoutPoint::zero();
+                        info.clip_rect.origin = LayoutPoint::zero();
+                        spatial_id
+                    } else {
+                        state.active_spatial_id
+                    };
 
                 builder.push_stacking_context(
                     &info,
+                    spatial_id,
                     None,
                     stacking_context.transform_style,
                     stacking_context.mix_blend_mode,
                     &stacking_context.filters,
                     RasterSpace::Screen,
                 );
-
-                if stacking_context.established_reference_frame.is_some() {
-                    builder.pop_clip_id();
-                }
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::DefineClipScrollNode(ref item) => {
                 let node = &clip_scroll_nodes[item.node_index.to_index()];
-                let parent_id = get_id(clip_ids, node.parent_index);
                 let item_rect = node.clip.main;
 
-                let webrender_id = match node.node_type {
-                    ClipScrollNodeType::Clip => builder.define_clip_with_parent(
-                        parent_id,
-                        item_rect,
-                        node.clip.complex.clone(),
-                        None,
-                    ),
-                    ClipScrollNodeType::ScrollFrame(scroll_sensitivity, external_id) => builder
-                        .define_scroll_frame_with_parent(
-                            parent_id,
+                let parent_spatial_id = state.spatial_ids[node.parent_index.to_index()]
+                    .expect("Tried to use WebRender parent SpatialId before it was defined.");
+                let parent_clip_id = state.clip_ids[node.parent_index.to_index()]
+                    .expect("Tried to use WebRender parent ClipId before it was defined.");
+
+                match node.node_type {
+                    ClipScrollNodeType::Clip => {
+                        let id = builder.define_clip(
+                            &SpaceAndClipInfo {
+                                clip_id: parent_clip_id,
+                                spatial_id: parent_spatial_id,
+                            },
+                            item_rect,
+                            node.clip.complex.clone(),
+                            None,
+                        );
+
+                        state.spatial_ids[item.node_index.to_index()] = Some(parent_spatial_id);
+                        state.clip_ids[item.node_index.to_index()] = Some(id);
+                    },
+                    ClipScrollNodeType::ScrollFrame(scroll_sensitivity, external_id) => {
+                        let space_clip_info = builder.define_scroll_frame(
+                            &SpaceAndClipInfo {
+                                clip_id: parent_clip_id,
+                                spatial_id: parent_spatial_id,
+                            },
                             Some(external_id),
                             node.content_rect,
                             node.clip.main,
                             node.clip.complex.clone(),
                             None,
                             scroll_sensitivity,
-                        ),
+                        );
+
+                        state.clip_ids[item.node_index.to_index()] = Some(space_clip_info.clip_id);
+                        state.spatial_ids[item.node_index.to_index()] =
+                            Some(space_clip_info.spatial_id);
+                    },
                     ClipScrollNodeType::StickyFrame(ref sticky_data) => {
                         // TODO: Add define_sticky_frame_with_parent to WebRender.
-                        builder.push_clip_id(parent_id);
                         let id = builder.define_sticky_frame(
+                            parent_spatial_id,
                             item_rect,
                             sticky_data.margins,
                             sticky_data.vertical_offset_bounds,
                             sticky_data.horizontal_offset_bounds,
                             webrender_api::LayoutVector2D::zero(),
                         );
-                        builder.pop_clip_id();
-                        id
+
+                        state.spatial_ids[item.node_index.to_index()] = Some(id);
+                        state.clip_ids[item.node_index.to_index()] = Some(parent_clip_id);
                     },
                     ClipScrollNodeType::Placeholder => {
                         unreachable!("Found DefineClipScrollNode for Placeholder type node.");
                     },
                 };
-
-                clip_ids[item.node_index.to_index()] = Some(webrender_id);
             },
         }
     }

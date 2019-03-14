@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Clicking with primary vs non-primary buttons</title>
+    <link rel="help" href="https://wicg.github.io/auxclick/">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+#target {
+  background-color: green;
+  height: 200px;
+  width: 200px;
+}
+    </style>
+  </head>
+  <body>
+    <h1>Clicking with primary vs non-primary buttons</h1>
+    <p>Double-click on the green box with a non-primary button. When using mouse any button other than the left button is non-primary. If a "PASS" result appears, the test passes; otherwise, it fails.</p>
+    <div id="target"></div>
+    <script>
+    var test_auxclick = async_test("auxclick event sequence received.");
+    var target = document.querySelector('#target');
+    document.addEventListener('contextmenu', event => { event.preventDefault(); });
+    ['click', 'dblclick'].forEach(eventName => {
+        target.addEventListener(eventName, () => {
+            test_auxclick.step(() => {
+                assert_unreached(eventName + ' event should not be dispatched for non-primary buttons.');
+            });
+        });
+        document.addEventListener(eventName, () => {
+            test_auxclick.step(() => {
+                assert_unreached('document should not receive ' + eventName + ' for non-primary buttons.');
+            });
+        }, true);
+    });
+    var click_count = 0;
+    var events = [];
+    ['mousedown', 'mouseup'].forEach(eventName => {
+        target.addEventListener(eventName, event => {
+            events.push(event.type);
+        });
+    });
+    target.addEventListener('auxclick', event => {
+        events.push(event.type);
+        click_count++;
+        if (click_count==1) {
+           test (() => {
+               assert_equals(event.detail, click_count, 'detail attribute of auxclick should be the click count.');
+           }, "First auxclick should have detail=1 indicating the fire click");
+        } else {
+           test (() => {
+               assert_equals(event.detail, click_count, 'detail attribute of auxclick should be the click count.');
+           }, "Second auxclick should have detail=2 indicating the fire click");
+            test_auxclick.step(() => {
+                assert_array_equals(events, ['mousedown', 'mouseup', 'auxclick', 'mousedown', 'mouseup', 'auxclick'],
+                    'There should be two auxclick events for a non-primary button double click each preceded by one mousemove and one mouseup');
+                assert_equals(event.detail, click_count, 'detail attribute of auxclick should be the click count.');
+            });
+            test_auxclick.done();
+        }
+    });
+
+    // Inject mouse double click events.
+    var actions = new test_driver.Actions();
+    actions.pointerMove(0, 0, {origin: target})
+           .pointerDown({button: actions.ButtonType.MIDDLE})
+           .pointerUp({button: actions.ButtonType.MIDDLE})
+           .pointerDown({button: actions.ButtonType.MIDDLE})
+           .pointerUp({button: actions.ButtonType.MIDDLE})
+           .send();
+    </script>
+  </body>
+</html>

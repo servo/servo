@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Scroll timeline with WorkletAnimation using a scroller with overflow hidden</title>
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    transform: translate(0, 100px);
+    opacity: 0.5;
+    will-change: transform; /* force compositing */
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  #scroller {
+    overflow: hidden;
+    height: 100px;
+    width: 100px;
+    will-change: transform; /* force compositing */
+  }
+
+  #contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+<div id="scroller">
+  <div id="contents"></div>
+</div>
+
+<script>
+  window.addEventListener('load', function() {
+    // Move the scroller to halfway.
+    const scroller = document.getElementById("scroller");
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+  });
+</script>

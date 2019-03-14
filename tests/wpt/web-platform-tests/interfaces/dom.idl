@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "DOM Standard" spec.
-// See: https://dom.spec.whatwg.org/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: DOM Standard (https://dom.spec.whatwg.org/)
 
 [Constructor(DOMString type, optional EventInit eventInitDict),
  Exposed=(Window,Worker,AudioWorklet)]
@@ -145,7 +145,7 @@ Text includes Slotable;
 interface NodeList {
   getter Node? item(unsigned long index);
   readonly attribute unsigned long length;
-//  iterable<Node>;
+  iterable<Node>;
 };
 
 [Exposed=Window, LegacyUnenumerableNamedProperties]
@@ -548,5 +548,5 @@ interface DOMTokenList {
   [CEReactions] boolean replace(DOMString token, DOMString newToken);
   boolean supports(DOMString token);
   [CEReactions] stringifier attribute DOMString value;
-  //  iterable<DOMString>;
+  iterable<DOMString>;
 };

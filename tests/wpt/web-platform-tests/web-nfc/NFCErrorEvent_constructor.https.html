@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>NFCErrorEvent constructor</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/#dom-nfcerrorevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_equals(NFCErrorEvent.length, 2);
+    assert_throws(new TypeError, () => new NFCErrorEvent('error'));
+  }, 'NFCErrorEvent constructor without init dict');
+</script>

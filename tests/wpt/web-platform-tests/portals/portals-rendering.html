@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Portals rendering test</title>
+<link rel="match" href="references/portals-rendering.html">
+<body>
+  <portal src="resources/portals-rendering-portal.html" style="background-color: red; width: 100px; height: 100px"></portal>
+  <script>
+    var bc = new BroadcastChannel('portal');
+    bc.onmessage = function(e) {
+      window.requestAnimationFrame(function(ts) {
+        document.documentElement.classList.remove('reftest-wait');
+      });
+      bc.close();
+    }
+  </script>
+</body>

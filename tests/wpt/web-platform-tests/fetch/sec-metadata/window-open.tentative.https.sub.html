@@ -15,9 +15,10 @@
         return;
 
       assert_header_equals(e.data, {
-        "cause": "forced",
-        "destination": "document",
-        "site": "same-origin"
+        "dest": "document",
+        "site": "same-origin",
+        "user": "?F",
+        "mode": "navigate",
       });
       t.done();
     }));
@@ -31,9 +32,10 @@
         return;
 
       assert_header_equals(e.data, {
-        "cause": "forced",
-        "destination": "document",
-        "site": "same-site"
+        "dest": "document",
+        "site": "same-site",
+        "user": "?F",
+        "mode": "navigate",
       });
       t.done();
     }));
@@ -47,9 +49,10 @@
         return;
 
       assert_header_equals(e.data, {
-        "cause": "forced",
-        "destination": "document",
-        "site": "cross-site"
+        "dest": "document",
+        "site": "cross-site",
+        "user": "?F",
+        "mode": "navigate",
       });
       t.done();
     }));
@@ -66,9 +69,10 @@
           return;
 
         assert_header_equals(e.data, {
-          "cause": "user-activated",
-          "destination": "document",
-          "site": "same-origin"
+          "dest": "document",
+          "site": "same-origin",
+          "user": "?T",
+          "mode": "navigate",
         });
         t.done();
       }));
@@ -87,9 +91,10 @@
           return;
 
         assert_header_equals(e.data, {
-          "cause": "user-activated",
-          "destination": "document",
-          "site": "same-site"
+          "dest": "document",
+          "site": "same-site",
+          "user": "?T",
+          "mode": "navigate",
         });
         t.done();
       }));
@@ -108,9 +113,10 @@
           return;
 
         assert_header_equals(e.data, {
-          "cause": "user-activated",
-          "destination": "document",
-          "site": "cross-site"
+          "dest": "document",
+          "site": "cross-site",
+          "user": "?T",
+          "mode": "navigate",
         });
         t.done();
       }));

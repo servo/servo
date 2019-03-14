@@ -5,12 +5,14 @@
 use canvas_traits::webgl;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use euclid::Size2D;
+use gleam::gl::Gl;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
 use servo_config::prefs::PREFS;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::{thread, time};
 use webvr_traits::webvr::*;
@@ -52,9 +54,8 @@ impl WebVRThread {
         sender: IpcSender<WebVRMsg>,
         constellation_chan: Sender<ConstellationMsg>,
         vr_compositor_chan: WebVRCompositorSender,
+        service: VRServiceManager,
     ) -> WebVRThread {
-        let mut service = VRServiceManager::new();
-        service.register_defaults();
         WebVRThread {
             receiver: receiver,
             sender: sender,
@@ -69,6 +70,7 @@ impl WebVRThread {
 
     pub fn spawn(
         vr_compositor_chan: WebVRCompositorSender,
+        service: VRServiceManager,
     ) -> (IpcSender<WebVRMsg>, Sender<Sender<ConstellationMsg>>) {
         let (sender, receiver) = ipc::channel().unwrap();
         let (constellation_sender, constellation_receiver) = unbounded();
@@ -82,6 +84,7 @@ impl WebVRThread {
                     sender_clone,
                     constellation_chan,
                     vr_compositor_chan,
+                    service,
                 )
                 .start();
             })
@@ -157,7 +160,7 @@ impl WebVRThread {
     ) {
         match self.access_check(pipeline, display_id) {
             Ok(display) => sender
-                .send(Ok(display.borrow().inmediate_frame_data(near, far)))
+                .send(Ok(display.borrow().immediate_frame_data(near, far)))
                 .unwrap(),
             Err(msg) => sender.send(Err(msg.into())).unwrap(),
         }
@@ -374,18 +377,22 @@ impl WebVRCompositorHandler {
 
 impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn handle(&mut self, cmd: webgl::WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
+    fn handle(
+        &mut self,
+        gl: &dyn Gl,
+        cmd: webgl::WebVRCommand,
+        texture: Option<(u32, Size2D<i32>)>,
+    ) {
         match cmd {
             webgl::WebVRCommand::Create(compositor_id) => {
-                self.create_compositor(compositor_id);
+                if let Some(compositor) = self.create_compositor(compositor_id) {
+                    unsafe { (*compositor.0).start_present(None) };
+                }
             },
             webgl::WebVRCommand::SyncPoses(compositor_id, near, far, sender) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
-                    let pose = unsafe {
-                        (*compositor.0).sync_poses();
-                        (*compositor.0).synced_frame_data(near, far).to_bytes()
-                    };
-                    let _ = sender.send(Ok(pose.into()));
+                    let pose = unsafe { (*compositor.0).future_frame_data(near, far) };
+                    let _ = sender.send(Ok(pose));
                 } else {
                     let _ = sender.send(Err(()));
                 }
@@ -399,15 +406,14 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                             right_bounds: right_bounds,
                             texture_size: Some((size.width as u32, size.height as u32)),
                         };
-                        unsafe {
-                            (*compositor.0).render_layer(&layer);
-                            (*compositor.0).submit_frame();
-                        }
+                        unsafe { (*compositor.0).submit_layer(gl, &layer) };
                     }
                 }
             },
             webgl::WebVRCommand::Release(compositor_id) => {
-                self.compositors.remove(&compositor_id);
+                if let Some(compositor) = self.compositors.remove(&compositor_id) {
+                    unsafe { (*compositor.0).stop_present() };
+                }
             },
         }
     }
@@ -415,10 +421,13 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
 
 impl WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn create_compositor(&mut self, display_id: webgl::WebVRDeviceId) {
+    fn create_compositor(
+        &mut self,
+        display_id: webgl::WebVRDeviceId,
+    ) -> Option<&mut WebVRCompositor> {
         let sender = match self.webvr_thread_sender {
             Some(ref s) => s,
-            None => return,
+            None => return None,
         };
 
         sender
@@ -427,13 +436,14 @@ impl WebVRCompositorHandler {
         let display = self.webvr_thread_receiver.recv().unwrap();
 
         match display {
-            Some(display) => {
-                self.compositors.insert(display_id, display);
+            Some(display) => match self.compositors.entry(display_id) {
+                Entry::Vacant(entry) => return Some(entry.insert(display)),
+                Entry::Occupied(_) => error!("VRDisplay already presenting"),
             },
-            None => {
-                error!("VRDisplay not found when creating a new VRCompositor");
-            },
+            None => error!("VRDisplay not found when creating a new VRCompositor"),
         };
+
+        None
     }
 
     // This is done on only a per-platform basis on initialization.

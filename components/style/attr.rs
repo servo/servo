@@ -543,7 +543,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
 /// Parses a [dimension value][dim]. If unparseable, `Auto` is returned.
 ///
 /// [dim]: https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
-// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
+// TODO: this function can be rewritten to return Result<LengthPercentage, _>
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     // Steps 1 & 2 are not relevant
 

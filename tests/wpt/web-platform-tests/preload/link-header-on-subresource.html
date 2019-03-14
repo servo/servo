@@ -6,12 +6,13 @@
     var t = async_test('Makes sure that Link headers on subresources preload resources');
 </script>
 <link rel=stylesheet href="resources/dummy-preloads-subresource.css?link-header-on-subresource">
-<script src="resources/dummy.js?pipe=trickle(d5)&link-header-on-subresources"></script>
 <script>
     window.addEventListener("load", t.step_func(function() {
-        verifyPreloadAndRTSupport();
-        verifyNumberOfDownloads("/fonts/CanvasTest.ttf?link-header-on-subresource", 1);
-        t.done();
+        t.step_timeout(function() {
+            verifyPreloadAndRTSupport();
+            verifyNumberOfResourceTimingEntries("/fonts/CanvasTest.ttf?link-header-on-subresource", 1);
+            t.done();
+        }, 5000);
     }));
 </script>
 

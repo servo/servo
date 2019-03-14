@@ -2,5 +2,5 @@ Template-Python==0.1.post1
 html5lib==1.0.1
 lxml==4.1.1
 mercurial==4.5
-six==1.11.0
+six==1.12.0
 webencodings==0.5.1

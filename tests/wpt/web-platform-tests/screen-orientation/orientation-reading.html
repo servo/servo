@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 test(() => {
   assert_true('type' in screen.orientation);
@@ -20,6 +22,46 @@ test(() => {
   assert_true(angle == 0 || angle == 90 || angle == 180 || angle == 270);
 }, "Test screen.orientation default values.");
 
+promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
+  await screen.orientation.lock("portrait-primary");
+  const orientations =
+    screen.orientation.angle === 0
+      ? {
+          secondaryOrientation1: "portrait-secondary",
+          primaryOrientation2: "landscape-primary",
+          secondaryOrientation2: "landscape-secondary"
+        }
+      : {
+          secondaryOrientation1: "landscape-secondary",
+          primaryOrientation2: "portrait-primary",
+          secondaryOrientation2: "portrait-secondary"
+        };
+  await screen.orientation.lock(orientations.secondaryOrientation1);
+  assert_equals(
+    screen.orientation.angle,
+    180,
+    "Secondary orientation 1 angle must be 180"
+  );
+  await screen.orientation.lock(orientations.primaryOrientation2);
+  assert_true(
+    screen.orientation.angle == 90 || screen.orientation.angle == 270,
+    "Primary orientation 2 angle must be either 90 or 270"
+  );
+  const primaryOrientation2Angle = screen.orientation.angle;
+  const secondaryOrientation2Angle = primaryOrientation2Angle === 90 ? 270 : 90;
+  await screen.orientation.lock(orientations.secondaryOrientation2);
+  assert_equals(
+    screen.orientation.angle,
+    secondaryOrientation2Angle,
+    "Secondary orientation 2 angle must be the opposite angle to primary orientation 2"
+  );
+  screen.orientation.unlock();
+  return document.exitFullscreen();
+}, "Test the orientations and associated angles");
+
 test(() => {
   const type = screen.orientation.type;
   const angle = screen.orientation.angle;
@@ -36,6 +78,9 @@ test(() => {
 }, "Test that screen.orientation is always the same object");
 
 promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
   const orientation = screen.orientation;
   const orientationType = screen.orientation.type;
   const orientationAngle = screen.orientation.angle;
@@ -54,5 +99,6 @@ promise_test(async t => {
   assert_not_equals(screen.orientation.type, orientationType);
   assert_not_equals(screen.orientation.angle, orientationAngle);
   screen.orientation.unlock();
+  return document.exitFullscreen();
 }, "Test that screen.orientation values change if the orientation changes");
 </script>

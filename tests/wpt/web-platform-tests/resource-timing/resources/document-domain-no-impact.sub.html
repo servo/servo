@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<iframe id="frame" src="//{{domains[www]}}:{{ports[http][1]}}/resource-timing/resources/iframe-setdomain.sub.html"></iframe>
+<script>
+    let opener = window.opener;
+    window.addEventListener("load", () => {
+        try {
+            let frameDoc = document.getElementById("frame").contentWindow.document;
+            opener.postMessage("FAIL - iframe document.domain was not set", "*");
+            return;
+        } catch(error) {
+            if (error.name != "SecurityError") {
+                opener.postMessage("FAIL - error is " + error.name, "*");
+                return;
+            }
+            let entry = performance.getEntriesByName(window.location.protocol + "//{{domains[www]}}:{{ports[http][1]}}/resource-timing/resources/iframe-setdomain.sub.html");
+            // To verify that setting 'document.domain' did not change the results of the timing allow check,
+            // verify that the following non-zero properties return their value.
+            ["domainLookupStart", "domainLookupEnd", "connectStart", "connectEnd"].forEach(property => {
+                if (entry[property] == 0) {
+                    opener.postMessage("FAIL - " + property + " is 0 but timing allow check should ignore document.domain", "*");
+                }
+            });
+            opener.postMessage("PASS", "*");
+        }
+        opener.postMessage("FAIL - unknown", "*");
+    });
+</script>
+
+
+

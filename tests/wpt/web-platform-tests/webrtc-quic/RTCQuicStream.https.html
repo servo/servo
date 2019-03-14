@@ -500,18 +500,6 @@ function generateData(amount) {
   return data;
 }
 
-// Writes |amount| of bytes to the given RTCQuicStream in maxWriteBufferedAmount
-// chunks.
-async function writeGeneratedData(stream, amount) {
-  const data = generateData(Math.min(stream.maxWriteBufferedAmount, amount));
-  while (amount > 0) {
-    const chunkSize = Math.min(stream.maxWriteBufferedAmount, amount);
-    await stream.waitForWriteBufferedAmountBelow(0);
-    stream.write({ data: data.subarray(0, chunkSize) });
-    amount -= chunkSize;
-  }
-}
-
 promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =
       await makeTwoConnectedQuicTransports(t);
@@ -534,22 +522,6 @@ promise_test(async t => {
   assert_array_equals(
     finReadBuffer, data.subarray(5, data.length));
 }, 'readInto() reads out finish after reading all data.');
-
-promise_test(async t => {
-  const [ localQuicTransport, remoteQuicTransport ] =
-      await makeTwoConnectedQuicTransports(t);
-  const localStream = localQuicTransport.createStream();
-  const remoteWatcher = new EventWatcher(t, remoteQuicTransport, 'quicstream');
-  writeGeneratedData(localStream, localStream.maxReadBufferedAmount);
-  const { stream: remoteStream } = await remoteWatcher.wait_for('quicstream');
-  await remoteStream.waitForReadable(localStream.maxReadBufferedAmount);
-  const readBuffer = new Uint8Array(localStream.maxReadBufferedAmount);
-  assert_object_equals(
-      remoteStream.readInto(readBuffer),
-      { amount: localStream.maxReadBufferedAmount, finished: false } );
-  assert_array_equals(
-      readBuffer, generateData(localStream.maxReadBufferedAmount));
-}, 'Read maxReadBufferedAmount bytes all at once.');
 
 promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =

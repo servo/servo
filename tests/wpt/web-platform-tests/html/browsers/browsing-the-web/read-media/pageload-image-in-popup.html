@@ -13,18 +13,7 @@
   var t = async_test("The document for a standalone media file should have one child in the body.");
 
   var imgwin = window.open('/images/blue.png');
-  // imgwin.onload doesn't work, check popup's URL to see if the loading of
-  // the image and creation of image document is finished.
-  function checkURL() {
-    if (imgwin.location.href.indexOf('blue.png') == -1) {
-      step_timeout(checkURL, 100);
-      return;
-    }
-    t.step(frameLoaded);
-  }
-  checkURL();
-
-  function frameLoaded() {
+  imgwin.onload = t.step_func_done(function() {
     assert_equals(imgwin.opener, window);
     assert_equals(imgwin.document.contentType, "image/png");
     var imgwinChildren = imgwin.document.body.childNodes;
@@ -33,8 +22,7 @@
     assert_equals(imgwinChildren[0].namespaceURI, "http://www.w3.org/1999/xhtml",
                   "Only child of body must be an HTML element");
     imgwin.close();
-    t.done();
-  }
+  });
 </script>
 </head>
 <body>

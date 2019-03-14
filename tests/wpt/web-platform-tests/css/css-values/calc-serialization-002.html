@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units: calc() serialization of a summation (complex)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#compat">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-serialize">
+
+  <meta content="This test verifies how 11 summations of mixed length units are serialized. Absolute length units, relative length units, font-relative length units, viewport-percentage length units and percentage units are tested." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifySerialization(specified_value, serialization_expected, description)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.height = specified_value;
+
+      assert_equals(targetElement.style.height, serialization_expected);
+
+      }, description);
+    }
+
+  /*
+
+  "
+  Sort the terms in the following order:
+
+    The number, if present
+
+    The percentage, if present
+
+    The dimensions, ordered by their units ASCII case-insensitive alphabetically
+  "
+  https://www.w3.org/TR/css-values-4/#math-function-serialize-a-summation
+
+  cm  centimeters  1cm = 96px/2.54
+  mm  millimeters  1mm = 1/10th of 1cm
+  Q   quarter-millimeters  1Q = 1/40th of 1cm
+  in  inches  1in = 2.54cm = 96px
+  pc  picas  1pc = 1/6th of 1in
+  pt  points  1pt = 1/72th of 1in
+  px  pixels  1px = 1/96th of 1in
+
+  */
+
+    verifySerialization("calc(1vh + 2px + 3%)", "calc(3% + 2px + 1vh)", "testing calc(1vh + 2px + 3%)");
+
+    verifySerialization("calc(4px + 1vh)", "calc(4px + 1vh)", "testing calc(4px + 1vh)");
+
+    verifySerialization("calc(5px + 6em + 1vh)", "calc(6em + 5px + 1vh)", "testing calc(5px + 6em + 1vh)");
+
+    verifySerialization("calc(1vh - 7px)", "calc(-7px + 1vh)", "testing calc(1vh - 7px)");
+
+    verifySerialization("calc(-8px + 9em + 1vh)", "calc(9em - 8px + 1vh)", "testing calc(-8px + 9em + 1vh)");
+
+    verifySerialization("calc(1pc + 1in + 1vh + 10%)", "calc(10% + 112px + 1vh)", "testing calc(1pc + 1in + 1vh + 10%)");
+
+ /* verifySerialization(specified_value, serialization_expected, description)  */
+
+    verifySerialization("calc(25.4q + 1vh + 12%)", "calc(12% + 24px + 1vh)", "testing calc(25.4q + 1vh + 12%)");
+
+    verifySerialization("calc(1em + 1.27cm + 13% + 3em)", "calc(13% + 4em + 48px)", "testing calc(1em + 1.27cm + 13% + 3em)");
+
+    verifySerialization("calc(1vmin - 14%)", "calc(-14% + 1vmin)", "testing calc(1vmin - 14%)");
+
+    verifySerialization("calc(15vw + 16vmin - 17vh)", "calc(-17vh + 16vmin + 15vw)", "testing calc(15vw + 16vmin - 17vh)");
+
+    verifySerialization("calc(-80px + 25.4mm)", "calc(16px)", "testing calc(-80px + 25.4mm)");
+
+    /*
+    This calc(-80px + 25.4mm) test is on purpose last. We want the
+    div#target to occupy 16px and to not cause document box height
+    to be unneedlessly tall.
+    */
+
+  }
+
+  startTesting();
+
+  </script>

@@ -112,8 +112,8 @@ macro_rules! make_url_setter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_string_attribute(&local_name!($htmlname),
-                                         DOMString::from(value.0));
+            element.set_url_attribute(&local_name!($htmlname),
+                                         value);
         }
     );
 );

@@ -13,9 +13,6 @@ SanityChecker.prototype.checkScenario = function(scenario) {
     var expectedFields = SPEC_JSON["test_expansion_schema"];
     expectedFields["referrer_policy"] = SPEC_JSON["referrer_policy_schema"];
 
-    assert_own_property(scenario, "subresource_path",
-                        "Scenario has the path to the subresource.");
-
     for (var field in expectedFields) {
       assert_own_property(scenario, field,
                           "The scenario contains field " + field)

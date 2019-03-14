@@ -6,8 +6,9 @@
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
 #![feature(const_fn)]
 #![feature(drain_filter)]
+#![feature(inner_deref)]
 #![feature(plugin)]
-#![feature(try_from)]
+#![feature(type_alias_enum_variants)]
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 #![doc = "The script crate contains all matters DOM."]
@@ -56,6 +57,7 @@ pub mod document_loader;
 #[macro_use]
 mod dom;
 pub mod fetch;
+mod image_listener;
 mod layout_image;
 mod mem;
 mod microtask;

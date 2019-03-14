@@ -112,8 +112,13 @@ impl WebGLExternalImageApi for WebGLExternalImages {
 struct WebVRRenderWrapper(Box<dyn WebVRRenderHandler>);
 
 impl WebVRRenderHandler for WebVRRenderWrapper {
-    fn handle(&mut self, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
-        self.0.handle(command, texture);
+    fn handle(
+        &mut self,
+        gl: &dyn gl::Gl,
+        command: WebVRCommand,
+        texture: Option<(u32, Size2D<i32>)>,
+    ) {
+        self.0.handle(gl, command, texture);
     }
 }
 

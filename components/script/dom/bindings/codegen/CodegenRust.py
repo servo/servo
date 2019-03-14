@@ -573,9 +573,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                 isAutoRooted=False,
                                 invalidEnumValueFatal=True,
                                 defaultValue=None,
-                                treatNullAs="Default",
-                                isEnforceRange=False,
-                                isClamp=False,
                                 exceptionCode=None,
                                 allowTreatNonObjectAsNull=False,
                                 isCallbackReturnValue=False,
@@ -603,12 +600,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     If defaultValue is not None, it's the IDL default value for this conversion
 
-    If isEnforceRange is true, we're converting an integer and throwing if the
-    value is out of range.
-
-    If isClamp is true, we're converting an integer and clamping if the
-    value is out of range.
-
     If allowTreatNonObjectAsNull is true, then [TreatNonObjectAsNull]
     extended attributes on nullable callback functions will be honored.
 
@@ -630,6 +621,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     """
     # We should not have a defaultValue if we know we're an object
     assert not isDefinitelyObject or defaultValue is None
+
+    isEnforceRange = type.enforceRange
+    isClamp = type.clamp
+    if type.treatNullAsEmpty:
+        treatNullAs = "EmptyString"
+    else:
+        treatNullAs = "Default"
 
     # If exceptionCode is not set, we'll just rethrow the exception we got.
     # Note that we can't just set failureCode to exceptionCode, because setting
@@ -749,7 +747,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             for memberType in type.unroll().flatMemberTypes
             if memberType.isDictionary()
         ]
-        if dictionaries:
+        if defaultValue and not isinstance(defaultValue, IDLNullValue):
+            tag = defaultValue.type.tag()
+            if tag is IDLType.Tags.bool:
+                default = "%s::Boolean(%s)" % (
+                    union_native_type(type),
+                    "true" if defaultValue.value else "false")
+            else:
+                raise("We don't currently support default values that aren't null or boolean")
+        elif dictionaries:
             if defaultValue:
                 assert isinstance(defaultValue, IDLNullValue)
                 dictionary, = dictionaries
@@ -1301,9 +1307,6 @@ class CGArgumentConverter(CGThing):
             descriptorProvider,
             invalidEnumValueFatal=invalidEnumValueFatal,
             defaultValue=argument.defaultValue,
-            treatNullAs=argument.treatNullAs,
-            isEnforceRange=argument.enforceRange,
-            isClamp=argument.clamp,
             isMember="Variadic" if argument.variadic else False,
             isAutoRooted=type_needs_auto_root(argument.type),
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
@@ -2384,6 +2387,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::conversions::root_from_handlevalue',
         'std::ptr::NonNull',
         'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::str::ByteString',
         'crate::dom::bindings::str::DOMString',
@@ -2592,7 +2596,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
 
-def CreateBindingJSObject(descriptor, parent=None):
+def CreateBindingJSObject(descriptor):
     assert not descriptor.isGlobal()
     create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
@@ -2601,12 +2605,11 @@ let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usi
 rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
 let obj = NewProxyObject(cx, handler,
                          Handle::from_raw(UndefinedHandleValue),
-                         proto.get(), %s.get(),
-                         ptr::null_mut(), ptr::null_mut());
+                         proto.get());
 assert!(!obj.is_null());
 SetProxyReservedSlot(obj, 0, &private.get());
 rooted!(in(cx) let obj = obj);\
-""" % (descriptor.name, parent)
+""" % (descriptor.name)
     else:
         create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
                    "    cx, &Class.base as *const JSClass, proto.handle()));\n"
@@ -2699,7 +2702,7 @@ class CGWrapMethod(CGAbstractMethod):
 
     def definition_body(self):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
-        create = CreateBindingJSObject(self.descriptor, "scope")
+        create = CreateBindingJSObject(self.descriptor)
         return CGGeneric("""\
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
@@ -3509,9 +3512,6 @@ class FakeArgument():
         self.variadic = False
         self.defaultValue = None
         self._allowTreatNonObjectAsNull = allowTreatNonObjectAsNull
-        self.treatNullAs = interfaceMember.treatNullAs
-        self.enforceRange = False
-        self.clamp = False
 
     def allowTreatNonCallableAsNull(self):
         return self._allowTreatNonObjectAsNull
@@ -4875,7 +4875,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
             info = getJSToNativeConversionInfo(
-                argument.type, descriptor, treatNullAs=argument.treatNullAs,
+                argument.type, descriptor,
                 exceptionCode="return false;")
             template = info.template
             declType = info.declType
@@ -5899,7 +5899,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::root::Dom',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::root::OptionalHeapSetter',
-        'crate::dom::bindings::root::RootedReference',
+        'crate::dom::bindings::root::DomSlice',
         'crate::dom::bindings::utils::AsVoidPtr',
         'crate::dom::bindings::utils::DOMClass',
         'crate::dom::bindings::utils::DOMJSClass',
@@ -6400,13 +6400,10 @@ class CGDictionary(CGThing):
         conversion = (
             "{\n"
             "    rooted!(in(cx) let mut rval = UndefinedValue());\n"
-            "    match r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
-            "        true => {\n"
+            "    if r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
             "%s\n"
-            "        },\n"
-            "        false => {\n"
+            "    } else {\n"
             "%s\n"
-            "        },\n"
             "    }\n"
             "}") % (member.identifier.name, indent(conversion), indent(default))
 
@@ -6890,7 +6887,7 @@ class CGCallbackInterface(CGCallback):
 
 class FakeMember():
     def __init__(self):
-        self.treatNullAs = "Default"
+        pass
 
     def isStatic(self):
         return False
@@ -7253,8 +7250,12 @@ def camel_to_upper_snake(s):
 
 def process_arg(expr, arg):
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-        if arg.type.nullable() or arg.type.isSequence() or arg.optional:
+        if arg.variadic or arg.type.isSequence():
             expr += ".r()"
+        elif arg.type.nullable() and arg.optional and not arg.defaultValue:
+            expr += ".as_ref().map(Option::deref)"
+        elif arg.type.nullable() or arg.optional and not arg.defaultValue:
+            expr += ".deref()"
         else:
             expr = "&" + expr
     elif isinstance(arg.type, IDLPromiseType):

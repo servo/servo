@@ -5,15 +5,16 @@ let signal;
 let renderedBuffer;
 let renderedData;
 
-let sampleRate = 44100.0;
+// Use a power of two to eliminate round-off in converting frame to time
+let sampleRate = 32768;
 let pulseLengthFrames = .1 * sampleRate;
 
 // Maximum allowed error for the test to succeed.  Experimentally determined.
 let maxAllowedError = 5.9e-8;
 
-// This must be large enough so that the filtered result is
-// essentially zero.  See comments for createTestAndRun.
-let timeStep = .1;
+// This must be large enough so that the filtered result is essentially zero.
+// See comments for createTestAndRun.  This must be a whole number of frames.
+let timeStep = Math.ceil(.1 * sampleRate) / sampleRate;
 
 // Maximum number of filters we can process (mostly for setting the
 // render length correctly.)

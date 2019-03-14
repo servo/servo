@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::element::{AttributeMutation, Element};
@@ -194,7 +194,7 @@ impl Attr {
             ScriptThread::enqueue_callback_reaction(owner, reaction, None);
         }
 
-        assert_eq!(Some(owner), self.owner().r());
+        assert_eq!(Some(owner), self.owner().deref());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
@@ -227,7 +227,7 @@ impl Attr {
         match (self.owner(), owner) {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
-                assert!(old.get_attribute(&ns, &self.identifier.local_name).r() != Some(self))
+                assert!(old.get_attribute(&ns, &self.identifier.local_name).deref() != Some(self))
             },
             (Some(old), Some(new)) => assert_eq!(&*old, new),
             _ => {},

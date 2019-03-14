@@ -21,6 +21,7 @@ pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
 mod data_loader;
+mod decoder;
 pub mod filemanager_thread;
 mod hosts;
 pub mod hsts;

@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointerleave + descendant</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h1>pointerleave</h1>
+        <h4>
+            Test Description: This test checks if pointerleave event works properly.
+            <ol>
+                <li>Put your mouse over the black rectangle
+                <li>Then move it into the purple rectangle
+                <li>Click on the purple rectangle to complete the test
+            </ol>
+            Note: when you entered the black rectangle once don't leave it before the end of the test to get proper results.
+        </h4>
+        <p>
+        <div id="target0" style="background:black">
+            <div id="target1" style="background:purple"></div>
+        </div>
+        <script>
+            var eventTested = false;
+            var pointerleaveReceived = false;
+            var detected_pointertypes = {};
+
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                // The pointerleave event must not be dispatched when the pointer enters a child element without leaving the hit test boundaries of the parent. (as distinct from pointerout)
+                // TA: 9.2
+                on_event(target1, "pointerdown", function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+
+                    test(function() {
+                        assert_true(!pointerleaveReceived, "pointerleave shouldn't be received on descendant's pointerover")
+                    }, "pointerleave shouldn't be received on descendant's pointerover");
+                });
+
+                on_event(target0, "pointerleave", function (event) {
+                    if (eventTested == false) {
+                        pointerleaveReceived = true;
+                        eventTested = true;
+                    }
+                });
+
+                // Inject mouse inputs.
+                new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerMove(0, 0, {origin: target1})
+                    .pointerDown()
+                    .pointerUp()
+                    .send();
+            }
+        </script>
+        <h1>Pointer Events pointerleave tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

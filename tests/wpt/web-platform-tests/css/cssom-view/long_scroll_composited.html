@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Long scrolling should work properly</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/cssom-view/#scrolling">
+<link rel="match" href="long_scroll_composited-ref.html">
+
+<style>
+.post {
+  height: 1000px;
+  width: 300px;
+  border: 1px solid black;
+
+}
+.scroller {
+  overflow-y: scroll;
+  width: 500px;
+  height: 500px;
+  will-change: transform;
+}
+::-webkit-scrollbar {
+  display: none;
+}
+</style>
+
+<p>The number 7 should be visible in the scrolled window below.</p>
+
+<div id="scroller" class="scroller">
+  <div style="position: relative;">
+    <div style="position: relative;">
+      <div class="post">0</div>
+      <div class="post">1</div>
+      <div class="post">2</div>
+      <div class="post">3</div>
+      <div class="post">4</div>
+      <div class="post">5</div>
+      <div class="post">6</div>
+      <div class="post">7</div>
+      <div class="post">8</div>
+      <div class="post">9</div>
+    </div>
+  </div>
+</div>
+
+<script>
+onload = function() {
+  scroller=document.getElementById("scroller");
+  scroller.scrollTop = 6800;
+};
+</script>

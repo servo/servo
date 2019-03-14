@@ -1,0 +1,28 @@
+<style>
+@font-face {
+    font-family: ahem;
+    src: url(http://{{domains[www]}}:{{ports[http][1]}}/resource-timing/resources/cors-ahem.py);
+}
+</style>
+<div style="font-family: ahem;">This fetches ahem font.</div>
+<script>
+  if (location.hash === '#check') {
+      document.fonts.ready.then(()=> {
+        const entries = performance.getEntriesByName('http://{{domains[www]}}:{{ports[http][1]}}/resource-timing/resources/cors-ahem.py');
+        if (entries.length != 1)
+          return;
+        const entry = entries[0];
+        window.parent.postMessage({
+            "domainLookupStart": entry.domainLookupStart,
+            "domainLookupEnd": entry.domainLookupEnd,
+            "connectStart": entry.connectStart,
+            "connectEnd": entry.connectEnd
+          }, "*");
+      });
+  } else {
+      document.fonts.ready.then(() => {
+        location.hash = 'check';
+        location.reload();
+      });
+  }
+</script>

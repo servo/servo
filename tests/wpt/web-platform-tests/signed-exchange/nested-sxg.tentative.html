@@ -7,7 +7,7 @@
 <body>
 <script>
 promise_test(async (t) => {
-  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/nested-sxg.sxg';
+  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/nested-sxg.sxg';
   const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
   assert_equals(message.location, innerURLOrigin() + '/signed-exchange/resources/inner-url.html?fallback-from-nested-sxg');
   assert_true(message.is_fallback);

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV storage: storage export smoke test</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { testVariousMethodsWithDefaultArea } from "./helpers/kvs-tests.js";
+import { storage } from "std:kv-storage";
+
+testVariousMethodsWithDefaultArea(
+  "Storage methods smoke test with string key and value", "key", "value", assert_equals
+);
+</script>

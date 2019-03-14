@@ -686,7 +686,7 @@ where
             // sibling or cousin. Otherwise, recascading a bunch of identical
             // elements would unnecessarily flood the cache with identical entries.
             //
-            // This is analagous to the obvious "don't insert an element that just
+            // This is analogous to the obvious "don't insert an element that just
             // got a hit in the style sharing cache" behavior in the MatchAndCascade
             // handling above.
             //

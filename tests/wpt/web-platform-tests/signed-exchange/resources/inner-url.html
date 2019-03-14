@@ -2,6 +2,9 @@
 <title>Content of fallback URL</title>
 <script>
 window.addEventListener('message', (event) => {
-  event.data.port.postMessage({location: document.location.href, is_fallback: true});
+  event.data.port.postMessage({
+      location: document.location.href,
+      referrer: document.referrer,
+      is_fallback: true});
 }, false);
 </script>
