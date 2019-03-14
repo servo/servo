@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding;
+use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -54,5 +55,16 @@ impl XRRigidTransform {
         let position = DOMPointReadOnly::new_from_init(&global, &position);
         let orientation = DOMPointReadOnly::new_from_init(&global, &orientation);
         Ok(XRRigidTransform::new(window, &position, &orientation))
+    }
+}
+
+impl XRRigidTransformMethods for XRRigidTransform {
+    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position
+    fn Position(&self) -> DomRoot<DOMPointReadOnly> {
+        DomRoot::from_ref(&self.position)
+    }
+    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation
+    fn Orientation(&self) -> DomRoot<DOMPointReadOnly> {
+        DomRoot::from_ref(&self.orientation)
     }
 }
