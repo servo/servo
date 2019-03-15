@@ -58,10 +58,11 @@ impl XRFrameMethods for XRFrame {
         if reference.is_some() {
             // it's not possible to obtain a reference
             // space at all yet
-            return None;
+            None
+        } else {
+            let left = XRView::new(&self.global(), &self.session, XREye::Left, &self.data);
+            let right = XRView::new(&self.global(), &self.session, XREye::Right, &self.data);
+            Some(XRViewerPose::new(&self.global(), &left, &right))
         }
-        let left = XRView::new(&self.global(), &self.session, XREye::Left, &self.data);
-        let right = XRView::new(&self.global(), &self.session, XREye::Right, &self.data);
-        Some(XRViewerPose::new(&self.global(), &left, &right))
     }
 }
