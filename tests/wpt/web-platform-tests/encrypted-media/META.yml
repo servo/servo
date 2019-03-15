@@ -1,3 +1,6 @@
 spec: https://w3c.github.io/encrypted-media/
 suggested_reviewers:
-  - ddorwin
+  - cpearce
+  - joeyparrish
+  - jrummell-chromium
+  - jyavenard

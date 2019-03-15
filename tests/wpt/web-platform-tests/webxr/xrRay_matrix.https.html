@@ -3,30 +3,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
 <script src="resources/webxr_test_asserts.js"></script>
+<script src="resources/webxr_math_utils.js"></script>
 
 <script>
-
-// |matrix| - Float32Array, |input| - point-like dict (must have x, y, z, w)
-let transform_point = function (matrix, input) {
-  return {
-    x : matrix[0] * input.x + matrix[4] * input.y + matrix[8] * input.z + matrix[12] * input.w,
-    y : matrix[1] * input.x + matrix[5] * input.y + matrix[9] * input.z + matrix[13] * input.w,
-    z : matrix[2] * input.x + matrix[6] * input.y + matrix[10] * input.z + matrix[14] * input.w,
-    w : matrix[3] * input.x + matrix[7] * input.y + matrix[11] * input.z + matrix[15] * input.w,
-  };
-}
-
-// |point| - point-like dict (must have x, y, z, w)
-let normalize_perspective = function(point) {
-  if(point.w == 0 || point.w == 1) return point;
-
-  return {
-    x : point.x / point.w,
-    y : point.y / point.w,
-    z : point.z / point.w,
-    w : 1
-  };
-}
 
 let matrix_tests_name = "XRRay matrix works";
 
@@ -46,8 +25,8 @@ let matrix_tests = function() {
       DOMPoint.fromPoint(originDict),
       DOMPoint.fromPoint(directionDict));
 
-    let transformedOrigin = normalize_perspective(transform_point(xrRay.matrix, initialOrigin));
-    let transformedDirection = normalize_perspective(transform_point(xrRay.matrix, initialDirection));
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
 
     assert_point_approx_equals(
       originDict, transformedOrigin,
@@ -66,8 +45,8 @@ let matrix_tests = function() {
       DOMPoint.fromPoint(originDict),
       DOMPoint.fromPoint(directionDict));
 
-    let transformedOrigin = normalize_perspective(transform_point(xrRay.matrix, initialOrigin));
-    let transformedDirection = normalize_perspective(transform_point(xrRay.matrix, initialDirection));
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
 
     assert_point_approx_equals(
       originDict, transformedOrigin,
@@ -86,8 +65,8 @@ let matrix_tests = function() {
       DOMPoint.fromPoint(originDict),
       DOMPoint.fromPoint(directionDict));
 
-    let transformedOrigin = normalize_perspective(transform_point(xrRay.matrix, initialOrigin));
-    let transformedDirection = normalize_perspective(transform_point(xrRay.matrix, initialDirection));
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
 
     assert_point_approx_equals(
       originDict, transformedOrigin,
@@ -106,8 +85,8 @@ let matrix_tests = function() {
       DOMPoint.fromPoint(originDict),
       DOMPoint.fromPoint(directionDict));
 
-    let transformedOrigin = normalize_perspective(transform_point(xrRay.matrix, initialOrigin));
-    let transformedDirection = normalize_perspective(transform_point(xrRay.matrix, initialDirection));
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
 
     assert_point_approx_equals(
       originDict, transformedOrigin,

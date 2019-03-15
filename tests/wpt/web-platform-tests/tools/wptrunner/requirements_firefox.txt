@@ -1,4 +1,4 @@
-marionette_driver==2.7.0
+marionette_driver==2.8.0
 mozprofile==2.2.0
 mozprocess==1.0.0
 mozcrash==1.1.0

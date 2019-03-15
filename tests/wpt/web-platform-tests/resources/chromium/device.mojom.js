@@ -155,6 +155,62 @@
 
     return validator.validationError.UNKNOWN_ENUM_VALUE;
   };
+  var UsbSynchronizationType = {};
+  UsbSynchronizationType.NONE = 0;
+  UsbSynchronizationType.ASYNCHRONOUS = UsbSynchronizationType.NONE + 1;
+  UsbSynchronizationType.ADAPTIVE = UsbSynchronizationType.ASYNCHRONOUS + 1;
+  UsbSynchronizationType.SYNCHRONOUS = UsbSynchronizationType.ADAPTIVE + 1;
+  UsbSynchronizationType.MIN_VALUE = 0,
+  UsbSynchronizationType.MAX_VALUE = 3,
+
+  UsbSynchronizationType.isKnownEnumValue = function(value) {
+    switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+      return true;
+    }
+    return false;
+  };
+
+  UsbSynchronizationType.validate = function(enumValue) {
+    var isExtensible = false;
+    if (isExtensible || this.isKnownEnumValue(enumValue))
+      return validator.validationError.NONE;
+
+    return validator.validationError.UNKNOWN_ENUM_VALUE;
+  };
+  var UsbUsageType = {};
+  UsbUsageType.DATA = 0;
+  UsbUsageType.FEEDBACK = UsbUsageType.DATA + 1;
+  UsbUsageType.EXPLICIT_FEEDBACK = UsbUsageType.FEEDBACK + 1;
+  UsbUsageType.PERIODIC = UsbUsageType.EXPLICIT_FEEDBACK + 1;
+  UsbUsageType.NOTIFICATION = UsbUsageType.PERIODIC + 1;
+  UsbUsageType.RESERVED = UsbUsageType.NOTIFICATION + 1;
+  UsbUsageType.MIN_VALUE = 0,
+  UsbUsageType.MAX_VALUE = 5,
+
+  UsbUsageType.isKnownEnumValue = function(value) {
+    switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      return true;
+    }
+    return false;
+  };
+
+  UsbUsageType.validate = function(enumValue) {
+    var isExtensible = false;
+    if (isExtensible || this.isKnownEnumValue(enumValue))
+      return validator.validationError.NONE;
+
+    return validator.validationError.UNKNOWN_ENUM_VALUE;
+  };
   var UsbTransferStatus = {};
   UsbTransferStatus.COMPLETED = 0;
   UsbTransferStatus.TRANSFER_ERROR = UsbTransferStatus.COMPLETED + 1;
@@ -200,9 +256,13 @@
 
   UsbEndpointInfo.prototype.initDefaults_ = function() {
     this.endpointNumber = 0;
+    this.pollingInterval = 0;
     this.direction = 0;
     this.type = 0;
     this.packetSize = 0;
+    this.synchronizationType = 0;
+    this.usageType = 0;
+    this.extraData = null;
   };
   UsbEndpointInfo.prototype.initFields_ = function(fields) {
     for(var field in fields) {
@@ -218,7 +278,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 24}
+      {version: 0, numBytes: 40}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -238,10 +298,29 @@
         return err;
 
 
+
+    // validate UsbEndpointInfo.synchronizationType
+    err = messageValidator.validateEnum(offset + codec.kStructHeaderSize + 16, UsbSynchronizationType);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate UsbEndpointInfo.usageType
+    err = messageValidator.validateEnum(offset + codec.kStructHeaderSize + 20, UsbUsageType);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+
+    // validate UsbEndpointInfo.extraData
+    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 24, 1, codec.Uint8, false, [0], 0);
+    if (err !== validator.validationError.NONE)
+        return err;
+
     return validator.validationError.NONE;
   };
 
-  UsbEndpointInfo.encodedSize = codec.kStructHeaderSize + 16;
+  UsbEndpointInfo.encodedSize = codec.kStructHeaderSize + 32;
 
   UsbEndpointInfo.decode = function(decoder) {
     var packed;
@@ -249,12 +328,15 @@
     var numberOfBytes = decoder.readUint32();
     var version = decoder.readUint32();
     val.endpointNumber = decoder.decodeStruct(codec.Uint8);
-    decoder.skip(1);
+    val.pollingInterval = decoder.decodeStruct(codec.Uint8);
     decoder.skip(1);
     decoder.skip(1);
     val.direction = decoder.decodeStruct(codec.Int32);
     val.type = decoder.decodeStruct(codec.Int32);
     val.packetSize = decoder.decodeStruct(codec.Uint32);
+    val.synchronizationType = decoder.decodeStruct(codec.Int32);
+    val.usageType = decoder.decodeStruct(codec.Int32);
+    val.extraData = decoder.decodeArrayPointer(codec.Uint8);
     return val;
   };
 
@@ -263,12 +345,15 @@
     encoder.writeUint32(UsbEndpointInfo.encodedSize);
     encoder.writeUint32(0);
     encoder.encodeStruct(codec.Uint8, val.endpointNumber);
-    encoder.skip(1);
+    encoder.encodeStruct(codec.Uint8, val.pollingInterval);
     encoder.skip(1);
     encoder.skip(1);
     encoder.encodeStruct(codec.Int32, val.direction);
     encoder.encodeStruct(codec.Int32, val.type);
     encoder.encodeStruct(codec.Uint32, val.packetSize);
+    encoder.encodeStruct(codec.Int32, val.synchronizationType);
+    encoder.encodeStruct(codec.Int32, val.usageType);
+    encoder.encodeArrayPointer(codec.Uint8, val.extraData);
   };
   function UsbAlternateInterfaceInfo(values) {
     this.initDefaults_();
@@ -283,6 +368,7 @@
     this.protocolCode = 0;
     this.interfaceName = null;
     this.endpoints = null;
+    this.extraData = null;
   };
   UsbAlternateInterfaceInfo.prototype.initFields_ = function(fields) {
     for(var field in fields) {
@@ -298,7 +384,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 32}
+      {version: 0, numBytes: 40}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -320,10 +406,16 @@
     if (err !== validator.validationError.NONE)
         return err;
 
+
+    // validate UsbAlternateInterfaceInfo.extraData
+    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 24, 1, codec.Uint8, false, [0], 0);
+    if (err !== validator.validationError.NONE)
+        return err;
+
     return validator.validationError.NONE;
   };
 
-  UsbAlternateInterfaceInfo.encodedSize = codec.kStructHeaderSize + 24;
+  UsbAlternateInterfaceInfo.encodedSize = codec.kStructHeaderSize + 32;
 
   UsbAlternateInterfaceInfo.decode = function(decoder) {
     var packed;
@@ -340,6 +432,7 @@
     decoder.skip(1);
     val.interfaceName = decoder.decodeStructPointer(string16$.String16);
     val.endpoints = decoder.decodeArrayPointer(new codec.PointerTo(UsbEndpointInfo));
+    val.extraData = decoder.decodeArrayPointer(codec.Uint8);
     return val;
   };
 
@@ -357,6 +450,7 @@
     encoder.skip(1);
     encoder.encodeStructPointer(string16$.String16, val.interfaceName);
     encoder.encodeArrayPointer(new codec.PointerTo(UsbEndpointInfo), val.endpoints);
+    encoder.encodeArrayPointer(codec.Uint8, val.extraData);
   };
   function UsbInterfaceInfo(values) {
     this.initDefaults_();
@@ -439,8 +533,12 @@
 
   UsbConfigurationInfo.prototype.initDefaults_ = function() {
     this.configurationValue = 0;
+    this.selfPowered = false;
+    this.remoteWakeup = false;
+    this.maximumPower = 0;
     this.configurationName = null;
     this.interfaces = null;
+    this.extraData = null;
   };
   UsbConfigurationInfo.prototype.initFields_ = function(fields) {
     for(var field in fields) {
@@ -456,7 +554,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 32}
+      {version: 0, numBytes: 40}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -470,15 +568,24 @@
         return err;
 
 
+
+
+
     // validate UsbConfigurationInfo.interfaces
     err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 16, 8, new codec.PointerTo(UsbInterfaceInfo), false, [0], 0);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate UsbConfigurationInfo.extraData
+    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 24, 1, codec.Uint8, false, [0], 0);
     if (err !== validator.validationError.NONE)
         return err;
 
     return validator.validationError.NONE;
   };
 
-  UsbConfigurationInfo.encodedSize = codec.kStructHeaderSize + 24;
+  UsbConfigurationInfo.encodedSize = codec.kStructHeaderSize + 32;
 
   UsbConfigurationInfo.decode = function(decoder) {
     var packed;
@@ -486,8 +593,10 @@
     var numberOfBytes = decoder.readUint32();
     var version = decoder.readUint32();
     val.configurationValue = decoder.decodeStruct(codec.Uint8);
-    decoder.skip(1);
-    decoder.skip(1);
+    packed = decoder.readUint8();
+    val.selfPowered = (packed >> 0) & 1 ? true : false;
+    val.remoteWakeup = (packed >> 1) & 1 ? true : false;
+    val.maximumPower = decoder.decodeStruct(codec.Uint8);
     decoder.skip(1);
     decoder.skip(1);
     decoder.skip(1);
@@ -495,6 +604,7 @@
     decoder.skip(1);
     val.configurationName = decoder.decodeStructPointer(string16$.String16);
     val.interfaces = decoder.decodeArrayPointer(new codec.PointerTo(UsbInterfaceInfo));
+    val.extraData = decoder.decodeArrayPointer(codec.Uint8);
     return val;
   };
 
@@ -503,8 +613,11 @@
     encoder.writeUint32(UsbConfigurationInfo.encodedSize);
     encoder.writeUint32(0);
     encoder.encodeStruct(codec.Uint8, val.configurationValue);
-    encoder.skip(1);
-    encoder.skip(1);
+    packed = 0;
+    packed |= (val.selfPowered & 1) << 0
+    packed |= (val.remoteWakeup & 1) << 1
+    encoder.writeUint8(packed);
+    encoder.encodeStruct(codec.Uint8, val.maximumPower);
     encoder.skip(1);
     encoder.skip(1);
     encoder.skip(1);
@@ -512,6 +625,7 @@
     encoder.skip(1);
     encoder.encodeStructPointer(string16$.String16, val.configurationName);
     encoder.encodeArrayPointer(new codec.PointerTo(UsbInterfaceInfo), val.interfaces);
+    encoder.encodeArrayPointer(codec.Uint8, val.extraData);
   };
   function UsbDeviceInfo(values) {
     this.initDefaults_();
@@ -3655,6 +3769,8 @@
   exports.UsbControlTransferType = UsbControlTransferType;
   exports.UsbControlTransferRecipient = UsbControlTransferRecipient;
   exports.UsbTransferType = UsbTransferType;
+  exports.UsbSynchronizationType = UsbSynchronizationType;
+  exports.UsbUsageType = UsbUsageType;
   exports.UsbTransferStatus = UsbTransferStatus;
   exports.UsbEndpointInfo = UsbEndpointInfo;
   exports.UsbAlternateInterfaceInfo = UsbAlternateInterfaceInfo;
