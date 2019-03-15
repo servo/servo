@@ -401,6 +401,10 @@ fn handle_range_request(
         // whose body is in the ResponseBody::Receiving state.
         (&(Bound::Included(beginning), Bound::Included(end)), Some(ref complete_resource)) => {
             if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
+                if end == u64::max_value() {
+                    // Prevent overflow on the addition below.
+                    return None;
+                }
                 let b = beginning as usize;
                 let e = end as usize + 1;
                 let requested = body.get(b..e);
@@ -428,7 +432,7 @@ fn handle_range_request(
                     },
                     _ => continue,
                 };
-                if res_beginning - 1 < beginning && res_end + 1 > end {
+                if res_beginning <= beginning && res_end >= end {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
                         &ResponseBody::Done(ref body) => {
@@ -472,6 +476,10 @@ fn handle_range_request(
                         _ => continue,
                     }
                 } else {
+                    continue;
+                };
+                if total == 0 {
+                    // Prevent overflow in the below operations from occuring.
                     continue;
                 };
                 if res_beginning < beginning && res_end == total - 1 {
@@ -519,6 +527,14 @@ fn handle_range_request(
                 } else {
                     continue;
                 };
+                if !(total >= res_beginning) ||
+                    !(total >= res_end) ||
+                    offset == 0 ||
+                    offset == u64::max_value()
+                {
+                    // Prevent overflow in the below operations from occuring.
+                    continue;
+                }
                 if (total - res_beginning) > (offset - 1) && (total - res_end) < offset + 1 {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
