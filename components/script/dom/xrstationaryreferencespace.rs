@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::XRStationaryReferenceSpaceBinding;
+use crate::dom::bindings::codegen::Bindings::XRStationaryReferenceSpaceBinding::XRStationaryReferenceSpaceSubtype;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
@@ -14,24 +15,31 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct XRStationaryReferenceSpace {
     xrreferencespace: XRReferenceSpace,
+    ty: XRStationaryReferenceSpaceSubtype,
 }
 
 #[allow(unused)]
 impl XRStationaryReferenceSpace {
     pub fn new_inherited(
         session: &XRSession,
+        ty: XRStationaryReferenceSpaceSubtype,
         transform: &XRRigidTransform,
     ) -> XRStationaryReferenceSpace {
         XRStationaryReferenceSpace {
             xrreferencespace: XRReferenceSpace::new_inherited(session, transform),
+            ty,
         }
     }
 
-    pub fn new(window: &Window, session: &XRSession) -> DomRoot<XRStationaryReferenceSpace> {
+    pub fn new(
+        window: &Window,
+        session: &XRSession,
+        ty: XRStationaryReferenceSpaceSubtype,
+    ) -> DomRoot<XRStationaryReferenceSpace> {
         let transform = XRRigidTransform::identity(window);
         reflect_dom_object(
             Box::new(XRStationaryReferenceSpace::new_inherited(
-                session, &transform,
+                session, ty, &transform,
             )),
             window,
             XRStationaryReferenceSpaceBinding::Wrap,

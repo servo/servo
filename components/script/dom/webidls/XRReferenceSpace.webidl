@@ -4,16 +4,6 @@
 
 // https://immersive-web.github.io/webxr/#xrreferencespace-interface
 
-enum XRReferenceSpaceType {
-  "stationary",
-  "bounded",
-  "unbounded"
-};
-
-dictionary XRReferenceSpaceOptions {
-  required XRReferenceSpaceType type;
-};
-
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRReferenceSpace : XRSpace {
   attribute XRRigidTransform originOffset;

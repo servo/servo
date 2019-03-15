@@ -24,8 +24,7 @@ interface XRSession : EventTarget {
   attribute XRLayer? baseLayer;
 
   // // Methods
-  // Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type,
-  //        optional XRReferenceSpaceOptions options);
+  Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceOptions options);
 
   // FrozenArray<XRInputSource> getInputSources();
 
@@ -42,4 +41,16 @@ interface XRSession : EventTarget {
   // attribute EventHandler oninputsourceschange;
   // attribute EventHandler onselectstart;
   // attribute EventHandler onselectend;
+};
+
+enum XRReferenceSpaceType {
+  "identity",
+  "stationary",
+  "bounded",
+  "unbounded"
+};
+
+dictionary XRReferenceSpaceOptions {
+  required XRReferenceSpaceType type;
+  XRStationaryReferenceSpaceSubtype subtype;
 };

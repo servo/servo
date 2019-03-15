@@ -7,17 +7,23 @@ use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRReferenceSpaceOptions;
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrlayer::XRLayer;
+use crate::dom::xrreferencespace::XRReferenceSpace;
+use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use dom_struct::dom_struct;
 use std::rc::Rc;
@@ -110,5 +116,40 @@ impl XRSessionMethods for XRSession {
     /// https://immersive-web.github.io/webxr/#dom-xrsession-environmentblendmode
     fn EnvironmentBlendMode(&self) -> XREnvironmentBlendMode {
         self.blend_mode
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
+    fn RequestReferenceSpace(&self, options: &XRReferenceSpaceOptions) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+
+        // https://immersive-web.github.io/webxr/#create-a-reference-space
+
+        match options.type_ {
+            XRReferenceSpaceType::Identity => {
+                p.resolve_native(&XRReferenceSpace::identity(
+                    &self.global().as_window(),
+                    self,
+                ));
+            },
+            XRReferenceSpaceType::Stationary => {
+                if let Some(subtype) = options.subtype {
+                    p.resolve_native(&XRStationaryReferenceSpace::new(
+                        &self.global().as_window(),
+                        self,
+                        subtype,
+                    ));
+                } else {
+                    p.reject_error(Error::Type(format!(
+                        "stationary XRReferenceSpaces must specify a subtype"
+                    )))
+                }
+            },
+            XRReferenceSpaceType::Bounded | XRReferenceSpaceType::Unbounded => {
+                // XXXManishearth eventually support these
+                p.reject_error(Error::NotSupported)
+            },
+        }
+
+        p
     }
 }
