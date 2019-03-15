@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>fractions linethickness</title>
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
-    <meta name="assert" content="Verifies 'thin', 'medium', 'thick' and unitless values for the linethickness attribute of the mfrac element">
+    <meta name="assert" content="Verifies deprecated 'thin', 'medium', 'thick' and unitless values have no effect on the linethickness of the mfrac element">
     <link rel="match" href="frac-linethickness-001-ref.html">
     <style type="text/css">
       @font-face {
@@ -19,23 +19,26 @@
     </style>
   </head>
   <body>
-    <p>This test passes if you see fractions with line thickness equal to the height of their blue numerator and cyan denominator.</p>
+    <p>This test passes if you see the same fraction four times.</p>
     <math>
       <mfrac linethickness="thin">
-        <mspace width="20px" height="5px" style="background: blue"></mspace>
-        <mspace width="20px" height="5px" style="background: cyan"></mspace>
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
+      <mspace width="20px"/>
       <mfrac linethickness="medium">
         <mspace width="20px" height="10px" style="background: blue"></mspace>
         <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
+      <mspace width="20px"/>
       <mfrac linethickness="thick">
-        <mspace width="20px" height="20px" style="background: blue"></mspace>
-        <mspace width="20px" height="20px" style="background: cyan"></mspace>
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
+      <mspace width="20px"/>
       <mfrac linethickness="5">
-        <mspace width="20px" height="50px" style="background: blue"></mspace>
-        <mspace width="20px" height="50px" style="background: cyan"></mspace>
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
     </math>
   </body>

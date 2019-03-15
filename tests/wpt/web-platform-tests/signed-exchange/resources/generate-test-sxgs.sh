@@ -454,4 +454,35 @@ gen-signedexchange \
   -o sxg/sxg-navigation-timing.sxg \
   -miRecordSize 100
 
+# A valid Signed Exchange for testing service worker registration.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $wpt_test_origin/signed-exchange/resources/register-sw-from-sxg.html \
+  -status 200 \
+  -content register-sw.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $wpt_test_origin/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg/register-sw-from-sxg.sxg \
+  -miRecordSize 100
+
+# An invalid Signed Exchange for testing service worker registration after
+# fallback.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $wpt_test_origin/signed-exchange/resources/register-sw-after-fallback.html \
+  -status 200 \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/not_found_certfile.cbor \
+  -validityUrl $wpt_test_origin/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg/register-sw-after-fallback.sxg \
+  -miRecordSize 100
+
 rm -fr $tmpdir

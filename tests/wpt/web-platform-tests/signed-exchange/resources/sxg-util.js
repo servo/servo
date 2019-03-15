@@ -72,3 +72,16 @@ function addPrefetch(url) {
   link.href = url;
   document.body.appendChild(link);
 }
+
+async function registerServiceWorkerAndWaitUntilActivated(script, scope) {
+  const reg = await navigator.serviceWorker.register(script, {scope: scope});
+  if (reg.active)
+    return;
+  const worker =  reg.installing || reg.waiting;
+  await new Promise((resolve) => {
+    worker.addEventListener('statechange', (event) => {
+      if (event.target.state == 'activated')
+        resolve();
+    });
+  });
+}

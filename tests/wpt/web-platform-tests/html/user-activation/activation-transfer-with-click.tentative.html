@@ -12,7 +12,8 @@
 <script src="/resources/testdriver-vendor.js"></script>
 </head>
 <body>
-  <h1>User activation can be transferred to a child frame via a postMessage option.</h1>
+  <h1>User activation can be transferred to a child frame
+    via a postMessage option.</h1>
   <ol id="instructions">
     <li>Click this instruction text.
   </ol>
@@ -35,6 +36,8 @@
         } else if (msg.type == 'child-four-report') {
           assert_true(msg.isActive);
           assert_true(msg.hasBeenActive);
+
+          // check sender's activation state again
           assert_false(navigator.userActivation.isActive);
           assert_false(navigator.userActivation.hasBeenActive);
           t.done();
@@ -45,7 +48,12 @@
           assert_true(navigator.userActivation.hasBeenActive);
 
           // transfer user activation to the child frame
-          child.contentWindow.postMessage("transfer_user_activation", {transferUserActivation: true});
+          child.contentWindow.postMessage("transfer_user_activation",
+              {transferUserActivation: true});
+
+          // sender's activation state is updated synchronously
+          assert_false(navigator.userActivation.isActive);
+          assert_false(navigator.userActivation.hasBeenActive);
       }));
       child.src = "resources/child-four.html";
     }, "User activation transfer through postMessages");

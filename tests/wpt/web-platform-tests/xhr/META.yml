@@ -2,9 +2,6 @@ spec: https://xhr.spec.whatwg.org/
 suggested_reviewers:
   - caitp
   - Manishearth
-  - jungkees
-  - ibelem
-  - mathiasbynens
   - jdm
   - annevk
   - wisniewskit

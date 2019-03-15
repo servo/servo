@@ -187,22 +187,21 @@
         2.  If connection's [[NegotiationNeeded]] slot is false, abort these steps.
         3.  Fire a simple event named negotiationneeded at connection.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
 
     t.add_cleanup(() => pc.close());
 
-    return assert_first_promise_fulfill_after_second(
-      awaitNegotiation(pc),
-      generateAudioReceiveOnlyOffer(pc)
-      .then(offer =>
-        pc.setLocalDescription(offer)
-        .then(() => {
-          pc.createDataChannel('test');
-          return generateAnswer(offer);
-        }))
-      .then(answer => pc.setRemoteDescription(answer)),
-      'Expect negotiationneeded promise to resolve after pc has set remote answer and go back to stable state');
+    pc.addTransceiver('audio');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    let fired = false;
+    pc.onnegotiationneeded = e => fired = true;
+    pc.createDataChannel('test');
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+    assert_false(fired, "negotiationneeded should not fire until the next iteration of the event loop after returning to stable");
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
   }, 'negotiationneeded event should fire only after signaling state go back to stable');
 
   /*

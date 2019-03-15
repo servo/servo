@@ -57,11 +57,25 @@ matrix:
           packages:
             - libnss3-tools
       env: JOB=wpt_integration TOXENV=py27 SCRIPT=tools/ci/ci_wpt.sh
+      addons:
+        apt:
+          packages:
+            - fonts-liberation
+            - libappindicator1
+            - libnss3-tools
+            - pulseaudio
     - name: "resources/ tests"
       if: type = pull_request
       os: linux
       python: "2.7"
       env: JOB=resources_unittest TOXENV=py27 SCRIPT=tools/ci/ci_resources_unittest.sh
+      addons:
+        apt:
+          packages:
+            - fonts-liberation
+            - libappindicator1
+            - libnss3-tools
+            - pulseaudio
     - name: "infrastructure/ tests"
       if: type = pull_request
       os: linux
@@ -70,9 +84,10 @@ matrix:
       addons:
         apt:
           packages:
-            - libnss3-tools
-            - libappindicator1
             - fonts-liberation
+            - libappindicator1
+            - libnss3-tools
+            - pulseaudio
   exclude:
     - env:  # exclude empty env from the top-level above
   allow_failures:

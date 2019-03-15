@@ -173,19 +173,18 @@
         - All stats objects referenced directly or indirectly by the RTCOutboundRTPStreamStats
           objects added.
    */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    return getTrackFromUserMedia('audio')
-    .then(([track, mediaStream]) => {
-      pc.addTrack(track, mediaStream);
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
 
-      return pc.getStats(track)
-      .then(statsReport => {
-        validateStatsReport(statsReport);
-        assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
-      });
-    });
+    let [track, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(track, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await doSignalingHandshake(pc, pc2);
+    await listenToIceConnected(pc);
+    const stats = await pc.getStats(track);
+    validateStatsReport(stats);
+    assert_stats_report_has_stats(stats, ['outbound-rtp']);
   }, `getStats() on track associated with RtpSender should return stats report containing outbound-rtp stats`);
 
 
@@ -197,16 +196,20 @@
         - All stats objects referenced directly or indirectly by the RTCInboundRTPStreamStats
           added.
    */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    const transceiver = pc.addTransceiver('audio');
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
 
-    return pc.getStats(transceiver.receiver.track)
-    .then(statsReport => {
-      validateStatsReport(statsReport);
-      assert_stats_report_has_stats(statsReport, ['inbound-rtp']);
+    let [track, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(track, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await doSignalingHandshake(pc, pc2);
+    await new Promise(resolve => {
+      pc2.getReceivers()[0].track.addEventListener('unmute', resolve);
     });
+    const stats = await pc2.getStats(track);
+    validateStatsReport(stats);
+    assert_stats_report_has_stats(stats, ['inbound-rtp']);
   }, `getStats() on track associated with RtpReceiver should return stats report containing inbound-rtp stats`);
 
   /*

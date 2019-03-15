@@ -58,6 +58,7 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.cur
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.ico
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.wasm
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.bmp
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.sxg
 
 ## Whitespace needed for testing
 
@@ -187,6 +188,7 @@ SET TIMEOUT: payment-request/allowpaymentrequest/setting-allowpaymentrequest-tim
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resources/iframe-TAO*
+SET TIMEOUT: resource-timing/resources/nested-contexts.js
 SET TIMEOUT: screen-orientation/onchange-event.html
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
 SET TIMEOUT: service-workers/cache-storage/script-tests/cache-abort.js
