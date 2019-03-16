@@ -1,22 +1,21 @@
 # Servo's style system overview
 
-This needs to be filled more extensively. Meanwhile, you can also take a look to
+This needs to be filled more extensively. Meanwhile, you can also take a look at
 the [style doc comments][style-doc], or the [Styling
-Overview][wiki-styling-overview] in the wiki, which is a conversation between
+Overview][wiki-styling-overview] in the wiki, a conversation between
 Boris Zbarsky and Patrick Walton about how style sharing works.
 
 <a name="selector-impl"></a>
 ## Selector Implementation
 
-The style system is generic over quite a few things, in order to be shareable
-with Servo's layout system, and with [Stylo][stylo], an ambitious project that
-aims to integrate Servo's style system into Gecko.
+In order to be sharable and compatible with [Stylo][stylo](a project that aims 
+to integrate Servo's style system into Gecko), the sytle must be consistent.
 
-The main generic trait is [selectors' SelectorImpl][selector-impl], that has all
-the logic related to parsing pseudo-elements and other pseudo-classes appart
-from [tree-structural ones][tree-structural-pseudo-classes].
+The consitency is implemented in [selectors' SelectorImpl][selector-impl], 
+containing the logic related to parsing pseudo-elements and other pseudo-classes 
+apart from [tree-structural ones][tree-structural-pseudo-classes].
 
-Servo [extends][selector-impl-ext] that trait in order to allow a few more
+Servo extends the selector implementation trait in order to allow a few more
 things to be shared between Stylo and Servo.
 
 The main Servo implementation (the one that is used in regular builds) is
