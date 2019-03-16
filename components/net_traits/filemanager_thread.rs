@@ -140,6 +140,7 @@ pub enum FileManagerThreadMsg {
     /// Add an entry as promoted memory-based blob and send back the associated FileID
     /// as part of a valid/invalid Blob URL depending on the boolean flag
     PromoteMemory(
+        Uuid,
         BlobBuf,
         bool,
         IpcSender<Result<Uuid, BlobURLStoreError>>,

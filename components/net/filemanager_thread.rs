@@ -128,6 +128,7 @@ impl FileManager {
 
     pub fn promote_memory(
         &self,
+        id: Uuid,
         blob_buf: BlobBuf,
         set_valid: bool,
         sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
@@ -137,7 +138,7 @@ impl FileManager {
         thread::Builder::new()
             .name("transfer memory".to_owned())
             .spawn(move || {
-                store.promote_memory(blob_buf, set_valid, sender, origin);
+                store.promote_memory(id, blob_buf, set_valid, sender, origin);
             })
             .expect("Thread spawning failed");
     }
@@ -168,8 +169,8 @@ impl FileManager {
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
                 self.read_file(sender, id, check_url_validity, origin);
             },
-            FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, sender, origin) => {
-                self.promote_memory(blob_buf, set_valid, sender, origin);
+            FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, sender, origin) => {
+                self.promote_memory(id, blob_buf, set_valid, sender, origin);
             },
             FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) => {
                 self.store.add_sliced_url_entry(id, rel_pos, sender, origin);
@@ -669,6 +670,7 @@ impl FileManagerStore {
 
     fn promote_memory(
         &self,
+        id: Uuid,
         blob_buf: BlobBuf,
         set_valid: bool,
         sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
@@ -677,7 +679,6 @@ impl FileManagerStore {
         match Url::parse(&origin) {
             // parse to check sanity
             Ok(_) => {
-                let id = Uuid::new_v4();
                 self.insert(
                     id,
                     FileStoreEntry {
