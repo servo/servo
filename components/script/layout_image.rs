@@ -29,6 +29,7 @@ struct LayoutImageContext {
     cache: Arc<dyn ImageCache>,
     resource_timing: ResourceFetchTiming,
     doc: Trusted<Document>,
+    url: ServoUrl,
 }
 
 impl FetchResponseListener for LayoutImageContext {
@@ -64,10 +65,7 @@ impl FetchResponseListener for LayoutImageContext {
 
 impl ResourceTimingListener for LayoutImageContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (
-            InitiatorType::Other,
-            self.resource_timing_global().get_url().clone(),
-        )
+        (InitiatorType::Other, self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
@@ -90,6 +88,7 @@ pub fn fetch_image_for_layout(
         cache: cache,
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         doc: Trusted::new(&document),
+        url: url.clone(),
     }));
 
     let document = document_from_node(node);
