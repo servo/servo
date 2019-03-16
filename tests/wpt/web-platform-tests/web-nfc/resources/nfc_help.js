@@ -70,7 +70,7 @@ function assertWebNDEFMessagesEqual(a, b) {
 function testNDEFMessage(pushedMessage, readOptions, desc) {
   promise_test(async t => {
     const writer = new NFCWriter();
-    const reader = new NFCReader();
+    const reader = new NFCReader(readOptions);
     await writer.push(pushedMessage);
     const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
     reader.start();

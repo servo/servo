@@ -99,29 +99,99 @@ test(() => {
 }, "Calling click() on disabled elements must not dispatch events.");
 
 promise_test(async () => {
+  // Style sheet that controls transition.
+  const style = document.createElement("style");
+  style.innerText = `
+    ${formElements.join(", ")} {
+      opacity: 0.1;
+      transition-property: opacity;
+      transition-duration: .1s;
+    }
+    .transition {
+      opacity: 1;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Triggers the transition in the element being tested.
+  const transitionTrigger = document.createElement("button");
+  transitionTrigger.innerText = "Trigger button";
+  document.body.appendChild(transitionTrigger);
+
+  // For each form element type, set up transition event handlers.
   for (const localName of formElements) {
     const elem = document.createElement(localName);
     elem.disabled = true;
     document.body.appendChild(elem);
+    const transitionPromises = [
+      "transitionrun",
+      "transitionstart",
+      "transitionend",
+    ].map(eventType => {
+      return new Promise(r => {
+        const handlerName = `on${eventType}`;
+        elem[handlerName] = ev => {
+          elem[handlerName] = null;
+          r();
+        };
+      });
+    });
 
+    // Trigger transitions specifically on this element
+    // it requires a trusted event.
+    transitionTrigger.onclick = () => {
+      elem.classList.toggle("transition");
+    };
+    await test_driver.click(transitionTrigger);
+
+    // All the events fire...
+    await Promise.all(transitionPromises);
+    elem.classList.remove("transition");
+
+    // Let's now test the "transitioncancel" event.
+    elem.ontransitionstart = () => {
+      // Cancel the transition by hiding it.
+      elem.style.display = "none";
+      elem.classList.remove("transition");
+    };
+
+    // Trigger the transition again!
+    const promiseToCancel = new Promise(r => {
+      elem.ontransitioncancel = r;
+    });
+    await test_driver.click(transitionTrigger);
+    await promiseToCancel;
+    // And we are done with this element.
+    elem.remove();
+  }
+  // And we are done with the test... clean up.
+  transitionTrigger.remove();
+  style.remove();
+}, "CSS Transitions events fire on disabled form elements");
+
+promise_test(async () => {
+  for (const localName of formElements) {
+    const elem = document.createElement(localName);
+    elem.disabled = true;
+    document.body.appendChild(elem);
     // Element is disabled, so clicking must not fire events
     let pass = true;
     elem.onclick = e => {
       pass = false;
     };
-    await test_driver.click(elem); // triggers "onclick"
+    // Disabled elements are not clickable.
+    await test_driver.click(elem);
     assert_true(
       pass,
       `${elem.constructor.name} is disabled, so onclick must not fire.`
     );
-
     // Element is (re)enabled... so this click() will fire an event.
     pass = false;
     elem.disabled = false;
     elem.onclick = () => {
       pass = true;
     };
-    await test_driver.click(elem); // triggers "onclick"
+    await test_driver.click(elem);
     assert_true(
       pass,
       `${elem.constructor.name} is enabled, so onclick must fire.`

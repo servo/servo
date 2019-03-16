@@ -18,3 +18,33 @@ for (const [name, fn] of instanceTestFactory) {
     verify(result.instance);
   }, name);
 }
+
+promise_test(async () => {
+  const builder = new WasmModuleBuilder();
+  builder.addImportedGlobal("module", "global", kWasmI32);
+  const buffer = builder.toBuffer();
+  const response = new Response(buffer, { "headers": { "Content-Type": "application/wasm" } });
+  const order = [];
+
+  const imports = {
+    get module() {
+      order.push("module getter");
+      return {
+        get global() {
+          order.push("global getter");
+          return 0;
+        },
+      }
+    },
+  };
+
+  const expected = [
+    "module getter",
+    "global getter",
+  ];
+  const p = WebAssembly.instantiateStreaming(response, imports);
+  assert_array_equals(order, []);
+  const result = await p;
+  assert_WebAssemblyInstantiatedSource(result, {});
+  assert_array_equals(order, expected);
+}, "Synchronous options handling");

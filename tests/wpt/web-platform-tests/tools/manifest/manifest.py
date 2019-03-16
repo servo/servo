@@ -162,6 +162,21 @@ class TypeData(object):
         self.tests_root = tests_root
         self.json_data = data
 
+    def to_json(self):
+        data = {
+            from_os_path(path):
+            [t for t in sorted(test.to_json() for test in tests)]
+            for path, tests in iteritems(self.data)
+        }
+
+        if self.json_data is not None:
+            if not data:
+                # avoid copying if there's nothing here yet
+                return self.json_data
+            data.update(self.json_data)
+
+        return data
+
     def paths(self):
         """Get a list of all paths containing items of this type,
         without actually constructing all the items"""
@@ -363,11 +378,7 @@ class Manifest(object):
 
     def to_json(self):
         out_items = {
-            test_type: {
-                from_os_path(path):
-                [t for t in sorted(test.to_json() for test in tests)]
-                for path, tests in iteritems(type_paths)
-            }
+            test_type: type_paths.to_json()
             for test_type, type_paths in iteritems(self._data) if type_paths
         }
         rv = {"url_base": self.url_base,
