@@ -239,7 +239,8 @@ impl Blob {
         };
 
         let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let msg = FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, tx, origin.clone());
+        let id = Uuid::new_v4();
+        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, tx, origin.clone());
         self.send_to_file_manager(msg);
 
         match rx.recv().unwrap() {
