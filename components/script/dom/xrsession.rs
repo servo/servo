@@ -124,6 +124,9 @@ impl XRSessionMethods for XRSession {
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 
+        // XXXManishearth reject based on session type
+        // https://github.com/immersive-web/webxr/blob/master/spatial-tracking-explainer.md#practical-usage-guidelines
+
         match options.type_ {
             XRReferenceSpaceType::Identity => {
                 p.resolve_native(&XRReferenceSpace::identity(
