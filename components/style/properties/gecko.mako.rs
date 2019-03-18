@@ -2582,7 +2582,7 @@ fn static_assert() {
                           transform-style
                           rotate scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-coordinate -moz-binding will-change
-                          offset-path shape-outside touch-action
+                          offset-path shape-outside
                           translate scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
@@ -3001,8 +3001,6 @@ fn static_assert() {
     }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
-
-    ${impl_simple_type_with_conversion("touch_action")}
 
     pub fn set_offset_path(&mut self, v: longhands::offset_path::computed_value::T) {
         use crate::gecko_bindings::bindings::{Gecko_NewStyleMotion, Gecko_SetStyleMotion};
