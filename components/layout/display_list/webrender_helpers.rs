@@ -235,6 +235,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     &stacking_context.filters,
                     &[],
                     RasterSpace::Screen,
+                    /* cache_tiles = */ false,
                 );
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
