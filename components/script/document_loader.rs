@@ -14,7 +14,6 @@ use net_traits::request::RequestInit;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{IpcSend, ResourceThreads};
 use servo_url::ServoUrl;
-use std::thread;
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum LoadType {
@@ -77,8 +76,8 @@ impl LoadBlocker {
 
 impl Drop for LoadBlocker {
     fn drop(&mut self) {
-        if !thread::panicking() {
-            debug_assert!(self.load.is_none());
+        if let Some(load) = self.load.take() {
+            self.doc.finish_load(load);
         }
     }
 }
