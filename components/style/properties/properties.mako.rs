@@ -3470,7 +3470,7 @@ impl<'a> StyleBuilder<'a> {
                 % endif
             );
     }
-    % elif property.name != "font-size":
+    % else:
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {

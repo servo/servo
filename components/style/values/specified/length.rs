@@ -82,17 +82,12 @@ pub enum FontBaseSize {
     ///
     /// FIXME(emilio): This is very complex, and should go away.
     InheritedStyleButStripEmUnits,
-    /// Use a custom base size.
-    ///
-    /// FIXME(emilio): This is very dubious, and only used for MathML.
-    Custom(Au),
 }
 
 impl FontBaseSize {
     /// Calculate the actual size for a given context
     pub fn resolve(&self, context: &Context) -> Au {
         match *self {
-            FontBaseSize::Custom(size) => size,
             FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
             FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
                 context.style().get_parent_font().clone_font_size().size()

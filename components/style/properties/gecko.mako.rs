@@ -1971,25 +1971,19 @@ fn static_assert() {
     <% impl_font_settings("font_feature_settings", "gfxFontFeature", "FeatureTagValue", "i32", "u32") %>
     <% impl_font_settings("font_variation_settings", "gfxFontVariation", "VariationValue", "f32", "f32") %>
 
-    pub fn fixup_none_generic(&mut self, device: &Device) {
-        self.gecko.mFont.systemFont = false;
-        unsafe {
-            bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, device.document())
-        }
-    }
-
-    pub fn fixup_system(&mut self, default_font_type: structs::FontFamilyType) {
-        self.gecko.mFont.systemFont = true;
-        self.gecko.mGenericID = structs::kGenericFont_NONE;
-        self.gecko.mFont.fontlist.mDefaultFontType = default_font_type;
-    }
-
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
-        self.gecko.mGenericID = structs::kGenericFont_NONE;
-        if let Some(generic) = v.0.single_generic() {
-            self.gecko.mGenericID = generic;
-        }
-        self.gecko.mFont.fontlist.mFontlist.mBasePtr.set_move((v.0).0.clone());
+        use crate::gecko_bindings::structs::FontFamilyType;
+
+        let is_system_font = v.is_system_font;
+        self.gecko.mFont.systemFont = is_system_font;
+        self.gecko.mGenericID = if is_system_font {
+            structs::kGenericFont_NONE
+        } else {
+            v.families.single_generic().unwrap_or(structs::kGenericFont_NONE)
+        };
+        self.gecko.mFont.fontlist.mFontlist.mBasePtr.set_move(v.families.0.clone());
+        // Fixed-up if needed in Cascade::fixup_font_stuff.
+        self.gecko.mFont.fontlist.mDefaultFontType = FontFamilyType::eFamily_none;
     }
 
     pub fn copy_font_family_from(&mut self, other: &Self) {
@@ -2009,7 +2003,7 @@ fn static_assert() {
         let fontlist = &self.gecko.mFont.fontlist;
         let shared_fontlist = unsafe { fontlist.mFontlist.mBasePtr.to_safe() };
 
-        if shared_fontlist.mNames.is_empty() {
+        let families = if shared_fontlist.mNames.is_empty() {
             let default = fontlist.mDefaultFontType;
             let default = match default {
                 FontFamilyType::eFamily_serif => {
@@ -2030,9 +2024,14 @@ fn static_assert() {
                     SingleFontFamily::Generic(atom!("sans-serif"))
                 }
             };
-            FontFamily(FontFamilyList::new(Box::new([default])))
+            FontFamilyList::new(Box::new([default]))
         } else {
-            FontFamily(FontFamilyList(shared_fontlist))
+            FontFamilyList(shared_fontlist)
+        };
+
+        FontFamily {
+            families,
+            is_system_font: self.gecko.mFont.systemFont,
         }
     }
 
@@ -2042,10 +2041,32 @@ fn static_assert() {
         self.gecko.mFont.size = device.unzoom_text(Au(self.gecko.mFont.size)).0;
     }
 
+    pub fn copy_font_size_from(&mut self, other: &Self) {
+        self.gecko.mScriptUnconstrainedSize = other.gecko.mScriptUnconstrainedSize;
+
+        self.gecko.mSize = other.gecko.mScriptUnconstrainedSize;
+        self.gecko.mFont.size = other.gecko.mSize;
+        self.gecko.mFontSizeKeyword = other.gecko.mFontSizeKeyword;
+
+        // TODO(emilio): Should we really copy over these two?
+        self.gecko.mFontSizeFactor = other.gecko.mFontSizeFactor;
+        self.gecko.mFontSizeOffset = other.gecko.mFontSizeOffset;
+    }
+
+    pub fn reset_font_size(&mut self, other: &Self) {
+        self.copy_font_size_from(other)
+    }
+
     pub fn set_font_size(&mut self, v: FontSize) {
         use crate::values::generics::font::KeywordSize;
-        self.gecko.mSize = v.size().0;
-        self.gecko.mScriptUnconstrainedSize = v.size().0;
+
+        let size = v.size();
+        self.gecko.mScriptUnconstrainedSize = size.0;
+
+        // These two may be changed from Cascade::fixup_font_stuff.
+        self.gecko.mSize = size.0;
+        self.gecko.mFont.size = size.0;
+
         if let Some(info) = v.keyword_info {
             self.gecko.mFontSizeKeyword = match info.kw {
                 KeywordSize::XXSmall => structs::NS_STYLE_FONT_SIZE_XXSMALL,
@@ -2066,196 +2087,6 @@ fn static_assert() {
         }
     }
 
-    /// Set font size, taking into account scriptminsize and scriptlevel
-    /// Returns Some(size) if we have to recompute the script unconstrained size
-    pub fn apply_font_size(
-        &mut self,
-        v: FontSize,
-        parent: &Self,
-        device: &Device,
-    ) -> Option<NonNegativeLength> {
-        let (adjusted_size, adjusted_unconstrained_size) =
-            self.calculate_script_level_size(parent, device);
-        // In this case, we have been unaffected by scriptminsize, ignore it
-        if parent.gecko.mSize == parent.gecko.mScriptUnconstrainedSize &&
-           adjusted_size == adjusted_unconstrained_size {
-            self.set_font_size(v);
-            self.fixup_font_min_size(device);
-            None
-        } else {
-            self.gecko.mSize = v.size().0;
-            self.fixup_font_min_size(device);
-            Some(Au(parent.gecko.mScriptUnconstrainedSize).into())
-        }
-    }
-
-    pub fn fixup_font_min_size(&mut self, device: &Device) {
-        unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, device.document()) }
-    }
-
-    pub fn apply_unconstrained_font_size(&mut self, v: NonNegativeLength) {
-        self.gecko.mScriptUnconstrainedSize = v.0.to_i32_au();
-    }
-
-    /// Calculates the constrained and unconstrained font sizes to be inherited
-    /// from the parent.
-    ///
-    /// This is a port of Gecko's old ComputeScriptLevelSize function:
-    /// https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8/layout/style/nsRuleNode.cpp#3103
-    ///
-    /// scriptlevel is a property that affects how font-size is inherited. If scriptlevel is
-    /// +1, for example, it will inherit as the script size multiplier times
-    /// the parent font. This does not affect cases where the font-size is
-    /// explicitly set.
-    ///
-    /// However, this transformation is not allowed to reduce the size below
-    /// scriptminsize. If this inheritance will reduce it to below
-    /// scriptminsize, it will be set to scriptminsize or the parent size,
-    /// whichever is smaller (the parent size could be smaller than the min size
-    /// because it was explicitly specified).
-    ///
-    /// Now, within a node that has inherited a font-size which was
-    /// crossing scriptminsize once the scriptlevel was applied, a negative
-    /// scriptlevel may be used to increase the size again.
-    ///
-    /// This should work, however if we have already been capped by the
-    /// scriptminsize multiple times, this can lead to a jump in the size.
-    ///
-    /// For example, if we have text of the form:
-    ///
-    /// huge large medium small tiny reallytiny tiny small medium huge
-    ///
-    /// which is represented by progressive nesting and scriptlevel values of
-    /// +1 till the center after which the scriptlevel is -1, the "tiny"s should
-    /// be the same size, as should be the "small"s and "medium"s, etc.
-    ///
-    /// However, if scriptminsize kicked it at around "medium", then
-    /// medium/tiny/reallytiny will all be the same size (the min size).
-    /// A -1 scriptlevel change after this will increase the min size by the
-    /// multiplier, making the second tiny larger than medium.
-    ///
-    /// Instead, we wish for the second "tiny" to still be capped by the script
-    /// level, and when we reach the second "large", it should be the same size
-    /// as the original one.
-    ///
-    /// We do this by cascading two separate font sizes. The font size (mSize)
-    /// is the actual displayed font size. The unconstrained font size
-    /// (mScriptUnconstrainedSize) is the font size in the situation where
-    /// scriptminsize never applied.
-    ///
-    /// We calculate the proposed inherited font size based on scriptlevel and
-    /// the parent unconstrained size, instead of using the parent font size.
-    /// This is stored in the node's unconstrained size and will also be stored
-    /// in the font size provided that it is above the min size.
-    ///
-    /// All of this only applies when inheriting. When the font size is
-    /// manually set, scriptminsize does not apply, and both the real and
-    /// unconstrained size are set to the explicit value. However, if the font
-    /// size is manually set to an em or percent unit, the unconstrained size
-    /// will be set to the value of that unit computed against the parent
-    /// unconstrained size, whereas the font size will be set computing against
-    /// the parent font size.
-    pub fn calculate_script_level_size(&self, parent: &Self, device: &Device) -> (Au, Au) {
-        use std::cmp;
-
-        let delta = self.gecko.mScriptLevel.saturating_sub(parent.gecko.mScriptLevel);
-
-        let parent_size = Au(parent.gecko.mSize);
-        let parent_unconstrained_size = Au(parent.gecko.mScriptUnconstrainedSize);
-
-        if delta == 0 {
-            return (parent_size, parent_unconstrained_size)
-        }
-
-
-        let mut min = Au(parent.gecko.mScriptMinSize);
-        if self.gecko.mAllowZoom {
-            min = device.zoom_text(min);
-        }
-
-        let scale = (parent.gecko.mScriptSizeMultiplier as f32).powi(delta as i32);
-
-        let new_size = parent_size.scale_by(scale);
-        let new_unconstrained_size = parent_unconstrained_size.scale_by(scale);
-
-        if scale < 1. {
-            // The parent size can be smaller than scriptminsize,
-            // e.g. if it was specified explicitly. Don't scale
-            // in this case, but we don't want to set it to scriptminsize
-            // either since that will make it larger.
-            if parent_size < min {
-                (parent_size, new_unconstrained_size)
-            } else {
-                (cmp::max(min, new_size), new_unconstrained_size)
-            }
-        } else {
-            // If the new unconstrained size is larger than the min size,
-            // this means we have escaped the grasp of scriptminsize
-            // and can revert to using the unconstrained size.
-            // However, if the new size is even larger (perhaps due to usage
-            // of em units), use that instead.
-            (cmp::min(new_size, cmp::max(new_unconstrained_size, min)),
-             new_unconstrained_size)
-        }
-    }
-
-    /// This function will also handle scriptminsize and scriptlevel
-    /// so should not be called when you just want the font sizes to be copied.
-    /// Hence the different name.
-    pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                  kw_inherited_size: Option<NonNegativeLength>,
-                                  device: &Device) {
-        let (adjusted_size, adjusted_unconstrained_size)
-            = self.calculate_script_level_size(parent, device);
-        if adjusted_size.0 != parent.gecko.mSize ||
-           adjusted_unconstrained_size.0 != parent.gecko.mScriptUnconstrainedSize {
-            // FIXME(Manishearth): This is incorrect. When there is both a
-            // keyword size being inherited and a scriptlevel change, we must
-            // handle the keyword size the same way we handle em units. This
-            // complicates things because we now have to keep track of the
-            // adjusted and unadjusted ratios in the kw font size. This only
-            // affects the use case of a generic font being used in MathML.
-            //
-            // If we were to fix this I would prefer doing it not doing
-            // something like the ruletree walk that Gecko used to do in
-            // nsRuleNode::SetGenericFont and instead using extra bookkeeping in
-            // the mSize and mScriptUnconstrainedSize values, and reusing those
-            // instead of font_size_keyword.
-
-            // In the case that MathML has given us an adjusted size, apply it.
-            // Keep track of the unconstrained adjusted size.
-            self.gecko.mSize = adjusted_size.0;
-
-            // Technically the MathML constrained size may also be keyword-derived
-            // but we ignore this since it would be too complicated
-            // to correctly track and it's mostly unnecessary.
-            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
-            self.gecko.mFontSizeFactor = 1.;
-            self.gecko.mFontSizeOffset = 0;
-
-            self.gecko.mScriptUnconstrainedSize = adjusted_unconstrained_size.0;
-        } else if let Some(size) = kw_inherited_size {
-            // Parent element was a keyword-derived size.
-            self.gecko.mSize = size.0.to_i32_au();
-            // Copy keyword info over.
-            self.gecko.mFontSizeFactor = parent.gecko.mFontSizeFactor;
-            self.gecko.mFontSizeOffset = parent.gecko.mFontSizeOffset;
-            self.gecko.mFontSizeKeyword = parent.gecko.mFontSizeKeyword;
-            // MathML constraints didn't apply here, so we can ignore this.
-            self.gecko.mScriptUnconstrainedSize = size.0.to_i32_au();
-        } else {
-            // MathML isn't affecting us, and our parent element does not
-            // have a keyword-derived size. Set things normally.
-            self.gecko.mSize = parent.gecko.mSize;
-            // copy keyword info over
-            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
-            self.gecko.mFontSizeFactor = 1.;
-            self.gecko.mFontSizeOffset = 0;
-            self.gecko.mScriptUnconstrainedSize = parent.gecko.mScriptUnconstrainedSize;
-        }
-        self.fixup_font_min_size(device);
-    }
-
     pub fn clone_font_size(&self) -> FontSize {
         use crate::values::generics::font::{KeywordInfo, KeywordSize};
         let size = Au(self.gecko.mSize).into();
@@ -2270,16 +2101,16 @@ fn static_assert() {
             structs::NS_STYLE_FONT_SIZE_XXXLARGE => KeywordSize::XXXLarge,
             structs::NS_STYLE_FONT_SIZE_NO_KEYWORD => {
                 return FontSize {
-                    size: size,
+                    size,
                     keyword_info: None,
                 }
             }
             _ => unreachable!("mFontSizeKeyword should be an absolute keyword or NO_KEYWORD")
         };
         FontSize {
-            size: size,
+            size,
             keyword_info: Some(KeywordInfo {
-                kw: kw,
+                kw,
                 factor: self.gecko.mFontSizeFactor,
                 offset: Au(self.gecko.mFontSizeOffset).into()
             })

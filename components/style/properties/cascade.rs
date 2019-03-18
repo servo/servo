@@ -384,8 +384,6 @@ struct Cascade<'a, 'b: 'a> {
     cascade_mode: CascadeMode<'a>,
     seen: LonghandIdSet,
     reverted: PerOrigin<LonghandIdSet>,
-    saved_font_size: Option<PropertyDeclaration>,
-    saved_font_family: Option<PropertyDeclaration>,
 }
 
 impl<'a, 'b: 'a> Cascade<'a, 'b> {
@@ -395,8 +393,6 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             cascade_mode,
             seen: LonghandIdSet::default(),
             reverted: Default::default(),
-            saved_font_size: None,
-            saved_font_family: None,
         }
     }
 
@@ -424,33 +420,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         ))
     }
 
-    fn apply_declaration<Phase: CascadePhase>(
-        &mut self,
-        longhand_id: LonghandId,
-        declaration: &PropertyDeclaration,
-    ) {
-        // FIXME(emilio): Find a cleaner abstraction for this.
-        //
-        // font-size and font-family are special because in Gecko they're
-        // they're dependent on other early props, like lang and
-        // -moz-min-font-size-ratio. This sucks a bit, we should ideally
-        // move the font-size computation code somewhere else...
-        if Phase::is_early() {
-            if longhand_id == LonghandId::FontSize {
-                self.saved_font_size = Some(declaration.clone());
-                return;
-            }
-            if longhand_id == LonghandId::FontFamily {
-                self.saved_font_family = Some(declaration.clone());
-                return;
-            }
-        }
-
-        self.apply_declaration_ignoring_phase(longhand_id, declaration);
-    }
-
     #[inline(always)]
-    fn apply_declaration_ignoring_phase(
+    fn apply_declaration<Phase: CascadePhase>(
         &mut self,
         longhand_id: LonghandId,
         declaration: &PropertyDeclaration,
@@ -577,7 +548,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         }
 
         if Phase::is_early() {
-            self.fixup_font_and_apply_saved_font_properties();
+            self.fixup_font_stuff();
             self.compute_writing_mode();
         } else {
             self.finished_applying_properties();
@@ -702,142 +673,222 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         true
     }
 
-    // FIXME(emilio): It'd be really nice to simplify all this, somehow. This is
-    // very annoying code in lots of ways, and there are various bits about it
-    // which I think are broken or could be improved, see the various FIXMEs
-    // below.
-    fn fixup_font_and_apply_saved_font_properties(&mut self) {
-        let font_family = self.saved_font_family.take();
-        let font_size = self.saved_font_size.take();
-        let mut _skip_font_family = false;
+    // The default font type (which is stored in FontFamilyList's
+    // `mDefaultFontType`) depends on the current lang group, so
+    // we may need to recompute it if it changed.
+    #[inline]
+    #[cfg(feature = "gecko")]
+    fn recompute_default_font_family_type_if_needed(&mut self) {
+        use crate::gecko_bindings::{bindings, structs};
 
+        if !self.seen.contains(LonghandId::XLang) &&
+           !self.seen.contains(LonghandId::FontFamily) {
+            return;
+        }
+
+        let builder = &mut self.context.builder;
+        let default_font_type = {
+            let font = builder.get_font().gecko();
+            let default_font_type = if font.mFont.systemFont {
+                structs::FontFamilyType::eFamily_none
+            } else {
+                unsafe {
+                    bindings::Gecko_nsStyleFont_ComputeDefaultFontType(
+                        builder.device.document(),
+                        font.mGenericID,
+                        font.mLanguage.mRawPtr,
+                    )
+                }
+            };
+
+            if font.mFont.fontlist.mDefaultFontType == default_font_type {
+                return;
+            }
+
+            default_font_type
+        };
+
+        builder.mutate_font().gecko_mut().mFont.fontlist.mDefaultFontType =
+            default_font_type;
+    }
+
+    /// Some keyword sizes depend on the font family and language.
+    #[cfg(feature = "gecko")]
+    fn recompute_keyword_font_size_if_needed(&mut self) {
+        use crate::values::computed::ToComputedValue;
+        use crate::values::specified;
+
+        if !self.seen.contains(LonghandId::XLang) &&
+           !self.seen.contains(LonghandId::FontFamily) {
+            return;
+        }
+
+        let new_size = {
+            let font = self.context.builder.get_font();
+            let new_size = match font.clone_font_size().keyword_info {
+                Some(info) => {
+                    self.context.for_non_inherited_property = None;
+                    specified::FontSize::Keyword(info).to_computed_value(self.context)
+                }
+                None => return,
+            };
+
+            if font.gecko().mScriptUnconstrainedSize == new_size.size().0 {
+                return;
+            }
+
+            new_size
+        };
+
+        self.context.builder.mutate_font().set_font_size(new_size);
+    }
+
+    /// Some properties, plus setting font-size itself, may make us go out of
+    /// our minimum font-size range.
+    #[cfg(feature = "gecko")]
+    fn constrain_font_size_if_needed(&mut self) {
+        use crate::gecko_bindings::bindings;
+
+        if !self.seen.contains(LonghandId::XLang) &&
+           !self.seen.contains(LonghandId::FontFamily) &&
+           !self.seen.contains(LonghandId::MozMinFontSizeRatio) &&
+           !self.seen.contains(LonghandId::FontSize) {
+            return;
+        }
+
+        let builder = &mut self.context.builder;
+        let min_font_size = {
+            let font = builder.get_font().gecko();
+            let min_font_size = unsafe {
+                bindings::Gecko_nsStyleFont_ComputeMinSize(
+                    font,
+                    builder.device.document(),
+                )
+            };
+
+            if font.mFont.size >= min_font_size {
+                return;
+            }
+
+            min_font_size
+        };
+
+        builder.mutate_font().gecko_mut().mFont.size = min_font_size;
+    }
+
+    /// <svg:text> is not affected by text zoom, and it uses a preshint
+    /// to disable it. We fix up the struct when this happens by
+    /// unzooming its contained font values, which will have been zoomed
+    /// in the parent.
+    ///
+    /// FIXME(emilio): Also, why doing this _before_ handling font-size? That
+    /// sounds wrong.
+    #[cfg(feature = "gecko")]
+    fn unzoom_fonts_if_needed(&mut self) {
+        if !self.seen.contains(LonghandId::XTextZoom) {
+            return;
+        }
+
+        let builder = &mut self.context.builder;
+
+        let parent_zoom = builder.get_parent_font().gecko().mAllowZoom;
+        let zoom = builder.get_font().gecko().mAllowZoom;
+        if zoom == parent_zoom {
+            return;
+        }
+        debug_assert!(
+            !zoom,
+            "We only ever disable text zoom (in svg:text), never enable it"
+        );
+        let device = builder.device;
+        builder.mutate_font().unzoom_fonts(device);
+    }
+
+    /// MathML script* attributes do some very weird shit with font-size.
+    ///
+    /// Handle them specially here, separate from other font-size stuff.
+    ///
+    /// How this should interact with lang="" and font-family-dependent sizes is
+    /// not clear to me. For now just pretend those don't exist here.
+    #[cfg(feature = "gecko")]
+    fn handle_mathml_scriptlevel_if_needed(&mut self) {
+        use app_units::Au;
+        use std::cmp;
+
+        if !self.seen.contains(LonghandId::MozScriptLevel) &&
+           !self.seen.contains(LonghandId::MozScriptMinSize) &&
+           !self.seen.contains(LonghandId::MozScriptSizeMultiplier) {
+            return;
+        }
+
+        // If the user specifies a font-size, just let it be.
+        if self.seen.contains(LonghandId::FontSize) {
+            return;
+        }
+
+        let builder = &mut self.context.builder;
+        let (new_size, new_unconstrained_size) = {
+            let font = builder.get_font().gecko();
+            let parent_font = builder.get_parent_font().gecko();
+
+            let delta =
+                font.mScriptLevel.saturating_sub(parent_font.mScriptLevel);
+
+            if delta == 0 {
+                return;
+            }
+
+            let mut min = Au(parent_font.mScriptMinSize);
+            if font.mAllowZoom {
+                min = builder.device.zoom_text(min);
+            }
+
+            let scale = (parent_font.mScriptSizeMultiplier as f32).powi(delta as i32);
+            let parent_size = Au(parent_font.mSize);
+            let parent_unconstrained_size = Au(parent_font.mScriptUnconstrainedSize);
+            let new_size = parent_size.scale_by(scale);
+            let new_unconstrained_size = parent_unconstrained_size.scale_by(scale);
+
+            if scale <= 1. {
+                // The parent size can be smaller than scriptminsize, e.g. if it
+                // was specified explicitly. Don't scale in this case, but we
+                // don't want to set it to scriptminsize either since that will
+                // make it larger.
+                if parent_size <= min {
+                    (parent_size, new_unconstrained_size)
+                } else {
+                    (cmp::max(min, new_size), new_unconstrained_size)
+                }
+            } else {
+                // If the new unconstrained size is larger than the min size,
+                // this means we have escaped the grasp of scriptminsize and can
+                // revert to using the unconstrained size.
+                // However, if the new size is even larger (perhaps due to usage
+                // of em units), use that instead.
+                (
+                    cmp::min(new_size, cmp::max(new_unconstrained_size, min)),
+                    new_unconstrained_size
+                )
+            }
+        };
+        let font = builder.mutate_font().gecko_mut();
+        font.mFont.size = new_size.0;
+        font.mSize = new_size.0;
+        font.mScriptUnconstrainedSize = new_unconstrained_size.0;
+    }
+
+    /// Various properties affect how font-size and font-family are computed.
+    ///
+    /// These need to be handled here, since relative lengths and ex / ch units
+    /// for late properties depend on these.
+    fn fixup_font_stuff(&mut self) {
         #[cfg(feature = "gecko")]
         {
-            // <svg:text> is not affected by text zoom, and it uses a preshint
-            // to disable it. We fix up the struct when this happens by
-            // unzooming its contained font values, which will have been zoomed
-            // in the parent.
-            //
-            // FIXME(emilio): Could be cleaner if we just removed this property
-            // and made a style adjustment o something like that.
-            if self.seen.contains(LonghandId::XTextZoom) {
-                let builder = &mut self.context.builder;
-
-                let parent_zoom = builder.get_parent_font().gecko().mAllowZoom;
-                let zoom = builder.get_font().gecko().mAllowZoom;
-                if zoom != parent_zoom {
-                    debug_assert!(
-                        !zoom,
-                        "We only ever disable text zoom (in svg:text), never enable it"
-                    );
-                    let device = builder.device;
-                    builder.mutate_font().unzoom_fonts(device);
-                }
-            }
-
-            // Whenever a single generic value is specified, Gecko used to do a
-            // bunch of recalculation walking up the rule tree, including
-            // handling the font-size stuff.
-            //
-            // It basically repopulated the font struct with the default font
-            // for a given generic and language. We handle the font-size stuff
-            // separately, so this boils down to just copying over the
-            // font-family lists (no other aspect of the default font can be
-            // configured).
-            if self.seen.contains(LonghandId::XLang) || font_family.is_some() {
-                // If just the language changed, the inherited generic is all we
-                // need.
-                let mut generic = self.context.builder.get_parent_font().gecko().mGenericID;
-
-                // FIXME(emilio): Isn't this bogus for CSS wide keywords like
-                // reset or such?
-                if let Some(ref declaration) = font_family {
-                    if let PropertyDeclaration::FontFamily(ref fam) = *declaration {
-                        if let Some(id) = fam.single_generic() {
-                            generic = id;
-                            // In case of a specified font family with a single
-                            // generic, we will end up setting font family
-                            // below, but its value would get overwritten later
-                            // in the pipeline when cascading.
-                            //
-                            // We instead skip cascading font-family in that
-                            // case.
-                            //
-                            // In case of the language changing, we wish for a
-                            // specified font-family to override this, so we do
-                            // not skip cascading then.
-                            _skip_font_family = true;
-                        }
-                    }
-                }
-
-                // FIXME(emilio): Why both setting the generic and passing it
-                // down?
-                let doc = self.context.builder.device.document();
-                let gecko_font = self.context.builder.mutate_font().gecko_mut();
-                gecko_font.mGenericID = generic;
-                unsafe {
-                    crate::gecko_bindings::bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
-                        gecko_font,
-                        doc,
-                        generic,
-                    );
-                }
-            }
-        }
-
-        // It is important that font-size is computed before the late
-        // properties (for em units), but after font-family (for the
-        // base-font-size dependence for default and keyword font-sizes).
-        //
-        // It's important that font-family comes after the other font properties
-        // to support system fonts.
-        //
-        // NOTE(emilio): I haven't verified that comment, but it was there.
-        // Verify, and if it's false make font-size the only weird property?
-        if !_skip_font_family {
-            if let Some(ref declaration) = font_family {
-                self.apply_declaration_ignoring_phase(LonghandId::FontFamily, declaration);
-                #[cfg(feature = "gecko")]
-                {
-                    let context = &mut self.context;
-                    let device = context.builder.device;
-                    if let PropertyDeclaration::FontFamily(ref val) = *declaration {
-                        if val.get_system().is_some() {
-                            let default = context
-                                .cached_system_font
-                                .as_ref()
-                                .unwrap()
-                                .default_font_type;
-                            context.builder.mutate_font().fixup_system(default);
-                        } else {
-                            context.builder.mutate_font().fixup_none_generic(device);
-                        }
-                    }
-                }
-            }
-        }
-
-        if let Some(declaration) = font_size {
-            self.apply_declaration_ignoring_phase(LonghandId::FontSize, &declaration);
-        } else {
-            #[cfg(feature = "gecko")]
-            {
-                if self.seen.contains(LonghandId::XLang) ||
-                    self.seen.contains(LonghandId::MozScriptLevel) ||
-                    self.seen.contains(LonghandId::MozMinFontSizeRatio) ||
-                    self.seen.contains(LonghandId::FontFamily)
-                {
-                    use crate::values::computed::FontSize;
-
-                    // font-size must be explicitly inherited to handle lang
-                    // changes and scriptlevel changes.
-                    //
-                    // FIXME(emilio): That looks a bit bogus...
-                    self.context.for_non_inherited_property = None;
-                    FontSize::cascade_inherit_font_size(&mut self.context);
-                }
-            }
+            self.unzoom_fonts_if_needed();
+            self.recompute_default_font_family_type_if_needed();
+            self.recompute_keyword_font_size_if_needed();
+            self.handle_mathml_scriptlevel_if_needed();
+            self.constrain_font_size_if_needed()
         }
     }
 }
