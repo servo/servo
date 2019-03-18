@@ -1257,8 +1257,12 @@ impl LonghandId {
             LonghandId::MozScriptLevel |
             % endif
 
-            // Needed to compute font-relative lengths correctly.
+            // Needed to compute the first available font, in order to
+            // compute font-relative units correctly.
             LonghandId::FontSize |
+            LonghandId::FontWeight |
+            LonghandId::FontStretch |
+            LonghandId::FontStyle |
             LonghandId::FontFamily |
 
             // Needed to resolve currentcolor at computed value time properly.
