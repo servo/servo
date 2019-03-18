@@ -19,7 +19,7 @@ use crate::dom::bindings::conversions::{self, DerivedFrom};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
+use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -559,7 +559,7 @@ impl Node {
         }
 
         match self.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => self
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => self
                 .parent_node
                 .get()
                 .unwrap()
@@ -1577,7 +1577,7 @@ impl Node {
 
         // Step 4-5.
         match node.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if parent.is::<Document>() {
                     return Err(Error::HierarchyRequest);
                 }
@@ -2081,7 +2081,12 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(&self) -> u16 {
         match self.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => NodeConstants::TEXT_NODE,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+                NodeConstants::TEXT_NODE
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
+                NodeConstants::CDATA_SECTION_NODE
+            },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 NodeConstants::PROCESSING_INSTRUCTION_NODE
             },
@@ -2097,7 +2102,12 @@ impl NodeMethods for Node {
     fn NodeName(&self) -> DOMString {
         match self.type_id() {
             NodeTypeId::Element(..) => self.downcast::<Element>().unwrap().TagName(),
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => DOMString::from("#text"),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+                DOMString::from("#text")
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
+                DOMString::from("#cdata-section")
+            },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 self.downcast::<ProcessingInstruction>().unwrap().Target()
             },
@@ -2253,7 +2263,7 @@ impl NodeMethods for Node {
 
         // Step 4-5.
         match node.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is::<Document>() => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) if self.is::<Document>() => {
                 return Err(Error::HierarchyRequest);
             },
             NodeTypeId::DocumentType if !self.is::<Document>() => {
@@ -2476,7 +2486,7 @@ impl NodeMethods for Node {
                 {
                     return false;
                 }
-                NodeTypeId::CharacterData(CharacterDataTypeId::Text) |
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) |
                 NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
                     if !is_equal_characterdata(this, node) =>
                 {
@@ -2931,7 +2941,7 @@ impl Into<LayoutNodeType> for NodeTypeId {
     fn into(self) -> LayoutNodeType {
         match self {
             NodeTypeId::Element(e) => LayoutNodeType::Element(e.into()),
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => LayoutNodeType::Text,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => LayoutNodeType::Text,
             x => unreachable!("Layout should not traverse nodes of type {:?}", x),
         }
     }

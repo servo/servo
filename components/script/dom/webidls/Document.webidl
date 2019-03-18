@@ -40,6 +40,8 @@ interface Document : Node {
   DocumentFragment createDocumentFragment();
   [NewObject]
   Text createTextNode(DOMString data);
+  [NewObject, Throws]
+  CDATASection createCDATASection(DOMString data);
   [NewObject]
   Comment createComment(DOMString data);
   [NewObject, Throws]

@@ -707,14 +707,14 @@ impl RangeMethods for Range {
         }
         match start_node.type_id() {
             // Handled under step 2.
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => (),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => (),
             NodeTypeId::CharacterData(_) => return Err(Error::HierarchyRequest),
             _ => (),
         }
 
         // Step 2.
-        let (reference_node, parent) =
-            if start_node.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text) {
+        let (reference_node, parent) = match start_node.type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 // Step 3.
                 let parent = match start_node.GetParentNode() {
                     Some(parent) => parent,
@@ -723,11 +723,13 @@ impl RangeMethods for Range {
                 };
                 // Step 5.
                 (Some(DomRoot::from_ref(&*start_node)), parent)
-            } else {
+            },
+            _ => {
                 // Steps 4-5.
                 let child = start_node.ChildNodes().Item(start_offset);
                 (child, DomRoot::from_ref(&*start_node))
-            };
+            },
+        };
 
         // Step 6.
         Node::ensure_pre_insertion_validity(node, &parent, reference_node.deref())?;
@@ -955,7 +957,7 @@ impl RangeMethods for Range {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentElement(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::DocumentType => unreachable!(),
         };

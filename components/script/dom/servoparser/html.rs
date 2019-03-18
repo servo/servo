@@ -232,7 +232,7 @@ impl<'a> Serialize for &'a Node {
                         serializer.write_doctype(&doctype.name())?;
                     },
 
-                    NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                    NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                         let cdata = n.downcast::<CharacterData>().unwrap();
                         serializer.write_text(&cdata.data())?;
                     },
