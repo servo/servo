@@ -106,6 +106,7 @@ include = [
   "Contain",
   "RestyleHint",
   "TouchAction",
+  "WillChangeBits",
   "TextDecorationLine",
 ]
 item_types = ["enums", "structs", "typedefs"]

@@ -555,9 +555,8 @@ impl WillChange {
 
 bitflags! {
     /// The change bits that we care about.
-    ///
-    /// These need to be in sync with NS_STYLE_WILL_CHANGE_*.
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    #[repr(C)]
     pub struct WillChangeBits: u8 {
         /// Whether the stacking context will change.
         const STACKING_CONTEXT = 1 << 0;
@@ -616,7 +615,7 @@ impl Parse for WillChange {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<WillChange, ParseError<'i>> {
+    ) -> Result<Self, ParseError<'i>> {
         if input
             .try(|input| input.expect_ident_matching("auto"))
             .is_ok()

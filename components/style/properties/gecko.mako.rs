@@ -2940,10 +2940,10 @@ fn static_assert() {
 
     pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
         use crate::gecko_bindings::bindings::{Gecko_AppendWillChange, Gecko_ClearWillChange};
-        use crate::properties::longhands::will_change::computed_value::T;
+        use crate::values::specified::box_::{WillChangeBits, WillChange};
 
         match v {
-            T::AnimateableFeatures { features, bits } => {
+            WillChange::AnimateableFeatures { features, bits } => {
                 unsafe {
                     Gecko_ClearWillChange(&mut self.gecko, features.len());
                 }
@@ -2954,13 +2954,13 @@ fn static_assert() {
                     }
                 }
 
-                self.gecko.mWillChangeBitField = bits.bits();
+                self.gecko.mWillChangeBitField = bits;
             },
-            T::Auto => {
+            WillChange::Auto => {
                 unsafe {
                     Gecko_ClearWillChange(&mut self.gecko, 0);
                 }
-                self.gecko.mWillChangeBitField = 0;
+                self.gecko.mWillChangeBitField = WillChangeBits::empty();
             },
         };
     }
@@ -2970,7 +2970,7 @@ fn static_assert() {
 
         self.gecko.mWillChangeBitField = other.gecko.mWillChangeBitField;
         unsafe {
-            Gecko_CopyWillChangeFrom(&mut self.gecko, &other.gecko as *const _ as *mut _);
+            Gecko_CopyWillChangeFrom(&mut self.gecko, &other.gecko);
         }
     }
 
@@ -2979,24 +2979,22 @@ fn static_assert() {
     }
 
     pub fn clone_will_change(&self) -> longhands::will_change::computed_value::T {
-        use crate::properties::longhands::will_change::computed_value::T;
-        use crate::gecko_bindings::structs::nsAtom;
         use crate::values::CustomIdent;
-        use crate::values::specified::box_::WillChangeBits;
+        use crate::values::specified::box_::WillChange;
 
         if self.gecko.mWillChange.len() == 0 {
-            return T::Auto
+            return WillChange::Auto
         }
 
         let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
             unsafe {
-                CustomIdent(Atom::from_raw(gecko_atom.mRawPtr as *mut nsAtom))
+                CustomIdent(Atom::from_raw(gecko_atom.mRawPtr))
             }
         }).collect();
 
-        T::AnimateableFeatures {
+        WillChange::AnimateableFeatures {
             features: custom_idents.into_boxed_slice(),
-            bits: WillChangeBits::from_bits_truncate(self.gecko.mWillChangeBitField),
+            bits: self.gecko.mWillChangeBitField,
         }
     }
 
