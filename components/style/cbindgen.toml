@@ -105,6 +105,7 @@ include = [
   "WordBreak",
   "Contain",
   "RestyleHint",
+  "TextDecorationLine",
 ]
 item_types = ["enums", "structs", "typedefs"]
 

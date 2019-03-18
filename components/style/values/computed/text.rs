@@ -19,7 +19,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::TextAlignKeyword as TextAlign;
-pub use crate::values::specified::TextEmphasisPosition;
+pub use crate::values::specified::{TextEmphasisPosition, TextDecorationLine};
 pub use crate::values::specified::{OverflowWrap, WordBreak};
 
 /// A computed value for the `initial-letter` property.
@@ -182,11 +182,11 @@ impl TextDecorationsInEffect {
                 .clone(),
         };
 
-        let text_style = style.get_text();
+        let line = style.get_text().clone_text_decoration_line();
 
-        result.underline |= text_style.has_underline();
-        result.overline |= text_style.has_overline();
-        result.line_through |= text_style.has_line_through();
+        result.underline |= line.contains(TextDecorationLine::UNDERLINE);
+        result.overline |= line.contains(TextDecorationLine::OVERLINE);
+        result.line_through |= line.contains(TextDecorationLine::LINE_THROUGH);
 
         result
     }

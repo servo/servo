@@ -22,8 +22,7 @@ use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::values::SequenceWriter;
-use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
-use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A specified type for the `initial-letter` property.
@@ -255,119 +254,115 @@ impl ToComputedValue for TextOverflow {
     }
 }
 
-macro_rules! impl_text_decoration_line {
-    {
-        $(
-            $(#[$($meta:tt)+])*
-            $ident:ident / $css:expr => $value:expr,
-        )+
-    } => {
-        bitflags! {
-            #[derive(MallocSizeOf, ToComputedValue)]
-            /// Specified keyword values for the text-decoration-line property.
-            pub struct TextDecorationLine: u8 {
-                /// No text decoration line is specified
-                const NONE = 0;
-                $(
-                    $(#[$($meta)+])*
-                    const $ident = $value;
-                )+
-                #[cfg(feature = "gecko")]
-                /// Only set by presentation attributes
-                ///
-                /// Setting this will mean that text-decorations use the color
-                /// specified by `color` in quirks mode.
-                ///
-                /// For example, this gives <a href=foo><font color="red">text</font></a>
-                /// a red text decoration
-                const COLOR_OVERRIDE = 0x10;
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    #[value_info(other_values = "none,underline,overline,line-through,blink")]
+    #[repr(C)]
+    /// Specified keyword values for the text-decoration-line property.
+    pub struct TextDecorationLine: u8 {
+        /// No text decoration line is specified.
+        const NONE = 0;
+        /// underline
+        const UNDERLINE = 1 << 0;
+        /// overline
+        const OVERLINE = 1 << 1;
+        /// line-through
+        const LINE_THROUGH = 1 << 2;
+        /// blink
+        const BLINK = 1 << 3;
+        /// Only set by presentation attributes
+        ///
+        /// Setting this will mean that text-decorations use the color
+        /// specified by `color` in quirks mode.
+        ///
+        /// For example, this gives <a href=foo><font color="red">text</font></a>
+        /// a red text decoration
+        #[cfg(feature = "gecko")]
+        const COLOR_OVERRIDE = 0x10;
+    }
+}
+
+
+impl Parse for TextDecorationLine {
+    /// none | [ underline || overline || line-through || blink ]
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let mut result = TextDecorationLine::empty();
+
+        // NOTE(emilio): this loop has this weird structure because we run this
+        // code to parse the text-decoration shorthand as well, so we need to
+        // ensure we don't return an error if we don't consume the whole thing
+        // because we find an invalid identifier or other kind of token.
+        loop {
+            let flag: Result<_, ParseError<'i>> = input.try(|input| {
+                let flag = try_match_ident_ignore_ascii_case! { input,
+                    "none" if result.is_empty() => TextDecorationLine::NONE,
+                    "underline" => TextDecorationLine::UNDERLINE,
+                    "overline" => TextDecorationLine::OVERLINE,
+                    "line-through" => TextDecorationLine::LINE_THROUGH,
+                    "blink" => TextDecorationLine::BLINK,
+                };
+
+                Ok(flag)
+            });
+
+            let flag = match flag {
+                Ok(flag) => flag,
+                Err(..) => break,
+            };
+
+            if flag.is_empty() {
+                return Ok(TextDecorationLine::NONE);
             }
+
+            if result.contains(flag) {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
+
+            result.insert(flag)
         }
 
-        impl Parse for TextDecorationLine {
-            /// none | [ underline || overline || line-through || blink ]
-            fn parse<'i, 't>(
-                _context: &ParserContext,
-                input: &mut Parser<'i, 't>,
-            ) -> Result<TextDecorationLine, ParseError<'i>> {
-                let mut result = TextDecorationLine::NONE;
-                if input
-                    .try(|input| input.expect_ident_matching("none"))
-                    .is_ok()
-                {
-                    return Ok(result);
-                }
-
-                loop {
-                    let result = input.try(|input| {
-                        let ident = input.expect_ident().map_err(|_| ())?;
-                        match_ignore_ascii_case! { ident,
-                            $(
-                                $css => {
-                                    if result.contains(TextDecorationLine::$ident) {
-                                        Err(())
-                                    } else {
-                                        result.insert(TextDecorationLine::$ident);
-                                        Ok(())
-                                    }
-                                }
-                            )+
-                            _ => Err(()),
-                        }
-                    });
-                    if result.is_err() {
-                        break;
-                    }
-                }
-
-                if !result.is_empty() {
-                    Ok(result)
-                } else {
-                    Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-                }
-            }
-        }
-
-        impl ToCss for TextDecorationLine {
-            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-            where
-                W: Write,
-            {
-                if self.is_empty() {
-                    return dest.write_str("none");
-                }
-
-                let mut writer = SequenceWriter::new(dest, " ");
-                $(
-                    if self.contains(TextDecorationLine::$ident) {
-                        writer.raw_item($css)?;
-                    }
-                )+
-                Ok(())
-            }
-        }
-
-        impl SpecifiedValueInfo for TextDecorationLine {
-            fn collect_completion_keywords(f: KeywordsCollectFn) {
-                f(&["none", $($css,)+]);
-            }
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
 
-impl_text_decoration_line! {
-    /// Underline
-    UNDERLINE / "underline" => 1 << 0,
-    /// Overline
-    OVERLINE / "overline" => 1 << 1,
-    /// Line through
-    LINE_THROUGH / "line-through" => 1 << 2,
-    /// Blink
-    BLINK / "blink" => 1 << 3,
-}
+impl ToCss for TextDecorationLine {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_empty() {
+            return dest.write_str("none");
+        }
 
-#[cfg(feature = "gecko")]
-impl_bitflags_conversions!(TextDecorationLine);
+        let mut writer = SequenceWriter::new(dest, " ");
+        let mut any = false;
+
+        macro_rules! maybe_write {
+            ($ident:ident => $str:expr) => {
+                if self.contains(TextDecorationLine::$ident) {
+                    any = true;
+                    writer.raw_item($str)?;
+                }
+            };
+        }
+
+        maybe_write!(UNDERLINE => "underline");
+        maybe_write!(OVERLINE => "overline");
+        maybe_write!(LINE_THROUGH => "line-through");
+        maybe_write!(BLINK => "blink");
+
+        debug_assert!(any || *self == TextDecorationLine::COLOR_OVERRIDE);
+
+        Ok(())
+    }
+}
 
 impl TextDecorationLine {
     #[inline]

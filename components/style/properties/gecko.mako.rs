@@ -3996,9 +3996,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-line text-overflow initial-letter">
-
-    ${impl_simple_type_with_conversion("text_decoration_line")}
+                  skip_longhands="text-overflow initial-letter">
 
     fn clear_overflow_sides_if_string(&mut self) {
         use crate::gecko_bindings::structs::nsStyleTextOverflowSide;
@@ -4111,21 +4109,6 @@ fn static_assert() {
         } else {
             InitialLetter::Specified(self.gecko.mInitialLetterSize, Some(self.gecko.mInitialLetterSink))
         }
-    }
-
-    #[inline]
-    pub fn has_underline(&self) -> bool {
-        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
-    }
-
-    #[inline]
-    pub fn has_overline(&self) -> bool {
-        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
-    }
-
-    #[inline]
-    pub fn has_line_through(&self) -> bool {
-        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
 </%self:impl_trait>
 
