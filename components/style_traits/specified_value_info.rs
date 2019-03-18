@@ -10,7 +10,7 @@ use std::sync::Arc as StdArc;
 
 /// Type of value that a property supports. This is used by Gecko's
 /// devtools to make sense about value it parses, and types listed
-/// here should match TYPE_* constants in InspectorUtils.webidl.
+/// here should match InspectorPropertyType in InspectorUtils.webidl.
 ///
 /// XXX This should really be a bitflags rather than a namespace mod,
 /// but currently we cannot use bitflags in const.
