@@ -273,6 +273,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             node.clip.complex.clone(),
                             None,
                             scroll_sensitivity,
+                            webrender_api::LayoutVector2D::zero(),
                         );
 
                         state.clip_ids[item.node_index.to_index()] = Some(space_clip_info.clip_id);
