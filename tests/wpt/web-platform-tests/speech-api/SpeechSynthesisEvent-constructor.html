@@ -44,6 +44,7 @@ test(() => {
   const event = new SpeechSynthesisEvent("type", {utterance: utterance});
   assert_equals(event.utterance, utterance);
   assert_equals(event.charIndex, 0);
+  assert_equals(event.charLength, 0);
   assert_equals(event.elapsedTime, 0);
   assert_equals(event.name, "");
 }, "SpeechSynthesisEvent with eventInitDict having an utterance");
@@ -53,6 +54,7 @@ test(() => {
   const event = new SpeechSynthesisEvent("type", {
     utterance: utterance,
     charIndex: 5,
+    charLength: 3,
     elapsedTime: 100,
     name: "foo"
   });
@@ -61,6 +63,7 @@ test(() => {
   assert_equals(event.type, "type");
   assert_equals(event.utterance, utterance);
   assert_equals(event.charIndex, 5);
+  assert_equals(event.charLength, 3);
   assert_equals(event.elapsedTime, 100);
   assert_equals(event.name, "foo");
 }, "SpeechSynthesisEvent with custom eventInitDict");

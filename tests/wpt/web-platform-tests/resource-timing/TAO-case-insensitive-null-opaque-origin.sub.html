@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing TAO - "Null" and opaque origin</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#timing-allow-origin"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const t = async_test("Test case-insensitive null TAO value with opaque origins");
+window.addEventListener("message", t.step_func_done(e=>{
+    assert_equals(e.data, "PASS");
+}));
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that for a cross origin resource, the timing allow check algorithm will fail when the value of Timing-Allow-Origin is a case-insensitive match to null and the origin is an opaque origin.</p>
+<div id="log"></div>
+<iframe id="frameContext"></iframe>
+<script>
+let frame_content = "data:text/html;utf8,<body>" +
+                    "<script>" +
+                    "const url = '{{location[scheme]}}://{{host}}:{{ports[http][1]}}/resource-timing/resources/TAOResponse.py?tao=Null';" +
+                    "const observe = (list, observer) => {" +
+                    "  const entry = list.getEntries()[0];" +
+                    "  const sum = entry.redirectStart + entry.redirectEnd + entry.domainLookupStart + entry.domainLookupEnd + entry.connectStart +" +
+                    "              entry.connectEnd + entry.secureConnectionStart + entry.requestStart + entry.responseStart + entry.transferSize +" +
+                    "              entry.encodedBodySize + entry.decodedBodySize;" +
+                    "  const result = sum == 0 ? 'PASS' : 'FAIL';" +
+                    "  window.parent.postMessage(result, '*');" +
+                    "};" +
+                    "let observer = new PerformanceObserver(observe);" +
+                    "observer.observe({ entryTypes: ['resource'] });" +
+                    "fetch(url);" +
+                    "</" + "script></body>";
+document.getElementById("frameContext").src = frame_content;
+</script>
+</body>
+</html>

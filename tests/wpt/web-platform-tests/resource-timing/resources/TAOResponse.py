@@ -11,8 +11,11 @@ def main(request, response):
     # wildcard, pass
         response.headers.set('Timing-Allow-Origin', '*')
     elif tao == 'null':
-    # null, fail
+    # null, fail unless it's an opaque origin
         response.headers.set('Timing-Allow-Origin', 'null')
+    elif tao == 'Null':
+    # case-insentive null, fail
+        response.headers.set('Timing-Allow-Origin', 'Null')
     elif tao == 'origin':
     # case-sensitive match for origin, pass
         response.headers.set('Timing-Allow-Origin', origin)

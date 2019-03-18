@@ -27,8 +27,6 @@
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     caller.addTrack(localStream.getTracks()[0]);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
-      assert_equals(e.track.id, localStream.getTracks()[0].id,
-                    'Local and remote track IDs match.');
       assert_equals(e.streams.length, 0, 'No remote stream created.');
     });
     await exchangeOffer(caller, callee);
@@ -45,8 +43,6 @@
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
-      assert_equals(e.track.id, localStream.getTracks()[0].id,
-                    'Local and remote track IDs match.');
       assert_equals(e.streams.length, 1, 'Created a single remote stream.');
       assert_equals(e.streams[0].id, localStream.id,
                     'Local and remote stream IDs match.');
@@ -96,18 +92,12 @@
     });
     await exchangeOffer(caller, callee);
     let firstTrackEvent = await ontrackEventResolvers[0];
-    assert_equals(firstTrackEvent.track.id,
-                  localStreams[0].getTracks()[0].id,
-                  'First ontrack\'s track ID matches first local track.');
     assert_equals(firstTrackEvent.streams.length, 1,
                   'First ontrack fires with a single stream.');
     assert_equals(firstTrackEvent.streams[0].id,
                   localStreams[0].id,
                   'First ontrack\'s stream ID matches local stream.');
     let secondTrackEvent = await ontrackEventResolvers[1];
-    assert_equals(secondTrackEvent.track.id,
-                  localStreams[1].getTracks()[0].id,
-                  'Second ontrack\'s track ID matches second local track.');
     assert_equals(secondTrackEvent.streams.length, 1,
                   'Second ontrack fires with a single stream.');
     assert_equals(secondTrackEvent.streams[0].id,
@@ -145,17 +135,16 @@
     exchangeIceCandidates(caller, callee);
     await exchangeOfferAnswer(caller, callee);
     assert_equals(remoteStreams.length, 1, 'One remote stream created.');
-    assert_equals(remoteStreams[0].getTracks()[0].id,
-                  localStreams[0].getTracks()[0].id,
-                  'First local and remote tracks have the same ID.');
-    const onaddtrackPromise =
-        addEventListenerPromise(t, remoteStreams[0], 'addtrack', e => {
-      assert_equals(e.track.id, localStreams[1].getTracks()[0].id,
-                    'Second local and remote tracks have the same ID.');
-    });
+    assert_equals(remoteStreams[0].id, localStreams[0].id,
+                  'First local and remote streams have the same ID.');
+    const firstRemoteTrack = remoteStreams[0].getTracks()[0];
+    const onaddtrackPromise = addEventListenerPromise(t, remoteStreams[0], 'addtrack');
     caller.addTrack(localStreams[1].getTracks()[0], localStreams[0]);
     await exchangeOffer(caller, callee);
-    await onaddtrackPromise;
+    const e = await onaddtrackPromise;
+    assert_equals(remoteStreams[0].getTracks().length, 2, 'stream has two tracks');
+    assert_not_equals(e.track.id, firstRemoteTrack.id,
+                      'addtrack event has a new track');
     assert_equals(remoteStreams.length, 1, 'Still a single remote stream.');
   }, 'addTrack() for an existing stream makes stream.onaddtrack fire.');
 
@@ -206,8 +195,6 @@
     caller.addTrack(localStreams[0].getTracks()[0],
                     localStreams[0], localStreams[1]);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
-      assert_equals(e.track.id, localStreams[0].getTracks()[0].id,
-                    'Local and remote track IDs match.');
       assert_equals(e.streams.length, 2, 'Two remote stream created.');
       assert_array_equals(e.streams[0].getTracks(), [e.track],
                           'First remote stream == [remote track].');

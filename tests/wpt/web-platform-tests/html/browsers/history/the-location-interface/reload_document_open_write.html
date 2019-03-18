@@ -11,11 +11,11 @@ var data = [];
 
 window.onmessage = t.step_func(function(e) {
   data.push(e.data);
-  if (data.length < 3) {
+  if (data.length == 2) {
     win.location.reload();
-  } else {
+  } else if (data.length >= 3) {
     setTimeout(t.step_func(function() {
-      assert_array_equals(data, ["original", "written", "written"]);
+      assert_array_equals(data, ["original", "written", "original"]);
       t.done();
     }), 500);
   }

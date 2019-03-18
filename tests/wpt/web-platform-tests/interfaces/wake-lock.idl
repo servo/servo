@@ -5,17 +5,14 @@
 
 enum WakeLockType { "screen", "system" };
 
-partial interface Navigator {
-  [SecureContext] Promise<WakeLock> getWakeLock(WakeLockType type);
-};
-
-[SecureContext, Exposed=Window] interface WakeLock : EventTarget {
+[Constructor(WakeLockType type), SecureContext, Exposed=(DedicatedWorker,Window)]
+interface WakeLock : EventTarget {
   readonly attribute WakeLockType type;
   readonly attribute boolean active;
   attribute EventHandler onactivechange;
-  WakeLockRequest createRequest();
+  Promise<void> request(optional WakeLockRequestOptions options);
 };
 
-[SecureContext, Exposed=Window] interface WakeLockRequest {
-  void cancel();
+dictionary WakeLockRequestOptions {
+  AbortSignal? signal;
 };

@@ -36,7 +36,7 @@ partial interface Element {
   boolean hasPointerCapture(long pointerId);
 };
 
-partial interface GlobalEventHandlers {
+partial interface mixin GlobalEventHandlers {
     attribute EventHandler ongotpointercapture;
     attribute EventHandler onlostpointercapture;
     attribute EventHandler onpointerdown;

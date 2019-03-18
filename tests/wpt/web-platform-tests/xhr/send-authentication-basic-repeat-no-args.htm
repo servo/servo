@@ -15,12 +15,12 @@
         var client = new XMLHttpRequest(),
           urlstart = location.host + location.pathname.replace(/\/[^\/]*$/, '/'),
           user = token()
-        client.open("GET", location.protocol+'//'+urlstart + "resources/auth1/auth.py", false, user, 'pass')
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth11/auth.py", false, user, 'pass')
         client.setRequestHeader("x-user", user)
         client.send(null)
         // Repeat request but *without* credentials in the open() call.
         // Is the UA supposed to cache credentials from above request and use them? Yes.
-        client.open("GET", location.protocol+'//'+urlstart + "resources/auth1/auth.py", false)
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth11/auth.py", false)
         client.setRequestHeader("x-user", user)
         client.send(null)
 

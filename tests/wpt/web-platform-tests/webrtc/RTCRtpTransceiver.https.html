@@ -543,7 +543,7 @@
     const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stopTracks(stream));
     const track = stream.getAudioTracks()[0];
-    pc2.getTransceivers()[0].sender.replaceTrack(track);
+    await pc2.getTransceivers()[0].sender.replaceTrack(track);
 
     const offer = await pc1.createOffer();
     const trackEvents = await setRemoteDescriptionReturnTrackEvents(pc2, offer);
@@ -630,7 +630,7 @@
     t.add_cleanup(() => stopTracks(stream));
     const track = stream.getAudioTracks()[0];
     pc2.addTrack(track, stream);
-    pc2.getTransceivers()[0].sender.replaceTrack(null);
+    await pc2.getTransceivers()[0].sender.replaceTrack(null);
 
     const offer = await pc1.createOffer();
     const trackEvents = await setRemoteDescriptionReturnTrackEvents(pc2, offer);
