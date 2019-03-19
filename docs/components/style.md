@@ -11,7 +11,7 @@ Boris Zbarsky and Patrick Walton about how style sharing works.
 In order to be sharable and compatible with [Stylo][stylo](a project that aims 
 to integrate Servo's style system into Gecko), the style must be consistent.
 
-The consitency is implemented in [selectors' SelectorImpl][selector-impl], 
+The consistency is implemented in [selectors' SelectorImpl][selector-impl], 
 containing the logic related to parsing pseudo-elements and other pseudo-classes 
 apart from [tree-structural ones][tree-structural-pseudo-classes].
 
