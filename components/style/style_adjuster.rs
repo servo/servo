@@ -225,23 +225,17 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .clone_text_decoration_line()
                 .is_empty()
         {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
+            self.style.add_flags(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
         }
 
         if self.style.is_pseudo_element() {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
+            self.style.add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
         #[cfg(feature = "servo")]
         {
             if self.style.get_parent_column().is_multicol() {
-                self.style
-                    .flags
-                    .insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
+                self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);
             }
         }
     }
@@ -280,9 +274,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if writing_mode != WritingMode::HorizontalTb &&
             text_combine_upright == TextCombineUpright::All
         {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::IS_TEXT_COMBINED);
+            self.style.add_flags(ComputedValueFlags::IS_TEXT_COMBINED);
             self.style
                 .mutate_inherited_box()
                 .set_writing_mode(WritingMode::HorizontalTb);
@@ -303,9 +295,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .get_parent_flags()
                 .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
         {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+            self.style.add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
         }
     }
 
@@ -591,9 +581,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
         if self.should_suppress_linebreak(layout_parent_style) {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+            self.style.add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
             if !self.skip_item_display_fixup(element) {
                 let inline_display = self_display.inlinify();
@@ -651,14 +639,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         if element.unwrap().is_visited_link() {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+            self.style.add_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         } else {
             // Need to remove to handle unvisited link inside visited.
-            self.style
-                .flags
-                .remove(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+            self.style.remove_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         }
     }
 

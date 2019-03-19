@@ -45,6 +45,7 @@ use crate::rule_tree::StrongRuleNode;
 use crate::Zero;
 use self::computed_value_flags::*;
 use crate::str::{CssString, CssStringBorrow, CssStringWriter};
+use std::cell::Cell;
 
 pub use self::declaration_block::*;
 pub use self::cascade::*;
@@ -2758,7 +2759,7 @@ pub struct ComputedValuesInner {
     pub writing_mode: WritingMode,
 
     /// A set of flags we use to store misc information regarding this style.
-    pub flags: ComputedValueFlags,
+    flags: ComputedValueFlags,
 
     /// The rule node representing the ordered list of rules matched for this
     /// node.  Can be None for default values and text nodes.  This is
@@ -3322,8 +3323,10 @@ pub struct StyleBuilder<'a> {
     ///
     /// TODO(emilio): Make private.
     pub writing_mode: WritingMode,
+
     /// Flags for the computed value.
-    pub flags: ComputedValueFlags,
+    pub flags: Cell<ComputedValueFlags>,
+
     /// The element's style if visited, only computed if there's a relevant link
     /// for this element.  A element's "relevant link" is the element being
     /// matched if it is a link or the nearest ancestor link.
@@ -3365,7 +3368,7 @@ impl<'a> StyleBuilder<'a> {
             modified_reset: false,
             custom_properties,
             writing_mode: inherited_style.writing_mode,
-            flags,
+            flags: Cell::new(flags),
             visited_style: None,
             % for style_struct in data.active_style_structs():
             % if style_struct.inherited:
@@ -3404,7 +3407,7 @@ impl<'a> StyleBuilder<'a> {
             rules: None,
             custom_properties: style_to_derive_from.custom_properties().cloned(),
             writing_mode: style_to_derive_from.writing_mode,
-            flags: style_to_derive_from.flags,
+            flags: Cell::new(style_to_derive_from.flags),
             visited_style: None,
             % for style_struct in data.active_style_structs():
             ${style_struct.ident}: StyleStructRef::Borrowed(
@@ -3434,14 +3437,14 @@ impl<'a> StyleBuilder<'a> {
                 .get_${property.style_struct.name_lower}();
 
         self.modified_reset = true;
-        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
+        self.add_flags(ComputedValueFlags::INHERITS_RESET_STYLE);
 
         % if property.ident == "content":
-        self.flags.insert(ComputedValueFlags::INHERITS_CONTENT);
+        self.add_flags(ComputedValueFlags::INHERITS_CONTENT);
         % endif
 
         % if property.ident == "display":
-        self.flags.insert(ComputedValueFlags::INHERITS_DISPLAY);
+        self.add_flags(ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
         if self.${property.style_struct.ident}.ptr_eq(inherited_struct) {
@@ -3628,13 +3631,33 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset
     }
 
+    /// Return the current flags.
+    #[inline]
+    pub fn flags(&self) -> ComputedValueFlags {
+        self.flags.get()
+    }
+
+    /// Add a flag to the current builder.
+    #[inline]
+    pub fn add_flags(&self, flag: ComputedValueFlags) {
+        let flags = self.flags() | flag;
+        self.flags.set(flags);
+    }
+
+    /// Removes a flag to the current builder.
+    #[inline]
+    pub fn remove_flags(&self, flag: ComputedValueFlags) {
+        let flags = self.flags() & !flag;
+        self.flags.set(flags);
+    }
+
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
     pub fn build(self) -> Arc<ComputedValues> {
         ComputedValues::new(
             self.pseudo,
             self.custom_properties,
             self.writing_mode,
-            self.flags,
+            self.flags.get(),
             self.rules,
             self.visited_style,
             % for style_struct in data.active_style_structs():
@@ -3721,7 +3744,7 @@ mod lazy_static_module {
                 writing_mode: WritingMode::empty(),
                 rules: None,
                 visited_style: None,
-                flags: ComputedValueFlags::empty(),
+                flags: Cell::new(ComputedValueFlags::empty()),
             }
         };
     }

@@ -56,10 +56,13 @@ bitflags! {
         /// Whether the child explicitly inherits any reset property.
         const INHERITS_RESET_STYLE = 1 << 8;
 
+        /// Whether any value on our style is font-metric-dependent.
+        const DEPENDS_ON_FONT_METRICS = 1 << 9;
+
         /// Whether the style or any of the ancestors has a multicol style.
         ///
         /// Only used in Servo.
-        const CAN_BE_FRAGMENTED = 1 << 9;
+        const CAN_BE_FRAGMENTED = 1 << 10;
     }
 }
 

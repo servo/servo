@@ -9,6 +9,7 @@
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 use crate::font_metrics::FontMetricsQueryResult;
 use crate::parser::{Parse, ParserContext};
+use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::values::computed::{self, CSSPixelLength, Context};
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
@@ -158,6 +159,7 @@ impl FontRelativeLength {
                 if context.for_non_inherited_property.is_some() {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
+                context.builder.add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
                 let reference_size = match query_font_metrics(context, base_size) {
                     FontMetricsQueryResult::Available(metrics) => metrics.x_height,
                     // https://drafts.csswg.org/css-values/#ex
@@ -174,6 +176,7 @@ impl FontRelativeLength {
                 if context.for_non_inherited_property.is_some() {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
+                context.builder.add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
                 let reference_size = match query_font_metrics(context, base_size) {
                     FontMetricsQueryResult::Available(metrics) => metrics.zero_advance_measure,
                     // https://drafts.csswg.org/css-values/#ch
