@@ -40,6 +40,7 @@ webrender_debugger = ["libservo/webrender_debugger"]
 js_backtrace = ["libservo/js_backtrace"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
+getopts = "0.2.18"
 backtrace = "0.3"
 bitflags = "1.0"
 crossbeam-channel = "0.3"

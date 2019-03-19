@@ -607,10 +607,9 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
-    let (app_name, args) = args.split_first().unwrap();
+fn create_global_opts(mut opts: getopts::Options) -> Options {
 
-    let mut opts = Options::new();
+
     opts.optflag("c", "cpu", "CPU painting");
     opts.optflag("g", "gpu", "GPU painting");
     opts.optopt("o", "output", "Output file", "output.png");
@@ -666,7 +665,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "Shaders will be loaded from the specified directory instead of using the builtin ones.",
         "",
     );
-    opts.optflag("z", "headless", "Headless mode");
     opts.optflag(
         "f",
         "hard-fail",
@@ -702,7 +700,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "Set custom user agent string (or ios / android / desktop for platform default)",
         "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
     );
-    opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
     opts.optopt(
         "",
@@ -714,12 +711,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "",
         "random-pipeline-closure-seed",
         "A fixed seed for repeatbility of random pipeline closure.",
-        "",
-    );
-    opts.optmulti(
-        "Z",
-        "debug",
-        "A comma-separated string of debug options. Pass help to show available options.",
         "",
     );
     opts.optflag("h", "help", "Print this message");
@@ -734,12 +725,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "certificate-path",
         "Path to find SSL certificates",
         "/home/servo/resources/certs",
-    );
-    opts.optopt(
-        "",
-        "content-process",
-        "Run as a content process and connect to the given pipe",
-        "servo-ipc-channel.abcdefg",
     );
     opts.optmulti(
         "",
@@ -767,6 +752,14 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "profiler-db-pass", "Profiler database password", "");
     opts.optopt("", "profiler-db-name", "Profiler database name", "");
     opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
+
+    opts
+}
+
+pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> ArgumentParsingResult {
+    let (app_name, args) = args.split_first().unwrap();
+
+    let opts = create_global_opts(opts);
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,

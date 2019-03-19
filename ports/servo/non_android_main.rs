@@ -14,6 +14,7 @@ mod resources;
 mod browser;
 
 use backtrace::Backtrace;
+use getopts::Options;
 use servo::{Servo, BrowserId};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
@@ -63,6 +64,20 @@ fn install_crash_handler() {
     signal!(Sig::BUS, handler); // handle invalid memory access
 }
 
+fn create_gluten_opts() -> Options {
+    let mut opts = Options::new();
+    opts.optflag("z", "headless", "Headless mode");
+    opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+    opts.optmulti(
+        "Z",
+        "debug",
+        "A comma-separated string of debug options. Pass help to show available options.",
+        "",
+    );
+
+    opts
+}
+
 pub fn main() {
     install_crash_handler();
 
@@ -70,7 +85,8 @@ pub fn main() {
 
     // Parse the command line options and store them globally
     let args: Vec<String> = env::args().collect();
-    let opts_result = opts::from_cmdline_args(&args);
+    let opts = create_gluten_opts();
+    let opts_result = opts::from_cmdline_args(opts ,&args);
 
     let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
         Some(token)
