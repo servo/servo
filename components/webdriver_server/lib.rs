@@ -971,10 +971,16 @@ impl Handler {
     }
 
     fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
-        let (sender,_) = ipc::channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
         self.browsing_context_script_command(cmd)?;
-        Ok(WebDriverResponse::Void)
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window found.",
+            )),
+        }
     }
 
     fn handle_set_timeouts(

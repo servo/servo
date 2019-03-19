@@ -34,7 +34,7 @@ use js::rust::HandleValue;
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{NonHTTP, HTTP};
-use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookieForUrl,DeleteCookies};
+use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
 use script_traits::webdriver_msg::WebDriverCookieError;
 use script_traits::webdriver_msg::{
@@ -356,15 +356,31 @@ pub fn handle_add_cookie(
         .unwrap();
 }
 
-pub fn handle_delete_cookies(documents: &Documents,reply: IpcSender<Result<()>>) {
-    for (id, document) in documents.iter() {
-        document
-            .window()
-            .upcast::<GlobalScope>()
-            .resource_threads()
-            .send(DeleteCookies());
-    }
-    reply.send(Ok(())).unwrap();
+pub fn handle_delete_cookies(
+    documents: &Documents,
+    pipeline: PipelineId,
+    reply: IpcSender<Result<(), ()>>,
+) {
+    let document = match documents.find_document(pipeline) {
+        Some(document) => document,
+        None => {
+            return reply.send(Err(())).unwrap();
+        },
+    };
+    let url = document.url();
+    reply
+        .send(
+            match document
+                .window()
+                .upcast::<GlobalScope>()
+                .resource_threads()
+                .send(DeleteCookies(url))
+                .unwrap()
+            {
+                () => Ok(()),
+            },
+        )
+        .unwrap();
 }
 
 pub fn handle_get_title(documents: &Documents, pipeline: PipelineId, reply: IpcSender<String>) {
