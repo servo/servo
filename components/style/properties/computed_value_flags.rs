@@ -97,3 +97,22 @@ impl ComputedValueFlags {
         self & Self::maybe_inherited_flags()
     }
 }
+
+/// Asserts that the relevant servo and Gecko representations match.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_match() {
+    use crate::gecko_bindings::structs;
+    macro_rules! assert_bit {
+        ($rust:ident, $cpp:ident) => {
+            debug_assert_eq!(ComputedValueFlags::$rust.bits, structs::$cpp);
+        }
+    }
+
+    assert_bit!(HAS_TEXT_DECORATION_LINES, ComputedStyleBit_HasTextDecorationLines);
+    assert_bit!(IS_IN_PSEUDO_ELEMENT_SUBTREE, ComputedStyleBit_HasPseudoElementData);
+    assert_bit!(SHOULD_SUPPRESS_LINEBREAK, ComputedStyleBit_SuppressLineBreak);
+    assert_bit!(IS_TEXT_COMBINED, ComputedStyleBit_IsTextCombined);
+    assert_bit!(IS_RELEVANT_LINK_VISITED, ComputedStyleBit_RelevantLinkVisited);
+    assert_bit!(DEPENDS_ON_FONT_METRICS, ComputedStyleBit_DependsOnFontMetrics);
+}
