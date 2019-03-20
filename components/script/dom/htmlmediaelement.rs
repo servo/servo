@@ -1926,10 +1926,12 @@ impl InertHTMLMediaElement {
     }
 }
 
+#[deprecated]
 pub trait LayoutHTMLMediaElementHelpers {
     fn data(&self) -> HTMLMediaData;
 }
 
+#[allow(deprecated)]
 impl LayoutHTMLMediaElementHelpers for LayoutDom<HTMLMediaElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLMediaData {

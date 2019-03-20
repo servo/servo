@@ -1084,6 +1084,7 @@ impl InertWebGL2RenderingContext {
     }
 }
 
+#[allow(deprecated)]
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGL2RenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {

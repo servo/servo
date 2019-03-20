@@ -160,10 +160,12 @@ impl InertHTMLTableRowElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLTableRowElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
 }
 
+#[allow(deprecated)]
 #[allow(unsafe_code)]
 impl HTMLTableRowElementLayoutHelpers for LayoutDom<HTMLTableRowElement> {
     fn get_background_color(&self) -> Option<RGBA> {

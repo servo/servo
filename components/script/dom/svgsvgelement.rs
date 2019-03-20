@@ -66,10 +66,12 @@ impl InertSVGSVGElement {
     }
 }
 
+#[deprecated]
 pub trait LayoutSVGSVGElementHelpers {
     fn data(&self) -> SVGSVGData;
 }
 
+#[allow(deprecated)]
 impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> SVGSVGData {

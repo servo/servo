@@ -453,6 +453,7 @@ impl InertHTMLInputElement {
     }
 }
 
+#[deprecated]
 pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String;
@@ -474,6 +475,7 @@ unsafe fn get_raw_textinput_value(input: LayoutDom<HTMLInputElement>) -> DOMStri
         .get_content()
 }
 
+#[allow(deprecated)]
 impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String {

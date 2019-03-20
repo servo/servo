@@ -847,6 +847,7 @@ impl InertElement {
 }
 
 #[allow(unsafe_code)]
+#[deprecated]
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_for_layout<'a>(
         &'a self,
@@ -861,8 +862,8 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue>;
 }
 
-#[inline]
 #[allow(unsafe_code)]
+#[inline]
 pub unsafe fn get_attr_for_layout<'a>(
     elem: &'a Element,
     namespace: &Namespace,
@@ -879,6 +880,7 @@ pub unsafe fn get_attr_for_layout<'a>(
         .map(|attr| attr.to_layout())
 }
 
+#[allow(deprecated)]
 #[allow(unsafe_code)]
 impl RawLayoutElementHelpers for Element {
     #[inline]
@@ -916,6 +918,7 @@ impl RawLayoutElementHelpers for Element {
     }
 }
 
+#[deprecated]
 pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
@@ -944,6 +947,7 @@ pub trait LayoutElementHelpers {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
 }
 
+#[allow(deprecated)]
 impl LayoutElementHelpers for LayoutDom<Element> {
     #[allow(unsafe_code)]
     #[inline]

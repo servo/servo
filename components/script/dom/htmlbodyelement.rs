@@ -121,12 +121,14 @@ impl InertHTMLBodyElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLBodyElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
     fn get_color(&self) -> Option<RGBA>;
     fn get_background(&self) -> Option<ServoUrl>;
 }
 
+#[allow(deprecated)]
 impl HTMLBodyElementLayoutHelpers for LayoutDom<HTMLBodyElement> {
     #[allow(unsafe_code)]
     fn get_background_color(&self) -> Option<RGBA> {

@@ -129,12 +129,14 @@ impl InertHTMLFontElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLFontElementLayoutHelpers {
     fn get_color(&self) -> Option<RGBA>;
     fn get_face(&self) -> Option<Atom>;
     fn get_size(&self) -> Option<u32>;
 }
 
+#[allow(deprecated)]
 impl HTMLFontElementLayoutHelpers for LayoutDom<HTMLFontElement> {
     #[allow(unsafe_code)]
     fn get_color(&self) -> Option<RGBA> {

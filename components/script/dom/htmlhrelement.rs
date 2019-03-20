@@ -85,11 +85,13 @@ impl InertHTMLHRElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLHRLayoutHelpers {
     fn get_color(&self) -> Option<RGBA>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
+#[allow(deprecated)]
 impl HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement> {
     #[allow(unsafe_code)]
     fn get_color(&self) -> Option<RGBA> {

@@ -282,10 +282,12 @@ impl InertCharacterData {
 }
 
 #[allow(unsafe_code)]
+#[deprecated]
 pub trait LayoutCharacterDataHelpers {
     unsafe fn data_for_layout(&self) -> &str;
 }
 
+#[allow(deprecated)]
 #[allow(unsafe_code)]
 impl LayoutCharacterDataHelpers for LayoutDom<CharacterData> {
     #[inline]

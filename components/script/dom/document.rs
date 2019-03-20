@@ -2527,6 +2527,7 @@ impl InertDocument {
 }
 
 #[allow(unsafe_code)]
+#[deprecated]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
     unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutDom<Element>, PendingRestyle)>;
@@ -2536,6 +2537,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
 }
 
+#[allow(deprecated)]
 #[allow(unsafe_code)]
 impl LayoutDocumentHelpers for LayoutDom<Document> {
     #[inline]

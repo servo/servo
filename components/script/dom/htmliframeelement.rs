@@ -456,6 +456,7 @@ impl InertHTMLIFrameElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLIFrameElementLayoutMethods {
     fn pipeline_id(&self) -> Option<PipelineId>;
     fn browsing_context_id(&self) -> Option<BrowsingContextId>;
@@ -463,6 +464,7 @@ pub trait HTMLIFrameElementLayoutMethods {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
+#[allow(deprecated)]
 impl HTMLIFrameElementLayoutMethods for LayoutDom<HTMLIFrameElement> {
     #[inline]
     #[allow(unsafe_code)]

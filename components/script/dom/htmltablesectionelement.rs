@@ -98,10 +98,12 @@ impl InertHTMLTableSectionElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLTableSectionElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
 }
 
+#[allow(deprecated)]
 #[allow(unsafe_code)]
 impl HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement> {
     fn get_background_color(&self) -> Option<RGBA> {

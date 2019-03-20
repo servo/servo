@@ -1254,6 +1254,7 @@ impl InertNode {
 }
 
 #[allow(unsafe_code)]
+#[deprecated]
 pub trait LayoutNodeHelpers {
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
@@ -1288,6 +1289,7 @@ pub trait LayoutNodeHelpers {
     fn opaque(&self) -> OpaqueNode;
 }
 
+#[allow(deprecated)]
 impl LayoutNodeHelpers for LayoutDom<Node> {
     #[inline]
     #[allow(unsafe_code)]

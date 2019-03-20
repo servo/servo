@@ -134,6 +134,7 @@ impl InertHTMLTableCellElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLTableCellElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
     fn get_colspan(&self) -> Option<u32>;
@@ -141,6 +142,7 @@ pub trait HTMLTableCellElementLayoutHelpers {
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
+#[allow(deprecated)]
 #[allow(unsafe_code)]
 impl HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement> {
     fn get_background_color(&self) -> Option<RGBA> {

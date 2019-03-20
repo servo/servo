@@ -109,6 +109,7 @@ impl InertHTMLTextAreaElement {
     }
 }
 
+#[deprecated]
 pub trait LayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String;
@@ -120,6 +121,7 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     fn get_rows(self) -> u32;
 }
 
+#[allow(deprecated)]
 impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]

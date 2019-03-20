@@ -440,6 +440,7 @@ impl InertHTMLTableElement {
     }
 }
 
+#[deprecated]
 pub trait HTMLTableElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
     fn get_border(&self) -> Option<u32>;
@@ -447,6 +448,7 @@ pub trait HTMLTableElementLayoutHelpers {
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
+#[allow(deprecated)]
 impl HTMLTableElementLayoutHelpers for LayoutDom<HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_background_color(&self) -> Option<RGBA> {

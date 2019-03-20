@@ -212,6 +212,7 @@ impl InertCanvasContext {
     }
 }
 
+#[deprecated]
 pub trait LayoutHTMLCanvasElementHelpers {
     fn data(&self) -> HTMLCanvasData;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
@@ -219,6 +220,7 @@ pub trait LayoutHTMLCanvasElementHelpers {
     fn get_canvas_id_for_layout(&self) -> CanvasId;
 }
 
+#[allow(deprecated)]
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLCanvasData {

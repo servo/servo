@@ -594,6 +594,7 @@ impl InertCanvasRenderingContext2D {
     }
 }
 
+#[deprecated]
 pub trait LayoutCanvasRenderingContext2DHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
@@ -601,6 +602,7 @@ pub trait LayoutCanvasRenderingContext2DHelpers {
     unsafe fn get_canvas_id(&self) -> CanvasId;
 }
 
+#[allow(deprecated)]
 impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<CanvasRenderingContext2D> {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {

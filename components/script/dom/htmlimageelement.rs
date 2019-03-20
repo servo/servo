@@ -1369,6 +1369,7 @@ impl InertHTMLImageElement {
     }
 }
 
+#[deprecated]
 pub trait LayoutHTMLImageElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>>;
@@ -1386,6 +1387,7 @@ pub trait LayoutHTMLImageElementHelpers {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
+#[allow(deprecated)]
 impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
