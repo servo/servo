@@ -85,9 +85,8 @@ def _check_clean(logger, test_paths):
 
     for manifest_path, (old_manifest, new_manifest) in manifests_by_path.iteritems():
         if not diff_manifests(logger, manifest_path, old_manifest, new_manifest):
+            logger.error("Manifest %s is outdated, use |./mach update-manifest| to fix." % manifest_path)
             rv = 1
-    if rv:
-        logger.error("Manifest %s is outdated, use |./mach update-manifest| to fix." % manifest_path)
 
     return rv
 
