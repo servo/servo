@@ -13,8 +13,7 @@ use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEven
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::{Cursor, EventLoopWaker};
 use servo::script_traits::TouchEventType;
-use servo::servo_config::opts;
-use servo::servo_config::prefs::PREFS;
+use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScrollLocation};
@@ -792,7 +791,7 @@ impl WindowMethods for Window {
         services: &mut VRServiceManager,
         heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>
     ) {
-        if PREFS.get("dom.webvr.test").as_boolean().unwrap_or(false) {
+        if pref!(dom.webvr.test) {
             warn!("Creating test VR display");
             // TODO: support dom.webvr.test in headless environments
             if let WindowKind::Window(_, ref events_loop) = self.kind {

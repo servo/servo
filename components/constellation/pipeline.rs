@@ -31,7 +31,7 @@ use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
-use servo_config::prefs::{Pref, PREFS};
+use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::collections::{HashMap, HashSet};
 #[cfg(not(windows))]
@@ -286,7 +286,7 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     script_port: script_port,
                     opts: (*opts::get()).clone(),
-                    prefs: PREFS.cloned(),
+                    prefs: prefs::pref_map().iter().collect(),
                     pipeline_port: pipeline_port,
                     pipeline_namespace_id: state.pipeline_namespace_id,
                     layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
@@ -482,7 +482,7 @@ pub struct UnprivilegedPipelineContent {
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
     opts: Opts,
-    prefs: HashMap<String, Pref>,
+    prefs: HashMap<String, PrefValue>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
     pipeline_namespace_id: PipelineNamespaceId,
     layout_content_process_shutdown_chan: IpcSender<()>,
@@ -681,7 +681,7 @@ impl UnprivilegedPipelineContent {
         self.opts.clone()
     }
 
-    pub fn prefs(&self) -> HashMap<String, Pref> {
+    pub fn prefs(&self) -> HashMap<String, PrefValue> {
         self.prefs.clone()
     }
 

@@ -18,7 +18,6 @@ use net_traits::filemanager_thread::{
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
 use servo_arc::Arc as ServoArc;
-use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
@@ -311,7 +310,7 @@ impl FileManagerStore {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
-        let opt_s = if select_files_pref_enabled() {
+        let opt_s = if pref!(dom.testing.html_input_element.select_files.enabled) {
             opt_test_path
         } else {
             self.query_files_from_embedder(patterns, false, embedder_proxy)
@@ -342,7 +341,7 @@ impl FileManagerStore {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
-        let opt_v = if select_files_pref_enabled() {
+        let opt_v = if pref!(dom.testing.html_input_element.select_files.enabled) {
             opt_test_paths
         } else {
             self.query_files_from_embedder(patterns, true, embedder_proxy)
@@ -738,13 +737,6 @@ impl FileManagerStore {
         }
         res
     }
-}
-
-fn select_files_pref_enabled() -> bool {
-    PREFS
-        .get("dom.testing.htmlinputelement.select_files.enabled")
-        .as_boolean()
-        .unwrap_or(false)
 }
 
 fn read_file_in_chunks(
