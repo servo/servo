@@ -109,8 +109,9 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
         for test_type, path, tests in manifest:
             for test in tests:
                 test_id = [test.id]
-                test_id.extend(tuple(item) if isinstance(item, list) else item
-                               for item in test.meta_key())
+                if hasattr(test, "script_metadata"):
+                    if test.script_metadata is not None:
+                        test_id.extend(tuple(item) for item in test.script_metadata)
                 if hasattr(test, "references"):
                     test_id.extend(tuple(item) for item in test.references)
                 test_id = tuple(test_id)
