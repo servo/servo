@@ -369,8 +369,8 @@ fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorSc
     }
 }
 
-/// https://drafts.csswg.org/mediaqueries-4/#mf-interaction
 bitflags! {
+    /// https://drafts.csswg.org/mediaqueries-4/#mf-interaction
     struct PointerCapabilities: u8 {
         const COARSE = structs::PointerCapabilities_Coarse;
         const FINE = structs::PointerCapabilities_Fine;
