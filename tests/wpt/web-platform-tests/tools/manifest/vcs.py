@@ -96,8 +96,8 @@ class Git(object):
         cmd = ["ls-tree", "-r", "-z", "HEAD"]
         local_changes = self._local_changes()
         for result in self.git(*cmd).split("\0")[:-1]:
-            rel_path = result.rsplit("\t", 1)[-1]
-            hash = result.split(" ", 3)[2]
+            data, rel_path = result.rsplit("\t", 1)
+            hash = data.split(" ", 3)[2]
             if rel_path in local_changes:
                 contents = self._show_file(rel_path)
             else:
