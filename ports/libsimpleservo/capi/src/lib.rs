@@ -76,7 +76,12 @@ fn init(
     crate::env_logger::init();
 
     let args = unsafe { CStr::from_ptr(opts.args) };
-    let args = args.to_str().map(|s| s.to_string()).ok();
+    let args = args
+        .to_str()
+        .unwrap_or("")
+        .split(' ')
+        .map(|s| s.to_owned())
+        .collect();
 
     let url = unsafe { CStr::from_ptr(opts.url) };
     let url = url.to_str().map(|s| s.to_string()).ok();

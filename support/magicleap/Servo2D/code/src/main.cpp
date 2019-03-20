@@ -26,7 +26,9 @@ int main(int argc, char **argv)
     }
   }
 
-  Servo2D myApp(uri);
+  const char* args = getenv("SERVO_ARGS");
+
+  Servo2D myApp(uri, args);
   int rv = myApp.run();
 
   MLLifecycleFreeInitArgList(&list);

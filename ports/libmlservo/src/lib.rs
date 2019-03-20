@@ -69,7 +69,7 @@ pub enum MLKeyType {
 }
 
 #[repr(transparent)]
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct MLLogger(extern "C" fn(MLLogLevel, *const c_char));
 
 #[repr(transparent)]
@@ -108,6 +108,7 @@ pub unsafe extern "C" fn init_servo(
     url_update: MLURLUpdate,
     keyboard: MLKeyboard,
     url: *const c_char,
+    args: *const c_char,
     width: u32,
     height: u32,
     hidpi: f32,
@@ -127,8 +128,20 @@ pub unsafe extern "C" fn init_servo(
         width as i32,
         height as i32,
     );
+    let args = if args.is_null() {
+        vec![]
+    } else {
+        CStr::from_ptr(args)
+            .to_str()
+            .unwrap_or("")
+            .split(' ')
+            .map(|s| s.to_owned())
+            .collect()
+    };
+    info!("got args: {:?}", args);
+
     let opts = InitOptions {
-        args: None,
+        args,
         url: Some(url.to_string()),
         density: hidpi,
         enable_subpixel_text_antialiasing: false,

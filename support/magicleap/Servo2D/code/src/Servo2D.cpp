@@ -68,7 +68,7 @@ void keyboard(Servo2D* app, bool visible) {
 // The functions Servo provides for hooking up to the ML.
 extern "C" ServoInstance* init_servo(EGLContext, EGLSurface, EGLDisplay,
                                      Servo2D*, MLLogger, MLHistoryUpdate, MLURLUpdate, MLKeyboard,
-                                     const char* url, int width, int height, float hidpi);
+                                     const char* url, const char* args, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance*);
 extern "C" void keyboard_servo(ServoInstance*, char32_t code, lumin::ui::KeyType keyType);
 extern "C" void trigger_servo(ServoInstance*, float x, float y, bool down);
@@ -78,8 +78,9 @@ extern "C" void navigate_servo(ServoInstance*, const char* text);
 extern "C" void discard_servo(ServoInstance*);
 
 // Create a Servo2D instance
-Servo2D::Servo2D(const char* uri)
+Servo2D::Servo2D(const char* uri, const char* args)
 : uri_(uri ? uri : HOME_PAGE)
+, args_(args)
 {
   ML_LOG(Debug, "Servo2D Constructor.");
 }
@@ -173,7 +174,7 @@ int Servo2D::init() {
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
   // Hook into servo
-  servo_ = init_servo(ctx, surf, dpy, this, logger, history, url, keyboard, uri_, VIEWPORT_W, VIEWPORT_H, HIDPI);
+  servo_ = init_servo(ctx, surf, dpy, this, logger, history, url, keyboard, uri_, args_, VIEWPORT_W, VIEWPORT_H, HIDPI);
   if (!servo_) {
     ML_LOG(Error, "Servo2D Failed to init servo instance");
     abort();
