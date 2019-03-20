@@ -39,18 +39,13 @@ class ManifestItem(object):
         """A unique identifier for the test"""
         return (self.item_type, self.id)
 
-    def meta_key(self):
-        """Extra metadata that doesn't form part of the test identity, but for
-        which changes mean regenerating the manifest (e.g. the test timeout)."""
-        return ()
-
     def __eq__(self, other):
         if not hasattr(other, "key"):
             return False
         return self.key() == other.key()
 
     def __hash__(self):
-        return hash(self.key() + self.meta_key())
+        return hash(self.key())
 
     def __repr__(self):
         return "<%s.%s id=%s, path=%s>" % (self.__module__, self.__class__.__name__, self.id, self.path)
@@ -137,12 +132,6 @@ class TestharnessTest(URLManifestItem):
             # this branch should go when the manifest version is bumped
             return self._source_file.script_metadata
 
-    def meta_key(self):
-        script_metadata = self.script_metadata
-        if script_metadata is not None:
-            script_metadata = tuple(tuple(x) for x in script_metadata)
-        return (self.timeout, self.testdriver, self.jsshell, script_metadata)
-
     def to_json(self):
         rv = super(TestharnessTest, self).to_json()
         if self.timeout is not None:
@@ -188,9 +177,6 @@ class RefTestBase(URLManifestItem):
             return {tuple(item[0]): item[1]
                     for item in self._extras.get("fuzzy", [])}
         return rv
-
-    def meta_key(self):
-        return (self.timeout, self.viewport_size, self.dpi)
 
     def to_json(self):
         rv = [self._url, self.references, {}]

@@ -1,0 +1,55 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+    iframe {
+      width: 300px;
+      height: 300px;
+      top: 100px;
+      left: 50px;
+      border: 0;
+      position: absolute;
+      background: green;
+    }
+    #outerFrame {
+      width: 500px;
+      height: 500px;
+      background: blue;
+    }
+</style>
+<body onload="run()">
+    <div id='outerFrame'>
+        <iframe id='innerFrameElement' src="resources/pointerevent_mouse_pointercapture_inactivate_pointer-iframe.html"></iframe>
+    </div>
+</body>
+
+<script type="text/javascript">
+    var test_pointerEvent = async_test("setPointerCapture: outer frame capture pointer active in inner frame");
+
+    document.addEventListener("gotpointercapture", function(){
+        test_pointerEvent.step(function() {
+            assert_unreached("It should not be possible to capture mouse pointer when it's activate in inner frame");
+        });
+    })
+
+    function captureMousePointer(event) {
+        outerFrame.setPointerCapture(event.pointerId);
+    }
+
+    function finishTest() {
+        test_pointerEvent.done();
+    }
+
+    function run() {
+        new test_driver.Actions()
+            .pointerMove(200, 200)
+            .pointerDown()
+            .pointerMove(250, 250)
+            .pointerUp()
+            .send();
+    }
+</script>
+</html>

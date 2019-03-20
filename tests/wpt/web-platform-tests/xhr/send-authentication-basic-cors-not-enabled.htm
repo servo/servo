@@ -16,7 +16,7 @@
           urlstart = 'www1.'+location.host + location.pathname.replace(/\/[^\/]*$/, '/')
         client.withCredentials = true
         user = token()
-        client.open("GET", location.protocol+'//'+urlstart + "resources/auth1/auth.py", false, user, 'pass')
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth10/auth.py", false, user, 'pass')
         client.setRequestHeader("x-user", user)
         assert_throws("NetworkError", function(){ client.send(null) })
         assert_equals(client.responseText, '')

@@ -1625,7 +1625,7 @@
     "html/elements/picture/object-srcset-novalid.html": "Attribute \u201csrcset\u201d not allowed on element \u201cobject\u201d at this point.",
     "html/elements/picture/parent-dl-novalid.html": "Element \u201cpicture\u201d not allowed as child of element \u201cdl\u201d in this context. (Suppressing further errors from this subtree.)",
     "html/elements/picture/parent-hgroup-novalid.html": "Element \u201cpicture\u201d not allowed as child of element \u201chgroup\u201d in this context. (Suppressing further errors from this subtree.)",
-    "html/elements/picture/parent-noscript-in-head-novalid.html": "Bad start tag in \u201cpicture\u201d in \u201chead\u201d.",
+    "html/elements/picture/parent-noscript-in-head-novalid.html": "Bad start tag in \u201cpicture\u201d in \u201cnoscript\u201d in \u201chead\u201d.",
     "html/elements/picture/parent-ul-novalid.html": "Element \u201cpicture\u201d not allowed as child of element \u201cul\u201d in this context. (Suppressing further errors from this subtree.)",
     "html/elements/picture/picture-align-novalid.html": "Attribute \u201calign\u201d not allowed on element \u201cpicture\u201d at this point.",
     "html/elements/picture/picture-alt-novalid.html": "Attribute \u201calt\u201d not allowed on element \u201cpicture\u201d at this point.",

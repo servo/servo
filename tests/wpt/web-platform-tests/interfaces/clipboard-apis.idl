@@ -16,11 +16,40 @@ partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Clipboard clipboard;
 };
 
+typedef sequence<ClipboardItem> ClipboardItems;
+
 [SecureContext, Exposed=Window] interface Clipboard : EventTarget {
-  Promise<DataTransfer> read();
+  Promise<ClipboardItems> read();
   Promise<DOMString> readText();
-  Promise<void> write(DataTransfer data);
+  Promise<void> write(ClipboardItems data);
   Promise<void> writeText(DOMString data);
+};
+
+typedef (DOMString or Blob) ClipboardItemDataType;
+typedef Promise<ClipboardItemDataType> ClipboardItemData;
+
+callback ClipboardItemDelayedCallback = ClipboardItemData ();
+
+[Constructor(record<DOMString, ClipboardItemData> items,
+    optional ClipboardItemOptions options),
+ Exposed=Window] interface ClipboardItem {
+  static ClipboardItem createDelayed(
+      record<DOMString, ClipboardItemDelayedCallback> items,
+      optional ClipboardItemOptions options);
+
+  readonly attribute PresentationStyle presentationStyle;
+  readonly attribute long long lastModified;
+  readonly attribute boolean delayed;
+
+  readonly attribute FrozenArray<DOMString> types;
+
+  Promise<Blob> getType(DOMString type);
+};
+
+enum PresentationStyle { "unspecified", "inline", "attachment" };
+
+dictionary ClipboardItemOptions {
+  PresentationStyle presentationStyle = "unspecified";
 };
 
 dictionary ClipboardPermissionDescriptor : PermissionDescriptor {

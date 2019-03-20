@@ -105,7 +105,7 @@ interface RTCPeerConnection : EventTarget {
     readonly        attribute RTCSessionDescription? remoteDescription;
     readonly        attribute RTCSessionDescription? currentRemoteDescription;
     readonly        attribute RTCSessionDescription? pendingRemoteDescription;
-    Promise<void> addIceCandidate(RTCIceCandidateInit candidate);
+    Promise<void> addIceCandidate(optional RTCIceCandidateInit candidate);
     readonly        attribute RTCSignalingState signalingState;
     readonly        attribute RTCIceGatheringState iceGatheringState;
     readonly        attribute RTCIceConnectionState iceConnectionState;
@@ -609,6 +609,26 @@ dictionary RTCStatsEventInit : EventInit {
             required RTCStatsReport report;
           };
 
+[
+    Exposed=Window,
+    Constructor(RTCErrorInit init, optional DOMString message = "")] interface RTCError {
+    readonly attribute RTCErrorDetailType errorDetail;
+    readonly attribute long? sdpLineNumber;
+    readonly attribute long? httpRequestStatusCode;
+    readonly attribute long? sctpCauseCode;
+    readonly attribute unsigned long? receivedAlert;
+    readonly attribute unsigned long? sentAlert;
+};
+
+dictionary RTCErrorInit {
+    required RTCErrorDetailType errorDetail;
+    long sdpLineNumber;
+    long httpRequestStatusCode;
+    long sctpCauseCode;
+    unsigned long receivedAlert;
+    unsigned long sentAlert;
+};
+
 enum RTCErrorDetailType {
               "data-channel-failure",
               "dtls-failure",
@@ -627,12 +647,12 @@ enum RTCErrorDetailType {
               "hardware-encoder-error"
           };
 
-[Exposed=Window,
- Constructor(DOMString type, optional RTCErrorEventInit eventInitDict)]
-interface RTCErrorEvent : Event {
-    readonly        attribute RTCError? error;
+[
+    Exposed=Window,
+    Constructor(DOMString type, RTCErrorEventInit eventInitDict)] interface RTCErrorEvent : Event {
+    [SameObject] readonly attribute RTCError error;
 };
 
 dictionary RTCErrorEventInit : EventInit {
-             RTCError? error = null;
+     required RTCError error;
 };

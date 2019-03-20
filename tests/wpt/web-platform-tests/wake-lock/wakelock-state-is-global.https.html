@@ -7,16 +7,18 @@
 
 <body>
 <script id="iframe" type="text/plain">
-let iframeWakeLock, iframeRequest;
+let iframeWakeLock;
+const controller = new AbortController();
+const signal = controller.signal;
 window.onmessage = async message => {
   switch(message.data) {
   case "ACQUIRED":
-    iframeWakeLock = await navigator.getWakeLock("screen");
-    iframeRequest = iframeWakeLock.createRequest();
+    iframeWakeLock = new WakeLock("screen");
+    await iframeWakeLock.request({ signal });
     parent.postMessage(iframeWakeLock.active, "*");
     break;
   case "RELEASED":
-    iframeRequest.cancel();
+    controller.abort();
     parent.postMessage(iframeWakeLock.active, "*");
     break;
   default:
@@ -49,7 +51,7 @@ function wait_for_message(iframe) {
 }
 
 promise_test(async t => {
-  const wakeLock = await navigator.getWakeLock("screen");
+  const wakeLock = await new WakeLock("screen");
   const iframe = await load_iframe();
   const eventWatcher = new EventWatcher(t, wakeLock, "activechange");
 

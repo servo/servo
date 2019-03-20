@@ -12,8 +12,8 @@ interface Blob {
   readonly attribute DOMString type;
 
   // slice Blob into byte-ranged chunks
-  Blob slice([Clamp] optional long long start,
-            [Clamp] optional long long end,
+  Blob slice(optional [Clamp] long long start,
+            optional [Clamp] long long end,
             optional DOMString contentType);
 };
 
@@ -75,7 +75,6 @@ interface FileReader: EventTarget {
   attribute EventHandler onabort;
   attribute EventHandler onerror;
   attribute EventHandler onloadend;
-
 };
 
 [Constructor, Exposed=(DedicatedWorker,SharedWorker)]
@@ -90,6 +89,6 @@ interface FileReaderSync {
 
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 partial interface URL {
-  static DOMString createObjectURL(Blob blob);
+  static DOMString createObjectURL((Blob or MediaSource) obj);
   static void revokeObjectURL(DOMString url);
 };

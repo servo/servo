@@ -6,6 +6,7 @@ import argparse
 import imp
 import os
 import sys
+import tempfile
 from collections import defaultdict
 
 from mozlog.structured import commandline
@@ -65,6 +66,7 @@ def _update(logger, test_paths, rebuild):
                                           manifest_path,
                                           url_base,
                                           working_copy=True,
+                                          rebuild=rebuild,
                                           cache_root=os.path.join(servo_root, ".wpt",
                                                                   cache_subdir))
     return 0
@@ -76,17 +78,34 @@ def _check_clean(logger, test_paths):
     for url_base, paths in test_paths.iteritems():
         tests_path = paths["tests_path"]
         manifest_path = os.path.join(paths["metadata_path"], "MANIFEST.json")
-        old_manifest = manifest.manifest.load(tests_path, manifest_path)
-        new_manifest = manifest.manifest.Manifest.from_json(tests_path,
-                                                            old_manifest.to_json())
-        manifest.update.update(tests_path, new_manifest, working_copy=True)
+
+        old_manifest = manifest.manifest.load_and_update(tests_path,
+                                                         manifest_path,
+                                                         url_base,
+                                                         working_copy=False,
+                                                         update=False,
+                                                         write_manifest=False,)
+
+        # Even if no cache is specified, one will be used automatically by the
+        # VCS integration. Create a brand new cache every time to ensure that
+        # the VCS integration always thinks that any file modifications in the
+        # working directory are new and interesting.
+        cache_root = tempfile.mkdtemp()
+        new_manifest = manifest.manifest.load_and_update(tests_path,
+                                                         manifest_path,
+                                                         url_base,
+                                                         working_copy=True,
+                                                         update=True,
+                                                         cache_root=cache_root,
+                                                         write_manifest=False,
+                                                         allow_cached=False)
+
         manifests_by_path[manifest_path] = (old_manifest, new_manifest)
 
     for manifest_path, (old_manifest, new_manifest) in manifests_by_path.iteritems():
         if not diff_manifests(logger, manifest_path, old_manifest, new_manifest):
+            logger.error("Manifest %s is outdated, use |./mach update-manifest| to fix." % manifest_path)
             rv = 1
-    if rv:
-        logger.error("Manifest %s is outdated, use |./mach update-manifest| to fix." % manifest_path)
 
     return rv
 
@@ -109,8 +128,9 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
         for test_type, path, tests in manifest:
             for test in tests:
                 test_id = [test.id]
-                test_id.extend(tuple(item) if isinstance(item, list) else item
-                               for item in test.meta_key())
+                if hasattr(test, "script_metadata"):
+                    if test.script_metadata is not None:
+                        test_id.extend(tuple(item) for item in test.script_metadata)
                 if hasattr(test, "references"):
                     test_id.extend(tuple(item) for item in test.references)
                 test_id = tuple(test_id)
