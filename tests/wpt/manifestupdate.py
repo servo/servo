@@ -65,6 +65,7 @@ def _update(logger, test_paths, rebuild):
                                           manifest_path,
                                           url_base,
                                           working_copy=True,
+                                          rebuild=rebuild,
                                           cache_root=os.path.join(servo_root, ".wpt",
                                                                   cache_subdir))
     return 0
