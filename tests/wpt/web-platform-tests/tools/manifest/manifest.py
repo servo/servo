@@ -421,11 +421,11 @@ def load(tests_root, manifest, types=None, meta_filters=None):
 __load_cache = {}
 
 
-def _load(logger, tests_root, manifest, types=None, meta_filters=None):
+def _load(logger, tests_root, manifest, types=None, meta_filters=None, allow_cached=True):
     # "manifest" is a path or file-like object.
     manifest_path = (manifest if isinstance(manifest, string_types)
                      else manifest.name)
-    if manifest_path in __load_cache:
+    if allow_cached and manifest_path in __load_cache:
         return __load_cache[manifest_path]
 
     if isinstance(manifest, string_types):
@@ -450,7 +450,8 @@ def _load(logger, tests_root, manifest, types=None, meta_filters=None):
                                 types=types,
                                 meta_filters=meta_filters)
 
-    __load_cache[manifest_path] = rv
+    if allow_cached:
+        __load_cache[manifest_path] = rv
     return rv
 
 
@@ -464,7 +465,8 @@ def load_and_update(tests_root,
                     working_copy=False,
                     types=None,
                     meta_filters=None,
-                    write_manifest=True):
+                    write_manifest=True,
+                    allow_cached=True):
     logger = get_logger()
 
     manifest = None
@@ -474,7 +476,8 @@ def load_and_update(tests_root,
                              tests_root,
                              manifest_path,
                              types=types,
-                             meta_filters=meta_filters)
+                             meta_filters=meta_filters,
+                             allow_cached=allow_cached)
         except ManifestVersionMismatch:
             logger.info("Manifest version changed, rebuilding")
 
