@@ -1214,6 +1214,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     &self.embedder_coordinates.framebuffer.to_untyped(),
                 );
 
+                self.window.gl().clear_color(1.0, 1.0, 1.0, 0.0);
+                self.window.gl().clear(gleam::gl::COLOR_BUFFER_BIT);
+
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
                 self.webrender.render(size).ok();
