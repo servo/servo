@@ -319,7 +319,7 @@ def windows_unit():
 
             "mach build --dev",
             "set RUST_LOG=debug",
-            "mach run --angle tests/html/close-on-load.html"
+            "mach run tests/html/close-on-load.html",
             #"mach smoketest --angle",
             "set RUST_LOG=",
             "mach test-unit",
