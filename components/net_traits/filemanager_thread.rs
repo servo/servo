@@ -137,14 +137,8 @@ pub enum FileManagerThreadMsg {
         FileOrigin,
     ),
 
-    /// Add an entry as promoted memory-based blob and send back the associated FileID
-    /// as part of a valid/invalid Blob URL depending on the boolean flag
-    PromoteMemory(
-        BlobBuf,
-        bool,
-        IpcSender<Result<Uuid, BlobURLStoreError>>,
-        FileOrigin,
-    ),
+    /// Add an entry as promoted memory-based blob
+    PromoteMemory(Uuid, BlobBuf, bool, FileOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
     /// as part of a valid Blob URL

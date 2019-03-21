@@ -47,6 +47,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
+use uuid::Uuid;
 
 // TODO write a struct that impls Handler for storing test values
 
@@ -125,7 +126,6 @@ fn test_fetch_aboutblank() {
 
 #[test]
 fn test_fetch_blob() {
-    use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
 
     struct FetchResponseCollector {
@@ -160,11 +160,10 @@ fn test_fetch_blob() {
 
     let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
-    let (sender, receiver) = ipc::channel().unwrap();
+    let id = Uuid::new_v4();
     context
         .filemanager
-        .promote_memory(blob_buf, true, sender, "http://www.example.org".into());
-    let id = receiver.recv().unwrap().unwrap();
+        .promote_memory(id.clone(), blob_buf, true, "http://www.example.org".into());
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.to_simple())).unwrap();
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);
