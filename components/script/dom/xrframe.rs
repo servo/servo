@@ -5,13 +5,11 @@
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding;
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::XRSession;
-use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
@@ -55,16 +53,21 @@ impl XRFrameMethods for XRFrame {
 
     /// https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose
     fn GetViewerPose(&self, reference: &XRReferenceSpace) -> Option<DomRoot<XRViewerPose>> {
-        if let Some(_) = reference.downcast::<XRStationaryReferenceSpace>() {
-            // For 3DOF devices all three kinds of reference spaces are identical
-            // FIXME(#23070, Manishearth) support originOffset
-            let left = XRView::new(&self.global(), &self.session, XREye::Left, &self.data);
-            let right = XRView::new(&self.global(), &self.session, XREye::Right, &self.data);
-            Some(XRViewerPose::new(&self.global(), &left, &right))
-        } else {
-            // FIXME(#23070, Manishearth) support identity reference spaces
-            // depends on https://github.com/immersive-web/webxr/issues/565
-            None
-        }
+        let pose = reference.get_viewer_pose(&self.data);
+        let left = XRView::new(
+            &self.global(),
+            &self.session,
+            XREye::Left,
+            &pose,
+            &self.data,
+        );
+        let right = XRView::new(
+            &self.global(),
+            &self.session,
+            XREye::Right,
+            &pose,
+            &self.data,
+        );
+        Some(XRViewerPose::new(&self.global(), &left, &right))
     }
 }
