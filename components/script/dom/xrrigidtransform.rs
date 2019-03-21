@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
+use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::Fallible;
@@ -12,6 +13,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use euclid::{Rotation3D, Transform3D};
 
 #[dom_struct]
 pub struct XRRigidTransform {
@@ -65,6 +67,7 @@ impl XRRigidTransform {
     ) -> Fallible<DomRoot<Self>> {
         let global = window.global();
         let position = DOMPointReadOnly::new_from_init(&global, &position);
+        // XXXManishearth normalize this
         let orientation = DOMPointReadOnly::new_from_init(&global, &orientation);
         Ok(XRRigidTransform::new(window, &position, &orientation))
     }
@@ -78,5 +81,23 @@ impl XRRigidTransformMethods for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation
     fn Orientation(&self) -> DomRoot<DOMPointReadOnly> {
         DomRoot::from_ref(&self.orientation)
+    }
+}
+
+impl XRRigidTransform {
+    pub fn matrix(&self) -> Transform3D<f64> {
+        // XXXManishearth compute this during initialization
+        let translate = Transform3D::create_translation(
+            self.position.X(),
+            self.position.Y(),
+            self.position.Z(),
+        );
+        let rotation = Rotation3D::unit_quaternion(
+            self.orientation.X(),
+            self.orientation.Y(),
+            self.orientation.Z(),
+            self.orientation.W(),
+        );
+        translate.pre_mul(&rotation.to_transform())
     }
 }
