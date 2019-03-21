@@ -46,7 +46,7 @@ def install_trusty_deps(force):
 
 
 def check_gstreamer_lib():
-    return subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
+    return subprocess.call(["pkg-config", "--atleast-version=1.12", "gstreamer-1.0"],
                            stdout=PIPE, stderr=PIPE) == 0
 
 
