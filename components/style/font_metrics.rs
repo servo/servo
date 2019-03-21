@@ -20,6 +20,16 @@ pub struct FontMetrics {
     pub zero_advance_measure: Option<Au>,
 }
 
+/// Type of font metrics to retrieve.
+#[derive(Clone, Debug, PartialEq)]
+pub enum FontMetricsOrientation {
+    /// Get metrics for horizontal or vertical according to the Context's
+    /// writing mode.
+    MatchContext,
+    /// Force getting horizontal metrics.
+    Horizontal,
+}
+
 /// A trait used to represent something capable of providing us font metrics.
 pub trait FontMetricsProvider {
     /// Obtain the metrics for given font family.
@@ -27,7 +37,8 @@ pub trait FontMetricsProvider {
         &self,
         _context: &crate::values::computed::Context,
         _base_size: crate::values::specified::length::FontBaseSize,
-    ) -> FontMetricsQueryResult {
+        _orientation: FontMetricsOrientation,
+    ) -> FontMetrics {
         Default::default()
     }
 
