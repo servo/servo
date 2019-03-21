@@ -135,9 +135,6 @@ pub struct Opts {
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: Cow<'static, str>,
 
-    /// Whether we're running in multiprocess mode.
-    pub multiprocess: bool,
-
     /// Whether we're running inside the sandbox.
     pub sandbox: bool,
 
@@ -575,7 +572,6 @@ pub fn default_opts() -> Opts {
         webdriver_port: None,
         initial_window_size: TypedSize2D::new(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
-        multiprocess: false,
         random_pipeline_closure_probability: None,
         random_pipeline_closure_seed: None,
         sandbox: false,
@@ -1009,7 +1005,6 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> getopts::Re
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
         user_agent: user_agent,
-        multiprocess: opt_match.opt_present("M"),
         sandbox: opt_match.opt_present("S"),
         random_pipeline_closure_probability: random_pipeline_closure_probability,
         random_pipeline_closure_seed: random_pipeline_closure_seed,
@@ -1087,7 +1082,6 @@ lazy_static! {
 }
 
 pub fn set_options(opts: Opts) {
-    MULTIPROCESS.store(opts.multiprocess, Ordering::SeqCst);
     *OPTIONS.write().unwrap() = opts;
 }
 
