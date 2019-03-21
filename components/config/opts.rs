@@ -7,7 +7,7 @@
 
 use crate::prefs::{self, PrefValue, PREFS};
 use euclid::TypedSize2D;
-use getopts::Options;
+use getopts::{Options};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -485,12 +485,15 @@ pub enum OutputOptions {
     Stdout(f64),
 }
 
-fn args_fail(msg: &str) -> ! {
+pub fn args_fail(msg: &str) -> ! {
     writeln!(io::stderr(), "{}", msg).unwrap();
     process::exit(1)
 }
 
 static MULTIPROCESS: AtomicBool = AtomicBool::new(false);
+
+#[inline]
+pub fn set_multiprocess(b: bool, ord: Ordering) { MULTIPROCESS.store(b, ord) }
 
 #[inline]
 pub fn multiprocess() -> bool {
@@ -615,6 +618,15 @@ fn create_global_opts(mut opts: getopts::Options) -> Options {
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
+    // one thing at a time
+    opts.optflag("z", "headless", "Headless mode");
+    opts.optmulti(
+        "Z",
+        "debug",
+        "A comma-separated string of debug options. Pass help to show available options.",
+        "",
+    );
+
     opts.optflagopt(
         "p",
         "profile",
@@ -756,7 +768,7 @@ fn create_global_opts(mut opts: getopts::Options) -> Options {
     opts
 }
 
-pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> ArgumentParsingResult {
+pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> getopts::Result {
     let (app_name, args) = args.split_first().unwrap();
 
     let opts = create_global_opts(opts);
@@ -770,13 +782,6 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> ArgumentPar
         print_usage(app_name, &opts);
         process::exit(0);
     };
-
-    // If this is the content process, we'll receive the real options over IPC. So just fill in
-    // some dummy options for now.
-    if let Some(content_process) = opt_match.opt_str("content-process") {
-        MULTIPROCESS.store(true, Ordering::SeqCst);
-        return ArgumentParsingResult::ContentProcess(content_process);
-    }
 
     let mut debug_options = DebugOptions::default();
 
@@ -941,10 +946,6 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> ArgumentPar
         None => TypedSize2D::new(1024, 740),
     };
 
-    if opt_match.opt_present("M") {
-        MULTIPROCESS.store(true, Ordering::SeqCst)
-    }
-
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "ios" => default_user_agent_string(UserAgent::iOS).into(),
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android).into(),
@@ -982,7 +983,7 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> ArgumentPar
 
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 
-    let opts = Opts {
+    let mut opts = Opts {
         is_running_problem_test: is_running_problem_test,
         url: url_opt,
         tile_size: tile_size,
@@ -1069,7 +1070,8 @@ pub fn from_cmdline_args(opts: getopts::Options, args: &[String]) -> ArgumentPar
         PREFS.set("layout.threads", PrefValue::Number(layout_threads as f64));
     }
 
-    ArgumentParsingResult::ChromeProcess
+    // ArgumentParsingResult::ChromeProcess
+    Ok(opt_match)
 }
 
 pub enum ArgumentParsingResult {
