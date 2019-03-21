@@ -77,7 +77,7 @@ where
 
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {
-    type FFIType = crate::gecko_bindings::bindings::RawServoAuthorStyles;
+    type FFIType = crate::gecko_bindings::structs::RawServoAuthorStyles;
 }
 #[cfg(feature = "gecko")]
 unsafe impl HasSimpleFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {}

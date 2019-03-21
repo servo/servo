@@ -6,8 +6,8 @@
 
 use crate::context::QuirksMode;
 use crate::dom::TElement;
-use crate::gecko_bindings::bindings::{self, RawServoStyleSet};
-use crate::gecko_bindings::structs::{self, ServoStyleSetSizes};
+use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs::{self, RawServoStyleSet, ServoStyleSetSizes};
 use crate::gecko_bindings::structs::{StyleSheet as DomStyleSheet, StyleSheetInfo};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};

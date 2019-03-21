@@ -51,8 +51,8 @@ impl GeckoRestyleDamage {
         let mut reset_only = false;
         let hint = unsafe {
             bindings::Gecko_CalcStyleDifference(
-                old_style,
-                new_style,
+                old_style.as_gecko_computed_style(),
+                new_style.as_gecko_computed_style(),
                 &mut any_style_changed,
                 &mut reset_only,
             )

@@ -12,8 +12,7 @@
 
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
-use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue};
+use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Components};
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::stylesheets::{Origin, RulesMutateError};
@@ -986,8 +985,8 @@ pub unsafe fn string_from_chars_pointer(p: *const u16) -> String {
     String::from_utf16_lossy(char_vec)
 }
 
-impl<'a> From<&'a RawGeckoGfxMatrix4x4> for Matrix3D {
-    fn from(m: &'a RawGeckoGfxMatrix4x4) -> Matrix3D {
+impl<'a> From<&'a Matrix4x4Components> for Matrix3D {
+    fn from(m: &'a Matrix4x4Components) -> Matrix3D {
         Matrix3D {
             m11: m[0],
             m12: m[1],
@@ -1009,12 +1008,13 @@ impl<'a> From<&'a RawGeckoGfxMatrix4x4> for Matrix3D {
     }
 }
 
-impl From<Matrix3D> for RawGeckoGfxMatrix4x4 {
-    fn from(matrix: Matrix3D) -> RawGeckoGfxMatrix4x4 {
+impl From<Matrix3D> for Matrix4x4Components {
+    fn from(matrix: Matrix3D) -> Self {
         [
-            matrix.m11, matrix.m12, matrix.m13, matrix.m14, matrix.m21, matrix.m22, matrix.m23,
-            matrix.m24, matrix.m31, matrix.m32, matrix.m33, matrix.m34, matrix.m41, matrix.m42,
-            matrix.m43, matrix.m44,
+            matrix.m11, matrix.m12, matrix.m13, matrix.m14, matrix.m21,
+            matrix.m22, matrix.m23, matrix.m24, matrix.m31, matrix.m32,
+            matrix.m33, matrix.m34, matrix.m41, matrix.m42, matrix.m43,
+            matrix.m44,
         ]
     }
 }
