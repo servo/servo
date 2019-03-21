@@ -173,6 +173,14 @@ impl VRDisplay {
             VRDisplayBinding::Wrap,
         )
     }
+
+    pub fn left_eye_params_offset(&self) -> [f32; 3] {
+        self.left_eye_params.get().offset_array()
+    }
+
+    pub fn right_eye_params_offset(&self) -> [f32; 3] {
+        self.right_eye_params.get().offset_array()
+    }
 }
 
 impl Drop for VRDisplay {

@@ -61,6 +61,10 @@ impl VREyeParameters {
 
         eye_parameters
     }
+
+    pub fn offset_array(&self) -> [f32; 3] {
+        self.parameters.borrow().offset
+    }
 }
 
 impl VREyeParametersMethods for VREyeParameters {
