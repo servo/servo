@@ -46,8 +46,7 @@ def install_trusty_deps(force):
 
 
 def check_gstreamer_lib():
-    return subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
-                           stdout=PIPE, stderr=PIPE) == 0
+    return subprocess.check_output('pkg-config --modversion gstreamer-1.0') >= 1.12
 
 
 def run_as_root(command, force=False):
