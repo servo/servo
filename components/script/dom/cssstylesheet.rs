@@ -75,7 +75,7 @@ impl CSSStyleSheet {
         self.style_stylesheet.disabled()
     }
 
-    pub fn get_owner(&self) -> &Element{
+    pub fn get_owner(&self) -> &Element {
         &*self.owner
     }
 
