@@ -7,7 +7,7 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
-use crate::font_metrics::FontMetricsQueryResult;
+use crate::font_metrics::FontMetrics;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::values::computed::{self, CSSPixelLength, Context};
@@ -133,7 +133,7 @@ impl FontRelativeLength {
         fn query_font_metrics(
             context: &Context,
             base_size: FontBaseSize,
-        ) -> FontMetricsQueryResult {
+        ) -> FontMetrics {
             context.font_metrics_provider.query(context, base_size)
         }
 
@@ -160,16 +160,16 @@ impl FontRelativeLength {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
                 context.builder.add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
-                let reference_size = match query_font_metrics(context, base_size) {
-                    FontMetricsQueryResult::Available(metrics) => metrics.x_height,
+                let metrics = query_font_metrics(context, base_size);
+                let reference_size = metrics.x_height.unwrap_or_else(|| {
                     // https://drafts.csswg.org/css-values/#ex
                     //
                     //     In the cases where it is impossible or impractical to
                     //     determine the x-height, a value of 0.5em must be
                     //     assumed.
                     //
-                    FontMetricsQueryResult::NotAvailable => reference_font_size.scale_by(0.5),
-                };
+                    reference_font_size.scale_by(0.5)
+                });
                 (reference_size, length)
             },
             FontRelativeLength::Ch(length) => {
@@ -177,8 +177,8 @@ impl FontRelativeLength {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
                 context.builder.add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
-                let reference_size = match query_font_metrics(context, base_size) {
-                    FontMetricsQueryResult::Available(metrics) => metrics.zero_advance_measure,
+                let metrics = query_font_metrics(context, base_size);
+                let reference_size = metrics.zero_advance_measure.unwrap_or_else(|| {
                     // https://drafts.csswg.org/css-values/#ch
                     //
                     //     In the cases where it is impossible or impractical to
@@ -189,14 +189,12 @@ impl FontRelativeLength {
                     //     writing-mode is vertical-rl or vertical-lr and
                     //     text-orientation is upright).
                     //
-                    FontMetricsQueryResult::NotAvailable => {
-                        if context.style().writing_mode.is_vertical() {
-                            reference_font_size
-                        } else {
-                            reference_font_size.scale_by(0.5)
-                        }
-                    },
-                };
+                    if context.style().writing_mode.is_vertical() {
+                        reference_font_size
+                    } else {
+                        reference_font_size.scale_by(0.5)
+                    }
+                });
                 (reference_size, length)
             },
             FontRelativeLength::Rem(length) => {
