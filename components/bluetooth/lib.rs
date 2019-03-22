@@ -20,7 +20,6 @@ use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacte
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use servo_config::opts;
 use servo_config::pref;
 use servo_rand::{self, Rng};
 use std::borrow::ToOwned;
@@ -381,7 +380,7 @@ impl BluetoothManager {
         devices: Vec<BluetoothDevice>,
         adapter: &BluetoothAdapter,
     ) -> Option<String> {
-        if is_mock_adapter(adapter) || opts::get().headless {
+        if is_mock_adapter(adapter) {
             for device in &devices {
                 if let Ok(address) = device.get_address() {
                     return Some(address);
