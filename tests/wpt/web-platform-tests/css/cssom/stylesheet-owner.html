@@ -1,10 +1,10 @@
 <!doctype html>
 <head>
-	<meta charset="utf-8">
-	<title>insertrule @import test</title>
-	<link rel="match" href="stylesheet-owner-ref.html">
-	<link rel="stylesheet" href="/css/general.css">
+  <meta charset="utf-8">
+  <title>insertrule @import test</title>
+  <link rel="match" href="stylesheet-owner-ref.html">
+  <style><link rel="stylesheet" ></style>
 </head>
 <body>
-	<script>document.styleSheets[0].insertRule('@import url("/css/black.css");', 0);</script>
+  <script>document.styleSheets[0].insertRule("@import url(\"support/black.css\");");</script>
 </body>
