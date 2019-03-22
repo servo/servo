@@ -7,6 +7,8 @@
 #[macro_use]
 extern crate crossbeam_channel;
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate log;
 
 pub mod background_hang_monitor;

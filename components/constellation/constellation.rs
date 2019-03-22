@@ -124,7 +124,7 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
-use msg::constellation_msg::{BackgroundHangMonitorRegister, HangAlert};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert};
 use msg::constellation_msg::{
     BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
 };
@@ -210,11 +210,11 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    background_hang_monitor_sender: IpcSender<HangAlert>,
+    background_hang_monitor_sender: IpcSender<HangMonitorAlert>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
-    background_hang_monitor_receiver: Receiver<Result<HangAlert, IpcError>>,
+    background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -942,7 +942,7 @@ where
         #[derive(Debug)]
         enum Request {
             Script((PipelineId, FromScriptMsg)),
-            BackgroundHangMonitor(HangAlert),
+            BackgroundHangMonitor(HangMonitorAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
@@ -1008,10 +1008,17 @@ where
         }
     }
 
-    fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
-        // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
-        // via the embedder?
-        warn!("Component hang alert: {:?}", message);
+    fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
+        match message {
+            HangMonitorAlert::Profile(bytes) => self
+                .embedder_proxy
+                .send((None, EmbedderMsg::ReportProfile(bytes))),
+            HangMonitorAlert::Hang(hang) => {
+                // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
+                // via the embedder?
+                warn!("Component hang alert: {:?}", hang);
+            },
+        }
     }
 
     fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {

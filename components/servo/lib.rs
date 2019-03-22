@@ -406,6 +406,10 @@ where
                 }
             },
 
+            WindowEvent::ToggleSamplingProfiler(rate) => {
+                HangMonitorRegister::toggle(rate);
+            },
+
             WindowEvent::ToggleWebRenderDebug(option) => {
                 self.compositor.toggle_webrender_debug(option);
             },
