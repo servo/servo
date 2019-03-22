@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+// These tests verify that a Detector's detect() works on an ImageBitmap.
+const imageDataTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        mockTestName: "FaceDetectionTest",
+        detectionResultTest: FaceDetectorDetectionResultTest,
+        name: "Face - detect(ImageData)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        mockTestName: "BarcodeDetectionTest",
+        detectionResultTest: BarcodeDetectorDetectionResultTest,
+        name: "Barcode - detect(ImageData)"
+      }
+    ];
+
+for (let imageDataTest of imageDataTests) {
+  detection_test(imageDataTest.mockTestName, async (t, detectionTest) => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = "/images/green-16x16.png";
+    await imgWatcher.wait_for("load");
+    const canvas = document.createElement("canvas");
+    canvas.getContext("2d").drawImage(img, 0, 0);
+
+    const detector = imageDataTest.createDetector();
+    const detectionResult = await detector.detect(canvas.getContext("2d")
+        .getImageData(0, 0, canvas.width, canvas.height));
+    imageDataTest.detectionResultTest(detectionResult, detectionTest);
+  }, imageDataTest.name);
+}
+
+function FaceDetectorDetectionResultTest(detectionResult, mockTest) {
+  const imageReceivedByMock = mockTest.MockFaceDetectionProvider().getFrameData();
+  assert_equals(imageReceivedByMock.byteLength, 180000,"Image length");
+  const GREEN_PIXEL = 0xFF00FF00;
+  assert_equals(imageReceivedByMock[0], GREEN_PIXEL, "Pixel color");
+  assert_equals(detectionResult.length, 3, "Number of faces");
+}
+
+function BarcodeDetectorDetectionResultTest(detectionResult, mockTest) {
+  assert_equals(detectionResult.length, 2, "Number of barcodes");
+  assert_equals(detectionResult[0].rawValue, "cats", "barcode 1");
+  assert_equals(detectionResult[0].format, "qr_code", "barcode 1 format");
+  assert_equals(detectionResult[1].rawValue, "dogs", "barcode 2");
+  assert_equals(detectionResult[1].format, "code_128", "barcode 2 format");
+}
+
+</script>

@@ -34,15 +34,15 @@ def display_branch_point():
 
 def branch_point():
     git = get_git_cmd(wpt_root)
-    if (os.environ.get("TRAVIS_PULL_REQUEST", "false") == "false" and
-        os.environ.get("TRAVIS_BRANCH") == "master"):
+    if (os.environ.get("GITHUB_PULL_REQUEST", "false") == "false" and
+        os.environ.get("GITHUB_BRANCH") == "master"):
         # For builds on the master branch just return the HEAD commit
         return git("rev-parse", "HEAD")
-    elif os.environ.get("TRAVIS_PULL_REQUEST", "false") != "false":
-        # This is a PR, so the base branch is in TRAVIS_BRANCH
-        travis_branch = os.environ.get("TRAVIS_BRANCH")
-        assert travis_branch, "TRAVIS_BRANCH environment variable is defined"
-        branch_point = git("merge-base", "HEAD", travis_branch)
+    elif os.environ.get("GITHUB_PULL_REQUEST", "false") != "false":
+        # This is a PR, so the base branch is in GITHUB_BRANCH
+        base_branch = os.environ.get("GITHUB_BRANCH")
+        assert base_branch, "GITHUB_BRANCH environment variable is defined"
+        branch_point = git("merge-base", "HEAD", base_branch)
     else:
         # Otherwise we aren't on a PR, so we try to find commits that are only in the
         # current branch c.f.

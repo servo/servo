@@ -12,7 +12,7 @@ jobs:
   pool:
     vmImage: 'ubuntu-16.04'
   steps:
-  - script: curl -s -S -d "artifact=${{ parameters.artifactName }}" -X POST https://wpt.fyi/api/checks/azure/$(Build.BuildId)
+  - script: curl -f -s -S -d "artifact=${{ parameters.artifactName }}" -X POST https://wpt.fyi/api/checks/azure/$(Build.BuildId)
     displayName: 'Invoke wpt.fyi hook'
-  - script: curl -s -S -d "artifact=${{ parameters.artifactName }}" -X POST https://staging.wpt.fyi/api/checks/azure/$(Build.BuildId)
+  - script: curl -f -s -S -d "artifact=${{ parameters.artifactName }}" -X POST https://staging.wpt.fyi/api/checks/azure/$(Build.BuildId)
     displayName: 'Invoke staging.wpt.fyi hook'

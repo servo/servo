@@ -15,25 +15,25 @@ const cross_origin_src = sub + same_origin_src;
 const cross_origin_worker_frame_src = sub + same_origin_worker_frame_src;
 
 async_test(t => {
-  test_feature_availability('idle.query()', t, same_origin_src,
+  test_feature_availability('new IdleDetector().start()', t, same_origin_src,
       expect_feature_available_default, 'idle-detection');
 }, 'Attribute allow="idle-detection" in top-level frame can be enabled ' +
    'in same-origin iframe using Feature policy "idle-detection".');
 
 async_test(t => {
-  test_feature_availability('idle.query()', t, same_origin_worker_frame_src,
+  test_feature_availability('new IdleDetector().start()', t, same_origin_worker_frame_src,
       expect_feature_available_default, 'idle-detection');
 }, 'Attribute allow="idle-detection" in top-level frame can be enabled ' +
    'in a worker in same-origin iframe using Feature policy "idle-detection".');
 
 async_test(t => {
-  test_feature_availability('idle.query()', t, cross_origin_src,
+  test_feature_availability('new IdleDetector().start()', t, cross_origin_src,
       expect_feature_available_default, 'idle-detection');
 }, 'Attribute allow="idle-detection" in top-level frame can be enabled ' +
    'in cross-origin iframe using Feature policy "idle-detection".');
 
 async_test(t => {
-  test_feature_availability('idle.query()', t, cross_origin_worker_frame_src,
+  test_feature_availability('new IdleDetector().start()', t, cross_origin_worker_frame_src,
       expect_feature_available_default, 'idle-detection');
 }, 'Attribute allow="idle-detection" in top-level frame can be enabled ' +
    'in a worker in cross-origin iframe using Feature policy "idle-detection".');

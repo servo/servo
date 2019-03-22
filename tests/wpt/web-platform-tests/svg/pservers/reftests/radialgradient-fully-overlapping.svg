@@ -3,14 +3,14 @@
   <metadata>
     <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#RadialGradientNotes"/>
     <h:link rel="match" href="reference/green-100x100.svg"/>
-    <h:meta name="assert" content="If the start circle fully overlaps with the end circle, no gradient is drawn."/>
+    <h:meta name="assert" content="If the start circle fully overlaps with the end circle, the gradient should be drawn."/>
   </metadata>
 
-  <rect width="100" height="100" fill="green"/>
+  <rect width="100" height="100" fill="red"/>
 
   <radialGradient id="fully_overlapping" r="100" fr="100">
-    <stop stop-color="red"/>
-    <stop stop-color="red" offset="1"/>
+    <stop stop-color="green"/>
+    <stop stop-color="green" offset="1"/>
   </radialGradient>
   <rect width="100" height="100" fill="url(#fully_overlapping) orange"/>
 </svg>

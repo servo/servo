@@ -9,9 +9,14 @@ if (typeof postMessage === 'function') {
   workerType = 'dedicated';
 }
 
-promise_test(() => navigator.idle.query().then(
-        () => assert_unreached('expected promise to reject with SecurityError'),
-        error => assert_equals(error.name, 'SecurityError')),
-    `Inherited ${header} disallows ${workerType} workers.`);
+promise_test(async () => {
+  try {
+    await new IdleDetector().start();
+    assert_unreached('expected start() to throw with SecurityError');
+  } catch (error) {
+    assert_equals(error.name, 'SecurityError');
+  }
+},
+`Inherited ${header} disallows ${workerType} workers.`);
 
 done();

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  Payment Method Basic Card: apply the modifiers
+</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/payment-method-basic-card/#applying-the-modifiers"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  setup({ explicit_done: true, explicit_timeout: true });
+  const basicCard = [{ supportedMethods: "basic-card" }];
+  const defaultDetails = {
+    total: {
+      label: "FAIL - SHOWING DEFAULT!",
+      amount: {
+        currency: "USD",
+        value: "0.0",
+      },
+    },
+  };
+
+  const failModifier = {
+    supportedMethods: "basic-card",
+    total: {
+      label: "FAIL",
+      amount: { currency: "USD", value: "test" },
+    },
+    additionalDisplayItems: [
+      {
+        label: "FAIL - ADDITIONAL DISPLAY ITEM",
+        amount: { currency: "USD", value: "54321" },
+      },
+    ],
+  };
+
+  const notBasicCardModifier = {
+    supportedMethods: "this-doesnt-apply",
+    total: {
+      label: "FAIL - this-doesnt-apply",
+      amount: { currency: "USD", value: "54321" },
+    },
+  };
+
+  const modifier = {
+    supportedMethods: "basic-card",
+    total: {
+      label: "PASS",
+      amount: { currency: "USD", value: "12345" },
+    },
+    additionalDisplayItems: [
+      {
+        label: "PASS - ADDITIONAL DISPLAY ITEM",
+        amount: { currency: "USD", value: "12345" },
+      },
+    ],
+  };
+
+  function defaultModifierApplies(testableAssertion) {
+    promise_test(async t => {
+      const visaModifier = Object.assign({}, modifier, {
+        data: { supportedNetworks: ["visa"] },
+      });
+      visaModifier.total.label = "PASS - VISA MODIFIED";
+      const details = Object.assign({}, defaultDetails, {
+        modifiers: [visaModifier],
+      });
+      const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
+      await promise_rejects(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+
+  function modifierWithNoDataAppliesToAll(testableAssertion) {
+    promise_test(async t => {
+      const details = Object.assign({}, defaultDetails, {
+        modifiers: [modifier],
+      });
+      const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
+      await promise_rejects(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+
+  function modifierWithObjectAppliesToAll(testableAssertion) {
+    promise_test(async t => {
+      const modifiers = [Object.assign({}, modifier, { data: {} })];
+      const details = Object.assign({}, defaultDetails, { modifiers });
+      const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
+      await promise_rejects(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+
+  function modifierWithEmptySupportedNetworksAppliesToAll(testableAssertion) {
+    promise_test(async t => {
+      const modifiers = [
+        Object.assign({}, modifier, { data: { supportedNetworks: [] } }),
+      ];
+      const details = Object.assign({}, defaultDetails, { modifiers });
+      const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
+      await promise_rejects(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+
+  function modifierLastOneWins(testableAssertion) {
+    promise_test(async t => {
+      const modifiers = [failModifier, modifier, notBasicCardModifier];
+      const details = Object.assign({}, defaultDetails, { modifiers });
+      const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
+      await promise_rejects(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+</script>
+<h1>Manual tests</h1>
+<p>
+  <strong>Note:</strong> this test requires that there is at at least one
+  registered "visa" card. If the payment-sheet total's
+  label displays "PASS", and the value US$12345, then a test has passed.
+</p>
+<ol>
+  <li>
+    <button onclick="defaultModifierApplies(this.textContent.trim())">
+      A modifier is applied by default to a card.
+    </button>
+  </li>
+  <li>
+    <button onclick="modifierWithNoDataAppliesToAll(this.textContent.trim())">
+      Missing PaymentDetailsModifier.data is same as passing default
+      BasicCardRequest.
+    </button>
+  </li>
+  <li>
+    <button onclick="modifierWithNoDataAppliesToAll(this.textContent.trim())">
+      PaymentDetailsModifier.data with empty object is same as passing default
+      BasicCardRequest.
+    </button>
+  </li>
+  <li>
+    <button
+      onclick="modifierWithEmptySupportedNetworksAppliesToAll(this.textContent.trim())"
+    >
+      A modified with a BasicCardRequest whose supportedNetworks is an empty
+      array applies to all.
+    </button>
+  </li>
+  <li>
+    <button onclick="modifierLastOneWins(this.textContent.trim())">
+      Given a set of modifiers, the last applicable "basic-card" wins.
+    </button>
+  </li>
+  <li><button onclick="done()">Done!</button></li>
+</ol>

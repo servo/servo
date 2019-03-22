@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+export GITHUB_PULL_REQUEST=$TRAVIS_PULL_REQUEST
+export GITHUB_BRANCH=$TRAVIS_BRANCH
+
 if [[ $RUN_JOB -eq 1 ]] || ./wpt test-jobs --includes $JOB; then
     export RUN_JOB=1
     git submodule update --init --recursive 1>&2

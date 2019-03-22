@@ -60,7 +60,7 @@ promise_test(async (t)=> {
     const offer = await pc1.createOffer();
 
     assert_true(offer.sdp.includes("a=sendonly"), "The audio m-section should be sendonly");
-}, "A stopped sendonly transceiver should generate an inactive m-section in the offer");
+}, "A stopped sendonly transceiver should generate a sendonly m-section in the offer");
 
 promise_test(async (t)=> {
     const pc1 = new RTCPeerConnection();

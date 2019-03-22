@@ -220,7 +220,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
       const badDetails = Object.assign({}, validDetails, { displayItems: invalidPaymentItems });
       testBadUpdate(this, badDetails, new RangeError());
     ">
-      Updating with a displayItem with an invalid currency results in TypeError.
+      Updating with a displayItem with an invalid currency results in RangeError.
     </button>
   </li>
   <li>

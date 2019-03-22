@@ -8,8 +8,7 @@ from datetime import timedelta
 
 import config
 import wpttest
-from formatters import wptreport, wptscreenshot
-
+from formatters import chromium, wptreport, wptscreenshot
 
 def abs_path(path):
     return os.path.abspath(os.path.expanduser(path))
@@ -326,6 +325,7 @@ scheme host and port.""")
                         help="List of URLs for tests to run, or paths including tests to run. "
                              "(equivalent to --include)")
 
+    commandline.log_formatters["chromium"] = (chromium.ChromiumFormatter, "Chromium Layout Tests format")
     commandline.log_formatters["wptreport"] = (wptreport.WptreportFormatter, "wptreport format")
     commandline.log_formatters["wptscreenshot"] = (wptscreenshot.WptscreenshotFormatter, "wpt.fyi screenshots")
 

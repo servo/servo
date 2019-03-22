@@ -568,5 +568,11 @@ test(() => {
   assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
 }, 'Adopting a shadow host will empty adoptedStyleSheets if adopting to a different document');
 
-</script>
+test(() => {
+  const host = document.createElement("div");
+  const root = host.attachShadow({mode: "open"});
+  root.adoptedStyleSheets = [new CSSStyleSheet()];
+  document.body.offsetTop;
+}, 'Forcing a style update after adding an adopted stylesheet on a disconnected shadow root should not crash.');
 
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+// This test verifies *Detector.detect() returns an empty list when fed with
+// an empty HTMLImageElement.
+const emptyInputTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        name: "Face - detect(empty)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        name: "Barcode - detect(empty)"
+      }
+    ];
+
+for (let emptyInputTest of emptyInputTests) {
+  promise_test(async t =>{
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = "";
+    await imgWatcher.wait_for("error");
+
+    const detector = emptyInputTest.createDetector();
+    const detectionResult = await detector.detect(img);
+    assert_equals(detectionResult.length, 0);
+  }, emptyInputTest.name);
+}
+
+</script>

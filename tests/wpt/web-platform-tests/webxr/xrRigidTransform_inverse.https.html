@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+
+let testName = "XRRigidTransform inverse works";
+let fakeDeviceInitParams = { supportsImmersive: true };
+let requestSessionOptions =  { mode: 'immersive-vr' };
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve, reject) => {
+
+  function assert_point_approx_equals(a, b) {
+    assert_approx_equals(a.x, b.x, FLOAT_EPSILON);
+    assert_approx_equals(a.y, b.y, FLOAT_EPSILON);
+    assert_approx_equals(a.z, b.z, FLOAT_EPSILON);
+    assert_approx_equals(a.w, b.w, FLOAT_EPSILON);
+  };
+
+  function assert_transform_approx_equals(a, b) {
+    assert_point_approx_equals(a.position, b.position);
+    assert_point_approx_equals(a.orientation, b.orientation);
+  };
+
+  // An identity transform should be equal to it's inverse.
+  let identity_transform = new XRRigidTransform();
+  t.step(() => {
+    assert_transform_approx_equals(identity_transform, identity_transform.inverse());
+  });
+
+  // Inversed transforms should yield the expected results
+  let transform = new XRRigidTransform(
+      { x: 1.0, y: 2.0, z: 3.0 },
+      { x: 0.0, y: 0.0, z: 0.0, w: 1.0 });
+  let inverse_transform = transform.inverse();
+  let expected_inverse = new XRRigidTransform(
+      { x: -1.0, y: -2.0, z: -3.0 },
+      { x: 0.0, y: 0.0, z: 0.0, w: 1.0 });
+  t.step(() => {
+    assert_transform_approx_equals(inverse_transform, expected_inverse);
+  });
+
+  transform = new XRRigidTransform(
+      { x: 0.0, y: 0.0, z: 0.0 },
+      { x: 1.0, y: 0.0, z: 0.0, w: 1.0 });
+  inverse_transform = transform.inverse();
+  expected_inverse = new XRRigidTransform(
+      { x: 0.0, y: 0.0, z: 0.0 },
+      { x: -1.0, y: 0.0, z: 0.0, w: 1.0 });
+  t.step(() => {
+    assert_transform_approx_equals(inverse_transform, expected_inverse);
+  });
+
+  transform = new XRRigidTransform(
+      { x: 1.0, y: 2.0, z: 3.0 },
+      { x: 0.0, y: 1.0, z: 0.0, w: 1.0 });
+  inverse_transform = transform.inverse();
+  expected_inverse = new XRRigidTransform(
+      { x: 3.0, y: -2.0, z: -1.0 },
+      { x: 0.0, y: -1.0, z: 0.0, w: 1.0 });
+  t.step(() => {
+    assert_transform_approx_equals(inverse_transform, expected_inverse);
+  });
+
+  // Transforms should be equal to the inverse of their inverse.
+  transform = new XRRigidTransform(
+      { x: 1.0, y: 2.0, z: 3.0 },
+      { x: 1.0, y: 2.0, z: 3.0, w: 4.0 });
+  inverse_transform = transform.inverse();
+  t.step(() => {
+    assert_transform_approx_equals(transform, inverse_transform.inverse());
+  });
+
+  transform = new XRRigidTransform(
+      { x: -9.0, y: 8.0, z: -7.0 },
+      { x: 6.0, y: -5.0, z: 4.0, w: 3.0 });
+  inverse_transform = transform.inverse();
+  t.step(() => {
+    assert_transform_approx_equals(transform, inverse_transform.inverse());
+  });
+
+  transform = new XRRigidTransform(
+      { x: -2.0, y: 1.0, z: -4.0 },
+      { x: 0.0, y: 1.0, z: 0.0, w: 1.0 });
+  inverse_transform = transform.inverse();
+  t.step(() => {
+    assert_transform_approx_equals(transform, inverse_transform.inverse());
+  });
+
+  transform = new XRRigidTransform(
+      { x: 2.0, y: -1.0, z: 4.0 },
+      { x: 1.0, y: 0.0, z: 0.0, w: 1.0 });
+  inverse_transform = transform.inverse();
+  t.step(() => {
+    assert_transform_approx_equals(transform, inverse_transform.inverse());
+  });
+
+  resolve();
+});
+
+xr_session_promise_test(testName, testFunction, fakeDeviceInitParams,
+  requestSessionOptions);
+
+</script>

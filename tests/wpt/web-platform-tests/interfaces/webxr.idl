@@ -25,7 +25,6 @@ enum XREnvironmentBlendMode {
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // Attributes
   readonly attribute XRSessionMode mode;
-  readonly attribute XRPresentationContext? outputContext;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
   readonly attribute XRRenderState renderState;
   readonly attribute XRSpace viewerSpace;
@@ -59,19 +58,20 @@ enum XRSessionMode {
 
 dictionary XRSessionCreationOptions {
   XRSessionMode mode = "inline";
-  XRPresentationContext? outputContext = null;
 };
 
 dictionary XRRenderStateInit {
   double depthNear;
   double depthFar;
   XRLayer? baseLayer;
+  XRPresentationContext? outputContext;
 };
 
 [SecureContext, Exposed=Window] interface XRRenderState {
   readonly attribute double depthNear;
   readonly attribute double depthFar;
   readonly attribute XRLayer? baseLayer;
+  readonly attribute XRPresentationContext? outputContext;
 };
 
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);

@@ -50,110 +50,98 @@ function setupAndRegisterTests() {
 }
 
 async function effect_with_fill_mode_forwards(t) {
-      const effect_with_fill_forwards = new KeyframeEffect(
-          target,
-          { opacity: [0.5, 0] },
-          { duration: 1000, fill: 'forwards' });
-      const animation = new WorkletAnimation(
-          'constant_time',
-          effect_with_fill_forwards);
-      animation.play();
+  const effect_with_fill_forwards = new KeyframeEffect(
+      target,
+      { opacity: [0.5, 0] },
+      { duration: 1000, fill: 'forwards' });
+  const animation = new WorkletAnimation(
+      'constant_time',
+      effect_with_fill_forwards);
+  animation.play();
+  await waitForNotNullLocalTime(animation);
 
-      await waitForAsyncAnimationFrames(1);
-      await waitForNextFrame();
+  assert_equals(getComputedStyle(target).opacity, '0');
 
-      assert_equals(getComputedStyle(target).opacity, '0');
-
-      animation.cancel();
+  animation.cancel();
 }
 
 async function effect_without_fill_mode_forwards(t) {
-      const effect_without_fill_forwards = new KeyframeEffect(
-          target,
-          { opacity: [0.5, 0] },
-          { duration: 1000 });
-      const animation = new WorkletAnimation(
-          'constant_time',
-          effect_without_fill_forwards);
-      animation.play();
+  const effect_without_fill_forwards = new KeyframeEffect(
+      target,
+      { opacity: [0.5, 0] },
+      { duration: 1000 });
+  const animation = new WorkletAnimation(
+      'constant_time',
+      effect_without_fill_forwards);
+  animation.play();
+  await waitForNotNullLocalTime(animation);
 
-      await waitForAsyncAnimationFrames(1);
-      await waitForNextFrame();
+  assert_equals(getComputedStyle(target).opacity, '1');
 
-      assert_equals(getComputedStyle(target).opacity, '1');
-
-      animation.cancel();
+  animation.cancel();
 }
 
 async function effect_without_fill_forwards_at_end(t) {
-      const effect_without_fill_forwards_at_end = new KeyframeEffect(
-          target,
-          { opacity: [0.5, 0] },
-          { duration: 2000 });
-      const animation = new WorkletAnimation(
-          'constant_time',
-          effect_without_fill_forwards_at_end);
-      animation.play();
+  const effect_without_fill_forwards_at_end = new KeyframeEffect(
+      target,
+      { opacity: [0.5, 0] },
+      { duration: 2000 });
+  const animation = new WorkletAnimation(
+      'constant_time',
+      effect_without_fill_forwards_at_end);
+  animation.play();
+  await waitForNotNullLocalTime(animation);
 
-      await waitForAsyncAnimationFrames(1);
-      await waitForNextFrame();
+  assert_equals(getComputedStyle(target).opacity, '1');
 
-      assert_equals(getComputedStyle(target).opacity, '1');
-
-      animation.cancel();
+  animation.cancel();
 }
 
 async function effect_with_fill_backwards(t) {
-      const effect_with_fill_backwards = new KeyframeEffect(
-          target,
-          { opacity: [0.5, 0] },
-          { duration: 1000, delay: 2001, fill: 'backwards' });
-      const animation = new WorkletAnimation(
-          'constant_time',
-          effect_with_fill_backwards);
-      animation.play();
+  const effect_with_fill_backwards = new KeyframeEffect(
+      target,
+      { opacity: [0.5, 0] },
+      { duration: 1000, delay: 2001, fill: 'backwards' });
+  const animation = new WorkletAnimation(
+      'constant_time',
+      effect_with_fill_backwards);
+  animation.play();
+  await waitForNotNullLocalTime(animation);
 
-      await waitForAsyncAnimationFrames(1);
-      await waitForNextFrame();
+  assert_equals(getComputedStyle(target).opacity, '0.5');
 
-      assert_equals(getComputedStyle(target).opacity, '0.5');
-
-      animation.cancel();
+  animation.cancel();
 }
 
 async function effect_without_fill_backwards(t) {
-      const effect_without_fill_backwards = new KeyframeEffect(
-          target,
-          { opacity: [0.5, 0] },
-          { duration: 1000, delay: 2001 });
-      const animation = new WorkletAnimation(
-          'constant_time',
-          effect_without_fill_backwards);
-      animation.play();
+  const effect_without_fill_backwards = new KeyframeEffect(
+      target,
+      { opacity: [0.5, 0] },
+      { duration: 1000, delay: 2001 });
+  const animation = new WorkletAnimation(
+      'constant_time',
+      effect_without_fill_backwards);
+  animation.play();
+  waitForNotNullLocalTime(animation);
 
-      await waitForAsyncAnimationFrames(1);
-      await waitForNextFrame();
+  assert_equals(getComputedStyle(target).opacity, '1');
 
-      assert_equals(getComputedStyle(target).opacity, '1');
-
-      animation.cancel();
+  animation.cancel();
 }
 
 async function effect_without_fill_backwards_at_start(t) {
-      const effect_without_fill_backwards_at_start = new KeyframeEffect(
-          target,
-          { opacity: [0.5, 0] },
-          { duration: 1000, delay: 2000 });
-      const animation = new WorkletAnimation(
-          'constant_time',
-          effect_without_fill_backwards_at_start);
-      animation.play();
+  const effect_without_fill_backwards_at_start = new KeyframeEffect(
+      target,
+      { opacity: [0.5, 0] },
+      { duration: 1000, delay: 2000 });
+  const animation = new WorkletAnimation(
+      'constant_time',
+      effect_without_fill_backwards_at_start);
+  animation.play();
+  await waitForNotNullLocalTime(animation);
 
-      await waitForAsyncAnimationFrames(1);
-      await waitForNextFrame();
+  assert_equals(getComputedStyle(target).opacity, '0.5');
 
-      assert_equals(getComputedStyle(target).opacity, '0.5');
-
-      animation.cancel();
+  animation.cancel();
 }
 </script>

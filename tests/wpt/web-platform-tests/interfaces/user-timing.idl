@@ -10,15 +10,15 @@ dictionary PerformanceMarkOptions {
 
 dictionary PerformanceMeasureOptions {
     any detail = null;
-    (DOMString or DOMHighResTimeStamp) startTime;
+    (DOMString or DOMHighResTimeStamp) start;
     DOMHighResTimeStamp duration;
-    (DOMString or DOMHighResTimeStamp) endTime;
+    (DOMString or DOMHighResTimeStamp) end;
 };
 
 partial interface Performance {
     PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions);
     void clearMarks(optional DOMString markName);
-    PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions, optional DOMString endMark);
+    PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions)? startOrMeasureOptions, optional DOMString endMark);
     void clearMeasures(optional DOMString measureName);
 };
 

@@ -48,11 +48,18 @@ async function waitForAnimationFrameWithCondition(condition) {
   do {
     await new Promise(window.requestAnimationFrame);
   } while (!condition())
-};
+}
 
 async function waitForDocumentTimelineAdvance() {
   const timeAtStart = document.timeline.currentTime;
   do {
     await new Promise(window.requestAnimationFrame);
   } while (timeAtStart === document.timeline.currentTime)
+}
+
+// Wait until animation's effect has a non-null localTime.
+async function waitForNotNullLocalTime(animation) {
+  await waitForAnimationFrameWithCondition(_ => {
+    return animation.effect.getComputedTiming().localTime !== null;
+  });
 }

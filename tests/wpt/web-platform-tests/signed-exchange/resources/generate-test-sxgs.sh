@@ -43,6 +43,37 @@ gen-signedexchange \
   -o sxg/sxg-location.sxg \
   -miRecordSize 100
 
+# A valid Signed Exchange for appcache test.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/appcache/resources/inner-url.html \
+  -status 200 \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o ../appcache/resources/sxg/sxg-location.sxg \
+  -miRecordSize 100
+
+# A valid Signed Exchange for appcache test
+# - appcache and the sxg inner resp both provide the content for the url
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/appcache/resources/appcached-url.html \
+  -status 200 \
+  -content ../appcache/resources/appcached-url-in-sxg.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o ../appcache/resources/sxg/sxg-appcached.sxg \
+  -miRecordSize 100
+
 # A valid Signed Exchange. The origin of certUrl is the "alt" origin where NEL
 # policy is installed in reporting tests.
 gen-signedexchange \

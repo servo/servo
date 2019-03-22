@@ -34,6 +34,7 @@
           // Attempting to call a method on the frame outside the callback that
           // originally provided it should cause it to throw an exception.
           assert_throws('InvalidStateError', () => staleFrame.getViewerPose(currentReferenceSpace));
+          assert_throws('InvalidStateError', () => staleFrame.getPose(testSession.viewerSpace, currentReferenceSpace));
         });
 
         // Test does not complete until the this function has executed.
