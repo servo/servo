@@ -75,6 +75,10 @@ impl CSSStyleSheet {
         self.style_stylesheet.disabled()
     }
 
+    pub fn get_owner(&self) -> &Element {
+        &*self.owner
+    }
+
     pub fn set_disabled(&self, disabled: bool) {
         if self.style_stylesheet.set_disabled(disabled) {
             self.global()
