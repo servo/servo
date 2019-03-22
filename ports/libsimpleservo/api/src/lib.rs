@@ -564,13 +564,15 @@ impl WindowMethods for ServoCallbacks {
     }
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let size = TypedSize2D::new(self.width.get() as i32, self.height.get() as i32);
+        let fb_size = TypedSize2D::new(self.width.get() as i32, self.height.get() as i32);
+        let pixel_size = TypedSize2D::new(self.width.get() as i32, self.height.get() as i32);
+        let viewport = webrender_api::DeviceIntRect::new(TypedPoint2D::zero(), pixel_size);
         EmbedderCoordinates {
-            viewport: webrender_api::DeviceIntRect::new(TypedPoint2D::zero(), size),
-            framebuffer: size,
-            window: (size, TypedPoint2D::new(0, 0)),
-            screen: size,
-            screen_avail: size,
+            viewport,
+            framebuffer: fb_size,
+            window: (pixel_size, TypedPoint2D::new(0, 0)),
+            screen: pixel_size,
+            screen_avail: pixel_size,
             hidpi_factor: TypedScale::new(self.density),
         }
     }

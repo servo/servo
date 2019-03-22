@@ -64,11 +64,6 @@ where
     }
 }
 
-pub fn descriptor_from_atom(ident: &Atom) -> FontDescriptor {
-    let fonts = FONT_ATOM_MAP.lock().unwrap();
-    fonts.get(ident).unwrap().clone()
-}
-
 pub fn font_from_atom(ident: &Atom) -> Font {
     let fonts = FONT_ATOM_MAP.lock().unwrap();
     FontCollection::system()

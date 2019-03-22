@@ -41,7 +41,10 @@ use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
+use webrender_api::{
+    self, DeviceIntPoint, DevicePoint, FramebufferIntRect, FramebufferIntSize, HitTestFlags,
+    HitTestResult,
+};
 use webrender_api::{LayoutVector2D, ScrollLocation};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
@@ -575,10 +578,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
 
-        self.webrender_api.set_window_parameters(
+        let flipped_viewport = {
+            let fb_height = self.embedder_coordinates.framebuffer.height;
+            let mut view = self.embedder_coordinates.viewport.clone();
+            view.origin.y = fb_height - view.origin.y - view.size.height;
+            FramebufferIntRect::from_untyped(&view.to_untyped())
+        };
+
+        self.webrender_api.set_document_view(
             self.webrender_document,
-            self.embedder_coordinates.framebuffer,
-            self.embedder_coordinates.viewport,
+            flipped_viewport,
             self.embedder_coordinates.hidpi_factor.get(),
         );
 
@@ -612,9 +621,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.update_zoom_transform();
         }
 
-        if self.embedder_coordinates.viewport == old_coords.viewport &&
-            self.embedder_coordinates.framebuffer == old_coords.framebuffer
-        {
+        if self.embedder_coordinates.viewport == old_coords.viewport {
             return;
         }
 
@@ -1203,11 +1210,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             || {
                 debug!("compositor: compositing");
 
+                let size = FramebufferIntSize::from_untyped(
+                    &self.embedder_coordinates.framebuffer.to_untyped(),
+                );
+
+                self.window.gl().clear_color(1.0, 1.0, 1.0, 0.0);
+                self.window.gl().clear(gleam::gl::COLOR_BUFFER_BIT);
+
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
-                self.webrender
-                    .render(self.embedder_coordinates.framebuffer)
-                    .ok();
+                self.webrender.render(size).ok();
             },
         );
 
