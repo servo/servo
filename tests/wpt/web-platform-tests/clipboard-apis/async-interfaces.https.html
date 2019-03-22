@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <title>Clipboard IDL test</title>
-<link rel="help" href="https://w3c.github.io/clipboard-apis/">
-<script src=/resources/testharness.js></script>
-<script src=/resources/testharnessreport.js></script>
-<script src=/resources/WebIDLParser.js></script>
-<script src=/resources/idlharness.js></script>
+<link rel='help' href='https://w3c.github.io/clipboard-apis/'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
 <script>
 'use strict';
 
@@ -31,9 +31,9 @@ function fetchText(url) {
 promise_test(() => {
   return Promise.all(
     [
-      "/interfaces/clipboard-apis.idl",
-      "/interfaces/dom.idl",
+      '/interfaces/clipboard-apis.idl',
+      '/interfaces/dom.idl',
     ].map(fetchText))
     .then(([idl, dom]) => doTest(idl, dom));
-}, "Test driver");
+}, 'Test driver');
 </script>

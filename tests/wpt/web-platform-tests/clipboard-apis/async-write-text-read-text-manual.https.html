@@ -10,11 +10,11 @@ async function readWriteTest(textInput) {
     const textOutput = await navigator.clipboard.readText();
 
     assert_equals(textOutput, textInput);
-  }, "Verify write and read clipboard given text: " + textInput);
+  }, 'Verify write and read clipboard given text: ' + textInput);
 }
 
-readWriteTest("Clipboard write text -> read text test");
-readWriteTest("non-Latin1 text encoding test データ");
+readWriteTest('Clipboard write text -> read text test');
+readWriteTest('non-Latin1 text encoding test データ');
 </script>
 <p>
   Note: This is a manual test because it writes/reads to the shared system

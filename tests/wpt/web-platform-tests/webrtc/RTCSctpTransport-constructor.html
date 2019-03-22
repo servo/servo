@@ -59,7 +59,7 @@
       assert_true(sctp.transport instanceof RTCDtlsTransport,
         'Expect sctp.transport to be instance of RTCDtlsTransport');
 
-      assert_true(typeof sctp.maxMessageSize, 'number',
+      assert_true(typeof sctp.maxMessageSize == 'number',
         'Expect sctp.maxMessageSize to be a number');
     });
   }, 'setRemoteDescription() with answer containing data media should initialize pc.sctp');
@@ -82,7 +82,7 @@
       assert_true(sctp.transport instanceof RTCDtlsTransport,
         'Expect sctp.transport to be instance of RTCDtlsTransport');
 
-      assert_true(typeof sctp.maxMessageSize, 'number',
+      assert_true(typeof sctp.maxMessageSize == 'number',
         'Expect sctp.maxMessageSize to be a number');
     });
   }, 'setLocalDescription() with answer containing data media should initialize pc.sctp');

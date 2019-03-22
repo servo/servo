@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<body>
+<img id="img" src="/images/green-16x16.png"/>
+</body>
+<script>
+
+// These tests verify that a Detector's detect() works on an HTMLImageElement.
+const imageElementTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        mockTestName: "FaceDetectionTest",
+        detectionResultTest: FaceDetectorDetectionResultTest,
+        name: "Face - detect(HTMLImageElement)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        mockTestName: "BarcodeDetectionTest",
+        detectionResultTest: BarcodeDetectorDetectionResultTest,
+        name: "Barcode - detect(HTMLImageElement)",
+      }
+    ];
+
+for (let imageElementTest of imageElementTests) {
+  detection_test(imageElementTest.mockTestName, async (t, detectionTest) => {
+    const img = document.getElementById("img");
+
+    const detector = imageElementTest.createDetector();
+    const detectionResult = await detector.detect(img);
+    imageElementTest.detectionResultTest(detectionResult, detectionTest);
+  }, imageElementTest.name);
+}
+
+function FaceDetectorDetectionResultTest(detectionResult, mockTest) {
+  const imageReceivedByMock =
+      mockTest.MockFaceDetectionProvider().getFrameData();
+  assert_equals(imageReceivedByMock.byteLength, 1024, "Image length");
+  const GREEN_PIXEL = 0xFF00FF00;
+  assert_equals(imageReceivedByMock[0], GREEN_PIXEL, "Pixel color");
+  assert_equals(detectionResult.length, 3, "Number of faces");
+  assert_equals(detectionResult[0].landmarks.length, 2, "Number of landmarks");
+  assert_object_equals(detectionResult[0].landmarks[0],
+                      {type : 'eye', locations : [{x : 4.0, y : 5.0}]},
+                      "landmark #1");
+  assert_equals(detectionResult[0].landmarks[1].locations.length, 8,
+                "Number of locations along eye");
+  assert_object_equals(detectionResult[1].landmarks[0],
+                      {type : 'nose', locations : [{x : 100.0, y : 50.0}]},
+                      "landmark #2");
+  assert_equals(detectionResult[1].landmarks[1].locations.length, 9,
+                "Number of locations along nose");
+}
+
+function BarcodeDetectorDetectionResultTest(detectionResult, mockTest) {
+  assert_equals(detectionResult.length, 2, "Number of barcodes");
+  assert_equals(detectionResult[0].rawValue, "cats", "barcode 1");
+  assert_equals(detectionResult[0].format, "qr_code", "barcode 1 format");
+  assert_equals(detectionResult[1].rawValue, "dogs", "barcode 2");
+  assert_equals(detectionResult[1].format, "code_128", "barcode 2 format");
+}
+
+</script>

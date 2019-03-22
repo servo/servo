@@ -5,7 +5,9 @@ SCRIPT_DIR=$(cd $(dirname "$0") && pwd -P)
 WPT_ROOT=$SCRIPT_DIR/../..
 cd $WPT_ROOT
 
-source tools/ci/lib.sh
+add_wpt_hosts() {
+    ./wpt make-hosts-file | sudo tee -a /etc/hosts
+}
 
 test_infrastructure() {
     local ARGS="";
@@ -21,13 +23,8 @@ main() {
     PRODUCTS=( "firefox" "chrome" )
     ./wpt manifest --rebuild -p ~/meta/MANIFEST.json
     for PRODUCT in "${PRODUCTS[@]}"; do
-        if [ "$PRODUCT" != "firefox" ]; then
-            # Firefox is expected to work using pref settings for DNS
-            # Don't adjust the hostnames in that case to ensure this keeps working
-            hosts_fixup
-        fi
         if [[ "$PRODUCT" == "chrome" ]]; then
-            install_chrome unstable
+            add_wpt_hosts
             test_infrastructure "--binary=$(which google-chrome-unstable)"
         else
             test_infrastructure

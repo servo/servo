@@ -32,6 +32,16 @@
 
     let testSession;
 
+    function checkView(view) {
+      assert_not_equals(view, null);
+      assert_not_equals(view.transform, null);
+
+      let inv_view_transform = view.transform.inverse();
+      assert_not_equals(inv_view_transform, null);
+      assert_not_equals(inv_view_transform.matrix, null);
+      assert_equals(inv_view_transform.matrix.length, 16);
+    }
+
     let testFunction = function(session, testDeviceController) {
       testSession = session;
       return session.requestReferenceSpace({ type: 'stationary', subtype: 'eye-level' })
@@ -49,11 +59,8 @@
 
             assert_not_equals(viewerPose.views, null);
             assert_equals(viewerPose.views.length, 2);
-
-            assert_not_equals(viewerPose.views[0].viewMatrix, null);
-            assert_equals(viewerPose.views[0].viewMatrix.length, 16);
-            assert_not_equals(viewerPose.views[1].viewMatrix, null);
-            assert_equals(viewerPose.views[1].viewMatrix.length, 16);
+            checkView(viewerPose.views[0]);
+            checkView(viewerPose.views[1]);
 
             // Test does not complete until the returned promise resolves.
             resolve();

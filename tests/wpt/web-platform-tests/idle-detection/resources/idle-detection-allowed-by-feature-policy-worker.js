@@ -8,7 +8,9 @@ if (typeof postMessage === 'function') {
   workerType = 'dedicated';
 }
 
-promise_test(() => navigator.idle.query(),
+promise_test(async () => {
+  await new IdleDetector().start()
+},
     `Inherited header feature policy allows ${workerType} workers.`)
 
 done();

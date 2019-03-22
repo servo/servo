@@ -20,7 +20,8 @@ enum RTCStatsType {
 "candidate-pair",
 "local-candidate",
 "remote-candidate",
-"certificate"
+"certificate",
+"stunserverconnection"
 };
 
 dictionary RTCRtpStreamStats : RTCStats {
@@ -28,11 +29,6 @@ dictionary RTCRtpStreamStats : RTCStats {
              DOMString kind;
              DOMString transportId;
              DOMString codecId;
-             unsigned long firCount;
-             unsigned long pliCount;
-             unsigned long nackCount;
-             unsigned long sliCount;
-             unsigned long long qpSum;
 };
 
 dictionary RTCCodecStats : RTCStats {
@@ -72,13 +68,19 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
              DOMString receiverId;
              DOMString remoteId;
              unsigned long framesDecoded;
+             unsigned long long qpSum;
              DOMHighResTimeStamp lastPacketReceivedTimestamp;
              double averageRtcpInterval;
              unsigned long fecPacketsReceived;
+             unsigned long fecPacketsDiscarded;
              unsigned long long bytesReceived;
              unsigned long packetsFailedDecryption;
              unsigned long packetsDuplicated;
              record<USVString, unsigned long> perDscpPacketsReceived;
+             unsigned long nackCount;
+             unsigned long firCount;
+             unsigned long pliCount;
+             unsigned long sliCount;
             };
 
 dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
@@ -102,11 +104,16 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMHighResTimeStamp lastPacketSentTimestamp;
              double targetBitrate;
              unsigned long framesEncoded;
+             unsigned long long qpSum;
              double totalEncodeTime;
              double averageRtcpInterval;
              RTCQualityLimitationReason qualityLimitationReason;
              record<DOMString, double> qualityLimitationDurations;
              record<USVString, unsigned long> perDscpPacketsSent;
+             unsigned long nackCount;
+             unsigned long firCount;
+             unsigned long pliCount;
+             unsigned long sliCount;
 };
 
 enum RTCQualityLimitationReason {
@@ -198,6 +205,7 @@ dictionary RTCAudioReceiverStats : RTCAudioHandlerStats {
              unsigned long long jitterBufferEmittedCount;
              unsigned long long totalSamplesReceived;
              unsigned long long concealedSamples;
+             unsigned long long silentConcealedSamples;
              unsigned long long concealmentEvents;
 };
 
@@ -298,6 +306,16 @@ dictionary RTCCertificateStats : RTCStats {
              DOMString issuerCertificateId;
 };
 
+dictionary RTCStunServerConnectionStats : RTCStats {
+             DOMString url;
+             long port;
+             DOMString protocol;
+             RTCNetworkType networkType;
+             unsigned long totalRequestsSent;
+             unsigned long totalResponsesReceived;
+             double totalRoundTripTime;
+  };
+
 partial dictionary RTCIceCandidateStats {
            boolean isRemote;
         };
@@ -311,4 +329,8 @@ partial dictionary RTCIceCandidatePairStats {
 partial dictionary RTCRtpStreamStats {
              DOMString mediaType;
              double averageRTCPInterval;
+};
+
+partial dictionary RTCInboundRtpStreamStats {
+          double fractionLost;
 };

@@ -41,7 +41,7 @@
   test(() => {
     assert_throws(new TypeError(), () => { new FormData(null); });
     assert_throws(new TypeError(), () => { new FormData("string"); });
-  }, "Constructors");
+  }, "Constructors should throw a type error");
 
   do_test("empty formdata", new FormData(), '\n');
   do_test("formdata with string", create_formdata(['key', 'value']), 'key=value,\n');

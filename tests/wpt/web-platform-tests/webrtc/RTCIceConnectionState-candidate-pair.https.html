@@ -19,7 +19,7 @@ promise_test(async t => {
   caller.addTrack(track, stream);
   exchangeIceCandidates(caller, callee);
   await doSignalingHandshake(caller, callee);
-  await listenToIceConnected(t, caller);
+  await listenToIceConnected(caller);
 
   const report = await caller.getStats();
   let succeededPairFound = false;

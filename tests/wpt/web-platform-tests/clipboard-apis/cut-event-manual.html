@@ -11,9 +11,9 @@ async_test(t => {
   document.oncut = t.step_func_done(event => {
     // Nothing can be asserted about the event target until
     // https://github.com/w3c/clipboard-apis/issues/70 is resolved.
-    // assert_equals(event.target, document.body, "event.target");
-    assert_true(event.isTrusted, "event.isTrusted");
-    assert_true(event.composed, "event.composed");
+    // assert_equals(event.target, document.body, 'event.target');
+    assert_true(event.isTrusted, 'event.isTrusted');
+    assert_true(event.composed, 'event.composed');
   });
 });
 </script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://wicg.github.io/shape-detection-api/#dom-barcodedetector-getsupportedformats">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+detection_test('BarcodeDetectionTest', async t => {
+  const result = await BarcodeDetector.getSupportedFormats();
+  assert_equals(result.length, 3, 'Number of supported formats');
+  assert_equals(result[0], 'aztec', 'format 1');
+  assert_equals(result[1], 'data_matrix', 'format 2');
+  assert_equals(result[2], 'qr_code', 'format 3');
+}, 'get supported barcode formats');
+
+</script>

@@ -59,9 +59,11 @@ partial dictionary MediaTrackSupportedConstraints {
 
   boolean brightness = true;
   boolean contrast = true;
+  boolean pan = true;
   boolean saturation = true;
   boolean sharpness = true;
   boolean focusDistance = true;
+  boolean tilt = true;
   boolean zoom = true;
   boolean torch = true;
 };
@@ -82,6 +84,8 @@ partial dictionary MediaTrackCapabilities {
   MediaSettingsRange   sharpness;
 
   MediaSettingsRange   focusDistance;
+  MediaSettingsRange   pan;
+  MediaSettingsRange   tilt;
   MediaSettingsRange   zoom;
 
   boolean              torch;
@@ -104,6 +108,8 @@ partial dictionary MediaTrackConstraintSet {
   ConstrainDouble    sharpness;
 
   ConstrainDouble    focusDistance;
+  ConstrainDouble    pan;
+  ConstrainDouble    tilt;
   ConstrainDouble    zoom;
 
   ConstrainBoolean   torch;
@@ -126,6 +132,8 @@ partial dictionary MediaTrackSettings {
   double            sharpness;
 
   double            focusDistance;
+  double            pan;
+  double            tilt;
   double            zoom;
 
   boolean           torch;

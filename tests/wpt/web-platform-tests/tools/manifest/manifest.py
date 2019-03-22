@@ -1,4 +1,5 @@
 import itertools
+import json
 import os
 from collections import defaultdict
 from six import iteritems, iterkeys, itervalues, string_types
@@ -10,11 +11,9 @@ from .log import get_logger
 from .utils import from_os_path, to_os_path
 
 try:
-    import ujson as json
-    JSON_LIBRARY = 'ujson'
+    import ujson as fast_json
 except ImportError:
-    import json
-    JSON_LIBRARY = 'json'
+    fast_json = json
 
 CURRENT_VERSION = 5
 
@@ -436,7 +435,7 @@ def _load(logger, tests_root, manifest, types=None, meta_filters=None, allow_cac
         try:
             with open(manifest) as f:
                 rv = Manifest.from_json(tests_root,
-                                        json.load(f),
+                                        fast_json.load(f),
                                         types=types,
                                         meta_filters=meta_filters)
         except IOError:
@@ -446,7 +445,7 @@ def _load(logger, tests_root, manifest, types=None, meta_filters=None, allow_cac
             return None
     else:
         rv = Manifest.from_json(tests_root,
-                                json.load(manifest),
+                                fast_json.load(manifest),
                                 types=types,
                                 meta_filters=meta_filters)
 
@@ -504,12 +503,8 @@ def write(manifest, manifest_path):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     with open(manifest_path, "wb") as f:
-        if JSON_LIBRARY == 'ujson':
-            # ujson does not support the separators flag.
-            json.dump(manifest.to_json(), f, sort_keys=True, indent=1)
-        else:
-            # Use ',' instead of the default ', ' separator to prevent trailing
-            # spaces: https://docs.python.org/2/library/json.html#json.dump
-            json.dump(manifest.to_json(), f,
-                      sort_keys=True, indent=1, separators=(',', ': '))
+        # Use ',' instead of the default ', ' separator to prevent trailing
+        # spaces: https://docs.python.org/2/library/json.html#json.dump
+        json.dump(manifest.to_json(), f,
+                  sort_keys=True, indent=1, separators=(',', ': '))
         f.write("\n")

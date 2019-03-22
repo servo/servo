@@ -1,9 +1,10 @@
 <script>
 'use strict';
 
-navigator.idle.query().then(status => {
+new IdleDetector().start().then(() => {
   window.parent.postMessage({ enabled: true }, '*');
 }, error => {
   window.parent.postMessage({ enabled: false }, '*');
 });
+
 </script>

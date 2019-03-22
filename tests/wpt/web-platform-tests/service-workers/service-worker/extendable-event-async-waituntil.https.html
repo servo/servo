@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="resources/testharness-helpers.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -56,21 +57,25 @@ function msg_event_test(scope, test) {
 }
 
 promise_test(msg_event_test.bind(this, 'no-current-extension-different-task'),
-  'Test calling waitUntil in a different task without an existing extension throws');
+  'Test calling waitUntil in a task at the end of the event handler without an existing extension throws');
 
 promise_test(msg_event_test.bind(this, 'no-current-extension-different-microtask'),
-  'Test calling waitUntil in a different microtask without an existing extension throws');
+  'Test calling waitUntil in a microtask at the end of the event handler without an existing extension suceeds');
 
 promise_test(msg_event_test.bind(this, 'current-extension-different-task'),
-  'Test calling waitUntil in a different task with an existing extension succeeds');
+  'Test calling waitUntil in a different task an existing extension succeeds');
 
-promise_test(msg_event_test.bind(this, 'current-extension-expired-same-microtask-turn'),
-  'Test calling waitUntil with an existing extension promise handler succeeds');
+promise_test(msg_event_test.bind(this, 'during-event-dispatch-current-extension-expired-same-microtask-turn'),
+  'Test calling waitUntil at the end of an existing extension promise handler succeeds (event is still being dispatched)');
 
-// The promise handler will queue a new microtask after the check for new
-// extensions was performed.
-promise_test(msg_event_test.bind(this, 'current-extension-expired-same-microtask-turn-extra'),
-  'Test calling waitUntil at the end of the microtask turn throws');
+promise_test(msg_event_test.bind(this, 'during-event-dispatch-current-extension-expired-same-microtask-turn-extra'),
+  'Test calling waitUntil in a microtask at the end of an existing extension promise handler succeeds (event is still being dispatched)');
+
+promise_test(msg_event_test.bind(this, 'after-event-dispatch-current-extension-expired-same-microtask-turn'),
+  'Test calling waitUntil in an existing extension promise handler succeeds (event is not being dispatched)');
+
+promise_test(msg_event_test.bind(this, 'after-event-dispatch-current-extension-expired-same-microtask-turn-extra'),
+  'Test calling waitUntil in a microtask at the end of an existing extension promise handler throws (event is not being dispatched)');
 
 promise_test(msg_event_test.bind(this, 'current-extension-expired-different-task'),
   'Test calling waitUntil after the current extension expired in a different task fails');
@@ -80,24 +85,36 @@ promise_test(msg_event_test.bind(this, 'script-extendable-event'),
 
 promise_test(function(t) {
     var testBody = function(worker) {
-      return with_iframe('./resources/pending-respondwith-async-waituntil/dummy.html');
+      return with_iframe('./resources/pending-respondwith-async-waituntil');
     }
     return runTest(t, 'pending-respondwith-async-waituntil', testBody);
   }, 'Test calling waitUntil asynchronously with pending respondWith promise.');
 
 promise_test(function(t) {
     var testBody = function(worker) {
-      return with_iframe('./resources/respondwith-microtask-sync-waituntil/dummy.html');
+      return with_iframe('./resources/during-event-dispatch-respondwith-microtask-sync-waituntil');
     }
-    return runTest(t, 'respondwith-microtask-sync-waituntil', testBody);
-  }, 'Test calling waitUntil synchronously inside microtask of respondWith promise.');
+    return runTest(t, 'during-event-dispatch-respondwith-microtask-sync-waituntil', testBody);
+  }, 'Test calling waitUntil synchronously inside microtask of respondWith promise (event is being dispatched).');
 
 promise_test(function(t) {
     var testBody = function(worker) {
-      return with_iframe('./resources/respondwith-microtask-async-waituntil/dummy.html');
+      return with_iframe('./resources/during-event-dispatch-respondwith-microtask-async-waituntil');
     }
-    return runTest(t, 'respondwith-microtask-async-waituntil', testBody);
-  }, 'Test calling waitUntil asynchronously inside microtask of respondWith promise.');
+    return runTest(t, 'during-event-dispatch-respondwith-microtask-async-waituntil', testBody);
+  }, 'Test calling waitUntil asynchronously inside microtask of respondWith promise (event is being dispatched).');
 
+promise_test(function(t) {
+    var testBody = function(worker) {
+      return with_iframe('./resources/after-event-dispatch-respondwith-microtask-sync-waituntil');
+    }
+    return runTest(t, 'after-event-dispatch-respondwith-microtask-sync-waituntil', testBody);
+  }, 'Test calling waitUntil synchronously inside microtask of respondWith promise (event is not being dispatched).');
 
+promise_test(function(t) {
+    var testBody = function(worker) {
+      return with_iframe('./resources/after-event-dispatch-respondwith-microtask-async-waituntil');
+    }
+    return runTest(t, 'after-event-dispatch-respondwith-microtask-async-waituntil', testBody);
+  }, 'Test calling waitUntil asynchronously inside microtask of respondWith promise (event is not being dispatched).');
 </script>

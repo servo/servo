@@ -28,66 +28,11 @@ matrix:
           secure: "EljDx50oNpDLs7rzwIv+z1PxIgB5KMnx1W0OQkpNvltR0rBW9g/aQaE+Z/c8M/sPqN1bkvKPybKzGKjb6j9Dw3/EJhah4SskH78r3yMAe2DU/ngxqqjjfXcCc2t5MKxzHAILTAxqScPj2z+lG1jeK1Z+K5hTbSP9lk+AvS0D16w="
         file: $WPT_MANIFEST_FILE.gz
         skip_cleanup: true
-    - name: "update-built-tests.sh"
-      if: type = pull_request
-      os: linux
-      python: "2.7"
-      env: JOB=update_built SCRIPT=tools/ci/ci_built_diff.sh
     - name: "build-css-testsuites.sh"
       if: type = pull_request
       os: linux
       python: "2.7"
       env: JOB=build_css SCRIPT=css/build-css-testsuites.sh
-    - name: "tools/ unittests (Python 2)"
-      if: type = pull_request
-      os: linux
-      python: "2.7"
-      env: JOB=tools_unittest TOXENV=py27 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
-    - name: "tools/ unittests (Python 3)"
-      if: type = pull_request
-      os: linux
-      python: "3.6"
-      env: JOB=tools_unittest TOXENV=py36 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
-    - name: "tools/wpt/ tests"
-      if: type = pull_request
-      os: linux
-      python: "2.7"
-      addons:
-        apt:
-          packages:
-            - libnss3-tools
-      env: JOB=wpt_integration TOXENV=py27 SCRIPT=tools/ci/ci_wpt.sh
-      addons:
-        apt:
-          packages:
-            - fonts-liberation
-            - libappindicator1
-            - libnss3-tools
-            - pulseaudio
-    - name: "resources/ tests"
-      if: type = pull_request
-      os: linux
-      python: "2.7"
-      env: JOB=resources_unittest TOXENV=py27 SCRIPT=tools/ci/ci_resources_unittest.sh
-      addons:
-        apt:
-          packages:
-            - fonts-liberation
-            - libappindicator1
-            - libnss3-tools
-            - pulseaudio
-    - name: "infrastructure/ tests"
-      if: type = pull_request
-      os: linux
-      python: "2.7"
-      env: JOB=wptrunner_infrastructure SCRIPT=tools/ci/ci_wptrunner_infrastructure.sh
-      addons:
-        apt:
-          packages:
-            - fonts-liberation
-            - libappindicator1
-            - libnss3-tools
-            - pulseaudio
   exclude:
     - env:  # exclude empty env from the top-level above
   allow_failures:

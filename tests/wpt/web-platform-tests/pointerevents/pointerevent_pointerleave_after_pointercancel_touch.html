@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointerleave after pointercancel</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+    </head>
+    <body class="scrollable" onload="run()">
+        <h2>pointerleave after pointercancel</h2>
+        <h4>Test Description: This test checks if pointerleave event triggers after pointercancel. Start touch on the black rectangle and move your touch to scroll in any direction. </h4>
+        <p>Note: this test is for touch devices only</p>
+        <div id="target0"></div>
+        <script>
+            var test_pointerleave = async_test("pointerleave event received");
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var eventTested = false;
+            var pointercancel_event = null;
+            var detected_pointertypes = {};
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointercancel", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    pointercancel_event = event;
+                });
+
+                // After firing the pointercancel event the pointerleave event must be dispatched.
+                // TA: 4.3.1
+                on_event(target0, "pointerleave", function (event) {
+                    if(event.pointerType == 'touch') {
+                        if(pointercancel_event != null) {
+                            if(eventTested == false) {
+                                test_pointerleave.step(function() {
+                                    assert_equals(event.pointerType, pointercancel_event.pointerType, "pointerType is same for pointercancel and pointerleave");
+                                    assert_equals(event.isPrimary, pointercancel_event.isPrimary, "isPrimary is same for pointercancel and pointerleave");
+                                });
+                                eventTested = true;
+                            }
+                        }
+                        else {
+                            test_pointerleave.step(function() {
+                                assert_unreached("pointerleave received before pointercancel");
+                            }, "pointerleave received before pointercancel");
+                        }
+                    }
+                });
+
+                // Inject touch inputs and wait for all the actions finish to end the test.
+                touchScrollInTarget(target0, 'down').then(function() {
+                    test_pointerleave.step(function () {
+                        assert_true(eventTested, "pointerleave should be received before the test finishes");
+                    }, "pointerleave should be received before the test finishes");
+                    test_pointerleave.done();
+                });
+            }
+
+        </script>
+        <h1>Pointer Events pointerleave tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

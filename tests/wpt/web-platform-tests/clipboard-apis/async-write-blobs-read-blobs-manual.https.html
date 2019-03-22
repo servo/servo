@@ -13,19 +13,20 @@ async function loadBlob(fileName) {
 }
 
 promise_test(async t => {
-  const blobText = new Blob(["test text"], {type: 'text/plain'});
+  const blobText = new Blob(['test text'], {type: 'text/plain'});
   const blobImage = await loadBlob('resources/greenbox.png');
 
-  assert_equals(blobText.type, "text/plain");
-  assert_equals(blobImage.type, "image/png");
+  assert_equals(blobText.type, 'text/plain');
+  assert_equals(blobImage.type, 'image/png');
 
-  await navigator.clipboard.write([blobText, blobImage]);
+  await navigator.clipboard.write(
+        {'text/plain' : blobText, 'image/png' : blobImage});
   const output = await navigator.clipboard.read();
 
-  assert_equals(output.length, 2);
-  assert_equals(output[0].type, "text/plain");
-  assert_equals(output[1].type, "image/png");
-}, "Verify write and read clipboard (multiple blobs)");
+  assert_equals(Object.keys(output).length, 2);
+  assert_equals(output['text/plain'].type, 'text/plain');
+  assert_equals(output['image/png'].type, 'image/png');
+}, 'Verify write and read clipboard (multiple blobs)');
 </script>
 <p>
   Note: This is a manual test because it writes/reads to the shared system
