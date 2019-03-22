@@ -16,9 +16,13 @@ use servo::servo_config::opts;
 use servo::servo_config::prefs::PREFS;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
+use std::env;
+use std::fs::File;
+use std::io::Write;
 use std::mem;
 use std::rc::Rc;
 use std::thread;
+use std::time::Duration;
 use tinyfiledialogs::{self, MessageBoxIcon};
 
 pub struct Browser {
@@ -111,6 +115,14 @@ impl Browser {
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || {
                 self.event_queue.push(WindowEvent::Quit);
+            })
+            .shortcut(CMD_OR_CONTROL, 'P', || {
+                let rate = env::var("SAMPLING_RATE")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(10);
+                self.event_queue.push(WindowEvent::ToggleSamplingProfiler(
+                    Duration::from_millis(rate)));
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 self.event_queue.push(WindowEvent::CaptureWebRender)
@@ -378,6 +390,15 @@ impl Browser {
                 EmbedderMsg::HideIME => {
                     debug!("HideIME received");
                 },
+                EmbedderMsg::ReportProfile(bytes) => {
+                    let filename = env::var("PROFILE_OUTPUT")
+                        .unwrap_or("samples.json".to_string());
+                    let result = File::create(&filename)
+                        .and_then(|mut f| f.write_all(&bytes));
+                    if let Err(e) = result {
+                        error!("Failed to store profile: {}", e);
+                    }
+                }
             }
         }
     }

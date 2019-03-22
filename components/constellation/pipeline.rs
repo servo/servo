@@ -18,7 +18,7 @@ use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
-use msg::constellation_msg::{BackgroundHangMonitorRegister, HangAlert};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
@@ -122,7 +122,7 @@ pub struct InitialPipelineState {
     pub background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
-    pub background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+    pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
 
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -467,7 +467,7 @@ pub struct UnprivilegedPipelineContent {
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
     script_to_constellation_chan: ScriptToConstellationChan,
-    background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+    background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -669,7 +669,7 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    pub fn background_hang_monitor_to_constellation_chan(&self) -> &IpcSender<HangAlert> {
+    pub fn background_hang_monitor_to_constellation_chan(&self) -> &IpcSender<HangMonitorAlert> {
         &self.background_hang_monitor_to_constellation_chan
     }
 
