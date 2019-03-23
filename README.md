@@ -142,7 +142,7 @@ If this doesn't work, file a bug, and, run the commands below:
 sudo dnf install curl libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python2 python2-virtualenv python2-pip expat-devel \
-    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
+    rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel ncurses-devel harfbuzz-devel ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
