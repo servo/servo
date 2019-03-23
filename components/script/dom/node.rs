@@ -572,7 +572,7 @@ impl Node {
 
     // FIXME(emilio): This and the function below should move to Element.
     pub fn note_dirty_descendants(&self) {
-        debug_assert!(self.is_in_doc());
+        debug_assert!(self.is_connected());
 
         for ancestor in self.inclusive_ancestors(ShadowIncluding::Yes) {
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
@@ -611,11 +611,15 @@ impl Node {
 
         match self.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                if let Some(parent) = self.composed_parent_node() {
-                    parent.downcast::<Element>().unwrap().restyle(damage)
-                }
+                self.parent_node.get().unwrap().dirty(damage)
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
+            NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
+                .downcast::<ShadowRoot>()
+                .unwrap()
+                .Host()
+                .upcast::<Element>()
+                .restyle(damage),
             _ => {},
         };
     }
@@ -963,16 +967,6 @@ impl Node {
 
     pub fn is_connected_with_browsing_context(&self) -> bool {
         self.is_connected() && self.owner_doc().browsing_context().is_some()
-    }
-
-    fn composed_parent_node(&self) -> Option<DomRoot<Node>> {
-        let parent = self.parent_node.get();
-        if let Some(ref parent) = parent {
-            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
-                return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
-            }
-        }
-        parent
     }
 
     pub fn children(&self) -> impl Iterator<Item = DomRoot<Node>> {

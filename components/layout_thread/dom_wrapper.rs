@@ -569,7 +569,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     unsafe fn set_dirty_descendants(&self) {
-        debug_assert!(self.as_node().is_in_document());
+        debug_assert!(self.as_node().is_connected());
         self.as_node()
             .node
             .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
