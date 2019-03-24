@@ -708,6 +708,47 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// For HTML elements with 'display:list-item' we add a default 'counter-increment:list-item'
+    /// unless 'counter-increment' already has a value for 'list-item'.
+    ///
+    /// https://drafts.csswg.org/css-lists-3/#declaring-a-list-item
+    #[cfg(feature = "gecko")]
+    fn adjust_for_list_item<E>(&mut self, element: Option<E>)
+    where
+        E: TElement,
+    {
+        use crate::properties::longhands::counter_increment::computed_value::T as ComputedIncrement;
+        use crate::values::CustomIdent;
+        use crate::values::generics::counters::{CounterPair};
+        use crate::values::specified::list::MozListReversed;
+
+        if self.style.get_box().clone_display() != Display::ListItem {
+            return;
+        }
+        if self.style.pseudo.is_some() {
+            return;
+        }
+        if !element.map_or(false, |e| e.is_html_element()) {
+            return;
+        }
+        // Note that we map <li value=INTEGER> to 'counter-set: list-item INTEGER;
+        // counter-increment: list-item 0;' so we'll return here unless the author
+        // explicitly specified something else.
+        let increments = self.style.get_counters().clone_counter_increment();
+        if increments.iter().any(|i| i.name.0 == atom!("list-item")) {
+            return;
+        }
+
+        let reversed = self.style.get_list().clone__moz_list_reversed() == MozListReversed::True;
+        let increment = if reversed { -1 } else { 1 };
+        let list_increment = CounterPair {
+            name: CustomIdent(atom!("list-item")),
+            value: increment,
+        };
+        let increments = increments.iter().cloned().chain(std::iter::once(list_increment));
+        self.style.mutate_counters().set_counter_increment(ComputedIncrement::new(increments.collect()));
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -772,6 +813,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_appearance(element);
+            self.adjust_for_list_item(element);
         }
         self.set_bits();
     }
