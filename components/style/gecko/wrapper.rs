@@ -1137,6 +1137,14 @@ impl<'le> TElement for GeckoElement<'le> {
         self.before_or_after_pseudo(/* is_before = */ false)
     }
 
+    fn marker_pseudo_element(&self) -> Option<Self> {
+        if !self.has_properties() {
+            return None;
+        }
+
+        unsafe { bindings::Gecko_GetMarkerPseudo(self.0).as_ref().map(GeckoElement) }
+    }
+
     #[inline]
     fn is_html_element(&self) -> bool {
         self.namespace_id() == structs::kNameSpaceID_XHTML as i32
