@@ -45,7 +45,7 @@ pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapAlign, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, RGBAColor};
 pub use self::column::ColumnCount;
-pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterSetOrReset};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
