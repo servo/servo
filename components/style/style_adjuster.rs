@@ -174,10 +174,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// <https://drafts.csswg.org/css2/visuren.html#dis-pos-flo>
+    /// A ::marker pseudo-element with 'list-style-position:outside' needs to
+    /// have its 'display' blockified.
     fn blockify_if_necessary<E>(&mut self, layout_parent_style: &ComputedValues, element: Option<E>)
     where
         E: TElement,
     {
+        use crate::selector_parser::PseudoElement;
+        use crate::computed_values::list_style_position::T as ListStylePosition;
+
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -200,6 +205,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.floated());
         blockify_if!(self.style.out_of_flow_positioned());
+        blockify_if!(self.style.pseudo == Some(&PseudoElement::Marker) &&
+                     self.style.get_parent_list().clone_list_style_position() == ListStylePosition::Outside);
 
         if !blockify {
             return;
