@@ -95,7 +95,7 @@ jobs:
     displayName: 'Publish results'
     inputs:
       artifactName: 'infrastructure'
-    condition: succeededOrFailed()
+    condition: always()
 
 - job: tools_unittest_macOS
   displayName: 'tools/ unittests (macOS)'
@@ -160,7 +160,7 @@ jobs:
     displayName: 'Publish results'
     inputs:
       artifactName: 'infrastructure'
-    condition: succeededOrFailed()
+    condition: always()
   - template: tools/ci/azure/cleanup_win10.yml
 
 - job: results_edge

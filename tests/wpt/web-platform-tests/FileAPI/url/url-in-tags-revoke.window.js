@@ -1,3 +1,4 @@
+// META: timeout=long
 async_test(t => {
   const run_result = 'test_frame_OK';
   const blob_contents = '<!doctype html>\n<meta charset="utf-8">\n' +

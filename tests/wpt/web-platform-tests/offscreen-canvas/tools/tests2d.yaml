@@ -764,7 +764,7 @@
         for op, FA_code, FB_code in ops:
             if op not in ops_trans: continue
             expected0 = calc_output((0,0,0,0.0), dest, FA_code, FB_code)
-            tests.append( {
+            new_test = {
                 'name': '2d.composite.%s.%s' % (name, op),
                 'desc': 'fill() draws pixels not covered by the source object as (0,0,0,0), and does not leave the pixels unchanged.',
                 'testing': [ '2d.composite.%s' % op ],
@@ -777,7 +777,10 @@
     ctx.fillRect(0, 50, 100, 50);
     @assert pixel 50,25 ==~ %s +/- 5;
     """ % (dest, op, src, to_test(expected0)),
-            } )
+            }
+            if op == 'destination-in':
+              new_test['timeout'] = 'long'
+            tests.append(new_test)
 
     for (name, src, dest) in [ ('uncovered.image', (255, 255, 0, 1.0), (0, 255, 255, 0.5)) ]:
         for op, FA_code, FB_code in ops:
@@ -4130,6 +4133,7 @@
   testing:
     - 2d.drawImage.defaultsource
     - 2d.drawImage.defaultdest
+  timeout: long
   images:
     - red.png
     - green.png
@@ -4170,6 +4174,7 @@
   images:
     - red.png
     - green.png
+  timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -4207,6 +4212,7 @@
     - 2d.drawImage.paint
   images:
     - green.png
+  timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -4232,6 +4238,7 @@
     - 2d.drawImage.paint
   images:
     - rgrg-256x256.png
+  timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -4257,6 +4264,7 @@
     - 2d.drawImage.paint
   images:
     - rgrg-256x256.png
+  timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -4290,6 +4298,7 @@
   images:
     - red.png
     - green.png
+  timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -4329,6 +4338,7 @@
   images:
     - red.png
     - green.png
+  timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -4365,6 +4375,7 @@
 - name: 2d.drawImage.canvas
   testing:
     - 2d.drawImage.paint
+  timeout: long
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -4380,6 +4391,7 @@
 - name: 2d.drawImage.self.1
   testing:
     - 2d.drawImage.self
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 50, 50);
@@ -4394,6 +4406,7 @@
 - name: 2d.drawImage.self.2
   testing:
     - 2d.drawImage.self
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 1, 100, 49);
@@ -4410,12 +4423,14 @@
 - name: 2d.drawImage.null
   testing:
     - 2d.drawImage.IDL
+  timeout: long
   code: |
     @assert throws TypeError ctx.drawImage(null, 0, 0);
 
 - name: 2d.drawImage.zerocanvas
   testing:
     - 2d.drawImage.zerocanvas
+  timeout: long
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(0, 10);
     @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
@@ -4432,6 +4447,7 @@
   desc: Incorrect image types in drawImage do not match any defined overloads, so WebIDL throws a TypeError
   testing:
     - 2d.drawImage.IDL
+  timeout: long
   code: |
     @assert throws TypeError ctx.drawImage(undefined, 0, 0);
     @assert throws TypeError ctx.drawImage(0, 0, 0);
@@ -4440,6 +4456,7 @@
 - name: 2d.drawImage.floatsource
   testing:
     - 2d.drawImage.paint
+  timeout: long
   code: |
     var promise = new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
@@ -4459,6 +4476,7 @@
   desc: drawImage with zero-sized source rectangle throws INDEX_SIZE_ERR
   testing:
     - 2d.drawImage.zerosource
+  timeout: long
   images:
     - red.png
   code: |
@@ -4488,6 +4506,7 @@
     - red-zerowidth.svg
     - red-zeroheight.svg
     - red-zerosize.svg
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -4514,6 +4533,7 @@
   mozilla: { throws }
   images:
     - ggrr-256x256.png
+  timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -4546,6 +4566,7 @@
   testing:
     - 2d.drawImage.direction
   mozilla: { throws }
+  timeout: long
   images:
     - ggrr-256x256.png
   code: |
@@ -4580,6 +4601,7 @@
   testing:
     - 2d.drawImage.direction
   mozilla: { throws }
+  timeout: long
   images:
     - ggrr-256x256.png
   code: |
@@ -4650,6 +4672,7 @@
 - name: 2d.drawImage.broken
   testing:
     - 2d.drawImage.incomplete.image
+  timeout: long
   code: |
     var promise = new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
@@ -4671,6 +4694,7 @@
   desc: drawImage() of an SVG image
   testing:
     - 2d.drawImage.svg
+  timeout: long
   code: |
     var promise = new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
@@ -4692,6 +4716,7 @@
     - 2d.drawImage.animated.image
   images:
     - anim-poster-gr.png
+  timeout: long
   code: |
     var promise = new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
@@ -4710,6 +4735,7 @@
 - name: 2d.drawImage.path
   testing:
     - 2d.drawImage.unaffect
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.rect(0, 0, 100, 50);
@@ -4733,6 +4759,7 @@
     - 2d.drawImage.subject
   images:
     - red.png
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -4756,6 +4783,7 @@
     - 2d.drawImage.subject
   images:
     - red.png
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -4779,6 +4807,7 @@
     - 2d.drawImage.subject
   images:
     - red.png
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -4803,6 +4832,7 @@
     - 2d.drawImage.subject
   images:
     - red.png
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -4825,6 +4855,7 @@
   desc: Stretched images do not get pixels wrapping around the edges
   images:
     - redtransparent.png
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -4850,6 +4881,7 @@
     - 2d.nonfinite
   images:
     - red.png
+  timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);

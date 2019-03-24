@@ -1,0 +1,20 @@
+<!doctype html>
+<body>
+  <portal src="portals-adopt-predecessor-portal.html"></portal>
+</body>
+<script>
+  var bc_loaded = new BroadcastChannel("portal-loaded");
+  bc_loaded.onmessage = function(e) {
+    document.querySelector("portal").activate();
+    bc_loaded.close();
+
+    var bc_adopted = new BroadcastChannel("portal-adopted");
+    bc_adopted.onmessage = function(e) {
+      bc_adopted.close();
+
+      var bc_test = new BroadcastChannel("portal-test");
+      bc_test.postMessage("passed");
+      bc_test.close();
+    }
+  }
+</script>

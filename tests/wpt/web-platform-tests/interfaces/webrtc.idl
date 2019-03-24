@@ -183,7 +183,7 @@ dictionary RTCIceCandidateInit {
              DOMString candidate = "";
              DOMString? sdpMid = null;
              unsigned short? sdpMLineIndex = null;
-             DOMString usernameFragment;
+             DOMString? usernameFragment = null;
 };
 
 enum RTCIceProtocol {
@@ -496,7 +496,7 @@ partial interface RTCPeerConnection {
                     attribute EventHandler ondatachannel;
 };
 
-[Exposed=Window] interface RTCSctpTransport {
+[Exposed=Window] interface RTCSctpTransport : EventTarget {
     readonly        attribute RTCDtlsTransport transport;
     readonly        attribute RTCSctpTransportState state;
     readonly        attribute unrestricted double maxMessageSize;

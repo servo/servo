@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<title>Test postMessage on HTMLPortalElement</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    const sameOriginUrl = "resources/portal-post-message-portal.html"
+    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-post-message-cross-origin-portal.sub.html"
+
+    async function createAndInsertPortal(portalSrc) {
+      var portal = document.createElement("portal");
+      portal.src = portalSrc;
+      document.body.append(portal);
+
+      var loadPromise = new Promise((resolve, reject) => {
+        var bc = new BroadcastChannel("portals-post-message");
+        bc.onmessage = e => {
+          bc.close();
+          resolve();
+        };
+      });
+      await loadPromise;
+      return portal;
+    }
+
+    function postMessage(portal, ...postMessageArgs) {
+      return new Promise((resolve, reject) => {
+        portal.postMessage(...postMessageArgs);
+        var bc = new BroadcastChannel("portals-post-message");
+        bc.onmessage = e => {
+          bc.close();
+          resolve(e.data);
+        };
+      });
+    }
+
+    promise_test(async () => {
+      var portal = await createAndInsertPortal(sameOriginUrl);
+      var message = "test message";
+      var {origin, data} = await postMessage(portal, message, "*");
+      assert_equals(data, message);
+      assert_equals(origin, window.location.origin);
+    }, "postMessage message received by portalHost");
+
+    promise_test(async () => {
+      var portal = await createAndInsertPortal(crossOriginUrl);
+      var message = "test message";
+      var {origin, data} = await postMessage(portal, message, "*");
+      assert_equals(data, message);
+      assert_equals(origin, window.location.origin);
+    }, "postMessage message received by portalHost in cross-origin portal");
+
+    promise_test(async () => {
+      var portal = await createAndInsertPortal(sameOriginUrl);
+      var message = "test message";
+      var {data} = await postMessage(portal, message);
+      assert_equals(data, message);
+      var {data} = await postMessage(portal, message, "/");
+      assert_equals(data, message);
+      var {data} = await postMessage(portal, message,
+                                     "http://{{host}}:{{ports[http][0]}}");
+      assert_equals(data, message);
+    }, "postMessage received by portal host in same-origin portal for multiple valid target origins");
+
+    promise_test(async () => {
+      var portal = await createAndInsertPortal(crossOriginUrl);
+      var message = "test message";
+      var {data} = await postMessage(portal, message,
+          "http://{{hosts[alt][www]}}:{{ports[http][0]}}");
+      assert_equals(data, message);
+    }, "postMessage received by portal host in cross-origin portal when target origin is specified");
+
+    promise_test(async t => {
+      var portal = document.createElement("portal");
+      return promise_rejects(t, "InvalidStateError",
+                             postMessage(portal, "test message"));
+    }, "cannot call postMessage on portal without portal browsing context");
+
+    async function waitForMessage(channelName) {
+      var bc = new BroadcastChannel(channelName);
+      return new Promise((resolve, reject) => {
+        bc.onmessage = e => {
+          bc.close();
+          resolve(e.data);
+        }
+      });
+    }
+
+    promise_test(async t => {
+      window.open("resources/portal-post-message-before-activate-window.html");
+      let {postMessageTS, activateTS} = await waitForMessage(
+          "portals-post-message-before-activate");
+      assert_less_than_equal(postMessageTS, activateTS);
+    }, "postMessage before activate should work and preserve order");
+
+    promise_test(async t => {
+      window.open("resources/portal-post-message-during-activate-window.html");
+      let error = await waitForMessage("portals-post-message-during-activate");
+      assert_equals(error, "InvalidStateError");
+    }, "postMessage during activate throws error");
+
+    promise_test(async t => {
+      window.open("resources/portal-post-message-after-activate-window.html");
+      let error = await waitForMessage("portals-post-message-after-activate");
+      assert_equals(error, "InvalidStateError");
+    }, "postMessage after activate throws error");
+
+    // TODO(adithyas): Use async_test instead of promise_test (for tests that
+    // use a timeout) once we implement postMessage in the other direction and
+    // no longer need to use broadcast channel.
+    const TIMEOUT_DURATION_MS = 1000;
+
+    promise_test(async t => {
+      var portal = await createAndInsertPortal(crossOriginUrl);
+      return new Promise((resolve, reject) => {
+        postMessage(portal, "test").then(() => { reject("message delivered"); });
+        t.step_timeout(resolve, TIMEOUT_DURATION_MS);
+      });
+    }, "message should not be delivered to cross-origin portal when targetOrigin is not specified");
+
+    promise_test(async t => {
+      var portal = await createAndInsertPortal(sameOriginUrl);
+      return new Promise((resolve, reject) => {
+        postMessage(portal, "test", "http://differentorigin.com:8002").then(
+          () => { reject("message delivered"); });
+        t.step_timeout(resolve, TIMEOUT_DURATION_MS);
+      });
+    }, "message should not be delivered to portal when targetOrigin does not match");
+  </script>
+</body>
