@@ -123,3 +123,13 @@ impl Parse for Quotes {
         }
     }
 }
+
+/// Specified and computed `-moz-list-reversed` property (for UA sheets only).
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[repr(u8)]
+pub enum MozListReversed {
+    /// the initial value
+    False,
+    /// exclusively used for <ol reversed> in our html.css UA sheet
+    True,
+}

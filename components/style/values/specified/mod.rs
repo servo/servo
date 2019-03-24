@@ -66,6 +66,7 @@ pub use self::length::{NoCalcLength, ViewportPercentageLength};
 pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
+pub use self::list::MozListReversed;
 pub use self::list::{QuotePair, Quotes};
 pub use self::motion::OffsetPath;
 pub use self::outline::OutlineStyle;

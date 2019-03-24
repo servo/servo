@@ -1247,6 +1247,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
         "LengthPercentageOrAuto": impl_style_coord,
+        "MozListReversed": impl_simple,
         "MozScriptMinSize": impl_absolute_length,
         "RGBAColor": impl_rgba_color,
         "SVGLength": impl_svg_length,

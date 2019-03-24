@@ -108,6 +108,7 @@ include = [
   "TouchAction",
   "WillChangeBits",
   "TextDecorationLine",
+  "MozListReversed",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
