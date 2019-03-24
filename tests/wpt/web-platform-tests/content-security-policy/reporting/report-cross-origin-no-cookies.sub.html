@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Cookies are not sent on cross origin violation reports</title>
+    <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <title>Cookies are not sent on cross origin violation reports</title>
     <!-- CSP headers
          Content-Security-Policy: script-src 'unsafe-inline' 'self'; img-src 'none'; report-uri http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/report.py?op=put&reportID=$id
          -->

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    var portal1 = document.createElement("portal");
+    portal1.src = "simple-portal.html"
+    var portal2 = document.createElement("portal");
+    portal2.src = "simple-portal.html"
+
+    var bc = new BroadcastChannel("simple-portal");
+    var waitForPortalsToLoad = new Promise((resolve, reject) => {
+      var count = 0;
+      bc.onmessage = () => {
+        count++;
+        if (count == 2) {
+          bc.close();
+          resolve();
+        }
+      }
+    });
+
+    waitForPortalsToLoad.then(() => {
+      portal1.activate();
+      portal2.activate().catch(e => {
+        var bc2 = new BroadcastChannel("portals-activate-twice");
+        bc2.postMessage(e.name, "*");
+        bc2.close();
+      });
+    });
+
+    document.body.append(portal1);
+    document.body.append(portal2);
+  </script>
+</body>

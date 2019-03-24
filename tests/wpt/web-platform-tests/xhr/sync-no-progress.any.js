@@ -1,3 +1,4 @@
+// META: timeout=long
 test(t => {
   let xhr = new XMLHttpRequest();
   let loadEventFired = false;

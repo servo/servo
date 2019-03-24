@@ -1,0 +1,17 @@
+<!doctype html>
+<script>
+  window.onportalactivate = function(e) {
+    var portal = e.adoptPredecessor();
+    document.body.appendChild(portal);
+
+    if (portal instanceof HTMLPortalElement) {
+      var bc_adopted = new BroadcastChannel("portal-adopted");
+      bc_adopted.postMessage("adopted");
+      bc_adopted.close();
+    }
+  }
+
+  var bc_loaded = new BroadcastChannel("portal-loaded");
+  bc_loaded.postMessage("loaded");
+  bc_loaded.close();
+</script>

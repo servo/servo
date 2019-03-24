@@ -1,3 +1,4 @@
+// META: timeout=long
 // META: script=../resources/utils.js
 // META: script=/common/get-host-info.sub.js
 

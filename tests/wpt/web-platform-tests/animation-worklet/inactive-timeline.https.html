@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Correctness of worklet animation state when timeline becomes newly
+         active or inactive.</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+  }
+  .contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function createScroller(test) {
+  var scroller = createDiv(test);
+  scroller.innerHTML = "<div class='contents'></div>";
+  scroller.classList.add('scroller');
+  return scroller;
+}
+
+function createScrollLinkedWorkletAnimation(test) {
+  const timeline = new ScrollTimeline({
+    scrollSource: createScroller(test),
+    timeRange: 1000
+  });
+  const DURATION = 10000; // ms
+  const KEYFRAMES = { transform: ['translateY(100px)', 'translateY(200px)'] };
+  return new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(test),
+        KEYFRAMES, DURATION), timeline);
+}
+
+setup(setupAndRegisterTests, {explicit_done: true});
+
+function setupAndRegisterTests() {
+  registerPassthroughAnimator().then(() => {
+
+    promise_test(async t => {
+      const animation = createScrollLinkedWorkletAnimation(t);
+      const scroller = animation.timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const timeRange = animation.timeline.timeRange;
+      scroller.scrollTop = 0.2 * maxScroll;
+
+      // Make the timeline inactive.
+      scroller.style.display = "none"
+      // Force relayout.
+      scroller.scrollTop;
+
+      animation.play();
+      assert_equals(animation.currentTime, null,
+        'Initial current time must be unresolved in idle state.');
+      assert_equals(animation.startTime, null,
+        'Initial start time must be unresolved in idle state.');
+      waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      assert_equals(animation.currentTime, null,
+        'Initial current time must be unresolved in playing state.');
+      assert_equals(animation.startTime, null,
+        'Initial start time must be unresolved in playing state.');
+
+      // Make the timeline active.
+      scroller.style.display = ""
+      scroller.scrollTop;
+
+      assert_times_equal(animation.currentTime, 200,
+        'Current time must be initialized.');
+      assert_times_equal(animation.startTime, 0,
+        'Start time must be initialized.');
+
+      // Make the timeline inactive again.
+      scroller.style.display = "none"
+      scroller.scrollTop;
+
+      assert_times_equal(animation.currentTime, 200,
+        'Current time must be the previous current time.');
+      assert_equals(animation.startTime, null,
+        'Initial start time must be unresolved.');
+
+    }, 'When timeline time becomes inactive previous current time must be ' +
+       'the current time and start time unresolved');
+    done();
+  });
+}
+</script>
+</body>

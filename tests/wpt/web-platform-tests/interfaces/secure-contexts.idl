@@ -3,6 +3,6 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Secure Contexts (https://w3c.github.io/webappsec-secure-contexts/)
 
-partial interface WindowOrWorkerGlobalScope {
+partial interface mixin WindowOrWorkerGlobalScope {
   readonly attribute boolean isSecureContext;
 };

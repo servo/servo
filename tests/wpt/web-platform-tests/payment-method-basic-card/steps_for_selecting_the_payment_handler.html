@@ -10,6 +10,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+  setup({ explicit_done: true, explicit_timeout: true });
   const defaultDetails = {
     total: {
       label: "Total",
@@ -65,7 +66,7 @@
             supportedNetworks: ["visa"],
           },
         },
-        // Same as data: { supportedNetworks: ["visa"] }
+        // Same as data: { supportedNetworks: [] }
         {
           supportedMethods: "basic-card",
         },
@@ -76,22 +77,31 @@
   }
 </script>
 <h1>Manual tests</h1>
-<p>
-  When each button is clicked, the
-</p>
 <ol>
   <li>
-    <button onclick="mixedPMILastOneWins(this.textContent.trim())">
+    <p>
+      To pass, this test must show the payment sheet and allow paying with any
+      card.
+    </p>
+    <button onclick="emptyDataIsAllNetworks(this.textContent.trim())">
       If no data is passed, it's the same as passing an empty BasicCardRequest
       (i.e., allow all networks).
     </button>
   </li>
   <li>
+    <p>
+      To pass, this test must show the payment sheet and restrict to "visa"
+      credit cards.
+    </p>
     <button onclick="mixedPMILastOneWins(this.textContent.trim())">
-      It ignores unknown PMIs and last "basic-card" wins.
+      It ignores unknown PMIs and last "basic-card" wins - in this case, "visa".
     </button>
   </li>
   <li>
+    <p>
+      To pass, this test must show the payment sheet and allow paying with any
+      card.
+    </p>
     <button onclick="lastOneWinsEvenIfDataIsMissing(this.textContent.trim())">
       "Last one wins" even if data is missing.
     </button>

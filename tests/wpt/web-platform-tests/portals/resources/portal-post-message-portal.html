@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script>
+  var bc = new BroadcastChannel("portals-post-message");
+  bc.postMessage("loaded");
+  bc.close();
+  window.portalHost.addEventListener("message", e => {
+    var message = {
+      origin: e.origin,
+      data: e.data
+    };
+    bc = new BroadcastChannel("portals-post-message");
+    bc.postMessage(message);
+    bc.close();
+  });
+</script>
