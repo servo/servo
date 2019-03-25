@@ -124,7 +124,7 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
-use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
     BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
 };
@@ -207,6 +207,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
     background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
+
+    /// Channels to control all sampling profilers.
+    sampling_profiler_control: Vec<IpcSender<SamplerControlMsg>>,
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
@@ -614,12 +617,19 @@ where
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
-                let background_monitor_register = if opts::multiprocess() {
-                    None
+                let (background_monitor_register, sampler_chan) = if opts::multiprocess() {
+                    (None, vec![])
                 } else {
-                    Some(HangMonitorRegister::init(
-                        background_hang_monitor_sender.clone(),
-                    ))
+                    let (sampling_profiler_control, sampling_profiler_port) =
+                        ipc::channel().expect("ipc channel failure");
+
+                    (
+                        Some(HangMonitorRegister::init(
+                            background_hang_monitor_sender.clone(),
+                            sampling_profiler_port,
+                        )),
+                        vec![sampling_profiler_control],
+                    )
                 };
 
                 let (ipc_layout_sender, ipc_layout_receiver) =
@@ -640,6 +650,7 @@ where
                     background_hang_monitor_sender,
                     background_hang_monitor_receiver,
                     background_monitor_register,
+                    sampling_profiler_control: sampler_chan,
                     layout_sender: ipc_layout_sender,
                     script_receiver: script_receiver,
                     compositor_receiver: compositor_receiver,
@@ -841,6 +852,10 @@ where
             Err(e) => return self.handle_send_error(pipeline_id, e),
         };
 
+        if let Some(sampler_chan) = pipeline.sampler_control_chan {
+            self.sampling_profiler_control.push(sampler_chan);
+        }
+
         if let Some(host) = host {
             debug!(
                 "Adding new host entry {} for top-level browsing context {}.",
@@ -848,11 +863,11 @@ where
             );
             let _ = self
                 .event_loops
-                .insert(host, Rc::downgrade(&pipeline.event_loop));
+                .insert(host, Rc::downgrade(&pipeline.pipeline.event_loop));
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
-        self.pipelines.insert(pipeline_id, pipeline);
+        self.pipelines.insert(pipeline_id, pipeline.pipeline);
     }
 
     /// Get an iterator for the fully active browsing contexts in a subtree.
@@ -1202,6 +1217,20 @@ where
                 self.forward_event(destination_pipeline_id, event);
             },
             FromCompositorMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
+            FromCompositorMsg::EnableProfiler(rate) => {
+                for chan in &self.sampling_profiler_control {
+                    if let Err(e) = chan.send(SamplerControlMsg::Enable(rate)) {
+                        warn!("error communicating with sampling profiler: {}", e);
+                    }
+                }
+            },
+            FromCompositorMsg::DisableProfiler => {
+                for chan in &self.sampling_profiler_control {
+                    if let Err(e) = chan.send(SamplerControlMsg::Disable) {
+                        warn!("error communicating with sampling profiler: {}", e);
+                    }
+                }
+            },
         }
     }
 

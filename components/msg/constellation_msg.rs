@@ -490,3 +490,10 @@ pub trait BackgroundHangMonitor {
     /// Unregister the component from monitor.
     fn unregister(&self);
 }
+
+/// Messages to control the sampling profiler.
+#[derive(Deserialize, Serialize)]
+pub enum SamplerControlMsg {
+    Enable(Duration),
+    Disable,
+}
