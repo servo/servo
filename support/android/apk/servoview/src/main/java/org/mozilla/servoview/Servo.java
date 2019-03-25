@@ -13,6 +13,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
 import org.freedesktop.gstreamer.GStreamer;
+import org.mozilla.servoview.JNIServo.ServoCoordinates;
 import org.mozilla.servoview.JNIServo.ServoOptions;
 
 public class Servo {
@@ -91,8 +92,8 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.setBatchMode(mode));
     }
 
-    public void resize(int width, int height) {
-        mRunCallback.inGLThread(() -> mJNI.resize(width, height));
+    public void resize(ServoCoordinates coords) {
+        mRunCallback.inGLThread(() -> mJNI.resize(coords));
     }
 
     public void refresh() {

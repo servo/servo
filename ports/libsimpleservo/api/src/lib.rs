@@ -14,16 +14,17 @@ use servo::compositing::windowing::{
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::EmbedderMsg;
-use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use servo::euclid::{TypedPoint2D, TypedRect, TypedScale, TypedSize2D, TypedVector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
+use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
 use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRServiceManager};
-use servo::{self, gl, webrender_api, BrowserId, Servo};
-use std::cell::{Cell, RefCell};
+use servo::{self, gl, BrowserId, Servo};
+use std::cell::RefCell;
 use std::mem;
 use std::os::raw::c_void;
 use std::path::PathBuf;
@@ -41,11 +42,32 @@ pub use servo::embedder_traits::EventLoopWaker;
 pub struct InitOptions {
     pub args: Option<String>,
     pub url: Option<String>,
-    pub width: u32,
-    pub height: u32,
+    pub coordinates: Coordinates,
     pub density: f32,
     pub vr_pointer: Option<*mut c_void>,
     pub enable_subpixel_text_antialiasing: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct Coordinates {
+    pub viewport: TypedRect<i32, DevicePixel>,
+    pub framebuffer: TypedSize2D<i32, FramebufferPixel>,
+}
+
+impl Coordinates {
+    pub fn new(
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        fb_width: i32,
+        fb_height: i32,
+    ) -> Coordinates {
+        Coordinates {
+            viewport: TypedRect::new(TypedPoint2D::new(x, y), TypedSize2D::new(width, height)),
+            framebuffer: TypedSize2D::new(fb_width, fb_height),
+        }
+    }
 }
 
 /// Callbacks. Implemented by embedder. Called by Servo.
@@ -150,8 +172,7 @@ pub fn init(
     let callbacks = Rc::new(ServoCallbacks {
         gl: gl.clone(),
         host_callbacks: callbacks,
-        width: Cell::new(init_opts.width),
-        height: Cell::new(init_opts.height),
+        coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
         vr_pointer: init_opts.vr_pointer,
         waker,
@@ -270,10 +291,9 @@ impl ServoGlue {
     }
 
     /// Let Servo know that the window has been resized.
-    pub fn resize(&mut self, width: u32, height: u32) -> Result<(), &'static str> {
+    pub fn resize(&mut self, coordinates: Coordinates) -> Result<(), &'static str> {
         info!("resize");
-        self.callbacks.width.set(width);
-        self.callbacks.height.set(height);
+        *self.callbacks.coordinates.borrow_mut() = coordinates;
         self.process_event(WindowEvent::Resize)
     }
 
@@ -282,7 +302,7 @@ impl ServoGlue {
     /// dx/dy are scroll deltas.
     pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
         let delta = TypedVector2D::new(dx, dy);
-        let scroll_location = webrender_api::ScrollLocation::Delta(delta);
+        let scroll_location = ScrollLocation::Delta(delta);
         let event = WindowEvent::Scroll(
             scroll_location,
             TypedPoint2D::new(x, y),
@@ -296,7 +316,7 @@ impl ServoGlue {
     /// dx/dy are scroll deltas.
     pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
         let delta = TypedVector2D::new(dx, dy);
-        let scroll_location = webrender_api::ScrollLocation::Delta(delta);
+        let scroll_location = ScrollLocation::Delta(delta);
         let event = WindowEvent::Scroll(
             scroll_location,
             TypedPoint2D::new(x, y),
@@ -310,7 +330,7 @@ impl ServoGlue {
     /// dx/dy are scroll deltas.
     pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
         let delta = TypedVector2D::new(dx, dy);
-        let scroll_location = webrender_api::ScrollLocation::Delta(delta);
+        let scroll_location = ScrollLocation::Delta(delta);
         let event =
             WindowEvent::Scroll(scroll_location, TypedPoint2D::new(x, y), TouchEventType::Up);
         self.process_event(event)
@@ -529,8 +549,7 @@ struct ServoCallbacks {
     waker: Box<dyn EventLoopWaker>,
     gl: Rc<dyn gl::Gl>,
     host_callbacks: Box<dyn HostTrait>,
-    width: Cell<u32>,
-    height: Cell<u32>,
+    coordinates: RefCell<Coordinates>,
     density: f32,
     vr_pointer: Option<*mut c_void>,
 }
@@ -564,15 +583,13 @@ impl WindowMethods for ServoCallbacks {
     }
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let fb_size = TypedSize2D::new(self.width.get() as i32, self.height.get() as i32);
-        let pixel_size = TypedSize2D::new(self.width.get() as i32, self.height.get() as i32);
-        let viewport = webrender_api::DeviceIntRect::new(TypedPoint2D::zero(), pixel_size);
+        let coords = self.coordinates.borrow();
         EmbedderCoordinates {
-            viewport,
-            framebuffer: fb_size,
-            window: (pixel_size, TypedPoint2D::new(0, 0)),
-            screen: pixel_size,
-            screen_avail: pixel_size,
+            viewport: coords.viewport,
+            framebuffer: coords.framebuffer,
+            window: (coords.viewport.size, TypedPoint2D::new(0, 0)),
+            screen: coords.viewport.size,
+            screen_avail: coords.viewport.size,
             hidpi_factor: TypedScale::new(self.density),
         }
     }

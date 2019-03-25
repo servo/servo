@@ -16,7 +16,8 @@ use servo::webrender_api::DevicePixel;
 use servo::webrender_api::DevicePoint;
 use servo::webrender_api::LayoutPixel;
 use simpleservo::{
-    self, deinit, gl_glue, EventLoopWaker, HostTrait, InitOptions, MouseButton, ServoGlue, SERVO,
+    self, deinit, gl_glue, Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton,
+    ServoGlue, SERVO,
 };
 use smallvec::SmallVec;
 use std::cell::Cell;
@@ -114,14 +115,21 @@ pub unsafe extern "C" fn init_servo(
     let gl = gl_glue::egl::init().expect("EGL initialization failure");
 
     let url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
+    let coordinates = Coordinates::new(
+        0,
+        0,
+        width as i32,
+        height as i32,
+        width as i32,
+        height as i32,
+    );
     let opts = InitOptions {
         args: None,
         url: Some(url.to_string()),
-        width: width,
-        height: height,
         density: hidpi,
         enable_subpixel_text_antialiasing: false,
         vr_pointer: None,
+        coordinates,
     };
     let wakeup = Box::new(EventLoopWakerInstance);
     let shut_down_complete = Rc::new(Cell::new(false));

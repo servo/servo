@@ -18,6 +18,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.Surface;
 
+import org.mozilla.servoview.JNIServo.ServoCoordinates;
 import org.mozilla.servoview.JNIServo.ServoOptions;
 import org.mozilla.servoview.Servo.Client;
 import org.mozilla.servoview.Servo.GfxCallbacks;
@@ -34,6 +35,7 @@ public class ServoSurface {
     private final Handler mMainLooperHandler;
     private Handler mGLLooperHandler;
     private Surface mASurface;
+    private int mPadding;
     private int mWidth;
     private int mHeight;
     private long mVRExternalContext;
@@ -44,7 +46,8 @@ public class ServoSurface {
     private String mInitialUri;
     private Activity mActivity;
 
-    public ServoSurface(Surface surface, int width, int height) {
+    public ServoSurface(Surface surface, int width, int height, int padding) {
+        mPadding = padding;
         mWidth = width;
         mHeight = height;
         mASurface = surface;
@@ -136,7 +139,18 @@ public class ServoSurface {
     }
 
     public void onSurfaceResized(int width, int height) {
-        mServo.resize(width, height);
+        mWidth = width;
+        mHeight = height;
+
+        ServoCoordinates coords = new ServoCoordinates();
+        coords.x = mPadding;
+        coords.y = mPadding;
+        coords.width = width - 2 * mPadding;
+        coords.height = height - 2 * mPadding;
+        coords.fb_width = width;
+        coords.fb_height = height;
+
+        mServo.resize(coords);
     }
 
     static class GLSurface implements GfxCallbacks {
@@ -261,10 +275,17 @@ public class ServoSurface {
             mGLLooperHandler = new Handler();
 
             inUIThread(() -> {
+              ServoCoordinates coords = new ServoCoordinates();
+              coords.x = mPadding;
+              coords.y = mPadding;
+              coords.width = mWidth - 2 * mPadding;
+              coords.height = mHeight - 2 * mPadding;
+              coords.fb_width = mWidth;
+              coords.fb_height = mHeight;
+
               ServoOptions options = new ServoOptions();
+              options.coordinates = coords;
               options.args = mServoArgs;
-              options.width = mWidth;
-              options.height = mHeight;
               options.density = 1;
               options.url = mInitialUri;
               options.logStr = mServoLog;

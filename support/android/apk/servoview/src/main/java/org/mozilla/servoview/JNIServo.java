@@ -30,7 +30,7 @@ public class JNIServo {
 
     public native void performUpdates();
 
-    public native void resize(int width, int height);
+    public native void resize(ServoCoordinates coords);
 
     public native void reload();
 
@@ -69,13 +69,21 @@ public class JNIServo {
     public static class ServoOptions {
       public String args;
       public String url;
-      public int width = 0;
-      public int height = 0;
+      public ServoCoordinates coordinates;
       public float density = 1;
       public boolean enableSubpixelTextAntialiasing = true;
       public long VRExternalContext = 0;
       public String logStr;
       public boolean enableLogs = false;
+    }
+
+    public static class ServoCoordinates {
+      public int x = 0;
+      public int y = 0;
+      public int width = 0;
+      public int height = 0;
+      public int fb_width = 0;
+      public int fb_height = 0;
     }
 
     public interface Callbacks {
