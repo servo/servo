@@ -29,6 +29,7 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="timeout" content="long">
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -694,13 +695,6 @@ function compareRect(width, height, channels, expectedData, filteringMode) {
     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, actual);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "reading back pixels");
 
-    var div = document.createElement("div");
-    div.className = "testimages";
-    insertImg(div, "expected", makeImage(width, height, expectedData, channels == 4));
-    insertImg(div, "actual", makeImage(width, height, actual, channels == 4));
-    div.appendChild(document.createElement('br'));
-    document.getElementById("console").appendChild(div);
-
     var failed = false;
     for (var yy = 0; yy < height; ++yy) {
         for (var xx = 0; xx < width; ++xx) {
@@ -714,6 +708,13 @@ function compareRect(width, height, channels, expectedData, filteringMode) {
             for (var jj = 0; jj < 4; ++jj) {
                 if (actual[offset + jj] != expected[jj]) {
                     failed = true;
+                    var div = document.createElement("div");
+                    div.className = "testimages";
+                    insertImg(div, "expected", makeImage(width, height, expectedData, channels == 4));
+                    insertImg(div, "actual", makeImage(width, height, actual, channels == 4));
+                    div.appendChild(document.createElement('br'));
+                    document.getElementById("console").appendChild(div);
+
                     var was = actual[offset + 0].toString();
                     for (var j = 1; j < 4; ++j) {
                         was += "," + actual[offset + j];

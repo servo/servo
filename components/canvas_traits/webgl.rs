@@ -331,6 +331,22 @@ pub enum WebGLCommand {
         pixel_format: Option<PixelFormat>,
         data: TruncatedDebug<IpcSharedMemory>,
     },
+    CompressedTexImage2D {
+        target: u32,
+        level: u32,
+        internal_format: u32,
+        size: Size2D<u32>,
+        data: TruncatedDebug<IpcSharedMemory>,
+    },
+    CompressedTexSubImage2D {
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        size: Size2D<u32>,
+        format: u32,
+        data: TruncatedDebug<IpcSharedMemory>,
+    },
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),
     Finish(WebGLSender<()>),
@@ -736,6 +752,25 @@ macro_rules! gl_enums {
     }
 }
 
+// FIXME: These should come from gleam
+mod gl_ext_constants {
+    use gleam::gl::types::GLenum;
+
+    pub const COMPRESSED_RGB_S3TC_DXT1_EXT: GLenum = 0x83F0;
+    pub const COMPRESSED_RGBA_S3TC_DXT1_EXT: GLenum = 0x83F1;
+    pub const COMPRESSED_RGBA_S3TC_DXT3_EXT: GLenum = 0x83F2;
+    pub const COMPRESSED_RGBA_S3TC_DXT5_EXT: GLenum = 0x83F3;
+    pub const COMPRESSED_RGB_ETC1_WEBGL: GLenum = 0x8D64;
+
+    pub static COMPRESSIONS: &'static [GLenum] = &[
+        COMPRESSED_RGB_S3TC_DXT1_EXT,
+        COMPRESSED_RGBA_S3TC_DXT1_EXT,
+        COMPRESSED_RGBA_S3TC_DXT3_EXT,
+        COMPRESSED_RGBA_S3TC_DXT5_EXT,
+        COMPRESSED_RGB_ETC1_WEBGL,
+    ];
+}
+
 gl_enums! {
     pub enum TexFormat {
         DepthComponent = gl::DEPTH_COMPONENT,
@@ -744,6 +779,11 @@ gl_enums! {
         RGBA = gl::RGBA,
         Luminance = gl::LUMINANCE,
         LuminanceAlpha = gl::LUMINANCE_ALPHA,
+        CompressedRgbS3tcDxt1 = gl_ext_constants::COMPRESSED_RGB_S3TC_DXT1_EXT,
+        CompressedRgbaS3tcDxt1 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT1_EXT,
+        CompressedRgbaS3tcDxt3 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT3_EXT,
+        CompressedRgbaS3tcDxt5 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT5_EXT,
+        CompressedRgbEtc1 = gl_ext_constants::COMPRESSED_RGB_ETC1_WEBGL,
     }
 
     pub enum TexDataType {
@@ -767,7 +807,13 @@ impl TexFormat {
             TexFormat::LuminanceAlpha => 2,
             TexFormat::RGB => 3,
             TexFormat::RGBA => 4,
+            _ => 1,
         }
+    }
+
+    /// Returns whether this format is a known texture compression format.
+    pub fn is_compressed(&self) -> bool {
+        gl_ext_constants::COMPRESSIONS.contains(&self.as_gl_constant())
     }
 }
 

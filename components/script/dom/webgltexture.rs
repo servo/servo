@@ -470,7 +470,24 @@ impl ImageInfo {
     }
 
     fn is_compressed_format(&self) -> bool {
-        // TODO: Once Servo supports compressed formats, check for them here
-        false
+        match self.internal_format {
+            Some(format) => format.is_compressed(),
+            None => false,
+        }
     }
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+pub enum TexCompressionValidation {
+    None,
+    S3TC,
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+pub struct TexCompression {
+    pub format: TexFormat,
+    pub bytes_per_block: u8,
+    pub block_width: u8,
+    pub block_height: u8,
+    pub validation: TexCompressionValidation,
 }
