@@ -18,3 +18,5 @@ pub mod oestexturehalffloat;
 pub mod oestexturehalffloatlinear;
 pub mod oesvertexarrayobject;
 pub mod webglcolorbufferfloat;
+pub mod webglcompressedtextureetc1;
+pub mod webglcompressedtextures3tc;

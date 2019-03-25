@@ -1168,6 +1168,43 @@ impl WebGLImpl {
                     &pixels,
                 );
             },
+            WebGLCommand::CompressedTexImage2D {
+                target,
+                level,
+                internal_format,
+                size,
+                ref data,
+            } => {
+                ctx.gl().compressed_tex_image_2d(
+                    target,
+                    level as i32,
+                    internal_format,
+                    size.width as i32,
+                    size.height as i32,
+                    0,
+                    &*data,
+                );
+            },
+            WebGLCommand::CompressedTexSubImage2D {
+                target,
+                level,
+                xoffset,
+                yoffset,
+                size,
+                format,
+                ref data,
+            } => {
+                ctx.gl().compressed_tex_sub_image_2d(
+                    target,
+                    level as i32,
+                    xoffset as i32,
+                    yoffset as i32,
+                    size.width as i32,
+                    size.height as i32,
+                    format,
+                    &*data,
+                );
+            },
             WebGLCommand::DrawingBufferWidth(ref sender) => sender
                 .send(ctx.borrow_draw_buffer().unwrap().size().width)
                 .unwrap(),

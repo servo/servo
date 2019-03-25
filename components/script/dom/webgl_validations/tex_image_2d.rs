@@ -6,7 +6,8 @@ use super::types::TexImageTarget;
 use super::WebGLValidator;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::dom::webgltexture::WebGLTexture;
+use crate::dom::webgltexture::{ImageInfo, WebGLTexture};
+use crate::dom::webgltexture::{TexCompression, TexCompressionValidation};
 use canvas_traits::webgl::{TexDataType, TexFormat, WebGLError::*};
 use std::{self, fmt};
 
@@ -40,6 +41,10 @@ pub enum TexImageValidationError {
     InvalidBorder,
     /// Expected a power of two texture.
     NonPotTexture,
+    /// Unrecognized texture compression format.
+    InvalidCompressionFormat,
+    /// Invalid X/Y texture offset parameters.
+    InvalidOffsets,
 }
 
 impl std::error::Error for TexImageValidationError {
@@ -61,6 +66,8 @@ impl std::error::Error for TexImageValidationError {
             InvalidTypeForFormat => "Invalid type for the given format",
             InvalidBorder => "Invalid border",
             NonPotTexture => "Expected a power of two texture",
+            InvalidCompressionFormat => "Unrecognized texture compression format",
+            InvalidOffsets => "Invalid X/Y texture offset parameters",
         }
     }
 }
@@ -354,6 +361,302 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
             target: target,
             format: format,
             data_type: data_type,
+        })
+    }
+}
+
+pub struct CommonCompressedTexImage2DValidator<'a> {
+    common_validator: CommonTexImage2DValidator<'a>,
+    compression_format: u32,
+    data_len: usize,
+}
+
+impl<'a> CommonCompressedTexImage2DValidator<'a> {
+    pub fn new(
+        context: &'a WebGLRenderingContext,
+        target: u32,
+        level: i32,
+        width: i32,
+        height: i32,
+        border: i32,
+        compression_format: u32,
+        data_len: usize,
+    ) -> Self {
+        CommonCompressedTexImage2DValidator {
+            common_validator: CommonTexImage2DValidator::new(
+                context,
+                target,
+                level,
+                TexFormat::RGBA.as_gl_constant(),
+                width,
+                height,
+                border,
+            ),
+            compression_format,
+            data_len,
+        }
+    }
+}
+
+pub struct CommonCompressedTexImage2DValidatorResult {
+    pub texture: DomRoot<WebGLTexture>,
+    pub target: TexImageTarget,
+    pub level: u32,
+    pub width: u32,
+    pub height: u32,
+    pub compression: TexCompression,
+}
+
+fn valid_s3tc_dimension(level: u32, side_length: u32, block_size: u32) -> bool {
+    (side_length % block_size == 0) || (level > 0 && [0, 1, 2].contains(&side_length))
+}
+
+fn valid_compressed_data_len(
+    data_len: usize,
+    width: u32,
+    height: u32,
+    compression: &TexCompression,
+) -> bool {
+    let block_width = compression.block_width as u32;
+    let block_height = compression.block_height as u32;
+
+    let required_blocks_hor = (width + block_width - 1) / block_width;
+    let required_blocks_ver = (height + block_height - 1) / block_height;
+    let required_blocks = required_blocks_hor * required_blocks_ver;
+
+    let required_bytes = required_blocks * compression.bytes_per_block as u32;
+    data_len == required_bytes as usize
+}
+
+fn is_subimage_blockaligned(
+    xoffset: u32,
+    yoffset: u32,
+    width: u32,
+    height: u32,
+    compression: &TexCompression,
+    tex_info: &ImageInfo,
+) -> bool {
+    let block_width = compression.block_width as u32;
+    let block_height = compression.block_height as u32;
+
+    (xoffset % block_width == 0 && yoffset % block_height == 0) &&
+        (width % block_width == 0 || height % block_height == 0) &&
+        (height % block_height == 0 || yoffset + height == tex_info.height())
+}
+
+impl<'a> WebGLValidator for CommonCompressedTexImage2DValidator<'a> {
+    type Error = TexImageValidationError;
+    type ValidatedOutput = CommonCompressedTexImage2DValidatorResult;
+
+    fn validate(self) -> Result<Self::ValidatedOutput, TexImageValidationError> {
+        let context = self.common_validator.context;
+        let CommonTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            internal_format: _,
+            width,
+            height,
+            border: _,
+        } = self.common_validator.validate()?;
+
+        // GL_INVALID_ENUM is generated if internalformat is not a supported
+        // format returned in GL_COMPRESSED_TEXTURE_FORMATS.
+        let compression = context
+            .extension_manager()
+            .get_tex_compression_format(self.compression_format);
+        let compression = match compression {
+            Some(compression) => compression,
+            None => {
+                context.webgl_error(InvalidEnum);
+                return Err(TexImageValidationError::InvalidCompressionFormat);
+            },
+        };
+
+        // GL_INVALID_VALUE is generated if imageSize is not consistent with the
+        // format, dimensions, and contents of the specified compressed image data.
+        if !valid_compressed_data_len(self.data_len, width, height, &compression) {
+            context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::TextureFormatMismatch);
+        }
+
+        Ok(CommonCompressedTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            width,
+            height,
+            compression,
+        })
+    }
+}
+
+pub struct CompressedTexImage2DValidator<'a> {
+    compression_validator: CommonCompressedTexImage2DValidator<'a>,
+}
+
+impl<'a> CompressedTexImage2DValidator<'a> {
+    pub fn new(
+        context: &'a WebGLRenderingContext,
+        target: u32,
+        level: i32,
+        width: i32,
+        height: i32,
+        border: i32,
+        compression_format: u32,
+        data_len: usize,
+    ) -> Self {
+        CompressedTexImage2DValidator {
+            compression_validator: CommonCompressedTexImage2DValidator::new(
+                context,
+                target,
+                level,
+                width,
+                height,
+                border,
+                compression_format,
+                data_len,
+            ),
+        }
+    }
+}
+
+impl<'a> WebGLValidator for CompressedTexImage2DValidator<'a> {
+    type Error = TexImageValidationError;
+    type ValidatedOutput = CommonCompressedTexImage2DValidatorResult;
+
+    fn validate(self) -> Result<Self::ValidatedOutput, TexImageValidationError> {
+        let context = self.compression_validator.common_validator.context;
+        let CommonCompressedTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            width,
+            height,
+            compression,
+        } = self.compression_validator.validate()?;
+
+        // GL_INVALID_OPERATION is generated if parameter combinations are not
+        // supported by the specific compressed internal format as specified
+        // in the specific texture compression extension.
+        let compression_valid = match compression.validation {
+            TexCompressionValidation::S3TC => {
+                let valid_width =
+                    valid_s3tc_dimension(level, width, compression.block_width as u32);
+                let valid_height =
+                    valid_s3tc_dimension(level, height, compression.block_height as u32);
+                valid_width && valid_height
+            },
+            TexCompressionValidation::None => true,
+        };
+        if !compression_valid {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::TextureFormatMismatch);
+        }
+
+        Ok(CommonCompressedTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            width,
+            height,
+            compression,
+        })
+    }
+}
+
+pub struct CompressedTexSubImage2DValidator<'a> {
+    compression_validator: CommonCompressedTexImage2DValidator<'a>,
+    xoffset: i32,
+    yoffset: i32,
+}
+
+impl<'a> CompressedTexSubImage2DValidator<'a> {
+    pub fn new(
+        context: &'a WebGLRenderingContext,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        compression_format: u32,
+        data_len: usize,
+    ) -> Self {
+        CompressedTexSubImage2DValidator {
+            compression_validator: CommonCompressedTexImage2DValidator::new(
+                context,
+                target,
+                level,
+                width,
+                height,
+                0,
+                compression_format,
+                data_len,
+            ),
+            xoffset,
+            yoffset,
+        }
+    }
+}
+
+impl<'a> WebGLValidator for CompressedTexSubImage2DValidator<'a> {
+    type Error = TexImageValidationError;
+    type ValidatedOutput = CommonCompressedTexImage2DValidatorResult;
+
+    fn validate(self) -> Result<Self::ValidatedOutput, TexImageValidationError> {
+        let context = self.compression_validator.common_validator.context;
+        let CommonCompressedTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            width,
+            height,
+            compression,
+        } = self.compression_validator.validate()?;
+
+        // FIXME: tex_info.width() and .height() returns 0
+        let tex_info = texture.image_info_for_target(&target, level);
+
+        // GL_INVALID_VALUE is generated if:
+        //   - xoffset or yoffset is less than 0
+        //   - x offset plus the width is greater than the texture width
+        //   - y offset plus the height is greater than the texture height
+        if self.xoffset < 0 ||
+            (self.xoffset as u32 + width) > tex_info.width() ||
+            self.yoffset < 0 ||
+            (self.yoffset as u32 + height) > tex_info.height()
+        {
+            context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::InvalidOffsets);
+        }
+
+        // GL_INVALID_OPERATION is generated if parameter combinations are not
+        // supported by the specific compressed internal format as specified
+        // in the specific texture compression extension.
+        let compression_valid = match compression.validation {
+            TexCompressionValidation::S3TC => is_subimage_blockaligned(
+                self.xoffset as u32,
+                self.yoffset as u32,
+                width,
+                height,
+                &compression,
+                &tex_info,
+            ),
+            TexCompressionValidation::None => true,
+        };
+        if !compression_valid {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::TextureFormatMismatch);
+        }
+
+        Ok(CommonCompressedTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            width,
+            height,
+            compression,
         })
     }
 }

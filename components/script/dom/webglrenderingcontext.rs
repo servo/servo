@@ -26,9 +26,10 @@ use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webgl_validations::tex_image_2d::{
-    CommonTexImage2DValidator, CommonTexImage2DValidatorResult,
+    CommonCompressedTexImage2DValidatorResult, CommonTexImage2DValidator,
+    CommonTexImage2DValidatorResult, CompressedTexImage2DValidator,
+    CompressedTexSubImage2DValidator, TexImage2DValidator, TexImage2DValidatorResult,
 };
-use crate::dom::webgl_validations::tex_image_2d::{TexImage2DValidator, TexImage2DValidatorResult};
 use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
@@ -1227,9 +1228,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return Int32Value(constants::UNSIGNED_BYTE as i32);
             },
             constants::COMPRESSED_TEXTURE_FORMATS => {
-                // FIXME(nox): https://github.com/servo/servo/issues/20594
+                let format_ids = self.extension_manager.get_tex_compression_ids();
+
                 rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Uint32Array::create(cx, CreateWith::Slice(&[]), rval.handle_mut()).unwrap();
+                let _ = Uint32Array::create(cx, CreateWith::Slice(&format_ids), rval.handle_mut())
+                    .unwrap();
                 return ObjectValue(rval.get());
             },
             constants::VERSION => {
@@ -1756,36 +1759,99 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn CompressedTexImage2D(
         &self,
-        _target: u32,
-        _level: i32,
-        _internal_format: u32,
-        _width: i32,
-        _height: i32,
-        _border: i32,
-        _data: CustomAutoRooterGuard<ArrayBufferView>,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+        data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        // FIXME: No compressed texture format is currently supported, so error out as per
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
-        self.webgl_error(InvalidEnum);
+        let validator = CompressedTexImage2DValidator::new(
+            self,
+            target,
+            level,
+            width,
+            height,
+            border,
+            internal_format,
+            data.len(),
+        );
+        let CommonCompressedTexImage2DValidatorResult {
+            texture: _,
+            target,
+            level,
+            width,
+            height,
+            ..
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return,
+        };
+
+        let buff = IpcSharedMemory::from_bytes(unsafe { data.as_slice() });
+        let pixels = TexPixels::from_array(buff, Size2D::new(width, height));
+
+        self.send_command(WebGLCommand::CompressedTexImage2D {
+            target: target.as_gl_constant(),
+            level,
+            internal_format,
+            size: Size2D::new(width, height),
+            data: pixels.data.into(),
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn CompressedTexSubImage2D(
         &self,
-        _target: u32,
-        _level: i32,
-        _xoffset: i32,
-        _yoffset: i32,
-        _width: i32,
-        _height: i32,
-        _format: u32,
-        _data: CustomAutoRooterGuard<ArrayBufferView>,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        // FIXME: No compressed texture format is currently supported, so error out as per
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
-        self.webgl_error(InvalidEnum);
+        let validator = CompressedTexSubImage2DValidator::new(
+            self,
+            target,
+            level,
+            xoffset,
+            yoffset,
+            width,
+            height,
+            format,
+            data.len(),
+        );
+        let CommonCompressedTexImage2DValidatorResult {
+            texture: _,
+            target,
+            level,
+            width,
+            height,
+            ..
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return,
+        };
+
+        let buff = IpcSharedMemory::from_bytes(unsafe { data.as_slice() });
+        let pixels = TexPixels::from_array(buff, Size2D::new(width, height));
+
+        self.send_command(WebGLCommand::CompressedTexSubImage2D {
+            target: target.as_gl_constant(),
+            level: level as i32,
+            xoffset,
+            yoffset,
+            size: Size2D::new(width, height),
+            format,
+            data: pixels.data.into(),
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8

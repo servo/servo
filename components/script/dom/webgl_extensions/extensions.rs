@@ -17,6 +17,7 @@ use crate::dom::oestexturefloat::OESTextureFloat;
 use crate::dom::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webgltexture::TexCompression;
 use canvas_traits::webgl::WebGLVersion;
 use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::{self, GLenum};
@@ -82,6 +83,8 @@ struct WebGLExtensionFeatures {
     element_index_uint_enabled: bool,
     /// WebGL EXT_blend_minmax extension.
     blend_minmax_enabled: bool,
+    /// WebGL supported texture compression formats enabled by extensions.
+    tex_compression_formats: FnvHashMap<GLenum, TexCompression>,
 }
 
 impl WebGLExtensionFeatures {
@@ -131,6 +134,7 @@ impl WebGLExtensionFeatures {
             disabled_get_vertex_attrib_names,
             element_index_uint_enabled,
             blend_minmax_enabled,
+            tex_compression_formats: Default::default(),
         }
     }
 }
@@ -223,6 +227,13 @@ impl WebGLExtensions {
         names
             .iter()
             .any(|name| features.gl_extensions.contains(*name))
+    }
+
+    pub fn supports_all_gl_extension(&self, names: &[&str]) -> bool {
+        let features = self.features.borrow();
+        names
+            .iter()
+            .all(|name| features.gl_extensions.contains(*name))
     }
 
     pub fn enable_tex_type(&self, data_type: GLenum) {
@@ -335,6 +346,35 @@ impl WebGLExtensions {
             .contains(&name)
     }
 
+    pub fn add_tex_compression_formats(&self, formats: &[(GLenum, TexCompression)]) {
+        let formats: FnvHashMap<GLenum, TexCompression> = formats
+            .iter()
+            .map(|&(id, compression)| (id, compression))
+            .collect();
+
+        self.features
+            .borrow_mut()
+            .tex_compression_formats
+            .extend(formats.iter());
+    }
+
+    pub fn get_tex_compression_format(&self, format_id: GLenum) -> Option<TexCompression> {
+        self.features
+            .borrow()
+            .tex_compression_formats
+            .get(&format_id)
+            .cloned()
+    }
+
+    pub fn get_tex_compression_ids(&self) -> Vec<GLenum> {
+        self.features
+            .borrow()
+            .tex_compression_formats
+            .keys()
+            .map(|&k| k)
+            .collect()
+    }
+
     fn register_all_extensions(&self) {
         self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays>();
         self.register::<ext::extblendminmax::EXTBlendMinmax>();
@@ -349,6 +389,8 @@ impl WebGLExtensions {
         self.register::<ext::oestexturehalffloatlinear::OESTextureHalfFloatLinear>();
         self.register::<ext::oesvertexarrayobject::OESVertexArrayObject>();
         self.register::<ext::webglcolorbufferfloat::WEBGLColorBufferFloat>();
+        self.register::<ext::webglcompressedtextureetc1::WEBGLCompressedTextureETC1>();
+        self.register::<ext::webglcompressedtextures3tc::WEBGLCompressedTextureS3TC>();
     }
 
     pub fn enable_element_index_uint(&self) {

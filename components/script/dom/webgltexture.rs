@@ -474,3 +474,17 @@ impl ImageInfo {
         false
     }
 }
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+pub enum TexCompressionValidation {
+    None,
+    S3TC,
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+pub struct TexCompression {
+    pub bytes_per_block: u8,
+    pub block_width: u8,
+    pub block_height: u8,
+    pub validation: TexCompressionValidation,
+}
