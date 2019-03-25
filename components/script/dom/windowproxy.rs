@@ -282,9 +282,8 @@ impl WindowProxy {
             let load_data = LoadData::new(
                 blank_url,
                 None,
-                None,
+                Some(Referrer::ReferrerUrl(document.url().clone())),
                 document.get_referrer_policy(),
-                Some(document.url().clone()),
             );
             let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
             let new_layout_info = NewLayoutInfo {

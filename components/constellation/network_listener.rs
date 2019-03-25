@@ -12,7 +12,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
-use net_traits::request::{Destination, RequestBuilder};
+use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::response::ResponseInit;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
 use net_traits::{IpcSend, NetworkError, ResourceThreads};
@@ -109,7 +109,10 @@ impl NetworkListener {
                             .url_list
                             .push(metadata.final_url.clone());
 
-                        self.request_builder.referrer_url = metadata.referrer.clone();
+                        self.request_builder.referrer = metadata
+                            .referrer
+                            .clone()
+                            .map(|referrer_url| Referrer::ReferrerUrl(referrer_url));
                         self.request_builder.referrer_policy = metadata.referrer_policy;
 
                         self.res_init = Some(ResponseInit {

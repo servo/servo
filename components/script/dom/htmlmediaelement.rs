@@ -64,7 +64,7 @@ use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
-use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
+use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
@@ -722,7 +722,7 @@ impl HTMLMediaElement {
             .use_url_credentials(true)
             .origin(document.origin().immutable().clone())
             .pipeline_id(Some(self.global().pipeline_id()))
-            .referrer_url(Some(document.url()))
+            .referrer(Some(Referrer::ReferrerUrl(document.url())))
             .referrer_policy(document.get_referrer_policy());
 
         let mut current_fetch_context = self.current_fetch_context.borrow_mut();

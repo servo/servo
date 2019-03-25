@@ -213,9 +213,8 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 .use_url_credentials(true)
                 .origin(global_scope.origin().immutable().clone())
                 .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()))
-                .referrer_url(None)
                 .referrer_policy(None);
-;
+
             let (url, source) =
                 match load_whole_resource(request, &global_scope.resource_threads().sender()) {
                     Err(_) => return Err(Error::Network),
