@@ -11,13 +11,18 @@ use std::cell::UnsafeCell;
 use std::io;
 use std::mem;
 use std::process;
+use std::ptr;
+use std::sync::atomic::{AtomicPtr, Ordering};
 use std::thread;
+use unwind_sys::{
+    unw_cursor_t, unw_get_reg, unw_init_local, unw_step, UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP,
+};
 
 static mut SHARED_STATE: SharedState = SharedState {
     msg2: None,
     msg3: None,
     msg4: None,
-    context: None,
+    context: AtomicPtr::new(ptr::null_mut()),
 };
 
 type MonitoredThreadId = libc::pid_t;
@@ -27,7 +32,7 @@ struct SharedState {
     msg2: Option<PosixSemaphore>,
     msg3: Option<PosixSemaphore>,
     msg4: Option<PosixSemaphore>,
-    context: Option<libc::ucontext_t>,
+    context: AtomicPtr<libc::ucontext_t>,
 }
 
 fn clear_shared_state() {
@@ -35,7 +40,7 @@ fn clear_shared_state() {
         SHARED_STATE.msg2 = None;
         SHARED_STATE.msg3 = None;
         SHARED_STATE.msg4 = None;
-        SHARED_STATE.context = None;
+        SHARED_STATE.context = AtomicPtr::new(ptr::null_mut());
     }
 }
 
@@ -44,7 +49,7 @@ fn reset_shared_state() {
         SHARED_STATE.msg2 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
         SHARED_STATE.msg3 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
         SHARED_STATE.msg4 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
-        SHARED_STATE.context = None;
+        SHARED_STATE.context = AtomicPtr::new(ptr::null_mut());
     }
 }
 
@@ -135,6 +140,42 @@ impl LinuxSampler {
     }
 }
 
+enum RegNum {
+    Ip = UNW_REG_IP as isize,
+    Sp = UNW_REG_SP as isize,
+}
+
+fn get_register(cursor: &mut unw_cursor_t, num: RegNum) -> Result<u64, i32> {
+    unsafe {
+        let mut val = 0;
+        let ret = unw_get_reg(cursor, num as i32, &mut val);
+        if ret == UNW_ESUCCESS {
+            Ok(val)
+        } else {
+            Err(ret)
+        }
+    }
+}
+
+fn step(cursor: &mut unw_cursor_t) -> Result<bool, i32> {
+    unsafe {
+        // libunwind 1.1 seems to get confused and walks off the end of the stack. The last IP
+        // it reports is 0, so we'll stop if we're there.
+        if get_register(cursor, RegNum::Ip).unwrap_or(1) == 0 {
+            return Ok(false);
+        }
+
+        let ret = unw_step(cursor);
+        if ret > 0 {
+            Ok(true)
+        } else if ret == 0 {
+            Ok(false)
+        } else {
+            Err(ret)
+        }
+    }
+}
+
 impl Sampler for LinuxSampler {
     #[allow(unsafe_code)]
     fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()> {
@@ -157,7 +198,32 @@ impl Sampler for LinuxSampler {
                 .expect("msg2 failed");
         }
 
-        //let results = unsafe { callback(&mut SHARED_STATE.context.expect("valid context")) };
+        let context = unsafe { SHARED_STATE.context.load(Ordering::SeqCst) };
+        let mut cursor = unsafe { mem::uninitialized() };
+        let ret = unsafe { unw_init_local(&mut cursor, context) };
+        let result = if ret == UNW_ESUCCESS {
+            let mut native_stack = NativeStack::new();
+            loop {
+                let ip = match get_register(&mut cursor, RegNum::Ip) {
+                    Ok(ip) => ip,
+                    Err(_) => break,
+                };
+                let sp = match get_register(&mut cursor, RegNum::Sp) {
+                    Ok(sp) => sp,
+                    Err(_) => break,
+                };
+                if native_stack
+                    .process_register(ip as *mut _, sp as *mut _)
+                    .is_err() ||
+                    !step(&mut cursor).unwrap_or(false)
+                {
+                    break;
+                }
+            }
+            Ok(native_stack)
+        } else {
+            Err(())
+        };
 
         // signal the thread to continue.
         unsafe {
@@ -182,7 +248,7 @@ impl Sampler for LinuxSampler {
         clear_shared_state();
 
         // NOTE: End of "critical section".
-        Err(())
+        result
     }
 }
 
@@ -202,8 +268,9 @@ extern "C" fn sigprof_handler(
     assert_eq!(sig, libc::SIGPROF);
     unsafe {
         // copy the context.
-        let context: libc::ucontext_t = *(ctx as *mut libc::ucontext_t);
-        SHARED_STATE.context = Some(context);
+        SHARED_STATE
+            .context
+            .store(ctx as *mut libc::ucontext_t, Ordering::SeqCst);
         // Tell the sampler we copied the context.
         SHARED_STATE.msg2.as_ref().unwrap().post().expect("posted");
 
