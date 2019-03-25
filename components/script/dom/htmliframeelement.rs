@@ -269,6 +269,7 @@ impl HTMLIFrameElement {
         let load_data = LoadData::new(
             url,
             creator_pipeline_id,
+            None,
             document.get_referrer_policy(),
             Some(document.url()),
         );
@@ -295,6 +296,7 @@ impl HTMLIFrameElement {
         let load_data = LoadData::new(
             url,
             pipeline_id,
+            None,
             document.get_referrer_policy(),
             Some(document.url().clone()),
         );

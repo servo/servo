@@ -400,6 +400,7 @@ impl HTMLFormElement {
         let mut load_data = LoadData::new(
             action_components,
             None,
+            None,
             target_document.get_referrer_policy(),
             Some(target_document.url()),
         );

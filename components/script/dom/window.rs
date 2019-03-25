@@ -87,6 +87,7 @@ use js::rust::HandleValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
+use net_traits::request::Referrer;
 use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use num_traits::ToPrimitive;
@@ -1716,6 +1717,7 @@ impl Window {
         url: ServoUrl,
         replace: bool,
         force_reload: bool,
+        referrer: Option<Referrer>,
         referrer_policy: Option<ReferrerPolicy>,
     ) {
         let doc = self.Document();
@@ -1781,7 +1783,13 @@ impl Window {
             self.main_thread_script_chan()
                 .send(MainThreadScriptMsg::Navigate(
                     pipeline_id,
-                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())),
+                    LoadData::new(
+                        url,
+                        Some(pipeline_id),
+                        referrer,
+                        referrer_policy,
+                        Some(doc.url()),
+                    ),
                     replace,
                 ))
                 .unwrap();
