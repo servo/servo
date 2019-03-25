@@ -1,0 +1,19 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <title>ownerNode null test</title>
+  <link rel="help" href="https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style></style>
+</head>
+<body>
+  <script>
+    test(function() {
+      let sheet = document.querySelector("style").sheet;
+      assert_true(sheet.ownerNode instanceof HTMLStyleElement, "ownerNode should be an instance of HTMLStyleElement");
+      sheet.ownerNode.remove();
+      assert_equals(sheet.ownerNode, null, "ownerNode should be null after removing the styleSheet");
+    }, "ownerNode should be cleared out before removing the styleSheet");
+  </script>
+</body>

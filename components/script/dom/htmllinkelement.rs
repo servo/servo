@@ -85,6 +85,12 @@ impl HTMLLinkElement {
         }
     }
 
+    fn stylesheet_owner_cleanup(&self) {
+        if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
+            cssom_stylesheet.set_owner(None);
+        }
+    }
+
     #[allow(unrooted_must_root)]
     pub fn new(
         local_name: LocalName,
@@ -113,6 +119,7 @@ impl HTMLLinkElement {
             doc.remove_stylesheet(self.upcast(), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
+        self.stylesheet_owner_cleanup();
         self.cssom_stylesheet.set(None);
         doc.add_stylesheet(self.upcast(), s);
     }
@@ -250,8 +257,8 @@ impl VirtualMethods for HTMLLinkElement {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);
         }
-
         if let Some(s) = self.stylesheet.borrow_mut().take() {
+            self.stylesheet_owner_cleanup();
             document_from_node(self).remove_stylesheet(self.upcast(), &s);
         }
     }

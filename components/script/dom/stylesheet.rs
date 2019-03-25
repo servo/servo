@@ -5,8 +5,10 @@
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::element::Element;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -42,6 +44,11 @@ impl StyleSheetMethods for StyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-href
     fn GetHref(&self) -> Option<DOMString> {
         self.href.clone()
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
+    fn GetOwnerNode(&self) -> Option<DomRoot<Element>> {
+        self.downcast::<CSSStyleSheet>().unwrap().get_owner()
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-title
