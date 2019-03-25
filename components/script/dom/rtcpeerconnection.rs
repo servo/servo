@@ -7,7 +7,8 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandi
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
-    RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCOfferOptions,
+    RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceConnectionState,
+    RTCIceGatheringState, RTCOfferOptions, RTCSignalingState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
@@ -36,7 +37,8 @@ use dom_struct::dom_struct;
 
 use servo_media::streams::MediaStream as BackendMediaStream;
 use servo_media::webrtc::{
-    BundlePolicy, IceCandidate, SdpType, SessionDescription, WebRtcController, WebRtcSignaller,
+    BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
+    SignalingState, WebRtcController, WebRtcSignaller,
 };
 use servo_media::ServoMedia;
 use servo_media_auto::Backend;
@@ -59,6 +61,9 @@ pub struct RTCPeerConnection {
     answer_promises: DomRefCell<Vec<Rc<Promise>>>,
     local_description: MutNullableDom<RTCSessionDescription>,
     remote_description: MutNullableDom<RTCSessionDescription>,
+    gathering_state: Cell<RTCIceGatheringState>,
+    ice_connection_state: Cell<RTCIceConnectionState>,
+    signaling_state: Cell<RTCSignalingState>,
 }
 
 struct RTCSignaller {
@@ -90,6 +95,39 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
+    fn update_gathering_state(&self, state: GatheringState) {
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(update_gathering_state: move || {
+                let this = this.root();
+                this.update_gathering_state(state);
+            }),
+            &self.canceller,
+        );
+    }
+
+    fn update_ice_connection_state(&self, state: IceConnectionState) {
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(update_ice_connection_state: move || {
+                let this = this.root();
+                this.update_ice_connection_state(state);
+            }),
+            &self.canceller,
+        );
+    }
+
+    fn update_signaling_state(&self, state: SignalingState) {
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(update_signaling_state: move || {
+                let this = this.root();
+                this.update_signaling_state(state);
+            }),
+            &self.canceller,
+        );
+    }
+
     fn on_add_stream(&self, _: Box<BackendMediaStream>) {}
 
     fn close(&self) {
@@ -108,6 +146,9 @@ impl RTCPeerConnection {
             answer_promises: DomRefCell::new(vec![]),
             local_description: Default::default(),
             remote_description: Default::default(),
+            gathering_state: Cell::new(RTCIceGatheringState::New),
+            ice_connection_state: Cell::new(RTCIceConnectionState::New),
+            signaling_state: Cell::new(RTCSignalingState::Stable),
         }
     }
 
@@ -198,6 +239,96 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(self.upcast());
     }
 
+    /// https://www.w3.org/TR/webrtc/#update-ice-gathering-state
+    fn update_gathering_state(&self, state: GatheringState) {
+        // step 1
+        if self.closed.get() {
+            return;
+        }
+
+        // step 2 (state derivation already done by gstreamer)
+        let state: RTCIceGatheringState = state.into();
+
+        // step 3
+        if state == self.gathering_state.get() {
+            return;
+        }
+
+        // step 4
+        self.gathering_state.set(state);
+
+        // step 5
+        let event = Event::new(
+            &self.global(),
+            atom!("icegatheringstatechange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event.upcast::<Event>().fire(self.upcast());
+
+        // step 6
+        if state == RTCIceGatheringState::Complete {
+            let event = RTCPeerConnectionIceEvent::new(
+                &self.global(),
+                atom!("icecandidate"),
+                None,
+                None,
+                true,
+            );
+            event.upcast::<Event>().fire(self.upcast());
+        }
+    }
+
+    /// https://www.w3.org/TR/webrtc/#update-ice-connection-state
+    fn update_ice_connection_state(&self, state: IceConnectionState) {
+        // step 1
+        if self.closed.get() {
+            return;
+        }
+
+        // step 2 (state derivation already done by gstreamer)
+        let state: RTCIceConnectionState = state.into();
+
+        // step 3
+        if state == self.ice_connection_state.get() {
+            return;
+        }
+
+        // step 4
+        self.ice_connection_state.set(state);
+
+        // step 5
+        let event = Event::new(
+            &self.global(),
+            atom!("iceconnectionstatechange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event.upcast::<Event>().fire(self.upcast());
+    }
+
+    fn update_signaling_state(&self, state: SignalingState) {
+        if self.closed.get() {
+            return;
+        }
+
+        let state: RTCSignalingState = state.into();
+
+        if state == self.signaling_state.get() {
+            return;
+        }
+
+        self.signaling_state.set(state);
+
+        let event = Event::new(
+            &self.global(),
+            atom!("signalingstatechange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event.upcast::<Event>().fire(self.upcast());
+    }
+
     fn create_offer(&self) {
         let generation = self.offer_answer_generation.get();
         let (task_source, canceller) = self
@@ -269,11 +400,32 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
 
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-iceconnectionstatechange
+    event_handler!(
+        iceconnectionstatechange,
+        GetOniceconnectionstatechange,
+        SetOniceconnectionstatechange
+    );
+
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icegatheringstatechange
+    event_handler!(
+        icegatheringstatechange,
+        GetOnicegatheringstatechange,
+        SetOnicegatheringstatechange
+    );
+
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-onnegotiationneeded
     event_handler!(
         negotiationneeded,
         GetOnnegotiationneeded,
         SetOnnegotiationneeded
+    );
+
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-signalingstatechange
+    event_handler!(
+        signalingstatechange,
+        GetOnsignalingstatechange,
+        SetOnsignalingstatechange
     );
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate
@@ -419,6 +571,46 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
             self.controller.borrow().as_ref().unwrap().add_stream(track);
         }
     }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-icegatheringstate
+    fn IceGatheringState(&self) -> RTCIceGatheringState {
+        self.gathering_state.get()
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-iceconnectionstate
+    fn IceConnectionState(&self) -> RTCIceConnectionState {
+        self.ice_connection_state.get()
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-signalingstate
+    fn SignalingState(&self) -> RTCSignalingState {
+        self.signaling_state.get()
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close
+    fn Close(&self) {
+        // Step 1
+        if self.closed.get() {
+            return;
+        }
+        // Step 2
+        self.closed.set(true);
+
+        // Step 4
+        self.signaling_state.set(RTCSignalingState::Closed);
+
+        // Step 5 handled by backend
+        self.controller.borrow_mut().as_ref().unwrap().quit();
+
+        // Step 6-10
+        // (no current support for data channels, transports, etc)
+
+        // Step 11
+        self.ice_connection_state.set(RTCIceConnectionState::Closed);
+
+        // Step 11
+        // (no current support for connection state)
+    }
 }
 
 impl From<SessionDescription> for RTCSessionDescriptionInit {
@@ -447,6 +639,43 @@ impl<'a> From<&'a RTCSessionDescriptionInit> for SessionDescription {
         SessionDescription {
             type_,
             sdp: desc.sdp.to_string(),
+        }
+    }
+}
+
+impl From<GatheringState> for RTCIceGatheringState {
+    fn from(state: GatheringState) -> Self {
+        match state {
+            GatheringState::New => RTCIceGatheringState::New,
+            GatheringState::Gathering => RTCIceGatheringState::Gathering,
+            GatheringState::Complete => RTCIceGatheringState::Complete,
+        }
+    }
+}
+
+impl From<IceConnectionState> for RTCIceConnectionState {
+    fn from(state: IceConnectionState) -> Self {
+        match state {
+            IceConnectionState::New => RTCIceConnectionState::New,
+            IceConnectionState::Checking => RTCIceConnectionState::Checking,
+            IceConnectionState::Connected => RTCIceConnectionState::Connected,
+            IceConnectionState::Completed => RTCIceConnectionState::Completed,
+            IceConnectionState::Disconnected => RTCIceConnectionState::Disconnected,
+            IceConnectionState::Failed => RTCIceConnectionState::Failed,
+            IceConnectionState::Closed => RTCIceConnectionState::Closed,
+        }
+    }
+}
+
+impl From<SignalingState> for RTCSignalingState {
+    fn from(state: SignalingState) -> Self {
+        match state {
+            SignalingState::Stable => RTCSignalingState::Stable,
+            SignalingState::HaveLocalOffer => RTCSignalingState::Have_local_offer,
+            SignalingState::HaveRemoteOffer => RTCSignalingState::Have_remote_offer,
+            SignalingState::HaveLocalPranswer => RTCSignalingState::Have_local_pranswer,
+            SignalingState::HaveRemotePranswer => RTCSignalingState::Have_remote_pranswer,
+            SignalingState::Closed => RTCSignalingState::Closed,
         }
     }
 }

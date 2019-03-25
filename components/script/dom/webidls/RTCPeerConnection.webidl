@@ -18,21 +18,21 @@ interface RTCPeerConnection : EventTarget {
     // readonly attribute RTCSessionDescription? currentRemoteDescription;
     // readonly attribute RTCSessionDescription? pendingRemoteDescription;
     Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate);
-    // readonly attribute RTCSignalingState      signalingState;
-    // readonly attribute RTCIceGatheringState   iceGatheringState;
-    // readonly attribute RTCIceConnectionState  iceConnectionState;
+    readonly attribute RTCSignalingState      signalingState;
+    readonly attribute RTCIceGatheringState   iceGatheringState;
+    readonly attribute RTCIceConnectionState  iceConnectionState;
     // readonly attribute RTCPeerConnectionState connectionState;
     // readonly attribute boolean?               canTrickleIceCandidates;
     // static sequence<RTCIceServer>      getDefaultIceServers();
     // RTCConfiguration                   getConfiguration();
     // void                               setConfiguration(RTCConfiguration configuration);
-    // void                               close();
+    void                               close();
              attribute EventHandler           onnegotiationneeded;
              attribute EventHandler           onicecandidate;
     //          attribute EventHandler           onicecandidateerror;
-    //          attribute EventHandler           onsignalingstatechange;
-    //          attribute EventHandler           oniceconnectionstatechange;
-    //          attribute EventHandler           onicegatheringstatechange;
+             attribute EventHandler           onsignalingstatechange;
+             attribute EventHandler           oniceconnectionstatechange;
+             attribute EventHandler           onicegatheringstatechange;
     //          attribute EventHandler           onconnectionstatechange;
 
     // removed from spec, but still shipped by browsers
@@ -88,4 +88,29 @@ dictionary RTCOfferOptions : RTCOfferAnswerOptions {
 };
 
 dictionary RTCAnswerOptions : RTCOfferAnswerOptions {
+};
+
+enum RTCIceGatheringState {
+    "new",
+    "gathering",
+    "complete"
+};
+
+enum RTCIceConnectionState {
+    "new",
+    "checking",
+    "connected",
+    "completed",
+    "disconnected",
+    "failed",
+    "closed"
+};
+
+enum RTCSignalingState {
+    "stable",
+    "have-local-offer",
+    "have-remote-offer",
+    "have-local-pranswer",
+    "have-remote-pranswer",
+    "closed"
 };
