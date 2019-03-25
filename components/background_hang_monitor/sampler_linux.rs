@@ -12,6 +12,9 @@ use std::io;
 use std::mem;
 use std::process;
 use std::thread;
+use unwind_sys::{
+    unw_cursor_t, unw_get_reg, unw_init_local, unw_step, UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP,
+};
 
 static mut SHARED_STATE: SharedState = SharedState {
     msg2: None,
@@ -135,6 +138,42 @@ impl LinuxSampler {
     }
 }
 
+enum RegNum {
+    Ip = UNW_REG_IP as isize,
+    Sp = UNW_REG_SP as isize,
+}
+
+fn get_register(cursor: &mut unw_cursor_t, num: RegNum) -> Result<u64, i32> {
+    unsafe {
+        let mut val = 0;
+        let ret = unw_get_reg(cursor, num as i32, &mut val);
+        if ret == UNW_ESUCCESS {
+            Ok(val)
+        } else {
+            Err(ret)
+        }
+    }
+}
+
+fn step(cursor: &mut unw_cursor_t) -> Result<bool, i32> {
+    unsafe {
+        // libunwind 1.1 seems to get confused and walks off the end of the stack. The last IP
+        // it reports is 0, so we'll stop if we're there.
+        if get_register(cursor, RegNum::Ip).unwrap_or(1) == 0 {
+            return Ok(false);
+        }
+
+        let ret = unw_step(cursor);
+        if ret > 0 {
+            Ok(true)
+        } else if ret == 0 {
+            Ok(false)
+        } else {
+            Err(ret)
+        }
+    }
+}
+
 impl Sampler for LinuxSampler {
     #[allow(unsafe_code)]
     fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()> {
@@ -157,7 +196,33 @@ impl Sampler for LinuxSampler {
                 .expect("msg2 failed");
         }
 
-        //let results = unsafe { callback(&mut SHARED_STATE.context.expect("valid context")) };
+        let context = unsafe { &mut SHARED_STATE.context.expect("valid context") };
+        let mut native_stack = NativeStack::new();
+        let mut cursor = unsafe { mem::uninitialized() };
+        let ret = unsafe { unw_init_local(&mut cursor, context) };
+        let result = if ret == UNW_ESUCCESS {
+            let mut native_stack = NativeStack::new();
+            loop {
+                let ip = match get_register(&mut cursor, RegNum::Ip) {
+                    Ok(ip) => ip,
+                    Err(_) => break,
+                };
+                let sp = match get_register(&mut cursor, RegNum::Sp) {
+                    Ok(sp) => sp,
+                    Err(_) => break,
+                };
+                if native_stack
+                    .process_register(ip as *mut _, sp as *mut _)
+                    .is_err() ||
+                    !step(&mut cursor).unwrap_or(false)
+                {
+                    break;
+                }
+            }
+            Ok(native_stack)
+        } else {
+            Err(())
+        };
 
         // signal the thread to continue.
         unsafe {
@@ -182,7 +247,7 @@ impl Sampler for LinuxSampler {
         clear_shared_state();
 
         // NOTE: End of "critical section".
-        Err(())
+        result
     }
 }
 
