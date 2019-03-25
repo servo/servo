@@ -50,7 +50,7 @@ promise_test(async (t) => {
 
   assert_equals(pc1.sctp, null, 'RTCSctpTransport must be null');
 
-  const offer = await generateOffer({ pc: pc1, audio: true });
+  const offer = await generateAudioReceiveOnlyOffer(pc1);
   await Promise.all([pc1.setLocalDescription(offer), pc2.setRemoteDescription(offer)]);
   const answer = await pc2.createAnswer();
   await pc1.setRemoteDescription(answer);
@@ -66,7 +66,7 @@ promise_test(async (t) => {
 
   assert_equals(pc1.sctp, null, 'RTCSctpTransport must be null');
 
-  const offer = await generateOffer({ pc: pc2, audio: true });
+  const offer = await generateAudioReceiveOnlyOffer(pc2);
   await Promise.all([pc2.setLocalDescription(offer), pc1.setRemoteDescription(offer)]);
   const answer = await pc1.createAnswer();
   await pc1.setLocalDescription(answer);
