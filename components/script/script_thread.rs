@@ -144,6 +144,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -202,6 +203,8 @@ struct InProgressLoad {
     navigation_start_precise: u64,
     /// For cancelling the fetch
     canceller: FetchCanceller,
+    /// Flag to indicate if the layout thread is busy handling a request.
+    layout_is_busy: Arc<AtomicBool>,
 }
 
 impl InProgressLoad {
@@ -216,6 +219,7 @@ impl InProgressLoad {
         window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
+        layout_is_busy: Arc<AtomicBool>,
     ) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns();
@@ -237,6 +241,7 @@ impl InProgressLoad {
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: navigation_start_precise,
             canceller: Default::default(),
+            layout_is_busy: layout_is_busy,
         }
     }
 }
@@ -702,6 +707,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let opener = state.opener;
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
+                let layout_is_busy = state.layout_is_busy.clone();
 
                 let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
 
@@ -722,6 +728,7 @@ impl ScriptThreadFactory for ScriptThread {
                     window_size,
                     load_data.url.clone(),
                     origin,
+                    layout_is_busy,
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
@@ -2025,6 +2032,8 @@ impl ScriptThread {
         let layout_pair = unbounded();
         let layout_chan = layout_pair.0.clone();
 
+        let layout_is_busy = Arc::new(AtomicBool::new(false));
+
         let msg = message::Msg::CreateLayoutThread(LayoutThreadInit {
             id: new_pipeline_id,
             url: load_data.url.clone(),
@@ -2043,6 +2052,7 @@ impl ScriptThread {
                 self.control_chan.clone(),
                 load_data.url.clone(),
             ),
+            layout_is_busy: layout_is_busy.clone(),
         });
 
         // Pick a layout thread, any layout thread
@@ -2076,6 +2086,7 @@ impl ScriptThread {
             window_size,
             load_data.url.clone(),
             origin,
+            layout_is_busy.clone(),
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
@@ -2872,6 +2883,7 @@ impl ScriptThread {
             self.microtask_queue.clone(),
             self.webrender_document,
             self.webrender_api_sender.clone(),
+            incomplete.layout_is_busy,
         );
 
         // Initialize the browsing context for the window.

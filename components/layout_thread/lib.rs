@@ -96,7 +96,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
@@ -244,6 +244,9 @@ pub struct LayoutThread {
 
     /// The sizes of all iframes encountered during the last layout operation.
     last_iframe_sizes: RefCell<HashMap<BrowsingContextId, TypedSize2D<f32, CSSPixel>>>,
+
+    /// Flag that indicates if LayoutThread is busy handling a request.
+    busy: Arc<AtomicBool>,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -268,6 +271,7 @@ impl LayoutThreadFactory for LayoutThread {
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
+        busy: Arc<AtomicBool>,
     ) {
         thread::Builder::new()
             .name(format!("LayoutThread {:?}", id))
@@ -305,6 +309,7 @@ impl LayoutThreadFactory for LayoutThread {
                         webrender_api_sender,
                         webrender_document,
                         paint_time_metrics,
+                        busy,
                     );
 
                     let reporter_name = format!("layout-reporter-{}", id);
@@ -466,6 +471,7 @@ impl LayoutThread {
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
+        busy: Arc<AtomicBool>,
     ) -> LayoutThread {
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
@@ -544,6 +550,7 @@ impl LayoutThread {
             paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
             last_iframe_sizes: Default::default(),
+            busy: busy,
         }
     }
 
@@ -648,7 +655,8 @@ impl LayoutThread {
             recv(self.font_cache_receiver) -> msg => { msg.unwrap(); Request::FromFontCache }
         };
 
-        match request {
+        self.busy.store(true, Ordering::Relaxed);
+        let result = match request {
             Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => self
                 .handle_request_helper(
                     Msg::SetScrollStates(new_scroll_states),
@@ -679,7 +687,9 @@ impl LayoutThread {
                     .unwrap();
                 true
             },
-        }
+        };
+        self.busy.store(false, Ordering::Relaxed);
+        result
     }
 
     /// Receives and dispatches messages from other threads.
@@ -861,6 +871,7 @@ impl LayoutThread {
             self.webrender_api.clone_sender(),
             self.webrender_document,
             info.paint_time_metrics,
+            self.busy.clone(),
         );
     }
 

@@ -50,6 +50,7 @@ use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
 use style_traits::CSSPixel;
@@ -600,6 +601,8 @@ pub struct InitialScriptState {
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
     pub webrender_api_sender: RenderApiSender,
+    /// Flag to indicate if the layout thread is busy handling a request.
+    pub layout_is_busy: Arc<AtomicBool>,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`

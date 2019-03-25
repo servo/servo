@@ -20,6 +20,7 @@ use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use servo_url::ServoUrl;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 // A static method creating a layout thread
@@ -44,5 +45,6 @@ pub trait LayoutThreadFactory {
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
+        busy: Arc<AtomicBool>,
     );
 }

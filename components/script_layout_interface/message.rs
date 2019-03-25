@@ -19,6 +19,7 @@ use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
@@ -226,4 +227,5 @@ pub struct LayoutThreadInit {
     pub image_cache: Arc<dyn ImageCache>,
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub paint_time_metrics: PaintTimeMetrics,
+    pub layout_is_busy: Arc<AtomicBool>,
 }

@@ -18,7 +18,7 @@ use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use servo_config::opts::OutputOptions;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, Write};
@@ -171,6 +171,7 @@ pub struct Profiler {
     output: Option<OutputOptions>,
     pub last_msg: Option<ProfilerMsg>,
     trace: Option<TraceDump>,
+    blocked_layout_queries: HashMap<String, u32>,
 }
 
 impl Profiler {
@@ -305,6 +306,7 @@ impl Profiler {
             output: output,
             last_msg: None,
             trace: trace,
+            blocked_layout_queries: HashMap::new(),
         }
     }
 
@@ -344,6 +346,9 @@ impl Profiler {
                         .unwrap(),
                     None => sender.send(ProfilerData::NoRecords).unwrap(),
                 };
+            },
+            ProfilerMsg::BlockedLayoutQuery(url) => {
+                *self.blocked_layout_queries.entry(url).or_insert(0) += 1;
             },
             ProfilerMsg::Exit(chan) => {
                 heartbeats::cleanup();
@@ -411,6 +416,11 @@ impl Profiler {
                         .unwrap();
                     }
                 }
+
+                write!(file, "_url\t_blocked layout queries_\n").unwrap();
+                for (url, count) in &self.blocked_layout_queries {
+                    write!(file, "{}\t{}\n", url, count).unwrap();
+                }
             },
             Some(OutputOptions::Stdout(_)) => {
                 let stdout = io::stdout();
@@ -448,6 +458,12 @@ impl Profiler {
                         )
                         .unwrap();
                     }
+                }
+                writeln!(&mut lock, "").unwrap();
+
+                writeln!(&mut lock, "_url_\t_blocked layout queries_").unwrap();
+                for (url, count) in &self.blocked_layout_queries {
+                    writeln!(&mut lock, "{}\t{}", url, count).unwrap();
                 }
                 writeln!(&mut lock, "").unwrap();
             },

@@ -46,6 +46,11 @@ pub enum ProfilerMsg {
     ),
     /// Message used to force print the profiling metrics
     Print,
+
+    // TODO pylbrecht
+    // write meaningful docstring
+    BlockedLayoutQuery(String),
+
     /// Tells the profiler to shut down.
     Exit(IpcSender<()>),
 }
