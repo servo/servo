@@ -40,6 +40,7 @@ use std::ffi::OsStr;
 use std::process;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool};
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use webvr_traits::WebVRMsg;
@@ -512,6 +513,7 @@ impl UnprivilegedPipelineContent {
             self.script_chan.clone(),
             self.load_data.url.clone(),
         );
+        let layout_thread_busy_flag = Arc::new(AtomicBool::new(false));
         let layout_pair = STF::create(
             InitialScriptState {
                 id: self.id,
@@ -538,6 +540,7 @@ impl UnprivilegedPipelineContent {
                 webvr_chan: self.webvr_chan,
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),
+                layout_thread_is_busy: layout_thread_busy_flag.clone(),
             },
             self.load_data.clone(),
         );
@@ -560,6 +563,7 @@ impl UnprivilegedPipelineContent {
             self.webrender_api_sender,
             self.webrender_document,
             paint_time_metrics,
+            layout_thread_busy_flag.clone(),
         );
 
         if wait_for_completion {

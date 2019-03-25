@@ -145,6 +145,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::thread;
 use std::time::{Duration, SystemTime};
 use style::dom::OpaqueNode;
@@ -645,6 +646,10 @@ pub struct ScriptThread {
 
     /// FIXME(victor):
     webrender_api_sender: RenderApiSender,
+
+    // TODO pylbrecht
+    // write meaningful docstring
+    layout_thread_is_busy: Arc<AtomicBool>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1164,6 +1169,8 @@ impl ScriptThread {
 
             webrender_document: state.webrender_document,
             webrender_api_sender: state.webrender_api_sender,
+
+            layout_thread_is_busy: state.layout_thread_is_busy,
         }
     }
 
@@ -2857,6 +2864,7 @@ impl ScriptThread {
             self.microtask_queue.clone(),
             self.webrender_document,
             self.webrender_api_sender.clone(),
+            self.layout_thread_is_busy.clone(),
         );
 
         // Initialize the browsing context for the window.

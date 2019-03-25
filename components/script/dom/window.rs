@@ -117,7 +117,7 @@ use std::fs;
 use std::io::{stderr, stdout, Write};
 use std::mem;
 use std::rc::Rc;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -293,6 +293,12 @@ pub struct Window {
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unneccessary.
     has_sent_idle_message: Cell<bool>,
+
+    // TODO pylbrecht
+    // write meaningful doc string
+    ///
+    #[ignore_malloc_size_of = "Arc<T> is hard"]
+    layout_thread_is_busy: Arc<AtomicBool>,
 }
 
 impl Window {
@@ -1558,6 +1564,11 @@ impl Window {
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
+        if self.layout_thread_is_busy.load(Ordering::Relaxed) == true {
+            // TODO pylbrecht
+            // send message to profiler that layout thread is busy
+        }
+
         self.reflow(
             ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()),
             ReflowReason::Query,
@@ -2023,6 +2034,7 @@ impl Window {
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
+        layout_thread_is_busy: Arc<AtomicBool>,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2095,6 +2107,7 @@ impl Window {
             exists_mut_observer: Cell::new(false),
             webrender_api_sender,
             has_sent_idle_message: Cell::new(false),
+            layout_thread_is_busy,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }

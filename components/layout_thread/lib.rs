@@ -244,6 +244,11 @@ pub struct LayoutThread {
 
     /// The sizes of all iframes encountered during the last layout operation.
     last_iframe_sizes: RefCell<HashMap<BrowsingContextId, TypedSize2D<f32, CSSPixel>>>,
+
+    // TODO pylbrecht
+    // write meaningful doc string
+    ///
+    busy: Arc<AtomicBool>,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -268,6 +273,7 @@ impl LayoutThreadFactory for LayoutThread {
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
+        busy: Arc<AtomicBool>,
     ) {
         thread::Builder::new()
             .name(format!("LayoutThread {:?}", id))
@@ -305,6 +311,7 @@ impl LayoutThreadFactory for LayoutThread {
                         webrender_api_sender,
                         webrender_document,
                         paint_time_metrics,
+                        busy,
                     );
 
                     let reporter_name = format!("layout-reporter-{}", id);
@@ -673,7 +680,11 @@ impl LayoutThread {
                 self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
                 true
             },
-            Request::FromScript(msg) => self.handle_request_helper(msg, possibly_locked_rw_data),
+            Request::FromScript(msg) => {
+                self.busy.store(true, Ordering::Relaxed);
+                self.handle_request_helper(msg, possibly_locked_rw_data),
+                self.busy.store(false, Ordering::Relaxed);
+            }
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
