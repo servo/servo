@@ -22,7 +22,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
+    CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
@@ -326,7 +326,7 @@ impl<'a> StylesheetLoader<'a> {
             })
             .origin(document.origin().immutable().clone())
             .pipeline_id(Some(self.elem.global().pipeline_id()))
-            .referrer_url(Some(document.url()))
+            .referrer(Some(Referrer::ReferrerUrl(document.url())))
             .referrer_policy(referrer_policy)
             .integrity_metadata(integrity_metadata);
 

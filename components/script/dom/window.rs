@@ -1783,13 +1783,7 @@ impl Window {
             self.main_thread_script_chan()
                 .send(MainThreadScriptMsg::Navigate(
                     pipeline_id,
-                    LoadData::new(
-                        url,
-                        Some(pipeline_id),
-                        referrer,
-                        referrer_policy,
-                        Some(doc.url()),
-                    ),
+                    LoadData::new(url, Some(pipeline_id), referrer, referrer_policy),
                     replace,
                 ))
                 .unwrap();
