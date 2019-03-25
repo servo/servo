@@ -60,7 +60,6 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 
-use background_hang_monitor::HangMonitorRegister;
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
@@ -133,6 +132,7 @@ pub struct Servo<Window: WindowMethods + 'static> {
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+    profiler_enabled: bool,
 }
 
 #[derive(Clone)]
@@ -318,6 +318,7 @@ where
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
             embedder_events: Vec::new(),
+            profiler_enabled: false,
         }
     }
 
@@ -407,7 +408,15 @@ where
             },
 
             WindowEvent::ToggleSamplingProfiler(rate) => {
-                HangMonitorRegister::toggle(rate);
+                self.profiler_enabled = !self.profiler_enabled;
+                let msg = if self.profiler_enabled {
+                    ConstellationMsg::EnableProfiler(rate)
+                } else {
+                    ConstellationMsg::DisableProfiler
+                };
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending profiler toggle to constellation failed ({:?}).", e);
+                }
             },
 
             WindowEvent::ToggleWebRenderDebug(option) => {
@@ -714,7 +723,7 @@ pub fn run_content_process(token: String) {
         .send(unprivileged_content_sender)
         .unwrap();
 
-    let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
+    let mut unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_options(unprivileged_content.opts());
     PREFS.extend(unprivileged_content.prefs());
     set_logger(unprivileged_content.script_to_constellation_chan().clone());
@@ -724,11 +733,8 @@ pub fn run_content_process(token: String) {
         create_sandbox();
     }
 
-    let background_hang_monitor_register = HangMonitorRegister::init(
-        unprivileged_content
-            .background_hang_monitor_to_constellation_chan()
-            .clone(),
-    );
+    let background_hang_monitor_register =
+        unprivileged_content.register_with_background_hang_monitor();
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
