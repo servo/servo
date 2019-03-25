@@ -19,6 +19,7 @@
   "dom.serviceworker.enabled": false,
   "dom.serviceworker.timeout_seconds": 60,
   "dom.servoparser.async_html_tokenizer.enabled": false,
+  "dom.shadowdom.enabled": false,
   "dom.svg.enabled": false,
   "dom.testable_crash.enabled": false,
   "dom.testbinding.enabled": false,
