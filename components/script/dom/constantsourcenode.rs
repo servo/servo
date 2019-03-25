@@ -9,13 +9,16 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::{
+    self, ConstantSourceOptions,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::node::AudioNodeInit;
-use servo_media::audio::constant_source_node::ConstantSourceNodeOptions;
+use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as ServoMediaConstantSourceOptions;
 use servo_media::audio::param::ParamType;
 use std::f32;
 
@@ -34,7 +37,7 @@ impl ConstantSourceNode {
     ) -> Fallible<ConstantSourceNode> {
         let node_options =
             options
-                .parent
+                //.parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeInit::ConstantSourceNode(options.into()),
@@ -71,7 +74,7 @@ impl ConstantSourceNode {
         Ok(reflect_dom_object(
             Box::new(node),
             window,
-            OscillatorNodeBinding::Wrap,
+            ConstantSourceNodeBinding::Wrap,
         ))
     }
 
@@ -83,3 +86,12 @@ impl ConstantSourceNode {
         ConstantSourceNode::new(window, context, options)
     }
 }
+
+impl<'a> From<&'a ConstantSourceOptions> for ServoMediaConstantSourceOptions {
+    fn from(options: &'a ConstantSourceOptions) -> Self {
+        Self {
+            offset: *options.offset,
+        }
+    }
+}
+
