@@ -3336,7 +3336,7 @@ impl ScriptThread {
             .credentials_mode(CredentialsMode::Include)
             .use_url_credentials(true)
             .pipeline_id(Some(id))
-            .referrer_url(load_data.referrer_url)
+            .referrer(load_data.referrer)
             .referrer_policy(load_data.referrer_policy)
             .headers(load_data.headers)
             .body(load_data.data)

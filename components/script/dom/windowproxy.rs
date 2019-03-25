@@ -45,6 +45,7 @@ use js::JSCLASS_IS_GLOBAL;
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use net_traits::request::Referrer;
 use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -281,8 +282,8 @@ impl WindowProxy {
             let load_data = LoadData::new(
                 blank_url,
                 None,
+                Some(Referrer::ReferrerUrl(document.url().clone())),
                 document.get_referrer_policy(),
-                Some(document.url().clone()),
             );
             let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
             let new_layout_info = NewLayoutInfo {
@@ -428,9 +429,20 @@ impl WindowProxy {
                 Ok(url) => url,
                 Err(_) => return None, // TODO: throw a  "SyntaxError" DOMException.
             };
-            // TODO Step 14.3, handle noreferrer flag
+            // Step 14.3
+            let referrer = if noreferrer {
+                Referrer::NoReferrer
+            } else {
+                Referrer::Client
+            };
             // Step 14.5
-            target_window.load_url(url, new, false, target_document.get_referrer_policy());
+            target_window.load_url(
+                url,
+                new,
+                false,
+                referrer,
+                target_document.get_referrer_policy(),
+            );
         }
         if noopener {
             // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).

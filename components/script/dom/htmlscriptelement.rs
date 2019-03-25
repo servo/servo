@@ -33,7 +33,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
+    CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
 };
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -308,7 +308,7 @@ fn fetch_a_classic_script(
         })
         .origin(doc.origin().immutable().clone())
         .pipeline_id(Some(script.global().pipeline_id()))
-        .referrer_url(Some(doc.url()))
+        .referrer(Some(Referrer::ReferrerUrl(doc.url())))
         .referrer_policy(doc.get_referrer_policy())
         .integrity_metadata(integrity_metadata);
 

@@ -39,6 +39,7 @@ use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
+use net_traits::request::Referrer;
 use net_traits::storage_thread::StorageType;
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use pixels::PixelFormat;
@@ -139,10 +140,10 @@ pub struct LoadData {
     pub data: Option<Vec<u8>>,
     /// The result of evaluating a javascript scheme url.
     pub js_eval_result: Option<JsEvalResult>,
+    /// The referrer.
+    pub referrer: Option<Referrer>,
     /// The referrer policy.
     pub referrer_policy: Option<ReferrerPolicy>,
-    /// The referrer URL.
-    pub referrer_url: Option<ServoUrl>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -160,8 +161,8 @@ impl LoadData {
     pub fn new(
         url: ServoUrl,
         creator_pipeline_id: Option<PipelineId>,
+        referrer: Option<Referrer>,
         referrer_policy: Option<ReferrerPolicy>,
-        referrer_url: Option<ServoUrl>,
     ) -> LoadData {
         LoadData {
             url: url,
@@ -170,8 +171,8 @@ impl LoadData {
             headers: HeaderMap::new(),
             data: None,
             js_eval_result: None,
+            referrer: referrer,
             referrer_policy: referrer_policy,
-            referrer_url: referrer_url,
         }
     }
 }
