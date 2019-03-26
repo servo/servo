@@ -51,6 +51,7 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
+use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webrender_api::{
@@ -777,6 +778,10 @@ pub enum ConstellationMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
     SetCursor(Cursor),
+    /// Enable the sampling profiler.
+    EnableProfiler(Duration),
+    /// Disable the sampling profiler.
+    DisableProfiler,
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -804,6 +809,8 @@ impl fmt::Debug for ConstellationMsg {
             SelectBrowser(..) => "SelectBrowser",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
+            EnableProfiler(..) => "EnableProfiler",
+            DisableProfiler => "DisableProfiler",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

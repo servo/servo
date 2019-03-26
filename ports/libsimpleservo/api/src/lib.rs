@@ -538,7 +538,8 @@ impl ServoGlue {
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ShowIME(..) |
                 EmbedderMsg::HideIME |
-                EmbedderMsg::Panic(..) => {},
+                EmbedderMsg::Panic(..) |
+                EmbedderMsg::ReportProfile(..) => {},
             }
         }
         Ok(())

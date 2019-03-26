@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::event_loop::EventLoop;
+use background_hang_monitor::HangMonitorRegister;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing::compositor_thread::Msg as CompositorMsg;
@@ -18,7 +19,7 @@ use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
-use msg::constellation_msg::{BackgroundHangMonitorRegister, HangAlert};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
@@ -122,7 +123,7 @@ pub struct InitialPipelineState {
     pub background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
-    pub background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+    pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
 
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -188,10 +189,15 @@ pub struct InitialPipelineState {
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
 }
 
+pub struct NewPipeline {
+    pub pipeline: Pipeline,
+    pub sampler_control_chan: Option<IpcSender<SamplerControlMsg>>,
+}
+
 impl Pipeline {
     /// Starts a layout thread, and possibly a script thread, in
     /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, Error>
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<NewPipeline, Error>
     where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
@@ -210,7 +216,7 @@ impl Pipeline {
 
         let url = state.load_data.url.clone();
 
-        let script_chan = match state.event_loop {
+        let (script_chan, sampler_chan) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_pipeline_id,
@@ -229,7 +235,7 @@ impl Pipeline {
                 {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                script_chan
+                (script_chan, None)
             },
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
@@ -262,7 +268,7 @@ impl Pipeline {
                 let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
                     ipc::channel().expect("Pipeline script content process shutdown chan");
 
-                let unprivileged_pipeline_content = UnprivilegedPipelineContent {
+                let mut unprivileged_pipeline_content = UnprivilegedPipelineContent {
                     id: state.id,
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
@@ -272,6 +278,7 @@ impl Pipeline {
                     background_hang_monitor_to_constellation_chan: state
                         .background_hang_monitor_to_constellation_chan
                         .clone(),
+                    sampling_profiler_port: None,
                     scheduler_chan: state.scheduler_chan,
                     devtools_chan: script_to_devtools_chan,
                     bluetooth_thread: state.bluetooth_thread,
@@ -302,21 +309,25 @@ impl Pipeline {
                 // Spawn the child process.
                 //
                 // Yes, that's all there is to it!
-                if opts::multiprocess() {
+                let sampler_chan = if opts::multiprocess() {
+                    let (sampler_chan, sampler_port) = ipc::channel().expect("Sampler chan");
+                    unprivileged_pipeline_content.sampling_profiler_port = Some(sampler_port);
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
+                    Some(sampler_chan)
                 } else {
                     // Should not be None in single-process mode.
                     let register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
                     unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, register);
-                }
+                    None
+                };
 
-                EventLoop::new(script_chan)
+                (EventLoop::new(script_chan), sampler_chan)
             },
         };
 
-        Ok(Pipeline::new(
+        let pipeline = Pipeline::new(
             state.id,
             state.browsing_context_id,
             state.top_level_browsing_context_id,
@@ -327,7 +338,11 @@ impl Pipeline {
             url,
             state.prev_visibility,
             state.load_data,
-        ))
+        );
+        Ok(NewPipeline {
+            pipeline,
+            sampler_control_chan: sampler_chan,
+        })
     }
 
     /// Creates a new `Pipeline`, after the script and layout threads have been
@@ -467,7 +482,8 @@ pub struct UnprivilegedPipelineContent {
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
     script_to_constellation_chan: ScriptToConstellationChan,
-    background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+    background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
+    sampling_profiler_port: Option<IpcReceiver<SamplerControlMsg>>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -669,8 +685,13 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    pub fn background_hang_monitor_to_constellation_chan(&self) -> &IpcSender<HangAlert> {
-        &self.background_hang_monitor_to_constellation_chan
+    pub fn register_with_background_hang_monitor(&mut self) -> Box<BackgroundHangMonitorRegister> {
+        HangMonitorRegister::init(
+            self.background_hang_monitor_to_constellation_chan.clone(),
+            self.sampling_profiler_port
+                .take()
+                .expect("no sampling profiler?"),
+        )
     }
 
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {

@@ -16,6 +16,7 @@ use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gl")]
 use std::rc::Rc;
+use std::time::Duration;
 use style_traits::DevicePixel;
 use webrender_api::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, FramebufferIntRect,
@@ -94,6 +95,8 @@ pub enum WindowEvent {
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
     CaptureWebRender,
+    /// Toggle sampling profiler with the given sampling rate
+    ToggleSamplingProfiler(Duration),
 }
 
 impl Debug for WindowEvent {
@@ -121,6 +124,7 @@ impl Debug for WindowEvent {
             WindowEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
             WindowEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             WindowEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
+            WindowEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
         }
     }
 }
