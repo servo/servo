@@ -493,6 +493,8 @@ unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
+unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
+unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>, Rect<f32>);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -584,34 +586,6 @@ where
     }
 }
 
-unsafe impl JSTraceable for Rotation3D<f64> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Transform2D<f32> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Transform3D<f64> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Point2D<f32> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl<T, U> JSTraceable for TypedScale<f32, T, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
@@ -619,28 +593,7 @@ unsafe impl<T, U> JSTraceable for TypedScale<f32, T, U> {
     }
 }
 
-unsafe impl JSTraceable for Vector2D<f32> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Rect<Au> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Rect<f32> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
