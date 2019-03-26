@@ -20,6 +20,10 @@ pub struct XRRigidTransform {
     reflector_: Reflector,
     position: Dom<DOMPointReadOnly>,
     orientation: Dom<DOMPointReadOnly>,
+    #[ignore_malloc_size_of = "defined in euclid"]
+    translate: Transform3D<f64>,
+    #[ignore_malloc_size_of = "defined in euclid"]
+    rotate: Rotation3D<f64>,
 }
 
 impl XRRigidTransform {
@@ -27,10 +31,22 @@ impl XRRigidTransform {
         position: &DOMPointReadOnly,
         orientation: &DOMPointReadOnly,
     ) -> XRRigidTransform {
+        let translate = Transform3D::create_translation(
+            position.X() as f64,
+            position.Y() as f64,
+            position.Z() as f64,
+        );
+        let rotate = Rotation3D::unit_quaternion(
+            orientation.X() as f64,
+            orientation.Y() as f64,
+            orientation.Z() as f64,
+            orientation.W() as f64,
+        );
         XRRigidTransform {
             reflector_: Reflector::new(),
             position: Dom::from_ref(position),
             orientation: Dom::from_ref(orientation),
+            translate, rotate
         }
     }
 
@@ -86,18 +102,8 @@ impl XRRigidTransformMethods for XRRigidTransform {
 
 impl XRRigidTransform {
     pub fn matrix(&self) -> Transform3D<f64> {
-        // XXXManishearth compute this during initialization
-        let translate = Transform3D::create_translation(
-            self.position.X(),
-            self.position.Y(),
-            self.position.Z(),
-        );
-        let rotation = Rotation3D::unit_quaternion(
-            self.orientation.X(),
-            self.orientation.Y(),
-            self.orientation.Z(),
-            self.orientation.W(),
-        );
-        translate.pre_mul(&rotation.to_transform())
+        // Spec says the orientation applies first,
+        // so post-multiply (?)
+        self.translate.post_mul(&self.rotate.to_transform())
     }
 }
