@@ -579,7 +579,9 @@ impl Node {
                 return;
             }
 
-            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            if ancestor.is::<Element>() {
+                ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            }
         }
     }
 
