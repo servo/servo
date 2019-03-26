@@ -294,7 +294,9 @@ mod bindings {
     fn generate_structs() {
         let builder = Builder::get_initial_builder()
             .enable_cxx_namespaces()
-            .with_codegen_config(CodegenConfig::TYPES | CodegenConfig::VARS | CodegenConfig::FUNCTIONS);
+            .with_codegen_config(
+                CodegenConfig::TYPES | CodegenConfig::VARS | CodegenConfig::FUNCTIONS,
+            );
         let mut fixups = vec![];
         let builder = BuilderWithConfig::new(builder, CONFIG["structs"].as_table().unwrap())
             .handle_common(&mut fixups)

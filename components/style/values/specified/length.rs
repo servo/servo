@@ -135,7 +135,9 @@ impl FontRelativeLength {
             base_size: FontBaseSize,
             orientation: FontMetricsOrientation,
         ) -> FontMetrics {
-            context.font_metrics_provider.query(context, base_size, orientation)
+            context
+                .font_metrics_provider
+                .query(context, base_size, orientation)
         }
 
         let reference_font_size = base_size.resolve(context);
@@ -160,13 +162,12 @@ impl FontRelativeLength {
                 if context.for_non_inherited_property.is_some() {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
-                context.builder.add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
+                context
+                    .builder
+                    .add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
                 // The x-height is an intrinsically horizontal metric.
-                let metrics = query_font_metrics(
-                    context,
-                    base_size,
-                    FontMetricsOrientation::Horizontal
-                );
+                let metrics =
+                    query_font_metrics(context, base_size, FontMetricsOrientation::Horizontal);
                 let reference_size = metrics.x_height.unwrap_or_else(|| {
                     // https://drafts.csswg.org/css-values/#ex
                     //
@@ -182,7 +183,9 @@ impl FontRelativeLength {
                 if context.for_non_inherited_property.is_some() {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
-                context.builder.add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
+                context
+                    .builder
+                    .add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
                 // https://drafts.csswg.org/css-values/#ch:
                 //
                 //     Equal to the used advance measure of the “0” (ZERO,
@@ -190,11 +193,8 @@ impl FontRelativeLength {
                 //     measure of a glyph is its advance width or height,
                 //     whichever is in the inline axis of the element.)
                 //
-                let metrics = query_font_metrics(
-                    context,
-                    base_size,
-                    FontMetricsOrientation::MatchContext,
-                );
+                let metrics =
+                    query_font_metrics(context, base_size, FontMetricsOrientation::MatchContext);
                 let reference_size = metrics.zero_advance_measure.unwrap_or_else(|| {
                     // https://drafts.csswg.org/css-values/#ch
                     //

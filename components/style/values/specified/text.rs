@@ -282,7 +282,6 @@ bitflags! {
     }
 }
 
-
 impl Parse for TextDecorationLine {
     /// none | [ underline || overline || line-through || blink ]
     fn parse<'i, 't>(
@@ -318,7 +317,7 @@ impl Parse for TextDecorationLine {
             }
 
             if result.contains(flag) {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
 
             result.insert(flag)
@@ -341,6 +340,13 @@ impl ToCss for TextDecorationLine {
             return dest.write_str("none");
         }
 
+        #[cfg(feature = "gecko")]
+        {
+            if *self == TextDecorationLine::COLOR_OVERRIDE {
+                return Ok(());
+            }
+        }
+
         let mut writer = SequenceWriter::new(dest, " ");
         let mut any = false;
 
@@ -358,7 +364,7 @@ impl ToCss for TextDecorationLine {
         maybe_write!(LINE_THROUGH => "line-through");
         maybe_write!(BLINK => "blink");
 
-        debug_assert!(any || *self == TextDecorationLine::COLOR_OVERRIDE);
+        debug_assert!(any);
 
         Ok(())
     }

@@ -41,4 +41,5 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-set",
     servo_restyle_damage="rebuild_and_reflow",
+    products="gecko",
 )}

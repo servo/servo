@@ -190,9 +190,7 @@ impl FontFamily {
     /// Get default font family as `serif` which is a generic font-family
     pub fn serif() -> Self {
         FontFamily {
-            families: FontFamilyList::new(Box::new([SingleFontFamily::Generic(
-                atom!("serif"),
-            )])),
+            families: FontFamilyList::new(Box::new([SingleFontFamily::Generic(atom!("serif"))])),
             is_system_font: false,
         }
     }
@@ -204,7 +202,9 @@ impl MallocSizeOf for FontFamily {
         // SharedFontList objects are generally shared from the pointer
         // stored in the specified value. So only count this if the
         // SharedFontList is unshared.
-        unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(self.families.0.get()) }
+        unsafe {
+            bindings::Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(self.families.0.get())
+        }
     }
 }
 

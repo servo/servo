@@ -180,7 +180,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        use crate::selector_parser::PseudoElement;
         use crate::computed_values::list_style_position::T as ListStylePosition;
 
         let mut blockify = false;
@@ -205,8 +204,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.floated());
         blockify_if!(self.style.out_of_flow_positioned());
-        blockify_if!(self.style.pseudo == Some(&PseudoElement::Marker) &&
-                     self.style.get_parent_list().clone_list_style_position() == ListStylePosition::Outside);
+        blockify_if!(
+            self.style.pseudo.map_or(false, |p| p.is_marker()) &&
+                self.style.get_parent_list().clone_list_style_position() ==
+                    ListStylePosition::Outside
+        );
 
         if !blockify {
             return;
@@ -232,11 +234,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .clone_text_decoration_line()
                 .is_empty()
         {
-            self.style.add_flags(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
+            self.style
+                .add_flags(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
         }
 
         if self.style.is_pseudo_element() {
-            self.style.add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
+            self.style
+                .add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
         #[cfg(feature = "servo")]
@@ -302,7 +306,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .get_parent_flags()
                 .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
         {
-            self.style.add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+            self.style
+                .add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
         }
     }
 
@@ -588,7 +593,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
         if self.should_suppress_linebreak(layout_parent_style) {
-            self.style.add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+            self.style
+                .add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
             if !self.skip_item_display_fixup(element) {
                 let inline_display = self_display.inlinify();
@@ -646,10 +652,12 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         if element.unwrap().is_visited_link() {
-            self.style.add_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+            self.style
+                .add_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         } else {
             // Need to remove to handle unvisited link inside visited.
-            self.style.remove_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+            self.style
+                .remove_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         }
     }
 
@@ -725,9 +733,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         E: TElement,
     {
         use crate::properties::longhands::counter_increment::computed_value::T as ComputedIncrement;
-        use crate::values::CustomIdent;
-        use crate::values::generics::counters::{CounterPair};
+        use crate::values::generics::counters::CounterPair;
         use crate::values::specified::list::MozListReversed;
+        use crate::values::CustomIdent;
 
         if self.style.get_box().clone_display() != Display::ListItem {
             return;
@@ -752,8 +760,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             name: CustomIdent(atom!("list-item")),
             value: increment,
         };
-        let increments = increments.iter().cloned().chain(std::iter::once(list_increment));
-        self.style.mutate_counters().set_counter_increment(ComputedIncrement::new(increments.collect()));
+        let increments = increments
+            .iter()
+            .cloned()
+            .chain(std::iter::once(list_increment));
+        self.style
+            .mutate_counters()
+            .set_counter_increment(ComputedIncrement::new(increments.collect()));
     }
 
     /// Adjusts the style to account for various fixups that don't fit naturally

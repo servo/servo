@@ -53,7 +53,9 @@ use crate::gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use crate::gecko_bindings::structs::NODE_DESCENDANTS_NEED_FRAMES;
 use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
-use crate::gecko_bindings::structs::{Element as RawGeckoElement, nsINode as RawGeckoNode, nsXBLBinding as RawGeckoXBLBinding};
+use crate::gecko_bindings::structs::{
+    nsINode as RawGeckoNode, nsXBLBinding as RawGeckoXBLBinding, Element as RawGeckoElement,
+};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
@@ -321,7 +323,11 @@ impl<'ln> GeckoNode<'ln> {
         // `flattened_tree_parent`.
         if self.flattened_tree_parent_is_parent() {
             debug_assert_eq!(
-                unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).as_ref().map(GeckoNode) },
+                unsafe {
+                    bindings::Gecko_GetFlattenedTreeParentNode(self.0)
+                        .as_ref()
+                        .map(GeckoNode)
+                },
                 self.parent_node(),
                 "Fast path stopped holding!"
             );
@@ -331,7 +337,11 @@ impl<'ln> GeckoNode<'ln> {
 
         // NOTE(emilio): If this call is too expensive, we could manually
         // inline more aggressively.
-        unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).as_ref().map(GeckoNode) }
+        unsafe {
+            bindings::Gecko_GetFlattenedTreeParentNode(self.0)
+                .as_ref()
+                .map(GeckoNode)
+        }
     }
 
     #[inline]
@@ -381,7 +391,11 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     #[inline]
     fn prev_sibling(&self) -> Option<Self> {
-        unsafe { bindings::Gecko_GetPreviousSibling(self.0).as_ref().map(GeckoNode) }
+        unsafe {
+            bindings::Gecko_GetPreviousSibling(self.0)
+                .as_ref()
+                .map(GeckoNode)
+        }
     }
 
     #[inline]
@@ -498,7 +512,9 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
                 // however we can't express this easily with bindgen, and it would
                 // introduce functions with two input lifetimes into bindgen,
                 // which would be out of scope for elision.
-                bindings::Gecko_GetNextStyleChild(&mut *(it as *mut _)).as_ref().map(GeckoNode)
+                bindings::Gecko_GetNextStyleChild(&mut *(it as *mut _))
+                    .as_ref()
+                    .map(GeckoNode)
             },
         }
     }
@@ -705,7 +721,11 @@ impl<'le> GeckoElement<'le> {
             // FIXME(heycam): Having trouble with bindgen on nsXULElement,
             // where the binding parent is stored in a member variable
             // rather than in slots.  So just get it through FFI for now.
-            unsafe { bindings::Gecko_GetBindingParent(self.0).as_ref().map(GeckoElement) }
+            unsafe {
+                bindings::Gecko_GetBindingParent(self.0)
+                    .as_ref()
+                    .map(GeckoElement)
+            }
         } else {
             let binding_parent = unsafe { self.non_xul_xbl_binding_parent_raw_content().as_ref() }
                 .map(GeckoNode::from_content)
@@ -713,7 +733,11 @@ impl<'le> GeckoElement<'le> {
 
             debug_assert!(
                 binding_parent ==
-                    unsafe { bindings::Gecko_GetBindingParent(self.0).as_ref().map(GeckoElement) }
+                    unsafe {
+                        bindings::Gecko_GetBindingParent(self.0)
+                            .as_ref()
+                            .map(GeckoElement)
+                    }
             );
             binding_parent
         }
@@ -773,7 +797,11 @@ impl<'le> GeckoElement<'le> {
             return None;
         }
 
-        unsafe { bindings::Gecko_GetBeforeOrAfterPseudo(self.0, is_before).as_ref().map(GeckoElement) }
+        unsafe {
+            bindings::Gecko_GetBeforeOrAfterPseudo(self.0, is_before)
+                .as_ref()
+                .map(GeckoElement)
+        }
     }
 
     #[inline]
@@ -795,11 +823,7 @@ impl<'le> GeckoElement<'le> {
     /// animation.
     ///
     /// Also this function schedules style flush.
-    pub unsafe fn note_explicit_hints(
-        &self,
-        restyle_hint: RestyleHint,
-        change_hint: nsChangeHint,
-    ) {
+    pub unsafe fn note_explicit_hints(&self, restyle_hint: RestyleHint, change_hint: nsChangeHint) {
         use crate::gecko::restyle_damage::GeckoRestyleDamage;
 
         let damage = GeckoRestyleDamage::new(change_hint);
@@ -1042,13 +1066,10 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         let style = context.style();
 
         let (wm, font) = match base_size {
-            FontBaseSize::CurrentStyle => {
-                (style.writing_mode, style.get_font())
-            },
+            FontBaseSize::CurrentStyle => (style.writing_mode, style.get_font()),
             // These are only used for font-size computation, and the first is
             // really dubious...
-            FontBaseSize::InheritedStyleButStripEmUnits |
-            FontBaseSize::InheritedStyle => {
+            FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
                 (*style.inherited_writing_mode(), style.get_parent_font())
             },
         };
@@ -1142,7 +1163,11 @@ impl<'le> TElement for GeckoElement<'le> {
             return None;
         }
 
-        unsafe { bindings::Gecko_GetMarkerPseudo(self.0).as_ref().map(GeckoElement) }
+        unsafe {
+            bindings::Gecko_GetMarkerPseudo(self.0)
+                .as_ref()
+                .map(GeckoElement)
+        }
     }
 
     #[inline]
@@ -1555,10 +1580,12 @@ impl<'le> TElement for GeckoElement<'le> {
         // should destroy all CSS animations in display:none subtree.
         let computed_data = self.borrow_data();
         let computed_values = computed_data.as_ref().map(|d| d.styles.primary());
-        let before_change_values =
-            before_change_style.as_ref().map_or(ptr::null(), |x| x.as_gecko_computed_style());
-        let computed_values_opt =
-            computed_values.as_ref().map_or(ptr::null(), |x| x.as_gecko_computed_style());
+        let before_change_values = before_change_style
+            .as_ref()
+            .map_or(ptr::null(), |x| x.as_gecko_computed_style());
+        let computed_values_opt = computed_values
+            .as_ref()
+            .map_or(ptr::null(), |x| x.as_gecko_computed_style());
         unsafe {
             Gecko_UpdateAnimations(
                 self.0,
@@ -1834,7 +1861,8 @@ impl<'le> TElement for GeckoElement<'le> {
                 hints.push(SVG_TEXT_DISABLE_ZOOM_RULE.clone());
             }
         }
-        let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0).as_ref() };
+        let declarations =
+            unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0).as_ref() };
         let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
             declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
@@ -1884,7 +1912,8 @@ impl<'le> TElement for GeckoElement<'le> {
                 .state()
                 .intersects(NonTSPseudoClass::Active.state_flag());
             if active {
-                let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0).as_ref() };
+                let declarations =
+                    unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0).as_ref() };
                 let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
                     declarations.and_then(|s| s.as_arc_opt());
                 if let Some(decl) = declarations {
