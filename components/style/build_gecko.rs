@@ -220,44 +220,6 @@ mod bindings {
             .expect("Unable to write output");
     }
 
-    fn get_types(filename: &str, macro_pat: &str) -> Vec<(String, String)> {
-        // Read the file
-        let path = DISTDIR_PATH.join("include/mozilla/").join(filename);
-        let mut list_file = File::open(path).expect(&format!("Unable to open {}", filename));
-        let mut content = String::new();
-        list_file
-            .read_to_string(&mut content)
-            .expect(&format!("Failed to read {}", filename));
-        // Remove comments
-        let block_comment_re = Regex::new(r#"(?s)/\*.*?\*/"#).unwrap();
-        let line_comment_re = Regex::new(r#"//.*"#).unwrap();
-        let content = block_comment_re.replace_all(&content, "");
-        let content = line_comment_re.replace_all(&content, "");
-        // Extract the list
-        let re_string = format!(r#"^({})\(.+,\s*(\w+)\)$"#, macro_pat);
-        let re = Regex::new(&re_string).unwrap();
-        content
-            .lines()
-            .map(|line| line.trim())
-            .filter(|line| !line.is_empty())
-            .map(|line| {
-                let captures = re
-                    .captures(&line)
-                    .expect(&format!("Unrecognized line in {}: '{}'", filename, line));
-                let macro_name = captures.get(1).unwrap().as_str().to_string();
-                let type_name = captures.get(2).unwrap().as_str().to_string();
-                (macro_name, type_name)
-            })
-            .collect()
-    }
-
-    fn get_arc_types() -> Vec<String> {
-        get_types("ServoArcTypeList.h", "SERVO_ARC_TYPE")
-            .into_iter()
-            .map(|(_, type_name)| type_name)
-            .collect()
-    }
-
     struct BuilderWithConfig<'a> {
         builder: Builder,
         config: &'a Table,
@@ -434,18 +396,10 @@ mod bindings {
             .with_codegen_config(CodegenConfig::FUNCTIONS);
         let config = CONFIG["bindings"].as_table().unwrap();
         let mut fixups = vec![];
-        let mut builder = BuilderWithConfig::new(builder, config)
+        let builder = BuilderWithConfig::new(builder, config)
             .handle_common(&mut fixups)
             .handle_str_items("whitelist-functions", |b, item| b.whitelist_function(item))
             .get_builder();
-        for ty in get_arc_types().iter() {
-            builder = builder
-                .blacklist_type(format!("{}Strong", ty))
-                .raw_line(format!(
-                    "pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;",
-                    ty
-                ));
-        }
         write_binding_file(builder, BINDINGS_FILE, &fixups);
     }
 

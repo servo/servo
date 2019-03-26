@@ -135,12 +135,12 @@ pub unsafe trait HasArcFFI: HasFFI {
     }
 }
 
-#[repr(C)]
 /// Gecko-FFI-safe Arc (T is an ArcInner).
 ///
 /// This can be null.
 ///
 /// Leaks on drop. Please don't drop this.
+#[repr(C)]
 pub struct Strong<GeckoType> {
     ptr: *const GeckoType,
     _marker: PhantomData<GeckoType>,

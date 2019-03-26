@@ -111,6 +111,7 @@ include = [
   "MozListReversed",
   "Owned",
   "OwnedOrNull",
+  "Strong",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -224,6 +225,14 @@ item_types = ["enums", "structs", "typedefs"]
 "OwnedOrNull" = """
   UniquePtr<GeckoType> Consume() {
     UniquePtr<GeckoType> ret(ptr);
+    ptr = nullptr;
+    return ret;
+  }
+"""
+
+"Strong" = """
+  already_AddRefed<GeckoType> Consume() {
+    already_AddRefed<GeckoType> ret(const_cast<GeckoType*>(ptr));
     ptr = nullptr;
     return ret;
   }
