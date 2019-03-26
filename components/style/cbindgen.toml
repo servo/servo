@@ -109,6 +109,8 @@ include = [
   "WillChangeBits",
   "TextDecorationLine",
   "MozListReversed",
+  "Owned",
+  "OwnedOrNull",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -207,4 +209,22 @@ item_types = ["enums", "structs", "typedefs"]
   static inline StyleRestyleHint RestyleSubtree();
   static inline StyleRestyleHint RecascadeSubtree();
   static inline StyleRestyleHint ForAnimations();
+"""
+
+# TODO(emilio): Add hooks to cbindgen to be able to generate MOZ_MUST_USE_TYPE
+# or MOZ_MUST_USE on the functions.
+"Owned" = """
+  UniquePtr<GeckoType> Consume() {
+    UniquePtr<GeckoType> ret(ptr);
+    ptr = nullptr;
+    return ret;
+  }
+"""
+
+"OwnedOrNull" = """
+  UniquePtr<GeckoType> Consume() {
+    UniquePtr<GeckoType> ret(ptr);
+    ptr = nullptr;
+    return ret;
+  }
 """

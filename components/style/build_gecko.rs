@@ -258,13 +258,6 @@ mod bindings {
             .collect()
     }
 
-    fn get_boxed_types() -> Vec<String> {
-        get_types("ServoBoxedTypeList.h", "SERVO_BOXED_TYPE")
-            .into_iter()
-            .map(|(_, type_name)| type_name)
-            .collect()
-    }
-
     struct BuilderWithConfig<'a> {
         builder: Builder,
         config: &'a Table,
@@ -450,22 +443,6 @@ mod bindings {
                 .blacklist_type(format!("{}Strong", ty))
                 .raw_line(format!(
                     "pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;",
-                    ty
-                ));
-        }
-        for ty in get_boxed_types().iter() {
-            builder = builder
-                .blacklist_type(format!("{}Owned", ty))
-                .raw_line(format!(
-                    "pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;",
-                    ty
-                ))
-                .blacklist_type(format!("{}OwnedOrNull", ty))
-                .raw_line(format!(
-                    concat!(
-                        "pub type {0}OwnedOrNull = ",
-                        "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"
-                    ),
                     ty
                 ));
         }
