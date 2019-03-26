@@ -18,6 +18,11 @@ use unwind_sys::{
     unw_cursor_t, unw_get_reg, unw_init_local, unw_step, UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP,
 };
 
+// Hack to workaround broken libunwind pkg-config contents for <1.1-3ubuntu.1.
+// https://bugs.launchpad.net/ubuntu/+source/libunwind/+bug/1336912
+#[link(name = "lzma")]
+extern "C" {}
+
 static mut SHARED_STATE: SharedState = SharedState {
     msg2: None,
     msg3: None,
