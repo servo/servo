@@ -56,7 +56,9 @@ use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
 use euclid::Length as EuclidLength;
-use euclid::{Point2D, Rect, Rotation3D, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D};
+use euclid::{
+    Point2D, Rect, Rotation3D, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D,
+};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use http::header::HeaderMap;
