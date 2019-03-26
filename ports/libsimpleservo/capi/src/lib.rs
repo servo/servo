@@ -6,7 +6,9 @@
 extern crate log;
 
 use env_logger;
-use simpleservo::{self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO};
+use simpleservo::{
+    self, gl_glue, Coordinates, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO,
+};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::{c_char, c_void};
@@ -48,8 +50,8 @@ pub struct CHostCallbacks {
 pub struct CInitOptions {
     pub args: *const c_char,
     pub url: *const c_char,
-    pub width: u32,
-    pub height: u32,
+    pub width: i32,
+    pub height: i32,
     pub density: f32,
     pub vr_pointer: *mut c_void,
     pub enable_subpixel_text_antialiasing: bool,
@@ -79,11 +81,12 @@ fn init(
     let url = unsafe { CStr::from_ptr(opts.url) };
     let url = url.to_str().map(|s| s.to_string()).ok();
 
+    let coordinates = Coordinates::new(0, 0, opts.width, opts.height, opts.width, opts.height);
+
     let opts = InitOptions {
         args,
         url,
-        width: opts.width,
-        height: opts.height,
+        coordinates,
         density: opts.density,
         vr_pointer: if opts.vr_pointer.is_null() {
             None
@@ -140,9 +143,12 @@ pub extern "C" fn set_batch_mode(batch: bool) {
 }
 
 #[no_mangle]
-pub extern "C" fn resize(width: u32, height: u32) {
+pub extern "C" fn resize(width: i32, height: i32) {
     debug!("resize {}/{}", width, height);
-    call(|s| s.resize(width, height));
+    call(|s| {
+        let coordinates = Coordinates::new(0, 0, width, height, width, height);
+        s.resize(coordinates)
+    });
 }
 
 #[no_mangle]

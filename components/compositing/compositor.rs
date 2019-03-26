@@ -42,8 +42,7 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::{
-    self, DeviceIntPoint, DevicePoint, FramebufferIntRect, FramebufferIntSize, HitTestFlags,
-    HitTestResult,
+    self, DeviceIntPoint, DevicePoint, FramebufferIntSize, HitTestFlags, HitTestResult,
 };
 use webrender_api::{LayoutVector2D, ScrollLocation};
 use webvr_traits::WebVRMainThreadHeartbeat;
@@ -578,16 +577,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
 
-        let flipped_viewport = {
-            let fb_height = self.embedder_coordinates.framebuffer.height;
-            let mut view = self.embedder_coordinates.viewport.clone();
-            view.origin.y = fb_height - view.origin.y - view.size.height;
-            FramebufferIntRect::from_untyped(&view.to_untyped())
-        };
-
         self.webrender_api.set_document_view(
             self.webrender_document,
-            flipped_viewport,
+            self.embedder_coordinates.get_flipped_viewport(),
             self.embedder_coordinates.hidpi_factor.get(),
         );
 
@@ -1214,8 +1206,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     &self.embedder_coordinates.framebuffer.to_untyped(),
                 );
 
-                self.window.gl().clear_color(1.0, 1.0, 1.0, 0.0);
+                self.window.gl().clear_color(0.0, 0.0, 0.0, 0.0);
                 self.window.gl().clear(gleam::gl::COLOR_BUFFER_BIT);
+                let viewport = self.embedder_coordinates.get_flipped_viewport();
+                self.window.gl().scissor(
+                    viewport.origin.x,
+                    viewport.origin.y,
+                    viewport.size.width,
+                    viewport.size.height,
+                );
+                self.window.gl().clear_color(1.0, 1.0, 1.0, 1.0);
+                self.window.gl().enable(gleam::gl::SCISSOR_TEST);
+                self.window.gl().clear(gleam::gl::COLOR_BUFFER_BIT);
+                self.window.gl().disable(gleam::gl::SCISSOR_TEST);
 
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
