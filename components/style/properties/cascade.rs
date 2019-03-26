@@ -673,9 +673,12 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         true
     }
 
-    // The default font type (which is stored in FontFamilyList's
-    // `mDefaultFontType`) depends on the current lang group, so
-    // we may need to recompute it if it changed.
+    /// The default font type (which is stored in FontFamilyList's
+    /// `mDefaultFontType`) depends on the current lang group and generic font
+    /// family, so we may need to recompute it if or the family changed.
+    ///
+    /// Also, we prioritize non-document fonts here if we need to (see the pref
+    /// `browser.display.use_document_fonts`).
     #[inline]
     #[cfg(feature = "gecko")]
     fn recompute_default_font_family_type_if_needed(&mut self) {
@@ -686,30 +689,54 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             return;
         }
 
+        let use_document_fonts = unsafe { structs::StaticPrefs_sVarCache_browser_display_use_document_fonts != 0 };
         let builder = &mut self.context.builder;
-        let default_font_type = {
+        let (default_font_type, prioritize_user_fonts) = {
             let font = builder.get_font().gecko();
-            let default_font_type = if font.mFont.systemFont {
-                structs::FontFamilyType::eFamily_none
-            } else {
-                unsafe {
-                    bindings::Gecko_nsStyleFont_ComputeDefaultFontType(
-                        builder.device.document(),
-                        font.mGenericID,
-                        font.mLanguage.mRawPtr,
-                    )
-                }
-            };
 
-            if font.mFont.fontlist.mDefaultFontType == default_font_type {
+            // System fonts are all right, and should have the default font type
+            // set to none already, so bail out early.
+            if font.mFont.systemFont {
+                debug_assert_eq!(font.mFont.fontlist.mDefaultFontType, structs::FontFamilyType::eFamily_none);
                 return;
             }
 
-            default_font_type
+            let default_font_type = unsafe {
+                bindings::Gecko_nsStyleFont_ComputeDefaultFontType(
+                    builder.device.document(),
+                    font.mGenericID,
+                    font.mLanguage.mRawPtr,
+                )
+            };
+
+            // We prioritize user fonts over document fonts if the pref is set,
+            // and we don't have a generic family already (or we're using
+            // cursive or fantasy, since they're ignored, see bug 789788), and
+            // we have a generic family to actually replace it with.
+            let prioritize_user_fonts =
+                !use_document_fonts &&
+                matches!(
+                    font.mGenericID,
+                    structs::kGenericFont_NONE |
+                    structs::kGenericFont_fantasy |
+                    structs::kGenericFont_cursive
+                ) &&
+                default_font_type != structs::FontFamilyType::eFamily_none;
+
+            if !prioritize_user_fonts && default_font_type == font.mFont.fontlist.mDefaultFontType {
+                // Nothing to do.
+                return;
+            }
+            (default_font_type, prioritize_user_fonts)
         };
 
-        builder.mutate_font().gecko_mut().mFont.fontlist.mDefaultFontType =
-            default_font_type;
+        let font = builder.mutate_font().gecko_mut();
+        font.mFont.fontlist.mDefaultFontType = default_font_type;
+        if prioritize_user_fonts {
+            unsafe {
+                bindings::Gecko_nsStyleFont_PrioritizeUserFonts(font, default_font_type)
+            }
+        }
     }
 
     /// Some keyword sizes depend on the font family and language.
