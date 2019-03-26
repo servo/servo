@@ -96,7 +96,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
@@ -473,6 +473,7 @@ impl LayoutThread {
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
+        busy: Arc<AtomicBool>,
     ) -> LayoutThread {
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
@@ -555,6 +556,7 @@ impl LayoutThread {
             paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
             last_iframe_sizes: Default::default(),
+            busy: busy,
         }
     }
 
@@ -682,8 +684,9 @@ impl LayoutThread {
             },
             Request::FromScript(msg) => {
                 self.busy.store(true, Ordering::Relaxed);
-                self.handle_request_helper(msg, possibly_locked_rw_data),
+                let ret = self.handle_request_helper(msg, possibly_locked_rw_data);
                 self.busy.store(false, Ordering::Relaxed);
+                ret
             }
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -876,6 +879,7 @@ impl LayoutThread {
             self.webrender_api.clone_sender(),
             self.webrender_document,
             info.paint_time_metrics,
+            self.busy.clone(),
         );
     }
 

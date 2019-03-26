@@ -1567,6 +1567,7 @@ impl Window {
         if self.layout_thread_is_busy.load(Ordering::Relaxed) == true {
             // TODO pylbrecht
             // send message to profiler that layout thread is busy
+            panic!("this is just a test");
         }
 
         self.reflow(
