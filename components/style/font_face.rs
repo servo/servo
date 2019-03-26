@@ -545,7 +545,7 @@ macro_rules! font_face_descriptors {
     }
 }
 
-/// css-name rust_identifier: Type,
+// css-name rust_identifier: Type,
 #[cfg(feature = "gecko")]
 font_face_descriptors! {
     mandatory descriptors = [

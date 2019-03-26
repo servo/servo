@@ -141,7 +141,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant, _gen: &hir::Generics) {
         let ref map = cx.tcx.hir();
         if map
-            .expect_item_by_hir_id(map.get_parent_item(var.node.data.hir_id()))
+            .expect_item_by_hir_id(map.get_parent_item(var.node.id))
             .attrs
             .iter()
             .all(|a| !a.check_name("must_root"))
