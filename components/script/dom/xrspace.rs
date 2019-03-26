@@ -40,6 +40,7 @@ impl XRSpace {
 
 impl XRSpace {
     /// Gets viewer pose represented by this space
+    #[allow(unused)]
     pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_viewer_pose(base_pose)
@@ -51,6 +52,7 @@ impl XRSpace {
     /// Gets pose represented by this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
+    #[allow(unused)]
     pub fn get_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
