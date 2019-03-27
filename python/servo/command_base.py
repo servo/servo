@@ -365,7 +365,7 @@ class CommandBase(object):
         return path.join(base_path, build_type, apk_name)
 
     def get_gstreamer_path(self):
-        return path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
+        return path.join(self.context.topdir, "support", "linux", "gstreamer", "gst")
 
     def get_binary_path(self, release, dev, android=False, magicleap=False):
         # TODO(autrilla): this function could still use work - it shouldn't
@@ -565,7 +565,7 @@ install them, let us know by filing a bug!")
            but may still need dynamic search paths. This command sets that up"""
         if not android and self.needs_gstreamer_env(None):
             gstpath = self.get_gstreamer_path()
-            os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib", "x86_64-linux-gnu")
+            os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
 
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
@@ -612,7 +612,7 @@ install them, let us know by filing a bug!")
         if self.needs_gstreamer_env(target):
             gstpath = self.get_gstreamer_path()
             extra_path += [path.join(gstpath, "bin")]
-            libpath = path.join(gstpath, "lib", "x86_64-linux-gnu")
+            libpath = path.join(gstpath, "lib")
             # we append in the reverse order so that system gstreamer libraries
             # do not get precedence
             extra_path = [libpath] + extra_path
