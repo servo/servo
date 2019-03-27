@@ -30,10 +30,12 @@ use js::rust::MutableHandleValue;
 use libc::c_uint;
 use std::slice::from_raw_parts;
 
-/// An optional stringified JS backtrace and stringified native backtrace from the
-/// the last DOM exception that was reported.
 #[cfg(feature = "js_backtrace")]
-thread_local!(static LAST_EXCEPTION_BACKTRACE: DomRefCell<Option<(Option<String>, String)>> = DomRefCell::new(None));
+thread_local! {
+    /// An optional stringified JS backtrace and stringified native backtrace from the
+    /// the last DOM exception that was reported.
+    static LAST_EXCEPTION_BACKTRACE: DomRefCell<Option<(Option<String>, String)>> = DomRefCell::new(None);
+}
 
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Clone, Debug, MallocSizeOf)]
