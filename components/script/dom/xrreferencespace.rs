@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -11,7 +12,10 @@ use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
+use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use dom_struct::dom_struct;
+use euclid::Transform3D;
+use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
 pub struct XRReferenceSpace {
@@ -62,5 +66,35 @@ impl XRReferenceSpaceMethods for XRReferenceSpace {
     /// https://immersive-web.github.io/webxr/#dom-xrreferencespace-originoffset
     fn OriginOffset(&self) -> DomRoot<XRRigidTransform> {
         self.transform.get()
+    }
+}
+
+impl XRReferenceSpace {
+    /// Gets viewer pose represented by this space
+    pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
+        let pose = self.get_pose(base_pose);
+
+        // This may change, see https://github.com/immersive-web/webxr/issues/567
+        let offset = self.transform.get().matrix();
+        // XXXManishearth we can directly compute the inverse from the transform parameters
+        // (and perhaps cache it)
+        // XXXManishearth we can also optimize for the unset/identity offset case
+        let inverse = offset
+            .inverse()
+            .expect("rigid transforms are always invertible");
+        inverse.pre_mul(&pose)
+    }
+
+    /// Gets pose represented by this space
+    ///
+    /// Does not apply originOffset, use get_viewer_pose instead if you need it
+    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
+        if let Some(stationary) = self.downcast::<XRStationaryReferenceSpace>() {
+            stationary.get_pose(base_pose)
+        } else {
+            // non-subclassed XRReferenceSpaces exist, obtained via the "identity"
+            // type. The pose does not depend on the base pose.
+            Transform3D::identity()
+        }
     }
 }

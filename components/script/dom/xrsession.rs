@@ -56,6 +56,10 @@ impl XRSession {
         self.display.xr_present(self, None, Some(p));
     }
 
+    pub fn display(&self) -> &VRDisplay {
+        &self.display
+    }
+
     pub fn set_layer(&self, layer: &XRLayer) {
         self.base_layer.set(Some(layer))
     }

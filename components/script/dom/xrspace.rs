@@ -3,12 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::XRSpaceBinding;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
+use euclid::Transform3D;
+use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
 pub struct XRSpace {
@@ -31,5 +35,29 @@ impl XRSpace {
             global,
             XRSpaceBinding::Wrap,
         )
+    }
+}
+
+impl XRSpace {
+    /// Gets viewer pose represented by this space
+    #[allow(unused)]
+    pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
+        if let Some(reference) = self.downcast::<XRReferenceSpace>() {
+            reference.get_viewer_pose(base_pose)
+        } else {
+            unreachable!()
+        }
+    }
+
+    /// Gets pose represented by this space
+    ///
+    /// Does not apply originOffset, use get_viewer_pose instead if you need it
+    #[allow(unused)]
+    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
+        if let Some(reference) = self.downcast::<XRReferenceSpace>() {
+            reference.get_pose(base_pose)
+        } else {
+            unreachable!()
+        }
     }
 }
