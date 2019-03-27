@@ -41,7 +41,7 @@ class Config:
         self.index_read_only = False
         self.scopes_for_all_subtasks = []
         self.routes_for_all_subtasks = []
-        self.docker_image_buil_worker_type = None
+        self.docker_image_build_worker_type = None
         self.docker_images_expire_in = "1 month"
         self.repacked_msi_files_expire_in = "1 month"
         self.treeherder_repository_name = None
@@ -723,7 +723,7 @@ class DockerWorkerTask(UnixTaskMixin, Task):
 
         image_build_task = (
             DockerWorkerTask("Docker image: " + image_name)
-            .with_worker_type(CONFIG.docker_image_buil_worker_type or self.worker_type)
+            .with_worker_type(CONFIG.docker_image_build_worker_type or self.worker_type)
             .with_max_run_time_minutes(30)
             .with_index_and_artifacts_expire_in(CONFIG.docker_images_expire_in)
             .with_features("dind")
