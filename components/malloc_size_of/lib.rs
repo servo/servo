@@ -58,8 +58,6 @@ extern crate hyper;
 extern crate hyper_serde;
 #[cfg(feature = "servo")]
 extern crate keyboard_types;
-#[cfg(feature = "servo")]
-extern crate mozjs as js;
 extern crate selectors;
 #[cfg(feature = "servo")]
 extern crate serde;
@@ -793,15 +791,6 @@ impl MallocSizeOf for Void {
 
 #[cfg(feature = "servo")]
 impl<Static: string_cache::StaticAtomSet> MallocSizeOf for string_cache::Atom<Static> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
-    }
-}
-
-// This is measured properly by the heap measurement implemented in
-// SpiderMonkey.
-#[cfg(feature = "servo")]
-impl<T: Copy + js::rust::GCMethods> MallocSizeOf for js::jsapi::Heap<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
     }

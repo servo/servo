@@ -22,6 +22,7 @@ use webvr_traits::WebVRFrameData;
 #[dom_struct]
 pub struct XRViewerPose {
     pose: XRPose,
+    #[ignore_malloc_size_of = "mozjs"]
     views: Heap<JSVal>,
 }
 

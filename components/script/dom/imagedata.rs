@@ -25,6 +25,7 @@ pub struct ImageData {
     reflector_: Reflector,
     width: u32,
     height: u32,
+    #[ignore_malloc_size_of = "mozjs"]
     data: Heap<*mut JSObject>,
 }
 

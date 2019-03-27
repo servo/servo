@@ -21,6 +21,7 @@ pub struct VRStageParameters {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     parameters: DomRefCell<WebVRStageParameters>,
+    #[ignore_malloc_size_of = "mozjs"]
     transform: Heap<*mut JSObject>,
 }
 

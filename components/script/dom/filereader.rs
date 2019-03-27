@@ -83,7 +83,7 @@ pub enum FileReaderReadyState {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum FileReaderResult {
-    ArrayBuffer(Heap<JSVal>),
+    ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] Heap<JSVal>),
     String(DOMString),
 }
 

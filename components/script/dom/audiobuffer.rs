@@ -42,6 +42,7 @@ type JSAudioChannel = Heap<*mut JSObject>;
 pub struct AudioBuffer {
     reflector_: Reflector,
     /// Float32Arrays returned by calls to GetChannelData.
+    #[ignore_malloc_size_of = "mozjs"]
     js_channels: DomRefCell<Vec<JSAudioChannel>>,
     /// Aggregates the data from js_channels.
     /// This is Some<T> iff the buffers in js_channels are detached.

@@ -22,6 +22,7 @@ pub struct VREyeParameters {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     parameters: DomRefCell<WebVREyeParameters>,
+    #[ignore_malloc_size_of = "mozjs"]
     offset: Heap<*mut JSObject>,
     fov: Dom<VRFieldOfView>,
 }
