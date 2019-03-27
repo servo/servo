@@ -95,7 +95,6 @@ use js::jsval::JSVal;
 use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
-use script_layout_interface::message::ReflowGoal;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
@@ -3407,9 +3406,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         // Step 7.5
         element.set_fullscreen_state(true);
         document.set_fullscreen_element(Some(&element));
-        document
-            .window()
-            .reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
+        document.mark_reflow_reason(ReflowReason::ElementStateChanged);
 
         // Step 7.6
         document
@@ -3447,9 +3444,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
         // Step 9.6
         element.set_fullscreen_state(false);
 
-        document
-            .window()
-            .reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
+        document.mark_reflow_reason(ReflowReason::ElementStateChanged);
 
         document.set_fullscreen_element(None);
 

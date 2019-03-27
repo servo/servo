@@ -419,6 +419,9 @@ pub struct Document {
     delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
     /// https://html.spec.whatwg.org/multipage/#completely-loaded
     completely_loaded: Cell<bool>,
+
+    /// The first trigger for reflow in any given run of the event loop.
+    first_reflow_reason: Cell<Option<ReflowReason>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -530,9 +533,7 @@ impl Document {
             self.activity.set(activity);
             if activity == DocumentActivity::FullyActive {
                 self.title_changed();
-                self.dirty_all_nodes();
-                self.window()
-                    .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
+                self.dirty_all_nodes(ReflowReason::CachedPageNeededReflow);
                 self.window().resume();
                 // html.spec.whatwg.org/multipage/#history-traversal
                 // Step 4.6
@@ -701,8 +702,7 @@ impl Document {
             }
 
             self.reflow_timeout.set(None);
-            self.window
-                .reflow(ReflowGoal::Full, ReflowReason::RefreshTick);
+            self.override_reflow_reason(ReflowReason::RefreshTick);
         }
     }
 
@@ -979,7 +979,8 @@ impl Document {
         window.send_to_embedder(msg);
     }
 
-    pub fn dirty_all_nodes(&self) {
+    pub fn dirty_all_nodes(&self, reason: ReflowReason) {
+        self.mark_reflow_reason(reason);
         let root = self.upcast::<Node>();
         for node in root.traverse_preorder() {
             node.dirty(NodeDamage::OtherNodeDamage)
@@ -996,6 +997,8 @@ impl Document {
         node_address: Option<UntrustedNodeAddress>,
         point_in_node: Option<Point2D<f32>>,
     ) {
+        self.mark_reflow_reason(ReflowReason::MouseEvent);
+
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
             MouseEventType::MouseUp => "mouseup".to_owned(),
@@ -1078,9 +1081,6 @@ impl Document {
             self.commit_focus_transaction(FocusType::Element);
             self.maybe_fire_dblclick(client_point, node);
         }
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     fn maybe_fire_dblclick(&self, click_pos: Point2D<f32>, target: &Node) {
@@ -1177,6 +1177,8 @@ impl Document {
         prev_mouse_over_target: &MutNullableDom<Element>,
         node_address: Option<UntrustedNodeAddress>,
     ) {
+        self.mark_reflow_reason(ReflowReason::MouseEvent);
+
         let client_point = match client_point {
             None => {
                 // If there's no point, there's no target under the mouse
@@ -1260,9 +1262,6 @@ impl Document {
 
         // Store the current mouse over target for next frame.
         prev_mouse_over_target.set(maybe_new_target.deref());
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     #[allow(unsafe_code)]
@@ -1274,6 +1273,8 @@ impl Document {
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
     ) -> TouchEventResult {
+        self.mark_reflow_reason(ReflowReason::MouseEvent);
+
         let TouchId(identifier) = touch_id;
 
         let event_name = match event_type {
@@ -1367,8 +1368,6 @@ impl Document {
         let event = event.upcast::<Event>();
         let result = event.fire(&target);
 
-        window.reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
-
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
             EventStatus::NotCanceled => TouchEventResult::Processed(true),
@@ -1377,6 +1376,8 @@ impl Document {
 
     /// The entry point for all key processing for web content
     pub fn dispatch_key_event(&self, keyboard_event: ::keyboard_types::KeyboardEvent) {
+        self.mark_reflow_reason(ReflowReason::KeyEvent);
+
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
@@ -1473,8 +1474,6 @@ impl Document {
                 _ => (),
             }
         }
-
-        self.window.reflow(ReflowGoal::Full, ReflowReason::KeyEvent);
     }
 
     pub fn dispatch_composition_event(
@@ -1634,6 +1633,8 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub fn run_the_animation_frame_callbacks(&self) {
+        self.mark_reflow_reason(ReflowReason::RequestAnimationFrame);
+
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
             &mut *animation_frame_list,
@@ -1652,9 +1653,7 @@ impl Document {
 
         self.running_animation_callbacks.set(false);
 
-        let spurious = !self
-            .window
-            .reflow(ReflowGoal::Full, ReflowReason::RequestAnimationFrame);
+        let spurious = !self.window.reflow(ReflowGoal::AnimationFrame);
 
         if spurious && !was_faking_animation_frames {
             // If the rAF callbacks did not mutate the DOM, then the
@@ -1744,8 +1743,7 @@ impl Document {
                     // Disarm the reflow timer and trigger the initial reflow.
                     self.reflow_timeout.set(None);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                    self.window
-                        .reflow(ReflowGoal::Full, ReflowReason::FirstLoad);
+                    self.mark_reflow_reason(ReflowReason::FirstLoad);
                 }
 
                 // Deferred scripts have to wait for page to finish loading,
@@ -1959,6 +1957,8 @@ impl Document {
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
                     update_with_current_time_ms(&document.load_event_start);
 
+                    document.override_reflow_reason(ReflowReason::DocumentLoaded);
+
                     debug!("About to dispatch load for {:?}", document.url());
                     // FIXME(nox): Why are errors silenced here?
                     let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
@@ -1968,8 +1968,6 @@ impl Document {
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_time_ms(&document.load_event_end);
-
-                    window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
 
                     if let Some(fragment) = document.url().fragment() {
                         document.check_and_scroll_fragment(fragment);
@@ -2733,9 +2731,26 @@ impl Document {
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
             completely_loaded: Cell::new(false),
+            first_reflow_reason: Cell::new(None),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
         }
+    }
+
+    pub fn reset_reflow_reason(&self) -> Option<ReflowReason> {
+        let reason = self.first_reflow_reason.get();
+        self.first_reflow_reason.set(None);
+        reason
+    }
+
+    pub fn mark_reflow_reason(&self, reason: ReflowReason) {
+        if self.first_reflow_reason.get().is_none() {
+            self.first_reflow_reason.set(Some(reason));
+        }
+    }
+
+    fn override_reflow_reason(&self, reason: ReflowReason) {
+        self.first_reflow_reason.set(Some(reason));
     }
 
     /// Prevent any JS or layout from running until the corresponding call to
@@ -3094,8 +3109,7 @@ impl Document {
             element.set_target_state(true);
         }
 
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
+        self.mark_reflow_reason(ReflowReason::ElementStateChanged);
     }
 
     pub fn incr_ignore_destructive_writes_counter(&self) {

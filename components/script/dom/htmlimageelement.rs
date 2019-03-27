@@ -37,7 +37,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::window::Window;
+use crate::dom::window::{ReflowReason, Window};
 use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -412,7 +412,7 @@ impl HTMLImageElement {
 
         // Trigger reflow
         let window = window_from_node(self);
-        window.add_pending_reflow();
+        window.add_pending_reflow(ReflowReason::ImageLoaded);
     }
 
     fn process_image_response_for_environment_change(
