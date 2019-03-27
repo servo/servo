@@ -10,12 +10,14 @@ use crate::stylesheets::UrlExtraData;
 use cssparser::{BasicParseErrorKind, ParseErrorKind, SourceLocation, Token};
 use std::fmt;
 use style_traits::ParseError;
+use crate::selector_parser::{SelectorImpl};
+use selectors::SelectorList;
 
 /// Errors that can be encountered while parsing CSS.
 #[derive(Debug)]
 pub enum ContextualParseError<'a> {
     /// A property declaration was not recognized.
-    UnsupportedPropertyDeclaration(&'a str, ParseError<'a>),
+    UnsupportedPropertyDeclaration(&'a str, ParseError<'a>, Option<&'a SelectorList<SelectorImpl>>),
     /// A font face descriptor was not recognized.
     UnsupportedFontFaceDescriptor(&'a str, ParseError<'a>),
     /// A font feature values descriptor was not recognized.
@@ -121,7 +123,7 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
         }
 
         match *self {
-            ContextualParseError::UnsupportedPropertyDeclaration(decl, ref err) => {
+            ContextualParseError::UnsupportedPropertyDeclaration(decl, ref err, _selectors) => {
                 write!(f, "Unsupported property declaration: '{}', ", decl)?;
                 parse_error_to_str(err, f)
             },

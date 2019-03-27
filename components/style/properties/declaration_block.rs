@@ -25,6 +25,8 @@ use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCs
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use crate::values::computed::Context;
+use crate::selector_parser::{SelectorImpl};
+use selectors::SelectorList;
 
 /// The animation rules.
 ///
@@ -1211,7 +1213,7 @@ pub fn parse_style_attribute(
     );
 
     let mut input = ParserInput::new(input);
-    parse_property_declaration_list(&context, &mut Parser::new(&mut input))
+    parse_property_declaration_list(&context, &mut Parser::new(&mut input), None)
 }
 
 /// Parse a given property declaration. Can result in multiple
@@ -1248,6 +1250,7 @@ pub fn parse_one_declaration_into(
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
             parser.slice_from(start_position),
             err,
+            None
         );
         context.log_css_error(location, error);
     })
@@ -1312,6 +1315,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(
     context: &ParserContext,
     input: &mut Parser,
+    selectors: Option<&SelectorList<SelectorImpl>>
 ) -> PropertyDeclarationBlock {
     let mut declarations = SourcePropertyDeclaration::new();
     let mut block = PropertyDeclarationBlock::new();
@@ -1338,7 +1342,7 @@ pub fn parse_property_declaration_list(
                 }
 
                 let location = error.location;
-                let error = ContextualParseError::UnsupportedPropertyDeclaration(slice, error);
+                let error = ContextualParseError::UnsupportedPropertyDeclaration(slice, error, selectors);
                 context.log_css_error(location, error);
             }
         }
