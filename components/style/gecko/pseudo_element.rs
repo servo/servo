@@ -33,7 +33,10 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
     fn valid_after_slotted(&self) -> bool {
         matches!(
             *self,
-            PseudoElement::Before | PseudoElement::After | PseudoElement::Placeholder
+            PseudoElement::Before |
+                PseudoElement::After |
+                PseudoElement::Marker |
+                PseudoElement::Placeholder
         )
     }
 
@@ -109,6 +112,12 @@ impl PseudoElement {
         *self == PseudoElement::After
     }
 
+    /// Whether this pseudo-element is the ::marker pseudo.
+    #[inline]
+    pub fn is_marker(&self) -> bool {
+        *self == PseudoElement::Marker
+    }
+
     /// Whether this pseudo-element is ::first-letter.
     #[inline]
     pub fn is_first_letter(&self) -> bool {
@@ -180,6 +189,8 @@ impl PseudoElement {
     /// Whether this pseudo-element should actually exist if it has
     /// the given styles.
     pub fn should_exist(&self, style: &ComputedValues) -> bool {
+        debug_assert!(self.is_eager());
+
         if style.get_box().clone_display() == Display::None {
             return false;
         }

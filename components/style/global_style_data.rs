@@ -11,7 +11,6 @@ use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
 use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
 use rayon;
-use servo_config::pref;
 use std::env;
 
 /// Global style data
@@ -67,6 +66,7 @@ lazy_static! {
             Ok(num) => num,
             #[cfg(feature = "servo")]
             _ => {
+                use servo_config::pref;
                 // We always set this pref on startup, before layout or script
                 // have had a chance of accessing (and thus creating) the
                 // thread-pool.

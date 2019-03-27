@@ -195,12 +195,15 @@ impl PseudoElement {
                 return Some(${pseudo_element_variant(pseudo)})
             }
             % endfor
-            // Alias "-moz-selection" to "selection" at parse time.
+            // Alias some legacy prefixed pseudos to their standardized name at parse time:
             "-moz-selection" => {
                 return Some(PseudoElement::Selection);
             }
             "-moz-placeholder" => {
                 return Some(PseudoElement::Placeholder);
+            }
+            "-moz-list-bullet" | "-moz-list-number" => {
+                return Some(PseudoElement::Marker);
             }
             _ => {
                 if starts_with_ignore_ascii_case(name, "-moz-tree-") {

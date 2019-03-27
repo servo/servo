@@ -4,11 +4,6 @@
 
 //! Gecko's C++ bindings, along with some rust helpers to ease its use.
 
-#[allow(dead_code, improper_ctypes, non_camel_case_types, missing_docs)]
-pub mod bindings {
-    include!(concat!(env!("OUT_DIR"), "/gecko/bindings.rs"));
-}
-
 // FIXME: We allow `improper_ctypes` (for now), because the lint doesn't allow
 // foreign structs to have `PhantomData`. We should remove this once the lint
 // ignores this case.
@@ -24,5 +19,7 @@ pub mod bindings {
 pub mod structs {
     include!(concat!(env!("OUT_DIR"), "/gecko/structs.rs"));
 }
+
+pub use self::structs as bindings;
 
 pub mod sugar;

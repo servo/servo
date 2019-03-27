@@ -10,7 +10,7 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::generics::counters as generics;
 use crate::values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use crate::values::generics::counters::CounterPair;
-use crate::values::generics::counters::CounterReset as GenericCounterReset;
+use crate::values::generics::counters::CounterSetOrReset as GenericCounterSetOrReset;
 #[cfg(feature = "gecko")]
 use crate::values::generics::CounterStyleOrNone;
 use crate::values::specified::url::SpecifiedImageUrl;
@@ -34,10 +34,10 @@ impl Parse for CounterIncrement {
     }
 }
 
-/// A specified value for the `counter-increment` property.
-pub type CounterReset = GenericCounterReset<Integer>;
+/// A specified value for the `counter-set` and `counter-reset` properties.
+pub type CounterSetOrReset = GenericCounterSetOrReset<Integer>;
 
-impl Parse for CounterReset {
+impl Parse for CounterSetOrReset {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,

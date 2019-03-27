@@ -7,8 +7,9 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
-use crate::font_metrics::FontMetricsQueryResult;
+use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::parser::{Parse, ParserContext};
+use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::values::computed::{self, CSSPixelLength, Context};
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
@@ -82,17 +83,12 @@ pub enum FontBaseSize {
     ///
     /// FIXME(emilio): This is very complex, and should go away.
     InheritedStyleButStripEmUnits,
-    /// Use a custom base size.
-    ///
-    /// FIXME(emilio): This is very dubious, and only used for MathML.
-    Custom(Au),
 }
 
 impl FontBaseSize {
     /// Calculate the actual size for a given context
     pub fn resolve(&self, context: &Context) -> Au {
         match *self {
-            FontBaseSize::Custom(size) => size,
             FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
             FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
                 context.style().get_parent_font().clone_font_size().size()
@@ -136,15 +132,12 @@ impl FontRelativeLength {
     ) -> (Au, CSSFloat) {
         fn query_font_metrics(
             context: &Context,
-            reference_font_size: Au,
-        ) -> FontMetricsQueryResult {
-            context.font_metrics_provider.query(
-                context.style().get_font(),
-                reference_font_size,
-                context.style().writing_mode,
-                context.in_media_query,
-                context.device(),
-            )
+            base_size: FontBaseSize,
+            orientation: FontMetricsOrientation,
+        ) -> FontMetrics {
+            context
+                .font_metrics_provider
+                .query(context, base_size, orientation)
         }
 
         let reference_font_size = base_size.resolve(context);
@@ -169,24 +162,40 @@ impl FontRelativeLength {
                 if context.for_non_inherited_property.is_some() {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
-                let reference_size = match query_font_metrics(context, reference_font_size) {
-                    FontMetricsQueryResult::Available(metrics) => metrics.x_height,
+                context
+                    .builder
+                    .add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
+                // The x-height is an intrinsically horizontal metric.
+                let metrics =
+                    query_font_metrics(context, base_size, FontMetricsOrientation::Horizontal);
+                let reference_size = metrics.x_height.unwrap_or_else(|| {
                     // https://drafts.csswg.org/css-values/#ex
                     //
                     //     In the cases where it is impossible or impractical to
                     //     determine the x-height, a value of 0.5em must be
                     //     assumed.
                     //
-                    FontMetricsQueryResult::NotAvailable => reference_font_size.scale_by(0.5),
-                };
+                    reference_font_size.scale_by(0.5)
+                });
                 (reference_size, length)
             },
             FontRelativeLength::Ch(length) => {
                 if context.for_non_inherited_property.is_some() {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
                 }
-                let reference_size = match query_font_metrics(context, reference_font_size) {
-                    FontMetricsQueryResult::Available(metrics) => metrics.zero_advance_measure,
+                context
+                    .builder
+                    .add_flags(ComputedValueFlags::DEPENDS_ON_FONT_METRICS);
+                // https://drafts.csswg.org/css-values/#ch:
+                //
+                //     Equal to the used advance measure of the “0” (ZERO,
+                //     U+0030) glyph in the font used to render it. (The advance
+                //     measure of a glyph is its advance width or height,
+                //     whichever is in the inline axis of the element.)
+                //
+                let metrics =
+                    query_font_metrics(context, base_size, FontMetricsOrientation::MatchContext);
+                let reference_size = metrics.zero_advance_measure.unwrap_or_else(|| {
                     // https://drafts.csswg.org/css-values/#ch
                     //
                     //     In the cases where it is impossible or impractical to
@@ -197,14 +206,13 @@ impl FontRelativeLength {
                     //     writing-mode is vertical-rl or vertical-lr and
                     //     text-orientation is upright).
                     //
-                    FontMetricsQueryResult::NotAvailable => {
-                        if context.style().writing_mode.is_vertical() {
-                            reference_font_size
-                        } else {
-                            reference_font_size.scale_by(0.5)
-                        }
-                    },
-                };
+                    let wm = context.style().writing_mode;
+                    if wm.is_vertical() && wm.is_upright() {
+                        reference_font_size
+                    } else {
+                        reference_font_size.scale_by(0.5)
+                    }
+                });
                 (reference_size, length)
             },
             FontRelativeLength::Rem(length) => {

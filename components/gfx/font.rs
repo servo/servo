@@ -367,7 +367,7 @@ impl FontGroup {
 
         let families = style
             .font_family
-            .0
+            .families
             .iter()
             .map(|family| FontGroupFamily::new(descriptor.clone(), &family))
             .collect();

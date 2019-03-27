@@ -45,21 +45,21 @@ impl<I> Deref for CounterIncrement<I> {
     }
 }
 
-/// A generic value for the `counter-reset` property.
+/// A generic value for the `counter-set` and `counter-reset` properties.
 #[derive(
     Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
 )]
-pub struct CounterReset<I>(Counters<I>);
+pub struct CounterSetOrReset<I>(Counters<I>);
 
-impl<I> CounterReset<I> {
-    /// Returns a new value for `counter-reset`.
+impl<I> CounterSetOrReset<I> {
+    /// Returns a new value for `counter-set` / `counter-reset`.
     #[inline]
     pub fn new(counters: Vec<CounterPair<I>>) -> Self {
-        CounterReset(Counters(counters.into_boxed_slice()))
+        CounterSetOrReset(Counters(counters.into_boxed_slice()))
     }
 }
 
-impl<I> Deref for CounterReset<I> {
+impl<I> Deref for CounterSetOrReset<I> {
     type Target = [CounterPair<I>];
 
     #[inline]

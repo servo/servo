@@ -542,6 +542,10 @@ where
             any_descendant |= self.invalidate_dom_descendants_of(anon_content, invalidations);
         }
 
+        if let Some(marker) = self.element.marker_pseudo_element() {
+            any_descendant |= self.invalidate_pseudo_element_or_nac(marker, invalidations);
+        }
+
         if let Some(before) = self.element.before_pseudo_element() {
             any_descendant |= self.invalidate_pseudo_element_or_nac(before, invalidations);
         }

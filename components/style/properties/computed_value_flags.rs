@@ -56,10 +56,13 @@ bitflags! {
         /// Whether the child explicitly inherits any reset property.
         const INHERITS_RESET_STYLE = 1 << 8;
 
+        /// Whether any value on our style is font-metric-dependent.
+        const DEPENDS_ON_FONT_METRICS = 1 << 9;
+
         /// Whether the style or any of the ancestors has a multicol style.
         ///
         /// Only used in Servo.
-        const CAN_BE_FRAGMENTED = 1 << 9;
+        const CAN_BE_FRAGMENTED = 1 << 10;
     }
 }
 
@@ -93,4 +96,23 @@ impl ComputedValueFlags {
     pub fn maybe_inherited(self) -> Self {
         self & Self::maybe_inherited_flags()
     }
+}
+
+/// Asserts that the relevant servo and Gecko representations match.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_match() {
+    use crate::gecko_bindings::structs;
+    macro_rules! assert_bit {
+        ($rust:ident, $cpp:ident) => {
+            debug_assert_eq!(ComputedValueFlags::$rust.bits, structs::$cpp);
+        }
+    }
+
+    assert_bit!(HAS_TEXT_DECORATION_LINES, ComputedStyleBit_HasTextDecorationLines);
+    assert_bit!(IS_IN_PSEUDO_ELEMENT_SUBTREE, ComputedStyleBit_HasPseudoElementData);
+    assert_bit!(SHOULD_SUPPRESS_LINEBREAK, ComputedStyleBit_SuppressLineBreak);
+    assert_bit!(IS_TEXT_COMBINED, ComputedStyleBit_IsTextCombined);
+    assert_bit!(IS_RELEVANT_LINK_VISITED, ComputedStyleBit_RelevantLinkVisited);
+    assert_bit!(DEPENDS_ON_FONT_METRICS, ComputedStyleBit_DependsOnFontMetrics);
 }
