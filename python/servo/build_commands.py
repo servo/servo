@@ -619,7 +619,7 @@ class MachCommands(CommandBase):
                     print("Could not found GStreamer installation directory.")
                     status = 1
                 gst_dlls = [
-                    "libffi-7.dll",
+                    ["libffi-7.dll", "ffi-7.dll"],
                     "libgio-2.0-0.dll",
                     "libglib-2.0-0.dll",
                     "libgmodule-2.0-0.dll",
@@ -627,6 +627,7 @@ class MachCommands(CommandBase):
                     "libgstapp-1.0-0.dll",
                     "libgstaudio-1.0-0.dll",
                     "libgstbase-1.0-0.dll",
+                    "libgstgl-1.0-0.dll",
                     "libgstpbutils-1.0-0.dll",
                     "libgstplayer-1.0-0.dll",
                     "libgstreamer-1.0-0.dll",
@@ -638,12 +639,23 @@ class MachCommands(CommandBase):
                     "libintl-8.dll",
                     "liborc-0.4-0.dll",
                     "libwinpthread-1.dll",
-                    "libz.dll"
+                    "libz.dll",
                 ]
                 if gst_root:
                     for gst_lib in gst_dlls:
-                        shutil.copy(path.join(gst_root, "bin", gst_lib),
-                                    servo_exe_dir)
+                        if isinstance(gst_lib, str):
+                            gst_lib = [gst_lib]
+                        for lib in gst_lib:
+                            try:
+                                shutil.copy(path.join(gst_root, "bin", gst_lib),
+                                            servo_exe_dir)
+                                break
+                            except:
+                                pass
+                        else:
+                            print("ERROR: could not find required GStreamer DLL: " + str(gst_lib))
+                            sys.exit(1)
+
                 # copy some MSVC DLLs to servo.exe dir
                 msvc_redist_dir = None
                 vs_platform = os.environ.get("PLATFORM", "").lower()
