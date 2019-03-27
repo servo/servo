@@ -728,10 +728,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// https://drafts.csswg.org/css-lists-3/#declaring-a-list-item
     #[cfg(feature = "gecko")]
-    fn adjust_for_list_item<E>(&mut self, element: Option<E>)
-    where
-        E: TElement,
-    {
+    fn adjust_for_list_item(&mut self) {
         use crate::properties::longhands::counter_increment::computed_value::T as ComputedIncrement;
         use crate::values::generics::counters::CounterPair;
         use crate::values::specified::list::MozListReversed;
@@ -741,9 +738,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
         if self.style.pseudo.is_some() {
-            return;
-        }
-        if !element.map_or(false, |e| e.is_html_element()) {
             return;
         }
         // Note that we map <li value=INTEGER> to 'counter-set: list-item INTEGER;
@@ -833,7 +827,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_appearance(element);
-            self.adjust_for_list_item(element);
+            self.adjust_for_list_item();
         }
         self.set_bits();
     }
