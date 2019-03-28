@@ -104,12 +104,9 @@ impl CSSRuleList {
         let index = idx as usize;
 
         let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
-        let owner = self
-            .parent_stylesheet
-            .get_owner()
-            .downcast::<HTMLElement>()
-            .unwrap();
-        let loader = StylesheetLoader::for_element(owner);
+        let owner = self.parent_stylesheet.get_owner().unwrap();
+
+        let loader = StylesheetLoader::for_element(owner.downcast::<HTMLElement>().unwrap());
         let new_rule = css_rules.with_raw_offset_arc(|arc| {
             arc.insert_rule(
                 &parent_stylesheet.shared_lock,

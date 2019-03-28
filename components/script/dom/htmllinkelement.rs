@@ -113,6 +113,9 @@ impl HTMLLinkElement {
             doc.remove_stylesheet(self.upcast(), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
+        if let Some(cssom_stylesheet) = self.get_cssom_stylesheet() {
+            cssom_stylesheet.set_owner_none();
+        }
         self.cssom_stylesheet.set(None);
         doc.add_stylesheet(self.upcast(), s);
     }
