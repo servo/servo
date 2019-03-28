@@ -611,7 +611,8 @@ class MachCommands(CommandBase):
                 gst_root = ""
                 gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
                 gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
-                if os.path.exists(path.join(gst_default_path, "bin", "libz.dll")):
+                if os.path.exists(path.join(gst_default_path, "bin", "libffi-7.dll")) or \
+                   os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
                     gst_root = gst_default_path
                 elif os.environ.get(gst_env) is not None:
                     gst_root = os.environ.get(gst_env)
@@ -639,7 +640,7 @@ class MachCommands(CommandBase):
                     ["libintl-8.dll", "intl-8.dll"],
                     ["liborc-0.4-0.dll", "orc-0.4-0.dll"],
                     ["libwinpthread-1.dll", "winpthread-1.dll"],
-                    ["libz.dll", "libz-1.dll"]
+                    ["libz.dll", "libz-1.dll", "z-1.dll"]
                 ]
                 if gst_root:
                     for gst_lib in gst_dlls:
