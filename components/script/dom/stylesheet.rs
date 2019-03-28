@@ -46,10 +46,13 @@ impl StyleSheetMethods for StyleSheet {
         self.href.clone()
     }
 
-
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
     fn GetOwnerNode(&self) -> Option<DomRoot<Element>> {
         let owner = self.downcast::<CSSStyleSheet>().unwrap().get_owner();
-        Some(DomRoot::from_ref(owner))
+        match owner {
+            None => None,
+            Some(sheet) => Some(sheet),
+        }
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-title
