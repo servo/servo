@@ -620,26 +620,26 @@ class MachCommands(CommandBase):
                     status = 1
                 gst_dlls = [
                     ["libffi-7.dll", "ffi-7.dll"],
-                    "libgio-2.0-0.dll",
-                    "libglib-2.0-0.dll",
-                    "libgmodule-2.0-0.dll",
-                    "libgobject-2.0-0.dll",
-                    "libgstapp-1.0-0.dll",
-                    "libgstaudio-1.0-0.dll",
-                    "libgstbase-1.0-0.dll",
-                    "libgstgl-1.0-0.dll",
-                    "libgstpbutils-1.0-0.dll",
-                    "libgstplayer-1.0-0.dll",
-                    "libgstreamer-1.0-0.dll",
-                    "libgstrtp-1.0-0.dll",
-                    "libgstsdp-1.0-0.dll",
-                    "libgsttag-1.0-0.dll",
-                    "libgstvideo-1.0-0.dll",
-                    "libgstwebrtc-1.0-0.dll",
-                    "libintl-8.dll",
-                    "liborc-0.4-0.dll",
-                    "libwinpthread-1.dll",
-                    "libz.dll",
+                    ["libgio-2.0-0.dll", "gio-2.0-0.dll"],
+                    ["libglib-2.0-0.dll", "glib-2.0-0.dll"],
+                    ["libgmodule-2.0-0.dll", "gmodule-2.0-0.dll"],
+                    ["libgobject-2.0-0.dll", "gobject-2.0-0.dll"],
+                    ["libgstapp-1.0-0.dll", "gstapp-1.0-0.dll"],
+                    ["libgstaudio-1.0-0.dll", "gstaudio-1.0-0.dll"],
+                    ["libgstbase-1.0-0.dll", "gstbase-1.0-0.dll"],
+                    ["libgstgl-1.0-0.dll", "gstgl-1.0-0.dll"],
+                    ["libgstpbutils-1.0-0.dll", "gstpbutils-1.0-0.dll"],
+                    ["libgstplayer-1.0-0.dll", "gstplayer-1.0-0.dll"],
+                    ["libgstreamer-1.0-0.dll", "gstreamer-1.0-0.dll"],
+                    ["libgstrtp-1.0-0.dll", "gstrtp-1.0-0.dll"],
+                    ["libgstsdp-1.0-0.dll", "gstsdp-1.0-0.dll"],
+                    ["libgsttag-1.0-0.dll", "gsttag-1.0-0.dll"],
+                    ["libgstvideo-1.0-0.dll", "gstvideo-1.0-0.dll"],
+                    ["libgstwebrtc-1.0-0.dll", "gstwebrtc-1.0-0.dll"],
+                    ["libintl-8.dll", "intl-8.dll"],
+                    ["liborc-0.4-0.dll", "orc-0.4-0.dll"],
+                    ["libwinpthread-1.dll", "winpthread-1.dll"],
+                    ["libz.dll", "libz-1.dll"]
                 ]
                 if gst_root:
                     for gst_lib in gst_dlls:
@@ -647,7 +647,7 @@ class MachCommands(CommandBase):
                             gst_lib = [gst_lib]
                         for lib in gst_lib:
                             try:
-                                shutil.copy(path.join(gst_root, "bin", gst_lib),
+                                shutil.copy(path.join(gst_root, "bin", lib),
                                             servo_exe_dir)
                                 break
                             except:
