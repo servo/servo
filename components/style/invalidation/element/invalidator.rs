@@ -750,8 +750,19 @@ where
                     //
                     // Note that we'll also restyle the pseudo-element because
                     // it would match this invalidation.
-                    if self.processor.invalidates_on_eager_pseudo_element() && pseudo.is_eager() {
-                        invalidated_self = true;
+                    if self.processor.invalidates_on_eager_pseudo_element() {
+                        if pseudo.is_eager() {
+                            invalidated_self = true;
+                        }
+                        // If we start or stop matching some marker rules, and
+                        // don't have a marker, then we need to restyle the
+                        // element to potentially create one.
+                        //
+                        // Same caveats as for other eager pseudos apply, this
+                        // could be more fine-grained.
+                        if pseudo.is_marker() && self.element.marker_pseudo_element().is_none() {
+                            invalidated_self = true;
+                        }
                     }
                 }
 
