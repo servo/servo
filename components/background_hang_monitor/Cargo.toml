@@ -16,11 +16,11 @@ doctest = false
 backtrace = "0.3"
 bitflags = "1.0"
 ipc-channel = "0.11"
-lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 msg = {path = "../msg"}
 serde = "1.0.60"
+serde_json = "1.0"
 crossbeam-channel = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]

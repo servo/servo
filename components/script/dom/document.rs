@@ -2184,18 +2184,19 @@ impl Document {
 
         // Step 4.1.
         let window = self.window();
+        let document = Trusted::new(self);
         window
             .task_manager()
             .dom_manipulation_task_source()
-            .queue_event(
-                self.upcast(),
-                atom!("DOMContentLoaded"),
-                EventBubbles::Bubbles,
-                EventCancelable::NotCancelable,
-                window,
-            );
-
-        update_with_current_time_ms(&self.dom_content_loaded_event_end);
+            .queue(
+                task!(fire_dom_content_loaded_event: move || {
+                let document = document.root();
+                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
+                update_with_current_time_ms(&document.dom_content_loaded_event_end);
+                }),
+                window.upcast(),
+            )
+            .unwrap();
 
         // html parsing has finished - set dom content loaded
         self.interactive_time

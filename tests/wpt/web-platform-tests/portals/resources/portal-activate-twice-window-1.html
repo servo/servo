@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    var portal = document.createElement("portal");
+    portal.src = "simple-portal.html"
+
+    var bc = new BroadcastChannel("simple-portal");
+    bc.onmessage = () => {
+      bc.close();
+      portal.activate();
+      portal.activate().catch(e => {
+        var bc2 = new BroadcastChannel("portals-activate-twice");
+        bc2.postMessage(e.name, "*");
+        bc2.close();
+      });
+    }
+
+    document.body.append(portal);
+  </script>
+</body>

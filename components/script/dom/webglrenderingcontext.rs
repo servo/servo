@@ -117,8 +117,8 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     }
 }
 
-/// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
+    /// Set of bitflags for texture unpacking (texImage2d, etc...)
     #[derive(JSTraceable, MallocSizeOf)]
     struct TextureUnpacking: u8 {
         const FLIP_Y_AXIS = 0x01;

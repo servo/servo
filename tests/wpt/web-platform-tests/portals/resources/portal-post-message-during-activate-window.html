@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    var portal = document.createElement("portal");
+    portal.src = "portal-post-message-portal.html";
+    document.body.appendChild(portal);
+
+    var bc = new BroadcastChannel("portals-post-message");
+    bc.onmessage = () => {
+      bc.close();
+      portal.activate();
+      error = "";
+      try {
+        portal.postMessage("message");
+      } catch (err) {
+        error = err.name;
+      }
+      bc = new BroadcastChannel("portals-post-message-during-activate");
+      bc.postMessage(error);
+      bc.close();
+    }
+  </script>
+</body>

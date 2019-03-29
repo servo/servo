@@ -13,7 +13,9 @@ use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
-use simpleservo::{self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO};
+use simpleservo::{
+    self, gl_glue, Coordinates, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO,
+};
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;
 use std::thread;
@@ -129,14 +131,13 @@ pub fn Java_org_mozilla_servoview_JNIServo_deinit(_env: JNIEnv, _class: JClass) 
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_resize(
-    env: JNIEnv,
-    _: JClass,
-    width: jint,
-    height: jint,
-) {
-    debug!("resize {}/{}", width, height);
-    call(&env, |s| s.resize(width as u32, height as u32));
+pub fn Java_org_mozilla_servoview_JNIServo_resize(env: JNIEnv, _: JClass, coordinates: JObject) {
+    let coords = jni_coords_to_rust_coords(&env, coordinates);
+    debug!("resize {:#?}", coords);
+    match coords {
+        Ok(coords) => call(&env, |s| s.resize(coords.clone())),
+        Err(error) => throw(&env, &error),
+    }
 }
 
 #[no_mangle]
@@ -587,6 +588,28 @@ fn new_string(env: &JNIEnv, s: &str) -> Result<jstring, jstring> {
     }
 }
 
+fn jni_coords_to_rust_coords(env: &JNIEnv, obj: JObject) -> Result<Coordinates, String> {
+    let x = get_non_null_field(env, obj, "x", "I")?
+        .i()
+        .map_err(|_| "x not an int")? as i32;
+    let y = get_non_null_field(env, obj, "y", "I")?
+        .i()
+        .map_err(|_| "y not an int")? as i32;
+    let width = get_non_null_field(env, obj, "width", "I")?
+        .i()
+        .map_err(|_| "width not an int")? as i32;
+    let height = get_non_null_field(env, obj, "height", "I")?
+        .i()
+        .map_err(|_| "height not an int")? as i32;
+    let fb_width = get_non_null_field(env, obj, "fb_width", "I")?
+        .i()
+        .map_err(|_| "fb_width not an int")? as i32;
+    let fb_height = get_non_null_field(env, obj, "fb_height", "I")?
+        .i()
+        .map_err(|_| "fb_height not an int")? as i32;
+    Ok(Coordinates::new(x, y, width, height, fb_width, fb_height))
+}
+
 fn get_field<'a>(
     env: &'a JNIEnv,
     obj: JObject,
@@ -638,12 +661,6 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
     let log_str = get_string(env, opts, "logStr")?;
-    let width = get_non_null_field(env, opts, "width", "I")?
-        .i()
-        .map_err(|_| "width not an int")? as u32;
-    let height = get_non_null_field(env, opts, "height", "I")?
-        .i()
-        .map_err(|_| "height not an int")? as u32;
     let density = get_non_null_field(env, opts, "density", "F")?
         .f()
         .map_err(|_| "densitiy not a float")? as f32;
@@ -657,11 +674,19 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
     let vr_pointer = get_non_null_field(env, opts, "VRExternalContext", "J")?
         .j()
         .map_err(|_| "VRExternalContext is not a long")? as *mut c_void;
+    let coordinates = get_non_null_field(
+        env,
+        opts,
+        "coordinates",
+        "Lorg/mozilla/servoview/JNIServo$ServoCoordinates;",
+    )?
+    .l()
+    .map_err(|_| "coordinates is not an object")?;
+    let coordinates = jni_coords_to_rust_coords(&env, coordinates)?;
     let opts = InitOptions {
         args,
         url,
-        width,
-        height,
+        coordinates,
         density,
         enable_subpixel_text_antialiasing,
         vr_pointer: if vr_pointer.is_null() {

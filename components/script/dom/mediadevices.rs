@@ -17,6 +17,7 @@ use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
 use servo_media::ServoMedia;
+use servo_media_auto::Backend;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -26,6 +27,7 @@ pub struct MediaDevices {
 
 impl MediaDevices {
     pub fn new_inherited() -> MediaDevices {
+        ServoMedia::init::<Backend>();
         MediaDevices {
             eventtarget: EventTarget::new_inherited(),
         }

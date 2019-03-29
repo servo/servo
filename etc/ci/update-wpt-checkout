@@ -11,7 +11,8 @@ set -o pipefail
 REMOTE_NAME=sync-fork
 LOG_FILE=test-wpt.log
 CURRENT_DATE=$(date +"%d-%m-%Y")
-BRANCH_NAME="wpt_update_${CURRENT_DATE}"
+BRANCH_NAME="wpt_update"
+REMOTE_BRANCH_NAME="wpt_update_${CURRENT_DATE}"
 
 export GIT_AUTHOR_NAME="WPT Sync Bot"
 export GIT_AUTHOR_EMAIL="josh+wptsync@joshmatthews.net"
@@ -94,7 +95,7 @@ function unsafe_open_pull_request() {
     AUTH="${WPT_SYNC_USER}:${WPT_SYNC_TOKEN}"
     UPSTREAM="https://${AUTH}@github.com/${WPT_SYNC_USER}/servo.git"
     git remote add "${REMOTE_NAME}" "${UPSTREAM}" || return 2
-    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}" &>/dev/null || return 3
+    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}:${REMOTE_BRANCH_NAME}" &>/dev/null || return 3
 
     # Prepare the pull request metadata.
     BODY="Automated downstream sync of changes from upstream as of "
@@ -103,7 +104,7 @@ function unsafe_open_pull_request() {
     cat <<EOF >prdata.json || return 4
 {
   "title": "Sync WPT with upstream (${CURRENT_DATE})",
-  "head": "${WPT_SYNC_USER}:${BRANCH_NAME}",
+  "head": "${WPT_SYNC_USER}:${REMOTE_BRANCH_NAME}",
   "base": "master",
   "body": "${BODY}",
   "maintainer_can_modify": true

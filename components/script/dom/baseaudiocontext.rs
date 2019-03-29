@@ -50,7 +50,8 @@ use servo_media::audio::context::{AudioContext, AudioContextOptions, ProcessingS
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
 use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
-use servo_media::{Backend, ServoMedia};
+use servo_media::ServoMedia;
+use servo_media_auto::Backend;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
@@ -75,7 +76,7 @@ struct DecodeResolver {
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
-    audio_context_impl: AudioContext<Backend>,
+    audio_context_impl: AudioContext,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,
     listener: MutNullableDom<AudioListener>,
@@ -108,6 +109,8 @@ impl BaseAudioContext {
             },
         };
 
+        ServoMedia::init::<Backend>();
+
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
             audio_context_impl: ServoMedia::get()
@@ -131,7 +134,7 @@ impl BaseAudioContext {
         false
     }
 
-    pub fn audio_context_impl(&self) -> &AudioContext<Backend> {
+    pub fn audio_context_impl(&self) -> &AudioContext {
         &self.audio_context_impl
     }
 

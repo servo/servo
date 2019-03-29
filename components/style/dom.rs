@@ -441,6 +441,11 @@ pub trait TElement:
         None
     }
 
+    /// The ::marker pseudo-element of this element, if it exists.
+    fn marker_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
     /// Execute `f` for each anonymous content child (apart from ::before and
     /// ::after) whose originating element is `self`.
     fn each_anonymous_content_child<F>(&self, _f: F)

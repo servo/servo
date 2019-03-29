@@ -1,14 +1,14 @@
 import requests
 from mozlog.structured.formatters.base import BaseFormatter
 
+DEFAULT_API = "https://wpt.fyi/api/screenshots/hashes"
+
 
 class WptscreenshotFormatter(BaseFormatter):
     """Formatter that outputs screenshots in the format expected by wpt.fyi."""
 
-    # TODO(Hexcles): Make this configurable.
-    API = "https://staging.wpt.fyi/api/screenshots/hashes"
-
-    def __init__(self):
+    def __init__(self, api=None):
+        self.api = api or DEFAULT_API
         self.cache = set()
 
     def suite_start(self, data):
@@ -25,7 +25,7 @@ class WptscreenshotFormatter(BaseFormatter):
         if "os_version" in run_info:
             params["os_version"] = run_info["os_version"]
         try:
-            r = requests.get(self.API, params=params)
+            r = requests.get(self.api, params=params)
             r.raise_for_status()
             self.cache = set(r.json())
         except (requests.exceptions.RequestException, ValueError):

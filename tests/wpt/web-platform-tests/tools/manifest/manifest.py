@@ -271,7 +271,12 @@ class Manifest(object):
         changed = False
         reftest_changes = False
 
-        prev_files = self._data.paths()
+        # Create local variable references to these dicts so we avoid the
+        # attribute access in the hot loop below
+        path_hash = self._path_hash
+        data = self._data
+
+        prev_files = data.paths()
 
         reftest_types = ("reftest", "reftest_node")
 
@@ -279,10 +284,10 @@ class Manifest(object):
             if not update:
                 rel_path = source_file
                 seen_files.add(rel_path)
-                assert rel_path in self._path_hash
-                old_hash, old_type = self._path_hash[rel_path]
+                assert rel_path in path_hash
+                old_hash, old_type = path_hash[rel_path]
                 if old_type in reftest_types:
-                    manifest_items = self._data[old_type][rel_path]
+                    manifest_items = data[old_type][rel_path]
                     reftest_nodes.extend((item, old_hash) for item in manifest_items)
             else:
                 rel_path = source_file.rel_path
@@ -290,22 +295,22 @@ class Manifest(object):
 
                 file_hash = source_file.hash
 
-                is_new = rel_path not in self._path_hash
+                is_new = rel_path not in path_hash
                 hash_changed = False
 
                 if not is_new:
-                    old_hash, old_type = self._path_hash[rel_path]
+                    old_hash, old_type = path_hash[rel_path]
                     if old_hash != file_hash:
                         new_type, manifest_items = source_file.manifest_items()
                         hash_changed = True
                         if new_type != old_type:
-                            del self._data[old_type][rel_path]
+                            del data[old_type][rel_path]
                             if old_type in reftest_types:
                                 reftest_changes = True
                     else:
                         new_type = old_type
                         if old_type in reftest_types:
-                            manifest_items = self._data[old_type][rel_path]
+                            manifest_items = data[old_type][rel_path]
                 else:
                     new_type, manifest_items = source_file.manifest_items()
 
@@ -314,35 +319,35 @@ class Manifest(object):
                     if is_new or hash_changed:
                         reftest_changes = True
                 elif is_new or hash_changed:
-                    self._data[new_type][rel_path] = set(manifest_items)
+                    data[new_type][rel_path] = set(manifest_items)
 
                 if is_new or hash_changed:
-                    self._path_hash[rel_path] = (file_hash, new_type)
+                    path_hash[rel_path] = (file_hash, new_type)
                     changed = True
 
         deleted = prev_files - seen_files
         if deleted:
             changed = True
             for rel_path in deleted:
-                if rel_path in self._path_hash:
-                    _, old_type = self._path_hash[rel_path]
+                if rel_path in path_hash:
+                    _, old_type = path_hash[rel_path]
                     if old_type in reftest_types:
                         reftest_changes = True
-                    del self._path_hash[rel_path]
+                    del path_hash[rel_path]
                     try:
-                        del self._data[old_type][rel_path]
+                        del data[old_type][rel_path]
                     except KeyError:
                         pass
                 else:
-                    for test_data in itervalues(self._data):
+                    for test_data in itervalues(data):
                         if rel_path in test_data:
                             del test_data[rel_path]
 
         if reftest_changes:
             reftests, reftest_nodes, changed_hashes = self._compute_reftests(reftest_nodes)
-            self._data["reftest"].data = reftests
-            self._data["reftest_node"].data = reftest_nodes
-            self._path_hash.update(changed_hashes)
+            data["reftest"].data = reftests
+            data["reftest_node"].data = reftest_nodes
+            path_hash.update(changed_hashes)
 
         return changed
 

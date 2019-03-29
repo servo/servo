@@ -56,7 +56,9 @@ use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
 use euclid::Length as EuclidLength;
-use euclid::{Point2D, Rect, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D};
+use euclid::{
+    Point2D, Rect, Rotation3D, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D,
+};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use http::header::HeaderMap;
@@ -103,7 +105,6 @@ use servo_media::audio::param::ParamType;
 use servo_media::player::Player;
 use servo_media::streams::MediaStream as BackendMediaStream;
 use servo_media::webrtc::WebRtcController;
-use servo_media::Backend;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::cell::{Cell, RefCell, UnsafeCell};
@@ -481,7 +482,7 @@ unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(CanvasId);
 unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(AudioBuffer);
-unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
+unsafe_no_jsmanaged_fields!(AudioContext);
 unsafe_no_jsmanaged_fields!(NodeId);
 unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
 unsafe_no_jsmanaged_fields!(dyn Player);
@@ -492,6 +493,8 @@ unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
+unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
+unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>, Rect<f32>);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -583,27 +586,6 @@ where
     }
 }
 
-unsafe impl JSTraceable for Transform2D<f32> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Transform3D<f64> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Point2D<f32> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl<T, U> JSTraceable for TypedScale<f32, T, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
@@ -611,28 +593,7 @@ unsafe impl<T, U> JSTraceable for TypedScale<f32, T, U> {
     }
 }
 
-unsafe impl JSTraceable for Vector2D<f32> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Rect<Au> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for Rect<f32> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

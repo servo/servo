@@ -555,9 +555,8 @@ impl WillChange {
 
 bitflags! {
     /// The change bits that we care about.
-    ///
-    /// These need to be in sync with NS_STYLE_WILL_CHANGE_*.
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    #[repr(C)]
     pub struct WillChangeBits: u8 {
         /// Whether the stacking context will change.
         const STACKING_CONTEXT = 1 << 0;
@@ -616,7 +615,7 @@ impl Parse for WillChange {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<WillChange, ParseError<'i>> {
+    ) -> Result<Self, ParseError<'i>> {
         if input
             .try(|input| input.expect_ident_matching("auto"))
             .is_ok()
@@ -650,21 +649,22 @@ impl Parse for WillChange {
 }
 
 bitflags! {
+    /// Values for the `touch-action` property.
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[derive(SpecifiedValueInfo, ToComputedValue)]
-    /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
     #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
+    #[repr(C)]
     pub struct TouchAction: u8 {
         /// `none` variant
-        const TOUCH_ACTION_NONE = 1 << 0;
+        const NONE = 1 << 0;
         /// `auto` variant
-        const TOUCH_ACTION_AUTO = 1 << 1;
+        const AUTO = 1 << 1;
         /// `pan-x` variant
-        const TOUCH_ACTION_PAN_X = 1 << 2;
+        const PAN_X = 1 << 2;
         /// `pan-y` variant
-        const TOUCH_ACTION_PAN_Y = 1 << 3;
+        const PAN_Y = 1 << 3;
         /// `manipulation` variant
-        const TOUCH_ACTION_MANIPULATION = 1 << 4;
+        const MANIPULATION = 1 << 4;
     }
 }
 
@@ -672,7 +672,7 @@ impl TouchAction {
     #[inline]
     /// Get default `touch-action` as `auto`
     pub fn auto() -> TouchAction {
-        TouchAction::TOUCH_ACTION_AUTO
+        TouchAction::AUTO
     }
 }
 
@@ -682,16 +682,14 @@ impl ToCss for TouchAction {
         W: Write,
     {
         match *self {
-            TouchAction::TOUCH_ACTION_NONE => dest.write_str("none"),
-            TouchAction::TOUCH_ACTION_AUTO => dest.write_str("auto"),
-            TouchAction::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-            _ if self
-                .contains(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y) =>
-            {
+            TouchAction::NONE => dest.write_str("none"),
+            TouchAction::AUTO => dest.write_str("auto"),
+            TouchAction::MANIPULATION => dest.write_str("manipulation"),
+            _ if self.contains(TouchAction::PAN_X | TouchAction::PAN_Y) => {
                 dest.write_str("pan-x pan-y")
             },
-            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_X) => dest.write_str("pan-x"),
-            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_Y) => dest.write_str("pan-y"),
+            _ if self.contains(TouchAction::PAN_X) => dest.write_str("pan-x"),
+            _ if self.contains(TouchAction::PAN_Y) => dest.write_str("pan-y"),
             _ => panic!("invalid touch-action value"),
         }
     }
@@ -703,68 +701,45 @@ impl Parse for TouchAction {
         input: &mut Parser<'i, 't>,
     ) -> Result<TouchAction, ParseError<'i>> {
         try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(TouchAction::TOUCH_ACTION_AUTO),
-            "none" => Ok(TouchAction::TOUCH_ACTION_NONE),
-            "manipulation" => Ok(TouchAction::TOUCH_ACTION_MANIPULATION),
+            "auto" => Ok(TouchAction::AUTO),
+            "none" => Ok(TouchAction::NONE),
+            "manipulation" => Ok(TouchAction::MANIPULATION),
             "pan-x" => {
                 if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
+                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
                 } else {
-                    Ok(TouchAction::TOUCH_ACTION_PAN_X)
+                    Ok(TouchAction::PAN_X)
                 }
             },
             "pan-y" => {
                 if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
+                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
                 } else {
-                    Ok(TouchAction::TOUCH_ACTION_PAN_Y)
+                    Ok(TouchAction::PAN_Y)
                 }
             },
         }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl_bitflags_conversions!(TouchAction);
-
-/// Asserts that all touch-action matches its NS_STYLE_TOUCH_ACTION_* value.
-#[cfg(feature = "gecko")]
-#[inline]
-pub fn assert_touch_action_matches() {
-    use crate::gecko_bindings::structs;
-
-    macro_rules! check_touch_action {
-        ( $( $a:ident => $b:path),*, ) => {
-            $(
-                debug_assert_eq!(structs::$a as u8, $b.bits());
-            )*
-        }
-    }
-
-    check_touch_action! {
-        NS_STYLE_TOUCH_ACTION_NONE => TouchAction::TOUCH_ACTION_NONE,
-        NS_STYLE_TOUCH_ACTION_AUTO => TouchAction::TOUCH_ACTION_AUTO,
-        NS_STYLE_TOUCH_ACTION_PAN_X => TouchAction::TOUCH_ACTION_PAN_X,
-        NS_STYLE_TOUCH_ACTION_PAN_Y => TouchAction::TOUCH_ACTION_PAN_Y,
-        NS_STYLE_TOUCH_ACTION_MANIPULATION => TouchAction::TOUCH_ACTION_MANIPULATION,
     }
 }
 
 bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
     #[value_info(other_values = "none,strict,content,size,layout,paint")]
+    #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
+        /// `none` variant, just for convenience.
+        const NONE = 0;
         /// 'size' variant, turns on size containment
-        const SIZE = 0x01;
+        const SIZE = 1 << 0;
         /// `layout` variant, turns on layout containment
-        const LAYOUT = 0x02;
+        const LAYOUT = 1 << 1;
         /// `paint` variant, turns on paint containment
-        const PAINT = 0x04;
+        const PAINT = 1 << 2;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 0x08;
+        const STRICT = 1 << 3;
         /// 'content' variant, turns on layout and paint containment
-        const CONTENT = 0x10;
+        const CONTENT = 1 << 4;
         /// variant with all the bits that contain: strict turns on
         const STRICT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
         /// variant with all the bits that contain: content turns on

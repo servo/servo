@@ -324,6 +324,7 @@ class Longhand(object):
                 "JustifyItems",
                 "JustifySelf",
                 "MozForceBrokenImageIcon",
+                "MozListReversed",
                 "MozScriptLevel",
                 "MozScriptMinSize",
                 "MozScriptSizeMultiplier",

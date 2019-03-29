@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    promise_test(async () => {
+      var portal = document.createElement("portal");
+      portal.src = "resources/portal-activate-inside-portal.html";
+      let waitForMessage = new Promise((resolve, reject) => {
+        var bc = new BroadcastChannel("portals-activate-inside-portal");
+        bc.onmessage = e => {
+          bc.close();
+          resolve(e.data);
+        }
+        document.body.appendChild(portal);
+      });
+      var error = await waitForMessage;
+      assert_equals(error, "InvalidStateError");
+    }, "activating a nested portal should throw an error");
+  </script>
+</body>

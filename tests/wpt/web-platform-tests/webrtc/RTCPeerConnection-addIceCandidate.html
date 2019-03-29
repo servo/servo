@@ -85,44 +85,37 @@ a=rtcp-rsize
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  // Check that a candidate line is found after the first media line
-  // but before the second, i.e. it belongs to the first media stream
-  function assert_candidate_line_between(sdp, beforeMediaLine, candidateLine, afterMediaLine) {
+  function is_candidate_line_between(sdp, beforeMediaLine, candidateLine, afterMediaLine) {
     const line1 = escapeRegExp(beforeMediaLine);
     const line2 = escapeRegExp(candidateLine);
     const line3 = escapeRegExp(afterMediaLine);
 
     const regex = new RegExp(`${line1}[^]+${line2}[^]+${line3}`);
+    return regex.test(sdp);
+  }
 
-    assert_true(regex.test(sdp),
+  // Check that a candidate line is found after the first media line
+  // but before the second, i.e. it belongs to the first media stream
+  function assert_candidate_line_between(sdp, beforeMediaLine, candidateLine, afterMediaLine) {
+    assert_true(is_candidate_line_between(sdp, beforeMediaLine, candidateLine, afterMediaLine),
       `Expect candidate line to be found between media lines ${beforeMediaLine} and ${afterMediaLine}`);
   }
 
   // Check that a candidate line is found after the second media line
   // i.e. it belongs to the second media stream
-  function assert_candidate_line_after(sdp, beforeMediaLine, candidateLine) {
+  function is_candidate_line_after(sdp, beforeMediaLine, candidateLine) {
     const line1 = escapeRegExp(beforeMediaLine);
     const line2 = escapeRegExp(candidateLine);
 
     const regex = new RegExp(`${line1}[^]+${line2}`);
 
-    assert_true(regex.test(sdp),
-      `Expect candidate line to be found after media line ${beforeMediaLine}`);
+    return regex.test(sdp);
   }
 
-  // Reject because WebIDL for addIceCandidate does not allow null argument
-  // null can be accidentally passed from onicecandidate event handler
-  // when null is used to indicate end of candidate
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    t.add_cleanup(() => pc.close());
-
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() =>
-      promise_rejects(t, new TypeError(),
-        pc.addIceCandidate(null)));
-  }, 'Add null candidate should reject with TypeError');
+  function assert_candidate_line_after(sdp, beforeMediaLine, candidateLine) {
+    assert_true(is_candidate_line_after(sdp, beforeMediaLine, candidateLine),
+      `Expect candidate line to be found after media line ${beforeMediaLine}`);
+  }
 
   /*
     4.4.2.  addIceCandidate
@@ -147,6 +140,75 @@ a=rtcp-rsize
   /*
     Success cases
    */
+
+  // All of these should work, because all of these end up being equivalent to the
+  // same thing; an end-of-candidates signal for all levels/mids/ufrags.
+  [
+    // This is just the default. Everything else here is equivalent to this.
+    {
+      candidate: '',
+      sdpMid: null,
+      sdpMLineIndex: null,
+      usernameFragment: undefined
+    },
+    // The arg is optional, so when passing undefined we'll just get the default
+    undefined,
+    // The arg is optional, but not nullable, so we get the default again
+    null,
+    // Members in the dictionary take their default values
+    {}
+  ].forEach(init => promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.addIceCandidate();
+    assert_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2);
+    assert_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine);
+  }, `addIceCandidate(${JSON.stringify(init)}) should work, and add a=end-of-candidates to both m-sections`));
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.addIceCandidate({usernameFragment: usernameFragment1});
+    assert_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2);
+    assert_false(is_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine));
+  }, 'addIceCandidate({usernameFragment: usernameFragment1}) should work, and add a=end-of-candidates to the first m-section');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.addIceCandidate({usernameFragment: usernameFragment2});
+    assert_false(is_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2));
+    assert_true(is_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine));
+  }, 'addIceCandidate({usernameFragment: usernameFragment2}) should work, and add a=end-of-candidates to the first m-section');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.addIceCandidate({usernameFragment: "no such ufrag"});
+    assert_false(is_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2));
+    assert_false(is_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine));
+  }, 'addIceCandidate({usernameFragment: "no such ufrag"}) should work, but not add a=end-of-candidates');
+
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -377,33 +439,6 @@ a=rtcp-rsize
           sdpMLineIndex: null
         })));
   }, 'Add candidate with invalid candidate string and both sdpMid and sdpMLineIndex null should reject with TypeError');
-
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    t.add_cleanup(() => pc.close());
-
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() =>
-      promise_rejects(t, new TypeError(),
-        pc.addIceCandidate({})));
-  }, 'Add candidate with empty dict should reject with TypeError');
-
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    t.add_cleanup(() => pc.close());
-
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() =>
-      promise_rejects(t, new TypeError(),
-        pc.addIceCandidate({
-          candidate: '',
-          sdpMid: null,
-          sdpMLineIndex: null,
-          usernameFragment: undefined
-        })));
-  }, 'Add candidate with manually filled default values should reject with TypeError');
 
   /*
     4.4.2.  addIceCandidate

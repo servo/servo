@@ -19,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.widget.OverScroller;
 
+import org.mozilla.servoview.JNIServo.ServoCoordinates;
 import org.mozilla.servoview.JNIServo.ServoOptions;
 import org.mozilla.servoview.Servo.Client;
 import org.mozilla.servoview.Servo.GfxCallbacks;
@@ -112,7 +113,13 @@ public class ServoView extends GLSurfaceView
 
     public void onSurfaceInvalidated(int width, int height) {
         if (mServo != null) {
-            mServo.resize(width, height);
+            ServoCoordinates coords = new ServoCoordinates();
+            coords.width = width;
+            coords.height = height;
+            coords.fb_width = width;
+            coords.fb_height = height;
+
+            mServo.resize(coords);
             mServo.refresh();
         }
     }
@@ -150,12 +157,18 @@ public class ServoView extends GLSurfaceView
     }
 
     public void onGLReady() {
+        ServoCoordinates coords = new ServoCoordinates();
+        coords.width = getWidth();
+        coords.height = getHeight();
+        coords.fb_width = getWidth();
+        coords.fb_height = getHeight();
+
         ServoOptions options = new ServoOptions();
         options.args = mServoArgs;
-        options.width = getWidth();
-        options.height = getHeight();
+        options.coordinates = coords;
         options.enableLogs = true;
         options.enableSubpixelTextAntialiasing = true;
+
         DisplayMetrics metrics = new DisplayMetrics();
         mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
         options.density = metrics.density;

@@ -68,6 +68,7 @@ use servo_config::pref;
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, StreamType};
 use servo_media::ServoMedia;
+use servo_media_auto::Backend;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -249,6 +250,7 @@ pub enum ReadyState {
 
 impl HTMLMediaElement {
     pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
+        ServoMedia::init::<Backend>();
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
@@ -1147,15 +1149,16 @@ impl HTMLMediaElement {
             action_receiver.to_opaque(),
             Box::new(move |message| {
                 let event: PlayerEvent = message.to().unwrap();
+                trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
-                task_source
-                    .queue_with_canceller(
-                        task!(handle_player_event: move || {
-                            this.root().handle_player_event(&event);
-                        }),
-                        &canceller,
-                    )
-                    .unwrap();
+                if let Err(err) = task_source.queue_with_canceller(
+                    task!(handle_player_event: move || {
+                        this.root().handle_player_event(&event);
+                    }),
+                    &canceller,
+                ) {
+                    warn!("Could not queue player event handler task {:?}", err);
+                }
             }),
         );
 
@@ -1486,6 +1489,14 @@ impl HTMLMediaElement {
     // https://github.com/servo/servo/pull/22321
     fn Loop(&self) -> bool {
         false
+    }
+}
+
+impl Drop for HTMLMediaElement {
+    fn drop(&mut self) {
+        if let Err(err) = self.player.shutdown() {
+            warn!("Error shutting down player {:?}", err);
+        }
     }
 }
 

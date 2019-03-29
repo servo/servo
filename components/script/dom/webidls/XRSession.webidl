@@ -19,15 +19,14 @@ interface XRSession : EventTarget {
   // readonly attribute XRPresentationContext outputContext;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
-  attribute double depthNear;
-  attribute double depthFar;
-  attribute XRLayer? baseLayer;
+  readonly attribute XRRenderState renderState;
 
   // // Methods
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceOptions options);
 
   // FrozenArray<XRInputSource> getInputSources();
 
+  Promise<void> updateRenderState(optional XRRenderStateInit state);
   long requestAnimationFrame(XRFrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
 

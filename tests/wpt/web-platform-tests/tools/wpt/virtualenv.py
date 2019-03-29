@@ -45,9 +45,23 @@ class Virtualenv(object):
 
     @property
     def lib_path(self):
-        if sys.platform == 'win32':
-            return os.path.join(self.path, 'Lib', 'site-packages')
-        return os.path.join(self.path, 'lib', 'python%s' % sys.version[:3], 'site-packages')
+        base = self.path
+
+        # this block is literally taken from virtualenv 16.4.3
+        IS_PYPY = hasattr(sys, "pypy_version_info")
+        IS_JYTHON = sys.platform.startswith("java")
+        if IS_JYTHON:
+            site_packages = os.path.join(base, "Lib", "site-packages")
+        elif IS_PYPY:
+            site_packages = os.path.join(base, "site-packages")
+        else:
+            IS_WIN = sys.platform == "win32"
+            if IS_WIN:
+                site_packages = os.path.join(base, "Lib", "site-packages")
+            else:
+                site_packages = os.path.join(base, "lib", "python{}".format(sys.version[:3]), "site-packages")
+
+        return site_packages
 
     @property
     def working_set(self):

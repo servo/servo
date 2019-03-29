@@ -10,6 +10,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
+use euclid::Transform3D;
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
 use webvr_traits::WebVRFrameData;
@@ -39,6 +40,7 @@ impl XRView {
         global: &GlobalScope,
         session: &XRSession,
         eye: XREye,
+        pose: &Transform3D<f64>,
         data: &WebVRFrameData,
     ) -> DomRoot<XRView> {
         let ret = reflect_dom_object(
@@ -47,16 +49,29 @@ impl XRView {
             XRViewBinding::Wrap,
         );
 
-        let (proj, view) = if eye == XREye::Left {
-            (&data.left_projection_matrix, &data.left_view_matrix)
+        let vr_display = session.display();
+
+        // XXXManishearth compute and cache projection matrices on the Display
+        let (proj, offset) = if eye == XREye::Left {
+            (
+                &data.left_projection_matrix,
+                vr_display.left_eye_params_offset(),
+            )
         } else {
-            (&data.right_projection_matrix, &data.right_view_matrix)
+            (
+                &data.right_projection_matrix,
+                vr_display.right_eye_params_offset(),
+            )
         };
+
+        let offset =
+            Transform3D::create_translation(offset[0] as f64, offset[1] as f64, offset[2] as f64);
+        let view = pose.post_mul(&offset).cast().to_column_major_array();
 
         let cx = global.get_cx();
         unsafe {
             create_typed_array(cx, proj, &ret.proj);
-            create_typed_array(cx, view, &ret.view);
+            create_typed_array(cx, &view, &ret.view);
         }
         ret
     }

@@ -135,12 +135,12 @@ pub unsafe trait HasArcFFI: HasFFI {
     }
 }
 
-#[repr(C)]
 /// Gecko-FFI-safe Arc (T is an ArcInner).
 ///
 /// This can be null.
 ///
 /// Leaks on drop. Please don't drop this.
+#[repr(C)]
 pub struct Strong<GeckoType> {
     ptr: *const GeckoType,
     _marker: PhantomData<GeckoType>,
@@ -318,27 +318,6 @@ impl<GeckoType> OwnedOrNull<GeckoType> {
     #[inline]
     pub fn is_null(&self) -> bool {
         self.ptr.is_null()
-    }
-
-    /// Returns an owned pointer if this is non-null, and `None` otherwise.
-    pub fn into_box_opt<ServoType>(self) -> Option<Box<ServoType>>
-    where
-        ServoType: HasBoxFFI<FFIType = GeckoType>,
-    {
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { transmute(self) })
-        }
-    }
-
-    /// Returns an `Owned<GeckoType>` if non-null, `None` otherwise.
-    pub fn into_owned_opt(self) -> Option<Owned<GeckoType>> {
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { transmute(self) })
-        }
     }
 
     /// Gets a immutable reference to the underlying Gecko type, or `None` if

@@ -14,11 +14,13 @@ use selectors::bloom::BloomFilter;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 
-/// Bloom filters are large allocations, so we store them in thread-local storage
-/// such that they can be reused across style traversals. StyleBloom is responsible
-/// for ensuring that the bloom filter is zeroed when it is dropped.
-thread_local!(static BLOOM_KEY: Arc<AtomicRefCell<BloomFilter>> =
-              Arc::new(AtomicRefCell::new(BloomFilter::new())));
+thread_local! {
+    /// Bloom filters are large allocations, so we store them in thread-local storage
+    /// such that they can be reused across style traversals. StyleBloom is responsible
+    /// for ensuring that the bloom filter is zeroed when it is dropped.
+    static BLOOM_KEY: Arc<AtomicRefCell<BloomFilter>> =
+              Arc::new(AtomicRefCell::new(BloomFilter::new()));
+}
 
 /// A struct that allows us to fast-reject deep descendant selectors avoiding
 /// selector-matching.

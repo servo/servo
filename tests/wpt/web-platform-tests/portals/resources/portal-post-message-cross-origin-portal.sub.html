@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    let forwardingIframe = document.createElement('iframe');
+    let channelName = new URL(location).searchParams.get('broadcastchannel');
+    forwardingIframe.src =
+        `http://{{host}}:{{ports[http][0]}}/portals/resources/portal-forward-with-broadcast.html?broadcastchannel=portals-post-message`;
+    forwardingIframe.onload = () => {
+      forwardingIframe.contentWindow.postMessage("loaded", "*");
+    }
+    document.body.appendChild(forwardingIframe);
+
+    window.portalHost.addEventListener("message", e => {
+      var message = {
+        origin: e.origin,
+        data: e.data
+      };
+      forwardingIframe.contentWindow.postMessage(message, "*");
+    });
+  </script>
+</body>

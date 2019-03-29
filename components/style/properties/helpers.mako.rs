@@ -333,11 +333,7 @@
                             % if not property.style_struct.inherited:
                                 debug_assert!(false, "Should be handled in apply_properties");
                             % else:
-                                % if property.name == "font-size":
-                                computed::FontSize::cascade_initial_font_size(context);
-                                % else:
                                 context.builder.reset_${property.ident}();
-                                % endif
                             % endif
                         },
                         % if property.style_struct.inherited:
@@ -394,15 +390,7 @@
                 % else:
                 let computed = specified_value.to_computed_value(context);
                 % endif
-                % if property.ident == "font_size":
-                    specified::FontSize::cascade_specified_font_size(
-                        context,
-                        &specified_value,
-                        computed,
-                    );
-                % else:
-                    context.builder.set_${property.ident}(computed)
-                % endif
+                context.builder.set_${property.ident}(computed)
             % endif
         }
 

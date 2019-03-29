@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Tests that a portal can adopt its predecessor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(function(t) {
+    var bc = new BroadcastChannel("portal-test");
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    window.open("resources/portals-adopt-predecessor.html");
+  }, "Tests that a portal can adopt its predecessor.");
+</script>

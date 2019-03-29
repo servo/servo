@@ -66,16 +66,25 @@ use crate::values::generics::url::UrlOrNone;
 pub mod style_structs {
     % for style_struct in data.style_structs:
     pub use super::${style_struct.gecko_struct_name} as ${style_struct.name};
+
+    unsafe impl Send for ${style_struct.name} {}
+    unsafe impl Sync for ${style_struct.name} {}
     % endfor
+
 }
 
 /// FIXME(emilio): This is completely duplicated with the other properties code.
-pub type ComputedValuesInner = crate::gecko_bindings::structs::ServoComputedData;
+pub type ComputedValuesInner = structs::ServoComputedData;
 
 #[repr(C)]
-pub struct ComputedValues(crate::gecko_bindings::structs::mozilla::ComputedStyle);
+pub struct ComputedValues(structs::mozilla::ComputedStyle);
 
 impl ComputedValues {
+    #[inline]
+    pub (crate) fn as_gecko_computed_style(&self) -> &structs::ComputedStyle {
+        &self.0
+    }
+
     pub fn new(
         pseudo: Option<<&PseudoElement>,
         custom_properties: Option<Arc<CustomPropertiesMap>>,
@@ -929,7 +938,7 @@ transform_functions = [
                 debug_assert!(!${item}${index + 1}.0.is_empty());
             % endif
             ${css_value_setters[item] % (
-                "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
+                "(&mut *bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d))" % (index + 1),
                 item + str(index + 1)
             )};
         % endfor
@@ -980,7 +989,7 @@ transform_functions = [
             % endif
             <%
                 getter = css_value_getters[item] % (
-                    "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
+                    "(&*bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d))" % (index + 1)
                 )
             %>
             ${getter},
@@ -989,6 +998,7 @@ transform_functions = [
     },
 </%def>
 
+#[allow(unused_parens)]
 fn set_single_transform_function(
     servo_value: &values::computed::TransformOperation,
     gecko_value: &mut structs::nsCSSValue /* output */
@@ -1031,6 +1041,7 @@ pub fn convert_transform(
     output.set_move(list);
 }
 
+#[allow(unused_parens)]
 fn clone_single_transform_function(
     gecko_value: &structs::nsCSSValue
 ) -> values::computed::TransformOperation {
@@ -1236,6 +1247,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
         "LengthPercentageOrAuto": impl_style_coord,
+        "MozListReversed": impl_simple,
         "MozScriptMinSize": impl_absolute_length,
         "RGBAColor": impl_rgba_color,
         "SVGLength": impl_svg_length,
@@ -1971,25 +1983,19 @@ fn static_assert() {
     <% impl_font_settings("font_feature_settings", "gfxFontFeature", "FeatureTagValue", "i32", "u32") %>
     <% impl_font_settings("font_variation_settings", "gfxFontVariation", "VariationValue", "f32", "f32") %>
 
-    pub fn fixup_none_generic(&mut self, device: &Device) {
-        self.gecko.mFont.systemFont = false;
-        unsafe {
-            bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, device.document())
-        }
-    }
-
-    pub fn fixup_system(&mut self, default_font_type: structs::FontFamilyType) {
-        self.gecko.mFont.systemFont = true;
-        self.gecko.mGenericID = structs::kGenericFont_NONE;
-        self.gecko.mFont.fontlist.mDefaultFontType = default_font_type;
-    }
-
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
-        self.gecko.mGenericID = structs::kGenericFont_NONE;
-        if let Some(generic) = v.0.single_generic() {
-            self.gecko.mGenericID = generic;
-        }
-        self.gecko.mFont.fontlist.mFontlist.mBasePtr.set_move((v.0).0.clone());
+        use crate::gecko_bindings::structs::FontFamilyType;
+
+        let is_system_font = v.is_system_font;
+        self.gecko.mFont.systemFont = is_system_font;
+        self.gecko.mGenericID = if is_system_font {
+            structs::kGenericFont_NONE
+        } else {
+            v.families.single_generic().unwrap_or(structs::kGenericFont_NONE)
+        };
+        self.gecko.mFont.fontlist.mFontlist.mBasePtr.set_move(v.families.0.clone());
+        // Fixed-up if needed in Cascade::fixup_font_stuff.
+        self.gecko.mFont.fontlist.mDefaultFontType = FontFamilyType::eFamily_none;
     }
 
     pub fn copy_font_family_from(&mut self, other: &Self) {
@@ -2009,7 +2015,7 @@ fn static_assert() {
         let fontlist = &self.gecko.mFont.fontlist;
         let shared_fontlist = unsafe { fontlist.mFontlist.mBasePtr.to_safe() };
 
-        if shared_fontlist.mNames.is_empty() {
+        let families = if shared_fontlist.mNames.is_empty() {
             let default = fontlist.mDefaultFontType;
             let default = match default {
                 FontFamilyType::eFamily_serif => {
@@ -2030,9 +2036,14 @@ fn static_assert() {
                     SingleFontFamily::Generic(atom!("sans-serif"))
                 }
             };
-            FontFamily(FontFamilyList::new(Box::new([default])))
+            FontFamilyList::new(Box::new([default]))
         } else {
-            FontFamily(FontFamilyList(shared_fontlist))
+            FontFamilyList(shared_fontlist)
+        };
+
+        FontFamily {
+            families,
+            is_system_font: self.gecko.mFont.systemFont,
         }
     }
 
@@ -2042,10 +2053,32 @@ fn static_assert() {
         self.gecko.mFont.size = device.unzoom_text(Au(self.gecko.mFont.size)).0;
     }
 
+    pub fn copy_font_size_from(&mut self, other: &Self) {
+        self.gecko.mScriptUnconstrainedSize = other.gecko.mScriptUnconstrainedSize;
+
+        self.gecko.mSize = other.gecko.mScriptUnconstrainedSize;
+        self.gecko.mFont.size = other.gecko.mSize;
+        self.gecko.mFontSizeKeyword = other.gecko.mFontSizeKeyword;
+
+        // TODO(emilio): Should we really copy over these two?
+        self.gecko.mFontSizeFactor = other.gecko.mFontSizeFactor;
+        self.gecko.mFontSizeOffset = other.gecko.mFontSizeOffset;
+    }
+
+    pub fn reset_font_size(&mut self, other: &Self) {
+        self.copy_font_size_from(other)
+    }
+
     pub fn set_font_size(&mut self, v: FontSize) {
         use crate::values::generics::font::KeywordSize;
-        self.gecko.mSize = v.size().0;
-        self.gecko.mScriptUnconstrainedSize = v.size().0;
+
+        let size = v.size();
+        self.gecko.mScriptUnconstrainedSize = size.0;
+
+        // These two may be changed from Cascade::fixup_font_stuff.
+        self.gecko.mSize = size.0;
+        self.gecko.mFont.size = size.0;
+
         if let Some(info) = v.keyword_info {
             self.gecko.mFontSizeKeyword = match info.kw {
                 KeywordSize::XXSmall => structs::NS_STYLE_FONT_SIZE_XXSMALL,
@@ -2066,196 +2099,6 @@ fn static_assert() {
         }
     }
 
-    /// Set font size, taking into account scriptminsize and scriptlevel
-    /// Returns Some(size) if we have to recompute the script unconstrained size
-    pub fn apply_font_size(
-        &mut self,
-        v: FontSize,
-        parent: &Self,
-        device: &Device,
-    ) -> Option<NonNegativeLength> {
-        let (adjusted_size, adjusted_unconstrained_size) =
-            self.calculate_script_level_size(parent, device);
-        // In this case, we have been unaffected by scriptminsize, ignore it
-        if parent.gecko.mSize == parent.gecko.mScriptUnconstrainedSize &&
-           adjusted_size == adjusted_unconstrained_size {
-            self.set_font_size(v);
-            self.fixup_font_min_size(device);
-            None
-        } else {
-            self.gecko.mSize = v.size().0;
-            self.fixup_font_min_size(device);
-            Some(Au(parent.gecko.mScriptUnconstrainedSize).into())
-        }
-    }
-
-    pub fn fixup_font_min_size(&mut self, device: &Device) {
-        unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, device.document()) }
-    }
-
-    pub fn apply_unconstrained_font_size(&mut self, v: NonNegativeLength) {
-        self.gecko.mScriptUnconstrainedSize = v.0.to_i32_au();
-    }
-
-    /// Calculates the constrained and unconstrained font sizes to be inherited
-    /// from the parent.
-    ///
-    /// This is a port of Gecko's old ComputeScriptLevelSize function:
-    /// https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8/layout/style/nsRuleNode.cpp#3103
-    ///
-    /// scriptlevel is a property that affects how font-size is inherited. If scriptlevel is
-    /// +1, for example, it will inherit as the script size multiplier times
-    /// the parent font. This does not affect cases where the font-size is
-    /// explicitly set.
-    ///
-    /// However, this transformation is not allowed to reduce the size below
-    /// scriptminsize. If this inheritance will reduce it to below
-    /// scriptminsize, it will be set to scriptminsize or the parent size,
-    /// whichever is smaller (the parent size could be smaller than the min size
-    /// because it was explicitly specified).
-    ///
-    /// Now, within a node that has inherited a font-size which was
-    /// crossing scriptminsize once the scriptlevel was applied, a negative
-    /// scriptlevel may be used to increase the size again.
-    ///
-    /// This should work, however if we have already been capped by the
-    /// scriptminsize multiple times, this can lead to a jump in the size.
-    ///
-    /// For example, if we have text of the form:
-    ///
-    /// huge large medium small tiny reallytiny tiny small medium huge
-    ///
-    /// which is represented by progressive nesting and scriptlevel values of
-    /// +1 till the center after which the scriptlevel is -1, the "tiny"s should
-    /// be the same size, as should be the "small"s and "medium"s, etc.
-    ///
-    /// However, if scriptminsize kicked it at around "medium", then
-    /// medium/tiny/reallytiny will all be the same size (the min size).
-    /// A -1 scriptlevel change after this will increase the min size by the
-    /// multiplier, making the second tiny larger than medium.
-    ///
-    /// Instead, we wish for the second "tiny" to still be capped by the script
-    /// level, and when we reach the second "large", it should be the same size
-    /// as the original one.
-    ///
-    /// We do this by cascading two separate font sizes. The font size (mSize)
-    /// is the actual displayed font size. The unconstrained font size
-    /// (mScriptUnconstrainedSize) is the font size in the situation where
-    /// scriptminsize never applied.
-    ///
-    /// We calculate the proposed inherited font size based on scriptlevel and
-    /// the parent unconstrained size, instead of using the parent font size.
-    /// This is stored in the node's unconstrained size and will also be stored
-    /// in the font size provided that it is above the min size.
-    ///
-    /// All of this only applies when inheriting. When the font size is
-    /// manually set, scriptminsize does not apply, and both the real and
-    /// unconstrained size are set to the explicit value. However, if the font
-    /// size is manually set to an em or percent unit, the unconstrained size
-    /// will be set to the value of that unit computed against the parent
-    /// unconstrained size, whereas the font size will be set computing against
-    /// the parent font size.
-    pub fn calculate_script_level_size(&self, parent: &Self, device: &Device) -> (Au, Au) {
-        use std::cmp;
-
-        let delta = self.gecko.mScriptLevel.saturating_sub(parent.gecko.mScriptLevel);
-
-        let parent_size = Au(parent.gecko.mSize);
-        let parent_unconstrained_size = Au(parent.gecko.mScriptUnconstrainedSize);
-
-        if delta == 0 {
-            return (parent_size, parent_unconstrained_size)
-        }
-
-
-        let mut min = Au(parent.gecko.mScriptMinSize);
-        if self.gecko.mAllowZoom {
-            min = device.zoom_text(min);
-        }
-
-        let scale = (parent.gecko.mScriptSizeMultiplier as f32).powi(delta as i32);
-
-        let new_size = parent_size.scale_by(scale);
-        let new_unconstrained_size = parent_unconstrained_size.scale_by(scale);
-
-        if scale < 1. {
-            // The parent size can be smaller than scriptminsize,
-            // e.g. if it was specified explicitly. Don't scale
-            // in this case, but we don't want to set it to scriptminsize
-            // either since that will make it larger.
-            if parent_size < min {
-                (parent_size, new_unconstrained_size)
-            } else {
-                (cmp::max(min, new_size), new_unconstrained_size)
-            }
-        } else {
-            // If the new unconstrained size is larger than the min size,
-            // this means we have escaped the grasp of scriptminsize
-            // and can revert to using the unconstrained size.
-            // However, if the new size is even larger (perhaps due to usage
-            // of em units), use that instead.
-            (cmp::min(new_size, cmp::max(new_unconstrained_size, min)),
-             new_unconstrained_size)
-        }
-    }
-
-    /// This function will also handle scriptminsize and scriptlevel
-    /// so should not be called when you just want the font sizes to be copied.
-    /// Hence the different name.
-    pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                  kw_inherited_size: Option<NonNegativeLength>,
-                                  device: &Device) {
-        let (adjusted_size, adjusted_unconstrained_size)
-            = self.calculate_script_level_size(parent, device);
-        if adjusted_size.0 != parent.gecko.mSize ||
-           adjusted_unconstrained_size.0 != parent.gecko.mScriptUnconstrainedSize {
-            // FIXME(Manishearth): This is incorrect. When there is both a
-            // keyword size being inherited and a scriptlevel change, we must
-            // handle the keyword size the same way we handle em units. This
-            // complicates things because we now have to keep track of the
-            // adjusted and unadjusted ratios in the kw font size. This only
-            // affects the use case of a generic font being used in MathML.
-            //
-            // If we were to fix this I would prefer doing it not doing
-            // something like the ruletree walk that Gecko used to do in
-            // nsRuleNode::SetGenericFont and instead using extra bookkeeping in
-            // the mSize and mScriptUnconstrainedSize values, and reusing those
-            // instead of font_size_keyword.
-
-            // In the case that MathML has given us an adjusted size, apply it.
-            // Keep track of the unconstrained adjusted size.
-            self.gecko.mSize = adjusted_size.0;
-
-            // Technically the MathML constrained size may also be keyword-derived
-            // but we ignore this since it would be too complicated
-            // to correctly track and it's mostly unnecessary.
-            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
-            self.gecko.mFontSizeFactor = 1.;
-            self.gecko.mFontSizeOffset = 0;
-
-            self.gecko.mScriptUnconstrainedSize = adjusted_unconstrained_size.0;
-        } else if let Some(size) = kw_inherited_size {
-            // Parent element was a keyword-derived size.
-            self.gecko.mSize = size.0.to_i32_au();
-            // Copy keyword info over.
-            self.gecko.mFontSizeFactor = parent.gecko.mFontSizeFactor;
-            self.gecko.mFontSizeOffset = parent.gecko.mFontSizeOffset;
-            self.gecko.mFontSizeKeyword = parent.gecko.mFontSizeKeyword;
-            // MathML constraints didn't apply here, so we can ignore this.
-            self.gecko.mScriptUnconstrainedSize = size.0.to_i32_au();
-        } else {
-            // MathML isn't affecting us, and our parent element does not
-            // have a keyword-derived size. Set things normally.
-            self.gecko.mSize = parent.gecko.mSize;
-            // copy keyword info over
-            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
-            self.gecko.mFontSizeFactor = 1.;
-            self.gecko.mFontSizeOffset = 0;
-            self.gecko.mScriptUnconstrainedSize = parent.gecko.mScriptUnconstrainedSize;
-        }
-        self.fixup_font_min_size(device);
-    }
-
     pub fn clone_font_size(&self) -> FontSize {
         use crate::values::generics::font::{KeywordInfo, KeywordSize};
         let size = Au(self.gecko.mSize).into();
@@ -2270,16 +2113,16 @@ fn static_assert() {
             structs::NS_STYLE_FONT_SIZE_XXXLARGE => KeywordSize::XXXLarge,
             structs::NS_STYLE_FONT_SIZE_NO_KEYWORD => {
                 return FontSize {
-                    size: size,
+                    size,
                     keyword_info: None,
                 }
             }
             _ => unreachable!("mFontSizeKeyword should be an absolute keyword or NO_KEYWORD")
         };
         FontSize {
-            size: size,
+            size,
             keyword_info: Some(KeywordInfo {
-                kw: kw,
+                kw,
                 factor: self.gecko.mFontSizeFactor,
                 offset: Au(self.gecko.mFontSizeOffset).into()
             })
@@ -2751,7 +2594,7 @@ fn static_assert() {
                           transform-style
                           rotate scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-coordinate -moz-binding will-change
-                          offset-path shape-outside contain touch-action
+                          offset-path shape-outside
                           translate scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
@@ -3109,10 +2952,10 @@ fn static_assert() {
 
     pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
         use crate::gecko_bindings::bindings::{Gecko_AppendWillChange, Gecko_ClearWillChange};
-        use crate::properties::longhands::will_change::computed_value::T;
+        use crate::values::specified::box_::{WillChangeBits, WillChange};
 
         match v {
-            T::AnimateableFeatures { features, bits } => {
+            WillChange::AnimateableFeatures { features, bits } => {
                 unsafe {
                     Gecko_ClearWillChange(&mut self.gecko, features.len());
                 }
@@ -3123,13 +2966,13 @@ fn static_assert() {
                     }
                 }
 
-                self.gecko.mWillChangeBitField = bits.bits();
+                self.gecko.mWillChangeBitField = bits;
             },
-            T::Auto => {
+            WillChange::Auto => {
                 unsafe {
                     Gecko_ClearWillChange(&mut self.gecko, 0);
                 }
-                self.gecko.mWillChangeBitField = 0;
+                self.gecko.mWillChangeBitField = WillChangeBits::empty();
             },
         };
     }
@@ -3139,7 +2982,7 @@ fn static_assert() {
 
         self.gecko.mWillChangeBitField = other.gecko.mWillChangeBitField;
         unsafe {
-            Gecko_CopyWillChangeFrom(&mut self.gecko, &other.gecko as *const _ as *mut _);
+            Gecko_CopyWillChangeFrom(&mut self.gecko, &other.gecko);
         }
     }
 
@@ -3148,115 +2991,26 @@ fn static_assert() {
     }
 
     pub fn clone_will_change(&self) -> longhands::will_change::computed_value::T {
-        use crate::properties::longhands::will_change::computed_value::T;
-        use crate::gecko_bindings::structs::nsAtom;
         use crate::values::CustomIdent;
-        use crate::values::specified::box_::WillChangeBits;
+        use crate::values::specified::box_::WillChange;
 
         if self.gecko.mWillChange.len() == 0 {
-            return T::Auto
+            return WillChange::Auto
         }
 
         let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
             unsafe {
-                CustomIdent(Atom::from_raw(gecko_atom.mRawPtr as *mut nsAtom))
+                CustomIdent(Atom::from_raw(gecko_atom.mRawPtr))
             }
         }).collect();
 
-        T::AnimateableFeatures {
+        WillChange::AnimateableFeatures {
             features: custom_idents.into_boxed_slice(),
-            bits: WillChangeBits::from_bits_truncate(self.gecko.mWillChangeBitField),
+            bits: self.gecko.mWillChangeBitField,
         }
     }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
-
-    pub fn set_contain(&mut self, v: longhands::contain::computed_value::T) {
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_NONE;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
-        use crate::properties::longhands::contain::SpecifiedValue;
-
-        if v.is_empty() {
-            self.gecko.mContain = NS_STYLE_CONTAIN_NONE as u8;
-            return;
-        }
-
-        if v.contains(SpecifiedValue::STRICT) {
-            self.gecko.mContain = (NS_STYLE_CONTAIN_STRICT | NS_STYLE_CONTAIN_ALL_BITS) as u8;
-            return;
-        }
-        if v.contains(SpecifiedValue::CONTENT) {
-            self.gecko.mContain = (NS_STYLE_CONTAIN_CONTENT | NS_STYLE_CONTAIN_CONTENT_BITS) as u8;
-            return;
-        }
-
-        let mut bitfield = 0;
-        if v.contains(SpecifiedValue::LAYOUT) {
-            bitfield |= NS_STYLE_CONTAIN_LAYOUT;
-        }
-        if v.contains(SpecifiedValue::PAINT) {
-            bitfield |= NS_STYLE_CONTAIN_PAINT;
-        }
-        if v.contains(SpecifiedValue::SIZE) {
-            bitfield |= NS_STYLE_CONTAIN_SIZE;
-        }
-
-        self.gecko.mContain = bitfield as u8;
-    }
-
-    pub fn clone_contain(&self) -> longhands::contain::computed_value::T {
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
-        use crate::gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
-        use crate::properties::longhands::contain::{self, SpecifiedValue};
-
-        let mut servo_flags = contain::computed_value::T::empty();
-        let gecko_flags = self.gecko.mContain;
-
-        if gecko_flags & (NS_STYLE_CONTAIN_STRICT as u8) != 0 {
-            debug_assert_eq!(
-                gecko_flags & (NS_STYLE_CONTAIN_ALL_BITS as u8),
-                NS_STYLE_CONTAIN_ALL_BITS as u8,
-                "When strict is specified, ALL_BITS should be specified as well"
-            );
-            servo_flags.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
-            return servo_flags;
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_CONTENT as u8) != 0 {
-            debug_assert_eq!(
-                gecko_flags & (NS_STYLE_CONTAIN_CONTENT_BITS as u8),
-                NS_STYLE_CONTAIN_CONTENT_BITS as u8,
-                "When content is specified, CONTENT_BITS should be specified as well"
-            );
-            servo_flags.insert(SpecifiedValue::CONTENT | SpecifiedValue::CONTENT_BITS);
-            return servo_flags;
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_LAYOUT as u8) != 0 {
-            servo_flags.insert(SpecifiedValue::LAYOUT);
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_PAINT as u8) != 0 {
-            servo_flags.insert(SpecifiedValue::PAINT);
-        }
-        if gecko_flags & (NS_STYLE_CONTAIN_SIZE as u8) != 0 {
-            servo_flags.insert(SpecifiedValue::SIZE);
-        }
-
-        return servo_flags;
-    }
-
-    ${impl_simple_copy("contain", "mContain")}
-
-    ${impl_simple_type_with_conversion("touch_action")}
 
     pub fn set_offset_path(&mut self, v: longhands::offset_path::computed_value::T) {
         use crate::gecko_bindings::bindings::{Gecko_NewStyleMotion, Gecko_SetStyleMotion};
@@ -4250,9 +4004,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-line text-overflow initial-letter">
-
-    ${impl_simple_type_with_conversion("text_decoration_line")}
+                  skip_longhands="text-overflow initial-letter">
 
     fn clear_overflow_sides_if_string(&mut self) {
         use crate::gecko_bindings::structs::nsStyleTextOverflowSide;
@@ -4365,21 +4117,6 @@ fn static_assert() {
         } else {
             InitialLetter::Specified(self.gecko.mInitialLetterSize, Some(self.gecko.mInitialLetterSink))
         }
-    }
-
-    #[inline]
-    pub fn has_underline(&self) -> bool {
-        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
-    }
-
-    #[inline]
-    pub fn has_overline(&self) -> bool {
-        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
-    }
-
-    #[inline]
-    pub fn has_line_through(&self) -> bool {
-        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
 </%self:impl_trait>
 
@@ -4823,7 +4560,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"
-                  skip_longhands="content counter-increment counter-reset">
+                  skip_longhands="content counter-increment counter-reset counter-set">
     pub fn ineffective_content_property(&self) -> bool {
         self.gecko.mContents.is_empty()
     }
@@ -5052,7 +4789,7 @@ clip-path
         )
     }
 
-    % for counter_property in ["Increment", "Reset"]:
+    % for counter_property in ["Increment", "Reset", "Set"]:
         pub fn set_counter_${counter_property.lower()}(
             &mut self,
             v: longhands::counter_${counter_property.lower()}::computed_value::T

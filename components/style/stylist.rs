@@ -60,8 +60,8 @@ pub type StylistSheet = crate::stylesheets::DocumentStyleSheet;
 #[cfg(feature = "gecko")]
 pub type StylistSheet = crate::gecko::data::GeckoStyleSheet;
 
-/// A cache of computed user-agent data, to be shared across documents.
 lazy_static! {
+    /// A cache of computed user-agent data, to be shared across documents.
     static ref UA_CASCADE_DATA_CACHE: Mutex<UserAgentCascadeDataCache> =
         Mutex::new(UserAgentCascadeDataCache::new());
 }

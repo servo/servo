@@ -75,6 +75,7 @@ def main(task_for):
     elif task_for == "github-pull-request":
         CONFIG.treeherder_repository_name = "servo-prs"
         CONFIG.index_read_only = True
+        CONFIG.docker_image_build_worker_type = None
 
         # We want the merge commit that GitHub creates for the PR.
         # The event does contain a `pull_request.merge_commit_sha` key, but it is wrong:
@@ -625,7 +626,7 @@ def macos_build_task(name):
 
 CONFIG.task_name_template = "Servo: %s"
 CONFIG.index_prefix = "project.servo.servo"
-CONFIG.docker_image_buil_worker_type = "servo-docker-worker"
+CONFIG.docker_image_build_worker_type = "servo-docker-worker"
 CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
 

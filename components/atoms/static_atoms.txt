@@ -37,6 +37,8 @@ gattserverdisconnected
 hashchange
 hidden
 icecandidate
+iceconnectionstatechange
+icegatheringstatechange
 image
 input
 invalid
@@ -95,6 +97,7 @@ seeked
 seeking
 select
 serif
+signalingstatechange
 srclang
 statechange
 storage

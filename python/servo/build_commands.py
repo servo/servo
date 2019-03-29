@@ -283,6 +283,7 @@ class MachCommands(CommandBase):
 
             opts += ["--target", target]
 
+        env = self.build_env(target=target, is_build=True)
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 
@@ -290,6 +291,10 @@ class MachCommands(CommandBase):
 
         if debug_mozjs:
             features += ["debugmozjs"]
+
+        if with_frame_pointer:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
+            features += ["profilemozjs"]
 
         if self.config["build"]["webgl-backtrace"]:
             features += ["webgl-backtrace"]
@@ -300,14 +305,10 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
-        env = self.build_env(target=target, is_build=True)
         env["CARGO_TARGET_DIR"] = target_path
 
         if with_debug_assertions:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
-
-        if with_frame_pointer:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
 
         if android:
             if "ANDROID_NDK" not in env:

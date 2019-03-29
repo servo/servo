@@ -103,6 +103,15 @@ include = [
   "ZIndex",
   "TransformOrigin",
   "WordBreak",
+  "Contain",
+  "RestyleHint",
+  "TouchAction",
+  "WillChangeBits",
+  "TextDecorationLine",
+  "MozListReversed",
+  "Owned",
+  "OwnedOrNull",
+  "Strong",
 ]
 item_types = ["enums", "structs", "typedefs"]
 
@@ -195,4 +204,36 @@ item_types = ["enums", "structs", "typedefs"]
 
 "GenericBorderRadius" = """
   inline const StyleLengthPercentage& Get(mozilla::HalfCorner) const;
+"""
+
+"RestyleHint" = """
+  static inline StyleRestyleHint RestyleSubtree();
+  static inline StyleRestyleHint RecascadeSubtree();
+  static inline StyleRestyleHint ForAnimations();
+"""
+
+# TODO(emilio): Add hooks to cbindgen to be able to generate MOZ_MUST_USE_TYPE
+# or MOZ_MUST_USE on the functions.
+"Owned" = """
+  UniquePtr<GeckoType> Consume() {
+    UniquePtr<GeckoType> ret(ptr);
+    ptr = nullptr;
+    return ret;
+  }
+"""
+
+"OwnedOrNull" = """
+  UniquePtr<GeckoType> Consume() {
+    UniquePtr<GeckoType> ret(ptr);
+    ptr = nullptr;
+    return ret;
+  }
+"""
+
+"Strong" = """
+  already_AddRefed<GeckoType> Consume() {
+    already_AddRefed<GeckoType> ret(const_cast<GeckoType*>(ptr));
+    ptr = nullptr;
+    return ret;
+  }
 """

@@ -6,8 +6,11 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
 use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, DomSlice, MutNullableDom};
@@ -21,6 +24,7 @@ use crate::dom::window::Window;
 use crate::task::TaskOnce;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
+use metrics::ToMs;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
@@ -40,7 +44,7 @@ pub struct Event {
     trusted: Cell<bool>,
     dispatching: Cell<bool>,
     initialized: Cell<bool>,
-    timestamp: u64,
+    precise_time_ns: u64,
 }
 
 impl Event {
@@ -59,7 +63,7 @@ impl Event {
             trusted: Cell::new(false),
             dispatching: Cell::new(false),
             initialized: Cell::new(false),
-            timestamp: time::get_time().sec as u64,
+            precise_time_ns: time::precise_time_ns(),
         }
     }
 
@@ -322,8 +326,11 @@ impl EventMethods for Event {
     }
 
     // https://dom.spec.whatwg.org/#dom-event-timestamp
-    fn TimeStamp(&self) -> u64 {
-        self.timestamp
+    fn TimeStamp(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(
+            (self.precise_time_ns - (*self.global().performance().TimeOrigin()).round() as u64)
+                .to_ms(),
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-event-initevent
