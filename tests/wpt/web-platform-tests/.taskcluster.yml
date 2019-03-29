@@ -64,7 +64,7 @@ tasks:
                 owner: ${event.pusher.email}
                 source: ${event.repository.url}
               payload:
-                image: harjgam/web-platform-tests:0.30
+                image: harjgam/web-platform-tests:0.32
                 maxRunTime: 7200
                 artifacts:
                   public/results:
@@ -80,10 +80,10 @@ tasks:
                     echo "wpt-${browser.name}-${browser.channel}-${chunk[0]}-${chunk[1]}";
                     ~/start.sh
                       ${event.repository.url}
-                      ${event.ref}
-                      ${event.after};
+                      ${event.ref};
                     cd ~/web-platform-tests;
                     ./tools/ci/run_tc.py
+                      --checkout=${event.after}
                       --oom-killer
                       --hosts
                       --browser=${browser.name}
@@ -112,15 +112,15 @@ tasks:
               $map:
                 # This is the main place to define new stability checks
                 - name: wpt-${browser.name}-${browser.channel}-stability
-                  checkout: FETCH_HEAD
-                  diff_range: HEAD^
+                  checkout: task_head
+                  diff_base: base_head
                   description: >-
                     Verify that all tests affected by a pull request are stable
                     when executed in ${browser.name}.
                   extra_args: '--verify'
                 - name: wpt-${browser.name}-${browser.channel}-results
-                  checkout: FETCH_HEAD
-                  diff_range: HEAD^
+                  checkout: task_head
+                  diff_base: base_head
                   description: >-
                     Collect results for all tests affected by a pull request in
                     ${browser.name}.
@@ -129,8 +129,8 @@ tasks:
                     --log-wptreport=../artifacts/wpt_report.json
                     --log-wptscreenshot=../artifacts/wpt_screenshot.txt
                 - name: wpt-${browser.name}-${browser.channel}-results-without-changes
-                  checkout: FETCH_HEAD^
-                  diff_range: FETCH_HEAD
+                  checkout: base_head
+                  diff_base: task_head
                   description: >-
                     Collect results for all tests affected by a pull request in
                     ${browser.name} but without the changes in the PR.
@@ -156,7 +156,7 @@ tasks:
                   owner: ${event.pull_request.user.login}@users.noreply.github.com
                   source: ${event.repository.url}
                 payload:
-                  image: harjgam/web-platform-tests:0.30
+                  image: harjgam/web-platform-tests:0.32
                   maxRunTime: 7200
                   artifacts:
                     public/results:
@@ -178,8 +178,7 @@ tasks:
                       echo "${operation.name}";
                       ~/start.sh
                         ${event.repository.clone_url}
-                        refs/pull/${event.number}/merge
-                        FETCH_HEAD;
+                        refs/pull/${event.number}/merge;
                       cd web-platform-tests;
                       ./tools/ci/run_tc.py
                         --checkout=${operation.checkout}
@@ -189,7 +188,7 @@ tasks:
                         --xvfb
                         stability
                         ./tools/ci/taskcluster-run.py
-                          --commit-range ${operation.diff_range}
+                          --commit-range ${operation.diff_base}
                           ${browser.name}
                           --
                           --channel=${browser.channel}
@@ -310,7 +309,7 @@ tasks:
                   owner: ${event.sender.login}@users.noreply.github.com
                   source: ${event.repository.url}
                 payload:
-                  image: harjgam/web-platform-tests:0.30
+                  image: harjgam/web-platform-tests:0.32
                   maxRunTime: 7200
                   artifacts:
                     public/results:
@@ -326,7 +325,6 @@ tasks:
                       echo "${operation.name}";
                       ~/start.sh
                         ${event.repository.clone_url}
-                        ${checkout_ref}
-                        FETCH_HEAD;
+                        ${checkout_ref};
                       cd ~/web-platform-tests;
                       ${operation.script};

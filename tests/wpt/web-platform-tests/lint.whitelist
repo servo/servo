@@ -93,8 +93,8 @@ AHEM COPY: css/vendor-imports/mozilla/mozilla-central-reftests/*/Ahem.ttf
 # Intentional use of CRLF
 CR AT EOL: WebIDL/valid/idl/documentation-dos.widl
 CR AT EOL: cors/resources/cors-headers.asis
-CR AT EOL: html/form-elements/the-textarea-element/multiline-placeholder-cr.html
-CR AT EOL: html/form-elements/the-textarea-element/multiline-placeholder-crlf.html
+CR AT EOL: html/semantics/forms/the-textarea-element/multiline-placeholder-cr.html
+CR AT EOL: html/semantics/forms/the-textarea-element/multiline-placeholder-crlf.html
 CR AT EOL: html/input/the-placeholder-attribute/multiline-cr.html
 CR AT EOL: html/input/the-placeholder-attribute/multiline-crlf.html
 CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt

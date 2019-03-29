@@ -171,4 +171,19 @@
         pc.setLocalDescription(answer)));
   }, 'Calling setLocalDescription(answer) from have-local-offer state should reject with InvalidStateError');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const offer = await pc1.createOffer({offerToReceiveAudio: true});
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer(); // [[LastAnswer]] slot set
+    await pc2.setRemoteDescription({type: "rollback"});
+    await pc2.createOffer({offerToReceiveVideo: true}); // [[LastOffer]] slot set
+    await pc2.setRemoteDescription(offer);
+    await pc2.setLocalDescription(answer); // Should check against [[LastAnswer]], not [[LastOffer]]
+  }, "Setting previously generated answer after a call to createOffer should work");
+
 </script>

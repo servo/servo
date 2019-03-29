@@ -16,12 +16,14 @@ partial dictionary MediaTrackSupportedConstraints {
              boolean displaySurface = true;
              boolean logicalSurface = true;
              boolean cursor = true;
+             boolean restrictOwnAudio = true;
 };
 
 partial dictionary MediaTrackConstraintSet {
              ConstrainDOMString displaySurface;
              ConstrainBoolean logicalSurface;
              ConstrainDOMString cursor;
+             ConstrainBoolean restrictOwnAudio;
 };
 
 partial dictionary MediaTrackSettings {

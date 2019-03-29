@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Answer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+// Tests for the construction of answers with simulcast according to:
+// draft-ietf-mmusic-sdp-simulcast-13
+// draft-ietf-mmusic-rid-15
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const expected_rids = ['foo', 'bar', 'baz'];
+
+  const offer_sdp = `v=0
+o=- 3840232462471583827 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:Li6+
+a=ice-pwd:3C05CTZBRQVmGCAq7hVasHlT
+a=ice-options:trickle
+a=fingerprint:sha-256 5B:D3:8E:66:0E:7D:D3:F3:8E:E6:80:28:19:FC:55:AD:58:5D:B9:3D:A8:DE:45:4A:E7:87:02:F8:3C:0B:3B:B3
+a=setup:actpass
+a=mid:0
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=recvonly
+a=rtcp-mux
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 goog-remb
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 ccm fir
+a=rid:foo send
+a=rid:bar send
+a=rid:baz send
+a=simulcast:recv foo;bar;baz
+`;
+
+  await pc.setRemoteDescription({type: 'offer', sdp: offer_sdp});
+  const transceiver = pc.getTransceivers()[0];
+  // The created transceiver should be in "recvonly" state. Allow it to send.
+  transceiver.direction = "sendonly";
+  const answer = await pc.createAnswer();
+  let answer_lines = answer.sdp.split('\r\n');
+  // Check for a RID line for each layer.
+  for (const rid of expected_rids) {
+    let result = answer_lines.find(line => line.startsWith(`a=rid:${rid}`));
+    assert_not_equals(result, undefined, `RID attribute for '${rid}' missing.`);
+  }
+
+  // Check for simulcast attribute with send direction and all RIDs.
+  let result = answer_lines.find(
+      line => line.startsWith(`a=simulcast:send ${expected_rids.join(';')}`));
+  assert_not_equals(result, undefined, "Could not find simulcast attribute.");
+}, 'createOffer() with multiple send encodings should create simulcast offer');
+</script>

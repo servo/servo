@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Test for pictureInPictureElement adjustment for Shadow DOM</title>
+<title>Test for Picture-In-Picture and Shadow DOM</title>
 <script src="/common/media.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -7,6 +7,10 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/picture-in-picture-helpers.js"></script>
 <script src="../shadow-dom/resources/shadow-dom.js"></script>
+<style>
+  #host2 { color: rgb(0, 0, 254); }
+  #host2:picture-in-picture { color: rgb(0, 0, 255); }
+</style>
 <body>
 <div id='host'>
   <template data-mode='open' id='root'>
@@ -14,8 +18,16 @@
   </template>
   <div id='host2'>
     <template data-mode='open' id='root2'>
+    <style>
+      #host3 { color: rgb(0, 0, 127); }
+      #host3:picture-in-picture { color: rgb(0, 0, 128); }
+    </style>
       <div id='host3'>
         <template data-mode='open' id='root3'>
+          <style>
+            video { color: rgb(0, 254, 0); }
+            video:picture-in-picture { color: rgb(0, 255, 0); }
+          </style>
           <video id='video'></video>
           <div id='host4'>
             <template data-mode='open' id='root4'>
@@ -45,6 +57,10 @@ promise_test(async t => {
   assert_equals(ids.root4.pictureInPictureElement, null);
   assert_equals(ids.root5.pictureInPictureElement, null);
 
+  assert_equals(getComputedStyle(ids.video).color, 'rgb(0, 254, 0)');
+  assert_equals(getComputedStyle(ids.host3).color, 'rgb(0, 0, 127)');
+  assert_equals(getComputedStyle(ids.host2).color, 'rgb(0, 0, 254)');
+
   await new Promise(resolve => {
     ids.video.src = getVideoURI('/media/movie_5');
     ids.video.onloadeddata = resolve;
@@ -57,7 +73,16 @@ promise_test(async t => {
     assert_equals(ids.root3.pictureInPictureElement, ids.video);
     assert_equals(ids.root4.pictureInPictureElement, null);
     assert_equals(ids.root5.pictureInPictureElement, null);
+
+    assert_equals(getComputedStyle(ids.video).color, 'rgb(0, 255, 0)');
+    assert_equals(getComputedStyle(ids.host3).color, 'rgb(0, 0, 128)');
+    assert_equals(getComputedStyle(ids.host2).color, 'rgb(0, 0, 255)');
   })
-  .then(() => document.exitPictureInPicture());
+  .then(() => document.exitPictureInPicture())
+  .then(() => {
+    assert_equals(getComputedStyle(ids.video).color, 'rgb(0, 254, 0)');
+    assert_equals(getComputedStyle(ids.host3).color, 'rgb(0, 0, 127)');
+    assert_equals(getComputedStyle(ids.host2).color, 'rgb(0, 0, 254)');
+  });
 });
 </script>

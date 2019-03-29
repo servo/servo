@@ -19,7 +19,7 @@ promise_test(async (t) => {
   idl_array.add_dependency_idls(dom);
   idl_array.add_dependency_idls(html);
 
-  self.idle = new IdleDetector({threshold: 1});
+  self.idle = new IdleDetector({threshold: 60});
 
   let watcher = new EventWatcher(t, self.idle, ["change"]);
 

@@ -82,8 +82,15 @@ interface Table {
   readonly attribute unsigned long length;
 };
 
+enum ValueType {
+  "i32",
+  "i64",
+  "f32",
+  "f64"
+};
+
 dictionary GlobalDescriptor {
-  required USVString value;
+  required ValueType value;
   boolean mutable = false;
 };
 

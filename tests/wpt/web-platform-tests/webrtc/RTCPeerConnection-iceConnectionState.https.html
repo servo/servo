@@ -148,21 +148,21 @@ async_test(t => {
       const { iceConnectionState } = pc1;
 
       if(iceConnectionState === 'checking') {
-        const iceTransport = pc1.sctp.transport.iceTransport;
+        const iceTransport = pc1.sctp.transport.transport;
 
         assert_equals(iceTransport.state, 'checking',
           'Expect ICE transport to be in checking state when' +
           ' iceConnectionState is checking');
 
       } else if(iceConnectionState === 'connected') {
-        const iceTransport = pc1.sctp.transport.iceTransport;
+        const iceTransport = pc1.sctp.transport.transport;
 
         assert_equals(iceTransport.state, 'connected',
           'Expect ICE transport to be in connected state when' +
           ' iceConnectionState is connected');
 
       } else if(iceConnectionState === 'completed') {
-        const iceTransport = pc1.sctp.transport.iceTransport;
+        const iceTransport = pc1.sctp.transport.transport;
 
         assert_equals(iceTransport.state, 'completed',
           'Expect ICE transport to be in connected state when' +

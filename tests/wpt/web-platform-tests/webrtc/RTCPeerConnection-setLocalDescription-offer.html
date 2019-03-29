@@ -157,4 +157,18 @@
           }))));
   }, 'Creating and setting offer multiple times should succeed');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const offer = await pc1.createOffer({offerToReceiveAudio: true}); // [[LastOffer]] set
+    const offer2 = await pc2.createOffer({offerToReceiveVideo: true});
+    await pc1.setRemoteDescription(offer2);
+    await pc1.createAnswer(); // [[LastAnswer]] set
+    await pc1.setRemoteDescription({type: "rollback"});
+    await pc1.setLocalDescription(offer);
+  }, "Setting previously generated offer after a call to createAnswer should work");
+
 </script>

@@ -1,9 +1,19 @@
+parameters:
+  channel: preview
+
 steps:
-- script: |
-    # This is equivalent to `Homebrew/homebrew-cask-versions/safari-technology-preview`,
-    # but the raw URL is used to bypass caching.
-    HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/master/Casks/safari-technology-preview.rb
-    # https://web-platform-tests.org/running-tests/safari.html
-    sudo "/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" --enable
-    defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
-  displayName: 'Install Safari Technology Preview'
+- ${{ if eq(parameters.channel, 'preview') }}:
+  - script: |
+      # This is equivalent to `Homebrew/homebrew-cask-versions/safari-technology-preview`,
+      # but the raw URL is used to bypass caching.
+      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/master/Casks/safari-technology-preview.rb
+      # https://web-platform-tests.org/running-tests/safari.html
+      sudo "/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" --enable
+      defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
+    displayName: 'Install Safari Technology Preview'
+- ${{ if eq(parameters.channel, 'stable') }}:
+  - script: |
+      # https://web-platform-tests.org/running-tests/safari.html
+      sudo safaridriver --enable
+      defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
+    displayName: 'Configure Safari'

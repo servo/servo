@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Element Timing: observe images in carousel</title>
+<style>
+body {
+  margin: 0;
+}
+/* Do not display images by default */
+.carousel-image {
+  display: none;
+}
+</style>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+
+<div class="slideshow-container">
+  <div class='carousel-image'>
+    <img src="resources/circle.svg" elementtiming='image0'>
+  </div>
+  <div class='carousel-image'>
+    <img src="resources/square100.png" elementtiming='image1'>
+  </div>
+</div>
+
+<script>
+  async_test(function (t) {
+    const beforeRenderTimes = [];
+    let entry_count = 0;
+    const entry_count_per_element = [0, 0];
+    const index = window.location.href.lastIndexOf('/');
+    const pathname0 = window.location.href.substring(0, index) +
+        '/resources/circle.svg';
+    const pathname1 = window.location.href.substring(0, index) +
+        '/resources/square100.png';
+    const observer = new PerformanceObserver(list => {
+      list.getEntries().forEach(entry => {
+        if (entry_count % 2 == 0) {
+          checkElement(entry, pathname0, 'image0', beforeRenderTimes[entry_count]);
+          checkRect(entry, [0, 200, 0, 200]);
+          entry_count_per_element[0]++;
+        }
+        else {
+          checkElement(entry, pathname1, 'image1', beforeRenderTimes[entry_count]);
+          checkRect(entry, [0, 100, 0, 100]);
+          entry_count_per_element[1]++;
+        }
+        entry_count++;
+        // Check each image twice before ending the test.
+        if (entry_count == 4) {
+          assert_equals(entry_count_per_element[0], 2);
+          assert_equals(entry_count_per_element[1], 2);
+          t.done();
+        }
+      })
+    });
+    observer.observe({entryTypes: ['element']});
+    let slideIndex = 0;
+    showCarousel();
+
+    function showCarousel() {
+      beforeRenderTimes.push(performance.now());
+      const slides = document.getElementsByClassName("carousel-image");
+      slides[slideIndex].style.display = "block";
+      slides[1 - slideIndex].style.display = "none";
+      slideIndex = 1 - slideIndex;
+      t.step_timeout(showCarousel, 50); // Change image every 50 ms.
+    }
+  }, 'Entries for elements within an image carousel are dispatched when the elements are redrawn.');
+</script>
+</body>
+</html>

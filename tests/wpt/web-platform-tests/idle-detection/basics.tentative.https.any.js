@@ -24,7 +24,7 @@ promise_test(async t => {
   new IdleDetector({
     get threshold() {
       used = true;
-      return 1;
+      return 60;
     }
   });
 
@@ -34,11 +34,28 @@ promise_test(async t => {
 promise_test(async t => {
   try {
     new IdleDetector({threshold: 0});
-    assert_unreached('Threshold of 0 should reject');
+    assert_unreached('Threshold under 60 should reject');
   } catch (error) {
     assert_equals(error.name, 'TypeError');
   }
 }, 'constructor throws with invalid threshold (0)');
+
+promise_test(async t => {
+  try {
+    new IdleDetector({threshold: 59});
+    assert_unreached('Threshold under 60 should reject');
+  } catch (error) {
+    assert_equals(error.name, 'TypeError');
+  }
+}, 'constructor throws with threshold below minimum (59)');
+
+promise_test(async t => {
+  new IdleDetector({threshold: 60});
+}, 'constructor allows threshold (60)');
+
+promise_test(async t => {
+  new IdleDetector({threshold: 61});
+}, 'constructor allows threshold (61)');
 
 promise_test(async t => {
   try {
@@ -74,5 +91,4 @@ promise_test(async t => {
 promise_test(async t => {
   new IdleDetector({threshold: undefined});
 }, 'constructor uses a default value for the threshold');
-
 

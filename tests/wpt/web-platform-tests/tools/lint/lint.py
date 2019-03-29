@@ -134,6 +134,28 @@ def check_worker_collision(repo_root, path):
     return []
 
 
+def check_gitignore_file(repo_root, path):
+    if not path.endswith(".gitignore"):
+        return []
+
+    path_parts = path.split(os.path.sep)
+    if len(path_parts) == 1:
+        return []
+
+    if path_parts[-1] != ".gitignore":
+        return []
+
+    if (path_parts[0] in ["tools", "docs"] or
+        path_parts[:2] == ["resources", "webidl2"] or
+        path_parts[:3] == ["css", "tools", "apiclient"]):
+        return []
+
+    return [("GITIGNORE",
+             ".gitignore found outside the root",
+             path,
+             None)]
+
+
 def check_ahem_copy(repo_root, path):
     lpath = path.lower()
     if "ahem" in lpath and lpath.endswith(".ttf"):
@@ -908,7 +930,7 @@ def lint(repo_root, paths, output_format):
                 logger.info(line)
     return sum(itervalues(error_count))
 
-path_lints = [check_path_length, check_worker_collision, check_ahem_copy]
+path_lints = [check_path_length, check_worker_collision, check_ahem_copy, check_gitignore_file]
 all_paths_lints = [check_css_globally_unique]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata]
 
