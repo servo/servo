@@ -62,8 +62,8 @@ enum CanvasFillOrStrokeStyle {
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    ipc_renderer: IpcSender<CanvasMsg>,
+    //#[ignore_malloc_size_of = "Defined in ipc-channel"]
+    //ipc_renderer: IpcSender<CanvasMsg>,
     /// For rendering contexts created by an HTML canvas element, this is Some,
     /// for ones created by a paint worklet, this is None.
     canvas: Option<Dom<HTMLCanvasElement>>,
@@ -77,7 +77,8 @@ pub struct CanvasRenderingContext2D {
     state: DomRefCell<CanvasContextState>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
     origin_clean: Cell<bool>,
-    canvas_id: CanvasId,
+    //canvas_id: CanvasId,
+    canvas_state: DomRefCell<CanvasState>,
 }
 
 #[must_root]
@@ -121,6 +122,77 @@ impl CanvasContextState {
     }
 }
 
+#[must_root]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub struct CanvasState {
+    //reflector_: Reflector,
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    ipc_renderer: IpcSender<CanvasMsg>,
+    canvas_id: CanvasId,
+}
+
+impl CanvasState {
+    pub fn new(
+        global: &GlobalScope,
+    ) -> CanvasState {
+        let (sender, receiver) =
+            profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
+        debug!("Done.");
+        CanvasState {
+            //reflector_: Reflector::new(),
+            ipc_renderer: ipc_renderer,
+            canvas_id: canvas_id,
+        }
+    }
+
+    pub fn get_canvas_id(&self) -> CanvasId {
+        self.canvas_id.clone()
+    }
+
+    pub fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+        self.ipc_renderer
+            .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
+            .unwrap()
+    }
+
+    fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
+        if !([x, y, w, h].iter().all(|val| val.is_finite())) {
+            return None;
+        }
+
+        if w == 0.0 && h == 0.0 {
+            return None;
+        }
+
+        Some(Rect::new(
+            Point2D::new(x as f32, y as f32),
+            Size2D::new(w as f32, h as f32),
+        ))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
+    pub fn FillRect(&self, x: f64, y: f64, width: f64, height: f64) {
+        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
+            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(rect));
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
+    pub fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64) {
+        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
+            self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(rect));
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokerect
+    pub fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64) {
+        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
+            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(rect));
+        }
+    }
+}
+
 impl CanvasRenderingContext2D {
     pub fn new_inherited(
         global: &GlobalScope,
@@ -137,19 +209,20 @@ impl CanvasRenderingContext2D {
         script_to_constellation_chan
             .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
             .unwrap();
-        let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
+        //let (canvas_state.ipc_renderer, canvas_id) = receiver.recv().unwrap();
         debug!("Done.");
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
-            ipc_renderer: ipc_renderer,
             canvas: canvas.map(Dom::from_ref),
+            //ipc_renderer: ipc_renderer,
             image_cache: image_cache,
             missing_image_urls: DomRefCell::new(Vec::new()),
             base_url: base_url,
             state: DomRefCell::new(CanvasContextState::new()),
             saved_states: DomRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
-            canvas_id: canvas_id,
+            //canvas_id: canvas_id,
+            canvas_state: DomRefCell::new(CanvasState::new(global)),
         }
     }
 
@@ -174,8 +247,8 @@ impl CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
     pub fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
         self.reset_to_initial_state();
-        self.ipc_renderer
-            .send(CanvasMsg::Recreate(size, self.get_canvas_id()))
+        self.canvas_state.borrow().ipc_renderer
+            .send(CanvasMsg::Recreate(size, self.canvas_state.borrow().get_canvas_id()))
             .unwrap();
     }
 
@@ -366,7 +439,7 @@ impl CanvasRenderingContext2D {
             match *context {
                 CanvasContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
-                        self.get_canvas_id(),
+                        self.canvas_state.borrow().get_canvas_id(),
                         image_size,
                         dest_rect,
                         source_rect,
@@ -475,7 +548,7 @@ impl CanvasRenderingContext2D {
         mem::replace(&mut self.missing_image_urls.borrow_mut(), vec![])
     }
 
-    fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
+    /*fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
         if !([x, y, w, h].iter().all(|val| val.is_finite())) {
             return None;
         }
@@ -488,7 +561,7 @@ impl CanvasRenderingContext2D {
             Point2D::new(x as f32, y as f32),
             Size2D::new(w as f32, h as f32),
         ))
-    }
+    }*/
 
     fn parse_color(&self, string: &str) -> Result<RGBA, ()> {
         let mut input = ParserInput::new(string);
@@ -528,17 +601,15 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn get_canvas_id(&self) -> CanvasId {
-        self.canvas_id.clone()
+        self.canvas_state.borrow().get_canvas_id()
     }
 
     pub fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
-        self.ipc_renderer
-            .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
-            .unwrap()
+        self.canvas_state.borrow().send_canvas_2d_msg(msg)
     }
 
     pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        self.ipc_renderer.clone()
+        self.canvas_state.borrow().ipc_renderer.clone()
     }
 
     pub fn origin_is_clean(&self) -> bool {
@@ -585,12 +656,12 @@ pub trait LayoutCanvasRenderingContext2DHelpers {
 impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<CanvasRenderingContext2D> {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        (*self.unsafe_get()).ipc_renderer.clone()
+        (*self.unsafe_get()).canvas_state.borrow().ipc_renderer.clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn get_canvas_id(&self) -> CanvasId {
-        (*self.unsafe_get()).canvas_id.clone()
+        (*self.unsafe_get()).canvas_state.borrow().get_canvas_id()
     }
 }
 
@@ -747,26 +818,20 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
     fn FillRect(&self, x: f64, y: f64, width: f64, height: f64) {
-        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(rect));
-            self.mark_as_dirty();
-        }
+        self.canvas_state.borrow().FillRect(x, y, width, height);
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
     fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64) {
-        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(rect));
-            self.mark_as_dirty();
-        }
+        self.canvas_state.borrow().ClearRect(x, y, width, height);
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokerect
     fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64) {
-        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(rect));
-            self.mark_as_dirty();
-        }
+        self.canvas_state.borrow().StrokeRect(x, y, width, height);
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beginpath
@@ -1458,8 +1523,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 impl Drop for CanvasRenderingContext2D {
     fn drop(&mut self) {
         if let Err(err) = self
-            .ipc_renderer
-            .send(CanvasMsg::Close(self.get_canvas_id()))
+            .canvas_state.borrow().ipc_renderer
+            .send(CanvasMsg::Close(self.canvas_state.borrow().get_canvas_id()))
         {
             warn!("Could not close canvas: {}", err)
         }

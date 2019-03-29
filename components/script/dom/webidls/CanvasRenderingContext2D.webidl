@@ -111,7 +111,7 @@ interface CanvasFilters {
   //attribute DOMString filter; // (default "none")
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasRect {
   // rects
   void clearRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
