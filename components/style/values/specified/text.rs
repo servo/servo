@@ -73,33 +73,6 @@ impl Parse for WordSpacing {
     }
 }
 
-impl Parse for LineHeight {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
-            return Ok(GenericLineHeight::Number(number));
-        }
-        if let Ok(nlp) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
-            return Ok(GenericLineHeight::Length(nlp));
-        }
-        let location = input.current_source_location();
-        let ident = input.expect_ident()?;
-        match ident {
-            ref ident if ident.eq_ignore_ascii_case("normal") => Ok(GenericLineHeight::Normal),
-            #[cfg(feature = "gecko")]
-            ref ident if ident.eq_ignore_ascii_case("-moz-block-height") => {
-                Ok(GenericLineHeight::MozBlockHeight)
-            },
-            ident => {
-                Err(location
-                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
-            },
-        }
-    }
-}
-
 impl ToComputedValue for LineHeight {
     type ComputedValue = ComputedLineHeight;
 
