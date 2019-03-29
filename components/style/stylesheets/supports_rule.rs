@@ -223,8 +223,7 @@ impl SupportsCondition {
 #[cfg(feature = "gecko")]
 fn eval_moz_bool_pref(name: &CStr, cx: &ParserContext) -> bool {
     use crate::gecko_bindings::bindings;
-    use crate::stylesheets::Origin;
-    if cx.stylesheet_origin != Origin::UserAgent && !cx.chrome_rules_enabled() {
+    if !cx.in_ua_or_chrome_sheet() {
         return false;
     }
     unsafe { bindings::Gecko_GetBoolPrefValue(name.as_ptr()) }

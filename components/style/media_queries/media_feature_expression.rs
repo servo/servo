@@ -17,7 +17,6 @@ use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "servo")]
 use crate::servo::media_queries::MEDIA_FEATURES;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
-use crate::stylesheets::Origin;
 use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::{Integer, Length, Number, Resolution};
 use crate::values::{serialize_atom_identifier, CSSFloat};
@@ -290,7 +289,7 @@ impl MediaFeatureExpression {
 
             let mut requirements = ParsingRequirements::empty();
 
-            if context.chrome_rules_enabled() || context.stylesheet_origin == Origin::UserAgent {
+            if context.in_ua_or_chrome_sheet() {
                 requirements.insert(ParsingRequirements::CHROME_AND_UA_ONLY);
             }
 
