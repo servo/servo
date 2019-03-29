@@ -98,6 +98,7 @@
     "html/attributes/lang/xmllang-only-novalid.html": "When the attribute \u201cxml:lang\u201d in no namespace is specified, the element must also have the attribute \u201clang\u201d present with the same value.",
     "html/attributes/role/unrecognized-role-name-novalid.html": "Discarding unrecognized token \u201cinput\u201d from value of attribute \u201crole\u201d. Browsers ignore any token that is not a defined ARIA non-abstract role.",
     "html/attributes/spellcheck/value-bad-novalid.html": "Bad value \u201cbadvalue\u201d for attribute \u201cspellcheck\u201d on element \u201cp\u201d.",
+    "html/elements/a/download-novalid.html": "Element \u201ca\u201d is missing required attribute \u201chref\u201d.",
     "html/elements/a/href/fragment-backslash-novalid.html": "Bad value \u201c#\\\u201d for attribute \u201chref\u201d on element \u201ca\u201d: Bad URL: Illegal character in fragment: \u201c\\\u201d is not allowed.",
     "html/elements/a/href/fragment-contains-hash-novalid.html": "Bad value \u201chttp://foo/path#f#g\u201d for attribute \u201chref\u201d on element \u201ca\u201d: Bad URL: Illegal character in fragment: \u201c#\u201d is not allowed.",
     "html/elements/a/href/fragment-leading-space-novalid.html": "Bad value \u201chttp://f:21/b# e\u201d for attribute \u201chref\u201d on element \u201ca\u201d: Bad URL: Illegal character in fragment: space is not allowed.",

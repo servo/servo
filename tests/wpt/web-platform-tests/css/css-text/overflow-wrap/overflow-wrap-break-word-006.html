@@ -9,9 +9,10 @@
 <meta name="assert" content="A Single leading white-space constitutes a soft breaking opportunity, honoring the 'white-space: break-spaces' property, that must prevent the word to be broken.">
 <style>
 div {
-   position: relative;
-   font-size: 20px;
-   font-family: Ahem;
+  position: relative;
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
 }
 .red {
   position: absolute;
@@ -23,8 +24,8 @@ div {
 }
 .test {
   color: green;
-  line-height: 1em;
   width: 5ch;
+
   white-space: break-spaces;
   overflow-wrap: break-word;
 }

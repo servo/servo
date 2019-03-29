@@ -217,10 +217,10 @@ function listenToIceConnected(pc) {
       resolve();
       return;
     }
-    pc.oniceconnectionstatechange = () => {
+    pc.addEventListener('iceconnectionstatechange', () => {
       if (isConnected(pc))
         resolve();
-    };
+    });
   });
 }
 

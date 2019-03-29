@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/preload/issues/120">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var t = async_test('Makes sure that Link headers preload images with imagesrcset/imagesizes attributes.');
+</script>
+<body>
+<script>
+    window.addEventListener("load", t.step_func(function() {
+        t.step_timeout(function() {
+            verifyPreloadAndRTSupport();
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&1x', 1);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&2x', 0);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&3x', 0);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&base', 0);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&200', 0);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&400', 1);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&800', 0);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&150', 0);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&300', 1);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&600', 0);
+            t.done();
+        }, 3000);
+    }));
+</script>
+</body>

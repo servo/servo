@@ -32,6 +32,7 @@ dictionary WebGLContextAttributes {
     boolean preserveDrawingBuffer = false;
     WebGLPowerPreference powerPreference = "default";
     boolean failIfMajorPerformanceCaveat = false;
+    boolean desynchronized = false;
 };
 
 [Exposed=(Window,Worker)]

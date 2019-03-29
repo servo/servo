@@ -23,7 +23,7 @@ promise_test(async t => {
       });
   });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
 
@@ -59,7 +59,7 @@ promise_test(async t => {
       return first;
     });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
 
@@ -106,7 +106,7 @@ promise_test(async t => {
       return first;
     });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
 
@@ -137,7 +137,7 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
 
@@ -161,7 +161,7 @@ promise_test(async t => {
       });
   });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   let event = new Promise((resolve, reject) => {
     detector.onchange = resolve;
@@ -188,7 +188,7 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
 
@@ -220,7 +220,7 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   // Calling stop() before start() is a no-op.
   detector.stop();
@@ -247,7 +247,7 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 10});
+  let detector = new IdleDetector({threshold: 60});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
 

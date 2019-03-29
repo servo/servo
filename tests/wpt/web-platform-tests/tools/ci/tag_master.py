@@ -1,9 +1,9 @@
-import base64
 import json
 import logging
 import os
 import sys
-import urllib2
+
+import requests
 
 here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
@@ -17,26 +17,54 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_pr(owner, repo, sha):
-    url = ("https://api.github.com/search/issues?q=type:pr+is:merged+repo:%s/%s+sha:%s" %
-           (owner, repo, sha))
+def request(url, desc, data=None, json_data=None, params=None, headers=None):
+    github_token = os.environ.get("GITHUB_TOKEN")
+    default_headers = {
+        "Authorization": "token %s" % github_token,
+        "Accept": "application/vnd.github.machine-man-preview+json"
+    }
+
+    _headers = default_headers
+    if headers is not None:
+        _headers.update(headers)
+
+    kwargs = {"params": params,
+              "headers": _headers}
     try:
-        resp = urllib2.urlopen(url)
-        body = resp.read()
+        logger.info("Loading URL %s" % url)
+        if json_data is not None or data is not None:
+            method = requests.post
+            kwargs["json"] = json_data
+            kwargs["data"] = data
+        else:
+            method = requests.get
+
+        resp = method(url, **kwargs)
+
     except Exception as e:
-        logger.error(e)
-        return None
-
-    if resp.code != 200:
-        logger.error("Got HTTP status %s. Response:" % resp.code)
-        logger.error(body)
+        logger.error("%s failed:\n%s" % (desc, e))
         return None
 
     try:
-        data = json.loads(body)
+        resp.raise_for_status()
+    except requests.HTTPError:
+        logger.error("%s failed: Got HTTP status %s. Response:" %
+                     (desc, resp.status_code))
+        logger.error(resp.text)
+        return None
+
+    try:
+        return resp.json()
     except ValueError:
-        logger.error("Failed to read response as JSON:")
-        logger.error(body)
+        logger.error("%s failed: Returned data was not JSON Response:" %
+                     (desc, resp.status_code))
+        logger.error(resp.text)
+
+
+def get_pr(owner, repo, sha):
+    data = request("https://api.github.com/search/issues?q=type:pr+is:merged+repo:%s/%s+sha:%s" %
+                   (owner, repo, sha), "Getting PR")
+    if data is None:
         return None
 
     items = data["items"]
@@ -52,48 +80,96 @@ def get_pr(owner, repo, sha):
 
 
 def tag(owner, repo, sha, tag):
-    data = json.dumps({"ref": "refs/tags/%s" % tag,
-                       "sha": sha})
-    try:
-        url = "https://api.github.com/repos/%s/%s/git/refs" % (owner, repo)
-        req = urllib2.Request(url, data=data)
+    data = {"ref": "refs/tags/%s" % tag,
+            "sha": sha}
+    url = "https://api.github.com/repos/%s/%s/git/refs" % (owner, repo)
 
-        base64string = base64.b64encode(os.environ["GH_TOKEN"])
-        req.add_header("Authorization", "Basic %s" % base64string)
-
-        opener = urllib2.build_opener(urllib2.HTTPSHandler())
-
-        resp = opener.open(req)
-    except Exception as e:
-        logger.error("Tag creation failed:\n%s" % e)
-        return False
-
-    if resp.code != 201:
-        logger.error("Got HTTP status %s. Response:" % resp.code)
-        logger.error(resp.read())
+    resp_data = request(url, "Tag creation", json_data=data)
+    if not resp_data:
         return False
 
     logger.info("Tagged %s as %s" % (sha, tag))
     return True
 
 
-def main():
-    owner, repo = os.environ["TRAVIS_REPO_SLUG"].split("/", 1)
-    if os.environ["TRAVIS_PULL_REQUEST"] != "false":
+def create_release(owner, repo, sha, tag, summary, body):
+    if body:
+        body = "%s\n%s" % (summary, body)
+    else:
+        body = summary
+
+    create_url = "https://api.github.com/repos/%s/%s/releases" % (owner, repo)
+    create_data = {"tag_name": tag,
+                   "name": tag,
+                   "body": body}
+    create_data = request(create_url, "Release creation", json_data=create_data)
+    if not create_data:
+        return False
+
+    # Upload URL contains '{?name,label}' at the end which we want to remove
+    upload_url = create_data["upload_url"].split("{", 1)[0]
+
+    success = True
+
+    upload_exts = [".gz", ".bz2", ".zst"]
+    for upload_ext in upload_exts:
+        upload_filename = "MANIFEST-%s.json%s" % (sha, upload_ext)
+        params = {"name": upload_filename,
+                  "label": "MANIFEST.json%s" % upload_ext}
+
+        with open(os.path.expanduser("~/meta/MANIFEST.json%s" % upload_ext), "rb") as f:
+            upload_data = f.read()
+
+        logger.info("Uploading %s bytes" % len(upload_data))
+
+        upload_resp = request(upload_url, "Manifest upload", data=upload_data, params=params,
+                              headers={'Content-Type': 'application/octet-stream'})
+        if not upload_resp:
+            success = False
+
+    return success
+
+
+def should_run_action():
+    with open(os.environ["GITHUB_EVENT_PATH"]) as f:
+        event = json.load(f)
+        logger.info(json.dumps(event, indent=2))
+
+    if "pull_request" in event:
         logger.info("Not tagging for PR")
+        return False
+    if event.get("ref") != "refs/heads/master":
+        logger.info("Not tagging for ref %s" % event.get("ref"))
+        return False
+    return True
+
+
+def main():
+    repo_key = "GITHUB_REPOSITORY"
+
+    if not should_run_action():
         return
-    if os.environ["TRAVIS_BRANCH"] != "master":
-        logger.info("Not tagging for non-master branch")
-        return
+
+    owner, repo = os.environ[repo_key].split("/", 1)
 
     git = get_git_cmd(wpt_root)
     head_rev = git("rev-parse", "HEAD")
 
     pr = get_pr(owner, repo, head_rev)
     if pr is None:
-        sys.exit(1)
-    tagged = tag(owner, repo, head_rev, "merge_pr_%s" % pr)
+        # This should only really happen during testing
+        tag_name = "merge_commit_%s" % head_rev
+    else:
+        tag_name = "merge_pr_%s" % pr
+
+    tagged = tag(owner, repo, head_rev, tag_name)
     if not tagged:
+        sys.exit(1)
+
+    summary = git("show", "--no-patch", '--format="%s"', "HEAD")
+    body = git("show", "--no-patch", '--format="%b"', "HEAD")
+
+    if not create_release(owner, repo, head_rev, tag_name, summary, body):
         sys.exit(1)
 
 

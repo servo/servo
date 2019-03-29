@@ -38,13 +38,6 @@ test(function() {
     assert_equals(undefined, that.prop, 'Confirm to be able to delete a property.');
   });
 });
-
-test(function() {
-  ['foo', 42, null, undefined].forEach(function(that) {
-    assert_throws(new TypeError(),
-        function() { Object.preventExtensions(that) });
-  });
-});
 </script>
 
 </body>

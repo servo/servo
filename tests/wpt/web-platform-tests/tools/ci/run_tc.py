@@ -117,7 +117,7 @@ def make_hosts_file():
 
 
 def checkout_revision(rev):
-    subprocess.check_call(["git", "checkout", "-q", rev])
+    subprocess.check_call(["git", "checkout", "--quiet", rev])
 
 
 def install_chrome(channel):
@@ -135,8 +135,8 @@ def install_chrome(channel):
     with open(dest, "w") as f:
         f.write(resp.read())
 
-    subprocess.check_call(["sudo", "apt-get", "-qqy", "update"])
-    subprocess.check_call(["sudo", "gdebi", "-n", "/tmp/%s" % deb_archive])
+    run(["sudo", "apt-get", "-qqy", "update"])
+    run(["sudo", "gdebi", "-qn", "/tmp/%s" % deb_archive])
 
 
 def start_xvfb():
@@ -191,9 +191,9 @@ def set_variables(event):
 
 
 def include_job(job):
-    # Special case things that unconditionally run on master
+    # Special case things that unconditionally run on pushes,
+    # assuming a higher layer is filtering the required list of branches
     if (os.environ["GITHUB_PULL_REQUEST"] == "false" and
-        os.environ["GITHUB_BRANCH"] == "master" and
         job == "run-all"):
         return True
 
@@ -221,6 +221,27 @@ def setup_environment(args):
         checkout_revision(args.checkout)
 
 
+def setup_repository():
+    if os.environ.get("GITHUB_PULL_REQUEST", "false") != "false":
+        parents = run(["git", "show", "--format=%P", "task_head"], return_stdout=True).strip().split()
+        if len(parents) == 2:
+            base_head = parents[0]
+            pr_head = parents[1]
+
+            run(["git", "branch", "base_head", base_head])
+            run(["git", "branch", "pr_head", pr_head])
+        else:
+            print("ERROR: Pull request HEAD wasn't a 2-parent merge commit; "
+                  "expected to test the merge of PR into the base")
+            sys.exit(1)
+
+    branch = os.environ.get("GITHUB_BRANCH")
+    if branch:
+        # Ensure that the remote base branch exists
+        # TODO: move this somewhere earlier in the task
+        run(["git", "fetch", "--quiet", "origin", "%s:%s" % (branch, branch)])
+
+
 def main():
     args = get_parser().parse_args()
     try:
@@ -233,11 +254,7 @@ def main():
     if event:
         set_variables(event)
 
-    if os.environ.get("GITHUB_BRANCH"):
-        # Ensure that the remote base branch exists
-        # TODO: move this somewhere earlier in the task
-        run(["git", "fetch", "origin", "%s:%s" % (os.environ["GITHUB_BRANCH"],
-                                                  os.environ["GITHUB_BRANCH"])])
+    setup_repository()
 
     extra_jobs = get_extra_jobs(event)
 
@@ -260,7 +277,7 @@ def main():
     setup_environment(args)
     os.chdir(root)
     cmd = [args.script] + args.script_args
-    print(cmd)
+    print(" ".join(cmd))
     sys.exit(subprocess.call(cmd))
 
 
