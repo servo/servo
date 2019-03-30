@@ -783,21 +783,27 @@ fn http_network_or_cache_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
+    // Step 2
+    let mut response: Option<Response> = None;
+
+    // Step 4
+    let mut revalidating_flag = false;
+
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
 
-    // Step 2
+    // Step 5.1
     let mut http_request;
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
         request
     } else {
-        // Step 3
+        // Step 5.2
         // TODO Implement body source
         http_request = request.clone();
         &mut http_request
     };
 
-    // Step 4
+    // Step 5.3
     let credentials_flag = match http_request.credentials_mode {
         CredentialsMode::Include => true,
         CredentialsMode::CredentialsSameOrigin
@@ -810,26 +816,26 @@ fn http_network_or_cache_fetch(
 
     let content_length_value = match http_request.body {
         None => match http_request.method {
-            // Step 6
+            // Step 5.5
             Method::POST | Method::PUT => Some(0),
-            // Step 5
+            // Step 5.4
             _ => None,
         },
-        // Step 7
+        // Step 5.6
         Some(ref http_request_body) => Some(http_request_body.len() as u64),
     };
 
-    // Step 8
+    // Step 5.7
     if let Some(content_length_value) = content_length_value {
         http_request
             .headers
             .typed_insert(ContentLength(content_length_value));
         if http_request.keep_alive {
-            // Step 9 TODO: needs request's client object
+            // Step 5.8 TODO: needs request's client object
         }
     }
 
-    // Step 10
+    // Step 5.9
     match http_request.referrer {
         Referrer::NoReferrer => (),
         Referrer::ReferrerUrl(ref http_request_referrer) => http_request
@@ -843,7 +849,7 @@ fn http_network_or_cache_fetch(
         },
     };
 
-    // Step 11
+    // Step 5.10
     if cors_flag || (http_request.method != Method::GET && http_request.method != Method::HEAD) {
         debug_assert_ne!(http_request.origin, Origin::Client);
         if let Origin::Origin(ref url_origin) = http_request.origin {
@@ -853,7 +859,7 @@ fn http_network_or_cache_fetch(
         }
     }
 
-    // Step 12
+    // Step 5.11
     if !http_request.headers.contains_key(header::USER_AGENT) {
         let user_agent = context.user_agent.clone().into_owned();
         http_request
@@ -862,19 +868,19 @@ fn http_network_or_cache_fetch(
     }
 
     match http_request.cache_mode {
-        // Step 13
+        // Step 5.12
         CacheMode::Default if is_no_store_cache(&http_request.headers) => {
             http_request.cache_mode = CacheMode::NoStore;
         },
 
-        // Step 14
+        // Step 5.13
         CacheMode::NoCache if !http_request.headers.contains_key(header::CACHE_CONTROL) => {
             http_request
                 .headers
                 .typed_insert(CacheControl::new().with_max_age(Duration::from_secs(0)));
         },
 
-        // Step 15
+        // Step 5.14
         CacheMode::Reload | CacheMode::NoStore => {
             // Substep 1
             if !http_request.headers.contains_key(header::PRAGMA) {
@@ -892,7 +898,10 @@ fn http_network_or_cache_fetch(
         _ => {},
     }
 
-    // Step 16
+    // Step 5.15
+    // TODO: handle `Range` header
+
+    // Step 5.16
     let current_url = http_request.current_url();
     let host = Host::from(
         format!(
@@ -912,7 +921,7 @@ fn http_network_or_cache_fetch(
     // here, according to the fetch spec
     set_default_accept_encoding(&mut http_request.headers);
 
-    // Step 17
+    // Step 5.17
     // TODO some of this step can't be implemented yet
     if credentials_flag {
         // Substep 1
@@ -952,16 +961,10 @@ fn http_network_or_cache_fetch(
         }
     }
 
-    // Step 18
+    // Step 5.18
     // TODO If there’s a proxy-authentication entry, use it as appropriate.
 
-    // Step 19
-    let mut response: Option<Response> = None;
-
-    // Step 20
-    let mut revalidating_flag = false;
-
-    // Step 21
+    // Step 5.19
     if let Ok(http_cache) = context.state.http_cache.read() {
         if let Some(response_from_cache) = http_cache.construct_response(&http_request, done_chan) {
             let response_headers = response_from_cache.response.headers.clone();
@@ -1029,7 +1032,10 @@ fn http_network_or_cache_fetch(
 
     wait_for_cached_response(done_chan, &mut response);
 
-    // Step 22
+    // Step 6
+    // TODO: https://infra.spec.whatwg.org/#if-aborted
+
+    // Step 7
     if response.is_none() {
         // Substep 1
         if http_request.cache_mode == CacheMode::OnlyIfCached {
@@ -1038,7 +1044,7 @@ fn http_network_or_cache_fetch(
             ));
         }
     }
-    // More Step 22
+    // More Step 7
     if response.is_none() {
         // Substep 2
         let forward_response =
@@ -1079,7 +1085,13 @@ fn http_network_or_cache_fetch(
 
     let mut response = response.unwrap();
 
-    // Step 23
+    // Step 8
+    // TODO: handle `Range` header
+
+    // Step 9
+    // TODO: handle CORS not set and cross-origin blocked
+
+    // Step 10
     // FIXME: Figure out what to do with request window objects
     if let (Some((StatusCode::UNAUTHORIZED, _)), false, true) =
         (response.status.as_ref(), cors_flag, credentials_flag)
@@ -1112,7 +1124,7 @@ fn http_network_or_cache_fetch(
         );
     }
 
-    // Step 24
+    // Step 11
     if let Some((StatusCode::PROXY_AUTHENTICATION_REQUIRED, _)) = response.status.as_ref() {
         // Step 1
         if request_has_no_window {
@@ -1137,12 +1149,12 @@ fn http_network_or_cache_fetch(
         //                                    cors_flag, done_chan, context);
     }
 
-    // Step 25
+    // Step 12
     if authentication_fetch_flag {
         // TODO Create the authentication entry for request and the given realm
     }
 
-    // Step 26
+    // Step 13
     response
 }
 
