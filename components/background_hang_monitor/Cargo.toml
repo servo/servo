@@ -23,5 +23,12 @@ serde = "1.0.60"
 serde_json = "1.0"
 crossbeam-channel = "0.3"
 
+[dev-dependencies]
+lazy_static = "1.0"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 mach = "0.2.3"
+
+[target.'cfg(all(target_os = "linux", not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
+nix = "~0.11.0"
+unwind-sys = "0.1.1"

@@ -55,8 +55,13 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         let sampler = crate::sampler_windows::WindowsSampler::new();
         #[cfg(target_os = "macos")]
         let sampler = crate::sampler_mac::MacOsSampler::new();
-        #[cfg(any(target_os = "android", target_os = "linux"))]
+        #[cfg(all(
+            target_os = "linux",
+            not(any(target_arch = "arm", target_arch = "aarch64"))
+        ))]
         let sampler = crate::sampler_linux::LinuxSampler::new();
+        #[cfg(any(target_os = "android", target_arch = "arm", target_arch = "aarch64"))]
+        let sampler = crate::sampler::DummySampler::new();
 
         bhm_chan.send(MonitoredComponentMsg::Register(
             sampler,
