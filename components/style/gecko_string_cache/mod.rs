@@ -25,9 +25,11 @@ use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
+use std::mem::{self, ManuallyDrop};
 use std::ops::Deref;
-use std::{mem, slice, str};
+use std::{slice, str};
 use style_traits::SpecifiedValueInfo;
+use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
@@ -119,6 +121,14 @@ impl Borrow<WeakAtom> for Atom {
     #[inline]
     fn borrow(&self) -> &WeakAtom {
         self
+    }
+}
+
+impl ToShmem for Atom {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        assert!(self.is_static(), "ToShmem failed for Atom: must be a static atom: {}", self);
+
+        ManuallyDrop::new(Atom(self.0))
     }
 }
 
