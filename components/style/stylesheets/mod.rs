@@ -204,7 +204,7 @@ impl Eq for UrlExtraData {}
 /// A CSS rule.
 ///
 /// TODO(emilio): Lots of spec links should be around.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToShmem)]
 #[allow(missing_docs)]
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM

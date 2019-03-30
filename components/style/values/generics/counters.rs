@@ -14,7 +14,9 @@ use crate::values::CustomIdent;
 use std::ops::Deref;
 
 /// A name / value pair for counters.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+)]
 pub struct CounterPair<Integer> {
     /// The name of the counter.
     pub name: CustomIdent,
@@ -24,7 +26,15 @@ pub struct CounterPair<Integer> {
 
 /// A generic value for the `counter-increment` property.
 #[derive(
-    Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToShmem,
 )]
 pub struct CounterIncrement<I>(Counters<I>);
 
@@ -47,7 +57,15 @@ impl<I> Deref for CounterIncrement<I> {
 
 /// A generic value for the `counter-set` and `counter-reset` properties.
 #[derive(
-    Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToShmem,
 )]
 pub struct CounterSetOrReset<I>(Counters<I>);
 
@@ -71,7 +89,9 @@ impl<I> Deref for CounterSetOrReset<I> {
 /// A generic value for lists of counters.
 ///
 /// Keyword `none` is represented by an empty vector.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+)]
 pub struct Counters<I>(#[css(iterable, if_empty = "none")] Box<[CounterPair<I>]>);
 
 impl<I> Default for Counters<I> {
@@ -102,7 +122,9 @@ fn is_decimal(counter_type: &CounterStyleType) -> bool {
 /// The specified value for the `content` property.
 ///
 /// https://drafts.csswg.org/css-content/#propdef-content
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+)]
 pub enum Content<ImageUrl> {
     /// `normal` reserved keyword.
     Normal,
@@ -124,7 +146,9 @@ impl<ImageUrl> Content<ImageUrl> {
 }
 
 /// Items for the `content` property.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+)]
 pub enum ContentItem<ImageUrl> {
     /// Literal string content.
     String(Box<str>),

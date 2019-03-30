@@ -26,6 +26,7 @@ use style_traits::ParseError;
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(C, u8)]
 pub enum GenericLengthPercentageOrAuto<LengthPercent> {
@@ -109,6 +110,7 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(C, u8)]
 pub enum GenericSize<LengthPercent> {
@@ -150,6 +152,7 @@ impl<LengthPercentage> Size<LengthPercentage> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(C, u8)]
 pub enum GenericMaxSize<LengthPercent> {
@@ -185,6 +188,7 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(C, u8)]
 pub enum GenericLengthOrNumber<L, N> {

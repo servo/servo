@@ -608,6 +608,7 @@ impl Size {
     PartialOrd,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct CSSPixelLength(CSSFloat);
@@ -809,6 +810,7 @@ pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, No
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum ExtremumLength {

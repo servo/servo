@@ -18,6 +18,7 @@ use crate::values::animated::ToAnimatedZero;
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum VerticalAlign<LengthPercentage> {
     /// `baseline`
@@ -58,7 +59,9 @@ impl<L> ToAnimatedZero for VerticalAlign<L> {
 }
 
 /// https://drafts.csswg.org/css-animations/#animation-iteration-count
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+)]
 pub enum AnimationIterationCount<Number> {
     /// A `<number>` value.
     Number(Number),
@@ -81,6 +84,7 @@ pub enum AnimationIterationCount<Number> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(C, u8)]
 pub enum GenericPerspective<NonNegativeLength> {

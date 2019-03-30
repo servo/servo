@@ -100,6 +100,7 @@ extern crate style_traits;
 extern crate thin_slice;
 extern crate time;
 extern crate to_shmem;
+#[macro_use]
 extern crate to_shmem_derive;
 extern crate uluru;
 extern crate unicode_bidi;

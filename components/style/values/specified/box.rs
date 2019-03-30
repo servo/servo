@@ -61,6 +61,7 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
@@ -324,7 +325,9 @@ impl AnimationIterationCount {
 }
 
 /// A value for the `animation-name` property.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToShmem,
+)]
 #[value_info(other_values = "none")]
 pub struct AnimationName(pub Option<KeyframesName>);
 
@@ -379,6 +382,7 @@ impl Parse for AnimationName {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum ScrollSnapType {
@@ -402,6 +406,7 @@ pub enum ScrollSnapType {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum ScrollSnapAlignKeyword {
@@ -413,7 +418,9 @@ pub enum ScrollSnapAlignKeyword {
 
 /// https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToShmem,
+)]
 #[repr(C)]
 pub struct ScrollSnapAlign {
     block: ScrollSnapAlignKeyword,
@@ -470,6 +477,7 @@ impl ToCss for ScrollSnapAlign {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum OverscrollBehavior {
@@ -491,6 +499,7 @@ pub enum OverscrollBehavior {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum OverflowAnchor {
@@ -511,6 +520,7 @@ pub enum OverflowAnchor {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum OverflowClipBox {
@@ -518,7 +528,9 @@ pub enum OverflowClipBox {
     ContentBox,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+)]
 /// Provides a rendering hint to the user agent,
 /// stating what kinds of changes the author expects
 /// to perform on the element
@@ -550,7 +562,7 @@ impl WillChange {
 
 bitflags! {
     /// The change bits that we care about.
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToShmem)]
     #[repr(C)]
     pub struct WillChangeBits: u8 {
         /// Whether the stacking context will change.
@@ -646,7 +658,8 @@ impl Parse for WillChange {
 bitflags! {
     /// Values for the `touch-action` property.
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(SpecifiedValueInfo, ToComputedValue)]
+    #[derive(SpecifiedValueInfo, ToComputedValue, ToShmem)]
+    /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
     #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
     #[repr(C)]
     pub struct TouchAction: u8 {
@@ -718,7 +731,7 @@ impl Parse for TouchAction {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToShmem)]
     #[value_info(other_values = "none,strict,content,size,layout,paint")]
     #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
@@ -820,7 +833,7 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 
 /// A given transition property, that is either `All`, a longhand or shorthand
 /// property, or an unsupported or custom property.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToShmem)]
 pub enum TransitionProperty {
     /// A shorthand.
     Shorthand(ShorthandId),
@@ -915,7 +928,17 @@ impl TransitionProperty {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
 )]
 /// https://drafts.csswg.org/css-box/#propdef-float
 pub enum Float {
@@ -930,7 +953,17 @@ pub enum Float {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
 )]
 /// https://drafts.csswg.org/css-box/#propdef-clear
 pub enum Clear {
@@ -947,7 +980,17 @@ pub enum Clear {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
 )]
 pub enum Resize {
     None,
@@ -975,6 +1018,7 @@ pub enum Resize {
     SpecifiedValueInfo,
     ToCss,
     ToComputedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum Appearance {
@@ -1326,6 +1370,7 @@ pub enum Appearance {
     SpecifiedValueInfo,
     ToCss,
     ToComputedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum BreakBetween {
@@ -1397,6 +1442,7 @@ impl BreakBetween {
     SpecifiedValueInfo,
     ToCss,
     ToComputedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum BreakWithin {
@@ -1418,6 +1464,7 @@ pub enum BreakWithin {
     SpecifiedValueInfo,
     ToCss,
     ToComputedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum Overflow {

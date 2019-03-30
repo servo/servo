@@ -26,11 +26,11 @@ use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub struct CssUrl(pub Arc<CssUrlData>);
 
 /// Data shared between CssUrls.
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub struct CssUrlData {
     /// The URL in unresolved string form.
     serialization: String,
@@ -150,7 +150,7 @@ impl ToShmem for URLValueSource {
 }
 
 /// A specified non-image `url()` value.
-#[derive(Clone, Debug, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, SpecifiedValueInfo, ToCss, ToShmem)]
 pub struct SpecifiedUrl {
     /// The specified url value.
     pub url: CssUrl,
@@ -276,7 +276,7 @@ impl ToComputedValue for SpecifiedUrl {
 }
 
 /// A specified image `url()` value.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub struct SpecifiedImageUrl(pub SpecifiedUrl);
 
 impl SpecifiedImageUrl {

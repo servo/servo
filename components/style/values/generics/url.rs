@@ -18,6 +18,7 @@
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum UrlOrNone<Url> {
     /// `none`

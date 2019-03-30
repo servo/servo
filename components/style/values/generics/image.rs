@@ -16,7 +16,7 @@ use style_traits::{CssWriter, ToCss};
 /// An [image].
 ///
 /// [image]: https://drafts.csswg.org/css-images/#image-values
-#[derive(Clone, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(Clone, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToShmem)]
 pub enum Image<Gradient, MozImageRect, ImageUrl> {
     /// A `<url()>` image.
     Url(ImageUrl),
@@ -36,7 +36,7 @@ pub enum Image<Gradient, MozImageRect, ImageUrl> {
 
 /// A CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToShmem)]
 pub struct Gradient<LineDirection, Length, LengthPercentage, Position, Color, Angle> {
     /// Gradients can be linear or radial.
     pub kind: GradientKind<LineDirection, Length, LengthPercentage, Position, Angle>,
@@ -48,7 +48,7 @@ pub struct Gradient<LineDirection, Length, LengthPercentage, Position, Color, An
     pub compat_mode: CompatMode,
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToShmem)]
 /// Whether we used the modern notation or the compatibility `-webkit`, `-moz` prefixes.
 pub enum CompatMode {
     /// Modern syntax.
@@ -60,7 +60,7 @@ pub enum CompatMode {
 }
 
 /// A gradient kind.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToShmem)]
 pub enum GradientKind<LineDirection, Length, LengthPercentage, Position, Angle> {
     /// A linear gradient.
     Linear(LineDirection),
@@ -73,7 +73,7 @@ pub enum GradientKind<LineDirection, Length, LengthPercentage, Position, Angle> 
 }
 
 /// A radial gradient's ending shape.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub enum EndingShape<Length, LengthPercentage> {
     /// A circular gradient.
     Circle(Circle<Length>),
@@ -82,7 +82,7 @@ pub enum EndingShape<Length, LengthPercentage> {
 }
 
 /// A circle shape.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToShmem)]
 pub enum Circle<Length> {
     /// A circle radius.
     Radius(Length),
@@ -91,7 +91,7 @@ pub enum Circle<Length> {
 }
 
 /// An ellipse shape.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub enum Ellipse<LengthPercentage> {
     /// An ellipse pair of radii.
     Radii(LengthPercentage, LengthPercentage),
@@ -102,7 +102,9 @@ pub enum Ellipse<LengthPercentage> {
 /// <https://drafts.csswg.org/css-images/#typedef-extent-keyword>
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss, ToShmem,
+)]
 pub enum ShapeExtent {
     ClosestSide,
     FarthestSide,
@@ -114,7 +116,7 @@ pub enum ShapeExtent {
 
 /// A gradient item.
 /// <https://drafts.csswg.org/css-images-4/#color-stop-syntax>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub enum GradientItem<Color, LengthPercentage> {
     /// A color stop.
     ColorStop(ColorStop<Color, LengthPercentage>),
@@ -124,7 +126,7 @@ pub enum GradientItem<Color, LengthPercentage> {
 
 /// A color stop.
 /// <https://drafts.csswg.org/css-images/#typedef-color-stop-list>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub struct ColorStop<Color, LengthPercentage> {
     /// The color of this stop.
     pub color: Color,
@@ -167,7 +169,9 @@ impl ToCss for PaintWorklet {
 /// `-moz-image-rect(<uri>, top, right, bottom, left);`
 #[allow(missing_docs)]
 #[css(comma, function)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+)]
 pub struct MozImageRect<NumberOrPercentage, MozImageRectUrl> {
     pub url: MozImageRectUrl,
     pub top: NumberOrPercentage,

@@ -6,7 +6,7 @@
 
 /// Ratios representing the contribution of color and currentcolor to
 /// the final color value.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
 pub struct ComplexColorRatios {
     /// Numeric color contribution.
     pub bg: f32,
@@ -23,7 +23,7 @@ impl ComplexColorRatios {
 
 /// This enum represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
 pub enum Color<RGBA> {
     ///  Numeric RGBA color.
     Numeric(RGBA),
@@ -90,6 +90,7 @@ impl<RGBA> From<RGBA> for Color<RGBA> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum ColorOrAuto<C> {
     /// A `<color>

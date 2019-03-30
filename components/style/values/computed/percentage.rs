@@ -27,6 +27,7 @@ use style_traits::{CssWriter, ToCss};
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct Percentage(pub CSSFloat);

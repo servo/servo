@@ -31,6 +31,8 @@ precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
 smallvec = "0.6"
 thin-slice = "0.1.0"
+to_shmem = { path = "../to_shmem" }
+to_shmem_derive = { path = "../to_shmem_derive" }
 
 [build-dependencies]
 phf_codegen = "0.7.18"

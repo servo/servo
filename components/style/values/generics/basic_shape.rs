@@ -31,6 +31,7 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum GeometryBox {
     FillBox,
@@ -58,6 +59,7 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum ShapeBox {
     MarginBox,
@@ -79,6 +81,7 @@ pub enum ShapeBox {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     #[animation(error)]
@@ -104,11 +107,24 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
-    Inset(#[css(field_bound)] InsetRect<LengthPercentage, NonNegativeLengthPercentage>),
-    Circle(#[css(field_bound)] Circle<H, V, NonNegativeLengthPercentage>),
-    Ellipse(#[css(field_bound)] Ellipse<H, V, NonNegativeLengthPercentage>),
+    Inset(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        InsetRect<LengthPercentage, NonNegativeLengthPercentage>,
+    ),
+    Circle(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        Circle<H, V, NonNegativeLengthPercentage>,
+    ),
+    Ellipse(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        Ellipse<H, V, NonNegativeLengthPercentage>,
+    ),
     Polygon(Polygon<LengthPercentage>),
 }
 
@@ -125,9 +141,11 @@ pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToShmem,
 )]
 pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     pub rect: Rect<LengthPercentage>,
+    #[shmem(field_bound)]
     pub round: BorderRadius<NonNegativeLengthPercentage>,
 }
 
@@ -145,6 +163,7 @@ pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToShmem,
 )]
 pub struct Circle<H, V, NonNegativeLengthPercentage> {
     pub position: Position<H, V>,
@@ -165,6 +184,7 @@ pub struct Circle<H, V, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToShmem,
 )]
 pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     pub position: Position<H, V>,
@@ -186,6 +206,7 @@ pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub enum ShapeRadius<NonNegativeLengthPercentage> {
     Length(NonNegativeLengthPercentage),
@@ -208,6 +229,7 @@ pub enum ShapeRadius<NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub struct Polygon<LengthPercentage> {
     /// The filling rule for a polygon.
@@ -228,6 +250,7 @@ pub struct Polygon<LengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercentage);
 
@@ -249,6 +272,7 @@ pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercen
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum FillRule {
@@ -270,6 +294,7 @@ pub enum FillRule {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToShmem,
 )]
 pub struct Path {
     /// The filling rule for the svg path.

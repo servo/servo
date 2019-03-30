@@ -199,7 +199,7 @@ pub const HAS_SLOTTED_BIT: u32 = 1 << 31;
 
 /// We use ten bits for each specificity kind (id, class, element), and the two
 /// high bits for the pseudo and slotted flags.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
 pub struct SpecificityAndFlags(pub u32);
 
 impl SpecificityAndFlags {

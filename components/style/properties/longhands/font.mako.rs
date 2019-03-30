@@ -346,7 +346,7 @@ ${helpers.predefined_type(
                          font_optical_sizing""".split()
         %>
         #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq,
-                 SpecifiedValueInfo, ToCss)]
+                 SpecifiedValueInfo, ToCss, ToShmem)]
         pub enum SystemFont {
             % for font in system_fonts:
                 ${to_camel_case(font)},

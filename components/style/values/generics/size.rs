@@ -24,6 +24,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
     ToAnimatedZero,
     ToAnimatedValue,
     ToComputedValue,
+    ToShmem,
 )]
 #[allow(missing_docs)]
 #[repr(C)]

@@ -19,7 +19,14 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 ///
 /// https://www.w3.org/TR/SVG11/paths.html#PathData
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToShmem,
 )]
 pub struct SVGPathData(Box<[PathCommand]>);
 
@@ -147,6 +154,7 @@ impl ComputeSquaredDistance for SVGPathData {
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedZero,
+    ToShmem,
 )]
 #[allow(missing_docs)]
 #[repr(C, u8)]
@@ -473,6 +481,7 @@ impl ToCss for PathCommand {
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedZero,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum IsAbsolute {
@@ -501,6 +510,7 @@ impl IsAbsolute {
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToCss,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct CoordPair(CSSFloat, CSSFloat);
@@ -514,7 +524,7 @@ impl CoordPair {
 }
 
 /// The EllipticalArc flag type.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
 #[repr(C)]
 pub struct ArcFlag(bool);
 

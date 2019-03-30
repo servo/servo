@@ -96,7 +96,7 @@ pub type GradientKind =
     generic::GradientKind<LineDirection, Length, LengthPercentage, GradientPosition, Angle>;
 
 /// A specified gradient line direction.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum LineDirection {
     /// An angular direction.
     Angle(Angle),
@@ -115,7 +115,7 @@ pub enum LineDirection {
 }
 
 /// A binary enum to hold either Position or LegacyPosition.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
 #[cfg(feature = "gecko")]
 pub enum GradientPosition {
     /// 1, 2, 3, 4-valued <position>.

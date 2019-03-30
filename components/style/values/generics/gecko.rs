@@ -7,7 +7,7 @@
 
 /// A generic value for scroll snap points.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem)]
 pub enum ScrollSnapPoint<LengthPercentage> {
     /// `none`
     None,
