@@ -1,0 +1,18 @@
+[package]
+name = "to_shmem_derive"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+path = "lib.rs"
+proc-macro = true
+
+[dependencies]
+darling = "0.8"
+derive_common = { path = "../derive_common" }
+proc-macro2 = "0.4"
+quote = "0.6"
+syn = { version = "0.15", features = ["visit"] }
+synstructure = "0.10"
