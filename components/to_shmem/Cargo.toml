@@ -10,7 +10,9 @@ name = "to_shmem"
 path = "lib.rs"
 
 [features]
-servo = []
+servo = ["serde", "cssparser/serde"]
 gecko = []
 
 [dependencies]
+cssparser = "0.25"
+serde = {version = "1.0", optional = true}

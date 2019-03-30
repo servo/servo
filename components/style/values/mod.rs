@@ -17,6 +17,7 @@ use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use to_shmem::impl_trivial_to_shmem;
 
 #[cfg(feature = "gecko")]
 pub use crate::gecko::url::CssUrl;
@@ -107,6 +108,8 @@ impl ComputeSquaredDistance for Impossible {
         match *self {}
     }
 }
+
+impl_trivial_to_shmem!(Impossible);
 
 impl Parse for Impossible {
     fn parse<'i, 't>(

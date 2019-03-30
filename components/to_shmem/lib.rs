@@ -12,13 +12,18 @@
 #![crate_name = "to_shmem"]
 #![crate_type = "rlib"]
 
+extern crate cssparser;
+
 use std::alloc::Layout;
 #[cfg(debug_assertions)]
 use std::any::TypeId;
 use std::isize;
 #[cfg(debug_assertions)]
 use std::collections::HashSet;
+use std::marker::PhantomData;
 use std::mem::{self, ManuallyDrop};
+use std::num::Wrapping;
+use std::ops::Range;
 #[cfg(debug_assertions)]
 use std::os::raw::c_void;
 use std::ptr::{self, NonNull};
@@ -172,4 +177,63 @@ pub trait ToShmem: Sized {
     /// The return type is wrapped in ManuallyDrop to make it harder to
     /// accidentally invoke the destructor of the value that is produced.
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self>;
+}
+
+#[macro_export]
+macro_rules! impl_trivial_to_shmem {
+    ($($ty:ty),*) => {$(
+        impl $crate::ToShmem for $ty {
+            fn to_shmem(
+                &self,
+                _builder: &mut $crate::SharedMemoryBuilder,
+            ) -> ::std::mem::ManuallyDrop<Self> {
+                ::std::mem::ManuallyDrop::new(*self)
+            }
+        }
+    )*};
+}
+
+impl_trivial_to_shmem!((), bool, f32, f64, i8, i16, i32, i64, u8, u16, u32, u64, isize, usize);
+
+impl_trivial_to_shmem!(cssparser::RGBA);
+impl_trivial_to_shmem!(cssparser::SourceLocation);
+impl_trivial_to_shmem!(cssparser::TokenSerializationType);
+
+impl<T> ToShmem for PhantomData<T> {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        ManuallyDrop::new(*self)
+    }
+}
+
+impl<T: ToShmem> ToShmem for Range<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        ManuallyDrop::new(Range {
+            start: ManuallyDrop::into_inner(self.start.to_shmem(builder)),
+            end: ManuallyDrop::into_inner(self.end.to_shmem(builder)),
+        })
+    }
+}
+
+impl ToShmem for cssparser::UnicodeRange {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        ManuallyDrop::new(cssparser::UnicodeRange {
+            start: self.start,
+            end: self.end,
+        })
+    }
+}
+
+impl<T: ToShmem, U: ToShmem> ToShmem for (T, U) {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        ManuallyDrop::new((
+            ManuallyDrop::into_inner(self.0.to_shmem(builder)),
+            ManuallyDrop::into_inner(self.1.to_shmem(builder)),
+        ))
+    }
+}
+
+impl<T: ToShmem> ToShmem for Wrapping<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        ManuallyDrop::new(Wrapping(ManuallyDrop::into_inner(self.0.to_shmem(builder))))
+    }
 }
