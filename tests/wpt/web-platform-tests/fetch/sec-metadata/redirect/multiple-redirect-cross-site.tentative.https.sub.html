@@ -4,11 +4,14 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
 <body></body>
 <script>
-promise_test(t => {
+  let nonce = token();
+
+  promise_test(t => {
     return new Promise((resolve, reject) => {
-      let key = "redirect-multiple-cross-site";
+      let key = "redirect-multiple-cross-site" + nonce;
 
       let e = document.createElement('img');
       e.src = "https://{{host}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=" +// same-origin

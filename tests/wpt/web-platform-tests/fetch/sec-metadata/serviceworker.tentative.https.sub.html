@@ -4,11 +4,15 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
 <body>
   <script>
+      let nonce = token();
+      let key = "serviceworker-same-origin" + nonce;
+
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=serviceworker-same-origin').then(function(registration) {
+          navigator.serviceWorker.register('https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=' + key).then(function(registration) {
             test_same_origin();
 
             // uninstall the serviceworker after the test
@@ -34,7 +38,6 @@
   function test_same_origin(){
     promise_test(t => {
     return new Promise((resolve, reject) => {
-      let key = "serviceworker-same-origin";
       let expected = {"dest":"serviceworker", "site":"same-origin", "user":"?F", "mode": "same-origin"};
       fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
         .then(response => response.text())

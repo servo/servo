@@ -4,10 +4,13 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
 <script>
+  let nonce = token();
+
   promise_test(t => {
     return new Promise((resolve, reject) => {
-      let key = "worker-same-origin";
+      let key = "worker-same-origin" + nonce;
       let w = new Worker("/fetch/sec-metadata/resources/record-header.py?file=" + key);
       w.onmessage = e => {
         let expected = {"dest":"worker", "site":"same-origin", "user":"?F", "mode": "same-origin"};
