@@ -13,20 +13,32 @@
 #![crate_type = "rlib"]
 
 extern crate cssparser;
+extern crate servo_arc;
+extern crate smallbitvec;
+extern crate smallvec;
+extern crate thin_slice;
 
+use servo_arc::{Arc, ThinArc};
+use smallbitvec::{InternalStorage, SmallBitVec};
+use smallvec::{Array, SmallVec};
 use std::alloc::Layout;
 #[cfg(debug_assertions)]
 use std::any::TypeId;
 use std::isize;
 #[cfg(debug_assertions)]
 use std::collections::HashSet;
+use std::ffi::CString;
 use std::marker::PhantomData;
 use std::mem::{self, ManuallyDrop};
 use std::num::Wrapping;
 use std::ops::Range;
 #[cfg(debug_assertions)]
 use std::os::raw::c_void;
+use std::os::raw::c_char;
 use std::ptr::{self, NonNull};
+use std::slice;
+use std::str;
+use thin_slice::ThinBoxedSlice;
 
 // Various pointer arithmetic functions in this file can be replaced with
 // functions on `Layout` once they have stabilized:
@@ -235,5 +247,264 @@ impl<T: ToShmem, U: ToShmem> ToShmem for (T, U) {
 impl<T: ToShmem> ToShmem for Wrapping<T> {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
         ManuallyDrop::new(Wrapping(ManuallyDrop::into_inner(self.0.to_shmem(builder))))
+    }
+}
+
+impl<T: ToShmem> ToShmem for Box<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // Reserve space for the boxed value.
+        let dest: *mut T = builder.alloc_value();
+
+        // Make a clone of the boxed value with all of its heap allocations
+        // placed in the shared memory buffer.
+        let value = (**self).to_shmem(builder);
+
+        unsafe {
+            // Copy the value into the buffer.
+            ptr::write(dest, ManuallyDrop::into_inner(value));
+
+            ManuallyDrop::new(Box::from_raw(dest))
+        }
+    }
+}
+
+/// Converts all the items in `src` into shared memory form, writes them into
+/// the specified buffer, and returns a pointer to the slice.
+unsafe fn to_shmem_slice_ptr<'a, T, I>(
+    src: I,
+    dest: *mut T,
+    builder: &mut SharedMemoryBuilder,
+) -> *mut [T]
+where
+    T: 'a + ToShmem,
+    I: ExactSizeIterator<Item = &'a T>,
+{
+    let dest = slice::from_raw_parts_mut(dest, src.len());
+
+    // Make a clone of each element from the iterator with its own heap
+    // allocations placed in the buffer, and copy that clone into the buffer.
+    for (src, dest) in src.zip(dest.iter_mut()) {
+        ptr::write(dest, ManuallyDrop::into_inner(src.to_shmem(builder)));
+    }
+
+    dest
+}
+
+/// Writes all the items in `src` into a slice in the shared memory buffer and
+/// returns a pointer to the slice.
+unsafe fn to_shmem_slice<'a, T, I>(src: I, builder: &mut SharedMemoryBuilder) -> *mut [T]
+where
+    T: 'a + ToShmem,
+    I: ExactSizeIterator<Item = &'a T>,
+{
+    let dest = builder.alloc_array(src.len());
+    to_shmem_slice_ptr(src, dest, builder)
+}
+
+impl<T: ToShmem> ToShmem for Box<[T]> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        unsafe {
+            let dest = to_shmem_slice(self.iter(), builder);
+            ManuallyDrop::new(Box::from_raw(dest))
+        }
+    }
+}
+
+impl<T: ToShmem> ToShmem for ThinBoxedSlice<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // We could support this if we needed but in practice we will never
+        // need to handle such big ThinBoxedSlices.
+        assert!(
+            self.spilled_storage().is_none(),
+            "ToShmem failed for ThinBoxedSlice: too many entries ({})",
+            self.len(),
+        );
+
+        unsafe {
+            let dest = to_shmem_slice(self.iter(), builder);
+            ManuallyDrop::new(ThinBoxedSlice::from_raw(dest))
+        }
+    }
+}
+
+impl ToShmem for Box<str> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // Reserve space for the string bytes.
+        let dest: *mut u8 = builder.alloc_array(self.len());
+
+        unsafe {
+            // Copy the value into the buffer.
+            ptr::copy(self.as_ptr(), dest, self.len());
+
+            ManuallyDrop::new(Box::from_raw(str::from_utf8_unchecked_mut(
+                slice::from_raw_parts_mut(dest, self.len()),
+            )))
+        }
+    }
+}
+
+impl ToShmem for String {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // Reserve space for the string bytes.
+        let dest: *mut u8 = builder.alloc_array(self.len());
+
+        unsafe {
+            // Copy the value into the buffer.
+            ptr::copy(self.as_ptr(), dest, self.len());
+
+            ManuallyDrop::new(String::from_raw_parts(dest, self.len(), self.len()))
+        }
+    }
+}
+
+impl ToShmem for CString {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        let len = self.as_bytes_with_nul().len();
+
+        // Reserve space for the string bytes.
+        let dest: *mut c_char = builder.alloc_array(len);
+
+        unsafe {
+            // Copy the value into the buffer.
+            ptr::copy(self.as_ptr(), dest, len);
+
+            ManuallyDrop::new(CString::from_raw(dest))
+        }
+    }
+}
+
+impl<T: ToShmem> ToShmem for Vec<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        unsafe {
+            let dest = to_shmem_slice(self.iter(), builder) as *mut T;
+            let dest_vec = Vec::from_raw_parts(dest, self.len(), self.len());
+            ManuallyDrop::new(dest_vec)
+        }
+    }
+}
+
+impl<T: ToShmem, A: Array<Item = T>> ToShmem for SmallVec<A> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        let dest_vec = unsafe {
+            if self.spilled() {
+                // Place the items in a separate allocation in the shared memory
+                // buffer.
+                let dest = to_shmem_slice(self.iter(), builder) as *mut T;
+                SmallVec::from_raw_parts(dest, self.len(), self.len())
+            } else {
+                // Place the items inline.
+                let mut inline: A = mem::uninitialized();
+                to_shmem_slice_ptr(self.iter(), inline.ptr_mut(), builder);
+                SmallVec::from_buf_and_len(inline, self.len())
+            }
+        };
+
+        ManuallyDrop::new(dest_vec)
+    }
+}
+
+impl<T: ToShmem> ToShmem for Option<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        ManuallyDrop::new(
+            self.as_ref()
+                .map(|v| ManuallyDrop::into_inner(v.to_shmem(builder))),
+        )
+    }
+}
+
+impl<T: 'static + ToShmem> ToShmem for Arc<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // Assert that we don't encounter any shared references to values we
+        // don't expect.  Those we expect are those noted by calling
+        // add_allowed_duplication_type, and should be types where we're fine
+        // with duplicating any shared references in the shared memory buffer.
+        //
+        // Unfortunately there's no good way to print out the exact type of T
+        // in the assertion message.
+        #[cfg(debug_assertions)]
+        assert!(
+            !builder.shared_values.contains(&self.heap_ptr()) ||
+            builder.allowed_duplication_types.contains(&TypeId::of::<T>()),
+            "ToShmem failed for Arc<T>: encountered a value of type T with multiple references \
+             and which has not been explicitly allowed with an add_allowed_duplication_type call",
+        );
+
+        // Make a clone of the Arc-owned value with all of its heap allocations
+        // placed in the shared memory buffer.
+        let value = (**self).to_shmem(builder);
+
+        // Create a new Arc with the shared value and have it place its
+        // ArcInner in the shared memory buffer.
+        unsafe {
+            let static_arc = Arc::new_static(
+                |layout| builder.alloc(layout),
+                ManuallyDrop::into_inner(value),
+            );
+
+            #[cfg(debug_assertions)]
+            builder.shared_values.insert(self.heap_ptr());
+
+            ManuallyDrop::new(static_arc)
+        }
+    }
+}
+
+impl<H: 'static + ToShmem, T: 'static + ToShmem> ToShmem for ThinArc<H, T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // We don't currently have any shared ThinArc values in stylesheets,
+        // so don't support them for now.
+        #[cfg(debug_assertions)]
+        assert!(
+            !builder.shared_values.contains(&self.heap_ptr()),
+            "ToShmem failed for ThinArc<T>: encountered a value with multiple references, which \
+             is not currently supported",
+        );
+
+        // Make a clone of the Arc-owned header and slice values with all of
+        // their heap allocations placed in the shared memory buffer.
+        let header = self.header.header.to_shmem(builder);
+        let values: Vec<ManuallyDrop<T>> = self
+            .slice
+            .iter()
+            .map(|v| v.to_shmem(builder))
+            .collect();
+
+        // Create a new ThinArc with the shared value and have it place
+        // its ArcInner in the shared memory buffer.
+        unsafe {
+            let static_arc = ThinArc::static_from_header_and_iter(
+                |layout| builder.alloc(layout),
+                ManuallyDrop::into_inner(header),
+                values.into_iter().map(ManuallyDrop::into_inner),
+            );
+
+            #[cfg(debug_assertions)]
+            builder.shared_values.insert(self.heap_ptr());
+
+            ManuallyDrop::new(static_arc)
+        }
+    }
+}
+
+impl ToShmem for SmallBitVec {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        let storage = match self.clone().into_storage() {
+            InternalStorage::Spilled(vs) => {
+                // Reserve space for the boxed slice values.
+                let len = vs.len();
+                let dest: *mut usize = builder.alloc_array(len);
+
+                unsafe {
+                    // Copy the value into the buffer.
+                    let src = vs.as_ptr() as *const usize;
+                    ptr::copy(src, dest, len);
+
+                    let dest_slice = Box::from_raw(slice::from_raw_parts_mut(dest, len) as *mut [usize]);
+                    InternalStorage::Spilled(dest_slice)
+                }
+            }
+            InternalStorage::Inline(x) => InternalStorage::Inline(x),
+        };
+        ManuallyDrop::new(unsafe { SmallBitVec::from_storage(storage) })
     }
 }
