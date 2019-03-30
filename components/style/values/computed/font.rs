@@ -25,10 +25,11 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "gecko")]
-use std::mem;
+use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "servo")]
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
+use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
@@ -506,6 +507,24 @@ pub enum FontFamilyList {
     SharedFontList(RefPtr<structs::SharedFontList>),
     /// A font-family generic ID.
     Generic(structs::FontFamilyType),
+}
+
+#[cfg(feature = "gecko")]
+impl ToShmem for FontFamilyList {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // In practice, the only SharedFontList objects we create from shared
+        // style sheets are ones with a single generic entry.
+        ManuallyDrop::new(match self {
+            FontFamilyList::SharedFontList(r) => {
+                assert!(
+                    r.mNames.len() == 1 && r.mNames[0].mName.mRawPtr.is_null(),
+                    "ToShmem failed for FontFamilyList: cannot handle non-generic families",
+                );
+                FontFamilyList::Generic(r.mNames[0].mType)
+            },
+            FontFamilyList::Generic(t) => FontFamilyList::Generic(*t),
+        })
+    }
 }
 
 #[cfg(feature = "gecko")]
