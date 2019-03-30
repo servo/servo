@@ -68,6 +68,7 @@ style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
 thin-slice = "0.1.0"
+to_shmem = {path = "../to_shmem"}
 time = "0.1"
 uluru = "0.3"
 unicode-bidi = "0.3"

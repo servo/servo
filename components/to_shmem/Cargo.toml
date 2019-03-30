@@ -1,0 +1,16 @@
+[package]
+name = "to_shmem"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "to_shmem"
+path = "lib.rs"
+
+[features]
+servo = []
+gecko = []
+
+[dependencies]
