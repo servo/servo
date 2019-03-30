@@ -210,10 +210,10 @@ promise_test(async t => {
   const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
   const transceiver = trackEvent.transceiver;
   assert_equals(transceiver.currentDirection, null,
-                'SRD(offer): transciever.currentDirection is null');
+                'SRD(offer): transceiver.currentDirection is null');
   await pc2.setLocalDescription(await pc2.createAnswer());
   assert_equals(transceiver.currentDirection, 'recvonly',
-                'SLD(answer): transciever.currentDirection is recvonly');
+                'SLD(answer): transceiver.currentDirection is recvonly');
 }, 'setLocalDescription(answer): transceiver.currentDirection is recvonly');
 
 promise_test(async t => {
@@ -223,10 +223,10 @@ promise_test(async t => {
   const pc2 = createPeerConnectionWithCleanup(t);
   await exchangeOffer(pc1, pc2);
   assert_equals(transceiver.currentDirection, null,
-                'SLD(offer): transciever.currentDirection is null');
+                'SLD(offer): transceiver.currentDirection is null');
   await exchangeAnswer(pc1, pc2);
   assert_equals(transceiver.currentDirection, 'sendonly',
-                'SRD(answer): transciever.currentDirection is sendonly');
+                'SRD(answer): transceiver.currentDirection is sendonly');
 }, 'setLocalDescription(answer): transceiver.currentDirection is sendonly');
 
 promise_test(async t => {

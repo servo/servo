@@ -4,13 +4,16 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
 <script>
+  let nonce = token();
+  let key = "sharedworker-same-origin" + nonce;
 
   // TESTS //
   if (window.Worker) {
 
       //  Same-Origin test
-      var sharedWorker = new SharedWorker('/fetch/sec-metadata/resources/record-header.py?file=sharedworker-same-origin');
+      var sharedWorker = new SharedWorker('/fetch/sec-metadata/resources/record-header.py?file=' + key);
       sharedWorker.port.start();
 
       sharedWorker.onerror = function(){
@@ -25,7 +28,6 @@
   function test_same_origin(){
     promise_test(t => {
       return new Promise((resolve, reject) => {
-        let key = "sharedworker-same-origin";
         let expected = {"dest":"sharedworker", "site":"same-origin", "user":"?F", "mode": "same-origin"};
 
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)

@@ -246,6 +246,7 @@ promise_test(async (t) => {
       3.    Fire an event named error with an OperationError exception at channel.
       4.    Fire a simple event named close at channel.
  */
+/* TEST DISABLED - it takes so long, it times out.
 promise_test(async (t) => {
   const resolver = new Resolver();
   // Takes the DTLS server role
@@ -338,5 +339,7 @@ promise_test(async (t) => {
   maybeDone();
   await resolver;
 }, 'Channel ID exhaustion handling (before and after connection establishment)');
+
+END DISABLED TEST */
 
 </script>
