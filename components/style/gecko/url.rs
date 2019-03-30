@@ -19,8 +19,10 @@ use nsstring::nsCString;
 use servo_arc::Arc;
 use std::collections::HashMap;
 use std::fmt::{self, Write};
+use std::mem::ManuallyDrop;
 use std::sync::RwLock;
 use style_traits::{CssWriter, ParseError, ToCss};
+use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
@@ -136,6 +138,15 @@ pub enum URLValueSource {
     ///
     /// The lazily created object will be stored in URL_VALUE_TABLE.
     CORSMode(CORSMode),
+}
+
+impl ToShmem for URLValueSource {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        ManuallyDrop::new(match self {
+            URLValueSource::URLValue(r) => URLValueSource::CORSMode(r.mCORSMode),
+            URLValueSource::CORSMode(c) => URLValueSource::CORSMode(*c),
+        })
+    }
 }
 
 /// A specified non-image `url()` value.
