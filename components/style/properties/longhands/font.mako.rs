@@ -406,9 +406,9 @@ ${helpers.predefined_type(
                 let font_style = FontStyle::from_gecko(system.style);
                 let ret = ComputedSystemFont {
                     font_family: FontFamily {
-                        families: FontFamilyList(unsafe {
-                            system.fontlist.mFontlist.mBasePtr.to_safe()
-                        }),
+                        families: FontFamilyList::SharedFontList(
+                            unsafe { system.fontlist.mFontlist.mBasePtr.to_safe() }
+                        ),
                         is_system_font: true,
                     },
                     font_size: FontSize {

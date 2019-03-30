@@ -1993,7 +1993,9 @@ fn static_assert() {
         } else {
             v.families.single_generic().unwrap_or(structs::kGenericFont_NONE)
         };
-        self.gecko.mFont.fontlist.mFontlist.mBasePtr.set_move(v.families.0.clone());
+        self.gecko.mFont.fontlist.mFontlist.mBasePtr.set_move(
+            v.families.shared_font_list().clone()
+        );
         // Fixed-up if needed in Cascade::fixup_font_stuff.
         self.gecko.mFont.fontlist.mDefaultFontType = FontFamilyType::eFamily_none;
     }
@@ -2038,7 +2040,7 @@ fn static_assert() {
             };
             FontFamilyList::new(Box::new([default]))
         } else {
-            FontFamilyList(shared_fontlist)
+            FontFamilyList::SharedFontList(shared_fontlist)
         };
 
         FontFamily {

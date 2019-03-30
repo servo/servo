@@ -567,8 +567,14 @@ impl MallocSizeOf for FontFamily {
         match *self {
             FontFamily::Values(ref v) => {
                 // Although a SharedFontList object is refcounted, we always
-                // attribute its size to the specified value.
-                unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThis(v.0.get()) }
+                // attribute its size to the specified value, as long as it's
+                // not a value in SharedFontList::sSingleGenerics.
+                if matches!(v, FontFamilyList::SharedFontList(_)) {
+                    let ptr = v.shared_font_list().get();
+                    unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThis(ptr) }
+                } else {
+                    0
+                }
             },
             FontFamily::System(_) => 0,
         }
