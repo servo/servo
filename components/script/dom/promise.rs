@@ -80,13 +80,11 @@ impl Drop for Promise {
 
 impl Promise {
     #[allow(unsafe_code)]
-    pub fn new(global: &GlobalScope) -> Rc<Promise> {
+    pub unsafe fn new_in_current_compartment(global: &GlobalScope) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(cx) let mut obj = ptr::null_mut::<JSObject>());
-        unsafe {
-            Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
-            Promise::new_with_js_promise(obj.handle(), cx)
-        }
+        Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
+        Promise::new_with_js_promise(obj.handle(), cx)
     }
 
     #[allow(unsafe_code)]

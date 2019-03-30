@@ -83,9 +83,10 @@ impl Drop for XR {
 
 impl XRMethods for XR {
     /// https://immersive-web.github.io/webxr/#dom-xr-supportssessionmode
+    #[allow(unsafe_code)]
     fn SupportsSessionMode(&self, mode: XRSessionMode) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         if mode == XRSessionMode::Immersive_vr {
             promise.resolve_native(&());
         } else {
@@ -97,8 +98,9 @@ impl XRMethods for XR {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xr-requestsession
+    #[allow(unsafe_code)]
     fn RequestSession(&self, options: &XRSessionCreationOptions) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         if options.mode != XRSessionMode::Immersive_vr {
             promise.reject_error(Error::NotSupported);
             return promise;

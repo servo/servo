@@ -113,8 +113,9 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering
+    #[allow(unsafe_code)]
     fn StartRendering(&self) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         if self.rendering_started.get() {
             promise.reject_error(Error::InvalidState);
             return promise;

@@ -1651,8 +1651,9 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-play
+    #[allow(unsafe_code)]
     fn Play(&self) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         // Step 1.
         // FIXME(nox): Reject promise if not allowed to play.
 

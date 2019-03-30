@@ -43,8 +43,9 @@ impl NavigationPreloadManager {
 
 impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable
+    #[allow(unsafe_code)]
     fn Enable(&self) -> Rc<Promise> {
-        let promise = Promise::new(&*self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&*self.global()) };
 
         // 2.
         if self.serviceworker_registration.active().is_none() {
@@ -65,8 +66,9 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable
+    #[allow(unsafe_code)]
     fn Disable(&self) -> Rc<Promise> {
-        let promise = Promise::new(&*self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&*self.global()) };
 
         // 2.
         if self.serviceworker_registration.active().is_none() {
@@ -87,8 +89,9 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue
+    #[allow(unsafe_code)]
     fn SetHeaderValue(&self, value: ByteString) -> Rc<Promise> {
-        let promise = Promise::new(&*self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&*self.global()) };
 
         // 2.
         if self.serviceworker_registration.active().is_none() {
@@ -109,8 +112,9 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate
+    #[allow(unsafe_code)]
     fn GetState(&self) -> Rc<Promise> {
-        let promise = Promise::new(&*self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&*self.global()) };
         // 2.
         let mut state = NavigationPreloadState::empty();
 

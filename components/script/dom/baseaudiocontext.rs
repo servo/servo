@@ -273,9 +273,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
+    #[allow(unsafe_code)]
     fn Resume(&self) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 2.
         if self.audio_context_impl.state() == ProcessingState::Closed {
@@ -405,6 +406,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-decodeaudiodata
+    #[allow(unsafe_code)]
     fn DecodeAudioData(
         &self,
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,
@@ -412,7 +414,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         decode_error_callback: Option<Rc<DecodeErrorCallback>>,
     ) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let global = self.global();
         let window = global.as_window();
 

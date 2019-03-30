@@ -83,8 +83,9 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
+    #[allow(unsafe_code)]
     fn UpdateRenderState(&self, init: &XRRenderStateInit) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
         self.display.queue_renderstate(init, p.clone());
         p
     }
@@ -105,8 +106,9 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
+    #[allow(unsafe_code)]
     fn RequestReferenceSpace(&self, options: &XRReferenceSpaceOptions) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 
