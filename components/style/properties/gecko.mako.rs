@@ -826,7 +826,7 @@ def set_gecko_property(ffi_name, expr):
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         match v {
             UrlOrNone::Url(ref url) => {
-                self.gecko.${gecko_ffi_name}.set_move(url.0.url_value.clone())
+                self.gecko.${gecko_ffi_name}.set_move(url.clone_url_value())
             }
             UrlOrNone::None => {
                 unsafe {
@@ -3783,7 +3783,7 @@ fn static_assert() {
                 },
                 Url(ref url) => {
                     unsafe {
-                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.0.url_value.get());
+                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.url_value_ptr());
                     }
                 },
             }
@@ -4164,7 +4164,7 @@ fn set_style_svg_path(
             % if ident == "clip_path":
             ShapeSource::ImageOrUrl(ref url) => {
                 unsafe {
-                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.0.url_value.get())
+                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.url_value_ptr())
                 }
             }
             % elif ident == "shape_outside":

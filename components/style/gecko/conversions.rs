@@ -123,14 +123,11 @@ impl nsStyleImage {
         match image {
             GenericImage::Gradient(boxed_gradient) => self.set_gradient(*boxed_gradient),
             GenericImage::Url(ref url) => unsafe {
-                bindings::Gecko_SetLayerImageImageValue(self, (url.0).0.url_value.get());
+                bindings::Gecko_SetLayerImageImageValue(self, url.url_value_ptr())
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    bindings::Gecko_SetLayerImageImageValue(
-                        self,
-                        (image_rect.url.0).0.url_value.get(),
-                    );
+                    bindings::Gecko_SetLayerImageImageValue(self, image_rect.url.url_value_ptr());
                     bindings::Gecko_InitializeImageCropRect(self);
 
                     // Set CropRect
