@@ -46,7 +46,7 @@
     promise_test(t => {
       return new Promise((resolve, reject) => {
         let key = "font-same-origin";
-        let expected = {"dest":"font", "site":"same-origin", "user":"?F", "mode": "cors"};
+        let expected = {"dest":"font", "site":"same-origin", "user":"", "mode": "cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -58,7 +58,7 @@
     promise_test(t => {
       return new Promise((resolve, reject) => {
         let key = "font-same-site";
-        let expected = {"dest":"font", "site":"same-site", "user":"?F", "mode": "cors"};
+        let expected = {"dest":"font", "site":"same-site", "user":"", "mode": "cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -70,7 +70,7 @@
     promise_test(t => {
       return new Promise((resolve, reject) => {
         let key = "font-cross-site";
-        let expected = {"dest":"font", "site":"cross-site", "user":"?F", "mode": "cors"};
+        let expected = {"dest":"font", "site":"cross-site", "user":"", "mode": "cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))

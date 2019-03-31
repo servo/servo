@@ -36,7 +36,7 @@
         expected = {
           "dest": "track",
           "site": "same-origin",
-          "user": "?F",
+          "user": "",
           "mode": "cors" // Because the `video` element has `crossorigin`
         };
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
@@ -59,7 +59,7 @@
         expected = {
           "dest": "track",
           "site": "same-site",
-          "user": "?F",
+          "user": "",
           "mode": "cors" // Because the `video` element has `crossorigin`
         };
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
@@ -84,7 +84,7 @@
         expected = {
           "dest": "track",
           "site": "cross-site",
-          "user": "?F",
+          "user": "",
           "mode": "cors" // Because the `video` element has `crossorigin`
         };
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
@@ -112,7 +112,7 @@
         expected = {
           "dest":"track",
           "site":"same-origin",
-          "user":"?F",
+          "user":"",
           "mode": "same-origin"
         };
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)

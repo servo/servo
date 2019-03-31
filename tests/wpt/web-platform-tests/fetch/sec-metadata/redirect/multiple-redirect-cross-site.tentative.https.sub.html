@@ -17,7 +17,7 @@
       e.src = "https://{{host}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=" +// same-origin
       "https://{{hosts[alt][www]}}:{{ports[https][0]}}/xhr/resources/redirect.py?location=" +// cross-site
       "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;// same-origin
-      let expected = {"dest":"image", "site":"cross-site", "user":"?F", "mode": "no-cors"};
+      let expected = {"dest":"image", "site":"cross-site", "user":"", "mode": "no-cors"};
 
       e.onload = e => {
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)

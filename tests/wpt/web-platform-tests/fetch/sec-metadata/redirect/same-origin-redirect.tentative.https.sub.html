@@ -15,7 +15,7 @@
 
       let e = document.createElement('img');
       e.src = "/xhr/resources/redirect.py?location=https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
-      let expected = {"dest":"image", "site":"same-origin", "user":"?F", "mode": "no-cors"};
+      let expected = {"dest":"image", "site":"same-origin", "user":"", "mode": "no-cors"};
 
       e.onload = e => {
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
@@ -42,7 +42,7 @@ promise_test(t => {
 
       let e = document.createElement('img');
       e.src = "/xhr/resources/redirect.py?location=https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
-      let expected = {"dest":"image", "site":"same-site", "user":"?F", "mode": "no-cors"};
+      let expected = {"dest":"image", "site":"same-site", "user":"", "mode": "no-cors"};
 
       e.onload = e => {
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
@@ -69,7 +69,7 @@ promise_test(t => {
 
       let e = document.createElement('img');
       e.src = "/xhr/resources/redirect.py?location=https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
-      let expected = {"dest":"image", "site":"cross-site", "user":"?F", "mode": "no-cors"};
+      let expected = {"dest":"image", "site":"cross-site", "user":"", "mode": "no-cors"};
 
       e.onload = e => {
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
