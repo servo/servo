@@ -194,4 +194,9 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     fn FetchStart(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.fetch_start)
     }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectend
+    fn ConnectEnd(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.connect_end)
+    }
 }

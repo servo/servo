@@ -349,6 +349,7 @@ fn obtain_response(
     iters: u32,
     request_id: Option<&str>,
     is_xhr: bool,
+    context: &FetchContext,
 ) -> Box<
     dyn Future<
         Item = (HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>),
@@ -402,6 +403,11 @@ fn obtain_response(
 
     //TODO(#21262) connect_end
     let connect_end = precise_time_ms();
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
     let request_id = request_id.map(|v| v.to_owned());
     let pipeline_id = pipeline_id.clone();
@@ -1190,6 +1196,7 @@ fn http_network_fetch(
         request.redirect_count + 1,
         request_id.as_ref().map(Deref::deref),
         is_xhr,
+        context,
     );
 
     let pipeline_id = request.pipeline_id;
