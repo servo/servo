@@ -95,8 +95,8 @@ pub enum WindowEvent {
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
     CaptureWebRender,
-    /// Toggle sampling profiler with the given sampling rate
-    ToggleSamplingProfiler(Duration),
+    /// Toggle sampling profiler with the given sampling rate and max duration.
+    ToggleSamplingProfiler(Duration, Duration),
 }
 
 impl Debug for WindowEvent {
