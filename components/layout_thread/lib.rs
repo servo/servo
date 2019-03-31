@@ -661,6 +661,7 @@ impl LayoutThread {
             recv(self.font_cache_receiver) -> msg => { msg.unwrap(); Request::FromFontCache }
         };
 
+        self.busy.store(true, Ordering::Relaxed);
         match request {
             Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => self
                 .handle_request_helper(
@@ -682,12 +683,7 @@ impl LayoutThread {
                 self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
                 true
             },
-            Request::FromScript(msg) => {
-                self.busy.store(true, Ordering::Relaxed);
-                let ret = self.handle_request_helper(msg, possibly_locked_rw_data);
-                self.busy.store(false, Ordering::Relaxed);
-                ret
-            }
+            Request::FromScript(msg) => self.handle_request_helper(msg, possibly_locked_rw_data),
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
@@ -698,6 +694,7 @@ impl LayoutThread {
                 true
             },
         }
+        self.busy.store(false, Ordering::Relaxed);
     }
 
     /// Receives and dispatches messages from other threads.
