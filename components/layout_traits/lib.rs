@@ -20,8 +20,8 @@ use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use servo_url::ServoUrl;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency

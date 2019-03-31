@@ -50,8 +50,8 @@ use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webrender_api::{
