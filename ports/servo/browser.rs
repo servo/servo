@@ -121,8 +121,12 @@ impl Browser {
                     .ok()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(10);
+	            let duration = env::var("SAMPLING_DURATION")
+	                .ok()
+	                .and_then(|s| s.parse().ok())
+	                .unwrap_or(10);
                 self.event_queue.push(WindowEvent::ToggleSamplingProfiler(
-                    Duration::from_millis(rate)));
+                    Duration::from_millis(rate), Duration::from_secs(duration)));
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 self.event_queue.push(WindowEvent::CaptureWebRender)

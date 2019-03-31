@@ -1216,9 +1216,9 @@ where
                 self.forward_event(destination_pipeline_id, event);
             },
             FromCompositorMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
-            FromCompositorMsg::EnableProfiler(rate) => {
+            FromCompositorMsg::EnableProfiler(rate, max_duration) => {
                 for chan in &self.sampling_profiler_control {
-                    if let Err(e) = chan.send(SamplerControlMsg::Enable(rate)) {
+                    if let Err(e) = chan.send(SamplerControlMsg::Enable(rate, max_duration)) {
                         warn!("error communicating with sampling profiler: {}", e);
                     }
                 }

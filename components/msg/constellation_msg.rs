@@ -494,6 +494,7 @@ pub trait BackgroundHangMonitor {
 /// Messages to control the sampling profiler.
 #[derive(Deserialize, Serialize)]
 pub enum SamplerControlMsg {
-    Enable(Duration),
+	/// Enable the sampler, with a given sampling rate and max total sampling duration.
+    Enable(Duration, Duration),
     Disable,
 }

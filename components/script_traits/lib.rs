@@ -778,8 +778,8 @@ pub enum ConstellationMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
     SetCursor(Cursor),
-    /// Enable the sampling profiler.
-    EnableProfiler(Duration),
+    /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
+    EnableProfiler(Duration, Duration),
     /// Disable the sampling profiler.
     DisableProfiler,
 }

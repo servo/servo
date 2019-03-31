@@ -12,7 +12,7 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{HangAlert, HangAnnotation, HangMonitorAlert, SamplerControlMsg};
 use std::cell::Cell;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -153,10 +153,11 @@ pub struct BackgroundHangMonitorWorker {
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
     control_port: Receiver<SamplerControlMsg>,
     sampling_duration: Option<Duration>,
+	sampling_max_duration: Option<Duration>,
     last_sample: Instant,
     creation: Instant,
     sampling_baseline: Instant,
-    samples: Vec<Sample>,
+    samples: VecDeque<Sample>,
 }
 
 impl BackgroundHangMonitorWorker {
@@ -173,10 +174,11 @@ impl BackgroundHangMonitorWorker {
             port,
             control_port,
             sampling_duration: None,
+			sampling_max_duration: None,
             last_sample: Instant::now(),
             sampling_baseline: Instant::now(),
             creation: Instant::now(),
-            samples: vec![],
+            samples: Default::default(),
         }
     }
 
@@ -239,9 +241,10 @@ impl BackgroundHangMonitorWorker {
             },
             recv(self.control_port) -> event => {
                 match event {
-                    Ok(SamplerControlMsg::Enable(rate)) => {
+                    Ok(SamplerControlMsg::Enable(rate, max_duration)) => {
                         println!("Enabling profiler.");
                         self.sampling_duration = Some(rate);
+						self.sampling_max_duration = Some(max_duration);
                         self.sampling_baseline = Instant::now();
                         None
                     }
@@ -381,9 +384,12 @@ impl BackgroundHangMonitorWorker {
         for (component_id, monitored) in self.monitored_components.iter_mut() {
             let instant = Instant::now();
             if let Ok(stack) = monitored.sampler.suspend_and_sample_thread() {
-                // TODO: support a bounded buffer that discards older samples.
+                if self.sampling_baseline.elapsed() > self.sampling_max_duration.expect("Max duration has been set") {
+                    // Buffer is full, start discarding older samples.
+                    self.samples.pop_front();
+                }
                 self.samples
-                    .push(Sample(component_id.clone(), instant, stack));
+                    .push_back(Sample(component_id.clone(), instant, stack));
             }
         }
     }
