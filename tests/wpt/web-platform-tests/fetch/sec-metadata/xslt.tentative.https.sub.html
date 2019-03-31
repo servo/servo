@@ -12,21 +12,21 @@
       return;
 
     promise_test(t => {
-      let expected = {"dest":"xslt", "site":"same-origin", "user":"?F", "mode": "same-origin"};
+      let expected = {"dest":"xslt", "site":"same-origin", "user":"", "mode": "same-origin"};
       return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=xslt-same-origin")
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected));
     }, "Same-Origin xslt");
 
     promise_test(t => {
-      let expected = {"dest":"xslt", "site":"same-site", "user":"?F", "mode": "no-cors"};
+      let expected = {"dest":"xslt", "site":"same-site", "user":"", "mode": "no-cors"};
       return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=xslt-same-site")
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected));
     }, "Same-site xslt");
 
     promise_test(t => {
-      let expected = {"dest":"xslt", "site":"cross-site", "user":"?F", "mode": "no-cors"};
+      let expected = {"dest":"xslt", "site":"cross-site", "user":"", "mode": "no-cors"};
       return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=xslt-cross-site")
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected));

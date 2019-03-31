@@ -38,7 +38,7 @@
   function test_same_origin(){
     promise_test(t => {
     return new Promise((resolve, reject) => {
-      let expected = {"dest":"serviceworker", "site":"same-origin", "user":"?F", "mode": "same-origin"};
+      let expected = {"dest":"serviceworker", "site":"same-origin", "user":"", "mode": "same-origin"};
       fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
         .then(response => response.text())
         .then(text => assert_header_equals(text, expected))

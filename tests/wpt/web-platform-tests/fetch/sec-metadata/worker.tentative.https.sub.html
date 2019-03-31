@@ -13,7 +13,7 @@
       let key = "worker-same-origin" + nonce;
       let w = new Worker("/fetch/sec-metadata/resources/record-header.py?file=" + key);
       w.onmessage = e => {
-        let expected = {"dest":"worker", "site":"same-origin", "user":"?F", "mode": "same-origin"};
+        let expected = {"dest":"worker", "site":"same-origin", "user":"", "mode": "same-origin"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))

@@ -1,63 +1,85 @@
 <!DOCTYPE html>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
 <body>
 <script>
-  async_test(t => {
-    let i = document.createElement('iframe');
-    i.src = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py";
-    window.addEventListener('message', t.step_func(e => {
-      if (e.source != i.contentWindow)
-        return;
+  const USER = true;
+  const FORCED = false;
 
-      assert_header_equals(e.data, {
-        "dest": "nested-document",
-        "site": "same-origin",
-        "user": "?F",
-        "mode": "nested-navigate"
-      });
-      t.done();
-    }));
+  function create_test(host, user_activated, expectations) {
+    async_test(t => {
+      let i = document.createElement('iframe');
+      window.addEventListener('message', t.step_func(e => {
+        if (e.source != i.contentWindow)
+          return;
 
-    document.body.appendChild(i);
-  }, "Same-origin iframe");
+        assert_header_equals(e.data, expectations);
+        t.done();
+      }));
 
-  async_test(t => {
-    let i = document.createElement('iframe');
-    i.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py";
-    window.addEventListener('message', t.step_func(e => {
-      if (e.source != i.contentWindow)
-        return;
+      let url = `https://${host}/fetch/sec-metadata/resources/post-to-owner.py`;
+      if (user_activated == FORCED) {
+        i.src = url;
+        document.body.appendChild(i);
+      } else if (user_activated == USER) {
+        let uuid = token();
+        i.name = uuid;
+        let a = document.createElement('a');
+        a.href = url;
+        a.target = uuid;
+        a.text = "This is a link!";
 
-      assert_header_equals(e.data, {
-        "dest": "nested-document",
-        "site": "same-site",
-        "user": "?F",
-        "mode": "nested-navigate"
-      });
-      t.done();
-    }));
+        document.body.appendChild(i);
+        document.body.appendChild(a);
 
-    document.body.appendChild(i);
-  }, "Same-site iframe");
+        test_driver.click(a);
+      }
+    }, `{{host}} -> ${host} iframe: ${user_activated ? "user-activated" : "forced"}`);
+  }
 
-  async_test(t => {
-    let i = document.createElement('iframe');
-    i.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py";
-    window.addEventListener('message', t.step_func(e => {
-      if (e.source != i.contentWindow)
-        return;
+  create_test("{{host}}:{{ports[https][0]}}", FORCED, {
+    "dest": "nested-document",
+    "site": "same-origin",
+    "user": "",
+    "mode": "nested-navigate"
+  });
 
-      assert_header_equals(e.data, {
-        "dest": "nested-document",
-        "site": "cross-site",
-        "user": "?F",
-        "mode": "nested-navigate"
-      });
-      t.done();
-    }));
+  create_test("{{hosts[][www]}}:{{ports[https][0]}}", FORCED, {
+    "dest": "nested-document",
+    "site": "same-site",
+    "user": "",
+    "mode": "nested-navigate"
+  });
 
-    document.body.appendChild(i);
-  }, "Cross-site iframe");
+  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", FORCED, {
+    "dest": "nested-document",
+    "site": "cross-site",
+    "user": "",
+    "mode": "nested-navigate"
+  });
+
+  create_test("{{host}}:{{ports[https][0]}}", USER, {
+    "dest": "nested-document",
+    "site": "same-origin",
+    "user": "?T",
+    "mode": "nested-navigate"
+  });
+
+  create_test("{{hosts[][www]}}:{{ports[https][0]}}", USER, {
+    "dest": "nested-document",
+    "site": "same-site",
+    "user": "?T",
+    "mode": "nested-navigate"
+  });
+
+  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", USER, {
+    "dest": "nested-document",
+    "site": "cross-site",
+    "user": "?T",
+    "mode": "nested-navigate"
+  });
 </script>

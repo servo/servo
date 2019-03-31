@@ -16,7 +16,7 @@
       let e = document.createElement('embed');
       e.src = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"embed", "site":"same-origin", "user":"?F", "mode":"no-cors"};
+        let expected = {"dest":"embed", "site":"same-origin", "user":"", "mode":"no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -35,7 +35,7 @@
       let e = document.createElement('embed');
       e.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"embed", "site":"same-site", "user":"?F", "mode":"no-cors"};
+        let expected = {"dest":"embed", "site":"same-site", "user":"", "mode":"no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -54,7 +54,7 @@
       let e = document.createElement('embed');
       e.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"embed", "site":"cross-site", "user":"?F", "mode":"no-cors"};
+        let expected = {"dest":"embed", "site":"cross-site", "user":"", "mode":"no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
