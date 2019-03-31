@@ -122,7 +122,7 @@ impl PerformanceResourceTiming {
             domain_lookup_start: 0.,
             domain_lookup_end: 0.,
             connect_start: 0.,
-            connect_end: 0.,
+            connect_end: resource_timing.connect_end as f64,
             secure_connection_start: 0.,
             request_start: resource_timing.request_start as f64,
             response_start: resource_timing.response_start as f64,
@@ -193,5 +193,10 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
     fn FetchStart(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.fetch_start)
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectend
+    fn ConnectEnd(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.connect_end)
     }
 }
