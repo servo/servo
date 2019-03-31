@@ -30,11 +30,15 @@ fn test_sampler() {
     );
 
     const RATE: u64 = 10;
+    const MAX_DURATION: u64 = 10;
     sampler_sender
-        .send(SamplerControlMsg::Enable(Duration::from_millis(RATE)))
+        .send(SamplerControlMsg::Enable(
+            Duration::from_millis(RATE),
+            Duration::from_secs(MAX_DURATION),
+        ))
         .unwrap();
 
-    thread::sleep(Duration::from_millis(30));
+    thread::sleep(Duration::from_millis(100));
 
     sampler_sender.send(SamplerControlMsg::Disable).unwrap();
 

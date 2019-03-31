@@ -408,10 +408,10 @@ where
                 }
             },
 
-            WindowEvent::ToggleSamplingProfiler(rate) => {
+            WindowEvent::ToggleSamplingProfiler(rate, max_duration) => {
                 self.profiler_enabled = !self.profiler_enabled;
                 let msg = if self.profiler_enabled {
-                    ConstellationMsg::EnableProfiler(rate)
+                    ConstellationMsg::EnableProfiler(rate, max_duration)
                 } else {
                     ConstellationMsg::DisableProfiler
                 };
