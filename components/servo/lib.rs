@@ -398,7 +398,7 @@ where
             },
 
             WindowEvent::ExitFullScreen(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::ExitFullScreen(Some(top_level_browsing_context_id));
+                let msg = ConstellationMsg::ExitFullScreen(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending exit fullscreen to constellation failed ({:?}).", e);
                 }

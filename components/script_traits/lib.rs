@@ -780,7 +780,7 @@ pub enum ConstellationMsg {
     /// Requesting a change to the onscreen cursor.
     SetCursor(Cursor),
     /// Request to exit from fullscreen mode
-    ExitFullScreen(Option<TopLevelBrowsingContextId>),
+    ExitFullScreen(TopLevelBrowsingContextId),
 }
 
 impl fmt::Debug for ConstellationMsg {

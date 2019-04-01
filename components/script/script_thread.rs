@@ -1894,6 +1894,7 @@ impl ScriptThread {
         warn!("resize sent to nonexistent pipeline");
     }
 
+    // exit_fullscreen creates a new JS promise object, so we need to have entered a compartment
     fn handle_exit_fullscreen(&self, id: PipelineId) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {

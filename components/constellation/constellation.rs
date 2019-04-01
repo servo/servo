@@ -3621,12 +3621,10 @@ where
     /// Called when the window exits from fullscreen mode
     fn handle_exit_fullscreen_msg(
         &mut self,
-        top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
-        if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
-            let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-            self.switch_fullscreen_mode(browsing_context_id);
-        }
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        self.switch_fullscreen_mode(browsing_context_id);
     }
 
     /// Handle updating actual viewport / zoom due to @viewport rules
@@ -3867,7 +3865,7 @@ where
 
     // Handle switching from fullscreen mode
     fn switch_fullscreen_mode(&mut self, browsing_context_id: BrowsingContextId) {
-        if let Some(browsing_context) = self.browsing_contexts.get_mut(&browsing_context_id) {
+        if let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) {
             let pipeline_id = browsing_context.pipeline_id;
             let pipeline = match self.pipelines.get(&pipeline_id) {
                 None => {
