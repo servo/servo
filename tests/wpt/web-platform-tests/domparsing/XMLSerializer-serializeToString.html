@@ -32,6 +32,13 @@ test(function() {
 }, 'check XMLSerializer.serializeToString method could parsing xmldoc to string');
 
 test(function() {
+  var root = parse('<html><head></head><body><div></div><span></span></body></html>');
+  root.lastElementChild.append(document.createElement('div'));
+  root.lastElementChild.append(document.createElement('span'));
+  assert_equals(serialize(root), '<html><head/><body><div/><span/><div xmlns="http://www.w3.org/1999/xhtml"></div><span xmlns="http://www.w3.org/1999/xhtml"></span></body></html>');
+},
+
+test(function() {
   var root = createXmlDoc().documentElement;
   var element = root.ownerDocument.createElementNS('urn:foo', 'another');
   var child1 = root.firstChild;
