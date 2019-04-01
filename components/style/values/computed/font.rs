@@ -303,37 +303,14 @@ pub enum GenericFontFamily {
     None,
     Serif,
     SansSerif,
+    #[parse(aliases = "-moz-fixed")]
     Monospace,
     Cursive,
     Fantasy,
-    /// This is basically monospace, but with different font prefs. We should
-    /// consider removing it in favor of just using the monospace.* prefs, since
-    /// in practice we don't override the monospace prefs at all.
-    #[cfg(feature = "gecko")]
-    MozFixed,
     /// An internal value for emoji font selection.
     #[css(skip)]
     #[cfg(feature = "gecko")]
     MozEmoji,
-}
-
-// TODO(emilio): Derive this when we make -moz-fixed a parse alias of Monospace.
-impl ToCss for GenericFontFamily {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        dest.write_str(match *self {
-            GenericFontFamily::MozEmoji |
-            GenericFontFamily::Default => return Ok(()),
-            GenericFontFamily::MozFixed |
-            GenericFontFamily::Monospace => "monospace",
-            GenericFontFamily::Serif => "serif",
-            GenericFontFamily::SansSerif => "sans-serif",
-            GenericFontFamily::Cursive => "cursive",
-            GenericFontFamily::Fantasy => "fantasy",
-        })
-    }
 }
 
 impl SingleFontFamily {
