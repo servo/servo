@@ -32,12 +32,17 @@ test(function() {
 }, 'check XMLSerializer.serializeToString method could parsing xmldoc to string');
 
 test(function() {
+  var root = parse('<html><head></head><body><div></div><span></span></body></html>');
+  assert_equals(serialize(root), '<html><head/><body><div/><span/></body></html>');
+}, 'check XMLSerializer.serializeToString method could parsing document to string');
+
+test(function() {
   var root = createXmlDoc().documentElement;
   var element = root.ownerDocument.createElementNS('urn:foo', 'another');
   var child1 = root.firstChild;
   root.replaceChild(element, child1);
   element.appendChild(child1);
-  assert_equals(serialize(root), '<root><another xmlns="urn:foo"><child1 xmlns="">value1</child1></another></root>');
+  assert_equals(serialize(root.ownerDocument), '<root><another xmlns="urn:foo"><child1 xmlns="">value1</child1></another></root>');
 }, 'Check if the default namespace is correctly reset.');
 
 test(function() {
