@@ -6,7 +6,7 @@
  * https://webaudio.github.io/web-audio-api/#ConstantSourceNode
  */
 
-dictionary ConstantSourceOptions {
+dictionary ConstantSourceOptions: AudioNodeOptions {
   float offset = 1;
 };
 

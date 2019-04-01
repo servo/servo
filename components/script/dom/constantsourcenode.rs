@@ -9,6 +9,7 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::{
     self, ConstantSourceOptions,
 };
@@ -37,7 +38,7 @@ impl ConstantSourceNode {
     ) -> Fallible<ConstantSourceNode> {
         let node_options =
             options
-                //.parent
+                .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeInit::ConstantSourceNode(options.into()),
@@ -84,6 +85,12 @@ impl ConstantSourceNode {
         options: &ConstantSourceOptions,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
         ConstantSourceNode::new(window, context, options)
+    }
+}
+
+impl ConstantSourceNodeMethods for ConstantSourceNode {
+    fn Offset(&self) -> DomRoot<AudioParam> {
+        DomRoot::from_ref(&self.offset)
     }
 }
 
