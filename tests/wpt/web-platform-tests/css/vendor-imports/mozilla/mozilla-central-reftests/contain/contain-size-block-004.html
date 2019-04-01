@@ -1,0 +1,93 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on 'overflow:hidden' block elements should cause them to be sized as if they had no contents</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-block-004-ref.html">
+  <style>
+  .contain {
+    contain: size;
+    overflow: hidden;
+    border: 2px solid green;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .minHeight {
+    min-height: 60px;
+    background: lightblue;
+  }
+  .height {
+    height: 60px;
+    background: lightblue;
+  }
+  .maxWidth {
+    max-width: 60px;
+  }
+  .width {
+    width: 60px;
+  }
+  .floatLBasic {
+    float: left;
+  }
+  .floatLWidth {
+    float: left;
+    width: 60px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  </style>
+</head>
+<body>
+  <!-- NOTE: In all cases below, the expectation is that the size-contained
+       element should be sized as if it had no contents (while honoring
+       whatever sizing properties are provided). -->
+
+  <!--CSS Test: A size-contained scrollable block with no specified size.-->
+  <div class="contain"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained scrollable block with specified min-height -->
+  <div class="contain minHeight"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained scrollable block with specified height -->
+  <div class="contain height"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained scrollable block with specified max-width -->
+  <div class="contain maxWidth"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained scrollable block with specified width -->
+  <div class="contain width"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained floated scrollable block with auto size -->
+  <div class="contain floatLBasic"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained floated scrollable block with
+      specified width -->
+  <div class="contain floatLWidth"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained scrollable block in a
+      baseline-aligning flex container: should size as if it's empty, but
+      still baseline-align using its contents' baseline -->
+  <div class="flexBaselineCheck">
+    outside before
+    <div class="contain">
+      <div class="innerContents">inner</div>
+    </div>
+    outside after
+  </div>
+</body>
+</html>

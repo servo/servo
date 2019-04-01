@@ -154,6 +154,7 @@
 == flexbox-definite-sizes-002.html flexbox-definite-sizes-001-ref.html
 == flexbox-definite-sizes-003.html flexbox-definite-sizes-001-ref.html
 == flexbox-definite-sizes-004.html flexbox-definite-sizes-001-ref.html
+== flexbox-definite-sizes-005.html flexbox-definite-sizes-005-ref.html
 
 # Tests for flex items as (pseudo) stacking contexts
 == flexbox-items-as-stacking-contexts-001.xhtml flexbox-items-as-stacking-contexts-001-ref.xhtml
