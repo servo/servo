@@ -1229,6 +1229,7 @@ where
                         warn!("error communicating with sampling profiler: {}", e);
                     }
                 }
+            },
             FromCompositorMsg::ExitFullScreen(top_level_browsing_context_id) => {
                 self.handle_exit_fullscreen_msg(top_level_browsing_context_id);
             },
