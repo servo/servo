@@ -51,6 +51,9 @@ Please select your operating system:
 * [Android](#cross-compilation-for-android)
 
 #### macOS
+
+Xcode version 10.2 or above is recommended.
+
 ##### On macOS (homebrew)
 
 ``` sh
