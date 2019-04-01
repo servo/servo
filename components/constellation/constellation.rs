@@ -3880,22 +3880,6 @@ where
                 .event_loop
                 .send(ConstellationControlMsg::ExitFullScreen(pipeline.id));
         }
-        // Send exit fullscreen message to any pending pipelines that aren't loaded yet
-        for change in &self.pending_changes {
-            let pipeline_id = change.new_pipeline_id;
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => {
-                    warn!("Pending pipelone {:?} is closed", pipeline_id);
-                    continue;
-                },
-                Some(pipeline) => pipeline,
-            };
-            if pipeline.browsing_context_id == browsing_context_id {
-                let _ = pipeline
-                    .event_loop
-                    .send(ConstellationControlMsg::ExitFullScreen(pipeline_id));
-            }
-        }
     }
 
     // Close a browsing context (and all children)
