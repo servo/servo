@@ -20,6 +20,7 @@ matrix:
         - sudo add-apt-repository 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.9 main' -y
         - sudo apt-get update -q
         - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime libunwind8-dev -y
+        - sudo pip install virtualenv
         - curl -L http://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-1.14-x86_64-linux-gnu.20190213.tar.gz | tar xz
         - sed -i "s;prefix=/opt/gst;prefix=$PWD/gst;g" $PWD/gst/lib/pkgconfig/*.pc
         - export PKG_CONFIG_PATH=$PWD/gst/lib/pkgconfig
