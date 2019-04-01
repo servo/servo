@@ -166,7 +166,10 @@ fn rev_children_iter(n: &Node) -> impl Iterator<Item = DomRoot<Node>> {
 impl SerializationIterator {
     fn new(node: &Node, skip_first: bool) -> SerializationIterator {
         let mut ret = SerializationIterator { stack: vec![] };
-        if skip_first {
+        if skip_first ||
+            node.downcast::<Document>()
+                .map_or(false, |e| e.is_html_document())
+        {
             for c in rev_children_iter(node) {
                 ret.push_node(&*c);
             }
