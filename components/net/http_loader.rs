@@ -401,7 +401,6 @@ fn obtain_response(
     };
     *request.headers_mut() = headers.clone();
 
-    //TODO(#21262) connect_end
     let connect_end = precise_time_ms();
     context
         .timing
