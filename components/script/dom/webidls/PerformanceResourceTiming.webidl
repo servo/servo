@@ -22,7 +22,7 @@ interface PerformanceResourceTiming : PerformanceEntry {
     // readonly attribute DOMHighResTimeStamp secureConnectionStart;
     readonly attribute DOMHighResTimeStamp requestStart;
     readonly attribute DOMHighResTimeStamp responseStart;
-    // readonly attribute DOMHighResTimeStamp responseEnd;
+    readonly attribute DOMHighResTimeStamp responseEnd;
     /// readonly attribute unsigned long long  transferSize;
     /// readonly attribute unsigned long long  encodedBodySize;
     /// readonly attribute unsigned long long  decodedBodySize;
