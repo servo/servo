@@ -262,6 +262,8 @@ pub enum ConstellationControlMsg {
     Resize(PipelineId, WindowSizeData, WindowSizeType),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
+    /// Window switched from fullscreen mode.
+    ExitFullScreen(PipelineId),
     /// Notifies the script that the document associated with this pipeline should 'unload'.
     UnloadDocument(PipelineId),
     /// Notifies the script that a pipeline should be closed.
@@ -388,6 +390,7 @@ impl fmt::Debug for ConstellationControlMsg {
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
+            ExitFullScreen(..) => "ExitFullScreen",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
@@ -782,6 +785,8 @@ pub enum ConstellationMsg {
     EnableProfiler(Duration, Duration),
     /// Disable the sampling profiler.
     DisableProfiler,
+    /// Request to exit from fullscreen mode
+    ExitFullScreen(TopLevelBrowsingContextId),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -811,6 +816,7 @@ impl fmt::Debug for ConstellationMsg {
             SetCursor(..) => "SetCursor",
             EnableProfiler(..) => "EnableProfiler",
             DisableProfiler => "DisableProfiler",
+            ExitFullScreen(..) => "ExitFullScreen",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
