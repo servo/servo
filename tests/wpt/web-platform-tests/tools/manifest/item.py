@@ -63,15 +63,11 @@ class URLManifestItem(ManifestItem):
 
     def __init__(self, tests_root, path, url_base, url, **extras):
         super(URLManifestItem, self).__init__(tests_root, path)
+        assert url_base[0] == "/"
         self.url_base = url_base
+        assert url[0] != "/"
         self._url = url
         self._extras = extras
-
-    @property
-    def _source_file(self):
-        """create a SourceFile for the item"""
-        from .sourcefile import SourceFile
-        return SourceFile(self._tests_root, self.path, self.url_base)
 
     @property
     def id(self):
@@ -80,11 +76,6 @@ class URLManifestItem(ManifestItem):
     @property
     def url(self):
         # we can outperform urljoin, because we know we just have path relative URLs
-        if self._url[0] == "/":
-            # TODO: MANIFEST6
-            # this is actually a bug in older generated manifests, _url shouldn't
-            # be an absolute path
-            return self._url
         if self.url_base == "/":
             return "/" + self._url
         return urljoin(self.url_base, self._url)
@@ -125,12 +116,7 @@ class TestharnessTest(URLManifestItem):
 
     @property
     def script_metadata(self):
-        if "script_metadata" in self._extras:
-            return self._extras["script_metadata"]
-        else:
-            # TODO: MANIFEST6
-            # this branch should go when the manifest version is bumped
-            return self._source_file.script_metadata
+        return self._extras.get("script_metadata")
 
     def to_json(self):
         rv = super(TestharnessTest, self).to_json()
@@ -140,8 +126,7 @@ class TestharnessTest(URLManifestItem):
             rv[-1]["testdriver"] = self.testdriver
         if self.jsshell:
             rv[-1]["jsshell"] = True
-        if self.script_metadata is not None:
-            # we store this even if it is [] to avoid having to read the source file
+        if self.script_metadata:
             rv[-1]["script_metadata"] = self.script_metadata
         return rv
 

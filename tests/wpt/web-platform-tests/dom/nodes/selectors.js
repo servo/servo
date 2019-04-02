@@ -373,6 +373,10 @@ var validSelectors = [
   {name: "Syntax, group of selectors separator, whitespace after",         selector: "#group em,\t\r\n#group strong",         expect: ["group-em1", "group-strong1"], level: 1, testType: TEST_QSA | TEST_MATCH},
   {name: "Syntax, group of selectors separator, whitespace before",        selector: "#group em\t\r\n,#group strong",         expect: ["group-em1", "group-strong1"], level: 1, testType: TEST_QSA | TEST_MATCH},
   {name: "Syntax, group of selectors separator, no whitespace",            selector: "#group em,#group strong",               expect: ["group-em1", "group-strong1"], level: 1, testType: TEST_QSA | TEST_MATCH},
+
+  // ::slotted (shouldn't match anything, but is a valid selector)
+  {name: "Slotted selector", selector: "::slotted(foo)", expect: [], level: 3, testType: TEST_QSA},
+  {name: "Slotted selector (no matching closing paren)", selector: "::slotted(foo", expect: [], level: 3, testType: TEST_QSA},
 ];
 
 

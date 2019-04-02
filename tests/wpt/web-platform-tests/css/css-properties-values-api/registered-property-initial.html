@@ -30,6 +30,10 @@ test_initial_value({ syntax: '<color>', initialValue: 'purple' }, 'rgb(128, 0, 1
 test_initial_value({ syntax: '<transform-function>', initialValue: 'rotate(42deg)' }, 'rotate(42deg)');
 test_initial_value({ syntax: '<transform-list>', initialValue: 'scale(calc(2 + 2))' }, 'scale(4)');
 test_initial_value({ syntax: '<transform-list>', initialValue: 'scale(calc(2 + 1)) translateX(calc(3px + 1px))' }, 'scale(3) translateX(4px)');
+test_initial_value({ syntax: '<url>', initialValue: 'url(a)' },
+    `url("${new URL('a', document.baseURI)}")`);
+test_initial_value({ syntax: '<url>+', initialValue: 'url(a) url(a)' },
+    `url("${new URL('a', document.baseURI)}") url("${new URL('a', document.baseURI)}")`);
 
 // Test that the initial value of the custom property 'reg' is successfully
 // substituted into 'property'.

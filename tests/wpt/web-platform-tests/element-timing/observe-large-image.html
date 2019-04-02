@@ -20,10 +20,11 @@ body {
         const index = window.location.href.lastIndexOf('/');
         const pathname = window.location.href.substring(0, index) +
             '/resources/square20.jpg';
-        checkElement(entry, pathname, '', beforeRender);
+        checkElement(entry, pathname, '', 'large_one', beforeRender);
         // Assume viewport hasn't changed, so the element occupies all of it.
         checkRect(entry,
           [0, document.documentElement.clientWidth, 0, document.documentElement.clientHeight]);
+        checkNaturalSize(entry, 20, 20);
       })
     );
     observer.observe({entryTypes: ['element']});
@@ -35,6 +36,7 @@ body {
       img.src = 'resources/square20.jpg';
       img.width = document.documentElement.clientWidth;
       img.height = document.documentElement.clientHeight;
+      img.setAttribute('id', 'large_one');
       document.body.appendChild(img);
       beforeRender = performance.now();
     };

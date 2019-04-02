@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import multiprocessing
 import threading
 import traceback
-from Queue import Empty
+from six.moves.queue import Empty
 from collections import namedtuple
 from multiprocessing import Process, current_process, Queue
 

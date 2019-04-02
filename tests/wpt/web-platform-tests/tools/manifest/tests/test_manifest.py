@@ -15,7 +15,7 @@ def SourceFileWithTest(path, hash, cls, **kwargs):
     if cls == item.SupportFile:
         test = cls("/foobar", path, **kwargs)
     else:
-        test = cls("/foobar", path, "/", utils.rel_path_to_url(path), **kwargs)
+        test = cls("/foobar", path, "/", utils.from_os_path(path), **kwargs)
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
     return s
 
@@ -58,11 +58,11 @@ def sourcefile_strategy(draw):
         ref_path = draw(rel_dir_file_path())
         h.assume(path != ref_path)
         ref_eq = draw(hs.sampled_from(["==", "!="]))
-        test = cls("/foobar", path, "/", utils.rel_path_to_url(path), references=[(utils.rel_path_to_url(ref_path), ref_eq)])
+        test = cls("/foobar", path, "/", utils.from_os_path(path), references=[(utils.from_os_path(ref_path), ref_eq)])
     elif cls is item.SupportFile:
         test = cls("/foobar", path)
     else:
-        test = cls("/foobar", path, "/", utils.rel_path_to_url(path))
+        test = cls("/foobar", path, "/", utils.from_os_path(path))
 
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
     return s
@@ -111,42 +111,36 @@ def test_manifest_to_json_forwardslash():
         'paths': {
             'a/b': ('0000000000000000000000000000000000000000', 'testharness')
         },
-        'version': 5,
+        'version': 6,
         'url_base': '/',
         'items': {
             'testharness': {
-                'a/b': [['/a/b', {}]]
+                'a/b': [['a/b', {}]]
             }
         }
     }
 
 
+@pytest.mark.skipif(os.sep != "\\", reason="backslash path")
 def test_manifest_to_json_backslash():
     m = manifest.Manifest()
 
     s = SourceFileWithTest("a\\b", "0"*40, item.TestharnessTest)
 
-    if os.path.sep == "\\":
-        assert m.update([(s, True)]) is True
+    assert m.update([(s, True)]) is True
 
-        assert m.to_json() == {
-            'paths': {
-                'a/b': ('0000000000000000000000000000000000000000', 'testharness')
-            },
-            'version': 5,
-            'url_base': '/',
-            'items': {
-                'testharness': {
-                    'a/b': [['/a/b', {}]]
-                }
+    assert m.to_json() == {
+        'paths': {
+            'a/b': ('0000000000000000000000000000000000000000', 'testharness')
+        },
+        'version': 6,
+        'url_base': '/',
+        'items': {
+            'testharness': {
+                'a/b': [['a/b', {}]]
             }
         }
-    else:
-        with pytest.raises(ValueError):
-            # one of these must raise ValueError
-            # the first must return True if it doesn't raise
-            assert m.update([(s, True)]) is True
-            m.to_json()
+    }
 
 
 def test_manifest_from_json_backslash():
@@ -154,11 +148,11 @@ def test_manifest_from_json_backslash():
         'paths': {
             'a\\b': ('0000000000000000000000000000000000000000', 'testharness')
         },
-        'version': 5,
+        'version': 6,
         'url_base': '/',
         'items': {
             'testharness': {
-                'a\\b': [['/a/b', {}]]
+                'a\\b': [['a/b', {}]]
             }
         }
     }
@@ -294,8 +288,8 @@ def test_iterpath():
     m = manifest.Manifest()
 
     sources = [SourceFileWithTest("test1", "0"*40, item.RefTestNode, references=[("/test1-ref", "==")]),
-               SourceFileWithTests("test2", "1"*40, item.TestharnessTest, [("/test2-1.html",),
-                                                                           ("/test2-2.html",)]),
+               SourceFileWithTests("test2", "1"*40, item.TestharnessTest, [("test2-1.html",),
+                                                                           ("test2-2.html",)]),
                SourceFileWithTest("test3", "0"*40, item.TestharnessTest)]
     m.update([(s, True) for s in sources])
 
@@ -308,8 +302,8 @@ def test_filter():
     m = manifest.Manifest()
 
     sources = [SourceFileWithTest("test1", "0"*40, item.RefTestNode, references=[("/test1-ref", "==")]),
-               SourceFileWithTests("test2", "0"*40, item.TestharnessTest, [("/test2-1.html",),
-                                                                           ("/test2-2.html",)]),
+               SourceFileWithTests("test2", "0"*40, item.TestharnessTest, [("test2-1.html",),
+                                                                           ("test2-2.html",)]),
                SourceFileWithTest("test3", "0"*40, item.TestharnessTest)]
     m.update([(s, True) for s in sources])
 
@@ -317,7 +311,7 @@ def test_filter():
 
     def filter(it):
         for test in it:
-            if test[0] in ["/test2-2.html", "/test3"]:
+            if test[0] in ["test2-2.html", "test3"]:
                 yield test
 
     filtered_manifest = manifest.Manifest.from_json("/", json, types=["testharness"], meta_filters=[filter])
@@ -407,3 +401,26 @@ def test_update_from_json():
     test1 = s1.manifest_items()[1][0]
 
     assert list(m) == [("testharness", test1.path, {test1})]
+
+
+def test_update_from_json_modified():
+    # Create the original manifest
+    m = manifest.Manifest()
+    s1 = SourceFileWithTest("test1", "0"*40, item.TestharnessTest)
+    m.update([(s1, True)])
+    json_str = m.to_json()
+
+    # Reload it from JSON
+    m = manifest.Manifest.from_json("/", json_str)
+
+    # Update it with timeout="long"
+    s2 = SourceFileWithTest("test1", "1"*40, item.TestharnessTest, timeout="long")
+    m.update([(s2, True)])
+    json_str = m.to_json()
+    assert json_str == {
+        'items': {'testharness': {'test1': [['test1', {"timeout": "long"}]]}},
+        'paths': {'test1': ('1111111111111111111111111111111111111111',
+                            'testharness')},
+        'url_base': '/',
+        'version': 6
+    }

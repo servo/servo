@@ -33,7 +33,7 @@ def update_from_cli(**kwargs):
     path = kwargs["path"]
     assert tests_root is not None
 
-    if kwargs["download"]:
+    if not kwargs["rebuild"] and kwargs["download"]:
         download_from_github(path, tests_root)
 
     manifest.load_and_update(tests_root,

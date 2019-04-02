@@ -17,10 +17,10 @@ body {
 
 <div class="slideshow-container">
   <div class='carousel-image'>
-    <img src="resources/circle.svg" elementtiming='image0'>
+    <img src="resources/circle.svg" elementtiming='image0' id='image0'>
   </div>
   <div class='carousel-image'>
-    <img src="resources/square100.png" elementtiming='image1'>
+    <img src="resources/square100.png" elementtiming='image1' id='image1'>
   </div>
 </div>
 
@@ -37,13 +37,15 @@ body {
     const observer = new PerformanceObserver(list => {
       list.getEntries().forEach(entry => {
         if (entry_count % 2 == 0) {
-          checkElement(entry, pathname0, 'image0', beforeRenderTimes[entry_count]);
+          checkElement(entry, pathname0, 'image0', 'image0', beforeRenderTimes[entry_count]);
           checkRect(entry, [0, 200, 0, 200]);
+          checkNaturalSize(entry, 200, 200);
           entry_count_per_element[0]++;
         }
         else {
-          checkElement(entry, pathname1, 'image1', beforeRenderTimes[entry_count]);
+          checkElement(entry, pathname1, 'image1', 'image1', beforeRenderTimes[entry_count]);
           checkRect(entry, [0, 100, 0, 100]);
+          checkNaturalSize(entry, 100, 100);
           entry_count_per_element[1]++;
         }
         entry_count++;

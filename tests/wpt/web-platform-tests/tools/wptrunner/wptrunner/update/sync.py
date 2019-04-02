@@ -5,8 +5,8 @@ import shutil
 import sys
 import uuid
 
-from base import Step, StepRunner
-from tree import Commit
+from .base import Step, StepRunner
+from .tree import Commit
 
 here = os.path.abspath(os.path.split(__file__)[0])
 

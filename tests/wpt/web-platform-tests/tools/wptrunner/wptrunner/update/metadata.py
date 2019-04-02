@@ -2,7 +2,7 @@ import os
 
 from .. import metadata, products
 
-from base import Step, StepRunner
+from .base import Step, StepRunner
 
 
 class GetUpdatePropertyList(Step):
