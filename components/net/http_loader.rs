@@ -1196,7 +1196,14 @@ fn http_network_fetch(
     // This will only get the headers, the body is read later
     let (res, msg) = match response_future.wait() {
         Ok(wrapped_response) => wrapped_response,
-        Err(error) => return Response::network_error(error),
+        Err(error) => {
+            context
+                .timing
+                .lock()
+                .unwrap()
+                .set_attribute(ResourceAttribute::ResponseEnd); // TODO define this attribute
+            return Response::network_error(error);
+        },
     };
 
     if log_enabled!(log::Level::Info) {
@@ -1238,6 +1245,11 @@ fn http_network_fetch(
     let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.lock().unwrap().cancelled() {
+        context
+            .timing
+            .lock()
+            .unwrap()
+            .set_attribute(ResourceAttribute::ResponseEnd);
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
     }
 
@@ -1287,6 +1299,11 @@ fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
+                context
+                    .timing
+                    .lock()
+                    .unwrap()
+                    .set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender2.send(Data::Done);
                 future::ok(())
             })
@@ -1297,6 +1314,11 @@ fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
+                context
+                    .timing
+                    .lock()
+                    .unwrap()
+                    .set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender3.send(Data::Done);
             }),
     );
