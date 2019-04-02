@@ -1,17 +1,12 @@
-import sys
-
 from os.path import join, dirname
 
 import mock
 import pytest
+import sys
 
 from .base import all_products, active_products
-
-sys.path.insert(0, join(dirname(__file__), "..", "..", "..", ".."))  # repo root
-from tools import localpaths  # noqa: flake8
-
-from wptrunner import environment
-from wptrunner import products
+from .. import environment
+from .. import products
 
 test_paths = {"/": {"tests_path": join(dirname(__file__), "..", "..", "..", "..")}}  # repo root
 environment.do_delayed_imports(None, test_paths)
@@ -24,7 +19,9 @@ def test_load_active_product(product):
     # test passes if it doesn't throw
 
 
-@all_products("product")
+@all_products("product", marks={
+    "firefox": pytest.mark.xfail(sys.version[0] == "3", reason="mozinfo 0.10 doesn't support py3"),
+})
 def test_load_all_products(product):
     """test every product either loads or throws ImportError"""
     try:

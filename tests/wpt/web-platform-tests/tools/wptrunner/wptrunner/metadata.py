@@ -8,12 +8,12 @@ from collections import defaultdict, namedtuple
 
 from mozlog import structuredlog
 
-import manifestupdate
-import testloader
-import wptmanifest
-import wpttest
-from expected import expected_path
-from vcs import git
+from . import manifestupdate
+from . import testloader
+from . import wptmanifest
+from . import wpttest
+from .expected import expected_path
+from .vcs import git
 manifest = None  # Module that will be imported relative to test_root
 manifestitem = None
 

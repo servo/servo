@@ -6,6 +6,8 @@ import pytest
 from .. import parser, serializer
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="wptmanifest.parser doesn't support py3")
 class TokenizerTest(unittest.TestCase):
     def setUp(self):
         self.serializer = serializer.ManifestSerializer()

@@ -1,14 +1,11 @@
-import os
+import pytest
 import sys
 from io import BytesIO
-
 from mock import Mock
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from manifest import manifest as wptmanifest
 from manifest.item import TestharnessTest
-from wptrunner import manifestexpected, wpttest
+from .. import manifestexpected, wpttest
 
 dir_ini_0 = """\
 prefs: [a:b]
@@ -69,6 +66,8 @@ def make_mock_manifest(*items):
     return rv
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="bytes/text confusion in py3")
 def test_metadata_inherit():
     tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10),
                                ("test", "c", 10))
@@ -93,6 +92,8 @@ def test_metadata_inherit():
     assert test_obj.tags == {"a", "dir:a"}
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="bytes/text confusion in py3")
 def test_conditional():
     tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10),
                                ("test", "c", 10))
@@ -109,6 +110,8 @@ def test_conditional():
     assert test_obj.expected() == "FAIL"
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="bytes/text confusion in py3")
 def test_metadata_lsan_stack_depth():
     tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10))
 
@@ -147,14 +150,16 @@ def test_metadata_lsan_stack_depth():
     assert test_obj.lsan_max_stack_depth == 42
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="bytes/text confusion in py3")
 def test_metadata_fuzzy():
     manifest_data = {
-        "items": {"reftest": {"a/fuzzy.html": [["/a/fuzzy.html",
+        "items": {"reftest": {"a/fuzzy.html": [["a/fuzzy.html",
                                                 [["/a/fuzzy-ref.html", "=="]],
                                                 {"fuzzy": [[["/a/fuzzy.html", '/a/fuzzy-ref.html', '=='],
                                                             [[2, 3], [10, 15]]]]}]]}},
         "paths": {"a/fuzzy.html": ["0"*40, "reftest"]},
-        "version": wptmanifest.CURRENT_VERSION,
+        "version": 6,
         "url_base": "/"}
     manifest = wptmanifest.Manifest.from_json(".", manifest_data)
     test_metadata = manifestexpected.static.compile(BytesIO(test_fuzzy),

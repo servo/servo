@@ -14,9 +14,10 @@ async_test(function (t) {
       const index = window.location.href.lastIndexOf('/');
       const pathname = window.location.href.substring(0, index) +
           '/resources/circle.svg';
-      checkElement(entry, pathname, 'my_poster', beforeRender);
+      checkElement(entry, pathname, 'my_poster', 'the_poster', beforeRender);
       // Assume viewport has size at least 200, so the element is fully visible.
       checkRect(entry, [0, 200, 0, 200]);
+      checkNaturalSize(entry, 200, 200);
     })
   );
   observer.observe({entryTypes: ['element']});
@@ -28,4 +29,4 @@ body {
   margin: 0;
 }
 </style>
-<video elementtiming='my_poster' src='/media/test.mp4' poster='resources/circle.svg'/>
+<video elementtiming='my_poster' id='the_poster' src='/media/test.mp4' poster='resources/circle.svg'/>

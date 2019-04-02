@@ -1,17 +1,13 @@
 import json
-import sys
 import time
-from os.path import dirname, join
-from StringIO import StringIO
+from six.moves import cStringIO as StringIO
 
 import mock
 
 from mozlog import handlers, structuredlog
 
-sys.path.insert(0, join(dirname(__file__), "..", ".."))
-
-from wptrunner.formatters import wptreport
-from wptrunner.formatters.wptreport import WptreportFormatter
+from ..formatters import wptreport
+from ..formatters.wptreport import WptreportFormatter
 
 
 def test_wptreport_runtime(capfd):

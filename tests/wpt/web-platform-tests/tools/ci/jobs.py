@@ -25,7 +25,7 @@ job_path_map = {
     "manifest_upload": [".*"],
     "resources_unittest": ["resources/", "tools/"],
     "tools_unittest": ["tools/"],
-    "wptrunner_unittest": ["tools/wptrunner/*"],
+    "wptrunner_unittest": ["tools/"],
     "build_css": ["css/"],
     "update_built": ["2dcontext/",
                      "html/",

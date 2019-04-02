@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: image with scaling.</title>
+<head>
+<style>
+/* The margin of 50px allows the rect to be fully shown when the div is scaled. */
+body {
+  margin: 50px;
+}
+.my_div {
+  width: 100px;
+  height: 50px;
+  transform: scale(2);
+}
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  const beforeRender = performance.now();
+  async_test(function (t) {
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const index = window.location.href.lastIndexOf('/');
+        const pathname = window.location.href.substring(0, index - 14) +
+            'images/black-rectangle.png';
+        checkElement(entry, pathname, 'rectangle', 'rect_id', beforeRender);
+        checkRect(entry, [0, 200, 25, 125]);
+        checkNaturalSize(entry, 100, 50);
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+  }, 'Image intersectionRect is affected by scaling, but not its intrinsic size.');
+</script>
+<div class="my_div" id='div_id'>
+  <img src="/images/black-rectangle.png" elementtiming="rectangle" id='rect_id'/>
+</div>
+</body>

@@ -14,12 +14,12 @@
 
 from __future__ import unicode_literals
 
-from cStringIO import StringIO
+from six.moves import cStringIO as StringIO
 
-from node import (AtomNode, BinaryExpressionNode, BinaryOperatorNode,
-                  ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
-                  NumberNode, StringNode, UnaryExpressionNode,
-                  UnaryOperatorNode, ValueNode, VariableNode)
+from .node import (AtomNode, BinaryExpressionNode, BinaryOperatorNode,
+                   ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
+                   NumberNode, StringNode, UnaryExpressionNode,
+                   UnaryOperatorNode, ValueNode, VariableNode)
 
 
 class ParseError(Exception):
