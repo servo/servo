@@ -80,6 +80,11 @@ impl Drop for Promise {
 
 impl Promise {
     #[allow(unsafe_code)]
+    pub fn new(global: &GlobalScope, _comp: &JSAutoCompartment) -> Rc<Promise> {
+        unsafe { Promise::new_in_current_compartment(global) }
+    }
+
+    #[allow(unsafe_code)]
     pub unsafe fn new_in_current_compartment(global: &GlobalScope) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(cx) let mut obj = ptr::null_mut::<JSObject>());
