@@ -50,7 +50,7 @@ domobject_derive = {path = "../domobject_derive"}
 embedder_traits = {path = "../embedder_traits"}
 encoding_rs = "0.8"
 enum-iterator = "0.2.0"
-euclid = "0.19"
+euclid = "0.19.7"
 fnv = "1.0"
 gleam = "0.6"
 headers-core = "0.0.1"
