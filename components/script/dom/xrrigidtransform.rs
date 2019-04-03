@@ -12,9 +12,12 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::vrframedata::create_typed_array;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
+use js::jsapi::{Heap, JSContext, JSObject};
+use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct XRRigidTransform {
@@ -24,6 +27,7 @@ pub struct XRRigidTransform {
     #[ignore_malloc_size_of = "defined in euclid"]
     transform: RigidTransform3D<f64>,
     inverse: MutNullableDom<XRRigidTransform>,
+    matrix: Heap<*mut JSObject>,
 }
 
 impl XRRigidTransform {
@@ -34,6 +38,7 @@ impl XRRigidTransform {
             orientation: MutNullableDom::default(),
             transform,
             inverse: MutNullableDom::default(),
+            matrix: Heap::default(),
         }
     }
 
@@ -97,6 +102,18 @@ impl XRRigidTransformMethods for XRRigidTransform {
     fn Inverse(&self) -> DomRoot<XRRigidTransform> {
         self.inverse
             .or_init(|| XRRigidTransform::new(&self.global(), self.transform.inverse()))
+    }
+    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
+    #[allow(unsafe_code)]
+    unsafe fn Matrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+        if self.matrix.get().is_null() {
+            let cx = self.global().get_cx();
+            // According to the spec all matrices are column-major,
+            // however euclid uses row vectors so we use .to_row_major_array()
+            let arr = self.transform.to_transform().cast().to_row_major_array();
+            create_typed_array(cx, &arr, &self.matrix);
+        }
+        NonNull::new(self.matrix.get()).unwrap()
     }
 }
 
