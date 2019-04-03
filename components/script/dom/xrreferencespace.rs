@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenc
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{DomRoot, MutDom};
-use crate::dom::window::Window;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
@@ -31,7 +31,7 @@ impl XRReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn identity(global: &Window, session: &XRSession) -> DomRoot<XRReferenceSpace> {
+    pub fn identity(global: &GlobalScope, session: &XRSession) -> DomRoot<XRReferenceSpace> {
         let transform = XRRigidTransform::identity(global);
         reflect_dom_object(
             Box::new(XRReferenceSpace::new_inherited(session, &transform)),

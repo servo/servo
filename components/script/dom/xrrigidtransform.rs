@@ -11,6 +11,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
@@ -34,7 +35,10 @@ impl XRRigidTransform {
         }
     }
 
-    pub fn new(global: &Window, transform: RigidTransform3D<f64>) -> DomRoot<XRRigidTransform> {
+    pub fn new(
+        global: &GlobalScope,
+        transform: RigidTransform3D<f64>,
+    ) -> DomRoot<XRRigidTransform> {
         reflect_dom_object(
             Box::new(XRRigidTransform::new_inherited(transform)),
             global,
@@ -42,7 +46,7 @@ impl XRRigidTransform {
         )
     }
 
-    pub fn identity(window: &Window) -> DomRoot<XRRigidTransform> {
+    pub fn identity(window: &GlobalScope) -> DomRoot<XRRigidTransform> {
         let transform = RigidTransform3D::identity();
         XRRigidTransform::new(window, transform)
     }
@@ -68,7 +72,7 @@ impl XRRigidTransform {
             orientation.w as f64,
         );
         let transform = RigidTransform3D::new(rotate, translate);
-        Ok(XRRigidTransform::new(window, transform))
+        Ok(XRRigidTransform::new(&window.global(), transform))
     }
 }
 
@@ -89,8 +93,7 @@ impl XRRigidTransformMethods for XRRigidTransform {
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
     fn Inverse(&self) -> DomRoot<XRRigidTransform> {
-        let global = self.global();
-        XRRigidTransform::new(global.as_window(), self.transform.inverse())
+        XRRigidTransform::new(&self.global(), self.transform.inverse())
     }
 }
 
