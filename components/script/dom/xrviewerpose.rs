@@ -42,7 +42,7 @@ impl XRViewerPose {
     ) -> DomRoot<XRViewerPose> {
         let left = XRView::new(global, session, XREye::Left, &pose, &data);
         let right = XRView::new(global, session, XREye::Right, &pose, &data);
-        let transform = XRRigidTransform::new(&global.as_window(), pose);
+        let transform = XRRigidTransform::new(global, pose);
         let pose = reflect_dom_object(
             Box::new(XRViewerPose::new_inherited(&transform)),
             global,

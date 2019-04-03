@@ -115,15 +115,12 @@ impl XRSessionMethods for XRSession {
 
         match options.type_ {
             XRReferenceSpaceType::Identity => {
-                p.resolve_native(&XRReferenceSpace::identity(
-                    &self.global().as_window(),
-                    self,
-                ));
+                p.resolve_native(&XRReferenceSpace::identity(&self.global(), self));
             },
             XRReferenceSpaceType::Stationary => {
                 if let Some(subtype) = options.subtype {
                     p.resolve_native(&XRStationaryReferenceSpace::new(
-                        &self.global().as_window(),
+                        &self.global(),
                         self,
                         subtype,
                     ));

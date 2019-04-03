@@ -27,7 +27,7 @@ impl XRPose {
 
     #[allow(unused)]
     pub fn new(global: &GlobalScope, transform: RigidTransform3D<f64>) -> DomRoot<XRPose> {
-        let transform = XRRigidTransform::new(&global.as_window(), transform);
+        let transform = XRRigidTransform::new(global, transform);
         reflect_dom_object(
             Box::new(XRPose::new_inherited(&transform)),
             global,
