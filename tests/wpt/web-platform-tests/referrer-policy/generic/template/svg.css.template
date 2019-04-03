@@ -1,3 +1,0 @@
-path {
-  %(property)s: url(/referrer-policy/generic/subresource/svg.py?id=%(id)s#invalidFragment);
-}

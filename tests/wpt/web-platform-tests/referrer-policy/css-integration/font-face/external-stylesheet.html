@@ -20,8 +20,8 @@
       promise_test(function(css_test) {
         let id = token();
         let url_prefix = location.protocol + "//www1." + location.hostname + ":" + location.port;
-        let css_url = url_prefix + "/referrer-policy/generic/subresource/stylesheet.py?id=" + id + "&type=font";
-        let font_url = url_prefix + "/referrer-policy/generic/subresource/font.py" +
+        let css_url = url_prefix + "/common/security-features/subresource/stylesheet.py?id=" + id + "&type=font";
+        let font_url = url_prefix + "/common/security-features/subresource/font.py" +
                       "?id=" + id + "&report-headers";
 
         return new Promise(resolve => {

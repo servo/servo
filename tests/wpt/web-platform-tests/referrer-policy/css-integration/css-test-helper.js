@@ -1,6 +1,6 @@
 var svg_ns = "http://www.w3.org/2000/svg";
 var url_prefix = location.protocol + "//" + location.hostname + ":" +
-                 location.port + "/referrer-policy/generic/subresource/";
+                 location.port + "/common/security-features/subresource/";
 
 var svg_test_properties = [
   'fill',

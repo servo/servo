@@ -14,7 +14,7 @@
 
 from __future__ import unicode_literals
 
-from six.moves import cStringIO as StringIO
+from six import binary_type, text_type, BytesIO
 
 from .node import (AtomNode, BinaryExpressionNode, BinaryOperatorNode,
                    ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
@@ -49,7 +49,7 @@ atoms = {"True": True,
          "Reset": object()}
 
 def decode(s):
-    assert isinstance(s, unicode)
+    assert isinstance(s, text_type)
     return s
 
 
@@ -77,9 +77,9 @@ class Tokenizer(object):
 
     def tokenize(self, stream):
         self.reset()
-        assert not isinstance(stream, unicode)
-        if isinstance(stream, str):
-            stream = StringIO(stream)
+        assert not isinstance(stream, text_type)
+        if isinstance(stream, bytes):
+            stream = BytesIO(stream)
         if not hasattr(stream, "name"):
             self.filename = ""
         else:
@@ -87,7 +87,7 @@ class Tokenizer(object):
 
         self.next_line_state = self.line_start_state
         for i, line in enumerate(stream):
-            assert isinstance(line, str)
+            assert isinstance(line, binary_type)
             self.state = self.next_line_state
             assert self.state is not None
             states = []
@@ -95,7 +95,7 @@ class Tokenizer(object):
             self.line_number = i + 1
             self.index = 0
             self.line = line.decode('utf-8').rstrip()
-            assert isinstance(self.line, unicode)
+            assert isinstance(self.line, text_type)
             while self.state != self.eol_state:
                 states.append(self.state)
                 tokens = self.state()

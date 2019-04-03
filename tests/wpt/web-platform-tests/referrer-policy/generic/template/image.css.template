@@ -1,3 +1,0 @@
-div.styled::before {
-  content:url(/referrer-policy/generic/subresource/image.py?id=%(id)s)
-}

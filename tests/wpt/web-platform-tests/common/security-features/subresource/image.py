@@ -1,4 +1,4 @@
-import os, sys, array, json, math, StringIO
+import os, sys, array, math, StringIO
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import subresource
 

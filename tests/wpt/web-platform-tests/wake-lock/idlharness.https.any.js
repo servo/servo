@@ -7,7 +7,7 @@
 
 idl_test(
   ['wake-lock'],
-  ['dom', 'html'],
+  ['dom', 'html', 'permissions'],
   idl_array => {
     idl_array.add_objects({
       WakeLock: ['new WakeLock("screen")']

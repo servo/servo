@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import subprocess
 import sys
 
 import requests
@@ -15,6 +16,32 @@ from tools.wpt.testfiles import get_git_cmd
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class Status(object):
+    SUCCESS = 0
+    FAIL = 1
+    NEUTRAL = 78
+
+
+def run(cmd, return_stdout=False, **kwargs):
+    logger.info(" ".join(cmd))
+    if return_stdout:
+        f = subprocess.check_output
+    else:
+        f = subprocess.check_call
+    return f(cmd, **kwargs)
+
+
+def create_manifest(path):
+    run(["./wpt", "manifest", "-p", path])
+
+
+def compress_manifest(path):
+    for args in [["gzip", "-k", "-f", "--best"],
+                 ["bzip2", "-k", "-f", "--best"],
+                 ["zstd", "-k", "-f", "--ultra", "-22"]]:
+        run(args + [path])
 
 
 def request(url, desc, data=None, json_data=None, params=None, headers=None):
@@ -92,7 +119,7 @@ def tag(owner, repo, sha, tag):
     return True
 
 
-def create_release(owner, repo, sha, tag, summary, body):
+def create_release(manifest_path, owner, repo, sha, tag, summary, body):
     if body:
         body = "%s\n%s" % (summary, body)
     else:
@@ -117,7 +144,7 @@ def create_release(owner, repo, sha, tag, summary, body):
         params = {"name": upload_filename,
                   "label": "MANIFEST.json%s" % upload_ext}
 
-        with open(os.path.expanduser("~/meta/MANIFEST.json%s" % upload_ext), "rb") as f:
+        with open("%s%s" % (manifest_path, upload_ext), "rb") as f:
             upload_data = f.read()
 
         logger.info("Uploading %s bytes" % len(upload_data))
@@ -148,7 +175,7 @@ def main():
     repo_key = "GITHUB_REPOSITORY"
 
     if not should_run_action():
-        return
+        return Status.NEUTRAL
 
     owner, repo = os.environ[repo_key].split("/", 1)
 
@@ -162,16 +189,28 @@ def main():
     else:
         tag_name = "merge_pr_%s" % pr
 
+    manifest_path = os.path.expanduser(os.path.join("~", "meta", "MANIFEST.json"))
+
+    os.makedirs(os.path.dirname(manifest_path))
+
+    create_manifest(manifest_path)
+
+    compress_manifest(manifest_path)
+
     tagged = tag(owner, repo, head_rev, tag_name)
     if not tagged:
-        sys.exit(1)
+        return Status.FAIL
 
     summary = git("show", "--no-patch", '--format="%s"', "HEAD")
     body = git("show", "--no-patch", '--format="%b"', "HEAD")
 
-    if not create_release(owner, repo, head_rev, tag_name, summary, body):
-        sys.exit(1)
+    if not create_release(manifest_path, owner, repo, head_rev, tag_name, summary, body):
+        return Status.FAIL
+
+    return Status.SUCCESS
 
 
 if __name__ == "__main__":
-    main()
+    code = main()
+    assert isinstance(code, int)
+    sys.exit(code)

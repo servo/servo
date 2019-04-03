@@ -7,14 +7,14 @@
     <!-- Common global functions for referrer-policy tests. -->
     <script src="/common/security-features/resources/common.js"></script>
     <meta name="referrer" content="origin">
-    <link rel="prefetch" href="/referrer-policy/generic/subresource/image.py">
+    <link rel="prefetch" href="/common/security-features/subresource/image.py">
   </head>
   <body>
     <p>Check that resources loaded via link rel prefetch use the referrer
     and referrer policy from the document.</p>
 
     <script>
-      var img_url = "/referrer-policy/generic/subresource/image.py";
+      var img_url = "/common/security-features/subresource/image.py";
       promise_test((t) => timeoutPromise(t, 1000)
         .then(() => loadImageInWindow(img_url, null, window))
         .then(function (img) {

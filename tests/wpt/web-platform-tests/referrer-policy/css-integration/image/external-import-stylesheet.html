@@ -21,13 +21,13 @@
       promise_test(function(css_test) {
         var id = token();
         var css_url = location.protocol + "//www1." + location.hostname + ":" + location.port +
-          "/referrer-policy/generic/subresource/stylesheet.py?id=" + id +
+          "/common/security-features/subresource/stylesheet.py?id=" + id +
           "&import-rule" + "&type=image";
         var url_prefix = location.protocol + "//" + location.hostname + ":" + location.port;
         var css_referrer = url_prefix +
-          "/referrer-policy/generic/subresource/stylesheet.py?id=" + id +
+          "/common/security-features/subresource/stylesheet.py?id=" + id +
           "&type=image";
-        var img_url = url_prefix + "/referrer-policy/generic/subresource/image.py" +
+        var img_url = url_prefix + "/common/security-features/subresource/image.py" +
                       "?id=" + id + "&report-headers";
 
         return new Promise(resolve => {

@@ -1,4 +1,4 @@
-import os, sys, json, base64
+import os, sys, base64
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import subresource
 
