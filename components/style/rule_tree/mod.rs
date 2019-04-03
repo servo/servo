@@ -1239,7 +1239,7 @@ impl StrongRuleNode {
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_BACKGROUND;
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_BORDER;
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_PADDING;
-        use crate::properties::{CSSWideKeyword, LonghandId, LonghandIdSet};
+        use crate::properties::{CSSWideKeyword, LonghandId};
         use crate::properties::{PropertyDeclaration, PropertyDeclarationId};
         use crate::values::specified::Color;
         use std::borrow::Cow;

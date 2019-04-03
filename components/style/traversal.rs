@@ -307,8 +307,6 @@ pub fn resolve_style<E>(
 where
     E: TElement,
 {
-    use crate::style_resolver::StyleResolverForElement;
-
     debug_assert!(
         rule_inclusion == RuleInclusion::DefaultOnly ||
             pseudo.map_or(false, |p| p.is_before_or_after()) ||
@@ -406,7 +404,6 @@ pub fn recalc_style_at<E, D, F>(
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
 {
-    use crate::traversal_flags::TraversalFlags;
     use std::cmp;
 
     let flags = context.shared.traversal_flags;

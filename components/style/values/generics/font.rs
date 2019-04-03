@@ -118,7 +118,7 @@ impl ToCss for FontTag {
     where
         W: Write,
     {
-        use byteorder::{BigEndian, ByteOrder};
+        use byteorder::ByteOrder;
         use std::str;
 
         let mut raw = [0u8; 4];

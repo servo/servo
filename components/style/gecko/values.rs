@@ -317,7 +317,6 @@ impl GeckoStyleCoordConvertible for ScrollSnapPoint<LengthPercentage> {
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         use crate::gecko_bindings::structs::root::nsStyleUnit;
-        use crate::values::generics::gecko::ScrollSnapPoint;
 
         Some(match coord.unit() {
             nsStyleUnit::eStyleUnit_None => ScrollSnapPoint::None,
