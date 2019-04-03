@@ -51,16 +51,16 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
   };
 
   const subresourcePath = {
-    "a-tag": "/referrer-policy/generic/subresource/document.py",
-    "area-tag": "/referrer-policy/generic/subresource/document.py",
-    "fetch-request": "/referrer-policy/generic/subresource/xhr.py",
-    "iframe-tag": "/referrer-policy/generic/subresource/document.py",
-    "img-tag": "/referrer-policy/generic/subresource/image.py",
-    "script-tag": "/referrer-policy/generic/subresource/script.py",
-    "worker-request": "/referrer-policy/generic/subresource/worker.py",
-    "module-worker": "/referrer-policy/generic/subresource/worker.py",
-    "shared-worker": "/referrer-policy/generic/subresource/shared-worker.py",
-    "xhr-request": "/referrer-policy/generic/subresource/xhr.py"
+    "a-tag": "/common/security-features/subresource/document.py",
+    "area-tag": "/common/security-features/subresource/document.py",
+    "fetch-request": "/common/security-features/subresource/xhr.py",
+    "iframe-tag": "/common/security-features/subresource/document.py",
+    "img-tag": "/common/security-features/subresource/image.py",
+    "script-tag": "/common/security-features/subresource/script.py",
+    "worker-request": "/common/security-features/subresource/worker.py",
+    "module-worker": "/common/security-features/subresource/worker.py",
+    "shared-worker": "/common/security-features/subresource/shared-worker.py",
+    "xhr-request": "/common/security-features/subresource/xhr.py"
   };
 
   var referrerUrlResolver = {

@@ -7,24 +7,22 @@
 
 'use strict';
 
-promise_test(() => {
-  const execute_test = () => idl_test(
-    ['webauthn'],
-    ['credential-management'],
-    idlArray => {
-      idlArray.add_untested_idls("[Exposed=(Window,Worker)] interface ArrayBuffer {};");
-      idlArray.add_objects({
-        WebAuthentication: ['navigator.authentication'],
-        PublicKeyCredential: ['cred'],
-        AuthenticatorAssertionResponse: ['assertionResponse']
-      });
-    }
-  );
+idl_test(
+  ['webauthn'],
+  ['credential-management'],
+  async idlArray => {
+    idlArray.add_untested_idls("[Exposed=(Window,Worker)] interface ArrayBuffer {};");
+    idlArray.add_objects({
+      WebAuthentication: ['navigator.authentication'],
+      PublicKeyCredential: ['cred', 'assertion'],
+      AuthenticatorAttestationResponse: ['cred.response'],
+      AuthenticatorAssertionResponse: ['assertion.response']
+    });
 
-  let challengeBytes = new Uint8Array(16);
-  window.crypto.getRandomValues(challengeBytes);
+    const challengeBytes = new Uint8Array(16);
+    window.crypto.getRandomValues(challengeBytes);
 
-  return createCredential({
+    self.cred = await createCredential({
       options: {
         publicKey: {
           timeout: 3000,
@@ -33,27 +31,18 @@ promise_test(() => {
           },
         }
       }
-    })
-    .then(cred => {
-      self.cred = cred;
-      return navigator.credentials.get({
-        publicKey: {
-          timeout: 3000,
-          allowCredentials: [{
-            id: cred.rawId,
-            transports: ["usb", "nfc", "ble"],
-            type: "public-key"
-          }],
-          challenge: challengeBytes,
-        }
-      });
-    })
-    .then(assertion => {
-      self.assertionResponse = assertion.response;
-    })
-    .then(execute_test)
-    .catch(reason => {
-      execute_test();
-      return Promise.reject(reason);
     });
-});
+
+    self.assertion = await navigator.credentials.get({
+      publicKey: {
+        timeout: 3000,
+        allowCredentials: [{
+          id: cred.rawId,
+          transports: ["usb", "nfc", "ble"],
+          type: "public-key"
+        }],
+        challenge: challengeBytes,
+      }
+    });
+  }
+);

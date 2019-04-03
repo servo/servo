@@ -1,4 +1,4 @@
-import os, sys, json
+import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import subresource
 
@@ -23,23 +23,9 @@ def generate_payload(request, server_data):
             "property": request.GET["property"]}
 
 def generate_import_rule(request, server_data):
-    type = 'image'
-    property = None;
-    if "type" in request.GET:
-        type = request.GET["type"]
-    if type == "svg" and "property" in request.GET:
-        property = request.GET["property"]
-    if property is None:
-        return "@import url('%(url)s?id=%(id)s&type=%(type)s');" % {
-            "id": request.GET["id"],
-            "url": subresource.create_redirect_url(request, cross_origin = True),
-            "type": type
-        }
-    return "@import url('%(url)s?id=%(id)s&type=%(type)s&property=%(property)s');" % {
-        "id": request.GET["id"],
-        "url": subresource.create_redirect_url(request, cross_origin = True),
-        "type": type,
-        "property": property
+    return "@import url('%(url)s');" % {
+        "url": subresource.create_url(request, swap_origin=True,
+                                      query_parameter_to_remove="import-rule")
     }
 
 def generate_report_headers_payload(request, server_data):

@@ -11,6 +11,7 @@ enum WakeLockType { "screen", "system" };
 
 [Constructor(WakeLockType type), SecureContext, Exposed=(DedicatedWorker,Window)]
 interface WakeLock : EventTarget {
+  [Exposed=Window] static Promise<PermissionState> requestPermission(WakeLockType type);
   readonly attribute WakeLockType type;
   readonly attribute boolean active;
   attribute EventHandler onactivechange;

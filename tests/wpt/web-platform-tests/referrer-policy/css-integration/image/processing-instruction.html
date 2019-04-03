@@ -21,8 +21,8 @@
       promise_test(function(css_test) {
         var id = token();
         var url_prefix = location.protocol + "//www1." + location.hostname + ":" + location.port;
-        var css_url = url_prefix + "/referrer-policy/generic/subresource/stylesheet.py?id=" + id;
-        var img_url = url_prefix + "/referrer-policy/generic/subresource/image.py" +
+        var css_url = url_prefix + "/common/security-features/subresource/stylesheet.py?id=" + id;
+        var img_url = url_prefix + "/common/security-features/subresource/image.py" +
                       "?id=" + id + "&report-headers";
 
         var processingInstruction = document.createProcessingInstruction("xml-stylesheet", "href=\"" + css_url + "\" type=\"text/css\"");

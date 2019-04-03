@@ -18,7 +18,7 @@
 
     <script>
       promise_test(function() {
-        var urlPath = '/referrer-policy/generic/subresource/worker.py';
+        var urlPath = '/common/security-features/subresource/worker.py';
         var url = location.protocol + "//" + location.hostname + ":" +
                   location.port + urlPath;
         return requestViaDedicatedWorker(url, {})

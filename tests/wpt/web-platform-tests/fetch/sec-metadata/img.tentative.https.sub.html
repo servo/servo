@@ -9,7 +9,7 @@
   // encode their request headers in their pixels. Fun stuff!
   promise_test(() =>
     loadImageInWindow(
-      "https://{{host}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
+      "https://{{host}}:{{ports[https][0]}}/common/security-features/subresource/image.py",
       [],
       window)
     .then(img => {
@@ -33,7 +33,7 @@
 
   promise_test(() =>
     loadImageInWindow(
-      "https://{{hosts[][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
+      "https://{{hosts[][www]}}:{{ports[https][0]}}/common/security-features/subresource/image.py",
       [],
       window)
     .then(img => {
@@ -57,7 +57,7 @@
 
   promise_test(() =>
     loadImageInWindow(
-      "https://{{hosts[alt][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
+      "https://{{hosts[alt][www]}}:{{ports[https][0]}}/common/security-features/subresource/image.py",
       [],
       window)
     .then(img => {

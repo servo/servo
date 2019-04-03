@@ -22,7 +22,7 @@
       }, "Fetch is supported by the browser.");
 
       promise_test(function() {
-          var urlPath = '/referrer-policy/generic/subresource/xhr.py';
+          var urlPath = '/common/security-features/subresource/xhr.py';
           var url = location.protocol + "//" + location.hostname + ":" +
                     location.port + urlPath;
           return requestViaFetch(url)

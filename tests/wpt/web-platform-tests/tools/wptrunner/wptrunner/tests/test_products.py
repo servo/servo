@@ -2,7 +2,6 @@ from os.path import join, dirname
 
 import mock
 import pytest
-import sys
 
 from .base import all_products, active_products
 from .. import environment
@@ -19,9 +18,7 @@ def test_load_active_product(product):
     # test passes if it doesn't throw
 
 
-@all_products("product", marks={
-    "firefox": pytest.mark.xfail(sys.version[0] == "3", reason="mozinfo 0.10 doesn't support py3"),
-})
+@all_products("product")
 def test_load_all_products(product):
     """test every product either loads or throws ImportError"""
     try:
