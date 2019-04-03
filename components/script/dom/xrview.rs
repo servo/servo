@@ -63,7 +63,6 @@ impl XRView {
 
         let offset = Vector3D::new(offset[0] as f64, offset[1] as f64, offset[2] as f64);
         let transform = pose.post_mul(&offset.into());
-        let view = transform.to_transform().cast().to_column_major_array();
         let transform = XRRigidTransform::new(global, transform);
 
         let ret = reflect_dom_object(
@@ -75,7 +74,6 @@ impl XRView {
         let cx = global.get_cx();
         unsafe {
             create_typed_array(cx, proj, &ret.proj);
-            create_typed_array(cx, &view, &ret.view);
         }
         ret
     }
@@ -95,12 +93,6 @@ impl XRViewMethods for XRView {
     /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
     unsafe fn ProjectionMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
         NonNull::new(self.proj.get()).unwrap()
-    }
-
-    #[allow(unsafe_code)]
-    /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
-    unsafe fn ViewMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new(self.view.get()).unwrap()
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrview-transform
