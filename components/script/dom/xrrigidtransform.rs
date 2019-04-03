@@ -23,6 +23,7 @@ pub struct XRRigidTransform {
     orientation: MutNullableDom<DOMPointReadOnly>,
     #[ignore_malloc_size_of = "defined in euclid"]
     transform: RigidTransform3D<f64>,
+    inverse: MutNullableDom<XRRigidTransform>,
 }
 
 impl XRRigidTransform {
@@ -32,6 +33,7 @@ impl XRRigidTransform {
             position: MutNullableDom::default(),
             orientation: MutNullableDom::default(),
             transform,
+            inverse: MutNullableDom::default(),
         }
     }
 
@@ -93,7 +95,9 @@ impl XRRigidTransformMethods for XRRigidTransform {
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
     fn Inverse(&self) -> DomRoot<XRRigidTransform> {
-        XRRigidTransform::new(&self.global(), self.transform.inverse())
+        self.inverse.or_init(|| {
+            XRRigidTransform::new(&self.global(), self.transform.inverse())
+        })
     }
 }
 
