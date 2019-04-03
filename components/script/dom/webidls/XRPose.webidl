@@ -6,6 +6,6 @@
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRPose {
-  // readonly attribute XRRigidTransform transform;
+  readonly attribute XRRigidTransform transform;
   // readonly attribute boolean emulatedPosition;
 };

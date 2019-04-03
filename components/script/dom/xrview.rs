@@ -65,7 +65,11 @@ impl XRView {
         };
 
         let offset = Vector3D::new(offset[0] as f64, offset[1] as f64, offset[2] as f64);
-        let view = pose.post_mul(&offset.into()).to_transform().cast().to_column_major_array();
+        let view = pose
+            .post_mul(&offset.into())
+            .to_transform()
+            .cast()
+            .to_column_major_array();
 
         let cx = global.get_cx();
         unsafe {

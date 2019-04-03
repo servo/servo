@@ -11,7 +11,7 @@ use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
-use euclid::{Rotation3D, RigidTransform3D, Vector3D};
+use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
