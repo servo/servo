@@ -5,6 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -54,7 +55,13 @@ impl XRRigidTransform {
         position: &DOMPointInit,
         orientation: &DOMPointInit,
     ) -> Fallible<DomRoot<Self>> {
-        let global = window.global();
+        if position.w != 1.0 {
+            return Err(Error::Type(format!(
+                "XRRigidTransform must be constructed with a position that has a w value of of 1.0, not {}",
+                position.w
+            )));
+        }
+
         let translate = Vector3D::new(position.x as f64, position.y as f64, position.z as f64);
         let rotate = Rotation3D::unit_quaternion(
             orientation.x as f64,
