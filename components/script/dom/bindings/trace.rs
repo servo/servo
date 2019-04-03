@@ -57,7 +57,8 @@ use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
 use euclid::Length as EuclidLength;
 use euclid::{
-    Point2D, Rect, Rotation3D, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D,
+    Point2D, Rect, RigidTransform3D, Rotation3D, Transform2D, Transform3D, TypedScale, TypedSize2D,
+    Vector2D,
 };
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
@@ -494,7 +495,8 @@ unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
-unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>, Rect<f32>);
+unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>);
+unsafe_no_jsmanaged_fields!(Rect<f32>, RigidTransform3D<f64>);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
