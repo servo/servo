@@ -17,13 +17,15 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethod
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
-use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
+use crate::dom::bindings::codegen::UnionTypes::{
+    MediaStreamOrBlob, VideoTrackOrAudioTrackOrTextTrack,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
@@ -35,6 +37,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::mediaerror::MediaError;
+use crate::dom::mediastream::MediaStream;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -42,6 +45,7 @@ use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
 use crate::dom::trackevent::TrackEvent;
+use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -156,6 +160,25 @@ impl FrameRenderer for MediaFrameRenderer {
     }
 }
 
+#[must_root]
+#[derive(JSTraceable, MallocSizeOf)]
+enum SrcObject {
+    MediaStream(Dom<MediaStream>),
+    Blob(Dom<Blob>),
+}
+
+impl From<MediaStreamOrBlob> for SrcObject {
+    #[allow(unrooted_must_root)]
+    fn from(src_object: MediaStreamOrBlob) -> SrcObject {
+        match src_object {
+            MediaStreamOrBlob::Blob(blob) => SrcObject::Blob(Dom::from_ref(&*blob)),
+            MediaStreamOrBlob::MediaStream(stream) => {
+                SrcObject::MediaStream(Dom::from_ref(&*stream))
+            },
+        }
+    }
+}
+
 #[dom_struct]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
@@ -164,7 +187,7 @@ pub struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
     ready_state: Cell<ReadyState>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
-    src_object: MutNullableDom<Blob>,
+    src_object: DomRefCell<Option<SrcObject>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-currentsrc>
     current_src: DomRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
@@ -211,6 +234,9 @@ pub struct HTMLMediaElement {
     muted: Cell<bool>,
     /// URL of the media resource, if any.
     resource_url: DomRefCell<Option<ServoUrl>>,
+    /// URL of the media resource, if the resource is set through the src_object attribute and it
+    /// is a blob.
+    blob_url: DomRefCell<Option<ServoUrl>>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
     played: DomRefCell<TimeRangesContainer>,
@@ -280,6 +306,7 @@ impl HTMLMediaElement {
             volume: Cell::new(1.0),
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
+            blob_url: DomRefCell::new(None),
             played: DomRefCell::new(TimeRangesContainer::new()),
             audio_tracks_list: Default::default(),
             video_tracks_list: Default::default(),
@@ -557,7 +584,7 @@ impl HTMLMediaElement {
             Children(DomRoot<HTMLSourceElement>),
         }
         fn mode(media: &HTMLMediaElement) -> Option<Mode> {
-            if media.src_object.get().is_some() {
+            if media.src_object.borrow().is_some() {
                 return Some(Mode::Object);
             }
             if let Some(attr) = media
@@ -661,7 +688,7 @@ impl HTMLMediaElement {
     }
 
     fn fetch_request(&self, offset: Option<u64>) {
-        if self.resource_url.borrow().is_none() {
+        if self.resource_url.borrow().is_none() && self.blob_url.borrow().is_none() {
             eprintln!("Missing request url");
             self.queue_dedicated_media_source_failure_steps();
             return;
@@ -679,8 +706,12 @@ impl HTMLMediaElement {
             header::RANGE,
             HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap(),
         );
+        let url = match self.resource_url.borrow().as_ref() {
+            Some(url) => url.clone(),
+            None => self.blob_url.borrow().as_ref().unwrap().clone(),
+        };
         let request = RequestInit {
-            url: self.resource_url.borrow().as_ref().unwrap().clone(),
+            url: url.clone(),
             headers,
             destination,
             credentials_mode: CredentialsMode::Include,
@@ -700,7 +731,7 @@ impl HTMLMediaElement {
         *current_fetch_context = Some(fetch_context);
         let fetch_listener = Arc::new(Mutex::new(HTMLMediaElementFetchListener::new(
             self,
-            self.resource_url.borrow().as_ref().unwrap().clone(),
+            url.clone(),
             offset.unwrap_or(0),
         )));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -788,8 +819,19 @@ impl HTMLMediaElement {
                 self.fetch_request(None);
             },
             Resource::Object => {
-                // FIXME(nox): Actually do something with the object.
-                self.queue_dedicated_media_source_failure_steps();
+                if let Some(ref src_object) = *self.src_object.borrow() {
+                    match src_object {
+                        SrcObject::Blob(blob) => {
+                            let blob_url = URL::CreateObjectURL(&self.global(), &*blob);
+                            *self.blob_url.borrow_mut() =
+                                Some(ServoUrl::parse(&blob_url).expect("infallible"));
+                            self.fetch_request(None);
+                        },
+                        SrcObject::MediaStream(_) => {
+                            self.queue_dedicated_media_source_failure_steps();
+                        },
+                    }
+                }
             },
         }
     }
@@ -1550,13 +1592,21 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
-    fn GetSrcObject(&self) -> Option<DomRoot<Blob>> {
-        self.src_object.get()
+    fn GetSrcObject(&self) -> Option<MediaStreamOrBlob> {
+        match *self.src_object.borrow() {
+            Some(ref src_object) => Some(match src_object {
+                SrcObject::Blob(blob) => MediaStreamOrBlob::Blob(DomRoot::from_ref(&*blob)),
+                SrcObject::MediaStream(stream) => {
+                    MediaStreamOrBlob::MediaStream(DomRoot::from_ref(&*stream))
+                },
+            }),
+            None => None,
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
-    fn SetSrcObject(&self, value: Option<&Blob>) {
-        self.src_object.set(value);
+    fn SetSrcObject(&self, value: Option<MediaStreamOrBlob>) {
+        *self.src_object.borrow_mut() = value.map(|value| value.into());
         self.media_element_load_algorithm();
     }
 
