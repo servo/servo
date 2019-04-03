@@ -343,7 +343,7 @@ impl VRDisplayMethods for VRDisplay {
     // https://w3c.github.io/webvr/#dom-vrdisplay-requestpresent
     #[allow(unsafe_code)]
     fn RequestPresent(&self, layers: Vec<VRLayer>) -> Rc<Promise> {
-        let promise = unsafe {Promise::new_in_current_compartment(&self.global()) };
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         // TODO: WebVR spec: this method must be called in response to a user gesture
 
         // WebVR spec: If canPresent is false the promise MUST be rejected

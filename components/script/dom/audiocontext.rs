@@ -110,7 +110,7 @@ impl AudioContextMethods for AudioContext {
     #[allow(unsafe_code)]
     fn Suspend(&self) -> Rc<Promise> {
         // Step 1.
-        let promise = unsafe {Promise::new_in_current_compartment(&self.global()) };
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
