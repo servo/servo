@@ -11,7 +11,7 @@ use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
-use euclid::{Rotation3D, Transform3D};
+use euclid::{Rotation3D, RigidTransform3D, Vector3D};
 use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
@@ -53,11 +53,10 @@ impl XRStationaryReferenceSpace {
     /// Gets pose represented by this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead
-    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
+    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         // XXXManishearth add floor-level transform for floor-level and disable position in position-disabled
         let pos = base_pose.pose.position.unwrap_or([0., 0., 0.]);
-        let translation =
-            Transform3D::create_translation(pos[0] as f64, pos[1] as f64, pos[2] as f64);
+        let translation = Vector3D::new(pos[0] as f64, pos[1] as f64, pos[2] as f64);
         let orient = base_pose.pose.orientation.unwrap_or([0., 0., 0., 0.]);
         let rotation = Rotation3D::quaternion(
             orient[0] as f64,
@@ -65,6 +64,6 @@ impl XRStationaryReferenceSpace {
             orient[2] as f64,
             orient[3] as f64,
         );
-        translation.pre_mul(&rotation.to_transform())
+        RigidTransform3D::new(rotation, translation)
     }
 }

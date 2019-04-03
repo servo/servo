@@ -10,7 +10,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
-use euclid::Transform3D;
+use euclid::{RigidTransform3D, Vector3D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
 use webvr_traits::WebVRFrameData;
@@ -40,7 +40,7 @@ impl XRView {
         global: &GlobalScope,
         session: &XRSession,
         eye: XREye,
-        pose: &Transform3D<f64>,
+        pose: &RigidTransform3D<f64>,
         data: &WebVRFrameData,
     ) -> DomRoot<XRView> {
         let ret = reflect_dom_object(
@@ -64,9 +64,8 @@ impl XRView {
             )
         };
 
-        let offset =
-            Transform3D::create_translation(offset[0] as f64, offset[1] as f64, offset[2] as f64);
-        let view = pose.post_mul(&offset).cast().to_column_major_array();
+        let offset = Vector3D::new(offset[0] as f64, offset[1] as f64, offset[2] as f64);
+        let view = pose.post_mul(&offset.into()).to_transform().cast().to_column_major_array();
 
         let cx = global.get_cx();
         unsafe {

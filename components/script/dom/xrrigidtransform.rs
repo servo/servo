@@ -13,7 +13,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Rotation3D, Transform3D, Vector3D};
+use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 
 #[dom_struct]
 pub struct XRRigidTransform {
@@ -34,7 +34,6 @@ impl XRRigidTransform {
         }
     }
 
-    #[allow(unused)]
     pub fn new(global: &Window, transform: RigidTransform3D<f64>) -> DomRoot<XRRigidTransform> {
         reflect_dom_object(
             Box::new(XRRigidTransform::new_inherited(transform)),
@@ -43,7 +42,6 @@ impl XRRigidTransform {
         )
     }
 
-    #[allow(unused)]
     pub fn identity(window: &Window) -> DomRoot<XRRigidTransform> {
         let transform = RigidTransform3D::identity();
         XRRigidTransform::new(window, transform)
@@ -97,9 +95,8 @@ impl XRRigidTransformMethods for XRRigidTransform {
 }
 
 impl XRRigidTransform {
-    pub fn matrix(&self) -> Transform3D<f64> {
-        // Spec says the orientation applies first,
-        // so post-multiply (?)
-        self.transform.to_transform()
+    /// https://immersive-web.github.io/webxr/#dom-xrpose-transform
+    pub fn transform(&self) -> RigidTransform3D<f64> {
+        self.transform
     }
 }

@@ -11,7 +11,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
-use euclid::Transform3D;
+use euclid::RigidTransform3D;
 use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
@@ -41,7 +41,7 @@ impl XRSpace {
 impl XRSpace {
     /// Gets viewer pose represented by this space
     #[allow(unused)]
-    pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
+    pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_viewer_pose(base_pose)
         } else {
@@ -53,7 +53,7 @@ impl XRSpace {
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
     #[allow(unused)]
-    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> Transform3D<f64> {
+    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
         } else {
