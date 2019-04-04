@@ -397,34 +397,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_color_setter(ident, gecko_ffi_name)">
-    #[allow(unreachable_code)]
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        ${set_gecko_property(gecko_ffi_name, "v.into()")}
-    }
-</%def>
-
-<%def name="impl_color_copy(ident, gecko_ffi_name)">
-    #[allow(non_snake_case)]
-    pub fn copy_${ident}_from(&mut self, other: &Self) {
-        let color = ${get_gecko_property(gecko_ffi_name, self_param = "other")};
-        ${set_gecko_property(gecko_ffi_name, "color")};
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset_${ident}(&mut self, other: &Self) {
-        self.copy_${ident}_from(other)
-    }
-</%def>
-
-<%def name="impl_color_clone(ident, gecko_ffi_name)">
-    #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        ${get_gecko_property(gecko_ffi_name)}.into()
-    }
-</%def>
-
 <%def name="impl_keyword(ident, gecko_ffi_name, keyword, cast_type='u8', **kwargs)">
 <%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type, **kwargs)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name, **kwargs)"></%call>
@@ -447,12 +419,6 @@ def set_gecko_property(ffi_name, expr):
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         Au(self.gecko.${gecko_ffi_name}).into()
     }
-</%def>
-
-<%def name="impl_color(ident, gecko_ffi_name)">
-<%call expr="impl_color_setter(ident, gecko_ffi_name)"></%call>
-<%call expr="impl_color_copy(ident, gecko_ffi_name)"></%call>
-<%call expr="impl_color_clone(ident, gecko_ffi_name)"></%call>
 </%def>
 
 <%def name="impl_rgba_color(ident, gecko_ffi_name)">
@@ -1238,8 +1204,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
-        "Color": impl_color,
-        "ColorOrAuto": impl_color,
         "length::LengthOrAuto": impl_style_coord,
         "length::LengthOrNormal": impl_style_coord,
         "length::NonNegativeLengthOrAuto": impl_style_coord,
@@ -1247,7 +1211,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
         "LengthPercentageOrAuto": impl_style_coord,
-        "MozListReversed": impl_simple,
         "MozScriptMinSize": impl_absolute_length,
         "RGBAColor": impl_rgba_color,
         "SVGLength": impl_svg_length,
@@ -1379,7 +1342,7 @@ fn static_assert() {
         self.gecko.mBorderStyle[${side.index}]
     }
 
-    <% impl_color("border_%s_color" % side.ident, "mBorder%sColor" % side.name) %>
+    <% impl_simple("border_%s_color" % side.ident, "mBorder%sColor" % side.name) %>
 
     <% impl_non_negative_length("border_%s_width" % side.ident,
                                 "mComputedBorder.%s" % side.ident,
@@ -4386,23 +4349,11 @@ clip-path
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Color"
-                  skip_longhands="*">
-    pub fn set_color(&mut self, v: longhands::color::computed_value::T) {
-        let result = convert_rgba_to_nscolor(&v);
-        ${set_gecko_property("mColor", "result")}
-    }
-
-    <%call expr="impl_simple_copy('color', 'mColor')"></%call>
-
-    pub fn clone_color(&self) -> longhands::color::computed_value::T {
-        let color = ${get_gecko_property("mColor")} as u32;
-        convert_nscolor_to_rgba(color)
-    }
+<%self:impl_trait style_struct_name="Color" skip_longhands="color">
+    ${impl_rgba_color("color", "mColor")}
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="InheritedUI"
-                  skip_longhands="cursor scrollbar-color">
+<%self:impl_trait style_struct_name="InheritedUI" skip_longhands="cursor">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         self.gecko.mCursor = v.keyword;
         unsafe {
@@ -4463,48 +4414,6 @@ clip-path
         }).collect::<Vec<_>>().into_boxed_slice();
 
         longhands::cursor::computed_value::T { images, keyword }
-    }
-
-    pub fn set_scrollbar_color(&mut self, v: longhands::scrollbar_color::computed_value::T) {
-        use crate::gecko_bindings::structs::StyleComplexColor;
-        use crate::values::generics::ui::ScrollbarColor;
-        match v {
-            ScrollbarColor::Auto => {
-                self.gecko.mScrollbarFaceColor = StyleComplexColor::auto();
-                self.gecko.mScrollbarTrackColor = StyleComplexColor::auto();
-            }
-            ScrollbarColor::Colors { thumb, track } => {
-                self.gecko.mScrollbarFaceColor = thumb.into();
-                self.gecko.mScrollbarTrackColor = track.into();
-            }
-        }
-    }
-
-    pub fn copy_scrollbar_color_from(&mut self, other: &Self) {
-        self.gecko.mScrollbarFaceColor = other.gecko.mScrollbarFaceColor;
-        self.gecko.mScrollbarTrackColor = other.gecko.mScrollbarTrackColor;
-    }
-
-    pub fn reset_scrollbar_color(&mut self, other: &Self) {
-        self.copy_scrollbar_color_from(other);
-    }
-
-    pub fn clone_scrollbar_color(&self) -> longhands::scrollbar_color::computed_value::T {
-        use crate::gecko_bindings::structs::StyleComplexColor_Tag as Tag;
-        use crate::values::generics::ui::ScrollbarColor;
-        debug_assert!(
-            (self.gecko.mScrollbarFaceColor.mTag == Tag::eAuto) ==
-            (self.gecko.mScrollbarTrackColor.mTag == Tag::eAuto),
-            "Whether the two colors are `auto` should match",
-        );
-        if self.gecko.mScrollbarFaceColor.mTag == Tag::eAuto {
-            ScrollbarColor::Auto
-        } else {
-            ScrollbarColor::Colors {
-                thumb: self.gecko.mScrollbarFaceColor.into(),
-                track: self.gecko.mScrollbarTrackColor.into(),
-            }
-        }
     }
 </%self:impl_trait>
 

@@ -19,4 +19,4 @@ pub type Cursor = generics::Cursor<CursorImage>;
 pub type CursorImage = generics::CursorImage<ComputedImageUrl, Number>;
 
 /// A computed value for `scrollbar-color` property.
-pub type ScrollbarColor = generics::ScrollbarColor<Color>;
+pub type ScrollbarColor = generics::GenericScrollbarColor<Color>;
