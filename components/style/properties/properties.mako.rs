@@ -1270,17 +1270,6 @@ impl LonghandId {
             LonghandId::FontStyle |
             LonghandId::FontFamily |
 
-            // Needed to resolve currentcolor at computed value time properly.
-            //
-            // FIXME(emilio): All the properties should be moved to currentcolor
-            // as a computed-value (and thus resolving it at used-value time).
-            //
-            // This would allow this property to go away from this list.
-            LonghandId::Color |
-
-            // FIXME(emilio): There's no reason for this afaict, nuke it.
-            LonghandId::TextDecorationLine |
-
             // Needed to properly compute the writing mode, to resolve logical
             // properties, and similar stuff.
             LonghandId::WritingMode |
