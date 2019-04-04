@@ -115,7 +115,11 @@ EOF
     curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
          -H "Content-Type: application/json" \
          --data @prdata.json \
-         https://api.github.com/repos/servo/servo/pulls || return 5
+         https://api.github.com/repos/servo/servo/pulls |
+    jq '.review_comments_url' |
+    sed 's/pulls/issues/' |
+    xargs curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
+               --data "{\"body\":\"@bors-servo r+\"}" || return 5
 }
 
 function pull_from_upstream() {
