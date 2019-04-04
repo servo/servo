@@ -1293,7 +1293,7 @@ impl LonghandId {
     ///
     /// In Gecko, there are some properties still that compute currentcolor
     /// down to an RGBA color at computed value time, instead of as
-    /// `StyleComplexColor`s. For these properties, we must return `false`,
+    /// `StyleColor`s. For these properties, we must return `false`,
     /// so that we correctly avoid caching style data in the rule tree.
     pub fn stores_complex_colors_lossily(&self) -> bool {
         % if product == "gecko":
