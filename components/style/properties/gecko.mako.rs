@@ -1204,13 +1204,9 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
-        "length::LengthOrAuto": impl_style_coord,
-        "length::LengthOrNormal": impl_style_coord,
         "length::NonNegativeLengthOrAuto": impl_style_coord,
         "length::NonNegativeLengthPercentageOrNormal": impl_style_coord,
         "Length": impl_absolute_length,
-        "LengthOrNormal": impl_style_coord,
-        "LengthPercentageOrAuto": impl_style_coord,
         "MozScriptMinSize": impl_absolute_length,
         "RGBAColor": impl_rgba_color,
         "SVGLength": impl_svg_length,

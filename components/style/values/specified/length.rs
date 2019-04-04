@@ -956,9 +956,6 @@ impl NonNegativeLengthPercentageOrAuto {
 /// A wrapper of LengthPercentage, whose value must be >= 0.
 pub type NonNegativeLengthPercentage = NonNegative<LengthPercentage>;
 
-/// Either a computed NonNegativeLength or the `normal` keyword.
-pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
-
 /// Either a NonNegativeLengthPercentage or the `normal` keyword.
 pub type NonNegativeLengthPercentageOrNormal = Either<NonNegativeLengthPercentage, Normal>;
 
@@ -997,9 +994,6 @@ impl NonNegativeLengthPercentage {
         LengthPercentage::parse_non_negative_quirky(context, input, allow_quirks).map(NonNegative)
     }
 }
-
-/// Either a `<length>` or the `normal` keyword.
-pub type LengthOrNormal = Either<Length, Normal>;
 
 /// Either a `<length>` or the `auto` keyword.
 ///

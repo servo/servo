@@ -710,9 +710,6 @@ pub type NonNegativeLengthOrAuto = generics::GenericLengthPercentageOrAuto<NonNe
 /// Either a computed `<length>` or a `<number>` value.
 pub type LengthOrNumber = GenericLengthOrNumber<Length, Number>;
 
-/// Either a computed `<length>` or the `normal` keyword.
-pub type LengthOrNormal = Either<Length, Normal>;
-
 /// A wrapper of Length, whose value must be >= 0.
 pub type NonNegativeLength = NonNegative<Length>;
 
@@ -782,9 +779,6 @@ impl From<NonNegativeLength> for Au {
         Au::from(non_negative_len.0)
     }
 }
-
-/// Either a computed NonNegativeLength or the `normal` keyword.
-pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
 
 /// Either a computed NonNegativeLengthPercentage or the `normal` keyword.
 pub type NonNegativeLengthPercentageOrNormal = Either<NonNegativeLengthPercentage, Normal>;
