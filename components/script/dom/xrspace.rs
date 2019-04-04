@@ -44,7 +44,6 @@ impl XRSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    #[allow(unused)]
     pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
@@ -64,5 +63,9 @@ impl XRSpace {
             orient[3] as f64,
         );
         RigidTransform3D::new(rotation, translation)
+    }
+
+    pub fn session(&self) -> &XRSession {
+        &self.session
     }
 }

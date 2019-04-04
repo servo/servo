@@ -8,6 +8,6 @@
 interface XRFrame {
   readonly attribute XRSession session;
 
-  XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
+  [Throws] XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
   // XRInputPose? getInputPose(XRInputSource inputSource, optional XRReferenceSpace referenceSpace);
 };
