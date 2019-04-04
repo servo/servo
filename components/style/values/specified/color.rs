@@ -387,8 +387,8 @@ impl ToComputedValue for Color {
     fn from_computed_value(computed: &ComputedColor) -> Self {
         match *computed {
             GenericColor::Numeric(color) => Color::rgba(color),
-            GenericColor::Foreground => Color::currentcolor(),
-            GenericColor::Complex(..) => Color::Complex(*computed),
+            GenericColor::CurrentColor => Color::currentcolor(),
+            GenericColor::Complex { .. } => Color::Complex(*computed),
         }
     }
 }

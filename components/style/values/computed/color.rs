@@ -33,8 +33,8 @@ impl Color {
             // Common cases that the complex color is either pure numeric
             // color or pure currentcolor.
             GenericColor::Numeric(color) => return color,
-            GenericColor::Foreground => return fg_color,
-            GenericColor::Complex(color, ratios) => (color, ratios),
+            GenericColor::CurrentColor => return fg_color,
+            GenericColor::Complex { color, ratios } => (color, ratios),
         };
 
         // For the more complicated case that the alpha value differs,
@@ -76,7 +76,7 @@ impl ToCss for Color {
     {
         match *self {
             GenericColor::Numeric(color) => color.to_css(dest),
-            GenericColor::Foreground => CSSParserColor::CurrentColor.to_css(dest),
+            GenericColor::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
             _ => Ok(()),
         }
     }

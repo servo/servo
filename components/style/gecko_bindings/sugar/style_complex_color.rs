@@ -49,8 +49,8 @@ impl From<ComputedColor> for StyleComplexColor {
     fn from(other: ComputedColor) -> Self {
         match other {
             GenericColor::Numeric(color) => color.into(),
-            GenericColor::Foreground => Self::current_color(),
-            GenericColor::Complex(color, ratios) => {
+            GenericColor::CurrentColor => Self::current_color(),
+            GenericColor::Complex { color, ratios } => {
                 debug_assert!(ratios != ComplexColorRatios::NUMERIC);
                 debug_assert!(ratios != ComplexColorRatios::FOREGROUND);
                 StyleComplexColor {
@@ -73,18 +73,18 @@ impl From<StyleComplexColor> for ComputedColor {
             },
             Tag::eForeground => {
                 debug_assert!(other.mBgRatio == 0. && other.mFgRatio == 1.);
-                GenericColor::Foreground
+                GenericColor::CurrentColor
             },
             Tag::eComplex => {
                 debug_assert!(other.mBgRatio != 1. || other.mFgRatio != 0.);
                 debug_assert!(other.mBgRatio != 0. || other.mFgRatio != 1.);
-                GenericColor::Complex(
-                    convert_nscolor_to_rgba(other.mColor),
-                    ComplexColorRatios {
+                GenericColor::Complex {
+                    color: convert_nscolor_to_rgba(other.mColor),
+                    ratios: ComplexColorRatios {
                         bg: other.mBgRatio,
                         fg: other.mFgRatio,
                     },
-                )
+                }
             },
             Tag::eAuto => unreachable!("Unsupport StyleComplexColor with tag eAuto"),
         }
