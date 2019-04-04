@@ -159,8 +159,8 @@ class FileHandler(object):
         rv = (self.load_headers(request, os.path.join(os.path.split(path)[0], "__dir__")) +
               self.load_headers(request, path))
 
-        if not any(key.lower() == "content-type" for (key, _) in rv):
-            rv.insert(0, ("Content-Type", guess_content_type(path)))
+        if not any(key.lower() == b"content-type" for (key, _) in rv):
+            rv.insert(0, (b"Content-Type", guess_content_type(path).encode("ascii")))
 
         return rv
 
@@ -173,14 +173,14 @@ class FileHandler(object):
             use_sub = False
 
         try:
-            with open(headers_path) as headers_file:
+            with open(headers_path, "rb") as headers_file:
                 data = headers_file.read()
         except IOError:
             return []
         else:
             if use_sub:
                 data = template(request, data, escape_type="none")
-            return [tuple(item.strip() for item in line.split(":", 1))
+            return [tuple(item.strip() for item in line.split(b":", 1))
                     for line in data.splitlines() if line]
 
     def get_data(self, response, path, byte_ranges):
