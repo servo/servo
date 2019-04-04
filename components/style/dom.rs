@@ -825,11 +825,15 @@ pub trait TElement:
         Self: 'a,
         F: FnMut(&'a CascadeData, QuirksMode, Option<Self>),
     {
+        use rule_collector::containing_shadow_ignoring_svg_use;
+
         let mut doc_rules_apply = !self.each_xbl_cascade_data(|data, quirks_mode| {
             f(data, quirks_mode, None);
         });
 
-        if let Some(shadow) = self.containing_shadow() {
+        // Use the same rules to look for the containing host as we do for rule
+        // collection.
+        if let Some(shadow) = containing_shadow_ignoring_svg_use(*self) {
             doc_rules_apply = false;
             if let Some(data) = shadow.style_data() {
                 f(
