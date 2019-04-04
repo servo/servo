@@ -3,77 +3,59 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
-use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::vrframedata::create_typed_array;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::{Rotation3D, Transform3D};
+use euclid::{RigidTransform3D, Rotation3D, Vector3D};
+use js::jsapi::{Heap, JSContext, JSObject};
+use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct XRRigidTransform {
     reflector_: Reflector,
-    position: Dom<DOMPointReadOnly>,
-    orientation: Dom<DOMPointReadOnly>,
+    position: MutNullableDom<DOMPointReadOnly>,
+    orientation: MutNullableDom<DOMPointReadOnly>,
     #[ignore_malloc_size_of = "defined in euclid"]
-    translate: Transform3D<f64>,
-    #[ignore_malloc_size_of = "defined in euclid"]
-    rotate: Rotation3D<f64>,
+    transform: RigidTransform3D<f64>,
+    inverse: MutNullableDom<XRRigidTransform>,
+    matrix: Heap<*mut JSObject>,
 }
 
 impl XRRigidTransform {
-    fn new_inherited(
-        position: &DOMPointReadOnly,
-        orientation: &DOMPointReadOnly,
-    ) -> XRRigidTransform {
-        let translate = Transform3D::create_translation(
-            position.X() as f64,
-            position.Y() as f64,
-            position.Z() as f64,
-        );
-        let rotate = Rotation3D::unit_quaternion(
-            orientation.X() as f64,
-            orientation.Y() as f64,
-            orientation.Z() as f64,
-            orientation.W() as f64,
-        );
+    fn new_inherited(transform: RigidTransform3D<f64>) -> XRRigidTransform {
         XRRigidTransform {
             reflector_: Reflector::new(),
-            position: Dom::from_ref(position),
-            orientation: Dom::from_ref(orientation),
-            translate,
-            rotate,
+            position: MutNullableDom::default(),
+            orientation: MutNullableDom::default(),
+            transform,
+            inverse: MutNullableDom::default(),
+            matrix: Heap::default(),
         }
     }
 
-    #[allow(unused)]
     pub fn new(
-        global: &Window,
-        position: &DOMPointReadOnly,
-        orientation: &DOMPointReadOnly,
+        global: &GlobalScope,
+        transform: RigidTransform3D<f64>,
     ) -> DomRoot<XRRigidTransform> {
         reflect_dom_object(
-            Box::new(XRRigidTransform::new_inherited(position, orientation)),
+            Box::new(XRRigidTransform::new_inherited(transform)),
             global,
             XRRigidTransformBinding::Wrap,
         )
     }
 
-    #[allow(unused)]
-    pub fn identity(window: &Window) -> DomRoot<XRRigidTransform> {
-        let global = window.global();
-        let position = DOMPointReadOnly::new(&global, 0., 0., 0., 1.);
-        let orientation = DOMPointReadOnly::new(&global, 0., 0., 0., 1.);
-        reflect_dom_object(
-            Box::new(XRRigidTransform::new_inherited(&position, &orientation)),
-            window,
-            XRRigidTransformBinding::Wrap,
-        )
+    pub fn identity(window: &GlobalScope) -> DomRoot<XRRigidTransform> {
+        let transform = RigidTransform3D::identity();
+        XRRigidTransform::new(window, transform)
     }
 
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform
@@ -82,65 +64,62 @@ impl XRRigidTransform {
         position: &DOMPointInit,
         orientation: &DOMPointInit,
     ) -> Fallible<DomRoot<Self>> {
-        let global = window.global();
-        let position = DOMPointReadOnly::new_from_init(&global, &position);
-        // XXXManishearth normalize this
-        let orientation = DOMPointReadOnly::new_from_init(&global, &orientation);
-        Ok(XRRigidTransform::new(window, &position, &orientation))
+        if position.w != 1.0 {
+            return Err(Error::Type(format!(
+                "XRRigidTransform must be constructed with a position that has a w value of of 1.0, not {}",
+                position.w
+            )));
+        }
+
+        let translate = Vector3D::new(position.x as f64, position.y as f64, position.z as f64);
+        let rotate = Rotation3D::unit_quaternion(
+            orientation.x as f64,
+            orientation.y as f64,
+            orientation.z as f64,
+            orientation.w as f64,
+        );
+        let transform = RigidTransform3D::new(rotate, translate);
+        Ok(XRRigidTransform::new(&window.global(), transform))
     }
 }
 
 impl XRRigidTransformMethods for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position
     fn Position(&self) -> DomRoot<DOMPointReadOnly> {
-        DomRoot::from_ref(&self.position)
+        self.position.or_init(|| {
+            let t = &self.transform.translation;
+            DOMPointReadOnly::new(&self.global(), t.x, t.y, t.z, 1.0)
+        })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation
     fn Orientation(&self) -> DomRoot<DOMPointReadOnly> {
-        DomRoot::from_ref(&self.orientation)
+        self.position.or_init(|| {
+            let r = &self.transform.rotation;
+            DOMPointReadOnly::new(&self.global(), r.i, r.j, r.k, r.r)
+        })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
     fn Inverse(&self) -> DomRoot<XRRigidTransform> {
-        // An XRRigidTransform is a rotation and a translation,
-        // i.e. T * R
-        //
-        // Its inverse is (T * R)^-1
-        //    = R^-1 * T^-1
-        //    = R^-1 * T^-1 * (R * R^-1)
-        //    = (R^-1 * T^-1 * R) * R^-1
-        //    = T' * R^-1
-        //    = T' * R'
-        //
-        //  (R^-1 * T^-1 * R) is a translation matrix, and R^-1 is a
-        //  rotation matrix, so we can use these in the new rigid transform
-        let r_1 = self.rotate.inverse();
-        let t_1 = self
-            .translate
-            .inverse()
-            .expect("translation matrices should be invertible");
-        let t_p = r_1
-            .to_transform()
-            .post_mul(&t_1)
-            .post_mul(&self.rotate.to_transform());
-
-        let global = self.global();
-        let position =
-            DOMPointReadOnly::new(&global, t_p.m41.into(), t_p.m42.into(), t_p.m43.into(), 1.);
-        let orientation = DOMPointReadOnly::new(
-            &global,
-            r_1.i.into(),
-            r_1.j.into(),
-            r_1.k.into(),
-            r_1.r.into(),
-        );
-        XRRigidTransform::new(global.as_window(), &position, &orientation)
+        self.inverse
+            .or_init(|| XRRigidTransform::new(&self.global(), self.transform.inverse()))
+    }
+    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
+    #[allow(unsafe_code)]
+    unsafe fn Matrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+        if self.matrix.get().is_null() {
+            let cx = self.global().get_cx();
+            // According to the spec all matrices are column-major,
+            // however euclid uses row vectors so we use .to_row_major_array()
+            let arr = self.transform.to_transform().cast().to_row_major_array();
+            create_typed_array(cx, &arr, &self.matrix);
+        }
+        NonNull::new(self.matrix.get()).unwrap()
     }
 }
 
 impl XRRigidTransform {
-    pub fn matrix(&self) -> Transform3D<f64> {
-        // Spec says the orientation applies first,
-        // so post-multiply (?)
-        self.translate.post_mul(&self.rotate.to_transform())
+    /// https://immersive-web.github.io/webxr/#dom-xrpose-transform
+    pub fn transform(&self) -> RigidTransform3D<f64> {
+        self.transform
     }
 }

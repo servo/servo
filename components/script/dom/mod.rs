@@ -537,6 +537,7 @@ pub mod xmlserializer;
 pub mod xr;
 pub mod xrframe;
 pub mod xrlayer;
+pub mod xrpose;
 pub mod xrreferencespace;
 pub mod xrrenderstate;
 pub mod xrrigidtransform;

@@ -4,13 +4,11 @@
 
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding;
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
-use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::XRSession;
-use crate::dom::xrview::XRView;
 use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRFrameData;
@@ -54,20 +52,11 @@ impl XRFrameMethods for XRFrame {
     /// https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose
     fn GetViewerPose(&self, reference: &XRReferenceSpace) -> Option<DomRoot<XRViewerPose>> {
         let pose = reference.get_viewer_pose(&self.data);
-        let left = XRView::new(
+        Some(XRViewerPose::new(
             &self.global(),
             &self.session,
-            XREye::Left,
-            &pose,
+            pose,
             &self.data,
-        );
-        let right = XRView::new(
-            &self.global(),
-            &self.session,
-            XREye::Right,
-            &pose,
-            &self.data,
-        );
-        Some(XRViewerPose::new(&self.global(), &left, &right))
+        ))
     }
 }
