@@ -54,9 +54,9 @@ impl XRReferenceSpaceMethods for XRReferenceSpace {
 }
 
 impl XRReferenceSpace {
-    /// Gets viewer pose represented by this space
+    /// Gets pose of the viewer with respect to this space
     pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
-        let pose = self.get_pose(base_pose);
+        let pose = self.get_unoffset_viewer_pose(base_pose);
 
         // This may change, see https://github.com/immersive-web/webxr/issues/567
         let offset = self.transform.get().transform();
@@ -64,16 +64,25 @@ impl XRReferenceSpace {
         inverse.pre_mul(&pose)
     }
 
-    /// Gets pose represented by this space
+    /// Gets pose of the viewer with respect to this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+    pub fn get_unoffset_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         if let Some(stationary) = self.downcast::<XRStationaryReferenceSpace>() {
-            stationary.get_pose(base_pose)
+            stationary.get_unoffset_viewer_pose(base_pose)
         } else {
             // non-subclassed XRReferenceSpaces exist, obtained via the "identity"
             // type. The pose does not depend on the base pose.
             RigidTransform3D::identity()
         }
+    }
+
+    /// Gets pose represented by this space
+    ///
+    /// The reference origin used is common between all
+    /// get_pose calls for spaces from the same device, so this can be used to compare
+    /// with other spaces
+    pub fn get_pose(&self, _: &WebVRFrameData) -> RigidTransform3D<f64> {
+        unimplemented!()
     }
 }

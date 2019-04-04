@@ -50,10 +50,10 @@ impl XRStationaryReferenceSpace {
 }
 
 impl XRStationaryReferenceSpace {
-    /// Gets pose represented by this space
+    /// Gets pose of the viewer with respect to this space
     ///
-    /// Does not apply originOffset, use get_viewer_pose instead
-    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+    /// Does not apply originOffset, use get_viewer_pose on XRReferenceSpace instead
+    pub fn get_unoffset_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         // XXXManishearth add floor-level transform for floor-level and disable position in position-disabled
         let pos = base_pose.pose.position.unwrap_or([0., 0., 0.]);
         let translation = Vector3D::new(pos[0] as f64, pos[1] as f64, pos[2] as f64);
