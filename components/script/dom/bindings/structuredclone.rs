@@ -22,7 +22,7 @@ use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::StructuredCloneScope;
 use js::jsapi::TransferableOwnership;
 use js::jsapi::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsapi::{JSObject, JS_ClearPendingException};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
@@ -299,7 +299,7 @@ impl StructuredCloneData {
     fn read_clone(global: &GlobalScope, data: *mut u64, nbytes: size_t, rval: MutableHandleValue) {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+        let _ac = JSAutoRealm::new(cx, globalhandle.get());
         let mut sc_holder = StructuredCloneHolder { blob: None };
         let sc_holder_ptr = &mut sc_holder as *mut _;
         unsafe {

@@ -76,7 +76,7 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use js::jsapi::JSContext;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::JS_GC;
@@ -2213,7 +2213,7 @@ impl Window {
             // Steps 7.2.-7.5.
             let cx = this.get_cx();
             let obj = this.reflector().get_jsobject();
-            let _ac = JSAutoCompartment::new(cx, obj.get());
+            let _ac = JSAutoRealm::new(cx, obj.get());
             rooted!(in(cx) let mut message_clone = UndefinedValue());
             serialize_with_transfer_result.read(
                 this.upcast(),

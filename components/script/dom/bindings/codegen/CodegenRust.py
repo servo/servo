@@ -795,7 +795,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         #    our own implementation code.
         templateBody = fill(
             """
-            { // Scope for our JSAutoCompartment.
+            { // Scope for our JSAutoRealm.
 
                 rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
                 let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get());
@@ -2709,7 +2709,7 @@ assert!(!scope.get().is_null());
 assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-let _ac = JSAutoCompartment::new(cx, scope.get());
+let _ac = JSAutoRealm::new(cx, scope.get());
 GetProtoObject(cx, scope, proto.handle_mut());
 assert!(!proto.is_null());
 
@@ -2764,7 +2764,7 @@ assert!(!obj.is_null());
 
 (*raw).init_reflector(obj.get());
 
-let _ac = JSAutoCompartment::new(cx, obj.get());
+let _ac = JSAutoRealm::new(cx, obj.get());
 rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
 GetProtoObject(cx, obj.handle(), proto.handle_mut());
 assert!(JS_SplicePrototype(cx, obj.handle(), proto.handle()));
@@ -5544,7 +5544,7 @@ if args.callee() == new_target.get() {
 rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
 {
     rooted!(in(cx) let mut proto_val = UndefinedValue());
-    let _ac = JSAutoCompartment::new(cx, new_target.get());
+    let _ac = JSAutoRealm::new(cx, new_target.get());
     if !JS_GetProperty(cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
         return false;
     }
@@ -5765,7 +5765,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::Heap',
         'js::jsapi::INTERNED_STRING_TO_JSID',
         'js::jsapi::IsCallable',
-        'js::jsapi::JSAutoCompartment',
+        'js::jsapi::JSAutoRealm',
         'js::jsapi::JSCLASS_FOREGROUND_FINALIZE',
         'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
         'js::jsapi::JSClass',

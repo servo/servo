@@ -44,7 +44,7 @@ use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::JSObject;
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleObject, Heap};
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoRealm, JSContext};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::Evaluate2;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
@@ -541,7 +541,7 @@ impl GlobalScope {
                 let code: Vec<u16> = code.encode_utf16().collect();
                 let filename = CString::new(filename).unwrap();
 
-                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                let _ac = JSAutoRealm::new(cx, globalhandle.get());
                 let _aes = AutoEntryScript::new(self);
                 let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number);
 

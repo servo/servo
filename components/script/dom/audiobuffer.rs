@@ -14,7 +14,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::JS_GetArrayBufferViewBuffer;
-use js::jsapi::{Heap, JSAutoCompartment, JSContext, JSObject};
+use js::jsapi::{Heap, JSAutoRealm, JSContext, JSObject};
 use js::rust::wrappers::JS_DetachArrayBuffer;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
@@ -126,7 +126,7 @@ impl AudioBuffer {
     #[allow(unsafe_code)]
     unsafe fn restore_js_channel_data(&self, cx: *mut JSContext) -> bool {
         let global = self.global();
-        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             if !channel.get().is_null() {
                 // Already have data in JS array.

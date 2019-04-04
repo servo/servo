@@ -27,7 +27,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
+use js::jsapi::{JSAutoRealm, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder};
@@ -403,7 +403,7 @@ impl ServiceWorkerGlobalScope {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac =
-                    JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
+                    JSAutoRealm::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
                 ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());

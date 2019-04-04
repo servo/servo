@@ -24,7 +24,7 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use net_traits::request::RequestBuilder;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
@@ -207,10 +207,10 @@ impl FetchResponseListener for FetchContext {
             .expect("fetch promise is missing")
             .root();
 
-        // JSAutoCompartment needs to be manually made.
+        // JSAutoRealm needs to be manually made.
         // Otherwise, Servo will crash.
         let promise_cx = promise.global().get_cx();
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(promise_cx, promise.reflector().get_jsobject().get());
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
@@ -260,7 +260,7 @@ impl FetchResponseListener for FetchContext {
         let response = self.response_object.root();
         let global = response.global();
         let cx = global.get_cx();
-        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
         response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.

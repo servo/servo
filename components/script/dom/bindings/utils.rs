@@ -21,7 +21,7 @@ use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{Heap, JSAutoCompartment, JSContext};
+use js::jsapi::{Heap, JSAutoRealm, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_IsExceptionPending, JS_IsGlobalObject};
@@ -408,7 +408,7 @@ unsafe extern "C" fn pre_wrap(
     _object_passed_to_wrap: RawHandleObject,
     rval: RawMutableHandleObject,
 ) {
-    let _ac = JSAutoCompartment::new(cx, obj.get());
+    let _ac = JSAutoRealm::new(cx, obj.get());
     let obj = ToWindowProxyIfWindow(obj.get());
     assert!(!obj.is_null());
     rval.set(obj)

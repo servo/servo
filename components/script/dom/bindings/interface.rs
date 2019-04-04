@@ -19,7 +19,7 @@ use js::jsapi::MutableHandleValue as RawMutableHandleValue;
 use js::jsapi::{Class, ClassOps, CompartmentOptions};
 use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol};
 use js::jsapi::{
-    JSAutoCompartment, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR,
+    JSAutoRealm, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR,
 };
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
 use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
@@ -160,7 +160,7 @@ pub unsafe fn create_global_object(
     let val = PrivateValue(Box::into_raw(proto_array) as *const libc::c_void);
     JS_SetReservedSlot(rval.get(), DOM_PROTOTYPE_SLOT, &val);
 
-    let _ac = JSAutoCompartment::new(cx, rval.get());
+    let _ac = JSAutoRealm::new(cx, rval.get());
     JS_FireOnNewGlobalObject(cx, rval.handle());
 }
 

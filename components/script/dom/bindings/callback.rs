@@ -14,7 +14,7 @@ use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use js::jsapi::Heap;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use js::jsapi::{AddRawValueRoot, IsCallable, JSContext, JSObject};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -273,7 +273,7 @@ impl Drop for CallSetup {
         unsafe {
             JS_LeaveCompartment(self.cx, self.old_compartment);
             if self.handling == ExceptionHandling::Report {
-                let _ac = JSAutoCompartment::new(
+                let _ac = JSAutoRealm::new(
                     self.cx,
                     self.exception_global.reflector().get_jsobject().get(),
                 );

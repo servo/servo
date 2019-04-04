@@ -116,7 +116,7 @@ where
     fn response(&mut self, response: BluetoothResponseResult) {
         let promise = self.promise.take().expect("bt promise is missing").root();
 
-        // JSAutoCompartment needs to be manually made.
+        // JSAutoRealm needs to be manually made.
         // Otherwise, Servo will crash.
         match response {
             Ok(response) => self.receiver.root().handle_response(response, &promise),

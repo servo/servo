@@ -34,7 +34,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JSAutoCompartment, JSFunction, JS_GetFunctionObject};
+use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject};
 use js::rust::wrappers::CompileFunction;
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
@@ -505,7 +505,7 @@ impl EventTarget {
 
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
-        let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, window.reflector().get_jsobject().get());
         rooted!(in(cx) let mut handler = ptr::null_mut::<JSFunction>());
         let rv = unsafe {
             CompileFunction(
@@ -523,7 +523,7 @@ impl EventTarget {
         if !rv || handler.get().is_null() {
             // Step 1.8.2
             unsafe {
-                let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
+                let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
                 // FIXME(#13152): dispatch error event.
                 report_pending_exception(cx, false);
             }

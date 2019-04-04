@@ -31,7 +31,7 @@ use js::jsapi::HandleValueArray;
 use js::jsapi::Heap;
 use js::jsapi::IsCallable;
 use js::jsapi::IsConstructor;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
@@ -251,7 +251,7 @@ impl PaintWorkletGlobalScope {
         );
 
         let cx = self.worklet_global.get_cx();
-        let _ac = JSAutoCompartment::new(cx, self.worklet_global.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, self.worklet_global.reflector().get_jsobject().get());
 
         // TODO: Steps 1-2.1.
         // Step 2.2-5.1.
