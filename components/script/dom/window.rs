@@ -79,7 +79,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use js::jsapi::JSContext;
 use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::JS_GC;
+use js::jsapi::{JS_GC, GCReason};
 use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_DefineProperty;
@@ -901,7 +901,7 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     fn Gc(&self) {
         unsafe {
-            JS_GC(self.get_cx());
+            JS_GC(self.get_cx(), GCReason::API);
         }
     }
 

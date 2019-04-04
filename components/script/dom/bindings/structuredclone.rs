@@ -220,6 +220,15 @@ unsafe extern "C" fn free_transfer_callback(
 ) {
 }
 
+unsafe extern "C" fn can_transfer_callback(
+    _cx: *mut JSContext,
+    _obj: RawHandleObject,
+    _closure: *mut raw::c_void
+) -> bool
+{
+    false
+}
+
 unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {}
 
 static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
@@ -229,6 +238,7 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     readTransfer: Some(read_transfer_callback),
     writeTransfer: Some(write_transfer_callback),
     freeTransfer: Some(free_transfer_callback),
+    canTransfer: Some(can_transfer_callback),
 };
 
 struct StructuredCloneHolder {

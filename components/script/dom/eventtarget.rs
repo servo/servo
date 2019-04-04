@@ -34,10 +34,10 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject};
+use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject, SourceText};
 use js::rust::wrappers::CompileFunction;
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
-use libc::{c_char, size_t};
+use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -45,6 +45,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
@@ -515,8 +516,12 @@ impl EventTarget {
                 name.as_ptr(),
                 args.len() as u32,
                 args.as_ptr(),
-                body.as_ptr(),
-                body.len() as size_t,
+                &mut SourceText {
+                    units_: body.as_ptr() as *const _,
+                    length_: body.len() as u32,
+                    ownsUnits_: false,
+                    _phantom_0: PhantomData,
+                },
                 handler.handle_mut().into(),
             )
         };

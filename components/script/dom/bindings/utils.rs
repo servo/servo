@@ -20,7 +20,7 @@ use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_ST
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
 use js::jsapi::{Heap, JSAutoRealm, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
@@ -455,12 +455,11 @@ unsafe fn generic_call(
         return false;
     }
 
-    let obj = if thisobj.get().is_object() {
+    rooted!(in(cx) let obj = if thisobj.get().is_object() {
         thisobj.get().to_object()
     } else {
-        GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null())
-    };
-    rooted!(in(cx) let obj = obj);
+        GetNonCCWObjectGlobal(JS_CALLEE(cx, vp).to_object_or_null())
+    });
     let depth = (*info).depth;
     let proto_check =
         |class: &'static DOMClass| class.interface_chain[depth as usize] as u16 == proto_id;

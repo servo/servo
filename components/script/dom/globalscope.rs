@@ -42,11 +42,11 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::JSObject;
-use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSAutoRealm, JSContext};
 use js::panic::maybe_resume_unwind;
-use js::rust::wrappers::Evaluate2;
+use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
@@ -228,7 +228,7 @@ impl GlobalScope {
     #[allow(unsafe_code)]
     pub unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         assert!(!obj.is_null());
-        let global = GetGlobalForObjectCrossCompartment(obj);
+        let global = GetNonCCWObjectGlobal(obj);
         global_scope_from_global(global)
     }
 
@@ -538,7 +538,6 @@ impl GlobalScope {
             || {
                 let cx = self.get_cx();
                 let globalhandle = self.reflector().get_jsobject();
-                let code: Vec<u16> = code.encode_utf16().collect();
                 let filename = CString::new(filename).unwrap();
 
                 let _ac = JSAutoRealm::new(cx, globalhandle.get());
@@ -547,10 +546,10 @@ impl GlobalScope {
 
                 debug!("evaluating Dom string");
                 let result = unsafe {
-                    Evaluate2(
+                    EvaluateUtf8(
                         cx,
                         options.ptr,
-                        code.as_ptr(),
+                        code.as_ptr() as *const _,
                         code.len() as libc::size_t,
                         rval,
                     )

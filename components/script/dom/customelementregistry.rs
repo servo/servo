@@ -39,7 +39,7 @@ use js::glue::UnwrapObject;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor};
 use js::jsapi::{JSAutoRealm, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::wrappers::{Construct1, JS_GetProperty, JS_SameValue};
+use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
@@ -682,7 +682,7 @@ fn run_upgrade_constructor(
         let mut same = false;
         rooted!(in(cx) let construct_result_val = ObjectValue(construct_result.get()));
         if unsafe {
-            !JS_SameValue(
+            !SameValue(
                 cx,
                 construct_result_val.handle(),
                 element_val.handle(),
