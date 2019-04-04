@@ -224,6 +224,21 @@ function listenToIceConnected(pc) {
   });
 }
 
+// Returns a promise that resolves when |pc.iceConnectionState| is in one of the
+// wanted states.
+function waitForIceStateChange(pc, wantedStates) {
+  return new Promise((resolve) => {
+    if (wantedStates.includes(pc.iceConnectionState)) {
+      resolve();
+      return;
+    }
+    pc.addEventListener('iceconnectionstatechange', () => {
+      if (wantedStates.includes(pc.iceConnectionState))
+        resolve();
+    });
+  });
+}
+
 // Returns a promise that resolves when |pc.connectionState| is 'connected'.
 function listenToConnected(pc) {
   return new Promise((resolve) => {

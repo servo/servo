@@ -6,6 +6,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<style>
+  @keyframes fade {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+</style>
 <body>
 <script>
 // HTML elements that can be disabled
@@ -100,94 +110,62 @@ test(() => {
 }, "Calling click() on disabled elements must not dispatch events.");
 
 promise_test(async () => {
-  // Style sheet that controls transition.
-  const style = document.createElement("style");
-  style.innerText = `
-    ${formElements.join(", ")} {
-      opacity: 0.1;
-      transition-property: opacity;
-      transition-duration: .1s;
-    }
-    .transition {
-      opacity: 1;
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Triggers the transition in the element being tested.
-  const transitionTrigger = document.createElement("button");
-  transitionTrigger.innerText = "Trigger button";
-  document.body.appendChild(transitionTrigger);
-
   // For each form element type, set up transition event handlers.
   for (const localName of formElements) {
     const elem = document.createElement(localName);
     elem.disabled = true;
     document.body.appendChild(elem);
-    const transitionPromises = [
+    const eventPromises = [
       "transitionrun",
       "transitionstart",
       "transitionend",
     ].map(eventType => {
       return new Promise(r => {
-        const handlerName = `on${eventType}`;
-        elem[handlerName] = ev => {
-          elem[handlerName] = null;
-          r();
-        };
+        elem.addEventListener(eventType, r);
       });
     });
-
-    // Trigger transitions specifically on this element
-    // it requires a trusted event.
-    transitionTrigger.onclick = () => {
-      elem.classList.toggle("transition");
-    };
-    await test_driver.click(transitionTrigger);
-
+    // Flushing style triggers transition.
+    getComputedStyle(elem).opacity;
+    elem.style.transition = "opacity .1s";
+    elem.style.opacity = 0;
+    getComputedStyle(elem).opacity;
     // All the events fire...
-    await Promise.all(transitionPromises);
-    elem.classList.remove("transition");
+    await Promise.all(eventPromises);
+    elem.remove();
+  }
+}, "CSS Transitions transitionrun, transitionstart, transitionend events fire on disabled form elements");
 
-    // Let's now test the "transitioncancel" event.
+promise_test(async () => {
+  // For each form element type, set up transition event handlers.
+  for (const localName of formElements) {
+    const elem = document.createElement(localName);
+    elem.disabled = true;
+    document.body.appendChild(elem);
+    getComputedStyle(elem).opacity;
+    elem.style.transition = "opacity 100s";
+    // We use ontransitionstart to cancel the event.
     elem.ontransitionstart = () => {
-      // Cancel the transition by hiding it.
       elem.style.display = "none";
-      elem.classList.remove("transition");
     };
-
-    // Trigger the transition again!
     const promiseToCancel = new Promise(r => {
       elem.ontransitioncancel = r;
     });
-    await test_driver.click(transitionTrigger);
+    // Flushing style triggers the transition.
+    elem.style.opacity = 0;
+    getComputedStyle(elem).opacity;
     await promiseToCancel;
     // And we are done with this element.
     elem.remove();
   }
-  // And we are done with the test... clean up.
-  transitionTrigger.remove();
-  style.remove();
-}, "CSS Transitions events fire on disabled form elements");
+}, "CSS Transitions transitioncancel event fires on disabled form elements");
 
 promise_test(async () => {
-  const style = document.createElement("style");
-  style.innerText = `
-    .animate {
-      animation: fade .1s 2;
-    }
-    @keyframes fade {
-      0% { opacity: 1; }
-      100% { opacity: 0.2; }
-    }
-  `;
-  document.head.appendChild(style);
   // For each form element type, set up transition event handlers.
   for (const localName of formElements) {
     const elem = document.createElement(localName);
     document.body.appendChild(elem);
     elem.disabled = true;
-    const transitionPromises = [
+    const eventPromises = [
       "animationstart",
       "animationiteration",
       "animationend",
@@ -196,49 +174,38 @@ promise_test(async () => {
         elem.addEventListener(eventType, r, { once: true });
       });
     });
+    elem.style.animation = "fade .1s 2";
     elem.classList.add("animate");
     // All the events fire...
-    await Promise.all(transitionPromises);
+    await Promise.all(eventPromises);
     elem.remove();
   }
-  // And we are done with the test... clean up.
-  style.remove();
-}, "CSS Animation events fire on disabled form elements");
+}, "CSS Animation animationstart, animationiteration, animationend fire on disabled form elements");
 
 promise_test(async () => {
-  const style = document.createElement("style");
-  style.innerText = `
-    .animate {
-      animation: fade .1s 2;
-    }
-    @keyframes fade {
-      0% { opacity: 1; }
-      100% { opacity: 0.2; }
-    }
-  `;
-  document.head.appendChild(style);
   // For each form element type, set up transition event handlers.
   for (const localName of formElements) {
     const elem = document.createElement(localName);
     document.body.appendChild(elem);
     elem.disabled = true;
-    // Let's now test the "animationcancel" event
+
     const promiseToCancel = new Promise(r => {
       elem.addEventListener("animationcancel", r);
     });
+
     elem.addEventListener("animationstart", () => {
       // Cancel the animation by hiding it.
       elem.style.display = "none";
     });
+
+    // Trigger the animation
+    elem.style.animation = "fade 100s";
     elem.classList.add("animate");
-    // Trigger the animation again!
     await promiseToCancel;
     // And we are done with this element.
     elem.remove();
   }
-  // And we are done with the test... clean up.
-  style.remove();
-}, "CSS Animation's cancel events fire on disabled form elements");
+}, "CSS Animation's animationcancel event fires on disabled form elements");
 
 promise_test(async () => {
   for (const localName of formElements) {
