@@ -223,9 +223,8 @@ unsafe extern "C" fn free_transfer_callback(
 unsafe extern "C" fn can_transfer_callback(
     _cx: *mut JSContext,
     _obj: RawHandleObject,
-    _closure: *mut raw::c_void
-) -> bool
-{
+    _closure: *mut raw::c_void,
+) -> bool {
     false
 }
 

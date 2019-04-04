@@ -16,7 +16,7 @@ use crate::dom::window::Window;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
 use js::jsapi::{AddRawValueRoot, IsCallable, JSContext, JSObject};
-use js::jsapi::{Realm, EnterRealm, LeaveRealm, RemoveRawValueRoot};
+use js::jsapi::{EnterRealm, LeaveRealm, Realm, RemoveRawValueRoot};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{MutableHandleObject, Runtime};

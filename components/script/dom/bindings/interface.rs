@@ -17,10 +17,8 @@ use js::glue::{UncheckedUnwrapObject, RUST_SYMBOL_TO_JSID};
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
 use js::jsapi::{Class, ClassOps, RealmOptions};
-use js::jsapi::{GetWellKnownSymbol, GetNonCCWObjectGlobal};
-use js::jsapi::{
-    JSAutoRealm, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR,
-};
+use js::jsapi::{GetNonCCWObjectGlobal, GetWellKnownSymbol};
+use js::jsapi::{JSAutoRealm, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
 use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
 use js::jsapi::{JS_NewObject, JS_NewPlainObject};

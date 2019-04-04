@@ -37,7 +37,9 @@ use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
-use js::jsapi::{SetProcessBuildIdOp, SetEnqueuePromiseJobCallback, SetPromiseRejectionTrackerCallback};
+use js::jsapi::{
+    SetEnqueuePromiseJobCallback, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback,
+};
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;

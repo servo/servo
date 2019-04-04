@@ -262,8 +262,7 @@ impl FileReader {
                 FileReader::perform_readastext(&fr.result, data, &blob_contents)
             },
             FileReaderFunction::ReadAsArrayBuffer => {
-                let _ac =
-                    JSAutoRealm::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
+                let _ac = JSAutoRealm::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
                 FileReader::perform_readasarraybuffer(
                     &fr.result,
                     fr.global().get_cx(),

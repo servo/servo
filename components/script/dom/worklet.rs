@@ -45,7 +45,7 @@ use dom_struct::dom_struct;
 use js::jsapi::JSGCParamKey;
 use js::jsapi::JSTracer;
 use js::jsapi::JS_GetGCParameter;
-use js::jsapi::{JS_GC, GCReason};
+use js::jsapi::{GCReason, JS_GC};
 use msg::constellation_msg::PipelineId;
 use net_traits::load_whole_resource;
 use net_traits::request::Destination;

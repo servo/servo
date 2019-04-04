@@ -428,8 +428,7 @@ impl DedicatedWorkerGlobalScope {
             WorkerScriptMsg::DOMMessage(data) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac =
-                    JSAutoRealm::new(scope.get_cx(), scope.reflector().get_jsobject().get());
+                let _ac = JSAutoRealm::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), None, None);
