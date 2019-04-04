@@ -11,7 +11,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
+use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
@@ -39,16 +39,6 @@ impl XRSpace {
 }
 
 impl XRSpace {
-    /// Gets pose of the viewer with respect to this space
-    #[allow(unused)]
-    pub fn get_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
-        if let Some(reference) = self.downcast::<XRReferenceSpace>() {
-            reference.get_viewer_pose(base_pose)
-        } else {
-            unreachable!()
-        }
-    }
-
     /// Gets pose represented by this space
     ///
     /// The reference origin used is common between all
@@ -61,5 +51,18 @@ impl XRSpace {
         } else {
             unreachable!()
         }
+    }
+
+    pub fn viewer_pose_from_frame_data(data: &WebVRFrameData) -> RigidTransform3D<f64> {
+        let pos = data.pose.position.unwrap_or([0., 0., 0.]);
+        let translation = Vector3D::new(pos[0] as f64, pos[1] as f64, pos[2] as f64);
+        let orient = data.pose.orientation.unwrap_or([0., 0., 0., 0.]);
+        let rotation = Rotation3D::quaternion(
+            orient[0] as f64,
+            orient[1] as f64,
+            orient[2] as f64,
+            orient[3] as f64,
+        );
+        RigidTransform3D::new(rotation, translation)
     }
 }
