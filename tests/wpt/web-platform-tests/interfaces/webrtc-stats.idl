@@ -207,6 +207,8 @@ dictionary RTCAudioReceiverStats : RTCAudioHandlerStats {
              unsigned long long concealedSamples;
              unsigned long long silentConcealedSamples;
              unsigned long long concealmentEvents;
+             unsigned long long insertedSamplesForDeceleration;
+             unsigned long long removedSamplesForAcceleration;
 };
 
 dictionary RTCDataChannelStats : RTCStats {
