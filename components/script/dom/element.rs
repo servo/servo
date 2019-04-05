@@ -78,7 +78,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
@@ -230,13 +230,6 @@ impl FromStr for AdjacentPosition {
             _             => Err(Error::Syntax)
         }
     }
-}
-
-/// Whether a shadow root hosts an User Agent widget.
-#[derive(PartialEq)]
-pub enum IsUserAgentWidget {
-    No,
-    Yes,
 }
 
 //
@@ -495,7 +488,7 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = ShadowRoot::new(self, &*self.node.owner_doc());
+        let shadow_root = ShadowRoot::new(self, &*self.node.owner_doc(), is_ua_widget);
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
@@ -504,6 +497,8 @@ impl Element {
         if self.is_connected() {
             self.node.owner_doc().register_shadow_root(&*shadow_root);
         }
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         Ok(shadow_root)
     }
