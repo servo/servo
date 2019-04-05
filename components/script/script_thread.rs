@@ -615,7 +615,7 @@ pub struct ScriptThread {
     microtask_queue: Rc<MicrotaskQueue>,
 
     /// Microtask Queue for adding support for mutation observer microtasks
-    mutation_observer_compound_microtask_queued: Cell<bool>,
+    mutation_observer_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
@@ -767,21 +767,17 @@ impl ScriptThread {
         })
     }
 
-    pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
+    pub fn set_mutation_observer_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .mutation_observer_compound_microtask_queued
-                .set(value);
+            script_thread.mutation_observer_microtask_queued.set(value);
         })
     }
 
-    pub fn is_mutation_observer_compound_microtask_queued() -> bool {
+    pub fn is_mutation_observer_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            return script_thread
-                .mutation_observer_compound_microtask_queued
-                .get();
+            return script_thread.mutation_observer_microtask_queued.get();
         })
     }
 
@@ -1145,7 +1141,7 @@ impl ScriptThread {
 
             microtask_queue: Default::default(),
 
-            mutation_observer_compound_microtask_queued: Default::default(),
+            mutation_observer_microtask_queued: Default::default(),
 
             mutation_observers: Default::default(),
 
