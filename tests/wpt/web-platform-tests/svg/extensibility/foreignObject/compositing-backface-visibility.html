@@ -1,0 +1,13 @@
+<!doctype HTML>
+<title>Basic backface-visibility compositing works.</title>
+<link rel="author" title="Chris Harrelson" href="chrishtr@chromium.org">
+<link rel="match" href="compositing-backface-visibility-ref.html">
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
+<style>
+  * { backface-visibility: hidden }
+</style>
+<svg>
+  <foreignObject>
+    <div style="will-change: transform">Test</div>
+  </foreignObject>
+</svg>

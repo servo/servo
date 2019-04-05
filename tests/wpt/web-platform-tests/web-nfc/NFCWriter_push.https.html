@@ -74,6 +74,25 @@ const invalid_syntax_messages =
       createMessage([createRecord('json', 'custom/app+json', test_json_data)]),
     ];
 
+const invalid_signals = [
+  "string",
+  123,
+  {},
+  true,
+  Symbol(),
+  () => {},
+  self
+]
+
+const non_strings = [
+  123,
+  {},
+  true,
+  Symbol(),
+  () => {},
+  self
+]
+
 promise_test(t => {
   const writer = new NFCWriter();
   const promises = [];
@@ -94,13 +113,19 @@ promise_test(t => {
   return Promise.all(promises);
 }, "'Test that promise is rejected with SyntaxError if NDEFMessageSource contains invalid records.");
 
-promise_test(t => {
+promise_test(async t => {
   const writer = new NFCWriter();
   const controller = new AbortController();
   const p = writer.push(test_text_data, { signal: controller.signal });
-  controller.abort();
-  return promise_rejects(t, 'NoModificationAllowedError', p);
-}, "NFCWriter.push should fail if the instance has already initiated NFC data transfer.");
+  const rejected = promise_rejects(t, 'AbortError', p);
+  let callback_called = false;
+  t.step_timeout(() => {
+    callback_called = true;
+    controller.abort();
+  }, 10);
+  await rejected;
+  assert_true(callback_called, 'timeout should have caused the abort');
+}, "NFCWriter.push should fail if abort push request before push happends.");
 
 promise_test(t => {
   const writer = new NFCWriter();
@@ -110,6 +135,16 @@ promise_test(t => {
   assert_true(controller.signal.aborted);
   return promise_rejects(t, 'AbortError', writer.push(test_text_data, { signal: controller.signal }));
 }, "NFCWriter.push should fail if signal's aborted flag is set.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  invalid_signals.forEach(invalid_signal => {
+    promises.push(
+      promise_rejects(t, 'TypeError', writer.push(test_text_data, { signal: invalid_signal })));
+  });
+  return Promise.all(promises);
+}, "NFCWriter.push should fail if signal is not an AbortSignal.");
 
 promise_test(t => {
   const writer = new NFCWriter();
@@ -184,5 +219,33 @@ promise_test(() => {
     }
   });
 }, 'Test that WebNFC API is not accessible from iframe context.');
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  non_strings.forEach(invalid_url => {
+    promises.push(
+      promise_rejects(t, new TypeError(), writer.push({
+        url: invalid_url,
+        records: [{ recordType: "text", data: 'Hello World' }]
+      }));
+    );
+  });
+  return Promise.all(promises);
+}, "Test that promise is rejected with TypeError if NDEFMessageSource contains non-string url.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  non_strings.forEach(invalid_serialNumber => {
+    promises.push(
+      promise_rejects(t, new TypeError(), writer.push({
+        serialNumber: invalid_serialNumber,
+        records: [{ recordType: "text", data: 'Hello World' }]
+      }));
+    );
+  });
+  return Promise.all(promises);
+}, "Test that promise is rejected with TypeError if NDEFMessageSource contains non-string serialNumber.");
 
 </script>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Test looping edge case to verify http://crbug.com/364442.</title>
+<title>play() with loop set to true after playback ended</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/media.js"></script>
@@ -10,6 +10,8 @@
 // Once ended, set "loop" to true. Call play.
 // Verify that "seeked" event fires, seeking back to the beginning.
 // Pause video and end test.
+// Chromium bug: https://crbug.com/364442
+// Spec issue: https://github.com/whatwg/html/issues/4487
 async_test(function(t) {
     var video = document.querySelector("video");
 
