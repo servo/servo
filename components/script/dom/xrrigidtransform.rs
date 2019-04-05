@@ -100,8 +100,11 @@ impl XRRigidTransformMethods for XRRigidTransform {
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
     fn Inverse(&self) -> DomRoot<XRRigidTransform> {
-        self.inverse
-            .or_init(|| XRRigidTransform::new(&self.global(), self.transform.inverse()))
+        self.inverse.or_init(|| {
+            let transform = XRRigidTransform::new(&self.global(), self.transform.inverse());
+            transform.inverse.set(Some(self));
+            transform
+        })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
     #[allow(unsafe_code)]
