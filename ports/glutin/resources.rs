@@ -29,6 +29,7 @@ fn filename(file: Resource) -> &'static str {
         Resource::PresentationalHintsCSS => "presentational-hints.css",
         Resource::QuirksModeCSS => "quirks-mode.css",
         Resource::RippyPNG => "rippy.png",
+        Resource::MediaControls => "media_controls.js",
     }
 }
 
