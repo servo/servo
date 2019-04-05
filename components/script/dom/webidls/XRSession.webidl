@@ -20,6 +20,7 @@ interface XRSession : EventTarget {
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
   readonly attribute XRRenderState renderState;
+  readonly attribute XRSpace viewerSpace;
 
   // // Methods
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceOptions options);

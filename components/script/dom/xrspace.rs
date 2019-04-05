@@ -18,6 +18,7 @@ use webvr_traits::WebVRFrameData;
 pub struct XRSpace {
     eventtarget: EventTarget,
     session: Dom<XRSession>,
+    is_viewerspace: bool,
 }
 
 impl XRSpace {
@@ -25,13 +26,21 @@ impl XRSpace {
         XRSpace {
             eventtarget: EventTarget::new_inherited(),
             session: Dom::from_ref(session),
+            is_viewerspace: false,
         }
     }
 
-    #[allow(unused)]
-    pub fn new(global: &GlobalScope, session: &XRSession) -> DomRoot<XRSpace> {
+    fn new_viewerspace_inner(session: &XRSession) -> XRSpace {
+        XRSpace {
+            eventtarget: EventTarget::new_inherited(),
+            session: Dom::from_ref(session),
+            is_viewerspace: true,
+        }
+    }
+
+    pub fn new_viewerspace(global: &GlobalScope, session: &XRSession) -> DomRoot<XRSpace> {
         reflect_dom_object(
-            Box::new(XRSpace::new_inherited(session)),
+            Box::new(XRSpace::new_viewerspace_inner(session)),
             global,
             XRSpaceBinding::Wrap,
         )
@@ -47,6 +56,8 @@ impl XRSpace {
     pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
+        } else if self.is_viewerspace {
+            XRSpace::viewer_pose_from_frame_data(base_pose)
         } else {
             unreachable!()
         }

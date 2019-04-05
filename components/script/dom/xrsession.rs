@@ -21,6 +21,7 @@ use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
+use crate::dom::xrspace::XRSpace;
 use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use dom_struct::dom_struct;
 use std::rc::Rc;
@@ -80,6 +81,11 @@ impl XRSessionMethods for XRSession {
             *self.display.DepthFar(),
             self.base_layer.get().as_ref().map(|l| &**l),
         )
+    }
+
+    // https://immersive-web.github.io/webxr/#dom-xrsession-viewerspace
+    fn ViewerSpace(&self) -> DomRoot<XRSpace> {
+        XRSpace::new_viewerspace(&self.global(), &self)
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
