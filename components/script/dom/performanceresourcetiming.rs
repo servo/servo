@@ -66,7 +66,6 @@ pub struct PerformanceResourceTiming {
 // TODO(#21260): domain_lookup_end
 // TODO(#21261): connect_start
 // TODO(#21262): connect_end
-// TODO(#21263): response_end
 impl PerformanceResourceTiming {
     pub fn new_inherited(
         url: ServoUrl,
@@ -126,7 +125,7 @@ impl PerformanceResourceTiming {
             secure_connection_start: 0.,
             request_start: resource_timing.request_start as f64,
             response_start: resource_timing.response_start as f64,
-            response_end: 0.,
+            response_end: resource_timing.response_end as f64,
         }
     }
 
@@ -175,7 +174,6 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-requeststart
     fn RequestStart(&self) -> DOMHighResTimeStamp {
-        // TODO
         Finite::wrap(self.request_start)
     }
 
@@ -186,12 +184,16 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestart
     fn ResponseStart(&self) -> DOMHighResTimeStamp {
-        // TODO
         Finite::wrap(self.response_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
     fn FetchStart(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.fetch_start)
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend
+    fn ResponseEnd(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.response_end)
     }
 }

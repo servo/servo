@@ -447,7 +447,6 @@ fn obtain_response(
             })
             .map_err(move |e| NetworkError::from_hyper_error(&e)),
     )
-    // TODO(#21263) response_end (also needs to be set above if fetch is aborted due to an error)
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
@@ -1201,7 +1200,7 @@ fn http_network_fetch(
                 .timing
                 .lock()
                 .unwrap()
-                .set_attribute(ResourceAttribute::ResponseEnd); // TODO define this attribute
+                .set_attribute(ResourceAttribute::ResponseEnd);
             return Response::network_error(error);
         },
     };
@@ -1276,6 +1275,8 @@ fn http_network_fetch(
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();
+    let timing_ptr2 = context.timing.clone();
+    let timing_ptr3 = context.timing.clone();
     HANDLE.lock().unwrap().spawn(
         res.into_body()
             .map_err(|_| ())
@@ -1299,8 +1300,7 @@ fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
-                context
-                    .timing
+                timing_ptr2
                     .lock()
                     .unwrap()
                     .set_attribute(ResourceAttribute::ResponseEnd);
@@ -1314,8 +1314,7 @@ fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
-                context
-                    .timing
+                timing_ptr3
                     .lock()
                     .unwrap()
                     .set_attribute(ResourceAttribute::ResponseEnd);
