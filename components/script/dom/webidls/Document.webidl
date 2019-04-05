@@ -211,3 +211,9 @@ partial interface Document {
 };
 
 Document implements DocumentOrShadowRoot;
+
+// Servo internal API.
+partial interface Document {
+  [Throws]
+  ShadowRoot servoGetMediaControls(DOMString id);
+};
