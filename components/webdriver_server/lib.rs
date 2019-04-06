@@ -803,6 +803,38 @@ impl Handler {
         }
     }
 
+
+    // https://w3c.github.io/webdriver/#find-elements-from-element
+    fn handle_find_element_elements(&self,
+                                    element: &WebElement, parameters: &LocatorParameters
+    ) -> WebDriverResult<WebDriverResponse>{
+        if parameters.using != LocatorStrategy::CSSSelector {
+            return Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation,
+                "Unsupported locator strategy"
+            ));
+        }
+
+        let (sender,receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::FindElementElementsCSS(
+            parameters.value.clone(),element.id.clone(),sender);
+
+        self.browsing_context_script_command(cmd)?;
+
+        match receiver.recv().unwrap(){
+            Ok(value) => {
+                let value_resp = value.into_iter() //maybe into_iter is superfluous
+                    .map(|x| serde_json::to_value(WebElement::new(x)) .unwrap())
+                    .collect::<Vec<Value>>();
+                let value_resp = serde_json::to_value(value_resp).unwrap();
+                Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+            },
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::InvalidSelector,"Invalid Selector",))
+        }
+
+    }
+
     // https://w3c.github.io/webdriver/webdriver-spec.html#get-element-rect
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1242,6 +1274,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElementElement(ref element, ref parameters) => {
                 self.handle_find_element_element(element, parameters)
             },
+            WebDriverCommand::FindElementElements(ref element,ref parameters) => {
+                self.handle_find_element_elements(element, parameters)
+            },
             WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
@@ -1270,7 +1305,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             },
             _ => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,
-                "Command not implemented",
+                format!("Command not implemented: {:?}", msg.command),
             )),
         }
     }
