@@ -10,8 +10,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
+use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Rotation3D, Vector3D};
+use euclid::RigidTransform3D;
 use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
@@ -50,20 +51,22 @@ impl XRStationaryReferenceSpace {
 }
 
 impl XRStationaryReferenceSpace {
+    /// Gets pose of the viewer with respect to this space
+    ///
+    /// Does not apply originOffset, use get_viewer_pose on XRReferenceSpace instead
+    pub fn get_unoffset_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+        // XXXManishearth add floor-level transform for floor-level and disable position in position-disabled
+        XRSpace::viewer_pose_from_frame_data(base_pose)
+    }
+
     /// Gets pose represented by this space
     ///
-    /// Does not apply originOffset, use get_viewer_pose instead
-    pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+    /// Does not apply originOffset, use get_pose on XRReferenceSpace instead
+    pub fn get_unoffset_pose(&self, _: &WebVRFrameData) -> RigidTransform3D<f64> {
         // XXXManishearth add floor-level transform for floor-level and disable position in position-disabled
-        let pos = base_pose.pose.position.unwrap_or([0., 0., 0.]);
-        let translation = Vector3D::new(pos[0] as f64, pos[1] as f64, pos[2] as f64);
-        let orient = base_pose.pose.orientation.unwrap_or([0., 0., 0., 0.]);
-        let rotation = Rotation3D::quaternion(
-            orient[0] as f64,
-            orient[1] as f64,
-            orient[2] as f64,
-            orient[3] as f64,
-        );
-        RigidTransform3D::new(rotation, translation)
+
+        // The eye-level pose is basically whatever the headset pose was at t=0, which
+        // for most devices is (0, 0, 0)
+        RigidTransform3D::identity()
     }
 }
