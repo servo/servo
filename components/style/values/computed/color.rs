@@ -11,14 +11,14 @@ use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
 
-/// Computed value type for the specified RGBAColor.
-pub type RGBAColor = RGBA;
-
 /// The computed value of the `color` property.
 pub type ColorPropertyValue = RGBA;
 
+/// The computed value of `-moz-font-smoothing-background-color`.
+pub type MozFontSmoothingBackgroundColor = RGBA;
+
 /// A computed value for `<color>`.
-pub type Color = GenericColor<RGBAColor>;
+pub type Color = GenericColor<RGBA>;
 
 impl Color {
     /// Returns a complex color value representing transparent.

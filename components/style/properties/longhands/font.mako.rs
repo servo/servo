@@ -521,9 +521,9 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "-moz-font-smoothing-background-color",
-    "RGBAColor",
-    "RGBA::transparent()",
-    animation_value_type="AnimatedRGBA",
+    "color::MozFontSmoothingBackgroundColor",
+    "computed::color::MozFontSmoothingBackgroundColor::transparent()",
+    animation_value_type="none",
     products="gecko",
     gecko_ffi_name="mFont.fontSmoothingBackgroundColor",
     enabled_in="chrome",

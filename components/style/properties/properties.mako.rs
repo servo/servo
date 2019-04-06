@@ -1287,32 +1287,6 @@ impl LonghandId {
             LonghandId::Direction
         )
     }
-
-    /// Whether computed values of this property lossily convert any complex
-    /// colors into RGBA colors.
-    ///
-    /// In Gecko, there are some properties still that compute currentcolor
-    /// down to an RGBA color at computed value time, instead of as
-    /// `StyleColor`s. For these properties, we must return `false`,
-    /// so that we correctly avoid caching style data in the rule tree.
-    pub fn stores_complex_colors_lossily(&self) -> bool {
-        % if product == "gecko":
-        matches!(*self,
-            % for property in data.longhands:
-            % if property.predefined_type == "RGBAColor":
-            LonghandId::${property.camel_case} |
-            % endif
-            % endfor
-            LonghandId::BackgroundImage |
-            LonghandId::BorderImageSource |
-            LonghandId::BoxShadow |
-            LonghandId::MaskImage |
-            LonghandId::TextShadow
-        )
-        % else:
-        false
-        % endif
-    }
 }
 
 /// An iterator over all the property ids that are enabled for a given
