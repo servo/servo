@@ -971,6 +971,16 @@ impl Handler {
         }
     }
 
+    fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let timeouts = TimeoutsParameters {
+            implicit: self.session.implicit_wait_timeout,
+            page_load: self.session.load_timeout,
+            script: self.session.script_timeout,
+        };
+        let timeouts = serde_json::to_value(timeouts)?;
+        Ok(WebDriverResponse::Generic(ValueResponse(timeouts)))
+    }
+
     fn handle_set_timeouts(
         &mut self,
         parameters: &TimeoutsParameters,
@@ -1261,6 +1271,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => match *extension {
