@@ -48,11 +48,7 @@ impl StyleSheetMethods for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
     fn GetOwnerNode(&self) -> Option<DomRoot<Element>> {
-        let owner = self.downcast::<CSSStyleSheet>().unwrap().get_owner();
-        match owner {
-            None => None,
-            Some(sheet) => Some(sheet),
-        }
+        self.downcast::<CSSStyleSheet>().unwrap().get_owner()
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-title

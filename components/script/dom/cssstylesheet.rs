@@ -79,10 +79,6 @@ impl CSSStyleSheet {
         self.owner.get()
     }
 
-    pub fn set_owner_none(&self) {
-        self.owner.set(None);
-    }
-
     pub fn set_disabled(&self, disabled: bool) {
         if self.style_stylesheet.set_disabled(disabled) {
             self.global()
@@ -90,6 +86,10 @@ impl CSSStyleSheet {
                 .Document()
                 .invalidate_stylesheets();
         }
+    }
+
+    pub fn set_owner(&self, value: Option<&Element>) {
+        self.owner.set(value);
     }
 
     pub fn shared_lock(&self) -> &SharedRwLock {
