@@ -54,19 +54,46 @@ impl XRStationaryReferenceSpace {
     /// Gets pose of the viewer with respect to this space
     ///
     /// Does not apply originOffset, use get_viewer_pose on XRReferenceSpace instead
-    pub fn get_unoffset_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
-        // XXXManishearth add floor-level transform for floor-level and disable position in position-disabled
-        XRSpace::viewer_pose_from_frame_data(base_pose)
+    pub fn get_unoffset_viewer_pose(&self, viewer_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
+        let viewer_pose = XRSpace::viewer_pose_from_frame_data(viewer_pose);
+        match self.ty {
+            XRStationaryReferenceSpaceSubtype::Eye_level => {
+                // we get viewer poses in eye-level space by default
+                viewer_pose
+            }
+            XRStationaryReferenceSpaceSubtype::Floor_level => {
+                // XXXManishearth support floor-level
+                viewer_pose
+            }
+            XRStationaryReferenceSpaceSubtype::Position_disabled => {
+                // This space follows the user around, but does not mirror the user's orientation
+                // Thus, the viewer's pose relative to this space is simply their orientation
+                viewer_pose.rotation.into()
+            }
+        }
+        
     }
 
     /// Gets pose represented by this space
     ///
     /// Does not apply originOffset, use get_pose on XRReferenceSpace instead
-    pub fn get_unoffset_pose(&self, _: &WebVRFrameData) -> RigidTransform3D<f64> {
+    pub fn get_unoffset_pose(&self, viewer_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         // XXXManishearth add floor-level transform for floor-level and disable position in position-disabled
-
-        // The eye-level pose is basically whatever the headset pose was at t=0, which
-        // for most devices is (0, 0, 0)
-        RigidTransform3D::identity()
+        match self.ty {
+            XRStationaryReferenceSpaceSubtype::Eye_level => {
+                // The eye-level pose is basically whatever the headset pose was at t=0, which
+                // for most devices is (0, 0, 0)
+                RigidTransform3D::identity()
+            }
+            XRStationaryReferenceSpaceSubtype::Floor_level => {
+                // XXXManishearth support floor-level
+                RigidTransform3D::identity()
+            }
+            XRStationaryReferenceSpaceSubtype::Position_disabled => {
+                // This space follows the user around, but does not mirror the user's orientation
+                let viewer_pose = XRSpace::viewer_pose_from_frame_data(viewer_pose);
+                viewer_pose.translation.into()
+            }
+        }
     }
 }
