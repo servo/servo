@@ -199,10 +199,133 @@
     pc.onnegotiationneeded = e => fired = true;
     pc.createDataChannel('test');
     const answer = await generateAnswer(offer);
-    await pc.setRemoteDescription(answer);
+    pc.setRemoteDescription(answer);
     assert_false(fired, "negotiationneeded should not fire until the next iteration of the event loop after returning to stable");
     await new Promise(resolve => pc.onnegotiationneeded = resolve);
-  }, 'negotiationneeded event should fire only after signaling state go back to stable');
+  }, 'negotiationneeded event should fire only after signaling state go back to stable after setRemoteDescription');
+
+  promise_test(async t => {
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+
+    callee.addTransceiver('audio');
+
+    const offer = await caller.createOffer();
+    let fired = false;
+    callee.onnegotiationneeded = e => fired = true;
+    await callee.setRemoteDescription(offer);
+    callee.createDataChannel('test');
+
+    const answer = await callee.createAnswer(offer);
+    callee.setLocalDescription(answer);
+    assert_false(fired, "negotiationneeded should not fire until the next iteration of the event loop after returning to stable");
+
+    await new Promise(resolve => callee.onnegotiationneeded = resolve);
+  }, 'negotiationneeded event should fire only after signaling state go back to stable after setLocalDescription');
+
+  /*
+    5.1.  RTCPeerConnection Interface Extensions
+
+      addTrack
+        10. Update the negotiation-needed flag for connection.
+  */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const stream = await getNoiseStream({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    pc.addTrack(track, stream);
+
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'addTrack should cause negotiationneeded to fire');
+
+  /*
+    5.1.  RTCPeerConnection Interface Extensions
+
+      removeTrack
+        12. Update the negotiation-needed flag for connection.
+  */
+  async_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const stream = await getNoiseStream({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const sender = pc.addTrack(track, stream);
+    pc.onnegotiationneeded = t.step_func(async () => {
+      pc.onnegotiationneeded = t.step_func(async () => {
+        assert_unreached('onnegotiationneeded misfired');
+      });
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const answer = await generateAnswer(offer);
+      await pc.setRemoteDescription(answer);
+
+      pc.removeTrack(sender);
+      await new Promise(resolve => pc.onnegotiationneeded = resolve)
+      t.done();
+    });
+  }, 'removeTrack should cause negotiationneeded to fire on the caller');
+
+  /*
+    5.1.  RTCPeerConnection Interface Extensions
+
+      removeTrack
+        12. Update the negotiation-needed flag for connection.
+  */
+  async_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    caller.addTransceiver('audio', {direction:'recvonly'});
+    const offer = await caller.createOffer();
+
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const stream = await getNoiseStream({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const sender = callee.addTrack(track, stream);
+
+    callee.onnegotiationneeded = t.step_func(async () => {
+      callee.onnegotiationneeded = t.step_func(async () => {
+        assert_unreached('onnegotiationneeded misfired');
+      });
+      await callee.setRemoteDescription(offer);
+      const answer = await callee.createAnswer(offer);
+      callee.setLocalDescription(answer);
+
+      callee.removeTrack(sender);
+      await new Promise(resolve => callee.onnegotiationneeded = resolve)
+      t.done();
+    });
+  }, 'removeTrack should cause negotiationneeded to fire on the callee');
+
+  /*
+    5.4.  RTCRtpTransceiver Interface
+
+      setDirection
+        7.  Update the negotiation-needed flag for connection.
+  */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+    transceiver.direction = 'recvonly';
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'Updating the direction of the transceiver should cause negotiationneeded to fire');
 
   /*
     TODO
@@ -243,18 +366,7 @@
       When the RTCPeerConnection() constructor is invoked
         7.  Let connection have a [[needNegotiation]] internal slot, initialized to false.
 
-    5.1.  RTCPeerConnection Interface Extensions
-
-      addTrack
-        10. Update the negotiation-needed flag for connection.
-
-      removeTrack
-        12. Update the negotiation-needed flag for connection.
-
     5.4.  RTCRtpTransceiver Interface
-
-      setDirection
-        7.  Update the negotiation-needed flag for connection.
 
       stop
         11. Update the negotiation-needed flag for connection.

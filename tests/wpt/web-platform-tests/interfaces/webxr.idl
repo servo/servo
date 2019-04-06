@@ -188,6 +188,13 @@ interface XRInputSource {
   readonly attribute XRTargetRayMode targetRayMode;
   readonly attribute XRSpace targetRaySpace;
   readonly attribute XRSpace? gripSpace;
+  readonly attribute Gamepad? gamepad;
+};
+
+enum GamepadMappingType {
+  "",            // Defined in the Gamepad API
+  "standard",    // Defined in the Gamepad API
+  "xr-standard",
 };
 
 [SecureContext, Exposed=Window] interface XRLayer {};
@@ -254,11 +261,13 @@ dictionary XRSessionEventInit : EventInit {
 interface XRInputSourceEvent : Event {
   readonly attribute XRFrame frame;
   readonly attribute XRInputSource inputSource;
+  readonly attribute long? buttonIndex;
 };
 
 dictionary XRInputSourceEventInit : EventInit {
   required XRFrame frame;
   required XRInputSource inputSource;
+  long? buttonIndex = null;
 };
 
 [SecureContext, Exposed=Window, Constructor(DOMString type, XRReferenceSpaceEventInit eventInitDict)]

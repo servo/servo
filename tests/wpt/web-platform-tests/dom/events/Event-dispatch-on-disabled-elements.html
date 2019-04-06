@@ -165,19 +165,30 @@ promise_test(async () => {
     const elem = document.createElement(localName);
     document.body.appendChild(elem);
     elem.disabled = true;
-    const eventPromises = [
-      "animationstart",
-      "animationiteration",
-      "animationend",
-    ].map(eventType => {
-      return new Promise(r => {
-        elem.addEventListener(eventType, r, { once: true });
+    const animationStartPromise = new Promise(r => {
+      elem.addEventListener("animationstart", () => {
+        // Seek to the second iteration to trigger the animationiteration event
+        elem.style.animationDelay = "-100s"
+        r();
       });
     });
-    elem.style.animation = "fade .1s 2";
+    const animationIterationPromise = new Promise(r => {
+      elem.addEventListener("animationiteration", ()=>{
+        elem.style.animationDelay = "-200s"
+        r();
+      });
+    });
+    const animationEndPromise = new Promise(r => {
+      elem.addEventListener("animationend", r);
+    });
+    elem.style.animation = "fade 100s 2";
     elem.classList.add("animate");
     // All the events fire...
-    await Promise.all(eventPromises);
+    await Promise.all([
+      animationStartPromise,
+      animationIterationPromise,
+      animationEndPromise,
+    ]);
     elem.remove();
   }
 }, "CSS Animation animationstart, animationiteration, animationend fire on disabled form elements");
