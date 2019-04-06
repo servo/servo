@@ -12,7 +12,7 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
+use euclid::{RigidTransform3D, Vector3D};
 use webvr_traits::WebVRFrameData;
 
 #[dom_struct]
@@ -62,8 +62,11 @@ impl XRStationaryReferenceSpace {
                 viewer_pose
             }
             XRStationaryReferenceSpaceSubtype::Floor_level => {
-                // XXXManishearth support floor-level
-                viewer_pose
+                // XXXManishearth support getting floor info from stage parameters
+
+                // assume approximate user height of 2 meters
+                let floor_to_eye: RigidTransform3D<f64> = Vector3D::new(0., 2., 0.).into();
+                floor_to_eye.pre_mul(&viewer_pose)
             }
             XRStationaryReferenceSpaceSubtype::Position_disabled => {
                 // This space follows the user around, but does not mirror the user's orientation
@@ -84,16 +87,19 @@ impl XRStationaryReferenceSpace {
                 // The eye-level pose is basically whatever the headset pose was at t=0, which
                 // for most devices is (0, 0, 0)
                 RigidTransform3D::identity()
-            }
+            },
             XRStationaryReferenceSpaceSubtype::Floor_level => {
-                // XXXManishearth support floor-level
-                RigidTransform3D::identity()
-            }
+                // XXXManishearth support getting floor info from stage parameters
+
+                // Assume approximate height of 2m
+                // the floor-level space is 2m below the eye-level space, which is (0, 0, 0)
+                Vector3D::new(0., -2., 0.).into()
+            },
             XRStationaryReferenceSpaceSubtype::Position_disabled => {
                 // This space follows the user around, but does not mirror the user's orientation
                 let viewer_pose = XRSpace::viewer_pose_from_frame_data(viewer_pose);
                 viewer_pose.translation.into()
-            }
+            },
         }
     }
 }
