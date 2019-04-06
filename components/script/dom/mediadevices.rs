@@ -44,8 +44,9 @@ impl MediaDevices {
 
 impl MediaDevicesMethods for MediaDevices {
     /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
+    #[allow(unsafe_code)]
     fn GetUserMedia(&self, constraints: &MediaStreamConstraints) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let media = ServoMedia::get().unwrap();
         let mut tracks = vec![];
         if let Some(constraints) = convert_constraints(&constraints.audio) {

@@ -277,8 +277,9 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
+    #[allow(unsafe_code)]
     fn WatchAdvertisements(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let sender = response_async(&p, self);
         // TODO: Step 1.
         // Note: Steps 2 - 3 are implemented in components/bluetooth/lib.rs in watch_advertisements function

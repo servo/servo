@@ -150,8 +150,9 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
+    #[allow(unsafe_code)]
     fn GetVRDisplays(&self) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let displays = self.Xr().get_displays();
         match displays {
             Ok(displays) => promise.resolve_native(&displays),

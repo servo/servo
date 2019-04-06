@@ -49,8 +49,9 @@ pub enum FetchedData {
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
+#[allow(unsafe_code)]
 pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyType) -> Rc<Promise> {
-    let promise = Promise::new(&object.global());
+    let promise = unsafe { Promise::new_in_current_compartment(&object.global()) };
 
     // Step 1
     if object.get_body_used() || object.is_locked() {

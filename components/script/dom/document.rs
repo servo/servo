@@ -3129,9 +3129,10 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+    #[allow(unsafe_code)]
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let mut error = false;
 
         // Step 4
@@ -3195,10 +3196,11 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#exit-fullscreen
+    #[allow(unsafe_code)]
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
-        let promise = Promise::new(&global);
+        let promise = unsafe { Promise::new_in_current_compartment(&global) };
         // Step 2
         if self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")));

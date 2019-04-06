@@ -87,6 +87,7 @@ impl Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
     // https://w3c.github.io/permissions/#dom-permissions-request
     // https://w3c.github.io/permissions/#dom-permissions-revoke
+    #[allow(unsafe_code)]
     fn manipulate(
         &self,
         op: Operation,
@@ -97,7 +98,7 @@ impl Permissions {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
-            None => Promise::new(&self.global()),
+            None => unsafe { Promise::new_in_current_compartment(&self.global()) },
         };
 
         // (Query, Request, Revoke) Step 1.
