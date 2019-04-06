@@ -1230,6 +1230,9 @@ where
                     }
                 }
             },
+            FromCompositorMsg::ExitFullScreen(top_level_browsing_context_id) => {
+                self.handle_exit_fullscreen_msg(top_level_browsing_context_id);
+            },
         }
     }
 
@@ -3664,6 +3667,15 @@ where
         self.window_size = new_size;
     }
 
+    /// Called when the window exits from fullscreen mode
+    fn handle_exit_fullscreen_msg(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) {
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        self.switch_fullscreen_mode(browsing_context_id);
+    }
+
     /// Handle updating actual viewport / zoom due to @viewport rules
     fn handle_viewport_constrained_msg(
         &mut self,
@@ -3897,6 +3909,25 @@ where
                     size_type,
                 ));
             }
+        }
+    }
+
+    // Handle switching from fullscreen mode
+    fn switch_fullscreen_mode(&mut self, browsing_context_id: BrowsingContextId) {
+        if let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) {
+            let pipeline_id = browsing_context.pipeline_id;
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                None => {
+                    return warn!(
+                        "Pipeline {:?} switched from fullscreen mode after closing.",
+                        pipeline_id
+                    )
+                },
+                Some(pipeline) => pipeline,
+            };
+            let _ = pipeline
+                .event_loop
+                .send(ConstellationControlMsg::ExitFullScreen(pipeline.id));
         }
     }
 

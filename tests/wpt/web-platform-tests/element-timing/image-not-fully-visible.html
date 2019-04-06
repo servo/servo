@@ -20,11 +20,12 @@ body {
         const index = window.location.href.lastIndexOf('/');
         const pathname = window.location.href.substring(0, index) +
             '/resources/square20.png';
-        checkElement(entry, pathname, 'not_fully_visible', beforeRender);
+        checkElement(entry, pathname, 'not_fully_visible', '', beforeRender);
         // Image will not be fully visible. It should start from the top left part
         // of the document, excluding the margin, and then overflow.
         checkRect(entry,
           [100, document.documentElement.clientWidth, 200, document.documentElement.clientHeight]);
+        checkNaturalSize(entry, 20, 20);
       })
     );
     observer.observe({entryTypes: ['element']});

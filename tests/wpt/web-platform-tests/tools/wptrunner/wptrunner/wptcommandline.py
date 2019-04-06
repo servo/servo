@@ -6,9 +6,9 @@ from collections import OrderedDict
 from distutils.spawn import find_executable
 from datetime import timedelta
 
-import config
-import wpttest
-from formatters import chromium, wptreport, wptscreenshot
+from . import config
+from . import wpttest
+from .formatters import chromium, wptreport, wptscreenshot
 
 def abs_path(path):
     return os.path.abspath(os.path.expanduser(path))

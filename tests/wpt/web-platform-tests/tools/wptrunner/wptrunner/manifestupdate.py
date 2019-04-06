@@ -1,7 +1,7 @@
 from __future__ import print_function
 import itertools
 import os
-import urlparse
+from six.moves.urllib.parse import urljoin
 from collections import namedtuple, defaultdict
 from math import ceil
 
@@ -114,8 +114,8 @@ class ExpectedManifest(ManifestItem):
 
     @property
     def url(self):
-        return urlparse.urljoin(self.url_base,
-                                "/".join(self.test_path.split(os.path.sep)))
+        return urljoin(self.url_base,
+                       "/".join(self.test_path.split(os.path.sep)))
 
     def set_lsan(self, run_info, result):
         """Set the result of the test in a particular run
@@ -195,7 +195,7 @@ class TestNode(ManifestItem):
     @property
     def id(self):
         """The id of the test represented by this TestNode"""
-        return urlparse.urljoin(self.parent.url, self.name)
+        return urljoin(self.parent.url, self.name)
 
     def disabled(self, run_info):
         """Boolean indicating whether this test is disabled when run in an

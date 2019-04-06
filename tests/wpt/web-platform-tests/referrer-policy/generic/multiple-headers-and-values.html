@@ -16,7 +16,7 @@
 
     <script>
       promise_test(() => {
-        var urlPath = '/referrer-policy/generic/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
+        var urlPath = '/common/security-features/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
         var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
                   urlPath;
         return requestViaImageForReferrerPolicy(url, null, 'no-referrer')

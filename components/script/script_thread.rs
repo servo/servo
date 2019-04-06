@@ -615,7 +615,7 @@ pub struct ScriptThread {
     microtask_queue: Rc<MicrotaskQueue>,
 
     /// Microtask Queue for adding support for mutation observer microtasks
-    mutation_observer_compound_microtask_queued: Cell<bool>,
+    mutation_observer_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
@@ -767,21 +767,17 @@ impl ScriptThread {
         })
     }
 
-    pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
+    pub fn set_mutation_observer_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .mutation_observer_compound_microtask_queued
-                .set(value);
+            script_thread.mutation_observer_microtask_queued.set(value);
         })
     }
 
-    pub fn is_mutation_observer_compound_microtask_queued() -> bool {
+    pub fn is_mutation_observer_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            return script_thread
-                .mutation_observer_compound_microtask_queued
-                .get();
+            return script_thread.mutation_observer_microtask_queued.get();
         })
     }
 
@@ -1145,7 +1141,7 @@ impl ScriptThread {
 
             microtask_queue: Default::default(),
 
-            mutation_observer_compound_microtask_queued: Default::default(),
+            mutation_observer_microtask_queued: Default::default(),
 
             mutation_observers: Default::default(),
 
@@ -1304,6 +1300,10 @@ impl ScriptThread {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
                     // Continue without adding it to "sequential".
                 },
+                FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
+                    .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
+                        self.handle_exit_fullscreen(id);
+                    }),
                 _ => {
                     sequential.push(event);
                 },
@@ -1500,6 +1500,7 @@ impl ScriptThread {
                     Reload(id, ..) => Some(id),
                     WebVREvents(id, ..) => Some(id),
                     PaintMetric(..) => None,
+                    ExitFullScreen(id, ..) => Some(id),
                 }
             },
             MixedMessage::FromDevtools(_) => None,
@@ -1731,6 +1732,7 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
+            msg @ ConstellationControlMsg::ExitFullScreen(..) |
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
@@ -1951,6 +1953,19 @@ impl ScriptThread {
             return;
         }
         warn!("resize sent to nonexistent pipeline");
+    }
+
+    // exit_fullscreen creates a new JS promise object, so we need to have entered a compartment
+    fn handle_exit_fullscreen(&self, id: PipelineId) {
+        let document = self.documents.borrow().find_document(id);
+        if let Some(document) = document {
+            let _ac = JSAutoCompartment::new(
+                document.global().get_cx(),
+                document.reflector().get_jsobject().get(),
+            );
+            document.exit_fullscreen();
+            return;
+        }
     }
 
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {

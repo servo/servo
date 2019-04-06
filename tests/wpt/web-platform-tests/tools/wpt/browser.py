@@ -101,7 +101,7 @@ class Firefox(Browser):
         product = {
             "nightly": "firefox-nightly-latest-ssl",
             "beta": "firefox-beta-latest-ssl",
-            "stable": "firefox-beta-latest-ssl"
+            "stable": "firefox-latest-ssl"
         }
 
         os_builds = {
@@ -267,7 +267,7 @@ class Firefox(Browser):
         if version:
             dest = os.path.join(dest, version)
         have_cache = False
-        if os.path.exists(dest):
+        if os.path.exists(dest) and len(os.listdir(dest)) > 0:
             if channel != "nightly":
                 have_cache = True
             else:

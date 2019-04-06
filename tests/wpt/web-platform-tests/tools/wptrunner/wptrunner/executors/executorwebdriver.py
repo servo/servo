@@ -356,6 +356,20 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
         while True:
             result = protocol.base.execute_script(
                 self.script_resume % format_map, async=True)
+
+            # As of 2019-03-29, WebDriver does not define expected behavior for
+            # cases where the browser crashes during script execution:
+            #
+            # https://github.com/w3c/webdriver/issues/1308
+            if not isinstance(result, list) or len(result) != 2:
+                try:
+                    is_alive = self.is_alive()
+                except client.WebDriverException:
+                    is_alive = False
+
+                if not is_alive:
+                    raise Exception("Browser crashed during script execution.")
+
             done, rv = handler(result)
             if done:
                 break

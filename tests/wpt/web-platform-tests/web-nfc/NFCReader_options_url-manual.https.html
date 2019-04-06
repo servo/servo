@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC Test: NFCReader NFCReaderOptions url test</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="flags" content="interact">
+
+<p>Tap an NFC tag to the test device with NFC support.</p>
+
+<p>Note: All the actions need to be done in 60 seconds, otherwise it will get TIMEOUT.</p>
+
+<div id="log"></div>
+
+<script>
+
+"use strict";
+
+setup({ explicit_timeout: true });
+
+promise_test(async t => {
+  const writer = new NFCWriter();
+  const reader1 = new NFCReader({url: `${location.origin}/custom/invalid`});
+  const reader2 = new NFCReader({url: `${location.origin}/custom/path`});
+  await writer.push({
+    url: "/custom/path/update",
+    records: [{ recordType: "text", data: "valid" }]
+  });
+
+  reader1.onreading = t.unreached_func("reading event should not be fired.");
+  reader1.start();
+
+  const readerWatcher = new EventWatcher(t, reader2, ["reading", "error"]);
+  reader2.start();
+  const event = await readerWatcher.wait_for("reading");
+  const message = event.message;
+  assert_equals(message.records[0].recordType, "text");
+  assert_equals(message.records[0].data, "valid");
+  assert_equals(message.url, `${location.origin}/custom/path/update`);
+}, "Test that the url of NFCReaderOptions filters relevant data sources correctly.");
+
+</script>

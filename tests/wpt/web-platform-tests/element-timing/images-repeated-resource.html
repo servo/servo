@@ -22,7 +22,8 @@ body {
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         entryList.getEntries().forEach(entry => {
-          checkElement(entry, pathname, entry.identifier, beforeRender);
+          checkElement(entry, pathname, entry.identifier, 'image_id', beforeRender);
+          checkNaturalSize(entry, 100, 100);
           if (entry.identifier === 'my_image') {
             ++numEntries;
             responseEnd1 = entry.responseEnd;
@@ -46,11 +47,13 @@ body {
       const img = document.createElement('img');
       img.src = 'resources/square100.png';
       img.setAttribute('elementtiming', 'my_image');
+      img.setAttribute('id', 'image_id');
       document.body.appendChild(img);
 
       const img2 = document.createElement('img');
       img2.src = 'resources/square100.png';
       img2.setAttribute('elementtiming', 'my_image2');
+      img2.setAttribute('id', 'image_id');
       document.body.appendChild(img2);
 
       beforeRender = performance.now();

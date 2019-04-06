@@ -1,11 +1,5 @@
 {
  "items": {
-  "conformancechecker": {
-   "mozilla/remove_video_iframe.html": []
-  },
-  "manual": {
-   "mozilla/remove_video_iframe.html": []
-  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -7331,7 +7325,6 @@
      {}
     ]
    ],
-   "mozilla/remove_video_iframe.html": [],
    "mozilla/reparse_style_elements.html": [
     [
      "mozilla/reparse_style_elements.html",
@@ -7633,11 +7626,7 @@
      ],
      {}
     ]
-   ],
-   "mozilla/remove_video_iframe.html": []
-  },
-  "stub": {
-   "mozilla/remove_video_iframe.html": []
+   ]
   },
   "support": {
    ".gitignore": [
@@ -10875,7 +10864,6 @@
      {}
     ]
    ],
-   "mozilla/remove_video_iframe.html": [],
    "mozilla/reparse_style_elements_ref.html": [
     [
      {}
@@ -13133,9 +13121,7 @@
    "mozilla/globals/entry.worker.js": [
     [
      "mozilla/globals/entry.worker.html",
-     {
-      "script_metadata": []
-     }
+     {}
     ]
    ],
    "mozilla/history.html": [
@@ -13315,9 +13301,7 @@
    "mozilla/interfaces.worker.js": [
     [
      "mozilla/interfaces.worker.html",
-     {
-      "script_metadata": []
-     }
+     {}
     ]
    ],
    "mozilla/invalid-this.html": [
@@ -13574,7 +13558,7 @@
    ],
    "mozilla/remove_video_iframe.html": [
     [
-     "/_mozilla/mozilla/remove_video_iframe.html",
+     "mozilla/remove_video_iframe.html",
      {}
     ]
    ],
@@ -13890,12 +13874,6 @@
      {}
     ]
    ]
-  },
-  "visual": {
-   "mozilla/remove_video_iframe.html": []
-  },
-  "wdspec": {
-   "mozilla/remove_video_iframe.html": []
   }
  },
  "paths": {
@@ -21057,5 +21035,5 @@
   ]
  },
  "url_base": "/_mozilla/",
- "version": 5
+ "version": 6
 }

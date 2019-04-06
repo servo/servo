@@ -1,5 +1,5 @@
 import os
-import urlparse
+from six.moves.urllib.parse import urljoin
 from collections import deque
 
 from wptmanifest.backends import static
@@ -236,8 +236,8 @@ class ExpectedManifest(ManifestItem):
 
     @property
     def url(self):
-        return urlparse.urljoin(self.url_base,
-                                "/".join(self.test_path.split(os.path.sep)))
+        return urljoin(self.url_base,
+                       "/".join(self.test_path.split(os.path.sep)))
 
     @property
     def disabled(self):
@@ -364,7 +364,7 @@ class TestNode(ManifestItem):
 
     @property
     def id(self):
-        return urlparse.urljoin(self.parent.url, self.name)
+        return urljoin(self.parent.url, self.name)
 
     @property
     def disabled(self):

@@ -21,43 +21,33 @@ function wrapResult(server_data) {
  * @return {object} Object wrapping the start method used to run the test.
  */
 function MixedContentTestCase(scenario, description, sanityChecker) {
-  var httpProtocol = "http";
-  var httpsProtocol = "https";
-  var wsProtocol = "ws";
-  var wssProtocol = "wss";
+  const subresourcePath = {
+    "a-tag": "/common/security-features/subresource/document.py",
+    "area-tag": "/common/security-features/subresource/document.py",
+    "beacon-request": "/common/security-features/subresource/empty.py",
+    "fetch-request": "/common/security-features/subresource/xhr.py",
+    "form-tag": "/common/security-features/subresource/empty.py",
+    "iframe-tag": "/common/security-features/subresource/document.py",
+    "img-tag": "/common/security-features/subresource/image.py",
+    "picture-tag": "/common/security-features/subresource/image.py",
+    "script-tag": "/common/security-features/subresource/script.py",
 
-  var sameOriginHost = location.hostname;
-  var crossOriginHost = "{{domains[www1]}}";
+    "worker-request": "/common/security-features/subresource/worker.py",
+    "module-worker-top-level": "/common/security-features/subresource/worker.py",
+    "module-data-worker-import": "/common/security-features/subresource/worker.py",
 
-  // These values can evaluate to either empty strings or a ":port" string.
-  var httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
-  var httpsPort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
-  var wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
-  var wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
+    "object-tag": "/common/security-features/subresource/empty.py",
 
-  var resourcePath = "/mixed-content/generic/expect.py";
-  var wsResourcePath = "/stash_responder";
+    "link-css-tag": "/common/security-features/subresource/empty.py",
+    "link-prefetch-tag": "/common/security-features/subresource/empty.py",
+    "classic-data-worker-fetch": "/common/security-features/subresource/empty.py",
 
-  // Map all endpoints to scenario for use in the test.
-  var endpoint = {
-    "same-origin":
-      location.origin + resourcePath,
-    "same-host-https":
-      httpsProtocol + "://" + sameOriginHost + httpsPort + resourcePath,
-    "same-host-http":
-      httpProtocol + "://" + sameOriginHost + httpPort + resourcePath,
-    "cross-origin-https":
-      httpsProtocol + "://" + crossOriginHost + httpsPort + resourcePath,
-    "cross-origin-http":
-      httpProtocol + "://" + crossOriginHost + httpPort + resourcePath,
-    "same-host-wss":
-      wssProtocol + "://" + sameOriginHost + wssPort + wsResourcePath,
-    "same-host-ws":
-      wsProtocol + "://" + sameOriginHost + wsPort + wsResourcePath,
-    "cross-origin-wss":
-      wssProtocol + "://" + crossOriginHost + wssPort + wsResourcePath,
-    "cross-origin-ws":
-      wsProtocol + "://" + crossOriginHost + wsPort + wsResourcePath
+    "xhr-request": "/common/security-features/subresource/xhr.py",
+
+    "audio-tag": "/common/security-features/subresource/audio.py",
+    "video-tag": "/common/security-features/subresource/video.py",
+
+    "websocket-request": "/stash_responder"
   };
 
   // Mapping all the resource requesting methods to the scenario.
@@ -88,43 +78,55 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "websocket-request": requestViaWebSocket
   };
 
-  // Mapping all expected MIME types to the scenario.
-  var contentType = {
-    "a-tag": "text/html",
-    "area-tag": "text/html",
-    "beacon-request": "text/plain",
-    "fetch-request": "application/json",
-    "form-tag": "text/html",
-    "iframe-tag": "text/html",
-    "img-tag":  "image/png",
-    "script-tag": "text/javascript",
-
-    "worker-request": "application/javascript",
-    "module-worker-top-level": "application/javascript",
-    "module-data-worker-import": "application/javascript",
-    "classic-data-worker-fetch": "application/javascript",
-
-    "xhr-request": "application/json",
-    "audio-tag": "audio/wav",
-    "video-tag": "video/ogg",
-    "picture-tag": "image/png",
-    "object-tag": "text/html",
-    "link-css-tag": "text/css",
-    "link-prefetch-tag": "text/html",
-    "websocket-request": "application/json"
-  };
-
   for (const workletType of ['animation', 'audio', 'layout', 'paint']) {
     resourceMap[`worklet-${workletType}-top-level`] =
       url => requestViaWorklet(workletType, url);
-    contentType[`worklet-${workletType}-top-level`] =
-      "application/javascript";
+    subresourcePath[`worklet-${workletType}-top-level`] =
+      "/common/security-features/subresource/worker.py";
 
     resourceMap[`worklet-${workletType}-data-import`] =
       url => requestViaWorklet(workletType, workerUrlThatImports(url));
-    contentType[`worklet-${workletType}-data-import`] =
-      "application/javascript";
+    subresourcePath[`worklet-${workletType}-data-import`] =
+      "/common/security-features/subresource/worker.py";
   }
+
+  var httpProtocol = "http";
+  var httpsProtocol = "https";
+  var wsProtocol = "ws";
+  var wssProtocol = "wss";
+
+  var sameOriginHost = location.hostname;
+  var crossOriginHost = "{{domains[www1]}}";
+
+  // These values can evaluate to either empty strings or a ":port" string.
+  var httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
+  var httpsPort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
+  var wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
+  var wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
+
+  const resourcePath = subresourcePath[scenario.subresource];
+
+  // Map all endpoints to scenario for use in the test.
+  var endpoint = {
+    "same-origin":
+      location.origin + resourcePath,
+    "same-host-https":
+      httpsProtocol + "://" + sameOriginHost + httpsPort + resourcePath,
+    "same-host-http":
+      httpProtocol + "://" + sameOriginHost + httpPort + resourcePath,
+    "cross-origin-https":
+      httpsProtocol + "://" + crossOriginHost + httpsPort + resourcePath,
+    "cross-origin-http":
+      httpProtocol + "://" + crossOriginHost + httpPort + resourcePath,
+    "same-host-wss":
+      wssProtocol + "://" + sameOriginHost + wssPort + resourcePath,
+    "same-host-ws":
+      wsProtocol + "://" + sameOriginHost + wsPort + resourcePath,
+    "cross-origin-wss":
+      wssProtocol + "://" + crossOriginHost + wssPort + resourcePath,
+    "cross-origin-ws":
+      wsProtocol + "://" + crossOriginHost + wsPort + resourcePath
+  };
 
   sanityChecker.checkScenario(scenario, resourceMap);
 
@@ -137,17 +139,14 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     var value = guid();
     // We use the same path for both HTTP/S and WS/S stash requests.
     var stash_path = encodeURIComponent("/mixed-content");
-    var announceResourceRequestUrl = endpoint['same-origin'] +
-                                     "?action=put&key=" + key +
-                                     "&value=" + value +
-                                     "&path=" + stash_path;
-    var assertResourceRequestUrl = endpoint['same-origin'] +
-                                  "?action=take&key=" + key +
-                                  "&path=" + stash_path;
-    var resourceRequestUrl = endpoint[scenario.origin] + "?redirection=" +
+    const stashEndpoint = "/common/security-features/subresource/xhr.py?key=" +
+                          key + "&path=" + stash_path;
+    const announceResourceRequestUrl = stashEndpoint + "&action=put&value=" +
+                                       value;
+    const assertResourceRequestUrl = stashEndpoint + "&action=take";
+    const resourceRequestUrl = endpoint[scenario.origin] + "?redirection=" +
                              scenario.redirection + "&action=purge&key=" + key +
-                             "&path=" + stash_path + "&content_type=" +
-                             contentType[scenario.subresource];
+                             "&path=" + stash_path;
 
     xhrRequest(announceResourceRequestUrl)
       .then(mixed_content_test.step_func(_ => {

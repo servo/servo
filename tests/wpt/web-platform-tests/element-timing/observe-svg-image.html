@@ -14,9 +14,10 @@ async_test(function (t) {
       const index = window.location.href.lastIndexOf('/');
       const pathname = window.location.href.substring(0, index) +
           '/resources/circle.svg';
-      checkElement(entry, pathname, 'my_svg', beforeRender);
+      checkElement(entry, pathname, 'my_svg', 'svg_id', beforeRender);
       // Assume viewport has size at least 200, so the element is fully visible.
       checkRect(entry, [0, 200, 0, 200]);
+      checkNaturalSize(entry, 200, 200);
     })
   );
   observer.observe({entryTypes: ['element']});
@@ -29,5 +30,5 @@ body {
 }
 </style>
 <svg width="300" height="300">
-  <image href='resources/circle.svg' elementtiming='my_svg'/>
+  <image href='resources/circle.svg' elementtiming='my_svg' id='svg_id'/>
 </svg>

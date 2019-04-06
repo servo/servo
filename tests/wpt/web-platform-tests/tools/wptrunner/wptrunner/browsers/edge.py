@@ -102,8 +102,8 @@ class EdgeBrowser(Browser):
 
 
 def run_info_extras(**kwargs):
-    osReleaseCommand = "(Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').ReleaseId"
-    osBuildCommand = "(Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').BuildLabEx"
+    osReleaseCommand = r"(Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').ReleaseId"
+    osBuildCommand = r"(Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').BuildLabEx"
     try:
         os_release = subprocess.check_output(["powershell.exe", osReleaseCommand]).strip()
         os_build = subprocess.check_output(["powershell.exe", osBuildCommand]).strip()

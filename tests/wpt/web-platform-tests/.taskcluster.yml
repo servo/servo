@@ -198,14 +198,22 @@ tasks:
         - name: lint
           description: >-
             Lint for wpt-specific requirements
-          script: ./tools/ci/run_tc.py --no-hosts lint tools/ci/ci_lint.sh
+          script: >-
+            ./tools/ci/run_tc.py \
+              --no-hosts \
+              lint \
+             ./wpt lint --all
           conditions:
             push
             pull-request
         - name: update built tests
           description: >-
             Ensure test suites that require a build step are updated
-          script: ./tools/ci/run_tc.py --no-hosts update_built tools/ci/ci_built_diff.sh
+          script: >-
+            ./tools/ci/run_tc.py \
+             --no-hosts \
+             update_built \
+             tools/ci/ci_built_diff.sh
           conditions:
             pull-request
         - name: tools/ unittests (Python 2)

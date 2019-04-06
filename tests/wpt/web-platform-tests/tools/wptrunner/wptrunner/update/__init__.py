@@ -4,7 +4,7 @@ from mozlog.structured import structuredlog, commandline
 
 from .. import wptcommandline
 
-from update import WPTUpdate
+from .update import WPTUpdate
 
 def remove_logging_args(args):
     """Take logging args out of the dictionary of command line arguments so

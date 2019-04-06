@@ -14,7 +14,7 @@ from ..item import URLManifestItem
     "a.b.serviceworker.c.d",
 ])
 def test_url_https(path):
-    m = URLManifestItem("/foobar", "/" + path, "/", "/foo.bar/" + path)
+    m = URLManifestItem("/foo", "bar/" + path, "/", "bar/" + path)
 
     assert m.https is True
 
@@ -36,6 +36,6 @@ def test_url_https(path):
     "a.serviceworkerb.c",
 ])
 def test_url_not_https(path):
-    m = URLManifestItem("/foobar", "/" + path, "/", "/foo.bar/" + path)
+    m = URLManifestItem("/foo", "bar/" + path, "/", "bar/" + path)
 
     assert m.https is False

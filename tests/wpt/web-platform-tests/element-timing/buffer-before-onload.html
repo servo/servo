@@ -18,6 +18,7 @@
     const img = document.createElement('img');
     img.src = 'resources/square20.jpg';
     img.setAttribute('elementtiming', 'my_image');
+    img.setAttribute('id', 'my_id');
     document.body.appendChild(img);
     window.onload = t.step_func_done( () => {
       const entries = performance.getEntriesByType('element');
@@ -27,7 +28,8 @@
       const index = window.location.href.lastIndexOf('/');
       const pathname = window.location.href.substring(0, index) +
           '/resources/square20.jpg';
-      checkElement(entry, pathname, 'my_image', beforeRender);
+      checkElement(entry, pathname, 'my_image', 'my_id', beforeRender);
+      checkNaturalSize(entry, 20, 20);
     });
   }, "Element Timing: image loads before onload.");
 

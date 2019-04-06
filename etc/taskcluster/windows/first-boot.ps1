@@ -71,6 +71,8 @@ Start-Process C:\generic-worker\generic-worker.exe -ArgumentList (
 # Start-Process C:\nssm-2.24\win64\nssm.exe -ArgumentList `
 #     "set", "servo-ping", "AppExit", "Default", "Exit"
 
+Expand-ZIPFile -File "C:\depends22_x86.zip" -Destination "C:\" `
+    -Url "http://www.dependencywalker.com/depends22_x86.zip"
 
 # Visual C++ Build Tools
 # https://blogs.msdn.microsoft.com/vcblog/2016/11/16/introducing-the-visual-studio-build-tools/

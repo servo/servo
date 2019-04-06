@@ -24,7 +24,8 @@
             img_src;
         // Since the image is only fully loaded after the sleep, the render timestamp
         // must be greater than |beforeRender| + |sleep|.
-        checkElement(entry, pathname, 'my_image', beforeRender + sleep);
+        checkElement(entry, pathname, 'my_image', '', beforeRender + sleep);
+        checkNaturalSize(entry, 20, 20);
       })
     );
     observer.observe({entryTypes: ['element']});

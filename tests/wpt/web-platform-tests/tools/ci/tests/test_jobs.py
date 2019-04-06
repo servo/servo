@@ -74,7 +74,7 @@ def test_wptrunner_unittest():
     assert jobs.get_jobs(["tools/wptrunner/wptrunner/wptrunner.py"],
                          includes=["wptrunner_unittest"]) == set(["wptrunner_unittest"])
     assert jobs.get_jobs(["tools/example.py"],
-                         includes=["wptrunner_unittest"]) == set()
+                         includes=["wptrunner_unittest"]) == set(["wptrunner_unittest"])
 
 
 def test_build_css():

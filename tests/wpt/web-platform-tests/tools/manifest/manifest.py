@@ -15,7 +15,7 @@ try:
 except ImportError:
     fast_json = json
 
-CURRENT_VERSION = 5
+CURRENT_VERSION = 6
 
 
 class ManifestError(Exception):
@@ -68,8 +68,8 @@ class TypeData(object):
             self.load(key)
         return self.data[key]
 
-    def __bool__(self):
-        return bool(self.data)
+    def __nonzero__(self):
+        return bool(self.data) or bool(self.json_data)
 
     def __len__(self):
         rv = len(self.data)
@@ -86,6 +86,10 @@ class TypeData(object):
             raise KeyError
 
     def __setitem__(self, key, value):
+        if self.json_data is not None:
+            path = from_os_path(key)
+            if path in self.json_data:
+                del self.json_data[path]
         self.data[key] = value
 
     def __contains__(self, key):

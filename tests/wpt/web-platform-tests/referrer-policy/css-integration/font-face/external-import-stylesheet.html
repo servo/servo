@@ -22,12 +22,12 @@
         let id = token();
         let css_url = location.protocol + "//www1." + location.hostname + ":" +
           location.port +
-          "/referrer-policy/generic/subresource/stylesheet.py?id=" + id +
+          "/common/security-features/subresource/stylesheet.py?id=" + id +
           "&import-rule" + "&type=font";
         let url_prefix = location.protocol + "//" + location.hostname + ":" + location.port;
         let css_referrer = url_prefix +
-          "/referrer-policy/generic/subresource/stylesheet.py?id=" + id + "&type=font";
-        let font_url = url_prefix + "/referrer-policy/generic/subresource/font.py" +
+          "/common/security-features/subresource/stylesheet.py?id=" + id + "&type=font";
+        let font_url = url_prefix + "/common/security-features/subresource/font.py" +
                        "?id=" + id + "&report-headers" + "&type=font";
 
         return new Promise(resolve => {

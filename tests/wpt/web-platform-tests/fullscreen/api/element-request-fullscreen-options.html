@@ -8,11 +8,14 @@
 // no normative requirements on what navigationUI should do, just test for
 // basic support. (One could also check that the three allowed enum valid are
 // supported and no others, but that would overlap with UA-specific tests.)
-test(() => {
+promise_test(() => {
   let invoked = false;
-  document.body.requestFullscreen({
+  return document.body.requestFullscreen({
     get navigationUI() { invoked = true; return "irrelevant-value"; }
+  }).then(() => {
+    assert_unreached("promise should be rejected due to invalid navigationUI value");
+  }, () => {
+    assert_true(invoked, "navigationUI getter invoked");
   });
-  assert_true(invoked, "navigationUI getter invoked");
 });
 </script>

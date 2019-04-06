@@ -1,6 +1,8 @@
+import pytest
+import sys
 import unittest
 
-from cStringIO import StringIO
+from six.moves import cStringIO as StringIO
 
 from .. import parser
 
@@ -8,6 +10,8 @@ from .. import parser
 # use test_serializer for the majority of cases
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="wptmanifest.parser doesn't support py3")
 class TestExpression(unittest.TestCase):
     def setUp(self):
         self.parser = parser.Parser()
