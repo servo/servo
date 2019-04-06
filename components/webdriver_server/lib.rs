@@ -50,7 +50,7 @@ use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{CookieResponse, CookiesResponse};
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
-use webdriver::response::{WebDriverResponse, WindowRectResponse};
+use webdriver::response::{TimeoutsResponse, WebDriverResponse, WindowRectResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
@@ -984,6 +984,21 @@ impl Handler {
         }
     }
 
+    fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
+
+        let timeouts = TimeoutsResponse {
+            script: session.script_timeout,
+            page_load: session.load_timeout,
+            implicit: session.implicit_wait_timeout,
+        };
+
+        Ok(WebDriverResponse::Timeouts(timeouts))
+    }
+
     fn handle_set_timeouts(
         &mut self,
         parameters: &TimeoutsParameters,
@@ -1278,6 +1293,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_element_send_keys(element, keys)
             },
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
+            WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => match *extension {
