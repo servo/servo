@@ -1872,7 +1872,7 @@ impl ScriptThread {
                     reply,
                 )
             },
-            WebDriverScriptCommand::FindElementElementsCSS(selector,element_id,reply) => {
+            WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css(
                     &*documents,
                     pipeline_id,
