@@ -226,11 +226,12 @@ pub fn handle_find_element_elements_css(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Option<String>, ()>>,
-){
-    let node_ids = find_node_by_unique_id(documents,pipeline,element_id)
+) {
+    let node_ids = find_node_by_unique_id(documents, pipeline, element_id)
         .ok_or(())
-        .and_then(|node|{
-            node.query_selector_all(DOMString::from(selector)).map_err(|_| ())
+        .and_then(|node| {
+            node.query_selector_all(DOMString::from(selector))
+                .map_err(|_| ())
         })
         .map(|nodes| {
             nodes
