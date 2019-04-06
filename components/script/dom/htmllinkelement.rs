@@ -115,7 +115,6 @@ impl HTMLLinkElement {
         *self.stylesheet.borrow_mut() = Some(s.clone());
         if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
             cssom_stylesheet.set_owner(None);
-
         }
         self.cssom_stylesheet.set(None);
         doc.add_stylesheet(self.upcast(), s);

@@ -111,6 +111,7 @@ impl CSSRuleList {
         let loader = owner
             .as_ref()
             .map(|owner| StylesheetLoader::for_element(owner.downcast::<HTMLElement>().unwrap()));
+
         let new_rule = css_rules.with_raw_offset_arc(|arc| {
             arc.insert_rule(
                 &parent_stylesheet.shared_lock,

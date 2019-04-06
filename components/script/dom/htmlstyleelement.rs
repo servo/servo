@@ -217,7 +217,9 @@ impl VirtualMethods for HTMLStyleElement {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);
         }
-
+        if let Some(cssom_stylesheet) = self.get_cssom_stylesheet() {
+            cssom_stylesheet.set_owner(None);
+        }
         if context.tree_in_doc {
             if let Some(s) = self.stylesheet.borrow_mut().take() {
                 if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
