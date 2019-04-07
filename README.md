@@ -76,6 +76,8 @@ export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
 ./mach build ...
 ```
 
+##### Note: Please make sure the required `PKG_CONFIG_PATH` environment variable is set the same as the one provided from `brew info libffi` ([Check this comment for more details](https://github.com/servo/servo/issues/23015#issuecomment-475050175)).
+
 If you've already partially compiled servo but forgot to do this step, run `./mach clean`, set the shell variables, and recompile.
 
 #### On Debian-based Linuxes
