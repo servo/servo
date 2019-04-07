@@ -143,7 +143,7 @@
         assert_header_equals(e.data, {
           "dest": "document",
           "site": "same-origin",
-          "user": "?T",
+          "user": "?1",
           "mode": "navigate",
         });
         t.done();
@@ -165,7 +165,7 @@
         assert_header_equals(e.data, {
           "dest": "document",
           "site": "same-site",
-          "user": "?T",
+          "user": "?1",
           "mode": "navigate",
         });
         t.done();
@@ -187,7 +187,7 @@
         assert_header_equals(e.data, {
           "dest": "document",
           "site": "cross-site",
-          "user": "?T",
+          "user": "?1",
           "mode": "navigate",
         });
         t.done();
