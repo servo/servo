@@ -23,8 +23,7 @@ paths = {"include_manifest": wpt_path("include.ini"),
          "config": wpt_path("config.ini"),
          "ca-cert-path": wpt_path("web-platform-tests/tools/certs/cacert.pem"),
          "host-key-path": wpt_path("web-platform-tests/tools/certs/web-platform.test.key"),
-         "host-cert-path": wpt_path("web-platform-tests/tools/certs/web-platform.test.pem"),
-        }
+         "host-cert-path": wpt_path("web-platform-tests/tools/certs/web-platform.test.pem")}
 # Imports
 sys.path.append(wpt_path("web-platform-tests", "tools"))
 import localpaths  # noqa: flake8
