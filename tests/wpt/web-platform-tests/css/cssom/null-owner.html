@@ -10,10 +10,10 @@
 <body>
   <script>
   	test(function() {
-    let styleElement = document.querySelector("style").sheet;
-    assert_equals(styleElement.sheet.ownerNode, styleElement);
-    sheet.ownerNode.remove();
-    assert_equals(sheet.ownerNode,null);
+      let sheet = document.querySelector("style").sheet;
+      assert_true(sheet.ownerNode instanceof HTMLStyleElement );
+      sheet.ownerNode.remove();
+      assert_equals(sheet.ownerNode,null);
     }, "ownerNode should be null after removing the stylesheet");
   </script>
 </body>
