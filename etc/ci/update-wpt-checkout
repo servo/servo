@@ -112,10 +112,16 @@ function unsafe_open_pull_request() {
 EOF
 
     # Open a pull request using the new branch.
-    curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
-         -H "Content-Type: application/json" \
-         --data @prdata.json \
-         https://api.github.com/repos/servo/servo/pulls || return 5
+    OPEN_PR_RESPONSE=$(curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
+                            -H "Content-Type: application/json" \
+                            --data @prdata.json \
+                            https://api.github.com/repos/servo/servo/pulls) || return 5
+
+    echo "${OPEN_PR_RESPONSE}" | \
+        jq '.review_comments_url' | \
+        sed 's/pulls/issues/' | \
+        xargs curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
+                   --data "{\"body\":\"@bors-servo r+\"}" || return 6
 }
 
 function pull_from_upstream() {
