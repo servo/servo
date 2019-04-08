@@ -21,6 +21,7 @@ use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
+use crate::dom::xrspace::XRSpace;
 use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use dom_struct::dom_struct;
 use std::rc::Rc;
@@ -82,9 +83,15 @@ impl XRSessionMethods for XRSession {
         )
     }
 
+    // https://immersive-web.github.io/webxr/#dom-xrsession-viewerspace
+    fn ViewerSpace(&self) -> DomRoot<XRSpace> {
+        XRSpace::new_viewerspace(&self.global(), &self)
+    }
+
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
+    #[allow(unsafe_code)]
     fn UpdateRenderState(&self, init: &XRRenderStateInit) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
         self.display.queue_renderstate(init, p.clone());
         p
     }
@@ -105,8 +112,9 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
+    #[allow(unsafe_code)]
     fn RequestReferenceSpace(&self, options: &XRReferenceSpaceOptions) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 

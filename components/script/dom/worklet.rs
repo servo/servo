@@ -110,9 +110,10 @@ impl Worklet {
 
 impl WorkletMethods for Worklet {
     /// <https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule>
+    #[allow(unsafe_code)]
     fn AddModule(&self, module_url: USVString, options: &WorkletOptions) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new(self.window.upcast());
+        let promise = unsafe { Promise::new_in_current_compartment(self.window.upcast()) };
 
         // Step 3.
         let module_url_record = match self.window.Document().base_url().join(&module_url.0) {

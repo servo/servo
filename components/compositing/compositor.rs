@@ -1206,22 +1206,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     &self.embedder_coordinates.framebuffer.to_untyped(),
                 );
 
-                self.window.gl().clear_color(0.0, 0.0, 0.0, 0.0);
-                self.window.gl().clear(gleam::gl::COLOR_BUFFER_BIT);
-                let viewport = self.embedder_coordinates.get_flipped_viewport();
-                self.window.gl().scissor(
-                    viewport.origin.x,
-                    viewport.origin.y,
-                    viewport.size.width,
-                    viewport.size.height,
-                );
-                self.window.gl().clear_color(1.0, 1.0, 1.0, 1.0);
-                self.window.gl().enable(gleam::gl::SCISSOR_TEST);
-                self.window.gl().clear(gleam::gl::COLOR_BUFFER_BIT);
-                self.window.gl().disable(gleam::gl::SCISSOR_TEST);
-
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
+                self.clear_background();
                 self.webrender.render(size).ok();
             },
         );
@@ -1326,6 +1313,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composition_request
             );
         }
+    }
+
+    fn clear_background(&self) {
+        let gl = self.window.gl();
+
+        // Make framebuffer fully transparent.
+        gl.clear_color(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+
+        // Make the viewport white.
+        let viewport = self.embedder_coordinates.get_flipped_viewport();
+        gl.scissor(
+            viewport.origin.x,
+            viewport.origin.y,
+            viewport.size.width,
+            viewport.size.height,
+        );
+        gl.clear_color(1.0, 1.0, 1.0, 1.0);
+        gl.enable(gleam::gl::SCISSOR_TEST);
+        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+        gl.disable(gleam::gl::SCISSOR_TEST);
     }
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {

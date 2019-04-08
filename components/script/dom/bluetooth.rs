@@ -278,6 +278,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+#[allow(unsafe_code)]
 pub fn get_gatt_children<T, F>(
     attribute: &T,
     single: bool,
@@ -291,7 +292,7 @@ where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
-    let p = Promise::new(&attribute.global());
+    let p = unsafe { Promise::new_in_current_compartment(&attribute.global()) };
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -530,8 +531,9 @@ impl From<BluetoothError> for Error {
 
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
+    #[allow(unsafe_code)]
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -548,8 +550,9 @@ impl BluetoothMethods for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
+    #[allow(unsafe_code)]
     fn GetAvailability(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);

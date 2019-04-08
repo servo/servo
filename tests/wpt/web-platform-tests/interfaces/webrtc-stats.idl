@@ -102,7 +102,10 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString senderId;
              DOMString remoteId;
              DOMHighResTimeStamp lastPacketSentTimestamp;
+             unsigned long long retransmittedPacketsSent;
+             unsigned long long retransmittedBytesSent;
              double targetBitrate;
+             unsigned long long totalEncodedBytesTarget;
              unsigned long framesEncoded;
              unsigned long long qpSum;
              double totalEncodeTime;

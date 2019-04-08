@@ -107,9 +107,10 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
+    #[allow(unsafe_code)]
     fn Suspend(&self) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
@@ -168,9 +169,10 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-close
+    #[allow(unsafe_code)]
     fn Close(&self) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {

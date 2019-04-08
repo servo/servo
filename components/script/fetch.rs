@@ -127,6 +127,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
+#[allow(unsafe_code)]
 pub fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
@@ -135,7 +136,7 @@ pub fn Fetch(
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new(global);
+    let promise = unsafe { Promise::new_in_current_compartment(global) };
     let response = Response::new(global);
 
     // Step 2

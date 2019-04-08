@@ -65,21 +65,21 @@
   create_test("{{host}}:{{ports[https][0]}}", USER, {
     "dest": "nested-document",
     "site": "same-origin",
-    "user": "?T",
+    "user": "?1",
     "mode": "nested-navigate"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", USER, {
     "dest": "nested-document",
     "site": "same-site",
-    "user": "?T",
+    "user": "?1",
     "mode": "nested-navigate"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", USER, {
     "dest": "nested-document",
     "site": "cross-site",
-    "user": "?T",
+    "user": "?1",
     "mode": "nested-navigate"
   });
 </script>

@@ -20,7 +20,10 @@ def servo_path(*args):
     return os.path.join(servo_root, *args)
 
 paths = {"include_manifest": wpt_path("include.ini"),
-         "config": wpt_path("config.ini")}
+         "config": wpt_path("config.ini"),
+         "ca-cert-path": wpt_path("web-platform-tests/tools/certs/cacert.pem"),
+         "host-key-path": wpt_path("web-platform-tests/tools/certs/web-platform.test.key"),
+         "host-cert-path": wpt_path("web-platform-tests/tools/certs/web-platform.test.pem")}
 # Imports
 sys.path.append(wpt_path("web-platform-tests", "tools"))
 import localpaths  # noqa: flake8
@@ -73,6 +76,18 @@ def set_defaults(kwargs):
 
     if kwargs["processes"] is None:
         kwargs["processes"] = multiprocessing.cpu_count()
+
+    if kwargs["ca_cert_path"] is None:
+        kwargs["ca_cert_path"] = paths["ca-cert-path"]
+
+    if kwargs["host_key_path"] is None:
+        kwargs["host_key_path"] = paths["host-key-path"]
+
+    if kwargs["host_cert_path"] is None:
+        kwargs["host_cert_path"] = paths["host-cert-path"]
+
+    if kwargs["ssl_type"] is None:
+        kwargs["ssl_type"] = "pregenerated"
 
     kwargs["user_stylesheets"].append(servo_path("resources", "ahem.css"))
 
