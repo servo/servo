@@ -92,7 +92,7 @@ use net_traits::{ReferrerPolicy, ResourceThreads};
 use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
-use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use profile_traits::time::{ProfilerChan as TimeProfilerChan, ProfilerMsg};
 use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
@@ -1563,9 +1563,9 @@ impl Window {
 
     pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
         if self.layout_is_busy.load(Ordering::Relaxed) {
-            // TODO(pylbrecht)
-            // send message to profiler that layout thread is busy
-            panic!("TODO(pylbrecht): layout thread is busy");
+            let url = self.get_url().into_string();
+            self.time_profiler_chan()
+                .send(ProfilerMsg::BlockedLayoutQuery(url));
         }
 
         self.reflow(

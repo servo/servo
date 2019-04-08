@@ -219,7 +219,7 @@ impl InProgressLoad {
         window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
-        layout_is_busy: Arc<AtomicBool>
+        layout_is_busy: Arc<AtomicBool>,
     ) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns();
