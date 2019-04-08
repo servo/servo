@@ -20,6 +20,7 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::properties::PropertyId;
@@ -226,4 +227,5 @@ pub struct LayoutThreadInit {
     pub image_cache: Arc<dyn ImageCache>,
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub paint_time_metrics: PaintTimeMetrics,
+    pub layout_is_busy: Arc<AtomicBool>,
 }

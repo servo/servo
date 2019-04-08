@@ -597,10 +597,8 @@ pub struct InitialScriptState {
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
     pub webrender_api_sender: RenderApiSender,
-    // TODO pylbrecht
-    // write meaningful docstring
-    ///
-    pub layout_thread_is_busy: Arc<AtomicBool>,
+    /// Flag to indicate if the layout thread is busy handling a request.
+    pub layout_is_busy: Arc<AtomicBool>,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`

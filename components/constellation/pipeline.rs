@@ -540,7 +540,7 @@ impl UnprivilegedPipelineContent {
                 webvr_chan: self.webvr_chan,
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),
-                layout_thread_is_busy: layout_thread_busy_flag.clone(),
+                layout_is_busy: layout_thread_busy_flag.clone(),
             },
             self.load_data.clone(),
         );

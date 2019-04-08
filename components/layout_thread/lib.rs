@@ -245,9 +245,7 @@ pub struct LayoutThread {
     /// The sizes of all iframes encountered during the last layout operation.
     last_iframe_sizes: RefCell<HashMap<BrowsingContextId, TypedSize2D<f32, CSSPixel>>>,
 
-    // TODO pylbrecht
-    // write meaningful doc string
-    ///
+    /// Flag that indicates if LayoutThread is busy handling a request.
     busy: Arc<AtomicBool>,
 }
 
@@ -662,7 +660,7 @@ impl LayoutThread {
         };
 
         self.busy.store(true, Ordering::Relaxed);
-        match request {
+        let result = match request {
             Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => self
                 .handle_request_helper(
                     Msg::SetScrollStates(new_scroll_states),
@@ -693,8 +691,9 @@ impl LayoutThread {
                     .unwrap();
                 true
             },
-        }
+        };
         self.busy.store(false, Ordering::Relaxed);
+        result
     }
 
     /// Receives and dispatches messages from other threads.
