@@ -143,7 +143,7 @@ impl HTMLStyleElement {
             doc.remove_stylesheet(self.upcast(), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
-        if let Some(cssom_stylesheet) = self.get_cssom_stylesheet() {
+        if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
             cssom_stylesheet.set_owner(None);
         }
         self.cssom_stylesheet.set(None);
@@ -216,11 +216,12 @@ impl VirtualMethods for HTMLStyleElement {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);
         }
-        if let Some(cssom_stylesheet) = self.get_cssom_stylesheet() {
-            cssom_stylesheet.set_owner(None);
-        }
+
         if context.tree_in_doc {
             if let Some(s) = self.stylesheet.borrow_mut().take() {
+                if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
+                    cssom_stylesheet.set_owner(None);
+                }
                 document_from_node(self).remove_stylesheet(self.upcast(), &s)
             }
         }
