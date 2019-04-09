@@ -75,8 +75,15 @@ impl Drop for RuleTree {
 #[cfg(feature = "gecko")]
 impl MallocSizeOf for RuleTree {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = unsafe { ops.malloc_size_of(self.root.ptr()) };
-        n += self.root.get().size_of(ops);
+        let mut n = 0;
+        let mut stack = SmallVec::<[_; 32]>::new();
+        stack.push(self.root.downgrade());
+
+        while let Some(node) = stack.pop() {
+            n += unsafe { ops.malloc_size_of(node.ptr()) };
+            stack.extend(unsafe { (*node.ptr()).iter_children() });
+        }
+
         n
     }
 }
@@ -944,18 +951,6 @@ impl RuleNode {
                 Some(WeakRuleNode::from_ptr(first_child))
             },
         }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl MallocSizeOf for RuleNode {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = 0;
-        for child in self.iter_children() {
-            n += unsafe { ops.malloc_size_of(child.ptr()) };
-            n += unsafe { (*child.ptr()).size_of(ops) };
-        }
-        n
     }
 }
 
