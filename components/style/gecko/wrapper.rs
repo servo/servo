@@ -1423,16 +1423,6 @@ impl<'le> TElement for GeckoElement<'le> {
         )
     }
 
-    #[inline]
-    unsafe fn clear_dirty_bits(&self) {
-        self.unset_flags(
-            ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                NODE_DESCENDANTS_NEED_FRAMES as u32 |
-                NODE_NEEDS_FRAME as u32,
-        )
-    }
-
     fn is_visited_link(&self) -> bool {
         self.state().intersects(ElementState::IN_VISITED_STATE)
     }
