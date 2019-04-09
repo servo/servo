@@ -167,8 +167,12 @@ impl DocumentLoader {
             .blocking_loads
             .iter()
             .position(|unfinished| *unfinished == *load);
-        self.blocking_loads
-            .remove(idx.unwrap_or_else(|| panic!("unknown completed load {:?}", load)));
+        match idx {
+            Some(i) => {
+                self.blocking_loads.remove(i);
+            },
+            None => warn!("unknown completed load {:?}", load),
+        }
     }
 
     pub fn is_blocked(&self) -> bool {
