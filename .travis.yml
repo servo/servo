@@ -18,9 +18,9 @@ matrix:
       dist: xenial
       before_install:
         - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-        - sudo add-apt-repository 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.9 main' -y
+        - sudo add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.9 main' -y
         - sudo apt-get update -q
-        - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime libunwind8-dev -y
+        - sudo apt-get install clang-3.9 llvm-3.9-dev llvm-3.9-runtime libunwind8-dev -y
         - pip install virtualenv
         - curl -L http://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-1.14-x86_64-linux-gnu.20190213.tar.gz | tar xz
         - sed -i "s;prefix=/opt/gst;prefix=$PWD/gst;g" $PWD/gst/lib/pkgconfig/*.pc
@@ -29,7 +29,7 @@ matrix:
         - export GST_PLUGIN_SCANNER=$PWD/gst/libexec/gstreamer-1.0/gst-plugin-scanner
         - export PATH=$PATH:$PWD/gst/bin
         - export LD_LIBRARY_PATH=$PWD/gst/lib:$LD_LIBRARY_PATH
-        - export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
+        - export LLVM_CONFIG=llvm-config-3.9
         - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
         - source ~/.profile
       script:
