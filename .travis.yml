@@ -66,6 +66,7 @@ matrix:
             - g++-6
             - gperf
             - libosmesa6-dev
+            - libglu1-mesa-dev
             - libgles2-mesa-dev
             - python-virtualenv
             - xorg-dev
