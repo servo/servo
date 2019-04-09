@@ -119,7 +119,6 @@ impl CSSRuleList {
                 &parent_stylesheet.contents,
                 index,
                 nested,
-                // 3.
                 loader.as_ref().map(|l| l as &StyleStylesheetLoader),
             )
         })?;

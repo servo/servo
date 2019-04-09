@@ -9,11 +9,11 @@
 </head>
 <body>
   <script>
-  	test(function() {
+    test(function() {
       let sheet = document.querySelector("style").sheet;
-      assert_true(sheet.ownerNode instanceof HTMLStyleElement );
+      assert_true(sheet.ownerNode instanceof HTMLStyleElement, "ownerNode should be an instance of HTMLStyleElement");
       sheet.ownerNode.remove();
-      assert_equals(sheet.ownerNode,null);
-    }, "ownerNode should be null after removing the stylesheet");
+      assert_equals(sheet.ownerNode, null, "ownerNode should be null after removing the styleSheet");
+    }, "ownerNode should be cleared out before removing the styleSheet");
   </script>
 </body>
