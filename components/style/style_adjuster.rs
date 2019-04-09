@@ -740,9 +740,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if self.style.pseudo.is_some() {
             return;
         }
-        // Note that we map <li value=INTEGER> to 'counter-set: list-item INTEGER;
-        // counter-increment: list-item 0;' so we'll return here unless the author
-        // explicitly specified something else.
+
         let increments = self.style.get_counters().clone_counter_increment();
         if increments.iter().any(|i| i.name.0 == atom!("list-item")) {
             return;
