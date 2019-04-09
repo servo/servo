@@ -30,6 +30,21 @@ pub fn derive_to_value(
     // to this token stream, which should be the body of the impl block.
     non_generic_implementation: impl FnOnce() -> Option<TokenStream>,
 ) -> TokenStream {
+    let name = &input.ident;
+
+    if input.generics.type_params().next().is_none() {
+        if let Some(non_generic_implementation) = non_generic_implementation() {
+            let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+            return quote! {
+                impl #impl_generics #trait_path for #name #ty_generics
+                #where_clause
+                {
+                    #non_generic_implementation
+                }
+            };
+        }
+    }
+
     let mut where_clause = input.generics.where_clause.take();
     cg::propagate_clauses_to_output_type(
         &mut where_clause,
@@ -73,20 +88,7 @@ pub fn derive_to_value(
     };
 
     input.generics.where_clause = where_clause;
-    let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    if input.generics.type_params().next().is_none() {
-        if let Some(non_generic_implementation) = non_generic_implementation() {
-            return quote! {
-                impl #impl_generics #trait_path for #name #ty_generics
-                #where_clause
-                {
-                    #non_generic_implementation
-                }
-            };
-        }
-    }
-
     let computed_value_type = cg::fmap_trait_output(
         &input,
         &trait_path,
