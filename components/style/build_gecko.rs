@@ -339,8 +339,6 @@ mod bindings {
     }
 
     fn setup_logging() -> bool {
-        use log;
-
         struct BuildLogger {
             file: Option<Mutex<fs::File>>,
             filter: String,
