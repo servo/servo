@@ -60,20 +60,17 @@ class Image:
 
 def encode_string_as_bmp_image(string_data):
     data_bytes = array.array("B", string_data)
+
     num_bytes = len(data_bytes)
 
-    # Convert data bytes to color data (RGB).
+    # Encode data bytes to color data (RGB), one bit per channel.
+    # This is to avoid errors due to different color spaces used in decoding.
     color_data = []
-    num_components = 3
-    rgb = [0] * num_components
-    i = 0
     for byte in data_bytes:
-        component_index = i % num_components
-        rgb[component_index] = byte
-        if component_index == (num_components - 1) or i == (num_bytes - 1):
-            color_data.append(tuple(rgb))
-            rgb = [0] * num_components
-        i += 1
+        p = [int(x) * 255 for x in '{0:08b}'.format(byte)]
+        color_data.append((p[0], p[1], p[2]))
+        color_data.append((p[3], p[4], p[5]))
+        color_data.append((p[6], p[7], 0))
 
     # Render image.
     num_pixels = len(color_data)

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/feature-policy/resources/featurepolicy.js"></script>
+  <title>Test oversized-images policy in subframe</title>
+</head>
+<body>
+  <!-- The sample image has an intrinsic image size of 200x200px -->
+  <img width="200" height="200">
+  <img width="100" height="200">
+  <img width="50" height="200">
+
+  <script>
+    const policy_name = "oversized-images";
+    const params = new URLSearchParams(document.location.search);
+    const frame_name = params.get('name');
+    const expected_report_count = +params.get('n');
+    var num_received_reports = 0;
+
+    const images = document.querySelectorAll('img');
+    const total_images = images.length;
+    var images_loaded = 0;
+
+    const notifyIfDone = () => {
+        if (num_received_reports >= expected_report_count &&
+            images_loaded == total_images) {
+            parent.postMessage({
+                "type": "finished",
+                "name": frame_name
+            },"*");
+        }
+    };
+
+    images.forEach(image => {
+        image.addEventListener('load', () => { images_loaded++; notifyIfDone(); });
+        image.src = "sample-1.png";
+    });
+
+    new ReportingObserver((reports, observer) => {
+        const relevant_reports = reports.filter(r => (r.body.featureId === policy_name));
+        num_received_reports += relevant_reports.length;
+        notifyIfDone();
+    }, {types: ['feature-policy-violation'], buffered: true}).observe();
+  </script>
+
+</body>
+</html>

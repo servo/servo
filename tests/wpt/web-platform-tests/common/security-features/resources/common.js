@@ -263,25 +263,43 @@ function extractImageData(img) {
 }
 
 function decodeImageData(rgba) {
-  var rgb = new Uint8ClampedArray(rgba.length);
+  let decodedBytes = new Uint8ClampedArray(rgba.length);
+  let decodedLength = 0;
 
-  // RGBA -> RGB.
-  var rgb_length = 0;
-  for (var i = 0; i < rgba.length; ++i) {
-    // Skip alpha component.
-    if (i % 4 == 3)
-      continue;
+  for (var i = 0; i + 12 <= rgba.length; i += 12) {
+    // A single byte is encoded in three pixels. 8 pixel octets (among
+    // 9 octets = 3 pixels * 3 channels) are used to encode 8 bits,
+    // the most significant bit first, where `0` and `255` in pixel values
+    // represent `0` and `1` in bits, respectively.
+    // This encoding is used to avoid errors due to different color spaces.
+    const bits = [];
+    for (let j = 0; j < 3; ++j) {
+      bits.push(rgba[i + j * 4 + 0]);
+      bits.push(rgba[i + j * 4 + 1]);
+      bits.push(rgba[i + j * 4 + 2]);
+      // rgba[i + j * 4 + 3]: Skip alpha channel.
+    }
+    // The last one element is not used.
+    bits.pop();
+
+    // Decode a single byte.
+    let byte = 0;
+    for (let j = 0; j < 8; ++j) {
+      byte <<= 1;
+      if (bits[j] >= 128)
+        byte |= 1;
+    }
 
     // Zero is the string terminator.
-    if (rgba[i] == 0)
+    if (byte == 0)
       break;
 
-    rgb[rgb_length++] = rgba[i];
+    decodedBytes[decodedLength++] = byte;
   }
 
   // Remove trailing nulls from data.
-  rgb = rgb.subarray(0, rgb_length);
-  var string_data = (new TextDecoder("ascii")).decode(rgb);
+  decodedBytes = decodedBytes.subarray(0, decodedLength);
+  var string_data = (new TextDecoder("ascii")).decode(decodedBytes);
 
   return JSON.parse(string_data);
 }

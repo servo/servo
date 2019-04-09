@@ -60,7 +60,7 @@
     };
  */
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -72,7 +72,7 @@ test((t) => {
   6.2.  createDataChannel
     2.  If connection's [[isClosed]] slot is true, throw an InvalidStateError.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   pc.close();
   assert_equals(pc.signalingState, 'closed', 'signaling state');
@@ -128,7 +128,7 @@ test((t) => {
       [...] When a RTCDataChannel object is created, the binaryType attribute MUST
       be initialized to the string "blob".
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -151,14 +151,14 @@ test((t) => {
   assert_equals(dc.binaryType, 'blob');
 }, 'createDataChannel attribute default values');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
   const dc = pc.createDataChannel('test', {
     ordered: false,
-    maxPacketLifeTime: null,
     maxRetransmits: 1,
+    // Note: maxPacketLifeTime is not set in this test.
     protocol: 'custom',
     negotiated: true,
     id: 3,
@@ -178,6 +178,14 @@ test((t) => {
   assert_equals(dc.bufferedAmount, 0);
   assert_equals(dc.bufferedAmountLowThreshold, 0);
   assert_equals(dc.binaryType, 'blob');
+
+  const dc2 = pc.createDataChannel('test2', {
+    ordered: false,
+    maxPacketLifeTime: 42
+  });
+  assert_equals(dc2.label, 'test2');
+  assert_equals(dc2.maxPacketLifeTime, 42);
+  assert_equals(dc.maxRetransmits, null);
 }, 'createDataChannel with provided parameters should initialize attributes to provided values');
 
 /*
@@ -198,7 +206,7 @@ const labels = [
   ['lone surrogate', '\uD800', '\uFFFD'],
 ];
 for (const [description, label, expected] of labels) {
-  test((t) => {
+  test(t => {
     const pc = new RTCPeerConnection;
     t.add_cleanup(() => pc.close());
 
@@ -213,7 +221,7 @@ for (const [description, label, expected] of labels) {
       11. Let channel have an [[Ordered]] internal slot initialized to option's
           ordered member.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -223,7 +231,7 @@ test((t) => {
 
 // true as the default value of a boolean is confusing because null is converted
 // to false while undefined is converted to true.
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -239,7 +247,7 @@ test((t) => {
       7.  Let channel have an [[MaxPacketLifeTime]] internal slot initialized to
           option's maxPacketLifeTime member, if present, otherwise null.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection;
   t.add_cleanup(() => pc.close());
 
@@ -253,7 +261,7 @@ test((t) => {
       10. Let channel have an [[MaxRetransmits]] internal slot initialized to
           option's maxRetransmits member, if present, otherwise null.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection;
   t.add_cleanup(() => pc.close());
 
@@ -266,17 +274,17 @@ test((t) => {
     18. If both [[MaxPacketLifeTime]] and [[MaxRetransmits]] attributes are set (not null),
         throw a TypeError.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection;
   t.add_cleanup(() => pc.close());
 
   pc.createDataChannel('', {
-    maxPacketLifeTime: null,
-    maxRetransmits: null
+    maxPacketLifeTime: undefined,
+    maxRetransmits: undefined
   });
-}, 'createDataChannel with both maxPacketLifeTime and maxRetransmits null should succeed');
+}, 'createDataChannel with both maxPacketLifeTime and maxRetransmits undefined should succeed');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection;
   t.add_cleanup(() => pc.close());
 
@@ -303,7 +311,7 @@ const protocols = [
   ['lone surrogate', '\uD800', '\uFFFD'],
 ];
 for (const [description, protocol, expected] of protocols) {
-  test((t) => {
+  test(t => {
     const pc = new RTCPeerConnection;
     t.add_cleanup(() => pc.close());
 
@@ -319,21 +327,22 @@ for (const [description, protocol, expected] of protocols) {
           ID of 65534 but still qualifies as an unsigned short, throw a TypeError.
  */
 for (const id of [0, 1, 65534]) {
-  test((t) => {
+  test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const dc = pc.createDataChannel('', { id });
+    const dc = pc.createDataChannel('', { 'negotiated': true, 'id': id });
     assert_equals(dc.id, id);
   }, `createDataChannel with id ${id} should succeed`);
 }
 
 for (const id of [-1, 65535, 65536]) {
-  test((t) => {
+  test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    assert_throws(new TypeError(), () => pc.createDataChannel('', { id }));
+    assert_throws(new TypeError(), () => pc.createDataChannel('',
+        { 'negotiated': true, 'id': id }));
   }, `createDataChannel with id ${id} should throw TypeError`);
 }
 
@@ -343,7 +352,7 @@ for (const id of [-1, 65535, 65536]) {
       17. Let channel have an [[DataChannelPriority]] internal slot initialized to option's
           priority member.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -351,7 +360,7 @@ test((t) => {
   assert_equals(dc.priority, 'high');
 }, 'createDataChannel with priority "high" should succeed');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -363,7 +372,7 @@ test((t) => {
   6.2.  createDataChannel
     5.  If [[DataChannelLabel]] is longer than 65535 bytes, throw a TypeError.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -377,7 +386,7 @@ test((t) => {
     }));
 }, 'createDataChannel with too long label should throw TypeError');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -411,13 +420,14 @@ test(t => {
     13. If [[DataChannelProtocol]] is longer than 65535 bytes long, throw a TypeError.
  */
 
-test(() => {
+test(t => {
   const pc = new RTCPeerConnection;
-  const channel = pc.createDataChannel('', { negotiated: true });
+  t.add_cleanup(() => pc.close());
+  const channel = pc.createDataChannel('', { negotiated: true, id: 42 });
   assert_equals(channel.negotiated, true);
-}, 'createDataChannel with negotiated true should succeed');
+}, 'createDataChannel with negotiated true and id should succeed');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -434,7 +444,7 @@ test((t) => {
     }));
 }, 'createDataChannel with too long protocol should throw TypeError');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -451,7 +461,7 @@ test((t) => {
     }));
 }, 'createDataChannel with too long protocol (2 byte unicode) should throw TypeError');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -476,7 +486,7 @@ test((t) => {
         is intentional. Data channels negotiated in-band should have IDs selected based on the
         DTLS role, as specified in [RTCWEB-DATA-PROTOCOL].
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection;
   t.add_cleanup(() => pc.close());
 
@@ -486,7 +496,7 @@ test((t) => {
   assert_equals(dc.negotiated, false, 'Expect dc.negotiated to be false');
 }, 'createDataChannel with negotiated false should succeed');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection;
   t.add_cleanup(() => pc.close());
 
@@ -502,7 +512,7 @@ test((t) => {
   6.2.  createDataChannel
     16. If [[Negotiated]] is true and [[DataChannelId]] is null, throw a TypeError.
  */
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -511,17 +521,6 @@ test((t) => {
       negotiated: true
     }));
 }, 'createDataChannel with negotiated true and id not defined should throw TypeError');
-
-test((t) => {
-  const pc = new RTCPeerConnection();
-  t.add_cleanup(() => pc.close());
-
-  assert_throws(new TypeError(), () =>
-    pc.createDataChannel('test', {
-      negotiated: true,
-      id: null
-    }));
-}, 'createDataChannel with negotiated true and id null should throw TypeError');
 
 /*
   4.4.1.6.  Set the RTCSessionSessionDescription
@@ -544,7 +543,7 @@ test((t) => {
         If the [[DataChannelId]] slot is null after this step, it will be populated once
         the DTLS role is determined during the process of setting an RTCSessionDescription.
  */
-promise_test(async (t) => {
+promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -597,7 +596,7 @@ promise_test(async (t) => {
     'Expect negotiatedDc.id to be 42 after remote description has been set');
 }, 'Channels created (after setRemoteDescription) should have id assigned');
 
-test((t) => {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
@@ -625,7 +624,7 @@ test((t) => {
 
 // We've seen implementations behaving differently before and after the connection has been
 // established.
-promise_test(async (t) => {
+promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -660,7 +659,7 @@ promise_test(async (t) => {
 }, 'Reusing a data channel id that is in use (after setRemoteDescription) should throw ' +
    'OperationError');
 
-promise_test(async (t) => {
+promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -685,7 +684,7 @@ promise_test(async (t) => {
   'should throw OperationError');
 
 // Based on https://bugzilla.mozilla.org/show_bug.cgi?id=1441723
-promise_test(async (t) => {
+promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
