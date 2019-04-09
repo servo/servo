@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    promise_test(async () => {
+      let waitForMessage = new Promise((resolve, reject) => {
+        var bc = new BroadcastChannel("portals-create-orphaned");
+        bc.onmessage = e => {
+          bc.close();
+          resolve(e.data);
+        }
+      });
+      window.open("resources/portal-create-orphaned.html");
+      let message = await waitForMessage;
+      assert_equals(message, "portal loaded");
+    }, "creating a portal from an orphaned portal should succeed");
+  </script>
+</body>

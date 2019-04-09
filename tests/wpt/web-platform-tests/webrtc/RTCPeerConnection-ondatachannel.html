@@ -355,7 +355,8 @@ promise_test(async (t) => {
   pc2.ondatachannel = t.unreached_func('datachannel event should not be fired');
 
   pc1.createDataChannel('test', {
-    negotiated: true
+    negotiated: true,
+    id: 42
   });
 
   exchangeIceCandidates(pc1, pc2);

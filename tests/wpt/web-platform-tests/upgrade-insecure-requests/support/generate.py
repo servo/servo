@@ -33,8 +33,8 @@ for name, resourceType in [
   ('layout-worklet', 'WORKLET'), ('paint-worklet', 'WORKLET'),
   ('worker', 'WORKER'),
   ('module-worker', 'WORKER'),
-  ('worker-subresource-xhr', 'IMAGE'),
-  ('worker-subresource-fetch', 'IMAGE')]:
+  ('worker-subresource-xhr', 'FETCH'),
+  ('worker-subresource-fetch', 'FETCH')]:
   sameOriginOnly = 'true' if resourceType == 'WORKER' else 'false'
   types = [('', 'generateTests'), ('-redirect', 'generateRedirectTests')]
   if name == 'module-worker' or resourceType == 'WORKLET':
