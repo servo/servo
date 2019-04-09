@@ -31,7 +31,6 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use profile_traits::ipc as ProfiledIpc;
-use script_layout_interface::message::ReflowGoal;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason,
@@ -336,9 +335,9 @@ impl HTMLIFrameElement {
             LoadBlocker::terminate(&mut blocker);
         }
 
+        let doc = document_from_node(self);
+        doc.mark_reflow_reason(ReflowReason::FramedContentChanged);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        let window = window_from_node(self);
-        window.reflow(ReflowGoal::Full, ReflowReason::FramedContentChanged);
     }
 
     fn new_inherited(
@@ -412,15 +411,14 @@ impl HTMLIFrameElement {
         // TODO Step 3 - set child document  `mut iframe load` flag
 
         // Step 4
+        let doc = document_from_node(self);
+        doc.mark_reflow_reason(ReflowReason::IFrameLoadEvent);
         self.upcast::<EventTarget>().fire_event(atom!("load"));
 
         let mut blocker = self.load_blocker.borrow_mut();
         LoadBlocker::terminate(&mut blocker);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
-
-        let window = window_from_node(self);
-        window.reflow(ReflowGoal::Full, ReflowReason::IFrameLoadEvent);
     }
 }
 

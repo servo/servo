@@ -1373,26 +1373,16 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
 
-        // Issue batched reflows on any pages that require it (e.g. if images loaded)
-        // TODO(gw): In the future we could probably batch other types of reflows
-        // into this loop too, but for now it's only images.
-        debug!("Issuing batched reflows.");
+        debug!("Reflowing all known documents.");
         for (_, document) in self.documents.borrow().iter() {
             // Step 13
             if !document.is_fully_active() {
                 continue;
             }
             let window = document.window();
-            let pending_reflows = window.get_pending_reflow_count();
-            if pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::ImageLoaded);
-            } else {
-                // Reflow currently happens when explicitly invoked by code that
-                // knows the document could have been modified. This should really
-                // be driven by the compositor on an as-needed basis instead, to
-                // minimize unnecessary work.
-                window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
-            }
+            // TODO: This should really be driven by the compositor on an as-needed basis
+            // instead of running on every turn of the event loop, to minimize unnecessary work.
+            window.reflow(ReflowGoal::Full);
         }
 
         true
@@ -1972,7 +1962,7 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             if document.window().set_page_clip_rect_with_new_viewport(rect) {
-                self.rebuild_and_force_reflow(&document, ReflowReason::Viewport);
+                document.dirty_all_nodes(ReflowReason::Viewport);
             }
             return;
         }
@@ -2621,7 +2611,7 @@ impl ScriptThread {
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            self.rebuild_and_force_reflow(&document, ReflowReason::WebFontLoaded);
+            document.dirty_all_nodes(ReflowReason::WebFontLoaded);
         }
     }
 
@@ -2629,7 +2619,7 @@ impl ScriptThread {
     fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            self.rebuild_and_force_reflow(&document, ReflowReason::WorkletLoaded);
+            document.dirty_all_nodes(ReflowReason::WorkletLoaded);
         }
     }
 
@@ -3025,13 +3015,6 @@ impl ScriptThread {
             ))
             .unwrap();
         }
-    }
-
-    /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
-    fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
-        let window = window_from_node(&*document);
-        document.dirty_all_nodes();
-        window.reflow(ReflowGoal::Full, reason);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.

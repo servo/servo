@@ -140,7 +140,7 @@ enum WindowState {
 }
 
 /// Extra information concerning the reason for reflowing.
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
     RefreshTick,
@@ -438,7 +438,7 @@ impl Window {
                 nodes.remove();
             },
         }
-        self.add_pending_reflow();
+        self.add_pending_reflow(ReflowReason::ImageLoaded);
     }
 
     pub fn get_webrender_api_sender(&self) -> RenderApiSender {
@@ -1498,8 +1498,12 @@ impl Window {
     /// that layout might hold if the first layout hasn't happened yet (which
     /// may happen in the only case a query reflow may bail out, that is, if the
     /// viewport size is not present). See #11223 for an example of that.
-    pub fn reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
-        self.Document().ensure_safe_to_run_script_or_layout();
+    pub fn reflow(&self, reflow_goal: ReflowGoal) -> bool {
+        let doc = self.Document();
+        doc.ensure_safe_to_run_script_or_layout();
+        let reason = doc
+            .reset_reflow_reason()
+            .unwrap_or(ReflowReason::MissingExplicitReflow);
         let for_display = reflow_goal == ReflowGoal::Full;
 
         let mut issued_reflow = false;
@@ -1558,10 +1562,8 @@ impl Window {
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
-        self.reflow(
-            ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()),
-            ReflowReason::Query,
-        )
+        self.Document().mark_reflow_reason(ReflowReason::Query);
+        self.reflow(ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()))
     }
 
     pub fn layout(&self) -> &dyn LayoutRPC {
@@ -1789,8 +1791,8 @@ impl Window {
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
+        self.Document().mark_reflow_reason(ReflowReason::Timer);
         self.upcast::<GlobalScope>().fire_timer(timer_id);
-        self.reflow(ReflowGoal::Full, ReflowReason::Timer);
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
@@ -1817,7 +1819,8 @@ impl Window {
         self.pending_reflow_count.get()
     }
 
-    pub fn add_pending_reflow(&self) {
+    pub fn add_pending_reflow(&self, reason: ReflowReason) {
+        self.Document().mark_reflow_reason(reason);
         self.pending_reflow_count
             .set(self.pending_reflow_count.get() + 1);
     }
@@ -2134,6 +2137,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
     debug_msg.push_str(match *reflow_goal {
         ReflowGoal::Full => "\tFull",
         ReflowGoal::TickAnimations => "\tTickAnimations",
+        ReflowGoal::AnimationFrame => "\tAnimationFrame",
         ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
             &QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
             &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",

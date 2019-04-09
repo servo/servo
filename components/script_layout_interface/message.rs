@@ -133,6 +133,7 @@ pub enum QueryMsg {
 #[derive(Debug, PartialEq)]
 pub enum ReflowGoal {
     Full,
+    AnimationFrame,
     TickAnimations,
     LayoutQuery(QueryMsg, u64),
 }
@@ -143,6 +144,7 @@ impl ReflowGoal {
     pub fn needs_display_list(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations => true,
+            ReflowGoal::AnimationFrame => false,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
                 QueryMsg::NodesFromPointQuery(..) |
                 QueryMsg::TextIndexQuery(..) |
@@ -164,6 +166,7 @@ impl ReflowGoal {
     pub fn needs_display(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations => true,
+            ReflowGoal::AnimationFrame => false,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
                 QueryMsg::NodesFromPointQuery(..) |
                 QueryMsg::TextIndexQuery(..) |

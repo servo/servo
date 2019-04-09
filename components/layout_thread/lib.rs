@@ -1229,7 +1229,8 @@ impl LayoutThread {
                             rw_data.element_inner_text_response = String::new();
                         },
                     },
-                    ReflowGoal::Full | ReflowGoal::TickAnimations => {},
+                    ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::AnimationFrame => {
+                    },
                 }
                 return;
             },
@@ -1570,7 +1571,7 @@ impl LayoutThread {
                         process_element_inner_text_query(node, &rw_data.indexable_text);
                 },
             },
-            ReflowGoal::Full | ReflowGoal::TickAnimations => {},
+            ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::AnimationFrame => {},
         }
     }
 

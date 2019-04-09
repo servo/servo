@@ -9,9 +9,8 @@ use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::window_from_node;
+use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::window::ReflowReason;
-use script_layout_interface::message::ReflowGoal;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {
@@ -36,15 +35,15 @@ pub trait Activatable {
     fn enter_formal_activation_state(&self) {
         self.as_element().set_active_state(true);
 
-        let win = window_from_node(self.as_element());
-        win.reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
+        let doc = document_from_node(self.as_element());
+        doc.mark_reflow_reason(ReflowReason::ElementStateChanged);
     }
 
     fn exit_formal_activation_state(&self) {
         self.as_element().set_active_state(false);
 
-        let win = window_from_node(self.as_element());
-        win.reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
+        let doc = document_from_node(self.as_element());
+        doc.mark_reflow_reason(ReflowReason::ElementStateChanged);
     }
 }
 
