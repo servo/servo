@@ -49,3 +49,11 @@ partial interface Performance {
 partial interface Performance {
   PerformanceNavigationTiming timing();
 };
+// https://w3c.github.io/navigation-timing/#extensions-to-the-performance-interface
+[Exposed=Window]
+partial interface Performance {
+  // [SameObject]
+  // readonly attribute PerformanceTiming timing;
+  [SameObject]
+  readonly attribute PerformanceNavigation navigation;
+};

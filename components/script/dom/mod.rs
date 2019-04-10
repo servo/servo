@@ -425,6 +425,7 @@ pub mod performance;
 pub mod performanceentry;
 pub mod performancemark;
 pub mod performancemeasure;
+pub mod performancenavigation;
 pub mod performancenavigationtiming;
 pub mod performanceobserver;
 pub mod performanceobserverentrylist;
