@@ -30,6 +30,9 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
+use crate::dom::element::{
+    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+};
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -64,7 +67,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
-use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder};
+use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
@@ -707,7 +710,6 @@ impl HTMLMediaElement {
             return;
         }
 
-        // FIXME(nox): Handle CORS setting from crossorigin attribute.
         let document = document_from_node(self);
         let destination = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
@@ -728,6 +730,11 @@ impl HTMLMediaElement {
             .headers(headers)
             .destination(destination)
             .credentials_mode(CredentialsMode::Include)
+            // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+            .mode(match cors_setting_for_element(self.upcast::<Element>()) {
+                Some(_) => RequestMode::CorsMode,
+                None => RequestMode::NoCors,
+            })
             .use_url_credentials(true)
             .origin(document.origin().immutable().clone())
             .pipeline_id(Some(self.global().pipeline_id()))
@@ -1613,6 +1620,15 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_setter!(SetSrc, "src");
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        reflect_cross_origin_attribute(self.upcast::<Element>())
+    }
+    // https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-muted
     fn Muted(&self) -> bool {
