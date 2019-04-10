@@ -39,7 +39,7 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use to_shmem::impl_trivial_to_shmem;
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use crate::values::generics::text::LineHeight;
-use crate::values::computed;
+use crate::values::{computed, resolved};
 use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
 use crate::rule_tree::StrongRuleNode;
@@ -2812,19 +2812,19 @@ impl ComputedValues {
     where
         W: Write,
     {
+        use crate::values::resolved::ToResolvedValue;
+
+        let context = resolved::Context {
+            style: self,
+        };
+
         // TODO(emilio): Is it worth to merge branches here just like
         // PropertyDeclaration::to_css does?
-        //
-        // We'd need to get a concept of ~resolved value, which may not be worth
-        // it.
         match property_id {
             % for prop in data.longhands:
             LonghandId::${prop.camel_case} => {
                 let value = self.clone_${prop.ident}();
-                % if prop.predefined_type == "Color":
-                let value = self.resolve_color(value);
-                % endif
-                value.to_css(dest)
+                value.to_resolved_value(&context).to_css(dest)
             }
             % endfor
         }
