@@ -84,6 +84,20 @@ mac-rel-intermittent:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
+xenial:
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+    CC: gcc-5
+    CXX: g++-5
+  commands:
+    - ./mach clean-nightlies --keep 3 --force
+    - ./mach clean-cargo-cache --keep 3 --force
+    - ./etc/ci/clean_build_artifacts.sh
+    - ./mach build --release --with-debug-assertions -p servo
+    - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log /url
+    - ./etc/ci/clean_build_artifacts.sh
+
 linux-rel-wpt:
   env:
     CCACHE: sccache
