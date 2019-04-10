@@ -8,6 +8,9 @@
 use cssparser;
 use smallvec::SmallVec;
 use crate::properties::ComputedValues;
+
+mod color;
+
 use crate::values::computed;
 
 /// Information needed to resolve a given value.
@@ -185,24 +188,5 @@ where
     #[inline]
     fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
         Vec::from_resolved_value(Vec::from(resolved)).into_boxed_slice()
-    }
-}
-
-
-/// A resolved color value is an rgba color, with currentcolor resolved.
-pub type Color = cssparser::RGBA;
-
-impl ToResolvedValue for computed::Color {
-    type ResolvedValue = Color;
-
-    #[inline]
-    fn to_resolved_value(self, context: &Context) -> Self::ResolvedValue {
-        context.style.resolve_color(self)
-    }
-
-    #[inline]
-    fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
-        use crate::values::generics::color::Color as GenericColor;
-        GenericColor::Numeric(resolved)
     }
 }

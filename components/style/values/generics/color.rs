@@ -99,7 +99,6 @@ impl<RGBA> From<RGBA> for Color<RGBA> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
-    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C, u8)]
