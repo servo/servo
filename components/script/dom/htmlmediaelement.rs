@@ -29,6 +29,9 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
+use crate::dom::element::{
+    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+};
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -64,6 +67,8 @@ use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
+use net_traits::request::CorsSettings;
+use net_traits::request::RequestMode;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
@@ -694,7 +699,6 @@ impl HTMLMediaElement {
             return;
         }
 
-        // FIXME(nox): Handle CORS setting from crossorigin attribute.
         let document = document_from_node(self);
         let destination = match self.media_type_id() {
             HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
@@ -710,16 +714,25 @@ impl HTMLMediaElement {
             Some(url) => url.clone(),
             None => self.blob_url.borrow().as_ref().unwrap().clone(),
         };
+        let element = self.upcast::<Element>();
+        let cors_setting = cors_setting_for_element(element);
         let request = RequestInit {
             url: url.clone(),
             headers,
             destination,
-            credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
             origin: document.origin().immutable().clone(),
             pipeline_id: Some(self.global().pipeline_id()),
             referrer_url: Some(document.url()),
             referrer_policy: document.get_referrer_policy(),
+            mode: match cors_setting {
+                Some(_) => RequestMode::CorsMode,
+                None => RequestMode::NoCors,
+            },
+            credentials_mode: match cors_setting {
+                Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+                _ => CredentialsMode::Include,
+            },
             ..RequestInit::default()
         };
 
@@ -1557,6 +1570,15 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_bool_getter!(Autoplay, "autoplay");
     // https://html.spec.whatwg.org/multipage/#dom-media-autoplay
     make_bool_setter!(SetAutoplay, "autoplay");
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        reflect_cross_origin_attribute(self.upcast::<Element>())
+    }
+    // https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
     make_bool_getter!(DefaultMuted, "muted");
