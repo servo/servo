@@ -19,6 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancemark::PerformanceMark;
 use crate::dom::performancemeasure::PerformanceMeasure;
+use crate::dom::performancenavigation::PerformanceNavigation;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::window::Window;
@@ -370,6 +371,11 @@ impl PerformanceMethods for Performance {
             );
         }
         unreachable!("Are we trying to expose Performance.timing in workers?");
+    }
+
+    // https://w3c.github.io/navigation-timing/#dom-performance-navigation
+    fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
+        PerformanceNavigation::new(&self.global())
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
