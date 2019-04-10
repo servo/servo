@@ -75,7 +75,7 @@ impl ToComputedValue for specified::Length {
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, ToAnimatedZero, ToResolvedValue)]
 #[repr(C)]
 pub struct LengthPercentage {
     length: Length,
@@ -608,6 +608,7 @@ impl Size {
     PartialOrd,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C)]
@@ -804,6 +805,7 @@ pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, No
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(u8)]

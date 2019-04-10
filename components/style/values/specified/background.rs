@@ -47,6 +47,7 @@ impl Parse for BackgroundSize {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[allow(missing_docs)]
@@ -63,7 +64,7 @@ pub enum BackgroundRepeatKeyword {
 /// axes.
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
 pub struct BackgroundRepeat(pub BackgroundRepeatKeyword, pub BackgroundRepeatKeyword);
 
 impl BackgroundRepeat {

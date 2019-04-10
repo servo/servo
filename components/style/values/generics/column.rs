@@ -19,6 +19,7 @@
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum ColumnCount<PositiveInteger> {

@@ -26,6 +26,7 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 pub struct SVGPathData(Box<[PathCommand]>);

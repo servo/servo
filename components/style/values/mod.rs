@@ -28,6 +28,7 @@ pub mod animated;
 pub mod computed;
 pub mod distance;
 pub mod generics;
+pub mod resolved;
 pub mod specified;
 
 /// A CSS float value.
@@ -96,7 +97,7 @@ where
 /// Convenience void type to disable some properties and values through types.
 #[cfg_attr(feature = "servo", derive(Deserialize, MallocSizeOf, Serialize))]
 #[derive(
-    Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss,
+    Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss, ToResolvedValue,
 )]
 pub enum Impossible {}
 
@@ -134,6 +135,7 @@ impl Parse for Impossible {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum Either<A, B> {
@@ -154,7 +156,7 @@ impl<A: Debug, B: Debug> Debug for Either<A, B> {
 
 /// <https://drafts.csswg.org/css-values-4/#custom-idents>
 #[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToShmem,
+    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 pub struct CustomIdent(pub Atom);
 
@@ -192,7 +194,7 @@ impl ToCss for CustomIdent {
 }
 
 /// <https://drafts.csswg.org/css-animations/#typedef-keyframes-name>
-#[derive(Clone, Debug, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
 pub enum KeyframesName {
     /// <custom-ident>
     Ident(CustomIdent),

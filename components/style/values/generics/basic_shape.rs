@@ -31,6 +31,7 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum GeometryBox {
@@ -59,6 +60,7 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum ShapeBox {
@@ -81,6 +83,7 @@ pub enum ShapeBox {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
@@ -107,6 +110,7 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
@@ -141,6 +145,7 @@ pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
@@ -163,6 +168,7 @@ pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 pub struct Circle<H, V, NonNegativeLengthPercentage> {
@@ -184,6 +190,7 @@ pub struct Circle<H, V, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
@@ -206,6 +213,7 @@ pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum ShapeRadius<NonNegativeLengthPercentage> {
@@ -229,6 +237,7 @@ pub enum ShapeRadius<NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub struct Polygon<LengthPercentage> {
@@ -250,6 +259,7 @@ pub struct Polygon<LengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercentage);
@@ -272,6 +282,7 @@ pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercen
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(u8)]
@@ -294,6 +305,7 @@ pub enum FillRule {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub struct Path {

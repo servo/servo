@@ -49,6 +49,7 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
     PartialEq,
     SpecifiedValueInfo,
     ToCss,
+    ToResolvedValue,
 )]
 #[repr(u8)]
 /// A computed value for the `float` property.
@@ -118,6 +119,7 @@ impl ToComputedValue for SpecifiedFloat {
     PartialEq,
     SpecifiedValueInfo,
     ToCss,
+    ToResolvedValue,
 )]
 /// A computed value for the `clear` property.
 pub enum Clear {
@@ -178,7 +180,7 @@ impl ToComputedValue for SpecifiedClear {
 /// A computed value for the `resize` property.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss, ToResolvedValue)]
 #[repr(u8)]
 pub enum Resize {
     None,

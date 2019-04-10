@@ -18,6 +18,7 @@
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C)]
@@ -54,6 +55,7 @@ impl<H, V> Position<H, V> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C, u8)]

@@ -20,6 +20,7 @@ use style_traits::{CssWriter, ToCss};
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 pub enum BorderImageSideWidth<LengthPercentage, Number> {
@@ -41,6 +42,7 @@ pub enum BorderImageSideWidth<LengthPercentage, Number> {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C)]
@@ -69,6 +71,7 @@ pub use self::GenericBorderImageSlice as BorderImageSlice;
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C)]
@@ -107,6 +110,7 @@ impl<L: Zero> Zero for BorderCornerRadius<L> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(transparent)]
@@ -133,6 +137,7 @@ impl<L> BorderSpacing<L> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C)]

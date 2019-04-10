@@ -14,7 +14,7 @@ use style_traits::{CssWriter, ToCss};
 
 /// A computed angle in degrees.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Add, Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToAnimatedZero)]
+#[derive(Add, Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToAnimatedZero, ToResolvedValue)]
 pub struct Angle(CSSFloat);
 
 impl ToCss for Angle {

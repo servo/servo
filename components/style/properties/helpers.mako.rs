@@ -128,8 +128,15 @@
             % if separator == "Comma":
             #[css(comma)]
             % endif
-            #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
-                     ToCss)]
+            #[derive(
+                Clone,
+                Debug,
+                MallocSizeOf,
+                PartialEq,
+                ToAnimatedValue,
+                ToResolvedValue,
+                ToCss,
+            )]
             pub struct List<T>(
                 % if not allow_empty:
                 #[css(iterable)]
@@ -425,8 +432,20 @@
 
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse,
-                     PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                Eq,
+                Hash,
+                MallocSizeOf,
+                Parse,
+                PartialEq,
+                SpecifiedValueInfo,
+                ToCss,
+                ToResolvedValue,
+                ToShmem,
+            )]
             pub enum T {
             % for value in keyword.values_for(product):
                 ${to_camel_case(value)},
@@ -588,8 +607,18 @@
         </%def>
         % if extra_specified:
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-                     SpecifiedValueInfo, ToCss, ToShmem)]
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                Eq,
+                MallocSizeOf,
+                Parse,
+                PartialEq,
+                SpecifiedValueInfo,
+                ToCss,
+                ToShmem,
+            )]
             pub enum SpecifiedValue {
                 ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
             }
@@ -598,7 +627,7 @@
         % endif
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
             % if not extra_specified:
             #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
             % endif

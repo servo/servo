@@ -80,6 +80,7 @@ macro_rules! define_keyword_type {
             ToAnimatedZero,
             ToComputedValue,
             ToCss,
+            ToResolvedValue,
             ToShmem,
         )]
         pub struct $name;

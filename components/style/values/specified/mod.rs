@@ -709,7 +709,7 @@ impl AllowQuirks {
 ///
 /// `[namespace? `|`]? ident`
 #[derive(
-    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 #[css(function)]
 pub struct Attr {

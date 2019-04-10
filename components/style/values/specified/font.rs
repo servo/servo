@@ -995,7 +995,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem)]
 /// Set of variant alternates
 pub enum VariantAlternates {
     /// Enables display of stylistic alternates
@@ -1020,7 +1020,7 @@ pub enum VariantAlternates {
     HistoricalForms,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem)]
 /// List of Variant Alternates
 pub struct VariantAlternatesList(
     #[css(if_empty = "normal", iterable)] pub Box<[VariantAlternates]>,
@@ -1188,7 +1188,7 @@ macro_rules! impl_variant_east_asian {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf, ToShmem)]
+            #[derive(MallocSizeOf, ToShmem, ToResolvedValue)]
             /// Vairants for east asian variant
             pub struct VariantEastAsian: u16 {
                 /// None of the features
@@ -1395,7 +1395,7 @@ macro_rules! impl_variant_ligatures {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf, ToShmem)]
+            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
             /// Variants of ligatures
             pub struct VariantLigatures: u16 {
                 /// Specifies that common default features are enabled
@@ -1617,7 +1617,7 @@ macro_rules! impl_variant_numeric {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf, ToShmem)]
+            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
             /// Vairants of numeric values
             pub struct VariantNumeric: u8 {
                 /// None of other variants are enabled.
@@ -1858,7 +1858,7 @@ impl Parse for FontFeatureSettings {
 }
 
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToShmem,
+    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces
@@ -2158,6 +2158,7 @@ impl Parse for VariationValue<Number> {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 /// text-zoom. Enable if true, disable if false
@@ -2177,7 +2178,7 @@ impl Parse for XTextZoom {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 /// Internal property that reflects the lang attribute
 pub struct XLang(#[css(skip)] pub Atom);
@@ -2266,7 +2267,7 @@ impl Parse for MozScriptLevel {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
 /// Specifies the multiplier to be used to adjust font size
 /// due to changes in scriptlevel.
 ///
