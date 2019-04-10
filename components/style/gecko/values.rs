@@ -18,7 +18,7 @@ use crate::values::generics::gecko::ScrollSnapPoint;
 use crate::values::generics::grid::{TrackBreadth, TrackKeyword};
 use crate::values::generics::length::LengthPercentageOrAuto;
 use crate::values::generics::{CounterStyleOrNone, NonNegative};
-use crate::values::{Auto, Either, None_, Normal};
+use crate::values::Either;
 use crate::{Atom, Zero};
 use app_units::Au;
 use cssparser::RGBA;
@@ -41,23 +41,6 @@ impl nsStyleCoord {
     /// Set this `nsStyleCoord` value to `val`.
     pub fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T) {
         val.to_gecko_style_coord(self);
-    }
-}
-
-impl<A: GeckoStyleCoordConvertible, B: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible
-    for Either<A, B>
-{
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        match *self {
-            Either::First(ref v) => v.to_gecko_style_coord(coord),
-            Either::Second(ref v) => v.to_gecko_style_coord(coord),
-        }
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        A::from_gecko_style_coord(coord)
-            .map(Either::First)
-            .or_else(|| B::from_gecko_style_coord(coord).map(Either::Second))
     }
 }
 
@@ -261,48 +244,6 @@ impl GeckoStyleCoordConvertible for Angle {
         match coord.as_value() {
             CoordDataValue::Degree(val) => Some(Angle::from_degrees(val)),
             _ => None,
-        }
-    }
-}
-
-impl GeckoStyleCoordConvertible for Auto {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        coord.set_value(CoordDataValue::Auto)
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        if let CoordDataValue::Auto = coord.as_value() {
-            Some(Auto)
-        } else {
-            None
-        }
-    }
-}
-
-impl GeckoStyleCoordConvertible for None_ {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        coord.set_value(CoordDataValue::None)
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        if let CoordDataValue::None = coord.as_value() {
-            Some(None_)
-        } else {
-            None
-        }
-    }
-}
-
-impl GeckoStyleCoordConvertible for Normal {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        coord.set_value(CoordDataValue::Normal)
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        if let CoordDataValue::Normal = coord.as_value() {
-            Some(Normal)
-        } else {
-            None
         }
     }
 }

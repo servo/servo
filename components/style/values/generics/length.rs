@@ -219,3 +219,38 @@ impl<L, N: Zero> Zero for LengthOrNumber<L, N> {
         }
     }
 }
+
+/// A generic `<length-percentage>` | normal` value.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+#[allow(missing_docs)]
+pub enum GenericLengthPercentageOrNormal<LengthPercent> {
+    LengthPercentage(LengthPercent),
+    Normal,
+}
+
+pub use self::GenericLengthPercentageOrNormal as LengthPercentageOrNormal;
+
+impl<LengthPercent> LengthPercentageOrNormal<LengthPercent> {
+    /// Returns the normal value.
+    #[inline]
+    pub fn normal() -> Self {
+        LengthPercentageOrNormal::Normal
+    }
+}

@@ -39,7 +39,6 @@ pub type CSSInteger = i32;
 
 define_keyword_type!(None_, "none");
 define_keyword_type!(Auto, "auto");
-define_keyword_type!(Normal, "normal");
 
 /// Serialize an identifier which is represented as an atom.
 #[cfg(feature = "gecko")]

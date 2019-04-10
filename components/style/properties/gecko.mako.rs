@@ -1190,7 +1190,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
-        "length::NonNegativeLengthPercentageOrNormal": impl_style_coord,
         "MozScriptMinSize": impl_absolute_length,
         "SVGLength": impl_svg_length,
         "SVGOpacity": impl_svg_opacity,
