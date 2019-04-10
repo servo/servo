@@ -804,7 +804,7 @@ impl Handler {
     }
 
     // https://w3c.github.io/webdriver/#find-elements-from-element
-    fn handle_find_element_elements(
+    fn handle_find_elements_from_element(
         &self,
         element: &WebElement,
         parameters: &LocatorParameters,
@@ -828,10 +828,10 @@ impl Handler {
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let value_resp = value
-                    .into_iter() 
+                    .into_iter()
                     .map(|x| serde_json::to_value(WebElement::new(x)).unwrap())
                     .collect::<Vec<Value>>();
-                let value_resp = serde_json::to_value(value_resp).unwrap();
+                let value_resp = serde_json::Value::Array(value_resp);
                 Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
             },
             Err(_) => Err(WebDriverError::new(
@@ -1281,7 +1281,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_find_element_element(element, parameters)
             },
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
-                self.handle_find_element_elements(element, parameters)
+                self.handle_find_elements_from_element(element, parameters)
             },
             WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
