@@ -98,6 +98,68 @@ xenial:
     - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log /url
     - ./etc/ci/clean_build_artifacts.sh
 
+xenial-arm32:
+ env:
+  AR: /usr/bin/arm-linux-gnueabihf-ar
+  AS: /usr/bin/arm-linux-gnueabihf-as
+  CC: /usr/bin/clang-4.0
+  CFLAGS: --target=arm-unknown-linux-gnueabihf -march=armv7a -I/usr/arm-linux-gnueabihf/include/ -fuse-ld=/home/servo/buildbot/slave/arm32/build/support/arm32/fake-ld.sh -Wno-error=unused-command-line-argument
+  CPP: /usr/bin/clang-4.0 -E
+  CPPFLAGS: -I/usr/arm-linux-gnueabihf/include
+  CXX: /usr/bin/clang++-4.0
+  CXXFLAGS: --target=arm-unknown-linux-gnueabihf -march=armv7a -I/usr/arm-linux-gnueabihf/include/ -I/usr/arm-linux-gnueabihf/include/c++/4.8.4/arm-linux-gnueabihf -fuse-ld=/home/servo/buildbot/slave/arm32/build/support/arm32/fake-ld.sh -Wno-error=unused-command-line-argument
+  EXPAT_LIB_DIR: /usr/lib/arm-linux-gnueabihf
+  HOST_CC: gcc-5
+  # test-tidy doesn't like empty strings
+  HOST_CFLAGS: --target=x86_64-unknown-linux-gnu
+  HOST_CXX: g++-5
+  # test-tidy doesn't like empty strings
+  HOST_CXXFLAGS: --target=x86_64-unknown-linux-gnu
+  LD: /usr/bin/arm-linux-gnueabihf-ld
+  OBJCOPY: /usr/bin/arm-linux-gnueabihf-objcopy
+  OBJDUMP: /usr/bin/arm-linux-gnueabihf-objdump
+  RANLIB: /usr/bin/arm-linux-gnueabihf-ranlib
+  STRIP: /usr/bin/arm-linux-gnueabihf-strip
+ commands:
+  - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
+  - ./etc/ci/clean_build_artifacts.sh
+  - env --unset CC_arm-unknown-linux-gnueabihf --unset CXX_arm-unknown-linux-gnueabihf ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - bash ./etc/ci/lockfile_changed.sh
+  - ./etc/ci/clean_build_artifacts.sh
+
+xenial-arm64:
+ env:
+  AR: /usr/bin/aarch64-linux-gnu-ar
+  AS: /usr/bin/aarch64-linux-gnu-as
+  CC: /usr/bin/clang-4.0
+  CFLAGS: --target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -fuse-ld=/home/servo/buildbot/slave/arm64/build/support/arm64/fake-ld.sh -Wno-error=unused-command-line-argument
+  CPP: /usr/bin/clang-4.0 -E
+  CPPFLAGS: -I/usr/aarch64-linux-gnu/include
+  CXX: /usr/bin/clang++-4.0
+  CXXFLAGS: --target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -I/usr/aarch64-linux-gnu/include/c++/4.8.4/aarch64-linux-gnu -fuse-ld=/home/servo/buildbot/slave/arm64/build/support/arm64/fake-ld.sh -Wno-error=unused-command-line-argument
+  EXPAT_LIB_DIR: /usr/lib/aarch64-linux-gnu
+  HOST_CC: gcc-5
+  # test-tidy doesn't like empty strings
+  HOST_CFLAGS: --target=x86_64-unknown-linux-gnu
+  HOST_CXX: g++-5
+  # test-tidy doesn't like empty strings
+  HOST_CXXFLAGS: --target=x86_64-unknown-linux-gnu
+  LD: /usr/bin/aarch64-linux-gnu-ld
+  OBJCOPY: /usr/bin/aarch64-linux-gnu-objcopy
+  OBJDUMP: /usr/bin/aarch64-linux-gnu-objdump
+  RANLIB: /usr/bin/aarch64-linux-gnu-ranlib
+  STRIP: /usr/bin/aarch64-linux-gnu-strip
+ commands:
+  - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
+  - ./etc/ci/clean_build_artifacts.sh
+  - env --unset CC_aarch64-unknown-linux-gnu --unset CXX_aarch64-unknown-linux-gnu ./mach build --rel --target=aarch64-unknown-linux-gnu
+  - bash ./etc/ci/lockfile_changed.sh
+  - ./etc/ci/clean_build_artifacts.sh
+
+
+
 linux-rel-wpt:
   env:
     CCACHE: sccache
