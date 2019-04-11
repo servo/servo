@@ -427,18 +427,15 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
 )}
 
-% for axis in ["x", "y"]:
-    ${helpers.predefined_type(
-        "scroll-snap-type-" + axis,
-        "ScrollSnapStrictness",
-        "computed::ScrollSnapStrictness::None",
-        products="gecko",
-        needs_context=False,
-        gecko_pref="layout.css.scroll-snap.enabled",
-        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
-        animation_value_type="discrete",
-    )}
-% endfor
+${helpers.predefined_type(
+    "scroll-snap-type",
+    "ScrollSnapType",
+    "computed::ScrollSnapType::none()",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap.enabled",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type",
+    animation_value_type="discrete",
+)}
 
 % for axis in ["x", "y"]:
     ${helpers.predefined_type(
