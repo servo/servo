@@ -1611,17 +1611,19 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         if self.muted.get() == value {
             return;
         }
+
         if let Some(ref player) = *self.player.borrow() {
-            self.muted.set(value);
             let _ = player.set_mute(value);
-            let window = window_from_node(self);
-            window
-                .task_manager()
-                .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
-            if !self.is_allowed_to_play() {
-                self.internal_pause_steps();
-            }
+        }
+
+        self.muted.set(value);
+        let window = window_from_node(self);
+        window
+            .task_manager()
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
+        if !self.is_allowed_to_play() {
+            self.internal_pause_steps();
         }
     }
 
