@@ -75,7 +75,11 @@ pub use self::GenericBorderImageSlice as BorderImageSlice;
     ToShmem,
 )]
 #[repr(C)]
-pub struct GenericBorderCornerRadius<L>(#[css(field_bound)] #[shmem(field_bound)] pub Size2D<L>);
+pub struct GenericBorderCornerRadius<L>(
+    #[css(field_bound)]
+    #[shmem(field_bound)]
+    pub Size2D<L>,
+);
 
 pub use self::GenericBorderCornerRadius as BorderCornerRadius;
 
@@ -114,7 +118,11 @@ impl<L: Zero> Zero for BorderCornerRadius<L> {
     ToShmem,
 )]
 #[repr(transparent)]
-pub struct BorderSpacing<L>(#[css(field_bound)] #[shmem(field_bound)] pub Size2D<L>);
+pub struct BorderSpacing<L>(
+    #[css(field_bound)]
+    #[shmem(field_bound)]
+    pub Size2D<L>,
+);
 
 impl<L> BorderSpacing<L> {
     /// Trivially create a `BorderCornerRadius`.

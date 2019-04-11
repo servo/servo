@@ -5,9 +5,9 @@
 //! Resolved values. These are almost always computed values, but in some cases
 //! there are used values.
 
+use crate::properties::ComputedValues;
 use cssparser;
 use smallvec::SmallVec;
-use crate::properties::ComputedValues;
 
 mod color;
 
@@ -182,7 +182,9 @@ where
 
     #[inline]
     fn to_resolved_value(self, context: &Context) -> Self::ResolvedValue {
-        Vec::from(self).to_resolved_value(context).into_boxed_slice()
+        Vec::from(self)
+            .to_resolved_value(context)
+            .into_boxed_slice()
     }
 
     #[inline]

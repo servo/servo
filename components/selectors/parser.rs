@@ -223,7 +223,9 @@ pub trait Parser<'i> {
 
 #[derive(Clone, Debug, Eq, PartialEq, ToShmem)]
 #[shmem(no_bounds)]
-pub struct SelectorList<Impl: SelectorImpl>(#[shmem(field_bound)] pub SmallVec<[Selector<Impl>; 1]>);
+pub struct SelectorList<Impl: SelectorImpl>(
+    #[shmem(field_bound)] pub SmallVec<[Selector<Impl>; 1]>,
+);
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
     /// Parse a comma-separated list of Selectors.
@@ -510,7 +512,9 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 /// handle it in to_css to make it invisible to serialization.
 #[derive(Clone, Eq, PartialEq, ToShmem)]
 #[shmem(no_bounds)]
-pub struct Selector<Impl: SelectorImpl>(#[shmem(field_bound)] ThinArc<SpecificityAndFlags, Component<Impl>>);
+pub struct Selector<Impl: SelectorImpl>(
+    #[shmem(field_bound)] ThinArc<SpecificityAndFlags, Component<Impl>>,
+);
 
 impl<Impl: SelectorImpl> Selector<Impl> {
     #[inline]
@@ -834,7 +838,10 @@ pub enum Component<Impl: SelectorImpl> {
     ExplicitAnyNamespace,
     ExplicitNoNamespace,
     DefaultNamespace(#[shmem(field_bound)] Impl::NamespaceUrl),
-    Namespace(#[shmem(field_bound)] Impl::NamespacePrefix, #[shmem(field_bound)] Impl::NamespaceUrl),
+    Namespace(
+        #[shmem(field_bound)] Impl::NamespacePrefix,
+        #[shmem(field_bound)] Impl::NamespaceUrl,
+    ),
 
     ExplicitUniversalType,
     LocalName(LocalName<Impl>),

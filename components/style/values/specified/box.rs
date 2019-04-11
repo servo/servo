@@ -468,12 +468,17 @@ impl Parse for ScrollSnapType {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+        if input
+            .try(|input| input.expect_ident_matching("none"))
+            .is_ok()
+        {
             return Ok(ScrollSnapType::none());
         }
 
         let axis = ScrollSnapAxis::parse(input)?;
-        let strictness = input.try(ScrollSnapStrictness::parse).unwrap_or(ScrollSnapStrictness::Proximity);
+        let strictness = input
+            .try(ScrollSnapStrictness::parse)
+            .unwrap_or(ScrollSnapStrictness::Proximity);
         Ok(Self { axis, strictness })
     }
 }
@@ -524,7 +529,16 @@ pub enum ScrollSnapAlignKeyword {
 /// https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align
 #[allow(missing_docs)]
 #[derive(
-    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct ScrollSnapAlign {
@@ -637,7 +651,15 @@ pub enum OverflowClipBox {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 /// Provides a rendering hint to the user agent,
 /// stating what kinds of changes the author expects
@@ -940,7 +962,9 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 
 /// A given transition property, that is either `All`, a longhand or shorthand
 /// property, or an unsupported or custom property.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 pub enum TransitionProperty {
     /// A shorthand.
     Shorthand(ShorthandId),
@@ -1035,17 +1059,7 @@ impl TransitionProperty {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToCss,
-    ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
 /// https://drafts.csswg.org/css-box/#propdef-float
 pub enum Float {
@@ -1060,17 +1074,7 @@ pub enum Float {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToCss,
-    ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
 /// https://drafts.csswg.org/css-box/#propdef-clear
 pub enum Clear {
@@ -1087,17 +1091,7 @@ pub enum Clear {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToCss,
-    ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
 pub enum Resize {
     None,

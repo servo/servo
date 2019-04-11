@@ -407,7 +407,9 @@ impl ToComputedValue for MozFontSmoothingBackgroundColor {
     type ComputedValue = RGBA;
 
     fn to_computed_value(&self, context: &Context) -> RGBA {
-        self.0.to_computed_value(context).to_rgba(RGBA::transparent())
+        self.0
+            .to_computed_value(context)
+            .to_rgba(RGBA::transparent())
     }
 
     fn from_computed_value(computed: &RGBA) -> Self {

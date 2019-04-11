@@ -126,7 +126,11 @@ impl Borrow<WeakAtom> for Atom {
 
 impl ToShmem for Atom {
     fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
-        assert!(self.is_static(), "ToShmem failed for Atom: must be a static atom: {}", self);
+        assert!(
+            self.is_static(),
+            "ToShmem failed for Atom: must be a static atom: {}",
+            self
+        );
 
         ManuallyDrop::new(Atom(self.0))
     }

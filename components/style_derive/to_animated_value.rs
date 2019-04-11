@@ -10,20 +10,20 @@ use to_computed_value;
 pub fn derive(input: DeriveInput) -> TokenStream {
     let trait_impl = |from_body, to_body| {
         quote! {
-            #[inline]
-            fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-                match animated {
-                    #from_body
-                }
-            }
+             #[inline]
+             fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+                 match animated {
+                     #from_body
+                 }
+             }
 
-            #[inline]
-            fn to_animated_value(self) -> Self::AnimatedValue {
-                match self {
-                    #to_body
-                }
-            }
-       }
+             #[inline]
+             fn to_animated_value(self) -> Self::AnimatedValue {
+                 match self {
+                     #to_body
+                 }
+             }
+        }
     };
 
     // TODO(emilio): Consider optimizing away non-generic cases as well?

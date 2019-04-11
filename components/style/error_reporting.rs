@@ -6,18 +6,22 @@
 
 #![deny(missing_docs)]
 
+use crate::selector_parser::SelectorImpl;
 use crate::stylesheets::UrlExtraData;
 use cssparser::{BasicParseErrorKind, ParseErrorKind, SourceLocation, Token};
+use selectors::SelectorList;
 use std::fmt;
 use style_traits::ParseError;
-use crate::selector_parser::{SelectorImpl};
-use selectors::SelectorList;
 
 /// Errors that can be encountered while parsing CSS.
 #[derive(Debug)]
 pub enum ContextualParseError<'a> {
     /// A property declaration was not recognized.
-    UnsupportedPropertyDeclaration(&'a str, ParseError<'a>, Option<&'a SelectorList<SelectorImpl>>),
+    UnsupportedPropertyDeclaration(
+        &'a str,
+        ParseError<'a>,
+        Option<&'a SelectorList<SelectorImpl>>,
+    ),
     /// A font face descriptor was not recognized.
     UnsupportedFontFaceDescriptor(&'a str, ParseError<'a>),
     /// A font feature values descriptor was not recognized.

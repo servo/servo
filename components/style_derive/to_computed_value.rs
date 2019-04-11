@@ -55,10 +55,7 @@ pub fn derive_to_value(
     let (to_body, from_body) = {
         let params = input.generics.type_params().collect::<Vec<_>>();
         for param in &params {
-            cg::add_predicate(
-                &mut where_clause,
-                parse_quote!(#param: #trait_path),
-            );
+            cg::add_predicate(&mut where_clause, parse_quote!(#param: #trait_path));
         }
 
         let to_body = cg::fmap_match(&input, bind_style, |binding| {
@@ -80,20 +77,14 @@ pub fn derive_to_value(
             }
             call_to(&binding)
         });
-        let from_body = cg::fmap_match(&input, bind_style, |binding| {
-            call_from(&binding)
-        });
+        let from_body = cg::fmap_match(&input, bind_style, |binding| call_from(&binding));
 
         (to_body, from_body)
     };
 
     input.generics.where_clause = where_clause;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let computed_value_type = cg::fmap_trait_output(
-        &input,
-        &trait_path,
-        &output_type_name,
-    );
+    let computed_value_type = cg::fmap_trait_output(&input, &trait_path, &output_type_name);
 
     let impl_ = trait_impl(from_body, to_body);
 
@@ -109,21 +100,21 @@ pub fn derive_to_value(
 pub fn derive(input: DeriveInput) -> TokenStream {
     let trait_impl = |from_body, to_body| {
         quote! {
-            #[inline]
-            fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-                match *computed {
-                    #from_body
-                }
-            }
+             #[inline]
+             fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+                 match *computed {
+                     #from_body
+                 }
+             }
 
-            #[allow(unused_variables)]
-            #[inline]
-            fn to_computed_value(&self, context: &crate::values::computed::Context) -> Self::ComputedValue {
-                match *self {
-                    #to_body
-                }
-            }
-       }
+             #[allow(unused_variables)]
+             #[inline]
+             fn to_computed_value(&self, context: &crate::values::computed::Context) -> Self::ComputedValue {
+                 match *self {
+                     #to_body
+                 }
+             }
+        }
     };
 
     let non_generic_implementation = || {

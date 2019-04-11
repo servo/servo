@@ -15,7 +15,9 @@ pub use crate::values::specified::box_::{AnimationName, Appearance, BreakBetween
 pub use crate::values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
 pub use crate::values::specified::box_::{Contain, Display, Overflow};
 pub use crate::values::specified::box_::{OverflowAnchor, OverflowClipBox, OverscrollBehavior};
-pub use crate::values::specified::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType};
+pub use crate::values::specified::box_::{
+    ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType,
+};
 pub use crate::values::specified::box_::{TouchAction, TransitionProperty, WillChange};
 
 /// A computed value for the `vertical-align` property.

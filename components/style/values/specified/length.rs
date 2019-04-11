@@ -13,8 +13,7 @@ use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::values::computed::{self, CSSPixelLength, Context};
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
-    GenericLengthPercentageOrNormal, GenericLengthOrNumber,
-    GenericMaxSize, GenericSize,
+    GenericLengthOrNumber, GenericLengthPercentageOrNormal, GenericMaxSize, GenericSize,
 };
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;
@@ -958,7 +957,8 @@ impl NonNegativeLengthPercentageOrAuto {
 pub type NonNegativeLengthPercentage = NonNegative<LengthPercentage>;
 
 /// Either a NonNegativeLengthPercentage or the `normal` keyword.
-pub type NonNegativeLengthPercentageOrNormal = GenericLengthPercentageOrNormal<NonNegativeLengthPercentage>;
+pub type NonNegativeLengthPercentageOrNormal =
+    GenericLengthPercentageOrNormal<NonNegativeLengthPercentage>;
 
 impl From<NoCalcLength> for NonNegativeLengthPercentage {
     #[inline]

@@ -38,9 +38,7 @@ impl<N, I> InitialLetter<N, I> {
 }
 
 /// A generic spacing value for the `letter-spacing` and `word-spacing` properties.
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum Spacing<Value> {
     /// `normal`
     Normal,
@@ -75,9 +73,10 @@ impl<Value> Spacing<Value> {
 #[cfg(feature = "gecko")]
 fn line_height_moz_block_height_enabled(context: &ParserContext) -> bool {
     use crate::gecko_bindings::structs;
-    context.in_ua_sheet() || unsafe {
-        structs::StaticPrefs_sVarCache_layout_css_line_height_moz_block_height_content_enabled
-    }
+    context.in_ua_sheet() ||
+        unsafe {
+            structs::StaticPrefs_sVarCache_layout_css_line_height_moz_block_height_content_enabled
+        }
 }
 
 /// A generic value for the `line-height` property.

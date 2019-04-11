@@ -1108,9 +1108,9 @@ impl structs::FontSizePrefs {
             GenericFontFamily::Monospace => self.mDefaultMonospaceSize,
             GenericFontFamily::Cursive => self.mDefaultCursiveSize,
             GenericFontFamily::Fantasy => self.mDefaultFantasySize,
-            GenericFontFamily::MozEmoji => {
-                unreachable!("Should never get here, since this doesn't (yet) appear on font family")
-            },
+            GenericFontFamily::MozEmoji => unreachable!(
+                "Should never get here, since this doesn't (yet) appear on font family"
+            ),
         })
     }
 }

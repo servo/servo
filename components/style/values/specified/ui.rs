@@ -57,7 +57,15 @@ impl Parse for CursorImage {
 
 /// Specified value of `-moz-force-broken-image-icon`
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct MozForceBrokenImageIcon(pub bool);
 

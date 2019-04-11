@@ -11,23 +11,23 @@ use to_computed_value;
 pub fn derive(input: DeriveInput) -> TokenStream {
     let trait_impl = |from_body, to_body| {
         quote! {
-            #[inline]
-            fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
-                match resolved {
-                    #from_body
-                }
-            }
+             #[inline]
+             fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
+                 match resolved {
+                     #from_body
+                 }
+             }
 
-            #[inline]
-            fn to_resolved_value(
-                self,
-                context: &crate::values::resolved::Context,
-            ) -> Self::ResolvedValue {
-                match self {
-                    #to_body
-                }
-            }
-       }
+             #[inline]
+             fn to_resolved_value(
+                 self,
+                 context: &crate::values::resolved::Context,
+             ) -> Self::ResolvedValue {
+                 match self {
+                     #to_body
+                 }
+             }
+        }
     };
 
     let non_generic_implementation = || {
