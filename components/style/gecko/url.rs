@@ -123,7 +123,7 @@ impl MallocSizeOf for CssUrl {
 }
 
 /// A key type for URL_VALUE_TABLE.
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Eq, Hash, PartialEq)]
 struct CssUrlDataKey(*const CssUrlData);
 
 unsafe impl Sync for CssUrlDataKey {}

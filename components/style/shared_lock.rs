@@ -15,7 +15,6 @@ use std::cell::UnsafeCell;
 use std::fmt;
 #[cfg(feature = "servo")]
 use std::mem;
-#[cfg(feature = "gecko")]
 use std::mem::ManuallyDrop;
 #[cfg(feature = "gecko")]
 use std::ptr;
@@ -124,11 +123,7 @@ impl<'a> Drop for SharedRwLockReadGuard<'a> {
     fn drop(&mut self) {
         // Unsafe: self.lock is private to this module, only ever set after `read()`,
         // and never copied or cloned (see `compile_time_assert` below).
-        if let Some(arc) = self.0.arc {
-            unsafe {
-                arc.force_unlock_read();
-            }
-        }
+        unsafe { self.0.arc.force_unlock_read() }
     }
 }
 
@@ -166,12 +161,6 @@ impl<T: fmt::Debug> fmt::Debug for Locked<T> {
 }
 
 impl<T> Locked<T> {
-    #[cfg(feature = "servo")]
-    #[inline]
-    fn is_read_only_lock(&self) -> bool {
-        false
-    }
-
     #[cfg(feature = "gecko")]
     #[inline]
     fn is_read_only_lock(&self) -> bool {
@@ -199,10 +188,14 @@ impl<T> Locked<T> {
 
     /// Access the data for reading.
     pub fn read_with<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a T {
+        #[cfg(feature = "gecko")]
         assert!(
             self.is_read_only_lock() || self.same_lock_as(guard.0.as_ref().map(|r| &**r)),
             "Locked::read_with called with a guard from an unrelated SharedRwLock"
         );
+        #[cfg(not(feature = "gecko"))]
+        assert!(self.same_lock_as(&guard.0));
+
         let ptr = self.data.get();
 
         // Unsafe:
@@ -223,10 +216,14 @@ impl<T> Locked<T> {
 
     /// Access the data for writing.
     pub fn write_with<'a>(&'a self, guard: &'a mut SharedRwLockWriteGuard) -> &'a mut T {
+        #[cfg(feature = "gecko")]
         assert!(
             !self.is_read_only_lock() && self.same_lock_as(Some(&guard.0)),
             "Locked::write_with called with a guard from a read only or unrelated SharedRwLock"
         );
+        #[cfg(not(feature = "gecko"))]
+        assert!(self.same_lock_as(&guard.0));
+
         let ptr = self.data.get();
 
         // Unsafe:

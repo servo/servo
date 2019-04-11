@@ -643,6 +643,7 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         };
 
         if let Some(font_family) = font_family {
+            // FIXME(emilio): This in Gecko parses a whole family list.
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(

@@ -1192,7 +1192,7 @@ macro_rules! impl_variant_east_asian {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf, ToShmem, ToResolvedValue)]
+            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
             /// Vairants for east asian variant
             pub struct VariantEastAsian: u16 {
                 /// None of the features

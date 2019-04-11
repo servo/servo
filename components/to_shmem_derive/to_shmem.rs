@@ -40,7 +40,7 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
 
     quote! {
         impl #impl_generics ::to_shmem::ToShmem for #name #ty_generics #where_clause {
-            #[allow(unused_variables)]
+            #[allow(unused_variables, unreachable_code)]
             fn to_shmem(
                 &self,
                 builder: &mut ::to_shmem::SharedMemoryBuilder,

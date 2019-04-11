@@ -16,6 +16,8 @@ extern crate cssparser;
 extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
+#[cfg(feature = "string_cache")]
+extern crate string_cache;
 extern crate thin_slice;
 
 use servo_arc::{Arc, ThinArc};
@@ -193,16 +195,18 @@ pub trait ToShmem: Sized {
 
 #[macro_export]
 macro_rules! impl_trivial_to_shmem {
-    ($($ty:ty),*) => {$(
-        impl $crate::ToShmem for $ty {
-            fn to_shmem(
-                &self,
-                _builder: &mut $crate::SharedMemoryBuilder,
-            ) -> ::std::mem::ManuallyDrop<Self> {
-                ::std::mem::ManuallyDrop::new(*self)
+    ($($ty:ty),*) => {
+        $(
+            impl $crate::ToShmem for $ty {
+                fn to_shmem(
+                    &self,
+                    _builder: &mut $crate::SharedMemoryBuilder,
+                ) -> ::std::mem::ManuallyDrop<Self> {
+                    ::std::mem::ManuallyDrop::new(*self)
+                }
             }
-        }
-    )*};
+        )*
+    };
 }
 
 impl_trivial_to_shmem!(
@@ -520,5 +524,19 @@ impl ToShmem for SmallBitVec {
             InternalStorage::Inline(x) => InternalStorage::Inline(x),
         };
         ManuallyDrop::new(unsafe { SmallBitVec::from_storage(storage) })
+    }
+}
+
+#[cfg(feature = "string_cache")]
+impl<Static: string_cache::StaticAtomSet> ToShmem for string_cache::Atom<Static> {
+    fn to_shmem(&self, _: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // NOTE(emilio): In practice, this can be implemented trivially if
+        // string_cache could expose the implementation detail of static atoms
+        // being an index into the static table (and panicking in the
+        // non-static, non-inline cases).
+        unimplemented!(
+            "If servo wants to share stylesheets across processes, \
+             then ToShmem for Atom needs to be implemented"
+        )
     }
 }

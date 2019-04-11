@@ -557,7 +557,7 @@ pub enum TrackListType {
 /// A grid `<track-list>` type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem, ToResolvedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToResolvedValue, ToShmem)]
 pub struct TrackList<LengthPercentage, Integer> {
     /// The type of this `<track-list>` (auto, explicit or general).
     ///

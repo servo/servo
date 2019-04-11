@@ -25,7 +25,7 @@ use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCs
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use crate::values::computed::Context;
-use crate::selector_parser::{SelectorImpl};
+use crate::selector_parser::SelectorImpl;
 use selectors::SelectorList;
 
 /// The animation rules.

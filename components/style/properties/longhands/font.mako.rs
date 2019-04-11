@@ -495,8 +495,7 @@ ${helpers.predefined_type(
         // a lot of code with `if product == gecko` conditionals, we have a
         // dummy system font module that does nothing
 
-        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
-        #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         /// void enum for system font, can never exist
         pub enum SystemFont {}
         impl SystemFont {

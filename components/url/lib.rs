@@ -20,16 +20,24 @@ pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::Hasher;
+use std::mem::ManuallyDrop;
 use std::net::IpAddr;
 use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::path::Path;
 use std::sync::Arc;
+use to_shmem::{SharedMemoryBuilder, ToShmem};
 use url::{Position, Url};
 
 pub use url::Host;
 
 #[derive(Clone, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
+
+impl ToShmem for ServoUrl {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        unimplemented!("If servo wants to share stylesheets across processes, ToShmem for Url must be implemented")
+    }
+}
 
 impl ServoUrl {
     pub fn from_url(url: Url) -> Self {
