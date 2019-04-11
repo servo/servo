@@ -379,6 +379,7 @@ impl Parse for AnimationName {
     }
 }
 
+/// https://drafts.csswg.org/css-scroll-snap-1/#snap-strictness
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
@@ -396,7 +397,7 @@ impl Parse for AnimationName {
     ToShmem,
 )]
 #[repr(u8)]
-pub enum ScrollSnapType {
+pub enum ScrollSnapStrictness {
     None,
     Mandatory,
     Proximity,

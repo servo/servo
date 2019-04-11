@@ -430,8 +430,8 @@ ${helpers.predefined_type(
 % for axis in ["x", "y"]:
     ${helpers.predefined_type(
         "scroll-snap-type-" + axis,
-        "ScrollSnapType",
-        "computed::ScrollSnapType::None",
+        "ScrollSnapStrictness",
+        "computed::ScrollSnapStrictness::None",
         products="gecko",
         needs_context=False,
         gecko_pref="layout.css.scroll-snap.enabled",
