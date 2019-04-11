@@ -130,7 +130,7 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::pub_domains::reg_host;
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
@@ -1934,11 +1934,11 @@ where
     fn handle_navigate_request(
         &self,
         id: PipelineId,
-        req_init: RequestInit,
+        request_builder: RequestBuilder,
         cancel_chan: IpcReceiver<()>,
     ) {
         let listener = NetworkListener::new(
-            req_init,
+            request_builder,
             id,
             self.public_resource_threads.clone(),
             self.network_listener_sender.clone(),

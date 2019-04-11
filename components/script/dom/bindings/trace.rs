@@ -81,7 +81,7 @@ use msg::constellation_msg::{
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{Request, RequestInit};
+use net_traits::request::{Request, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::storage_thread::StorageType;
@@ -446,7 +446,7 @@ unsafe_no_jsmanaged_fields!(PendingRestyle);
 unsafe_no_jsmanaged_fields!(Stylesheet);
 unsafe_no_jsmanaged_fields!(HttpsState);
 unsafe_no_jsmanaged_fields!(Request);
-unsafe_no_jsmanaged_fields!(RequestInit);
+unsafe_no_jsmanaged_fields!(RequestBuilder);
 unsafe_no_jsmanaged_fields!(StyleSharedRwLock);
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(ReferrerPolicy);

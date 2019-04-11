@@ -20,7 +20,7 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
@@ -107,7 +107,7 @@ pub enum ScriptMsg {
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
     /// for cross-origin loads
-    InitiateNavigateRequest(RequestInit, /* cancellation_chan */ IpcReceiver<()>),
+    InitiateNavigateRequest(RequestBuilder, /* cancellation_chan */ IpcReceiver<()>),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
