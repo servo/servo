@@ -18,8 +18,8 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as ServoMediaConstantSourceOptions;
+use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
 use std::f32;
 
@@ -101,4 +101,3 @@ impl<'a> From<&'a ConstantSourceOptions> for ServoMediaConstantSourceOptions {
         }
     }
 }
-

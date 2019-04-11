@@ -21,6 +21,7 @@ use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioC
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
+use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelSplitterNodeBinding::ChannelSplitterOptions;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
@@ -35,10 +36,10 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::biquadfilternode::BiquadFilterNode;
 use crate::dom::channelmergernode::ChannelMergerNode;
 use crate::dom::channelsplitternode::ChannelSplitterNode;
+use crate::dom::constantsourcenode::ConstantSourceNode;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gainnode::GainNode;
-//use crate::dom::constantsourcenode::ConstantSourceNode;
 use crate::dom::oscillatornode::OscillatorNode;
 use crate::dom::pannernode::PannerNode;
 use crate::dom::promise::Promise;
@@ -355,10 +356,15 @@ impl BaseAudioContextMethods for BaseAudioContext {
             &BiquadFilterOptions::empty(),
         )
     }
-    
-    /// fn CreateConstantSource(&self) -> Fallible<DomRoot<ConstantSourceNode>> {
-   ///     ConstantSourceNode::new( &self.global().as_window(), &self, &ConstantSourceOptions::empty())
-    ///}
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource
+    fn CreateConstantSource(&self) -> Fallible<DomRoot<ConstantSourceNode>> {
+        ConstantSourceNode::new(
+            &self.global().as_window(),
+            &self,
+            &ConstantSourceOptions::empty(),
+        )
+    }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
     fn CreateChannelMerger(&self, count: u32) -> Fallible<DomRoot<ChannelMergerNode>> {
