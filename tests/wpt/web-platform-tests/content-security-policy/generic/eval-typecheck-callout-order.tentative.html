@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <script src='/resources/testharness.js' nonce='abc'></script>
+    <script src='/resources/testharnessreport.js' nonce='abc'></script>
+    <title>Test for order of Type(evalInput) and host callout</title>
+</head>
+<body>
+    <div id='log'></div>
+
+    <script nonce='abc'>
+    test(function() {
+      assert_throws(new EvalError, function() {
+        eval("0");
+      }, "eval of a string should reach host callout");
+    }, "eval of a string should be checked by CSP");
+
+    test(function() {
+      let array = ["0"];
+      assert_equals(
+        eval(array),
+        array,
+        "eval is identity when applied to non-strings");
+    }, "eval of a non-string should not be checked by CSP");
+    </script>
+
+</body>
+</html>

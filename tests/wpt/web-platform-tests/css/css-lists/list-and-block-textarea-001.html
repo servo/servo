@@ -8,17 +8,17 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <style>
-textarea {
-  border: 0px;
-  padding: 0px;
+
+ul, textarea {
+  font-size: 16px;
 }
 </style>
 
 <div id="log"></div>
 
 <ul>
-  <li id="target">
-    <textarea rows="3" cols="20" style="display:block; height:45px">
+  <li id="target1">
+    <textarea id="target2" rows="3" cols="20" style="display:block; height:45px">
       hello
     </textarea>
   </li>
@@ -26,8 +26,9 @@ textarea {
 
 <script>
 test(function() {
-  var height = document.getElementById("target").offsetHeight;
-  assert_equals(height, 45, "the height of li should be 45px, and no extra line generated")
+  var height1 = document.getElementById("target1").offsetHeight;
+  var height2 = document.getElementById("target2").offsetHeight;
+  assert_equals(height1, height2, "List marker and textarea should be in the same line, no line-break between them.")
 }, "list and block textarea");
 
 </script>
