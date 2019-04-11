@@ -432,7 +432,6 @@ ${helpers.predefined_type(
     "ScrollSnapType",
     "computed::ScrollSnapType::none()",
     products="gecko",
-    gecko_pref="layout.css.scroll-snap.enabled",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type",
     animation_value_type="discrete",
 )}
