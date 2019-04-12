@@ -705,7 +705,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // List of absolute descendants, in tree order.
         let mut abs_descendants = AbsoluteDescendants::new();
         let mut legalizer = Legalizer::new();
-        if !node.is_replaced_content() {
+        if !node.is_replaced_content() ||
+            node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) {
             for kid in node.children() {
                 if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                     self.process(&kid);
@@ -1248,9 +1249,14 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             // Go to a path that concatenates our kids' fragments.
             self.build_fragments_for_nonreplaced_inline_content(node)
         } else {
-            // Otherwise, just nuke our kids' fragments, create our fragment if any, and be done
-            // with it.
-            self.build_fragments_for_replaced_inline_content(node)
+            if node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) {
+                // Do not treat media elements as leafs.
+                self.build_flow_for_block(node, None)
+            } else {
+                // Otherwise, just nuke our kids' fragments, create our fragment if any, and be done
+                // with it.
+                self.build_fragments_for_replaced_inline_content(node)
+            }
         }
     }
 
