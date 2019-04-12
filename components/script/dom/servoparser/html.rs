@@ -10,6 +10,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
+use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::Element;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
@@ -166,7 +167,7 @@ fn rev_children_iter(n: &Node) -> impl Iterator<Item = DomRoot<Node>> {
 impl SerializationIterator {
     fn new(node: &Node, skip_first: bool) -> SerializationIterator {
         let mut ret = SerializationIterator { stack: vec![] };
-        if skip_first {
+        if skip_first || node.is::<DocumentFragment>() {
             for c in rev_children_iter(node) {
                 ret.push_node(&*c);
             }
