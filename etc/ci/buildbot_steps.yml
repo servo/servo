@@ -107,7 +107,7 @@ xenial-arm32:
   CPP: /usr/bin/clang-4.0 -E
   CPPFLAGS: -I/usr/arm-linux-gnueabihf/include
   CXX: /usr/bin/clang++-4.0
-  CXXFLAGS: --target=arm-unknown-linux-gnueabihf -march=armv7a -I/usr/arm-linux-gnueabihf/include/ -I/usr/arm-linux-gnueabihf/include/c++/4.8.4/arm-linux-gnueabihf -fuse-ld=/home/servo/buildbot/slave/arm32/build/support/xenial-arm32/fake-ld.sh -Wno-error=unused-command-line-argument
+  CXXFLAGS: --target=arm-unknown-linux-gnueabihf -march=armv7a -I/usr/arm-linux-gnueabihf/include/ -I/usr/arm-linux-gnueabihf/include/c++/4.8.4/arm-linux-gnueabihf -fuse-ld=/home/servo/buildbot/slave/xenial-arm32/build/support/xenial/fake-ld.sh -Wno-error=unused-command-line-argument
   EXPAT_LIB_DIR: /usr/lib/arm-linux-gnueabihf
   HOST_CC: gcc-5
   # test-tidy doesn't like empty strings
