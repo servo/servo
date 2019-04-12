@@ -204,6 +204,14 @@ test(function() {
   assert_equals(serialize(root2), '<root xmlns:xl="http://www.w3.org/1999/xlink" xl:type="v"/>');
 }, 'Check if no special handling for XLink namespace unlike HTML serializer.');
 
+test(function() {
+  var root = new DocumentFragment;
+  root.append(document.createElement('div'));
+  root.append(document.createElement('span'));
+  assert_equals(serialize(root), '<div xmlns="http://www.w3.org/1999/xhtml"></div><span xmlns="http://www.w3.org/1999/xhtml"></span>');
+}, 'Check if document fragment serializes.');
+
+
 </script>
  </body>
 </html>
