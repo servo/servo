@@ -2899,7 +2899,7 @@ where
             },
             None => {
                 let event = (None, EmbedderMsg::Keyboard(event));
-                self.embedder_proxy.clone().send(event);
+                self.embedder_proxy.send(event);
             },
         }
     }
