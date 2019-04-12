@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 extern crate darling;
-extern crate proc_macro;
 extern crate proc_macro2;
 #[macro_use]
 extern crate quote;
