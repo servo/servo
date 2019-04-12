@@ -64,9 +64,9 @@ promise_test(t => {
   return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly.compile(buffer));
 }, "Empty buffer");
 
-test(() => {
+promise_test(t => {
   const buffer = new Uint8Array(Array.from(emptyModuleBinary).concat([0, 0]));
-  assert_throws(new WebAssembly.CompileError(), () => WebAssembly.compile(buffer));
+  return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly.compile(buffer));
 }, "Invalid code");
 
 promise_test(() => {
