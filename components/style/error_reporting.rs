@@ -245,7 +245,6 @@ impl ParseErrorReporter for RustLogReporter {
         location: SourceLocation,
         error: ContextualParseError,
     ) {
-        use log;
         if log_enabled!(log::Level::Info) {
             info!(
                 "Url:\t{}\n{}:{} {}",

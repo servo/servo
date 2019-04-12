@@ -2030,6 +2030,10 @@ where
             None
         };
 
+        // https://github.com/rust-lang/rust/issues/59159
+        let browsing_context_size = browsing_context.size;
+        let browsing_context_is_visible = browsing_context.is_visible;
+
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(
             new_pipeline_id,
@@ -2037,11 +2041,11 @@ where
             top_level_browsing_context_id,
             Some(parent_pipeline_id),
             None,
-            browsing_context.size,
+            browsing_context_size,
             load_data,
             load_info.sandbox,
             is_private,
-            browsing_context.is_visible,
+            browsing_context_is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
