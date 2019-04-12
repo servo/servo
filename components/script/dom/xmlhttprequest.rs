@@ -1442,8 +1442,6 @@ impl XMLHttpRequest {
 
     fn filter_response_headers(&self) -> HeaderMap {
         // https://fetch.spec.whatwg.org/#concept-response-header-list
-        use http::header::{self, HeaderName};
-
         let mut headers = self.response_headers.borrow().clone();
         headers.remove(header::SET_COOKIE);
         headers.remove(HeaderName::from_static("set-cookie2"));
