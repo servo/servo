@@ -43,7 +43,19 @@ pub mod url;
 // https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub enum SymbolsType {
     Cyclic,
     Numeric,
@@ -85,7 +97,7 @@ impl SymbolsType {
 /// Since wherever <counter-style> is used, 'none' is a valid value as
 /// well, we combine them into one type to make code simpler.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
 pub enum CounterStyleOrNone {
     /// `none`
     None,
@@ -173,6 +185,8 @@ impl SpecifiedValueInfo for CounterStyleOrNone {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(transparent)]
 pub struct NonNegative<T>(pub T);
@@ -210,6 +224,8 @@ impl<T: Zero> Zero for NonNegative<T> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
 
@@ -227,6 +243,8 @@ pub struct GreaterThanOrEqualToOne<T>(pub T);
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[css(function = "rect", comma)]
 pub struct ClipRect<LengthOrAuto> {

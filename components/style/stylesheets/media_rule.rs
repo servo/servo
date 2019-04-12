@@ -21,7 +21,7 @@ use style_traits::{CssWriter, ToCss};
 /// An [`@media`][media] urle.
 ///
 /// [media]: https://drafts.csswg.org/css-conditional/#at-ruledef-media
-#[derive(Debug)]
+#[derive(Debug, ToShmem)]
 pub struct MediaRule {
     /// The list of media queries used by this media rule.
     pub media_queries: Arc<Locked<MediaList>>,

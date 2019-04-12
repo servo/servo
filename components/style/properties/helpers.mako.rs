@@ -105,7 +105,7 @@
             #[allow(unused_imports)]
             use crate::values::{computed, specified};
             #[allow(unused_imports)]
-            use crate::values::{Auto, Either, None_, Normal};
+            use crate::values::{Auto, Either, None_};
             ${caller.body()}
         }
 
@@ -128,8 +128,15 @@
             % if separator == "Comma":
             #[css(comma)]
             % endif
-            #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
-                     ToCss)]
+            #[derive(
+                Clone,
+                Debug,
+                MallocSizeOf,
+                PartialEq,
+                ToAnimatedValue,
+                ToResolvedValue,
+                ToCss,
+            )]
             pub struct List<T>(
                 % if not allow_empty:
                 #[css(iterable)]
@@ -205,7 +212,7 @@
         % if separator == "Comma":
         #[css(comma)]
         % endif
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         pub struct SpecifiedValue(
             % if not allow_empty:
             #[css(iterable)]
@@ -285,7 +292,7 @@
         #[allow(unused_imports)]
         use crate::properties::{UnparsedValue, ShorthandId};
         #[allow(unused_imports)]
-        use crate::values::{Auto, Either, None_, Normal};
+        use crate::values::{Auto, Either, None_};
         #[allow(unused_imports)]
         use crate::error_reporting::ParseErrorReporter;
         #[allow(unused_imports)]
@@ -425,8 +432,20 @@
 
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse,
-                     PartialEq, SpecifiedValueInfo, ToCss)]
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                Eq,
+                Hash,
+                MallocSizeOf,
+                Parse,
+                PartialEq,
+                SpecifiedValueInfo,
+                ToCss,
+                ToResolvedValue,
+                ToShmem,
+            )]
             pub enum T {
             % for value in keyword.values_for(product):
                 ${to_camel_case(value)},
@@ -437,7 +456,7 @@
         }
 
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             #[css(skip)]
@@ -588,8 +607,18 @@
         </%def>
         % if extra_specified:
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-                     SpecifiedValueInfo, ToCss)]
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                Eq,
+                MallocSizeOf,
+                Parse,
+                PartialEq,
+                SpecifiedValueInfo,
+                ToCss,
+                ToShmem,
+            )]
             pub enum SpecifiedValue {
                 ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
             }
@@ -598,9 +627,9 @@
         % endif
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
             % if not extra_specified:
-            #[derive(Parse, SpecifiedValueInfo, ToComputedValue)]
+            #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
             % endif
             pub enum T {
                 ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}

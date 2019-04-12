@@ -129,6 +129,9 @@ impl UserAgentCascadeDataCache {
     }
 
     fn expire_unused(&mut self) {
+        // is_unique() returns false for static references, but we never have
+        // static references to UserAgentCascadeDatas.  If we did, it may not
+        // make sense to put them in the cache in the first place.
         self.entries.retain(|e| !e.is_unique())
     }
 

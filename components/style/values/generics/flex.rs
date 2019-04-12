@@ -19,6 +19,8 @@
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub enum GenericFlexBasis<S> {

@@ -211,8 +211,6 @@ where
     type Item = (&'a S, SheetRebuildKind);
 
     fn next(&mut self) -> Option<Self::Item> {
-        use std::mem;
-
         loop {
             let potential_sheet = self.iter.next()?;
 

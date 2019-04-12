@@ -32,8 +32,8 @@ use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
 pub fn propagate_clauses_to_output_type(
     where_clause: &mut Option<syn::WhereClause>,
     generics: &syn::Generics,
-    trait_path: Path,
-    trait_output: Ident,
+    trait_path: &Path,
+    trait_output: &Ident,
 ) {
     let where_clause = match *where_clause {
         Some(ref mut clause) => clause,
@@ -104,7 +104,7 @@ where
     })
 }
 
-pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: Ident) -> Path {
+pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: &Ident) -> Path {
     let segment = PathSegment {
         ident: input.ident.clone(),
         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {

@@ -26,7 +26,7 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 /// An [`@supports`][supports] rule.
 ///
 /// [supports]: https://drafts.csswg.org/css-conditional-3/#at-supports
-#[derive(Debug)]
+#[derive(Debug, ToShmem)]
 pub struct SupportsRule {
     /// The parsed condition
     pub condition: SupportsCondition,
@@ -76,7 +76,7 @@ impl DeepCloneWithLock for SupportsRule {
 /// An @supports condition
 ///
 /// <https://drafts.csswg.org/css-conditional-3/#at-supports>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToShmem)]
 pub enum SupportsCondition {
     /// `not (condition)`
     Not(Box<SupportsCondition>),
@@ -223,8 +223,7 @@ impl SupportsCondition {
 #[cfg(feature = "gecko")]
 fn eval_moz_bool_pref(name: &CStr, cx: &ParserContext) -> bool {
     use crate::gecko_bindings::bindings;
-    use crate::stylesheets::Origin;
-    if cx.stylesheet_origin != Origin::UserAgent && !cx.chrome_rules_enabled() {
+    if !cx.in_ua_or_chrome_sheet() {
         return false;
     }
     unsafe { bindings::Gecko_GetBoolPrefValue(name.as_ptr()) }
@@ -306,7 +305,7 @@ impl ToCss for SupportsCondition {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToShmem)]
 /// A possibly-invalid CSS selector.
 pub struct RawSelector(pub String);
 
@@ -368,7 +367,7 @@ impl RawSelector {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToShmem)]
 /// A possibly-invalid property declaration
 pub struct Declaration(pub String);
 

@@ -25,7 +25,7 @@ use std::fmt::{self, Write};
 ///
 /// [page]: https://drafts.csswg.org/css2/page.html#page-box
 /// [page-selectors]: https://drafts.csswg.org/css2/page.html#page-selectors
-#[derive(Debug)]
+#[derive(Debug, ToShmem)]
 pub struct PageRule {
     /// The declaration block this page rule contains.
     pub block: Arc<Locked<PropertyDeclarationBlock>>,

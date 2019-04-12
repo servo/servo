@@ -13,6 +13,8 @@ path = "lib.rs"
 [dependencies]
 malloc_size_of = { path = "../malloc_size_of", features = ["servo"] }
 malloc_size_of_derive = "0.1"
+to_shmem = { path = "../to_shmem" }
+to_shmem_derive = { path = "../to_shmem_derive" }
 serde = {version = "1.0", features = ["derive"]}
 servo_rand = {path = "../rand"}
 url = "1.2"

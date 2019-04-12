@@ -326,7 +326,7 @@ ${helpers.predefined_type(
 
         use app_units::Au;
         use cssparser::{Parser, ToCss};
-        use crate::gecko_bindings::structs::FontFamilyType;
+        use crate::values::computed::font::GenericFontFamily;
         use crate::properties::longhands;
         use std::fmt;
         use std::hash::{Hash, Hasher};
@@ -346,7 +346,7 @@ ${helpers.predefined_type(
                          font_optical_sizing""".split()
         %>
         #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq,
-                 SpecifiedValueInfo, ToCss)]
+                 SpecifiedValueInfo, ToCss, ToShmem)]
         pub enum SystemFont {
             % for font in system_fonts:
                 ${to_camel_case(font)},
@@ -406,9 +406,9 @@ ${helpers.predefined_type(
                 let font_style = FontStyle::from_gecko(system.style);
                 let ret = ComputedSystemFont {
                     font_family: FontFamily {
-                        families: FontFamilyList(unsafe {
-                            system.fontlist.mFontlist.mBasePtr.to_safe()
-                        }),
+                        families: FontFamilyList::SharedFontList(
+                            unsafe { system.fontlist.mFontlist.mBasePtr.to_safe() }
+                        ),
                         is_system_font: true,
                     },
                     font_size: FontSize {
@@ -466,7 +466,7 @@ ${helpers.predefined_type(
                 pub ${name}: longhands::${name}::computed_value::T,
             % endfor
             pub system_font: SystemFont,
-            pub default_font_type: FontFamilyType,
+            pub default_font_type: GenericFontFamily,
         }
 
         impl SystemFont {
@@ -495,8 +495,7 @@ ${helpers.predefined_type(
         // a lot of code with `if product == gecko` conditionals, we have a
         // dummy system font module that does nothing
 
-        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
-        #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         /// void enum for system font, can never exist
         pub enum SystemFont {}
         impl SystemFont {
@@ -521,9 +520,9 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "-moz-font-smoothing-background-color",
-    "RGBAColor",
-    "RGBA::transparent()",
-    animation_value_type="AnimatedRGBA",
+    "color::MozFontSmoothingBackgroundColor",
+    "computed::color::MozFontSmoothingBackgroundColor::transparent()",
+    animation_value_type="none",
     products="gecko",
     gecko_ffi_name="mFont.fontSmoothingBackgroundColor",
     enabled_in="chrome",

@@ -372,7 +372,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "column-gap",
     "length::NonNegativeLengthPercentageOrNormal",
-    "Either::Second(Normal)",
+    "computed::length::NonNegativeLengthPercentageOrNormal::normal()",
     alias="grid-column-gap" if product == "gecko" else "",
     extra_prefixes="moz",
     servo_pref="layout.columns.enabled",
@@ -385,7 +385,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "row-gap",
     "length::NonNegativeLengthPercentageOrNormal",
-    "Either::Second(Normal)",
+    "computed::length::NonNegativeLengthPercentageOrNormal::normal()",
     alias="grid-row-gap",
     products="gecko",
     spec="https://drafts.csswg.org/css-align-3/#propdef-row-gap",

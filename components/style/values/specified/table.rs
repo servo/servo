@@ -9,7 +9,16 @@ use cssparser::Parser;
 use style_traits::{ParseError, StyleParseErrorKind};
 
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 /// span. for `<col span>` pres attr
 pub struct XSpan(#[css(skip)] pub i32);

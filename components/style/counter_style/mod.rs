@@ -164,7 +164,7 @@ macro_rules! counter_style_descriptors {
         $( #[$doc: meta] $name: tt $ident: ident / $setter: ident [$checker: tt]: $ty: ty, )+
     ) => {
         /// An @counter-style rule
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, ToShmem)]
         pub struct CounterStyleRuleData {
             name: CustomIdent,
             generation: Wrapping<u32>,
@@ -337,7 +337,7 @@ impl CounterStyleRuleData {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToShmem)]
 pub enum System {
     /// 'cyclic'
     Cyclic,
@@ -410,7 +410,7 @@ impl ToCss for System {
 
 /// <https://drafts.csswg.org/css-counter-styles/#typedef-symbol>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub enum Symbol {
     /// <string>
     String(String),
@@ -447,7 +447,7 @@ impl Symbol {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-negative>
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 pub struct Negative(pub Symbol, pub Option<Symbol>);
 
 impl Parse for Negative {
@@ -465,11 +465,11 @@ impl Parse for Negative {
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
 ///
 /// Empty Vec represents 'auto'
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToShmem)]
 pub struct Ranges(pub Vec<Range<CounterBound>>);
 
 /// A bound found in `Ranges`.
-#[derive(Clone, Copy, Debug, ToCss)]
+#[derive(Clone, Copy, Debug, ToCss, ToShmem)]
 pub enum CounterBound {
     /// An integer bound.
     Integer(Integer),
@@ -548,7 +548,7 @@ where
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 pub struct Pad(pub Integer, pub Symbol);
 
 impl Parse for Pad {
@@ -564,7 +564,7 @@ impl Parse for Pad {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-fallback>
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 pub struct Fallback(pub CustomIdent);
 
 impl Parse for Fallback {
@@ -578,7 +578,7 @@ impl Parse for Fallback {
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub struct Symbols(#[css(iterable)] pub Vec<Symbol>);
 
 impl Parse for Symbols {
@@ -602,7 +602,7 @@ impl Parse for Symbols {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols>
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 pub struct AdditiveSymbols(pub Vec<AdditiveTuple>);
 
 impl Parse for AdditiveSymbols {
@@ -623,7 +623,7 @@ impl Parse for AdditiveSymbols {
 }
 
 /// <integer> && <symbol>
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 pub struct AdditiveTuple {
     /// <integer>
     pub weight: Integer,
@@ -651,7 +651,7 @@ impl Parse for AdditiveTuple {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as>
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 pub enum SpeakAs {
     /// auto
     Auto,

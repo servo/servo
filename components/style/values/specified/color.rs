@@ -22,7 +22,7 @@ use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParse
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 
 /// Specified color value
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum Color {
     /// The 'currentColor' keyword
     CurrentColor,
@@ -49,7 +49,7 @@ pub enum Color {
 
 #[cfg(feature = "gecko")]
 mod gecko {
-    #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
     pub enum SpecialColorKeyword {
         MozDefaultColor,
         MozDefaultBackgroundColor,
@@ -373,57 +373,47 @@ impl ToComputedValue for Color {
     type ComputedValue = ComputedColor;
 
     fn to_computed_value(&self, context: &Context) -> ComputedColor {
-        let result = self.to_computed_color(Some(context)).unwrap();
-        if !result.is_numeric() {
-            if let Some(longhand) = context.for_non_inherited_property {
-                if longhand.stores_complex_colors_lossily() {
-                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                }
-            }
-        }
-        result
+        self.to_computed_color(Some(context)).unwrap()
     }
 
     fn from_computed_value(computed: &ComputedColor) -> Self {
         match *computed {
             GenericColor::Numeric(color) => Color::rgba(color),
-            GenericColor::Foreground => Color::currentcolor(),
-            GenericColor::Complex(..) => Color::Complex(*computed),
+            GenericColor::CurrentColor => Color::currentcolor(),
+            GenericColor::Complex { .. } => Color::Complex(*computed),
         }
     }
 }
 
-/// Specified color value, but resolved to just RGBA for computed value
-/// with value from color property at the same context.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
-pub struct RGBAColor(pub Color);
+/// Specified color value for `-moz-font-smoothing-background-color`.
+///
+/// This property does not support `currentcolor`. We could drop it at
+/// parse-time, but it's not exposed to the web so it doesn't really matter.
+///
+/// We resolve it to `transparent` instead.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+pub struct MozFontSmoothingBackgroundColor(pub Color);
 
-impl Parse for RGBAColor {
+impl Parse for MozFontSmoothingBackgroundColor {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Color::parse(context, input).map(RGBAColor)
+        Color::parse(context, input).map(MozFontSmoothingBackgroundColor)
     }
 }
 
-impl ToComputedValue for RGBAColor {
+impl ToComputedValue for MozFontSmoothingBackgroundColor {
     type ComputedValue = RGBA;
 
     fn to_computed_value(&self, context: &Context) -> RGBA {
         self.0
             .to_computed_value(context)
-            .to_rgba(context.style().get_color().clone_color())
+            .to_rgba(RGBA::transparent())
     }
 
     fn from_computed_value(computed: &RGBA) -> Self {
-        RGBAColor(Color::rgba(*computed))
-    }
-}
-
-impl From<Color> for RGBAColor {
-    fn from(color: Color) -> RGBAColor {
-        RGBAColor(color)
+        MozFontSmoothingBackgroundColor(Color::rgba(*computed))
     }
 }
 
@@ -443,7 +433,7 @@ impl SpecifiedValueInfo for Color {
 /// Specified value for the "color" property, which resolves the `currentcolor`
 /// keyword to the parent color instead of self's color.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub struct ColorPropertyValue(pub Color);
 
 impl ToComputedValue for ColorPropertyValue {

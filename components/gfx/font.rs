@@ -26,7 +26,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::values::computed::font::SingleFontFamily;
+use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use unicode_script::Script;
 
 macro_rules! ot_tag {
@@ -564,9 +564,14 @@ impl<'a> From<&'a SingleFontFamily> for FontFamilyName {
                 FontFamilyName::Specific(family_name.name.clone())
             },
 
-            SingleFontFamily::Generic(ref generic_name) => {
-                FontFamilyName::Generic(generic_name.clone())
-            },
+            SingleFontFamily::Generic(generic) => FontFamilyName::Generic(match generic {
+                GenericFontFamily::None => panic!("Shouldn't appear in style"),
+                GenericFontFamily::Serif => atom!("serif"),
+                GenericFontFamily::SansSerif => atom!("sans-serif"),
+                GenericFontFamily::Monospace => atom!("monospace"),
+                GenericFontFamily::Cursive => atom!("cursive"),
+                GenericFontFamily::Fantasy => atom!("fantasy"),
+            }),
         }
     }
 }
