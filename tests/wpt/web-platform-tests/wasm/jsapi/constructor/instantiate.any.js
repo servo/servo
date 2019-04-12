@@ -76,6 +76,64 @@ for (const [name, fn] of instanceTestFactory) {
   }, `${name}: Module argument`);
 }
 
+promise_test(() => {
+  const builder = new WasmModuleBuilder();
+  builder.addImportedGlobal("module", "global", kWasmI32);
+  const buffer = builder.toBuffer();
+  const order = [];
+
+  const imports = {
+    get module() {
+      order.push("module getter");
+      return {
+        get global() {
+          order.push("global getter");
+          return 0;
+        },
+      }
+    },
+  };
+
+  const expected = [
+    "module getter",
+    "global getter",
+  ];
+  const p = WebAssembly.instantiate(buffer, imports);
+  assert_array_equals(order, []);
+  return p.then(result => {
+    assert_WebAssemblyInstantiatedSource(result);
+    assert_array_equals(order, expected);
+  });
+}, "Synchronous options handling: Buffer argument");
+
+promise_test(() => {
+  const builder = new WasmModuleBuilder();
+  builder.addImportedGlobal("module", "global", kWasmI32);
+  const buffer = builder.toBuffer();
+  const module = new WebAssembly.Module(buffer);
+  const order = [];
+
+  const imports = {
+    get module() {
+      order.push("module getter");
+      return {
+        get global() {
+          order.push("global getter");
+          return 0;
+        },
+      }
+    },
+  };
+
+  const expected = [
+    "module getter",
+    "global getter",
+  ];
+  const p = WebAssembly.instantiate(module, imports);
+  assert_array_equals(order, expected);
+  return p.then(instance => assert_Instance(instance, {}));
+}, "Synchronous options handling: Module argument");
+
 promise_test(t => {
   const buffer = new Uint8Array();
   return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly.instantiate(buffer));

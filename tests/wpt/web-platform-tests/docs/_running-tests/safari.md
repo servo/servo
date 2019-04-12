@@ -2,21 +2,22 @@
 layout: page
 title: Safari
 ---
-To run Safari on macOS, some manual setup is required:
+To run Safari on macOS, some manual setup is required. Some steps are different
+for Safari and Safari Technology Preview, in which case only step is needed.
 
-  * Allow Safari to be controlled by SafariDriver: `safaridriver --enable`
+  * Allow Safari to be controlled by SafariDriver:
+    * `safaridriver --enable` or
+    * `"/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" --enable`
 
   * Allow pop-up windows:
-    `defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1`
+    * `defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1` or
+    * `defaults write com.apple.SafariTechnologyPreview WebKitJavaScriptCanOpenWindowsAutomatically 1`
 
-  * Turn on experimental features that are "off" by default:
-
-    * `defaults write com.apple.Safari ExperimentalServerTimingEnabled -bool true`
-
-    [//]: # (TODO\(cvazac\) Remove this if/when Server-Timing is enabled by default in Safari)
+  * Turn on additional experimental features Safari Technology Preview:
+    * `defaults write com.apple.SafariTechnologyPreview ExperimentalServerTimingEnabled 1`
 
   * Trust the certificate:
-    `security add-trusted-cert -k "$(security default-keychain | cut -d\" -f2)" tools/certs/cacert.pem`
+    * `security add-trusted-cert -k "$(security default-keychain | cut -d\" -f2)" tools/certs/cacert.pem`
 
   * Set `no_proxy='*'` in your environment. This is a
     workaround for a known
