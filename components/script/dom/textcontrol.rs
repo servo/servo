@@ -15,7 +15,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{window_from_node, Node, NodeDamage};
-use crate::textinput::{SelectionDirection, SelectionState, TextInput};
+use crate::textinput::{SelectionDirection, SelectionState, TextInput, UTF8Bytes};
 use script_traits::ScriptToConstellationChan;
 
 pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
@@ -177,7 +177,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // change the selection state in order to replace the text in the range.
         let original_selection_state = self.textinput.borrow().selection_state();
 
-        let content_length = self.textinput.borrow().len() as u32;
+        let UTF8Bytes(content_length) = self.textinput.borrow().len_utf8();
+        let content_length = content_length as u32;
 
         // Step 5
         if start > content_length {
@@ -262,11 +263,13 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     fn start(&self) -> u32 {
-        self.textinput.borrow().selection_start_offset() as u32
+        let UTF8Bytes(offset) = self.textinput.borrow().selection_start_offset();
+        offset as u32
     }
 
     fn end(&self) -> u32 {
-        self.textinput.borrow().selection_end_offset() as u32
+        let UTF8Bytes(offset) = self.textinput.borrow().selection_end_offset();
+        offset as u32
     }
 
     fn direction(&self) -> SelectionDirection {
