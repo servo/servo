@@ -5,7 +5,14 @@ import stat
 import subprocess
 from collections import deque
 
+from six import iteritems
+
 from .sourcefile import SourceFile
+
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import Dict, Optional
 
 
 def get_tree(tests_root, manifest, manifest_path, cache_root,
@@ -92,13 +99,24 @@ class Git(object):
         path = os.path.relpath(os.path.abspath(path), self.root)
         return self.git("show", "HEAD:%s" % path)
 
-    def __iter__(self):
+    def hash_cache(self):
+        # type: () -> Dict[str, Optional[str]]
+        """
+        A dict of rel_path -> current git object id if the working tree matches HEAD else None
+        """
+        hash_cache = {}
+
         cmd = ["ls-tree", "-r", "-z", "HEAD"]
         local_changes = self._local_changes()
         for result in self.git(*cmd).split("\0")[:-1]:
             data, rel_path = result.rsplit("\t", 1)
-            hash = data.split(" ", 3)[2]
-            if rel_path in local_changes:
+            hash_cache[rel_path] = None if rel_path in local_changes else data.split(" ", 3)[2]
+
+        return hash_cache
+
+    def __iter__(self):
+        for rel_path, hash in iteritems(self.hash_cache()):
+            if hash is None:
                 contents = self._show_file(rel_path)
             else:
                 contents = None
@@ -127,6 +145,11 @@ class FileSystem(object):
         self.path_filter = gitignore.PathFilter(self.root,
                                                 extras=[".git/"],
                                                 cache=self.ignore_cache)
+        git = Git.for_path(root, url_base, cache_path)
+        if git is not None:
+            self.hash_cache = git.hash_cache()
+        else:
+            self.hash_cache = {}
 
     def __iter__(self):
         mtime_cache = self.mtime_cache
@@ -134,7 +157,8 @@ class FileSystem(object):
             for filename, path_stat in filenames:
                 path = os.path.join(dirpath, filename)
                 if mtime_cache is None or mtime_cache.updated(path, path_stat):
-                    yield SourceFile(self.root, path, self.url_base), True
+                    hash = self.hash_cache.get(path, None)
+                    yield SourceFile(self.root, path, self.url_base, hash), True
                 else:
                     yield path, False
 

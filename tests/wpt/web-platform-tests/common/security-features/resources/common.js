@@ -192,17 +192,62 @@ function createHelperIframe(name, doBindEvents) {
                        doBindEvents);
 }
 
-/**
- * requestVia*() functions return promises that are resolved on successful
- * requests with objects of the same "type", i.e. objects that contains
- * the same sets of keys that are fixed within one category of tests (e.g.
- * within wpt/referrer-policy tests).
- * wrapResult() (that should be defined outside this file) is used to convert
- * the response bodies of subresources into the expected result objects in some
- * cases, and in other cases the result objects are constructed more directly.
- * TODO(https://crbug.com/906850): Clean up the semantics around this, e.g.
- * use (or not use) wrapResult() consistently, unify the arguments, etc.
- */
+function wrapResult(server_data) {
+  if (typeof(server_data) === "string") {
+    throw server_data;
+  }
+  return {
+    referrer: server_data.headers.referer,
+    headers: server_data.headers
+  }
+}
+
+// `requestVia*()` functions return promises that are resolved on successful
+// requests with objects with the following keys:
+// - `headers`: HTTP request headers sent to server.
+// - `referrer`: Referrer.
+// - `location`: The URL of the subresource.
+//
+// Category 1:
+//     `headers`: set.
+//     `referrer`: set via `document.referrer`.
+//     `location`: set via `document.location`.
+//     See `template/document.html.template`.
+// Category 2:
+//     `headers`: set.
+//     `referrer`: set to `headers.referer` by `wrapResult()`.
+//     `location`: not set.
+// Category 3:
+//     All the keys listed above are NOT set.
+//
+// -------------------------------- -------- --------------------------
+// Function name                    Category Used in
+//                                           -------- ------- ---------
+//                                           referrer mixed-  upgrade-
+//                                           policy   content insecure-
+//                                           policy   content request
+// -------------------------------- -------- -------- ------- ---------
+// requestViaAnchor                 1        Y        Y       -
+// requestViaArea                   1        Y        Y       -
+// requestViaAudio                  3        -        Y       -
+// requestViaDedicatedWorker        2        Y        Y       Y
+// requestViaFetch                  2        Y        Y       -
+// requestViaForm                   3        -        Y       -
+// requestViaIframe                 1        Y        Y       -
+// requestViaImage                  3        -        Y       -
+// requestViaImageForReferrerPolicy 2        Y        -       -
+// requestViaLinkPrefetch           3        -        Y       -
+// requestViaLinkStylesheet         3        -        Y       -
+// requestViaObject                 3        -        Y       -
+// requestViaPicture                3        -        Y       -
+// requestViaScript                 2        Y        Y       -
+// requestViaSendBeacon             3        -        Y       -
+// requestViaSharedWorker           2        Y        -       -
+// requestViaVideo                  3        -        Y       -
+// requestViaWebSocket              3        -        Y       -
+// requestViaWorklet                3        -        Y       Y
+// requestViaXhr                    2        Y        Y       -
+// -------------------------------- -------- -------- ------- ---------
 
 /**
  * Creates a new iframe, binds load and error events, sets the src attribute and
@@ -383,8 +428,9 @@ function requestViaFetch(url) {
 function dedicatedWorkerUrlThatFetches(url) {
   return `data:text/javascript,
     fetch('${url}')
-      .then(() => postMessage(''),
-            () => postMessage(''));`;
+      .then(r => r.json())
+      .then(j => postMessage(j))
+      .catch((e) => postMessage(e.message));`;
 }
 
 function workerUrlThatImports(url) {
