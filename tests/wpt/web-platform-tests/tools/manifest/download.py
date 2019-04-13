@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import argparse
+import bz2
 import gzip
 import json
 import io
@@ -8,6 +9,11 @@ import os
 from datetime import datetime, timedelta
 
 from six.moves.urllib.request import urlopen
+
+try:
+    import zstandard
+except ImportError:
+    zstandard = None
 
 from .vcs import Git
 
@@ -43,6 +49,21 @@ def merge_pr_tags(repo_root, max_count=50):
     return tags
 
 
+def score_name(name):
+    """Score how much we like each filename, lower wins, None rejects"""
+
+    # Accept both ways of naming the manfest asset, even though
+    # there's no longer a reason to include the commit sha.
+    if name.startswith("MANIFEST-") or name.startswith("MANIFEST."):
+        if zstandard and name.endswith("json.zst"):
+            return 1
+        if name.endswith(".json.bz2"):
+            return 2
+        if name.endswith(".json.gz"):
+            return 3
+    return None
+
+
 def github_url(tags):
     for tag in tags:
         url = "https://api.github.com/repos/web-platform-tests/wpt/releases/tags/%s" % tag
@@ -62,13 +83,13 @@ def github_url(tags):
             logger.warning("Response was not valid JSON")
             return None
 
+        candidates = []
         for item in release["assets"]:
-            # Accept both ways of naming the manfest asset, even though
-            # there's no longer a reason to include the commit sha.
-            if item["name"].startswith("MANIFEST-") and item["name"].endswith(".json.gz"):
-                return item["browser_download_url"]
-            elif item["name"] == "MANIFEST.json.gz":
-                return item["browser_download_url"]
+            score = score_name(item["name"])
+            if score is not None:
+                candidates.append((score, item["browser_download_url"]))
+
+        return [item[1] for item in sorted(candidates)]
 
     return None
 
@@ -79,33 +100,56 @@ def download_manifest(manifest_path, tags_func, url_func, force=False):
 
     tags = tags_func()
 
-    url = url_func(tags)
-    if not url:
+    urls = url_func(tags)
+    if not urls:
         logger.warning("No generated manifest found")
         return False
 
-    logger.info("Downloading manifest from %s" % url)
-    try:
-        resp = urlopen(url)
-    except Exception:
-        logger.warning("Downloading pregenerated manifest failed")
+    for url in urls:
+        logger.info("Downloading manifest from %s" % url)
+        try:
+            resp = urlopen(url)
+        except Exception:
+            logger.warning("Downloading pregenerated manifest failed")
+            continue
+
+        if resp.code != 200:
+            logger.warning("Downloading pregenerated manifest failed; got HTTP status %d" %
+                           resp.code)
+            continue
+
+        if url.endswith(".zst"):
+            if not zstandard:
+                continue
+            try:
+                dctx = zstandard.ZstdDecompressor()
+                decompressed = dctx.decompress(resp.read())
+            except IOError:
+                logger.warning("Failed to decompress downloaded file")
+                continue
+        elif url.endswith(".bz2"):
+            try:
+                decompressed = bz2.decompress(resp.read())
+            except IOError:
+                logger.warning("Failed to decompress downloaded file")
+                continue
+        elif url.endswith(".gz"):
+            fileobj = io.BytesIO(resp.read())
+            try:
+                with gzip.GzipFile(fileobj=fileobj) as gzf:
+                    decompressed = gzf.read()
+            except IOError:
+                logger.warning("Failed to decompress downloaded file")
+                continue
+        else:
+            logger.warning("Unknown file extension: %s" % url)
+            continue
+        break
+    else:
         return False
 
-    if resp.code != 200:
-        logger.warning("Downloading pregenerated manifest failed; got HTTP status %d" %
-                       resp.code)
-        return False
-
-    gzf = gzip.GzipFile(fileobj=io.BytesIO(resp.read()))
-
     try:
-        decompressed = gzf.read()
-    except IOError:
-        logger.warning("Failed to decompress downloaded file")
-        return False
-
-    try:
-        with open(manifest_path, "w") as f:
+        with open(manifest_path, "wb") as f:
             f.write(decompressed)
     except Exception:
         logger.warning("Failed to write manifest")

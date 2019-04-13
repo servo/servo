@@ -1,5 +1,4 @@
 // META: global=window,worker
-// META: script=/wasm/jsapi/wasm-constants.js
 // META: script=/wasm/jsapi/wasm-module-builder.js
 // META: script=/wasm/jsapi/assertions.js
 // META: script=/wasm/jsapi/instanceTestFactory.js

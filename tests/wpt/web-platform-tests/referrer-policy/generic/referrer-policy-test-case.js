@@ -1,10 +1,3 @@
-function wrapResult(server_data) {
-  return {
-    referrer: server_data.headers.referer,
-    headers: server_data.headers
-  }
-}
-
 // NOTE: This method only strips the fragment and is not in accordance to the
 // recommended draft specification:
 // https://w3c.github.io/webappsec/specs/referrer-policy/#null

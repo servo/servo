@@ -1,5 +1,4 @@
 // META: global=jsshell
-// META: script=/wasm/jsapi/wasm-constants.js
 // META: script=/wasm/jsapi/wasm-module-builder.js
 
 let emptyModuleBinary;
@@ -99,7 +98,7 @@ test(() => {
     .addBody([])
     .exportFunc();
 
-  builder.setTableLength(1);
+  builder.setTableBounds(1);
   builder.addExportOfKind("table", kExternalTable, 0);
 
   builder.addGlobal(kWasmI32, true)
