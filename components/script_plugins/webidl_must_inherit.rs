@@ -5,11 +5,18 @@
 use rustc::hir::{self, HirId};
 use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
 use rustc::ty;
+use std::boxed;
 use std::env;
-
+use std::error::Error;
+use std::fmt;
+use std::fs;
 use std::io;
 use std::path;
 use syntax::ast;
+use webidl::ast::*;
+use webidl::visitor::*;
+use webidl::*;
+
 declare_lint!(
     WEBIDL_INHERIT_CORRECT,
     Deny,
@@ -18,17 +25,52 @@ declare_lint!(
 
 pub struct WebIdlPass;
 
+#[derive(Clone, Debug)]
+pub enum WebIdlError {
+    ParentMismatch {
+        name: String,
+        rust_parent: String,
+        webidl_parent: String,
+    },
+}
+
+impl fmt::Display for WebIdlError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            WebIdlError::ParentMismatch {
+                name,
+                rust_parent,
+                webidl_parent,
+            } => {
+                return write!(f, "webidl-rust inheritance mismatch, rust: {:?}, rust parent: {:?}, webidl parent: {:?}",
+                    &name, &rust_parent, &webidl_parent);
+            },
+        }
+    }
+}
+
+impl Error for WebIdlError {
+    fn description(&self) -> &str {
+        "WebIdlError"
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        None
+    }
+}
+
 impl WebIdlPass {
     pub fn new() -> WebIdlPass {
         WebIdlPass
     }
 }
 
-fn get_typ_name(typ: String) -> Option<String> {
+fn get_typ_name(typ: String) -> String {
     if let Some(i) = typ.rfind(':') {
-        return Some(typ[i + 1..].to_string());
+        typ[i + 1..].to_string()
+    } else {
+        typ
     }
-    None
 }
 
 fn get_webidl_path(struct_name: &str) -> io::Result<path::PathBuf> {
@@ -39,7 +81,6 @@ fn get_webidl_path(struct_name: &str) -> io::Result<path::PathBuf> {
     return Ok(dir);
 }
 
-/// Checks if a type is unrooted or contains any owned unrooted types
 fn is_webidl_ty(cx: &LateContext, ty: &ty::TyS) -> bool {
     let mut ret = false;
     ty.maybe_walk(|t| {
@@ -59,13 +100,31 @@ fn is_webidl_ty(cx: &LateContext, ty: &ty::TyS) -> bool {
     ret
 }
 
-fn check_webidl(name: &str, parent_name: Option<String>) -> io::Result<()> {
+fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<Error>> {
+    let idl = parse_string(code)?;
+    let mut visitor = InterfaceVisitor::new(name.to_string());
+    visitor.visit(&idl);
+    let inherits = visitor.get_inherits();
+
+    println!("inherits: {:?}, parent_name: {:?}", inherits, parent_name);
+
+    if inherits == parent_name {
+        return Ok(());
+    }
+    Err(boxed::Box::from(WebIdlError::ParentMismatch {
+        name: name.to_string(),
+        rust_parent: parent_name.to_string(),
+        webidl_parent: inherits.to_string(),
+    }))
+}
+
+fn check_webidl(name: &str, parent_name: Option<String>) -> Result<(), Box<Error>> {
     let path = get_webidl_path(&name)?;
     println!("struct_webidl_path: {:?}", &path);
 
     if let Some(parent) = parent_name {
-        let parent_path = get_webidl_path(&parent)?;
-        println!("parent_path: {:?}", &parent_path);
+        let code = fs::read_to_string(path)?;
+        return check_inherits(&code, &name, &parent);
     }
 
     Ok(())
@@ -110,24 +169,55 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
         for ref field in def.fields() {
             let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
             let ty = cx.tcx.type_of(def_id);
-            let typ = ty.to_string();
-            if let Some(typ_name) = get_typ_name(ty.to_string()) {
-                parent_typ_name = Some(typ_name);
-                break;
-            } else {
-                cx.span_lint(WEBIDL_INHERIT_CORRECT, field.span, "Cannot get type name");
-            }
+            let typ_name = get_typ_name(ty.to_string());
+            parent_typ_name = Some(typ_name);
 
             // Only first field is relevant.
             break;
         }
 
-        // TODO Open and parse corresponding webidl file.
-        cx.span_lint(WEBIDL_INHERIT_CORRECT, item.ident.span, "WEBIDL present.");
-
         match check_webidl(&struct_name, parent_typ_name) {
             Ok(()) => {},
-            Err(e) => println!("ERRORRR: {:?}", e),
+            Err(e) => {
+                let description = format!("{}", e);
+                cx.span_lint(WEBIDL_INHERIT_CORRECT, item.ident.span, &description)
+            },
         };
+    }
+}
+
+struct InterfaceVisitor {
+    name: String,
+    inherits: String,
+}
+
+impl InterfaceVisitor {
+    pub fn new(name: String) -> Self {
+        InterfaceVisitor {
+            name: name,
+            inherits: String::new(),
+        }
+    }
+
+    pub fn get_inherits(&self) -> &String {
+        &self.inherits
+    }
+}
+
+impl<'ast> ImmutableVisitor<'ast> for InterfaceVisitor {
+    fn visit_callback_interface(&mut self, callback_interface: &'ast CallbackInterface) {
+        if callback_interface.name == self.name {
+            if let Some(ref inherit) = callback_interface.inherits {
+                self.inherits = inherit.to_string()
+            }
+        }
+    }
+
+    fn visit_non_partial_interface(&mut self, non_partial_interface: &'ast NonPartialInterface) {
+        if non_partial_interface.name == self.name {
+            if let Some(ref inherit) = non_partial_interface.inherits {
+                self.inherits = inherit.to_string()
+            }
+        }
     }
 }
