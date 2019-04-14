@@ -11,3 +11,4 @@ plugin = true
 
 [features]
 unrooted_must_root_lint = []
+webidl_lint = []
