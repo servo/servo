@@ -347,6 +347,7 @@ class Longhand(object):
                 "TextAlign",
                 "TextDecorationLine",
                 "TextEmphasisPosition",
+                "TextTransform",
                 "TouchAction",
                 "TransformStyle",
                 "UserSelect",

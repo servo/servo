@@ -351,6 +351,175 @@ impl TextDecorationLine {
     }
 }
 
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem)]
+#[repr(C)]
+/// Specified value of the text-transform property, stored in two parts:
+/// the case-related transforms (mutually exclusive, only one may be in effect), and others (non-exclusive).
+pub struct TextTransform {
+    /// Case transform, if any.
+    pub case_: TextTransformCase,
+    /// Non-case transforms.
+    pub other_: TextTransformOther,
+}
+
+impl TextTransform {
+    #[inline]
+    /// Returns the initial value of text-transform
+    pub fn none() -> Self {
+        TextTransform {
+            case_: TextTransformCase::None,
+            other_: TextTransformOther::empty(),
+        }
+    }
+    #[inline]
+    /// Returns whether the value is 'none'
+    pub fn is_none(&self) -> bool {
+        self.case_ == TextTransformCase::None && self.other_.is_empty()
+    }
+}
+
+impl Parse for TextTransform {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let mut result = TextTransform::none();
+
+        // Case keywords are mutually exclusive; other transforms may co-occur.
+        loop {
+            let location = input.current_source_location();
+            let ident = match input.next() {
+                Ok(&Token::Ident(ref ident)) => ident,
+                Ok(other) => return Err(location.new_unexpected_token_error(other.clone())),
+                Err(..) => break,
+            };
+
+            match_ignore_ascii_case! { ident,
+                "none" if result.is_none() => {
+                    return Ok(result);
+                },
+                "uppercase" if result.case_ == TextTransformCase::None => {
+                    result.case_ = TextTransformCase::Uppercase
+                },
+                "lowercase" if result.case_ == TextTransformCase::None => {
+                    result.case_ = TextTransformCase::Lowercase
+                },
+                "capitalize" if result.case_ == TextTransformCase::None => {
+                    result.case_ = TextTransformCase::Capitalize
+                },
+                "full-width" if !result.other_.intersects(TextTransformOther::FULL_WIDTH) => {
+                    result.other_.insert(TextTransformOther::FULL_WIDTH)
+                },
+                "full-size-kana" if !result.other_.intersects(TextTransformOther::FULL_SIZE_KANA) => {
+                    result.other_.insert(TextTransformOther::FULL_SIZE_KANA)
+                }
+                _ => return Err(location.new_custom_error(
+                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                )),
+            }
+        }
+
+        if result.is_none() {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        } else {
+            Ok(result)
+        }
+    }
+}
+
+impl ToCss for TextTransform {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_none() {
+            return dest.write_str("none");
+        }
+
+        if self.case_ != TextTransformCase::None {
+            self.case_.to_css(dest)?;
+            if !self.other_.is_empty() {
+                dest.write_str(" ")?;
+            }
+        }
+
+        self.other_.to_css(dest)
+    }
+}
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem)]
+#[repr(C)]
+/// Specified keyword values for case transforms in the text-transform property. (These are exclusive.)
+pub enum TextTransformCase {
+    /// No case transform.
+    None,
+    /// All uppercase.
+    Uppercase,
+    /// All lowercase.
+    Lowercase,
+    /// Capitalize each word.
+    Capitalize,
+}
+
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[value_info(other_values = "none,full-width,full-size-kana")]
+    #[repr(C)]
+    /// Specified keyword values for non-case transforms in the text-transform property. (Non-exclusive.)
+    pub struct TextTransformOther: u8 {
+        /// full-width
+        const FULL_WIDTH = 1 << 0;
+        /// full-size-kana
+        const FULL_SIZE_KANA = 1 << 1;
+    }
+}
+
+impl ToCss for TextTransformOther {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        let mut writer = SequenceWriter::new(dest, " ");
+        let mut any = false;
+        macro_rules! maybe_write {
+            ($ident:ident => $str:expr) => {
+                if self.contains(TextTransformOther::$ident) {
+                    writer.raw_item($str)?;
+                    any = true;
+                }
+            };
+        }
+
+        maybe_write!(FULL_WIDTH => "full-width");
+        maybe_write!(FULL_SIZE_KANA => "full-size-kana");
+
+        debug_assert!(any || self.is_empty());
+
+        Ok(())
+    }
+}
+
 /// Specified value of text-align keyword value.
 #[derive(
     Clone,
