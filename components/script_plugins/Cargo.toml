@@ -12,3 +12,6 @@ plugin = true
 [features]
 unrooted_must_root_lint = []
 webidl_lint = []
+
+[dependencies]
+webidl = "0.8"
