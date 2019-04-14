@@ -35,7 +35,7 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 
-use servo_media::streams::MediaStream as BackendMediaStream;
+use servo_media::streams::registry::MediaStreamId;
 use servo_media::webrtc::{
     BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
     SignalingState, WebRtcController, WebRtcSignaller,
@@ -128,7 +128,7 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
-    fn on_add_stream(&self, _: Box<BackendMediaStream>) {}
+    fn on_add_stream(&self, _: &MediaStreamId) {}
 
     fn close(&self) {
         // do nothing
@@ -572,7 +572,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     fn AddStream(&self, stream: &MediaStream) {
         let mut tracks = stream.get_tracks();
 
-        for track in tracks.drain(..) {
+        for ref track in tracks.drain(..) {
             self.controller.borrow().as_ref().unwrap().add_stream(track);
         }
     }
