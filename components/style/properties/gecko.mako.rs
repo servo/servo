@@ -4455,7 +4455,7 @@ clip-path
         fn set_counter_function(
             data: &mut nsStyleContentData,
             content_type: StyleContentType,
-            name: &CustomIdent,
+            name: CustomIdent,
             sep: &str,
             style: CounterStyleOrNone,
         ) {
@@ -4464,7 +4464,9 @@ clip-path
             let counter_func = unsafe {
                 bindings::Gecko_SetCounterFunction(data, content_type).as_mut().unwrap()
             };
-            counter_func.mIdent.assign(name.0.as_slice());
+            counter_func.mIdent.set_move(unsafe {
+                RefPtr::from_addrefed(name.0.into_addrefed())
+            });
             if content_type == StyleContentType::Counters {
                 counter_func.mSeparator.assign_str(sep);
             }
@@ -4493,14 +4495,14 @@ clip-path
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko,
                                                       items.len() as u32);
                 }
-                for (i, item) in items.into_iter().enumerate() {
+                for (i, item) in items.into_vec().into_iter().enumerate() {
                     // NB: Gecko compares the mString value if type is not image
                     // or URI independently of whatever gets there. In the quote
                     // cases, they set it to null, so do the same here.
                     unsafe {
                         *self.gecko.mContents[i].mContent.mString.as_mut() = ptr::null_mut();
                     }
-                    match *item {
+                    match item {
                         ContentItem::String(ref value) => {
                             self.gecko.mContents[i].mType = StyleContentType::String;
                             unsafe {
@@ -4536,22 +4538,22 @@ clip-path
                             => self.gecko.mContents[i].mType = StyleContentType::NoOpenQuote,
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = StyleContentType::NoCloseQuote,
-                        ContentItem::Counter(ref name, ref style) => {
+                        ContentItem::Counter(name, style) => {
                             set_counter_function(
                                 &mut self.gecko.mContents[i],
                                 StyleContentType::Counter,
-                                &name,
+                                name,
                                 "",
-                                style.clone(),
+                                style,
                             );
                         }
-                        ContentItem::Counters(ref name, ref sep, ref style) => {
+                        ContentItem::Counters(name, sep, style) => {
                             set_counter_function(
                                 &mut self.gecko.mContents[i],
                                 StyleContentType::Counters,
-                                &name,
+                                name,
                                 &sep,
-                                style.clone(),
+                                style,
                             );
                         }
                         ContentItem::Url(ref url) => {
@@ -4627,7 +4629,9 @@ clip-path
                     StyleContentType::Counter | StyleContentType::Counters => {
                         let gecko_function =
                             unsafe { &**gecko_content.mContent.mCounters.as_ref() };
-                        let ident = CustomIdent(Atom::from(&*gecko_function.mIdent));
+                        let ident = CustomIdent(unsafe {
+                            Atom::from_raw(gecko_function.mIdent.mRawPtr)
+                        });
                         let style =
                             CounterStyleOrNone::from_gecko_value(&gecko_function.mCounterStyle);
                         let style = match style {
@@ -4664,8 +4668,10 @@ clip-path
         ) {
             unsafe {
                 bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko, v.len() as u32);
-                for (i, ref pair) in v.iter().enumerate() {
-                    self.gecko.m${counter_property}s[i].mCounter.assign(pair.name.0.as_slice());
+                for (i, pair) in v.0.into_vec().into_iter().enumerate() {
+                    self.gecko.m${counter_property}s[i].mCounter.set_move(
+                        RefPtr::from_addrefed(pair.name.0.into_addrefed())
+                    );
                     self.gecko.m${counter_property}s[i].mValue = pair.value;
                 }
             }
@@ -4690,7 +4696,9 @@ clip-path
             longhands::counter_${counter_property.lower()}::computed_value::T::new(
                 self.gecko.m${counter_property}s.iter().map(|ref gecko_counter| {
                     CounterPair {
-                        name: CustomIdent(Atom::from(gecko_counter.mCounter.to_string())),
+                        name: CustomIdent(unsafe {
+                            Atom::from_raw(gecko_counter.mCounter.mRawPtr)
+                        }),
                         value: gecko_counter.mValue,
                     }
                 }).collect()
