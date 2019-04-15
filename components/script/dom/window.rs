@@ -1780,6 +1780,10 @@ impl Window {
                 // then put it in the delaying load events mode.
                 self.window_proxy().start_delaying_load_events_mode();
             }
+            let referrer = match referrer {
+                Some(referrer) => Some(referrer),
+                None => Some(Referrer::ReferrerUrl(doc.url())),
+            };
             self.main_thread_script_chan()
                 .send(MainThreadScriptMsg::Navigate(
                     pipeline_id,
