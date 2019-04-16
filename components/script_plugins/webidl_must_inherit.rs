@@ -34,15 +34,10 @@ pub struct ParentMismatchError {
 
 impl fmt::Display for ParentMismatchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ParentMismatchError {
-            name,
-            rust_parent,
-            webidl_parent,
-        } = self;
         write!(
             f,
             "webidl-rust inheritance mismatch, rust: {:?}, rust parent: {:?}, webidl parent: {:?}",
-            &name, &rust_parent, &webidl_parent
+            self.name, self.rust_parent, self.webidl_parent
         )
     }
 }
