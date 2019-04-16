@@ -476,8 +476,8 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         ) \
         .with_file_mount(
             "https://static.rust-lang.org/rustup/archive/" +
-                "1.13.0/i686-pc-windows-gnu/rustup-init.exe",
-            sha256="43072fbe6b38ab38cd872fa51a33ebd781f83a2d5e83013857fab31fc06e4bf0",
+                "1.17.0/x86_64-pc-windows-msvc/rustup-init.exe",
+            sha256="002127adeaaee6ef8d82711b5c2881a1db873262f63aea60cee9632f207e8f29",
         )
 
     def with_repacked_msi(self, url, sha256, path):
