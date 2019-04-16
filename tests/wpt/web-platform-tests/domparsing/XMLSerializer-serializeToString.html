@@ -32,6 +32,11 @@ test(function() {
 }, 'check XMLSerializer.serializeToString method could parsing xmldoc to string');
 
 test(function() {
+  var root = parse('<html><head></head><body><div></div><span></span></body></html>');
+  assert_equals(serialize(root.ownerDocument), '<html><head/><body><div/><span/></body></html>');
+}, 'check XMLSerializer.serializeToString method could parsing document to string');
+
+test(function() {
   var root = createXmlDoc().documentElement;
   var element = root.ownerDocument.createElementNS('urn:foo', 'another');
   var child1 = root.firstChild;
