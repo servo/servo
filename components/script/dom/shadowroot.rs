@@ -52,7 +52,11 @@ pub struct ShadowRoot {
 
 impl ShadowRoot {
     #[allow(unrooted_must_root)]
-    fn new_inherited(host: &Element, document: &Document, is_widget: IsUserAgentWidget) -> ShadowRoot {
+    fn new_inherited(
+        host: &Element,
+        document: &Document,
+        is_widget: IsUserAgentWidget,
+    ) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
         let node = document_fragment.upcast::<Node>();
         node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
@@ -72,7 +76,11 @@ impl ShadowRoot {
         }
     }
 
-    pub fn new(host: &Element, document: &Document, is_widget: IsUserAgentWidget) -> DomRoot<ShadowRoot> {
+    pub fn new(
+        host: &Element,
+        document: &Document,
+        is_widget: IsUserAgentWidget,
+    ) -> DomRoot<ShadowRoot> {
         reflect_dom_object(
             Box::new(ShadowRoot::new_inherited(host, document, is_widget)),
             document.window(),
