@@ -133,11 +133,11 @@ fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<E
     }))
 }
 
-fn check_webidl(name: &str, parent_name: Option<&str>) -> Result<(), Box<Error>> {
+fn check_webidl(name: &str, parent_name: &Option<String>) -> Result<(), Box<Error>> {
     let path = get_webidl_path(&name)?;
     if let Some(parent) = parent_name {
         let code = fs::read_to_string(path)?;
-        return check_inherits(&code, &name, parent);
+        return check_inherits(&code, name, &parent);
     }
 
     Ok(())
@@ -175,20 +175,14 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
                 .expect_item_by_hir_id(cx.tcx.hir().get_parent_item(id)),
         };
 
-        let ty: String;
-        let mut parent_name: Option<&str> = None;
-        for ref field in def.fields() {
+        let parent_name = def.fields().iter().next().map(|field| {
             let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
-            ty = cx.tcx.type_of(def_id).to_string();
-            let name = get_ty_name(&ty);
-            parent_name = Some(name);
-
-            // Only first field is relevant.
-            break;
-        }
+            let ty = cx.tcx.type_of(def_id).to_string();
+            get_ty_name(&ty).to_string()
+        });
 
         let struct_name = n.to_string();
-        match check_webidl(&struct_name, parent_name) {
+        match check_webidl(&struct_name, &parent_name) {
             Ok(()) => {},
             Err(e) => {
                 let description = format!("{}", e);
