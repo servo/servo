@@ -143,7 +143,8 @@ impl FetchResponseListener for StylesheetContext {
             let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
             let final_url = if let Some(ref shadow_root) = self.shadow_root {
                 if shadow_root.root().is_user_agent_widget() {
-                    ServoUrl::parse(&format!("chrome://{:?}", metadata.final_url.to_string())).unwrap()
+                    ServoUrl::parse(&format!("chrome://{:?}", metadata.final_url.to_string()))
+                        .unwrap()
                 } else {
                     metadata.final_url
                 }

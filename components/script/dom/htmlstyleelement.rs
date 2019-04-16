@@ -116,7 +116,11 @@ impl HTMLStyleElement {
             .upcast::<Node>()
             .containing_shadow_root() {
             if shadow_root.is_user_agent_widget() {
-                (ServoUrl::parse(&format!("chrome://{:?}", window.get_url().to_string())).unwrap(), Origin::UserAgent)
+                (
+                    ServoUrl::parse(&format!("chrome://{:?}", window.get_url().to_string()))
+                        .unwrap(),
+                    Origin::UserAgent,
+                )
             } else {
                 (window.get_url(), Origin::Author)
             }
