@@ -560,7 +560,7 @@ impl HTMLScriptElement {
         match window_from_node(self).unminified_js_dir() {
             Some(unminified_js_dir) => path = PathBuf::from(unminified_js_dir),
             None => {
-                warn!("Could not store script directory not found");
+                warn!("Unminified script directory not found");
                 return;
             },
         }
