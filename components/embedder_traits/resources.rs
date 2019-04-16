@@ -60,7 +60,8 @@ pub enum Resource {
     PresentationalHintsCSS,
     QuirksModeCSS,
     RippyPNG,
-    MediaControls,
+    MediaControlsCSS,
+    MediaControlsJS,
 }
 
 pub trait ResourceReaderMethods {
@@ -95,7 +96,8 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 Resource::PresentationalHintsCSS => "presentational-hints.css",
                 Resource::QuirksModeCSS => "quirks-mode.css",
                 Resource::RippyPNG => "rippy.png",
-                Resource::MediaControls => "media_controls.js",
+                Resource::MediaControlsCSS => "media_controls.css",
+                Resource::MediaControlsJS => "media_controls.js",
             };
             let mut path = env::current_exe().unwrap();
             path = path.canonicalize().unwrap();
