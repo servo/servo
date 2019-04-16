@@ -435,6 +435,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let decoded_audio = Arc::new(Mutex::new(Vec::new()));
             let decoded_audio_ = decoded_audio.clone();
             let decoded_audio__ = decoded_audio.clone();
+            // servo-media returns an audio channel position along
+            // with the AudioDecoderCallback progress callback, which
+            // may not be the same as the index of the decoded_audio
+            // Vec.
+            let channels = Arc::new(Mutex::new(HashMap::new()));
             let this = Trusted::new(self);
             let this_ = this.clone();
             let (task_source, canceller) = window
@@ -450,8 +455,16 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         .unwrap()
                         .resize(channel_count as usize, Vec::new());
                 })
-                .progress(move |buffer, channel| {
+                .progress(move |buffer, channel_pos| {
                     let mut decoded_audio = decoded_audio_.lock().unwrap();
+                    let mut channels = channels.lock().unwrap();
+                    let channel = if channels.contains_key(&channel_pos) {
+                        *channels.get(&channel_pos).unwrap()
+                    } else {
+                        let next = decoded_audio.len();
+                        channels.insert(channel_pos, next);
+                        next
+                    };
                     decoded_audio[(channel - 1) as usize].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
