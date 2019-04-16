@@ -165,8 +165,8 @@ test(function () {
     var uncaughtError;
     window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     instance.cloneNode(false);
-    assert_equals(uncaughtError.name, 'InvalidStateError');
-}, 'HTMLElement constructor must throw an InvalidStateError when the top of the construction stack is marked AlreadyConstructed'
+    assert_equals(uncaughtError.name, 'TypeError');
+}, 'HTMLElement constructor must throw an TypeError when the top of the construction stack is marked AlreadyConstructed'
     + ' due to a custom element constructor constructing itself after super() call');
 
 test(function () {
@@ -183,8 +183,8 @@ test(function () {
     var uncaughtError;
     window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     instance.cloneNode(false);
-    assert_equals(uncaughtError.name, 'InvalidStateError');
-}, 'HTMLElement constructor must throw an InvalidStateError when the top of the construction stack is marked AlreadyConstructed'
+    assert_equals(uncaughtError.name, 'TypeError');
+}, 'HTMLElement constructor must throw an TypeError when the top of the construction stack is marked AlreadyConstructed'
     + ' due to a custom element constructor constructing itself before super() call');
 
 test(function () {
@@ -203,8 +203,8 @@ test(function () {
     var uncaughtError;
     window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     instance.cloneNode(false);
-    assert_equals(uncaughtError.name, 'InvalidStateError');
-}, 'Upgrading a custom element must throw InvalidStateError when the custom element\'s constructor returns another element');
+    assert_equals(uncaughtError.name, 'TypeError');
+}, 'Upgrading a custom element must throw TypeError when the custom element\'s constructor returns another element');
 
 test(function () {
     var instance = document.createElement('my-custom-element-throw-exception');

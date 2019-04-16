@@ -15,6 +15,8 @@
 <instantiates-itself-before-super></instantiates-itself-before-super>
 <my-other-element id="instance"></my-other-element>
 <my-other-element id="otherInstance"></my-other-element>
+<not-an-element></not-an-element>
+<not-an-html-element></not-an-html-element>
 <script>
 
 setup({allow_uncaught_exception:true});
@@ -48,8 +50,8 @@ test(function () {
     var uncaughtError;
     window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     customElements.define('instantiates-itself-after-super', InstantiatesItselfAfterSuper);
-    assert_equals(uncaughtError.name, 'InvalidStateError');
-}, 'HTMLElement constructor must throw an InvalidStateError when the top of the construction stack is marked AlreadyConstructed'
+    assert_equals(uncaughtError.name, 'TypeError');
+}, 'HTMLElement constructor must throw an TypeError when the top of the construction stack is marked AlreadyConstructed'
     + ' due to a custom element constructor constructing itself after super() call');
 
 test(function () {
@@ -64,8 +66,8 @@ test(function () {
     var uncaughtError;
     window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     customElements.define('instantiates-itself-before-super', InstantiatesItselfBeforeSuper);
-    assert_equals(uncaughtError.name, 'InvalidStateError');
-}, 'HTMLElement constructor must throw an InvalidStateError when the top of the construction stack is marked AlreadyConstructed'
+    assert_equals(uncaughtError.name, 'TypeError');
+}, 'HTMLElement constructor must throw an TypeError when the top of the construction stack is marked AlreadyConstructed'
     + ' due to a custom element constructor constructing itself before super() call');
 
 test(function () {
@@ -85,12 +87,38 @@ test(function () {
     var uncaughtError;
     window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     customElements.define('my-other-element', MyOtherElement);
-    assert_equals(uncaughtError.name, 'InvalidStateError');
+    assert_equals(uncaughtError.name, 'TypeError');
 
     assert_true(document.createElement('my-other-element') instanceof MyOtherElement,
         'Upgrading of custom elements must happen after the definition was added to the registry.');
 
-}, 'Upgrading a custom element must throw an InvalidStateError when the returned element is not SameValue as the upgraded element');
+}, 'Upgrading a custom element must throw an TypeError when the returned element is not SameValue as the upgraded element');
+
+test(() => {
+  class NotAnElement extends HTMLElement {
+    constructor() {
+      return new Text();
+    }
+  }
+
+  let uncaughtError;
+  window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
+  customElements.define("not-an-element", NotAnElement);
+  assert_equals(uncaughtError.name, "TypeError");
+}, "Upgrading a custom element whose constructor returns a Text node must throw");
+
+test(() => {
+  class NotAnHTMLElement extends HTMLElement {
+    constructor() {
+      return document.createElementNS("", "test");
+    }
+  }
+
+  let uncaughtError;
+  window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
+  customElements.define("not-an-html-element", NotAnHTMLElement);
+  assert_equals(uncaughtError.name, "TypeError");
+}, "Upgrading a custom element whose constructor returns an Element must throw");
 
 </script>
 </body>

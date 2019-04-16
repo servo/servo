@@ -17,7 +17,7 @@ logger = get_logger()
 def update(tests_root,
            manifest,
            manifest_path=None,
-           working_copy=False,
+           working_copy=True,
            cache_root=None,
            rebuild=False):
     logger.warning("Deprecated; use manifest.load_and_update instead")
@@ -41,8 +41,7 @@ def update_from_cli(**kwargs):
                              kwargs["url_base"],
                              update=True,
                              rebuild=kwargs["rebuild"],
-                             cache_root=kwargs["cache_root"],
-                             working_copy=kwargs["work"])
+                             cache_root=kwargs["cache_root"])
 
 
 def abs_path(path):
@@ -58,9 +57,6 @@ def create_parser():
     parser.add_argument(
         "-r", "--rebuild", action="store_true", default=False,
         help="Force a full rebuild of the manifest.")
-    parser.add_argument(
-        "--work", action="store_true", default=False,
-        help="Build from the working tree rather than the latest commit")
     parser.add_argument(
         "--url-base", action="store", default="/",
         help="Base url to use as the mount point for tests in this manifest.")

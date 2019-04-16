@@ -15,7 +15,7 @@ try:
 except ImportError:
     zstandard = None
 
-from .vcs import Git
+from .utils import git
 
 from . import log
 
@@ -40,9 +40,9 @@ def should_download(manifest_path, rebuild_time=timedelta(days=5)):
 
 
 def merge_pr_tags(repo_root, max_count=50):
-    git = Git.get_func(repo_root)
+    gitfunc = git(repo_root)
     tags = []
-    for line in git("log", "--format=%D", "--max-count=%s" % max_count).split("\n"):
+    for line in gitfunc("log", "--format=%D", "--max-count=%s" % max_count).split("\n"):
         for ref in line.split(", "):
             if ref.startswith("tag: merge_pr_"):
                 tags.append(ref[5:])
