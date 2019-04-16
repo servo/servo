@@ -60,11 +60,6 @@ Xcode version 10.2 or above is recommended.
 brew bundle install --file=etc/taskcluster/macos/Brewfile
 pip install virtualenv
 ```
-##### On macOS (MacPorts)
-
-``` sh
-sudo port install python27 py27-virtualenv cmake yasm llvm
-```
 ##### On macOS >= 10.11 (El Capitan), you also have to install OpenSSL
 
 ``` sh
@@ -82,11 +77,12 @@ If you've already partially compiled servo but forgot to do this step, run `./ma
 
 #### On Debian-based Linuxes
 
-Please run `./mach bootstrap`.
+Please run `sudo pip install virtualenv && ./mach bootstrap`.
 
 If this doesn't work, file a bug, and, run the commands below:
 
 ``` sh
+
 sudo apt install git curl autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
@@ -94,6 +90,7 @@ sudo apt install git curl autoconf libx11-dev \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
     libharfbuzz-dev ccache clang libunwind-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
+sudo pip install virtualenv
 ```
 
 If you using a version prior to **Ubuntu 17.04**, **Linux Mint 19** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
@@ -139,7 +136,7 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 
 #### On Fedora
 
-Please run `./mach bootstrap`.
+Please run `sudo pip install virtualenv && ./mach bootstrap`.
 
 If this doesn't work, file a bug, and, run the commands below:
 
@@ -150,11 +147,12 @@ sudo dnf install curl libtool gcc-c++ libXi-devel \
     rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel ncurses-devel harfbuzz-devel ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
+sudo install pip-virtualenv
 ```
 #### On CentOS
 
 
-Please run `./mach bootstrap`.
+Please run `sudo pip install virtualenv && ./mach bootstrap`.
 
 If this doesn't work, file a bug, and, run the commands below:
 
@@ -164,6 +162,7 @@ sudo yum install curl libtool gcc-c++ libXi-devel \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake3 bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel ncurses-devel python34 harfbuzz-devel ccache clang clang-libs llvm-toolset-7
+sudo pip install virtualenv
 ```
 
 Build inside `llvm-toolset` and `devtoolset`:
@@ -185,12 +184,14 @@ sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel M
     harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
     python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang autoconf213 gstreamer-devel \
     gstreamer-plugins-base-devel gstreamer-plugins-bad-devel
+sudo pip install virtualenv
 ```
 #### On Arch Linux
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu \
     pkg-config ttf-fira-sans harfbuzz ccache clang autoconf2.13 gstreamer gstreamer-vaapi
+sudo pip install virtualenv
 ```
 #### On Gentoo Linux
 
@@ -201,6 +202,7 @@ sudo emerge net-misc/curl \
     media-libs/harfbuzz dev-util/ccache \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang \
     media-libs/gstreamer media-libs/gst-plugins-bad media-libs/gst-plugins-base
+sudo pip install virtualenv
 ```
 
 with the following environment variable set:
