@@ -13,6 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use net_traits::request::Referrer;
 use servo_url::{MutableOrigin, ServoUrl};
 
 #[dom_struct]
@@ -43,8 +44,9 @@ impl Location {
 
     fn set_url_component(&self, value: USVString, setter: fn(&mut ServoUrl, USVString)) {
         let mut url = self.window.get_url();
+        let referrer = Referrer::ReferrerUrl(url.clone());
         setter(&mut url, value);
-        self.window.load_url(url, false, false, None, None);
+        self.window.load_url(url, false, false, referrer, None);
     }
 
     fn check_same_origin_domain(&self) -> ErrorResult {
@@ -62,7 +64,9 @@ impl Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
     pub fn reload_without_origin_check(&self) {
-        self.window.load_url(self.get_url(), true, true, None, None);
+        let url = self.get_url();
+        let referrer = Referrer::ReferrerUrl(url.clone());
+        self.window.load_url(url, true, true, referrer, None);
     }
 
     #[allow(dead_code)]
@@ -79,7 +83,8 @@ impl LocationMethods for Location {
         //       _entry settings object_.
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
-            self.window.load_url(url, false, false, None, None);
+            let referrer = Referrer::ReferrerUrl(url.clone());
+            self.window.load_url(url, false, false, referrer, None);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -89,7 +94,9 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
     fn Reload(&self) -> ErrorResult {
         self.check_same_origin_domain()?;
-        self.window.load_url(self.get_url(), true, true, None, None);
+        let url = self.get_url();
+        let referrer = Referrer::ReferrerUrl(url.clone());
+        self.window.load_url(url, true, true, referrer, None);
         Ok(())
     }
 
@@ -100,7 +107,8 @@ impl LocationMethods for Location {
         //       _entry settings object_.
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
-            self.window.load_url(url, true, false, None, None);
+            let referrer = Referrer::ReferrerUrl(url.clone());
+            self.window.load_url(url, true, false, referrer, None);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -168,7 +176,8 @@ impl LocationMethods for Location {
             Ok(url) => url,
             Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
         };
-        self.window.load_url(url, false, false, None, None);
+        let referrer = Referrer::ReferrerUrl(url.clone());
+        self.window.load_url(url, false, false, referrer, None);
         Ok(())
     }
 

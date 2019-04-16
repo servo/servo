@@ -1717,7 +1717,7 @@ impl Window {
         url: ServoUrl,
         replace: bool,
         force_reload: bool,
-        referrer: Option<Referrer>,
+        referrer: Referrer,
         referrer_policy: Option<ReferrerPolicy>,
     ) {
         let doc = self.Document();
@@ -1780,14 +1780,10 @@ impl Window {
                 // then put it in the delaying load events mode.
                 self.window_proxy().start_delaying_load_events_mode();
             }
-            let referrer = match referrer {
-                Some(referrer) => Some(referrer),
-                None => Some(Referrer::ReferrerUrl(doc.url())),
-            };
             self.main_thread_script_chan()
                 .send(MainThreadScriptMsg::Navigate(
                     pipeline_id,
-                    LoadData::new(url, Some(pipeline_id), referrer, referrer_policy),
+                    LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy),
                     replace,
                 ))
                 .unwrap();

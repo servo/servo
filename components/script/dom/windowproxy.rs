@@ -431,9 +431,9 @@ impl WindowProxy {
             };
             // Step 14.3
             let referrer = if noreferrer {
-                Some(Referrer::NoReferrer)
+                Referrer::NoReferrer
             } else {
-                None
+                Referrer::Client
             };
             // Step 14.5
             target_window.load_url(

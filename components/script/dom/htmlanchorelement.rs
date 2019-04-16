@@ -669,9 +669,9 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
                 false
             };
         let referrer = if noreferrer {
-            Some(Referrer::NoReferrer)
+            Referrer::NoReferrer
         } else {
-            None
+            Referrer::ReferrerUrl(url.clone())
         };
 
         // Step 14
