@@ -1708,8 +1708,12 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         }
 
         // Step 5.
-        // FIXME(nox): Seek to earliest possible position if playback has ended
-        // and direction of playback is forwards.
+        if self.Ended() && self.direction_of_playback() == PlaybackDirection::Forwards {
+            self.seek(
+                self.earliest_possible_position(),
+                /* approximate_for_speed */ false,
+            );
+        }
 
         let state = self.ready_state.get();
 
