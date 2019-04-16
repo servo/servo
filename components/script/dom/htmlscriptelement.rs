@@ -555,7 +555,15 @@ impl HTMLScriptElement {
             },
         }
 
-        let path = PathBuf::from(window_from_node(self).unminified_js_dir().unwrap());
+        let path;
+        match window_from_node(self).unminified_js_dir() {
+            Some(unminified_js_dir) => path = PathBuf::from(unminified_js_dir),
+            None => {
+                warn!("Unminified script directory not found");
+                return;
+            },
+        }
+
         let path = if script.external {
             // External script.
             let path_parts = script.url.path_segments().unwrap();
