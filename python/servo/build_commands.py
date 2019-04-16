@@ -197,10 +197,14 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build with frame pointer enabled, used by the background hang monitor.')
+    @CommandArgument('--diagnostic',
+                     default=None,
+                     action='store_true',
+                     help='')
     def build(self, target=None, release=False, dev=False, jobs=None,
               features=None, android=None, magicleap=None, no_package=False, verbose=False, very_verbose=False,
               debug_mozjs=False, params=None, with_debug_assertions=False,
-              libsimpleservo=False, with_frame_pointer=False):
+              libsimpleservo=False, with_frame_pointer=False, diagnostic=False):
 
         opts = params or []
 
@@ -287,7 +291,7 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 
-        self.add_manifest_path(opts, android, libsimpleservo)
+        self.add_manifest_path(opts, android, libsimpleservo, diagnostic)
 
         if debug_mozjs:
             features += ["debugmozjs"]
@@ -303,6 +307,9 @@ class MachCommands(CommandBase):
 
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
+
+        #if host_triple() != target and 'windows' in host_triple() and 'i686' in target:
+        #    env['CMAKE_TOOLCHAIN_FILE'] = path.join(self.context.topdir, 'support', 'windows', 'x86-toolchain.cmake')
 
         build_start = time()
         env["CARGO_TARGET_DIR"] = target_path

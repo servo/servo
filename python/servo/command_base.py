@@ -726,10 +726,12 @@ install them, let us know by filing a bug!")
     def ports_servo_crate(self):
         return path.join(self.context.topdir, "ports", "servo")
 
-    def add_manifest_path(self, args, android=False, libsimpleservo=False):
+    def add_manifest_path(self, args, android=False, libsimpleservo=False, diagnostic=False):
         if "--manifest-path" not in args:
             if libsimpleservo or android:
                 manifest = self.ports_libsimpleservo_manifest(android)
+            elif diagnostic:
+                manifest = path.join(self.context.topdir, "ports", "diagnostic", "Cargo.toml")
             else:
                 manifest = self.ports_servo_manifest()
             args.append("--manifest-path")
