@@ -111,6 +111,23 @@ fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<E
     if inherits == parent_name {
         return Ok(());
     }
+
+    // If there is no parent, first field must be of type Reflector.
+    if inherits == "" && parent_name == "Reflector" {
+        return Ok(());
+    }
+
+    if inherits == "" &&
+        name == "PaintRenderingContext2D" &&
+        parent_name == "CanvasRenderingContext2D"
+    {
+        // PaintRenderingContext2D embeds a CanvasRenderingContext2D
+        // instead of a Reflector as an optimization,
+        // but this is fine since CanvasRenderingContext2D
+        // also has a reflector
+        return Ok(());
+    }
+
     Err(boxed::Box::from(WebIdlError::ParentMismatch {
         name: name.to_string(),
         rust_parent: parent_name.to_string(),
