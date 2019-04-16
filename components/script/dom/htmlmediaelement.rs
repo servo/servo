@@ -41,6 +41,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
+use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::mediaerror::MediaError;
 use crate::dom::mediastream::MediaStream;
@@ -1737,21 +1738,41 @@ impl HTMLMediaElement {
                 &document,
                 ElementCreator::ScriptCreated,
             );
-            let mut media_controls = resources::read_string(EmbedderResource::MediaControls);
+            let mut media_controls_script =
+                resources::read_string(EmbedderResource::MediaControlsJS);
             // This is our hacky way to temporarily workaround the lack of a privileged
             // JS context.
             // The media controls UI accesses the document.servoGetMediaControls(id) API
             // to get an instance to the media controls ShadowRoot.
             // `id` needs to match the internally generated UUID assigned to a media element.
             let id = document.register_media_controls(&shadow_root);
-            let media_controls = media_controls.as_mut_str().replace("@@@id@@@", &id);
+            let media_controls_script = media_controls_script.as_mut_str().replace("@@@id@@@", &id);
             *self.media_controls_id.borrow_mut() = Some(id);
             script
                 .upcast::<Node>()
-                .SetTextContent(Some(DOMString::from(media_controls)));
+                .SetTextContent(Some(DOMString::from(media_controls_script)));
             if let Err(e) = shadow_root
                 .upcast::<Node>()
                 .AppendChild(&*script.upcast::<Node>())
+            {
+                warn!("Could not render media controls {:?}", e);
+                return;
+            }
+
+            let media_controls_style = resources::read_string(EmbedderResource::MediaControlsCSS);
+            let style = HTMLStyleElement::new(
+                local_name!("script"),
+                None,
+                &document,
+                ElementCreator::ScriptCreated,
+            );
+            style
+                .upcast::<Node>()
+                .SetTextContent(Some(DOMString::from(media_controls_style)));
+
+            if let Err(e) = shadow_root
+                .upcast::<Node>()
+                .AppendChild(&*style.upcast::<Node>())
             {
                 warn!("Could not render media controls {:?}", e);
             }
