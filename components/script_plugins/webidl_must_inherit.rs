@@ -26,32 +26,30 @@ declare_lint!(
 pub struct WebIdlPass;
 
 #[derive(Clone, Debug)]
-pub enum WebIdlError {
-    ParentMismatch {
-        name: String,
-        rust_parent: String,
-        webidl_parent: String,
-    },
+pub struct ParentMismatchError {
+    name: String,
+    rust_parent: String,
+    webidl_parent: String,
 }
 
-impl fmt::Display for WebIdlError {
+impl fmt::Display for ParentMismatchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            WebIdlError::ParentMismatch {
-                name,
-                rust_parent,
-                webidl_parent,
-            } => {
-                return write!(f, "webidl-rust inheritance mismatch, rust: {:?}, rust parent: {:?}, webidl parent: {:?}",
-                    &name, &rust_parent, &webidl_parent);
-            },
-        }
+        let ParentMismatchError {
+            name,
+            rust_parent,
+            webidl_parent,
+        } = self;
+        write!(
+            f,
+            "webidl-rust inheritance mismatch, rust: {:?}, rust parent: {:?}, webidl parent: {:?}",
+            &name, &rust_parent, &webidl_parent
+        )
     }
 }
 
-impl Error for WebIdlError {
+impl Error for ParentMismatchError {
     fn description(&self) -> &str {
-        "WebIdlError"
+        "ParentMismatchError"
     }
 
     fn cause(&self) -> Option<&Error> {
@@ -126,7 +124,7 @@ fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<E
         return Ok(());
     }
 
-    Err(boxed::Box::from(WebIdlError::ParentMismatch {
+    Err(boxed::Box::from(ParentMismatchError {
         name: name.to_string(),
         rust_parent: parent_name.to_string(),
         webidl_parent: inherits.to_string(),
