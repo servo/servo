@@ -30,17 +30,10 @@ pub trait PseudoElement: Sized + ToCss {
 
     /// Whether the pseudo-element supports a given state selector to the right
     /// of it.
-    fn supports_pseudo_class(
-        &self,
-        _pseudo_class: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-    ) -> bool {
-        false
-    }
+    fn accepts_state_pseudo_classes(&self) -> bool { false }
 
     /// Whether this pseudo-element is valid after a ::slotted(..) pseudo.
-    fn valid_after_slotted(&self) -> bool {
-        false
-    }
+    fn valid_after_slotted(&self) -> bool { false }
 }
 
 /// A trait that represents a pseudo-class.
@@ -50,6 +43,11 @@ pub trait NonTSPseudoClass: Sized + ToCss {
 
     /// Whether this pseudo-class is :active or :hover.
     fn is_active_or_hover(&self) -> bool;
+
+    /// Whether this pseudo-class belongs to:
+    ///
+    /// https://drafts.csswg.org/selectors-4/#useraction-pseudos
+    fn is_user_action_state(&self) -> bool;
 }
 
 /// Returns a Cow::Borrowed if `s` is already ASCII lowercase, and a
@@ -61,6 +59,55 @@ fn to_ascii_lowercase(s: &str) -> Cow<str> {
         string.into()
     } else {
         s.into()
+    }
+}
+
+bitflags! {
+    /// Flags that indicate at which point of parsing a selector are we.
+    struct SelectorParsingState: u8 {
+        /// Whether we're inside a negation. If we're inside a negation, we're
+        /// not allowed to add another negation or such, for example.
+        const INSIDE_NEGATION = 1 << 0;
+        /// Whether we've parsed an ::slotted() pseudo-element already.
+        ///
+        /// If so, then we can only parse a subset of pseudo-elements, and
+        /// whatever comes after them if so.
+        const AFTER_SLOTTED = 1 << 1;
+        /// Whether we've parsed a pseudo-element (as in, an
+        /// `Impl::PseudoElement` thus not accounting for `::slotted`) already.
+        ///
+        /// If so, then other pseudo-elements and most other selectors are
+        /// disallowed.
+        const AFTER_PSEUDO_ELEMENT = 1 << 2;
+        /// Whether we've parsed a non-stateful pseudo-element (again, as-in
+        /// `Impl::PseudoElement`) already. If so, then other pseudo-classes are
+        /// disallowed. If this flag is set, `AFTER_PSEUDO_ELEMENT` must be set
+        /// as well.
+        const AFTER_NON_STATEFUL_PSEUDO_ELEMENT = 1 << 3;
+        /// Whether we are after any of the pseudo-like things.
+        const AFTER_PSEUDO = Self::AFTER_SLOTTED.bits | Self::AFTER_PSEUDO_ELEMENT.bits;
+    }
+}
+
+impl SelectorParsingState {
+    #[inline]
+    fn allows_functional_pseudo_classes(self) -> bool {
+        !self.intersects(SelectorParsingState::AFTER_PSEUDO)
+    }
+
+    #[inline]
+    fn allows_slotted(self) -> bool {
+        !self.intersects(SelectorParsingState::AFTER_PSEUDO)
+    }
+
+    #[inline]
+    fn allows_non_functional_pseudo_classes(self) -> bool {
+        !self.intersects(SelectorParsingState::AFTER_SLOTTED | SelectorParsingState::AFTER_NON_STATEFUL_PSEUDO_ELEMENT)
+    }
+
+    #[inline]
+    fn allows_tree_structural_pseudo_classes(self) -> bool {
+        !self.intersects(SelectorParsingState::AFTER_PSEUDO)
     }
 }
 
@@ -76,6 +123,7 @@ pub enum SelectorParseErrorKind<'i> {
     NonCompoundSelector,
     NonPseudoElementAfterSlotted,
     InvalidPseudoElementAfterSlotted,
+    InvalidState,
     UnexpectedTokenInAttributeSelector(Token<'i>),
     PseudoElementExpectedColon(Token<'i>),
     PseudoElementExpectedIdent(Token<'i>),
@@ -1369,9 +1417,9 @@ where
     'outer_loop: loop {
         // Parse a sequence of simple selectors.
         match parse_compound_selector(parser, input, &mut builder)? {
-            Some((has_pseudo, slot)) => {
-                has_pseudo_element = has_pseudo;
-                slotted = slot;
+            Some(state) => {
+                has_pseudo_element = state.intersects(SelectorParsingState::AFTER_PSEUDO_ELEMENT);
+                slotted = state.intersects(SelectorParsingState::AFTER_SLOTTED);
             },
             None => {
                 return Err(input.new_custom_error(if builder.has_combinators() {
@@ -1848,7 +1896,7 @@ where
         Err(e) => return Err(e.into()),
     };
     if !is_type_sel {
-        match parse_one_simple_selector(parser, input, /* inside_negation = */ true)? {
+        match parse_one_simple_selector(parser, input, SelectorParsingState::INSIDE_NEGATION)? {
             Some(SimpleSelectorParseResult::SimpleSelector(s)) => {
                 sequence.push(s);
             },
@@ -1875,14 +1923,11 @@ where
 ///
 /// `Err(())` means invalid selector.
 /// `Ok(None)` is an empty selector
-///
-/// The booleans represent whether a pseudo-element has been parsed, and whether
-/// ::slotted() has been parsed, respectively.
 fn parse_compound_selector<'i, 't, P, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
     builder: &mut SelectorBuilder<Impl>,
-) -> Result<Option<(bool, bool)>, ParseError<'i, P::Error>>
+) -> Result<Option<SelectorParsingState>, ParseError<'i, P::Error>>
 where
     P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
@@ -1901,122 +1946,44 @@ where
         empty = false;
     }
 
-    let mut pseudo = false;
-    let mut slot = false;
+    let mut state = SelectorParsingState::empty();
     loop {
         let parse_result =
-            match parse_one_simple_selector(parser, input, /* inside_negation = */ false)? {
+            match parse_one_simple_selector(parser, input, state)? {
                 None => break,
                 Some(result) => result,
             };
 
         empty = false;
 
-        let slotted_selector;
-        let pseudo_element;
-
         match parse_result {
             SimpleSelectorParseResult::SimpleSelector(s) => {
                 builder.push_simple_selector(s);
-                continue;
-            },
-            SimpleSelectorParseResult::PseudoElement(p) => {
-                slotted_selector = None;
-                pseudo_element = Some(p);
             },
             SimpleSelectorParseResult::SlottedPseudo(selector) => {
-                slotted_selector = Some(selector);
-                let maybe_pseudo =
-                    parse_one_simple_selector(parser, input, /* inside_negation = */ false)?;
-
-                pseudo_element = match maybe_pseudo {
-                    None => None,
-                    Some(SimpleSelectorParseResult::PseudoElement(pseudo)) => {
-                        if !pseudo.valid_after_slotted() {
-                            return Err(input.new_custom_error(
-                                SelectorParseErrorKind::InvalidPseudoElementAfterSlotted,
-                            ));
-                        }
-                        Some(pseudo)
-                    },
-                    Some(SimpleSelectorParseResult::SimpleSelector(..)) |
-                    Some(SimpleSelectorParseResult::SlottedPseudo(..)) => {
-                        return Err(input.new_custom_error(
-                            SelectorParseErrorKind::NonPseudoElementAfterSlotted,
-                        ));
-                    },
-                };
+                state.insert(SelectorParsingState::AFTER_SLOTTED);
+                if !builder.is_empty() {
+                    builder.push_combinator(Combinator::SlotAssignment);
+                }
+                builder.push_simple_selector(Component::Slotted(selector));
+            },
+            SimpleSelectorParseResult::PseudoElement(p) => {
+                state.insert(SelectorParsingState::AFTER_PSEUDO_ELEMENT);
+                if !p.accepts_state_pseudo_classes() {
+                    state.insert(SelectorParsingState::AFTER_NON_STATEFUL_PSEUDO_ELEMENT);
+                }
+                if !builder.is_empty() {
+                    builder.push_combinator(Combinator::PseudoElement);
+                }
+                builder.push_simple_selector(Component::PseudoElement(p));
             },
         }
-
-        debug_assert!(slotted_selector.is_some() || pseudo_element.is_some());
-        // Try to parse state to the right of the pseudo-element.
-        //
-        // There are only 3 allowable state selectors that can go on
-        // pseudo-elements as of right now.
-        let mut state_selectors = SmallVec::<[Component<Impl>; 3]>::new();
-        if let Some(ref p) = pseudo_element {
-            loop {
-                let location = input.current_source_location();
-                match input.next_including_whitespace() {
-                    Ok(&Token::Colon) => {},
-                    Ok(&Token::WhiteSpace(_)) | Err(_) => break,
-                    Ok(t) => {
-                        let e = SelectorParseErrorKind::PseudoElementExpectedColon(t.clone());
-                        return Err(location.new_custom_error(e));
-                    },
-                }
-
-                let location = input.current_source_location();
-                // TODO(emilio): Functional pseudo-classes too?
-                // We don't need it for now.
-                let name = match input.next_including_whitespace()? {
-                    &Token::Ident(ref name) => name.clone(),
-                    t => {
-                        return Err(location.new_custom_error(
-                            SelectorParseErrorKind::NoIdentForPseudo(t.clone()),
-                        ));
-                    },
-                };
-
-                let pseudo_class = P::parse_non_ts_pseudo_class(parser, location, name.clone())?;
-                if !p.supports_pseudo_class(&pseudo_class) {
-                    return Err(input.new_custom_error(
-                        SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
-                    ));
-                }
-                state_selectors.push(Component::NonTSPseudoClass(pseudo_class));
-            }
-        }
-
-        if let Some(slotted) = slotted_selector {
-            slot = true;
-            if !builder.is_empty() {
-                builder.push_combinator(Combinator::SlotAssignment);
-            }
-            builder.push_simple_selector(Component::Slotted(slotted));
-        }
-
-        if let Some(p) = pseudo_element {
-            pseudo = true;
-            if !builder.is_empty() {
-                builder.push_combinator(Combinator::PseudoElement);
-            }
-
-            builder.push_simple_selector(Component::PseudoElement(p));
-
-            for state_selector in state_selectors.drain() {
-                builder.push_simple_selector(state_selector);
-            }
-        }
-
-        break;
     }
     if empty {
         // An empty selector is invalid.
         Ok(None)
     } else {
-        Ok(Some((pseudo, slot)))
+        Ok(Some(state))
     }
 }
 
@@ -2024,12 +1991,18 @@ fn parse_functional_pseudo_class<'i, 't, P, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
     name: CowRcStr<'i>,
-    inside_negation: bool,
+    state: SelectorParsingState,
 ) -> Result<Component<Impl>, ParseError<'i, P::Error>>
 where
     P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
+    if !state.allows_functional_pseudo_classes() {
+        return Err(input.new_custom_error(
+            SelectorParseErrorKind::InvalidState
+        ));
+    }
+    debug_assert!(state.allows_tree_structural_pseudo_classes());
     match_ignore_ascii_case! { &name,
         "nth-child" => return Ok(parse_nth_pseudo_class(input, Component::NthChild)?),
         "nth-of-type" => return Ok(parse_nth_pseudo_class(input, Component::NthOfType)?),
@@ -2037,11 +2010,12 @@ where
         "nth-last-of-type" => return Ok(parse_nth_pseudo_class(input, Component::NthLastOfType)?),
         "host" => return Ok(Component::Host(Some(parse_inner_compound_selector(parser, input)?))),
         "not" => {
-            if inside_negation {
+            if state.intersects(SelectorParsingState::INSIDE_NEGATION) {
                 return Err(input.new_custom_error(
                     SelectorParseErrorKind::UnexpectedIdent("not".into())
                 ));
             }
+            debug_assert!(state.is_empty());
             return parse_negation(parser, input)
         },
         _ => {}
@@ -2080,37 +2054,52 @@ pub fn is_css2_pseudo_element(name: &str) -> bool {
 fn parse_one_simple_selector<'i, 't, P, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
-    inside_negation: bool,
+    state: SelectorParsingState,
 ) -> Result<Option<SimpleSelectorParseResult<Impl>>, ParseError<'i, P::Error>>
 where
     P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     let start = input.state();
-    // FIXME: remove clone() when lifetimes are non-lexical
-    match input.next_including_whitespace().map(|t| t.clone()) {
-        Ok(Token::IDHash(id)) => {
+    let token = match input.next_including_whitespace().map(|t| t.clone()) {
+        Ok(t) => t,
+        Err(..) => {
+            input.reset(&start);
+            return Ok(None);
+        }
+    };
+
+    Ok(Some(match token {
+        Token::IDHash(id) => {
+            if state.intersects(SelectorParsingState::AFTER_PSEUDO) {
+                return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+            }
             let id = Component::ID(id.as_ref().into());
-            Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
+            SimpleSelectorParseResult::SimpleSelector(id)
         },
-        Ok(Token::Delim('.')) => {
+        Token::Delim('.') => {
+            if state.intersects(SelectorParsingState::AFTER_PSEUDO) {
+                return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+            }
             let location = input.current_source_location();
-            match *input.next_including_whitespace()? {
-                Token::Ident(ref class) => {
-                    let class = Component::Class(class.as_ref().into());
-                    Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
-                },
+            let class = match *input.next_including_whitespace()? {
+                Token::Ident(ref class) => class,
                 ref t => {
                     let e = SelectorParseErrorKind::ClassNeedsIdent(t.clone());
-                    Err(location.new_custom_error(e))
+                    return Err(location.new_custom_error(e))
                 },
+            };
+            let class = Component::Class(class.as_ref().into());
+            SimpleSelectorParseResult::SimpleSelector(class)
+        },
+        Token::SquareBracketBlock => {
+            if state.intersects(SelectorParsingState::AFTER_PSEUDO) {
+                return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
             }
-        },
-        Ok(Token::SquareBracketBlock) => {
             let attr = input.parse_nested_block(|input| parse_attribute_selector(parser, input))?;
-            Ok(Some(SimpleSelectorParseResult::SimpleSelector(attr)))
+            SimpleSelectorParseResult::SimpleSelector(attr)
         },
-        Ok(Token::Colon) => {
+        Token::Colon => {
             let location = input.current_source_location();
             let (is_single_colon, next_token) = match input.next_including_whitespace()?.clone() {
                 Token::Colon => (false, input.next_including_whitespace()?.clone()),
@@ -2127,69 +2116,83 @@ where
             let is_pseudo_element =
                 !is_single_colon || P::pseudo_element_allows_single_colon(&name);
             if is_pseudo_element {
-                let parse_result = if is_functional {
+                if state.intersects(SelectorParsingState::AFTER_PSEUDO_ELEMENT) {
+                    return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+                }
+                let pseudo_element = if is_functional {
                     if P::parse_slotted(parser) && name.eq_ignore_ascii_case("slotted") {
+                        if !state.allows_slotted() {
+                            return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+                        }
                         let selector = input.parse_nested_block(|input| {
                             parse_inner_compound_selector(parser, input)
                         })?;
-                        SimpleSelectorParseResult::SlottedPseudo(selector)
-                    } else {
-                        let selector = input.parse_nested_block(|input| {
-                            P::parse_functional_pseudo_element(parser, name, input)
-                        })?;
-                        SimpleSelectorParseResult::PseudoElement(selector)
+                        return Ok(Some(SimpleSelectorParseResult::SlottedPseudo(selector)));
                     }
+                    input.parse_nested_block(|input| {
+                        P::parse_functional_pseudo_element(parser, name, input)
+                    })?
                 } else {
-                    SimpleSelectorParseResult::PseudoElement(P::parse_pseudo_element(
-                        parser, location, name,
-                    )?)
+                    P::parse_pseudo_element(parser, location, name)?
                 };
-                Ok(Some(parse_result))
+
+                if state.intersects(SelectorParsingState::AFTER_SLOTTED) && !pseudo_element.valid_after_slotted() {
+                    return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+                }
+                SimpleSelectorParseResult::PseudoElement(pseudo_element)
             } else {
                 let pseudo_class = if is_functional {
                     input.parse_nested_block(|input| {
-                        parse_functional_pseudo_class(parser, input, name, inside_negation)
+                        parse_functional_pseudo_class(parser, input, name, state)
                     })?
                 } else {
-                    parse_simple_pseudo_class(parser, location, name)?
+                    parse_simple_pseudo_class(parser, location, name, state)?
                 };
-                Ok(Some(SimpleSelectorParseResult::SimpleSelector(
-                    pseudo_class,
-                )))
+                SimpleSelectorParseResult::SimpleSelector(pseudo_class)
             }
         },
         _ => {
             input.reset(&start);
-            Ok(None)
+            return Ok(None)
         },
-    }
+    }))
 }
 
 fn parse_simple_pseudo_class<'i, P, Impl>(
     parser: &P,
     location: SourceLocation,
     name: CowRcStr<'i>,
+    state: SelectorParsingState,
 ) -> Result<Component<Impl>, ParseError<'i, P::Error>>
 where
     P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
-    (match_ignore_ascii_case! { &name,
-        "first-child" => Ok(Component::FirstChild),
-        "last-child"  => Ok(Component::LastChild),
-        "only-child"  => Ok(Component::OnlyChild),
-        "root" => Ok(Component::Root),
-        "empty" => Ok(Component::Empty),
-        "scope" => Ok(Component::Scope),
-        "host" if P::parse_host(parser) => Ok(Component::Host(None)),
-        "first-of-type" => Ok(Component::FirstOfType),
-        "last-of-type" => Ok(Component::LastOfType),
-        "only-of-type" => Ok(Component::OnlyOfType),
-        _ => Err(())
-    })
-    .or_else(|()| {
-        P::parse_non_ts_pseudo_class(parser, location, name).map(Component::NonTSPseudoClass)
-    })
+    if !state.allows_non_functional_pseudo_classes() {
+        return Err(location.new_custom_error(SelectorParseErrorKind::InvalidState));
+    }
+
+    if state.allows_tree_structural_pseudo_classes() {
+        match_ignore_ascii_case! { &name,
+            "first-child" => return Ok(Component::FirstChild),
+            "last-child" => return Ok(Component::LastChild),
+            "only-child" => return Ok(Component::OnlyChild),
+            "root" => return Ok(Component::Root),
+            "empty" => return Ok(Component::Empty),
+            "scope" => return Ok(Component::Scope),
+            "host" if P::parse_host(parser) => return Ok(Component::Host(None)),
+            "first-of-type" => return Ok(Component::FirstOfType),
+            "last-of-type" => return Ok(Component::LastOfType),
+            "only-of-type" => return Ok(Component::OnlyOfType),
+            _ => {},
+        }
+    }
+
+    let pseudo_class = P::parse_non_ts_pseudo_class(parser, location, name)?;
+    if state.intersects(SelectorParsingState::AFTER_PSEUDO_ELEMENT) && !pseudo_class.is_user_action_state() {
+        return Err(location.new_custom_error(SelectorParseErrorKind::InvalidState));
+    }
+    Ok(Component::NonTSPseudoClass(pseudo_class))
 }
 
 // NB: pub module in order to access the DummyParser
@@ -2218,16 +2221,9 @@ pub mod tests {
     impl parser::PseudoElement for PseudoElement {
         type Impl = DummySelectorImpl;
 
-        fn supports_pseudo_class(&self, pc: &PseudoClass) -> bool {
-            match *pc {
-                PseudoClass::Hover => true,
-                PseudoClass::Active | PseudoClass::Lang(..) => false,
-            }
-        }
+        fn accepts_state_pseudo_classes(&self) -> bool { true }
 
-        fn valid_after_slotted(&self) -> bool {
-            true
-        }
+        fn valid_after_slotted(&self) -> bool { true }
     }
 
     impl parser::NonTSPseudoClass for PseudoClass {
@@ -2236,6 +2232,11 @@ pub mod tests {
         #[inline]
         fn is_active_or_hover(&self) -> bool {
             matches!(*self, PseudoClass::Active | PseudoClass::Hover)
+        }
+
+        #[inline]
+        fn is_user_action_state(&self) -> bool {
+            self.is_active_or_hover()
         }
     }
 
@@ -2789,11 +2790,11 @@ pub mod tests {
                 specificity(0, 2, 1) | HAS_PSEUDO_BIT,
             )]))
         );
-        assert!(parse("::before:hover:active").is_err());
+        assert!(parse("::before:hover:lang(foo)").is_err());
         assert!(parse("::before:hover .foo").is_err());
         assert!(parse("::before .foo").is_err());
         assert!(parse("::before ~ bar").is_err());
-        assert!(parse("::before:active").is_err());
+        assert!(parse("::before:active").is_ok());
 
         // https://github.com/servo/servo/issues/15335
         assert!(parse(":: before").is_err());

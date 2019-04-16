@@ -184,16 +184,6 @@ impl NonTSPseudoClass {
         }
     }
 
-    /// <https://drafts.csswg.org/selectors-4/#useraction-pseudos>
-    ///
-    /// We intentionally skip the link-related ones.
-    pub fn is_safe_user_action_state(&self) -> bool {
-        matches!(
-            *self,
-            NonTSPseudoClass::Hover | NonTSPseudoClass::Active | NonTSPseudoClass::Focus
-        )
-    }
-
     /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
         macro_rules! flag {
@@ -278,6 +268,15 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
     #[inline]
     fn is_active_or_hover(&self) -> bool {
         matches!(*self, NonTSPseudoClass::Active | NonTSPseudoClass::Hover)
+    }
+
+    /// We intentionally skip the link-related ones.
+    #[inline]
+    fn is_user_action_state(&self) -> bool {
+        matches!(
+            *self,
+            NonTSPseudoClass::Hover | NonTSPseudoClass::Active | NonTSPseudoClass::Focus
+        )
     }
 }
 
