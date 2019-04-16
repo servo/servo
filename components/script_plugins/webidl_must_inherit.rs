@@ -65,11 +65,11 @@ impl WebIdlPass {
     }
 }
 
-fn get_typ_name(typ: String) -> String {
-    if let Some(i) = typ.rfind(':') {
-        typ[i + 1..].to_string()
+fn get_ty_name(ty: &str) -> &str {
+    if let Some(i) = ty.rfind(':') {
+        &ty[i + 1..]
     } else {
-        typ
+        ty
     }
 }
 
@@ -118,13 +118,13 @@ fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<E
     }))
 }
 
-fn check_webidl(name: &str, parent_name: Option<String>) -> Result<(), Box<Error>> {
+fn check_webidl(name: &str, parent_name: Option<&str>) -> Result<(), Box<Error>> {
     let path = get_webidl_path(&name)?;
     println!("struct_webidl_path: {:?}", &path);
 
     if let Some(parent) = parent_name {
         let code = fs::read_to_string(path)?;
-        return check_inherits(&code, &name, &parent);
+        return check_inherits(&code, &name, parent);
     }
 
     Ok(())
@@ -165,18 +165,19 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
         let struct_name = n.to_string();
         println!("struct_name: {:?}", struct_name);
 
-        let mut parent_typ_name: Option<String> = None;
+        let ty: String;
+        let mut parent_name: Option<&str> = None;
         for ref field in def.fields() {
             let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
-            let ty = cx.tcx.type_of(def_id);
-            let typ_name = get_typ_name(ty.to_string());
-            parent_typ_name = Some(typ_name);
+            ty = cx.tcx.type_of(def_id).to_string();
+            let name = get_ty_name(&ty);
+            parent_name = Some(name);
 
             // Only first field is relevant.
             break;
         }
 
-        match check_webidl(&struct_name, parent_typ_name) {
+        match check_webidl(&struct_name, parent_name) {
             Ok(()) => {},
             Err(e) => {
                 let description = format!("{}", e);
