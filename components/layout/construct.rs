@@ -706,7 +706,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let mut abs_descendants = AbsoluteDescendants::new();
         let mut legalizer = Legalizer::new();
         if !node.is_replaced_content() ||
-            node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) {
+            node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement))
+        {
             for kid in node.children() {
                 if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                     self.process(&kid);
@@ -1249,7 +1250,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             // Go to a path that concatenates our kids' fragments.
             self.build_fragments_for_nonreplaced_inline_content(node)
         } else {
-            if node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) {
+            if node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement))
+            {
                 // Do not treat media elements as leafs.
                 self.build_flow_for_block(node, None)
             } else {
