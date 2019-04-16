@@ -78,7 +78,7 @@ fn get_webidl_path(struct_name: &str) -> io::Result<path::PathBuf> {
     dir.push("components/script/dom/webidls/");
     dir.push(format!("{}.webidl", struct_name));
 
-    return Ok(dir);
+    Ok(dir)
 }
 
 fn is_webidl_ty(cx: &LateContext, ty: &ty::TyS) -> bool {
