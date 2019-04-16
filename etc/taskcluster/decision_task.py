@@ -32,6 +32,7 @@ def main(task_for):
         all_tests = [
             linux_tidy_unit_docs,
             windows_unit,
+            windows_x86,
             macos_unit,
             magicleap_dev,
             android_arm32_dev,
@@ -57,7 +58,7 @@ def main(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit_docs],
-            "try-windows": [windows_unit],
+            "try-windows": [windows_x86],
             "try-magicleap": [magicleap_dev],
             "try-arm": [linux_arm32_dev, linux_arm64_dev],
             "try-wpt": [linux_wpt],
@@ -120,9 +121,16 @@ linux_build_env = {
 }
 macos_build_env = {}
 windows_build_env = {
-    "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
-    "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
+    "x86": {
+        "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86\\lib;%LIB%",
+        "GSTREAMER_1_0_ROOT_X86": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86\\",
+    },
+    "x86_64": {
+        "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
+        "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
+    },
 }
+
 windows_sparse_checkout = [
     "/*",
     "!/tests/wpt/metadata",
@@ -298,6 +306,25 @@ def android_x86_wpt():
                 /_mozilla/mozilla/webgl/context_creation_error.html
         """)
         .find_or_create("android_x86_release." + CONFIG.git_sha)
+    )
+
+
+def windows_x86():
+    return (
+        windows_build_task("Dev build", package=False, arch="x86")
+        .with_treeherder("Windows x86")
+        .with_env(**{
+            "VCVARSALL_PATH": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build"
+        })
+        .with_script(
+            "rustup target add i686-pc-windows-msvc",
+            "rustup target add x86_64-pc-windows-msvc",
+            "rustup target list",
+            "rustup show",
+            "python mach build --dev --target i686-pc-windows-msvc --diagnostic || type target\\i686-pc-windows-msvc\\debug\\build\\azure-d7ca4234e99fdbb5\\out\\build\\CMakeFiles\\CMakeOutput.log target\\i686-pc-windows-msvc\\debug\\build\\azure-d7ca4234e99fdbb5\\out\\build\\CMakeFiles\\CMakeError.log",
+            #"python mach build --dev --target i686-pc-windows-msvc || type target\\i686-pc-windows-msvc\\debug\\build\\azure-a57453833e49b7f0\\out\\build\\CMakeFiles\\CMakeOutput.log target\\i686-pc-windows-msvc\\debug\\build\\azure-a57453833e49b7f0\\out\\build\\CMakeFiles\\CMakeError.log",
+        )
+        .find_or_create("build.windows_x86_dev." + CONFIG.git_sha)
     )
 
 
@@ -556,33 +583,49 @@ def android_build_task(name):
     )
 
 
-def windows_build_task(name):
-    return (
+def windows_build_task(name, package=True, arch="x86_64"):
+    hashes = {
+        "devel": {
+            "x86_64": "b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
+            "x86": "50a18d050cdbb0779cd00607cc00a90f24fac48f2fb6c622ade6f23f050feb7a",
+        },
+        "non-devel": {
+            "x86_64": "f4f20c713766ed6718b914b9ae57ed993a59ffe194e6ef530c8547508b4484d8",
+            "x86": "52692c12ba8c3f59b5a289050e146d34d8374ab32b9f5070f7d1e37809656068",
+        },
+    }
+    version = "1.14.3"
+    task = (
         windows_task(name)
         .with_max_run_time_minutes(60)
-        .with_env(**build_env, **windows_build_env)
+        .with_env(**build_env, **windows_build_env[arch])
         .with_repo(sparse_checkout=windows_sparse_checkout)
         .with_python2()
         .with_rustup()
         .with_repacked_msi(
-            url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                "1.14.3/gstreamer-1.0-x86_64-1.14.3.msi",
-            sha256="f4f20c713766ed6718b914b9ae57ed993a59ffe194e6ef530c8547508b4484d8",
+            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                 "%s/gstreamer-1.0-%s-%s.msi" % (version, arch, version)),
+            sha256=hashes["non-devel"][arch],
             path="gst",
         )
         .with_repacked_msi(
-            url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                "1.14.3/gstreamer-1.0-devel-x86_64-1.14.3.msi",
-            sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
+            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                 "%s/gstreamer-1.0-devel-%s-%s.msi" % (version, arch, version)),
+            sha256=hashes["devel"][arch],
             path="gst",
         )
-        .with_directory_mount(
-            "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
-            sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
-            path="wix",
-        )
-        .with_path_from_homedir("wix")
     )
+    if package:
+        task = (
+            task
+            .with_directory_mount(
+                "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
+                sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
+                path="wix",
+            )
+            .with_path_from_homedir("wix")
+        )
+    return task
 
 
 def macos_build_task(name):

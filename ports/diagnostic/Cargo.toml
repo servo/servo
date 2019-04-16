@@ -1,0 +1,17 @@
+[package]
+name = "diagnostic"
+version = "0.1.0"
+authors = ["Josh Matthews <josh@joshmatthews.net>"]
+edition = "2018"
+#build = "build.rs"
+
+#[build-dependencies]
+#cc = { git = "https://github.com/jdm/
+#cc = "1.0.35"
+#cmake = "*"
+
+[features]
+native-bluetooth = []
+
+[dependencies]
+azure = {git = "https://github.com/servo/rust-azure"}
