@@ -1,13 +1,10 @@
 import json
 import os
-import platform
 import stat
-import subprocess
 from collections import deque
 
-from six import iteritems
-
 from .sourcefile import SourceFile
+from .utils import git
 
 MYPY = False
 if MYPY:
@@ -16,7 +13,7 @@ if MYPY:
 
 
 def get_tree(tests_root, manifest, manifest_path, cache_root,
-             working_copy=False, rebuild=False):
+             working_copy=True, rebuild=False):
     tree = None
     if cache_root is None:
         cache_root = os.path.join(tests_root, ".wptcache")
@@ -27,11 +24,8 @@ def get_tree(tests_root, manifest, manifest_path, cache_root,
             cache_root = None
 
     if not working_copy:
-        tree = Git.for_path(tests_root,
-                            manifest.url_base,
-                            manifest_path=manifest_path,
-                            cache_path=cache_root,
-                            rebuild=rebuild)
+        raise ValueError("working_copy=False unsupported")
+
     if tree is None:
         tree = FileSystem(tests_root,
                           manifest.url_base,
@@ -41,39 +35,9 @@ def get_tree(tests_root, manifest, manifest_path, cache_root,
     return tree
 
 
-class Git(object):
-    def __init__(self, repo_root, url_base, cache_path, manifest_path=None,
-                 rebuild=False):
-        self.root = repo_root
-        self.git = Git.get_func(repo_root)
-        self.url_base = url_base
-        # rebuild is a noop for now since we don't cache anything
-
-    @staticmethod
-    def get_func(repo_path):
-        def git(cmd, *args):
-            full_cmd = ["git", cmd] + list(args)
-            try:
-                return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
-            except Exception as e:
-                if platform.uname()[0] == "Windows" and isinstance(e, WindowsError):
-                    full_cmd[0] = "git.bat"
-                    return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
-                else:
-                    raise
-        return git
-
-    @classmethod
-    def for_path(cls, path, url_base, cache_path, manifest_path=None, rebuild=False):
-        git = Git.get_func(path)
-        try:
-            # this needs to be a command that fails if we aren't in a git repo
-            git("rev-parse", "--show-toplevel")
-        except (subprocess.CalledProcessError, OSError):
-            return None
-        else:
-            return cls(path, url_base, cache_path,
-                       manifest_path=manifest_path, rebuild=rebuild)
+class GitHasher(object):
+    def __init__(self, path):
+        self.git = git(path)
 
     def _local_changes(self):
         """get a set of files which have changed between HEAD and working copy"""
@@ -95,10 +59,6 @@ class Git(object):
 
         return changes
 
-    def _show_file(self, path):
-        path = os.path.relpath(os.path.abspath(path), self.root)
-        return self.git("show", "HEAD:%s" % path)
-
     def hash_cache(self):
         # type: () -> Dict[str, Optional[str]]
         """
@@ -114,20 +74,6 @@ class Git(object):
 
         return hash_cache
 
-    def __iter__(self):
-        for rel_path, hash in iteritems(self.hash_cache()):
-            if hash is None:
-                contents = self._show_file(rel_path)
-            else:
-                contents = None
-            yield SourceFile(self.root,
-                             rel_path,
-                             self.url_base,
-                             hash,
-                             contents=contents), True
-
-    def dump_caches(self):
-        pass
 
 
 class FileSystem(object):
@@ -145,7 +91,7 @@ class FileSystem(object):
         self.path_filter = gitignore.PathFilter(self.root,
                                                 extras=[".git/"],
                                                 cache=self.ignore_cache)
-        git = Git.for_path(root, url_base, cache_path)
+        git = GitHasher(root)
         if git is not None:
             self.hash_cache = git.hash_cache()
         else:
