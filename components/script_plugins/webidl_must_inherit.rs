@@ -106,8 +106,6 @@ fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<E
     visitor.visit(&idl);
     let inherits = visitor.get_inherits();
 
-    println!("inherits: {:?}, parent_name: {:?}", inherits, parent_name);
-
     if inherits == parent_name {
         return Ok(());
     }
@@ -137,8 +135,6 @@ fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<E
 
 fn check_webidl(name: &str, parent_name: Option<&str>) -> Result<(), Box<Error>> {
     let path = get_webidl_path(&name)?;
-    println!("struct_webidl_path: {:?}", &path);
-
     if let Some(parent) = parent_name {
         let code = fs::read_to_string(path)?;
         return check_inherits(&code, &name, parent);
@@ -179,9 +175,6 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
                 .expect_item_by_hir_id(cx.tcx.hir().get_parent_item(id)),
         };
 
-        let struct_name = n.to_string();
-        println!("struct_name: {:?}", struct_name);
-
         let ty: String;
         let mut parent_name: Option<&str> = None;
         for ref field in def.fields() {
@@ -194,6 +187,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
             break;
         }
 
+        let struct_name = n.to_string();
         match check_webidl(&struct_name, parent_name) {
             Ok(()) => {},
             Err(e) => {
