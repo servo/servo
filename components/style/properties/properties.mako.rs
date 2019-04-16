@@ -27,7 +27,7 @@ use crate::context::QuirksMode;
 #[cfg(feature = "servo")] use crate::logical_geometry::LogicalMargin;
 #[cfg(feature = "servo")] use crate::computed_values;
 use crate::logical_geometry::WritingMode;
-#[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::properties::longhands::system_font::SystemFont;
@@ -376,7 +376,6 @@ impl PartialEq for PropertyDeclaration {
     }
 }
 
-#[cfg(feature = "gecko")]
 impl MallocSizeOf for PropertyDeclaration {
     #[inline]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
@@ -3745,8 +3744,7 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
 }
 
 /// An identifier for a given alias property.
-#[derive(Clone, Copy, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
 #[repr(u16)]
 pub enum AliasId {
     % for i, property in enumerate(data.all_aliases()):

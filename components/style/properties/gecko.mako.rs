@@ -1104,9 +1104,6 @@ impl ${style_struct.gecko_struct_name} {
         }
         result
     }
-    pub fn get_gecko(&self) -> &${style_struct.gecko_ffi_name} {
-        &self.gecko
-    }
 }
 impl Drop for ${style_struct.gecko_struct_name} {
     fn drop(&mut self) {
