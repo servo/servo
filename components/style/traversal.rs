@@ -307,8 +307,6 @@ pub fn resolve_style<E>(
 where
     E: TElement,
 {
-    use crate::style_resolver::StyleResolverForElement;
-
     debug_assert!(
         rule_inclusion == RuleInclusion::DefaultOnly ||
             pseudo.map_or(false, |p| p.is_before_or_after()) ||
@@ -406,7 +404,6 @@ pub fn recalc_style_at<E, D, F>(
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
 {
-    use crate::traversal_flags::TraversalFlags;
     use std::cmp;
 
     let flags = context.shared.traversal_flags;
@@ -538,12 +535,6 @@ pub fn recalc_style_at<E, D, F>(
         debug_assert!(!element.has_animation_only_dirty_descendants());
     }
 
-    debug_assert!(
-        flags.for_animation_only() ||
-            !flags.contains(TraversalFlags::ClearDirtyBits) ||
-            !element.has_animation_only_dirty_descendants(),
-        "Should have cleared animation bits already"
-    );
     clear_state_after_traversing(element, data, flags);
 }
 
@@ -551,27 +542,11 @@ fn clear_state_after_traversing<E>(element: E, data: &mut ElementData, flags: Tr
 where
     E: TElement,
 {
-    // If we are in a forgetful traversal, drop the existing restyle
-    // data here, since we won't need to perform a post-traversal to pick up
-    // any change hints.
-    if flags.contains(TraversalFlags::Forgetful) {
+    if flags.intersects(TraversalFlags::FinalAnimationTraversal) {
+        debug_assert!(flags.for_animation_only());
         data.clear_restyle_flags_and_damage();
-    }
-
-    // Clear dirty bits as appropriate.
-    if flags.for_animation_only() {
-        if flags.intersects(
-            TraversalFlags::ClearDirtyBits | TraversalFlags::ClearAnimationOnlyDirtyDescendants,
-        ) {
-            unsafe {
-                element.unset_animation_only_dirty_descendants();
-            }
-        }
-    } else if flags.contains(TraversalFlags::ClearDirtyBits) {
-        // The animation traversal happens first, so we don't need to guard against
-        // clearing the animation bit on the regular traversal.
         unsafe {
-            element.clear_dirty_bits();
+            element.unset_animation_only_dirty_descendants();
         }
     }
 }

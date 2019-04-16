@@ -19,7 +19,7 @@ use servo_arc::Arc;
 use std::fmt::{self, Write};
 
 /// A style rule, with selectors and declarations.
-#[derive(Debug)]
+#[derive(Debug, ToShmem)]
 pub struct StyleRule {
     /// The list of selectors in this rule.
     pub selectors: SelectorList<SelectorImpl>,

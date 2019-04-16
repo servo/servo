@@ -341,6 +341,8 @@ class Longhand(object):
                 "SVGOpacity",
                 "SVGPaintOrder",
                 "ScrollSnapAlign",
+                "ScrollSnapAxis",
+                "ScrollSnapStrictness",
                 "ScrollSnapType",
                 "TextAlign",
                 "TextDecorationLine",

@@ -15,7 +15,17 @@ use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct FeatureTagValue<Integer> {
     /// A four-character tag, packed into a u32 (one byte per character).
     pub tag: FontTag,
@@ -56,6 +66,8 @@ where
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct VariationValue<Number> {
     /// A four-character tag, packed into a u32 (one byte per character).
@@ -67,7 +79,18 @@ pub struct VariationValue<Number> {
 
 /// A value both for font-variation-settings and font-feature-settings.
 #[css(comma)]
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct FontSettings<T>(#[css(if_empty = "normal", iterable)] pub Box<[T]>);
 
 impl<T> FontSettings<T> {
@@ -103,7 +126,18 @@ impl<T: Parse> Parse for FontSettings<T> {
 ///   https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
 ///   https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-feature-settings
 ///
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct FontTag(pub u32);
 
 impl ToCss for FontTag {
@@ -111,7 +145,7 @@ impl ToCss for FontTag {
     where
         W: Write,
     {
-        use byteorder::{BigEndian, ByteOrder};
+        use byteorder::ByteOrder;
         use std::str;
 
         let mut raw = [0u8; 4];
@@ -149,6 +183,7 @@ impl Parse for FontTag {
     ToAnimatedValue,
     ToAnimatedZero,
     ToCss,
+    ToShmem,
 )]
 /// Additional information for keyword-derived font sizes.
 pub struct KeywordInfo<Length> {
@@ -205,6 +240,7 @@ impl<L> SpecifiedValueInfo for KeywordInfo<L> {
     ToAnimatedValue,
     ToAnimatedZero,
     ToCss,
+    ToShmem,
 )]
 #[allow(missing_docs)]
 pub enum KeywordSize {
@@ -254,6 +290,8 @@ impl Default for KeywordSize {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum FontStyle<Angle> {
     #[animation(error)]

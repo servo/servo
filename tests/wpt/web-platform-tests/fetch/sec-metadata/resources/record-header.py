@@ -54,6 +54,14 @@ def main(request, response):
     if key.startswith("serviceworker"):
       response.headers.set("Content-Type", "application/javascript")
 
+    ## Add a valid image Content-Type ##
+    if key.startswith("image"):
+      response.headers.set("Content-Type", "image/png")
+      file = open(os.path.join(request.doc_root, "media", "1x1-green.png"), "r")
+      image = file.read()
+      file.close()
+      return image
+
     ## Return a valid .vtt content for the <track> tag ##
     if key.startswith("track"):
       return "WEBVTT"

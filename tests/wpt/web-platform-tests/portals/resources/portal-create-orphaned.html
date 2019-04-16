@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    var portal = document.createElement("portal");
+    portal.src = "simple-portal.html";
+    let waitForMessage = new Promise((resolve, reject) => {
+      var bc_portal = new BroadcastChannel("simple-portal");
+      bc_portal.onmessage = e => {
+        bc_portal.close();
+        portal.activate();
+        var portal2 = document.createElement("portal");
+        portal2.src = "simple-portal.html";
+        document.body.appendChild(portal2);
+        var bc2 = new BroadcastChannel("simple-portal");
+        bc2.onmessage = e => {
+          bc2.close();
+          resolve("portal loaded");
+        }
+      }
+    });
+    document.body.appendChild(portal);
+    waitForMessage.then(message => {
+      var bc = new BroadcastChannel("portals-create-orphaned");
+      bc.postMessage(message);
+      bc.close();
+    });
+  </script>
+</body>

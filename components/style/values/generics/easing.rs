@@ -10,7 +10,16 @@ use crate::values::CSSFloat;
 
 /// A generic easing function.
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[value_info(ty = "TIMING_FUNCTION")]
 #[repr(u8, C)]
@@ -46,6 +55,8 @@ pub enum TimingFunction<Integer, Number> {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum TimingKeyword {
@@ -69,7 +80,19 @@ fn step_position_jump_enabled(_context: &ParserContext) -> bool {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 pub enum StepPosition {
     #[parse(condition = "step_position_jump_enabled")]

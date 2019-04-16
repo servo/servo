@@ -29,8 +29,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// A pseudo-element, both public and private.
 ///
 /// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 #[repr(usize)]
 pub enum PseudoElement {
@@ -265,8 +264,7 @@ pub type Lang = Box<str>;
 
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 pub enum NonTSPseudoClass {
     Active,
@@ -356,7 +354,6 @@ impl NonTSPseudoClass {
     /// selector matching, and it's set from the DOM.
     pub fn state_flag(&self) -> ElementState {
         use self::NonTSPseudoClass::*;
-        use crate::element_state::ElementState;
         match *self {
             Active => ElementState::IN_ACTIVE_STATE,
             Focus => ElementState::IN_FOCUS_STATE,

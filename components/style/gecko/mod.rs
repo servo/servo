@@ -8,6 +8,7 @@
 mod non_ts_pseudo_class_list;
 
 pub mod arc_types;
+pub mod boxed_types;
 pub mod conversions;
 pub mod data;
 pub mod media_features;

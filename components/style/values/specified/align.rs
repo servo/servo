@@ -16,7 +16,7 @@ bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
     ///
     /// These constants match Gecko's `NS_STYLE_ALIGN_*` constants.
-    #[derive(MallocSizeOf, ToComputedValue)]
+    #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue, ToShmem)]
     pub struct AlignFlags: u8 {
         // Enumeration stored in the lower 5 bits:
         /// 'auto'
@@ -134,7 +134,18 @@ pub enum AxisDirection {
 /// Shared value for the `align-content` and `justify-content` properties.
 ///
 /// <https://drafts.csswg.org/css-align/#content-distribution>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct ContentDistribution {
     primary: AlignFlags,
@@ -247,7 +258,18 @@ impl ContentDistribution {
 /// Value for the `align-content` property.
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-align-content>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct AlignContent(pub ContentDistribution);
 
 impl Parse for AlignContent {
@@ -287,7 +309,18 @@ impl From<AlignContent> for u16 {
 /// Value for the `justify-content` property.
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-justify-content>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct JustifyContent(pub ContentDistribution);
 
 impl Parse for JustifyContent {
@@ -325,7 +358,18 @@ impl From<JustifyContent> for u16 {
 }
 
 /// <https://drafts.csswg.org/css-align/#self-alignment>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct SelfAlignment(pub AlignFlags);
 
 impl SelfAlignment {
@@ -385,7 +429,18 @@ impl SelfAlignment {
 /// The specified value of the align-self property.
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-align-self>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct AlignSelf(pub SelfAlignment);
 
 impl Parse for AlignSelf {
@@ -423,7 +478,18 @@ impl From<AlignSelf> for u8 {
 /// The specified value of the justify-self property.
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-justify-self>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct JustifySelf(pub SelfAlignment);
 
 impl Parse for JustifySelf {
@@ -461,7 +527,18 @@ impl From<JustifySelf> for u8 {
 /// Value of the `align-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-align-items>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct AlignItems(pub AlignFlags);
 
 impl AlignItems {
@@ -512,7 +589,7 @@ impl SpecifiedValueInfo for AlignItems {
 /// Value of the `justify-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#justify-items-property>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToShmem)]
 pub struct JustifyItems(pub AlignFlags);
 
 impl JustifyItems {

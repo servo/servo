@@ -29,14 +29,14 @@ let testFunction =
   // An identity transform should be equal to it's inverse.
   let identity_transform = new XRRigidTransform();
   t.step(() => {
-    assert_transform_approx_equals(identity_transform, identity_transform.inverse());
+    assert_transform_approx_equals(identity_transform, identity_transform.inverse);
   });
 
   // Inversed transforms should yield the expected results
   let transform = new XRRigidTransform(
       { x: 1.0, y: 2.0, z: 3.0 },
       { x: 0.0, y: 0.0, z: 0.0, w: 1.0 });
-  let inverse_transform = transform.inverse();
+  let inverse_transform = transform.inverse;
   let expected_inverse = new XRRigidTransform(
       { x: -1.0, y: -2.0, z: -3.0 },
       { x: 0.0, y: 0.0, z: 0.0, w: 1.0 });
@@ -47,7 +47,7 @@ let testFunction =
   transform = new XRRigidTransform(
       { x: 0.0, y: 0.0, z: 0.0 },
       { x: 1.0, y: 0.0, z: 0.0, w: 1.0 });
-  inverse_transform = transform.inverse();
+  inverse_transform = transform.inverse;
   expected_inverse = new XRRigidTransform(
       { x: 0.0, y: 0.0, z: 0.0 },
       { x: -1.0, y: 0.0, z: 0.0, w: 1.0 });
@@ -58,7 +58,7 @@ let testFunction =
   transform = new XRRigidTransform(
       { x: 1.0, y: 2.0, z: 3.0 },
       { x: 0.0, y: 1.0, z: 0.0, w: 1.0 });
-  inverse_transform = transform.inverse();
+  inverse_transform = transform.inverse;
   expected_inverse = new XRRigidTransform(
       { x: 3.0, y: -2.0, z: -1.0 },
       { x: 0.0, y: -1.0, z: 0.0, w: 1.0 });
@@ -70,33 +70,33 @@ let testFunction =
   transform = new XRRigidTransform(
       { x: 1.0, y: 2.0, z: 3.0 },
       { x: 1.0, y: 2.0, z: 3.0, w: 4.0 });
-  inverse_transform = transform.inverse();
+  inverse_transform = transform.inverse;
   t.step(() => {
-    assert_transform_approx_equals(transform, inverse_transform.inverse());
+    assert_transform_approx_equals(transform, inverse_transform.inverse);
   });
 
   transform = new XRRigidTransform(
       { x: -9.0, y: 8.0, z: -7.0 },
       { x: 6.0, y: -5.0, z: 4.0, w: 3.0 });
-  inverse_transform = transform.inverse();
+  inverse_transform = transform.inverse;
   t.step(() => {
-    assert_transform_approx_equals(transform, inverse_transform.inverse());
+    assert_transform_approx_equals(transform, inverse_transform.inverse);
   });
 
   transform = new XRRigidTransform(
       { x: -2.0, y: 1.0, z: -4.0 },
       { x: 0.0, y: 1.0, z: 0.0, w: 1.0 });
-  inverse_transform = transform.inverse();
+  inverse_transform = transform.inverse;
   t.step(() => {
-    assert_transform_approx_equals(transform, inverse_transform.inverse());
+    assert_transform_approx_equals(transform, inverse_transform.inverse);
   });
 
   transform = new XRRigidTransform(
       { x: 2.0, y: -1.0, z: 4.0 },
       { x: 1.0, y: 0.0, z: 0.0, w: 1.0 });
-  inverse_transform = transform.inverse();
+  inverse_transform = transform.inverse;
   t.step(() => {
-    assert_transform_approx_equals(transform, inverse_transform.inverse());
+    assert_transform_approx_equals(transform, inverse_transform.inverse);
   });
 
   resolve();

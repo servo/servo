@@ -13,6 +13,19 @@ function checkElement(entry, expectedName, expectedIdentifier, expectedID, befor
   assert_equals(rt_entries[0].responseEnd, entry.responseEnd);
 }
 
+function checkElementWithoutResourceTiming(entry, expectedName, expectedIdentifier,
+    expectedID, beforeRender) {
+  assert_equals(entry.entryType, 'element');
+  assert_equals(entry.name, expectedName);
+  assert_equals(entry.identifier, expectedIdentifier);
+  assert_equals(entry.duration, 0);
+  assert_equals(entry.id, expectedID);
+  assert_greater_than_equal(entry.startTime, beforeRender);
+  assert_greater_than_equal(performance.now(), entry.startTime);
+  // No associated resource from ResourceTiming, so the responseEnd should be 0.
+  assert_equals(entry.responseEnd, 0);
+}
+
 // Checks that the rect matches the desired values [left right top bottom].
 function checkRect(entry, expected, description="") {
   assert_equals(entry.intersectionRect.left, expected[0],

@@ -44,7 +44,7 @@ pub type Lang = Atom;
 macro_rules! pseudo_class_name {
     ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
         /// Our representation of a non tree-structural pseudo-class.
-        #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+        #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
         pub enum NonTSPseudoClass {
             $(
                 #[doc = $css]

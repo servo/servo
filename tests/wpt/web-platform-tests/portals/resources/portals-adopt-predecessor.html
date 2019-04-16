@@ -1,20 +1,25 @@
 <!doctype html>
 <body>
-  <portal src="portals-adopt-predecessor-portal.html"></portal>
 </body>
 <script>
-  var bc_loaded = new BroadcastChannel("portal-loaded");
-  bc_loaded.onmessage = function(e) {
-    document.querySelector("portal").activate();
-    bc_loaded.close();
+  var searchParams = new URL(location).searchParams;
+  var test = searchParams.get("test");
+  var bc = new BroadcastChannel(`portal-${test}`);
+  bc.onmessage = function(e) {
+    switch (e.data) {
+      case "loaded":
+        document.querySelector("portal").activate();
+        break;
 
-    var bc_adopted = new BroadcastChannel("portal-adopted");
-    bc_adopted.onmessage = function(e) {
-      bc_adopted.close();
-
-      var bc_test = new BroadcastChannel("portal-test");
-      bc_test.postMessage("passed");
-      bc_test.close();
+      case "passed":
+        bc.close();
+        var bc_test = new BroadcastChannel(`test-${test}`);
+        bc_test.postMessage("passed");
+        bc_test.close();
     }
   }
+
+  var portal = document.createElement("portal");
+  portal.src = "portals-adopt-predecessor-portal.html?test=" + test;
+  document.body.appendChild(portal);
 </script>

@@ -103,6 +103,8 @@ use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
 use servo_config::{pref, prefs};
+use servo_media::ServoMedia;
+use servo_media_auto::Backend;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
@@ -181,6 +183,10 @@ where
     pub fn new(window: Rc<Window>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
+
+        if !opts.multiprocess {
+            ServoMedia::init::<Backend>();
+        }
 
         // Make sure the gl context is made current.
         window.prepare_for_composite();
@@ -750,6 +756,8 @@ pub fn run_content_process(token: String) {
     let sw_senders = unprivileged_content.swmanager_senders();
     script::init();
     script::init_service_workers(sw_senders);
+
+    ServoMedia::init::<Backend>();
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,

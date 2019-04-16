@@ -177,7 +177,7 @@ impl<T> PerPseudoElementMap<T> {
 /// Values for the :dir() pseudo class
 ///
 /// "ltr" and "rtl" values are normalized to lowercase.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub struct Direction(pub Atom);
 
 /// Horizontal values for the :dir() pseudo class

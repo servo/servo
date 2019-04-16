@@ -82,11 +82,10 @@ promise_test(async (t) => {
 }, 'DTLS server uses even data channel IDs');
 
 /*
-  Check if the implementation allows using in-band negotiated channels with a specific ID (which
-  is now a spec violation).
+  Checks that the id is ignored if "negotiated" is false.
+  See section 6.1, createDataChannel step 13.
  */
 promise_test(async (t) => {
-  const resolver = new Resolver();
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -104,17 +103,18 @@ promise_test(async (t) => {
     negotiated: false,
     id: 42
   });
-  dc2.onmessage = t.step_func(() => {
-    assert_unreached('Channel established with same ID using negotiated=false');
-  });
+  // ID should be null prior to negotiation.
+  assert_equals(dc1.id, null);
+  assert_equals(dc2.id, null);
 
   exchangeIceCandidates(pc1, pc2);
   await doSignalingHandshake(pc1, pc2);
-
-  // Wait a bit to ensure the 'message' event does NOT fire
-  t.step_timeout(() => resolver.resolve(), 500);
-  await resolver;
-}, 'In-band negotiation with a specific ID should not be allowed');
+  // We should now have 2 datachannels with different IDs.
+  // At least one of the datachannels should not be 42.
+  // If one has the value 42, it's an accident; if both have,
+  // they are the same datachannel, and it's a bug.
+  assert_false(dc1.id == 42 && dc2.id == 42);
+}, 'In-band negotiation with a specific ID should not work');
 
 /*
   Check if the implementation still follows the odd/even role correctly if we annoy it with
@@ -149,7 +149,7 @@ promise_test(async (t) => {
       negotiated: true,
       id: id,
     });
-    assert_equals(dc.id, null, 'Channel id must be null before DTLS role has been determined');
+    assert_equals(dc.id, id, 'Channel id must be set before DTLS role has been determined when negotiated is true');
     negotiatedDcs.push([dc, id]);
     ids.add(dc.id, `Channel ID ${dc.id} should be unique`);
   }

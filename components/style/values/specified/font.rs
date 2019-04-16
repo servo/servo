@@ -81,7 +81,7 @@ pub const MAX_FONT_WEIGHT: f32 = 1000.;
 /// A specified font-weight value.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum FontWeight {
     /// `<font-weight-absolute>`
     Absolute(AbsoluteFontWeight),
@@ -143,7 +143,7 @@ impl ToComputedValue for FontWeight {
 /// An absolute font-weight value for a @font-face rule.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-weight-absolute-values
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum AbsoluteFontWeight {
     /// A `<number>`, with the additional constraints specified in:
     ///
@@ -319,7 +319,7 @@ impl SpecifiedFontStyle {
 }
 
 /// The specified value of the `font-style` property.
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[allow(missing_docs)]
 pub enum FontStyle {
     Specified(SpecifiedFontStyle),
@@ -358,7 +358,7 @@ impl ToComputedValue for FontStyle {
 ///
 /// TODO(emilio): We could derive Parse if we had NonNegativePercentage.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[repr(u8)]
 pub enum FontStretch {
     Stretch(Percentage),
@@ -368,7 +368,7 @@ pub enum FontStretch {
 }
 
 /// A keyword value for `font-stretch`.
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[allow(missing_docs)]
 pub enum FontStretchKeyword {
     Normal,
@@ -481,7 +481,7 @@ impl ToComputedValue for FontStretch {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// A specified font-size value
 pub enum FontSize {
     /// A length; e.g. 10px.
@@ -513,7 +513,8 @@ impl From<LengthPercentage> for FontSize {
 }
 
 /// Specifies a prioritized list of font family names or generic family names.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Hash))]
 pub enum FontFamily {
     /// List of `font-family`
     #[css(comma)]
@@ -528,18 +529,10 @@ impl FontFamily {
 
     /// Parse a specified font-family value
     pub fn parse_specified<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        input
-            .parse_comma_separated(|input| SingleFontFamily::parse(input))
-            .map(|v| FontFamily::Values(FontFamilyList::new(v.into_boxed_slice())))
-    }
-
-    #[cfg(feature = "gecko")]
-    /// Return the generic ID if it is a single generic font
-    pub fn single_generic(&self) -> Option<u8> {
-        match *self {
-            FontFamily::Values(ref values) => values.single_generic(),
-            _ => None,
-        }
+        let values = input.parse_comma_separated(SingleFontFamily::parse)?;
+        Ok(FontFamily::Values(FontFamilyList::new(
+            values.into_boxed_slice(),
+        )))
     }
 }
 
@@ -567,8 +560,14 @@ impl MallocSizeOf for FontFamily {
         match *self {
             FontFamily::Values(ref v) => {
                 // Although a SharedFontList object is refcounted, we always
-                // attribute its size to the specified value.
-                unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThis(v.0.get()) }
+                // attribute its size to the specified value, as long as it's
+                // not a value in SharedFontList::sSingleGenerics.
+                if matches!(v, FontFamilyList::SharedFontList(_)) {
+                    let ptr = v.shared_font_list().get();
+                    unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThis(ptr) }
+                } else {
+                    0
+                }
             },
             FontFamily::System(_) => 0,
         }
@@ -606,7 +605,7 @@ impl Parse for FamilyName {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Preserve the readability of text when font fallback occurs
 pub enum FontSizeAdjust {
     /// None variant
@@ -996,7 +995,9 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
+)]
 /// Set of variant alternates
 pub enum VariantAlternates {
     /// Enables display of stylistic alternates
@@ -1021,7 +1022,9 @@ pub enum VariantAlternates {
     HistoricalForms,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
+)]
 /// List of Variant Alternates
 pub struct VariantAlternatesList(
     #[css(if_empty = "normal", iterable)] pub Box<[VariantAlternates]>,
@@ -1042,7 +1045,7 @@ impl VariantAlternatesList {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Control over the selection of these alternate glyphs
 pub enum FontVariantAlternates {
     /// Use alternative glyph from value
@@ -1189,7 +1192,7 @@ macro_rules! impl_variant_east_asian {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf)]
+            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
             /// Vairants for east asian variant
             pub struct VariantEastAsian: u16 {
                 /// None of the features
@@ -1278,7 +1281,7 @@ impl VariantEastAsian {
 impl_gecko_keyword_conversions!(VariantEastAsian, u16);
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Allows control of glyph substitution and sizing in East Asian text.
 pub enum FontVariantEastAsian {
     /// Value variant with `variant-east-asian`
@@ -1396,7 +1399,7 @@ macro_rules! impl_variant_ligatures {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf)]
+            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
             /// Variants of ligatures
             pub struct VariantLigatures: u16 {
                 /// Specifies that common default features are enabled
@@ -1489,7 +1492,7 @@ impl VariantLigatures {
 impl_gecko_keyword_conversions!(VariantLigatures, u16);
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Ligatures and contextual forms are ways of combining glyphs
 /// to produce more harmonized forms
 pub enum FontVariantLigatures {
@@ -1618,7 +1621,7 @@ macro_rules! impl_variant_numeric {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf)]
+            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
             /// Vairants of numeric values
             pub struct VariantNumeric: u8 {
                 /// None of other variants are enabled.
@@ -1705,7 +1708,7 @@ impl VariantNumeric {
 impl_gecko_keyword_conversions!(VariantNumeric, u8);
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Specifies control over numerical forms.
 pub enum FontVariantNumeric {
     /// Value variant with `variant-numeric`
@@ -1814,7 +1817,7 @@ pub type SpecifiedFontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
 /// Define initial settings that apply when the font defined by an @font-face
 /// rule is rendered.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum FontFeatureSettings {
     /// Value of `FontSettings`
     Value(SpecifiedFontFeatureSettings),
@@ -1858,7 +1861,17 @@ impl Parse for FontFeatureSettings {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces
 pub struct FontSynthesis {
@@ -1958,7 +1971,7 @@ impl From<FontSynthesis> for u8 {
     }
 }
 
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Allows authors to explicitly specify the language system of the font,
 /// overriding the language system implied by the content language
 pub enum FontLanguageOverride {
@@ -2062,7 +2075,7 @@ pub type SpecifiedFontVariationSettings = FontSettings<VariationValue<Number>>;
 
 /// Define initial settings that apply when the font defined by an @font-face
 /// rule is rendered.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum FontVariationSettings {
     /// Value of `FontSettings`
     Value(SpecifiedFontVariationSettings),
@@ -2149,7 +2162,16 @@ impl Parse for VariationValue<Number> {
 }
 
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 /// text-zoom. Enable if true, disable if false
 pub struct XTextZoom(#[css(skip)] pub bool);
@@ -2167,7 +2189,17 @@ impl Parse for XTextZoom {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 /// Internal property that reflects the lang attribute
 pub struct XLang(#[css(skip)] pub Atom);
 
@@ -2193,7 +2225,7 @@ impl Parse for XLang {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Specifies the minimum font size allowed due to changes in scriptlevel.
 /// Ref: https://wiki.mozilla.org/MathML:mstyle
 pub struct MozScriptMinSize(pub NoCalcLength);
@@ -2220,7 +2252,7 @@ impl Parse for MozScriptMinSize {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Changes the scriptlevel in effect for the children.
 /// Ref: https://wiki.mozilla.org/MathML:mstyle
 ///
@@ -2255,7 +2287,17 @@ impl Parse for MozScriptLevel {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 /// Specifies the multiplier to be used to adjust font size
 /// due to changes in scriptlevel.
 ///

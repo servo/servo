@@ -40,6 +40,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum BorderStyle {
@@ -64,7 +66,7 @@ impl BorderStyle {
 }
 
 /// A specified value for a single side of the `border-width` property.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum BorderSideWidth {
     /// `thin`
     Thin,
@@ -249,7 +251,9 @@ impl Parse for BorderSpacing {
 /// A single border-image-repeat keyword.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+)]
 pub enum BorderImageRepeatKeyword {
     Stretch,
     Repeat,
@@ -260,7 +264,17 @@ pub enum BorderImageRepeatKeyword {
 /// The specified value for the `border-image-repeat` property.
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeatKeyword);
 
 impl ToCss for BorderImageRepeat {

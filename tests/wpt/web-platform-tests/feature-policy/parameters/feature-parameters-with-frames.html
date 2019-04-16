@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/feature-policy/resources/featurepolicy.js"></script>
+  <title>Test oversized-images policy with threshold 1.5</title>
+</head>
+<body>
+  <iframe scrolling="no" name="a" style="overflow:hidden" width="380" height="220"></iframe>
+  <iframe scrolling="no" name="b" style="overflow:hidden" width="380" height="220"></iframe>
+  <iframe scrolling="no" name="c" style="overflow:hidden" width="380" height="220"></iframe>
+  <iframe scrolling="no" name="d" style="overflow:hidden" width="380" height="220"></iframe>
+  <iframe scrolling="no" name="e" style="overflow:hidden" width="380" height="220"></iframe>
+
+  <script>
+    const frame_to_test_map = {};
+    window.addEventListener('message', ev => {
+      if (ev.data.type == "finished") {
+        if (frame_to_test_map.hasOwnProperty(ev.data.name)) {
+          frame_to_test_map[ev.data.name].done();
+        }
+      }
+    });
+    const config = {
+      a: {threshold: 0.0, blocked: 3},
+      b: {threshold: 1.0, blocked: 2},
+      c: {threshold: 2.5, blocked: 1},
+      d: {threshold: 4.0, blocked: 0},
+      e: {threshold: "inf", blocked: 0}
+    };
+    const iframes = document.querySelectorAll('iframe');
+    const total_iframes = iframes.length;
+    iframes.forEach(iframe => {
+      const frame_config = config[iframe.name]
+      async_test(t => {
+        frame_to_test_map[iframe.name] = t;
+        iframe.src = "resources/feature-parameters-frame.html?name="+iframe.name+"&n="+frame_config.blocked+"&pipe=header(Feature-Policy,oversized-images%20("+frame_config.threshold+"\\);)";
+      }, "Test frame with threshold " + frame_config.threshold + " should block " + frame_config.blocked + " images.");
+    });
+  </script>
+</body>
+</html>

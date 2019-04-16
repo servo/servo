@@ -9,25 +9,24 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use servo_media::streams::MediaStream as BackendMediaStream;
-use std::mem;
+use servo_media::streams::registry::MediaStreamId;
 
 #[dom_struct]
 pub struct MediaStream {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
-    tracks: DomRefCell<Vec<Box<BackendMediaStream>>>,
+    tracks: DomRefCell<Vec<MediaStreamId>>,
 }
 
 impl MediaStream {
-    pub fn new_inherited(tracks: Vec<Box<BackendMediaStream>>) -> MediaStream {
+    pub fn new_inherited(tracks: Vec<MediaStreamId>) -> MediaStream {
         MediaStream {
             eventtarget: EventTarget::new_inherited(),
             tracks: DomRefCell::new(tracks),
         }
     }
 
-    pub fn new(global: &GlobalScope, tracks: Vec<Box<BackendMediaStream>>) -> DomRoot<MediaStream> {
+    pub fn new(global: &GlobalScope, tracks: Vec<MediaStreamId>) -> DomRoot<MediaStream> {
         reflect_dom_object(
             Box::new(MediaStream::new_inherited(tracks)),
             global,
@@ -35,11 +34,7 @@ impl MediaStream {
         )
     }
 
-    pub fn get_tracks(&self) -> Vec<Box<BackendMediaStream>> {
-        // XXXManishearth we have hard ownership constraints here so we actually empty the vec,
-        // ideally we should only have a media stream id here, or servo-media hands
-        // out Arcs
-        let mut tracks = self.tracks.borrow_mut();
-        mem::replace(&mut *tracks, vec![])
+    pub fn get_tracks(&self) -> Vec<MediaStreamId> {
+        self.tracks.borrow_mut().clone()
     }
 }

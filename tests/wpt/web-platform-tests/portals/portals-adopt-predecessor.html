@@ -4,11 +4,24 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   async_test(function(t) {
-    var bc = new BroadcastChannel("portal-test");
+    var test = "adopt-once";
+    var bc = new BroadcastChannel(`test-${test}`);
     bc.onmessage = t.step_func_done(function(e) {
       assert_equals(e.data, "passed");
       bc.close();
     });
-    window.open("resources/portals-adopt-predecessor.html");
+    var portalUrl = encodeURIComponent(`portal-activate-event-portal.html?test=${test}`);
+    window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
   }, "Tests that a portal can adopt its predecessor.");
+
+  async_test(function(t) {
+    var test = "adopt-twice";
+    var bc = new BroadcastChannel(`test-${test}`);
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    var portalUrl = encodeURIComponent(`portal-activate-event-portal.html?test=${test}`);
+    window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
+  }, "Tests that trying to adopt the predecessor twice will throw an exception.");
 </script>

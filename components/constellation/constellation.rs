@@ -130,7 +130,7 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::pub_domains::reg_host;
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
@@ -1934,11 +1934,11 @@ where
     fn handle_navigate_request(
         &self,
         id: PipelineId,
-        req_init: RequestInit,
+        request_builder: RequestBuilder,
         cancel_chan: IpcReceiver<()>,
     ) {
         let listener = NetworkListener::new(
-            req_init,
+            request_builder,
             id,
             self.public_resource_threads.clone(),
             self.network_listener_sender.clone(),
@@ -2030,6 +2030,10 @@ where
             None
         };
 
+        // https://github.com/rust-lang/rust/issues/59159
+        let browsing_context_size = browsing_context.size;
+        let browsing_context_is_visible = browsing_context.is_visible;
+
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(
             new_pipeline_id,
@@ -2037,11 +2041,11 @@ where
             top_level_browsing_context_id,
             Some(parent_pipeline_id),
             None,
-            browsing_context.size,
+            browsing_context_size,
             load_data,
             load_info.sandbox,
             is_private,
-            browsing_context.is_visible,
+            browsing_context_is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -2899,7 +2903,7 @@ where
             },
             None => {
                 let event = (None, EmbedderMsg::Keyboard(event));
-                self.embedder_proxy.clone().send(event);
+                self.embedder_proxy.send(event);
             },
         }
     }

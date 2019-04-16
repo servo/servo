@@ -127,10 +127,6 @@ fn eval_device_aspect_ratio(
 }
 
 /// https://compat.spec.whatwg.org/#css-media-queries-webkit-device-pixel-ratio
-///
-/// FIXME(emilio): This should be an alias of `resolution`, according to the
-/// spec, and also according to the code in Chromium. Unify with
-/// `eval_resolution`.
 fn eval_device_pixel_ratio(
     device: &Device,
     query_value: Option<f32>,

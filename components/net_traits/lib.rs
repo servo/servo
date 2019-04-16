@@ -18,7 +18,7 @@ extern crate serde;
 extern crate url;
 
 use crate::filemanager_thread::FileManagerThreadMsg;
-use crate::request::{Request, RequestInit};
+use crate::request::{Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
 use cookie::Cookie;
@@ -377,10 +377,10 @@ pub enum FetchChannels {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
-    Fetch(RequestInit, FetchChannels),
+    Fetch(RequestBuilder, FetchChannels),
     /// Initiate a fetch in response to processing a redirection
     FetchRedirect(
-        RequestInit,
+        RequestBuilder,
         ResponseInit,
         IpcSender<FetchResponseMsg>,
         /* cancel_chan */ Option<IpcReceiver<()>>,
@@ -415,7 +415,7 @@ pub enum CoreResourceMsg {
 }
 
 /// Instruct the resource thread to make a new request.
-pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceThread, f: F)
+pub fn fetch_async<F>(request: RequestBuilder, core_resource_thread: &CoreResourceThread, f: F)
 where
     F: Fn(FetchResponseMsg) + Send + 'static,
 {
@@ -598,7 +598,7 @@ pub enum CookieSource {
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(
-    request: RequestInit,
+    request: RequestBuilder,
     core_resource_thread: &CoreResourceThread,
 ) -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
