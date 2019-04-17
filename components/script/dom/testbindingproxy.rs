@@ -5,13 +5,13 @@
 // check-tidy: no specs after this line
 
 use crate::dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::testbinding::TestBinding;
 use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct TestBindingProxy {
-    reflector_: Reflector,
+    testbinding_: TestBinding,
 }
 
 impl TestBindingProxyMethods for TestBindingProxy {
