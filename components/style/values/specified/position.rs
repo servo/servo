@@ -460,6 +460,11 @@ pub enum AutoFlow {
     Column,
 }
 
+/// If `dense` is specified, `row` is implied.
+fn is_row_dense(autoflow: &AutoFlow, dense: &bool) -> bool {
+    *autoflow == AutoFlow::Row && *dense
+}
+
 #[derive(
     Clone,
     Copy,
@@ -477,6 +482,7 @@ pub enum AutoFlow {
 /// specifying exactly how auto-placed items get flowed into the grid
 pub struct GridAutoFlow {
     /// Specifiy how auto-placement algorithm fills each `row` or `column` in turn
+    #[css(contextual_skip_if = "is_row_dense")]
     pub autoflow: AutoFlow,
     /// Specify use `dense` packing algorithm or not
     #[css(represents_keyword)]
