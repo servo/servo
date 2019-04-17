@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
-use crate::glutin_app::window::{Window, LINE_HEIGHT};
+use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
+use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{TypedPoint2D, TypedVector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::embedder_traits::{EmbedderMsg, FilterPattern};
-use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId};
+use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
@@ -25,7 +25,7 @@ use std::thread;
 use std::time::Duration;
 use tinyfiledialogs::{self, MessageBoxIcon};
 
-pub struct Browser {
+pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
@@ -52,8 +52,11 @@ enum LoadingState {
     Loaded,
 }
 
-impl Browser {
-    pub fn new(window: Rc<Window>) -> Browser {
+impl<Window> Browser<Window>
+where
+    Window: WindowPortsMethods + ?Sized,
+{
+    pub fn new(window: Rc<Window>) -> Browser<Window> {
         Browser {
             title: None,
             current_url: None,
@@ -126,7 +129,9 @@ impl Browser {
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(10);
                 self.event_queue.push(WindowEvent::ToggleSamplingProfiler(
-                    Duration::from_millis(rate), Duration::from_secs(duration)));
+                    Duration::from_millis(rate),
+                    Duration::from_secs(duration),
+                ));
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 self.event_queue.push(WindowEvent::CaptureWebRender)
@@ -403,14 +408,12 @@ impl Browser {
                     debug!("HideIME received");
                 },
                 EmbedderMsg::ReportProfile(bytes) => {
-                    let filename = env::var("PROFILE_OUTPUT")
-                        .unwrap_or("samples.json".to_string());
-                    let result = File::create(&filename)
-                        .and_then(|mut f| f.write_all(&bytes));
+                    let filename = env::var("PROFILE_OUTPUT").unwrap_or("samples.json".to_string());
+                    let result = File::create(&filename).and_then(|mut f| f.write_all(&bytes));
                     if let Err(e) = result {
                         error!("Failed to store profile: {}", e);
                     }
-                }
+                },
             }
         }
     }

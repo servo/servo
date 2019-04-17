@@ -279,7 +279,7 @@ class MachCommands(CommandBase):
 
         features = self.servo_features()
         if len(packages) > 0 or len(in_crate_packages) > 0:
-            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.ports_servo_manifest()]
+            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.ports_glutin_manifest()]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
