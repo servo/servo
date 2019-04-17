@@ -83,7 +83,7 @@ impl LocationMethods for Location {
         //       _entry settings object_.
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
-            let referrer = Referrer::ReferrerUrl(url.clone());
+            let referrer = Referrer::ReferrerUrl(base_url.clone());
             self.window.load_url(url, false, false, referrer, None);
             Ok(())
         } else {
@@ -107,7 +107,7 @@ impl LocationMethods for Location {
         //       _entry settings object_.
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
-            let referrer = Referrer::ReferrerUrl(url.clone());
+            let referrer = Referrer::ReferrerUrl(base_url.clone());
             self.window.load_url(url, true, false, referrer, None);
             Ok(())
         } else {
@@ -172,11 +172,12 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn SetHref(&self, value: USVString) -> ErrorResult {
         // Note: no call to self.check_same_origin_domain()
-        let url = match self.window.get_url().join(&value.0) {
+        let current_url = self.window.get_url();
+        let url = match current_url.join(&value.0) {
             Ok(url) => url,
             Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
         };
-        let referrer = Referrer::ReferrerUrl(url.clone());
+        let referrer = Referrer::ReferrerUrl(current_url.clone());
         self.window.load_url(url, false, false, referrer, None);
         Ok(())
     }

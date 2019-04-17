@@ -659,19 +659,11 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
             .and_then(|attribute: DomRoot<Attr>| (determine_policy_for_token(&attribute.Value())));
 
         // Step 13
-        let noreferrer =
-            if let Some(link_types) = subject.get_attribute(&ns!(), &local_name!("rel")) {
-                let values = link_types.Value();
-                let contains_noreferrer = values.contains("noreferrer");
-
-                contains_noreferrer
-            } else {
-                false
-            };
-        let referrer = if noreferrer {
-            Referrer::NoReferrer
-        } else {
-            Referrer::ReferrerUrl(url.clone())
+        let referrer = match subject.get_attribute(&ns!(), &local_name!("rel")) {
+            Some(ref link_types) if link_types.Value().contains("noreferrer") => {
+                Referrer::NoReferrer
+            },
+            _ => Referrer::Client,
         };
 
         // Step 14
