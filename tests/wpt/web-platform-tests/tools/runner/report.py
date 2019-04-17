@@ -160,7 +160,7 @@ def all_tests(data):
     for UA, results in data.iteritems():
         for result in results["results"]:
             id = test_id(result["test"])
-            tests[id] |= set(subtest["name"] for subtest in result["subtests"])
+            tests[id] |= {subtest["name"] for subtest in result["subtests"]}
     return tests
 
 
@@ -179,7 +179,7 @@ def group_results(data):
 
     def result():
         return {
-            "harness": dict((UA, (None, None)) for UA in UAs),
+            "harness": {UA: (None, None) for UA in UAs},
             "subtests": None  # init this later
         }
 
@@ -191,9 +191,9 @@ def group_results(data):
             result = results_by_test[id]
 
             if result["subtests"] is None:
-                result["subtests"] = dict(
-                    (name, dict((UA, (None, None)) for UA in UAs)) for name in tests[id]
-                )
+                result["subtests"] = {
+                    name: {UA: (None, None) for UA in UAs} for name in tests[id]
+                }
 
             result["harness"][UA] = (test_data["status"], test_data["message"])
             for subtest in test_data["subtests"]:

@@ -102,7 +102,7 @@ class Router(object):
             self.register(*route)
 
     def register(self, methods, path, handler):
-        """Register a handler for a set of paths.
+        r"""Register a handler for a set of paths.
 
         :param methods: Set of methods this should match. "*" is a
                         special value indicating that all methods should

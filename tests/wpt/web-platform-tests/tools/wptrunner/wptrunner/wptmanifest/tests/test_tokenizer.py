@@ -27,7 +27,7 @@ class TokenizerTest(unittest.TestCase):
                       (token_types.paren, "]")])
 
     def test_heading_1(self):
-        self.compare(b"""[Heading [text\]]""",
+        self.compare(br"""[Heading [text\]]""",
                      [(token_types.paren, "["),
                       (token_types.string, "Heading [text]"),
                       (token_types.paren, "]")])
@@ -39,7 +39,7 @@ class TokenizerTest(unittest.TestCase):
                       (token_types.paren, "]")])
 
     def test_heading_3(self):
-        self.compare(b"""[Heading [\]text]""",
+        self.compare(br"""[Heading [\]text]""",
                      [(token_types.paren, "["),
                       (token_types.string, "Heading []text"),
                       (token_types.paren, "]")])
@@ -49,7 +49,7 @@ class TokenizerTest(unittest.TestCase):
             self.tokenize(b"[Heading")
 
     def test_heading_5(self):
-        self.compare(b"""[Heading [\]text] #comment""",
+        self.compare(br"""[Heading [\]text] #comment""",
                      [(token_types.paren, "["),
                       (token_types.string, "Heading []text"),
                       (token_types.paren, "]")])

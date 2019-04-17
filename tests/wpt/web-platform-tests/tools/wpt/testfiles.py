@@ -196,7 +196,7 @@ def affected_testfiles(files_changed, skip_dirs=None,
                        manifest_path=None, manifest_update=True):
     """Determine and return list of test files that reference changed files."""
     if skip_dirs is None:
-        skip_dirs = set(["conformance-checkers", "docs", "tools"])
+        skip_dirs = {"conformance-checkers", "docs", "tools"}
     affected_testfiles = set()
     # Exclude files that are in the repo root, because
     # they are not part of any test.
@@ -219,7 +219,7 @@ def affected_testfiles(files_changed, skip_dirs=None,
     interfaces_changed = interfaces_files.intersection(nontests_changed)
     nontests_changed = nontests_changed.intersection(support_files)
 
-    tests_changed = set(item for item in files_changed if item in test_files)
+    tests_changed = {item for item in files_changed if item in test_files}
 
     nontest_changed_paths = set()
     rewrites = {"/resources/webidl2/lib/webidl2.js": "/resources/WebIDLParser.js"}
@@ -301,7 +301,7 @@ def get_parser():
     # TODO: Consolidate with `./wpt run --affected`:
     # https://github.com/web-platform-tests/wpt/issues/14560
     parser.add_argument("--ignore-rules", nargs="*", type=set,
-                        default=set(["resources/testharness*"]),
+                        default={"resources/testharness*"},
                         help="Rules for paths to exclude from lists of changes. Rules are paths "
                         "relative to the test root, with * before a separator or the end matching "
                         "anything other than a path separator and ** in that position matching "
@@ -355,7 +355,7 @@ def run_tests_affected(**kwargs):
     manifest_path = os.path.join(kwargs["metadata_root"], "MANIFEST.json")
     tests_changed, dependents = affected_testfiles(
         changed,
-        set(["conformance-checkers", "docs", "tools"]),
+        {"conformance-checkers", "docs", "tools"},
         manifest_path=manifest_path
     )
 
