@@ -3,15 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate log;
 #[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
 #[macro_use] extern crate sig;
 
-// The window backed by glutin
-mod glutin_app;
-
-mod resources;
-
 mod browser;
+mod keyutils;
+mod window;
+mod resources;
 
 use backtrace::Backtrace;
 use servo::{Servo, BrowserId};
@@ -72,10 +71,12 @@ pub fn main() {
     let args: Vec<String> = env::args().collect();
     let opts_result = opts::from_cmdline_args(&args);
 
+    let opts = opts::get();
+
     let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
         Some(token)
     } else {
-        if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
+        if opts.is_running_problem_test && env::var("RUST_LOG").is_err() {
             env::set_var("RUST_LOG", "compositing::constellation");
         }
 
@@ -117,19 +118,20 @@ pub fn main() {
         return servo::run_content_process(token);
     }
 
-    if opts::get().is_printing_version {
+    if opts.is_printing_version {
         println!("{}", servo_version());
         process::exit(0);
     }
 
-    let window = glutin_app::create_window();
+    let foreground = opts.output_file.is_none() && !opts.headless;
+    let window = window::Window::new(foreground, opts.initial_window_size);
 
     let mut browser = browser::Browser::new(window.clone());
 
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
-    let cmdline_url = opts::get().url.clone();
+    let cmdline_url = opts.url.clone();
     let pref_url = {
         let homepage_url = pref!(shell.homepage);
         parse_url_or_filename(&cwd, &homepage_url).ok()

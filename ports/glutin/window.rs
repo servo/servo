@@ -4,6 +4,7 @@
 
 //! A windowing implementation using winit.
 
+use crate::keyutils::keyboard_event_from_winit;
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
@@ -31,7 +32,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use std::time;
-use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
 use winapi;
 use glutin::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
