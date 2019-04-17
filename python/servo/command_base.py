@@ -723,20 +723,20 @@ install them, let us know by filing a bug!")
 
         return env
 
-    def ports_servo_crate(self):
-        return path.join(self.context.topdir, "ports", "servo")
+    def ports_glutin_crate(self):
+        return path.join(self.context.topdir, "ports", "glutin")
 
     def add_manifest_path(self, args, android=False, libsimpleservo=False):
         if "--manifest-path" not in args:
             if libsimpleservo or android:
                 manifest = self.ports_libsimpleservo_manifest(android)
             else:
-                manifest = self.ports_servo_manifest()
+                manifest = self.ports_glutin_manifest()
             args.append("--manifest-path")
             args.append(manifest)
 
-    def ports_servo_manifest(self):
-        return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")
+    def ports_glutin_manifest(self):
+        return path.join(self.context.topdir, "ports", "glutin", "Cargo.toml")
 
     def ports_libsimpleservo_manifest(self, android=False):
         if android:

@@ -757,4 +757,4 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         opts += params
         return check_call(["cargo", "clean"] + opts,
-                          env=self.build_env(), cwd=self.ports_servo_crate(), verbose=verbose)
+                          env=self.build_env(), cwd=self.ports_glutin_crate(), verbose=verbose)
