@@ -26,13 +26,6 @@ class ManifestVersionMismatch(ManifestError):
     pass
 
 
-def iterfilter(filters, iter):
-    for f in filters:
-        iter = f(iter)
-    for item in iter:
-        yield item
-
-
 item_classes = {"testharness": TestharnessTest,
                 "reftest": RefTest,
                 "reftest_node": RefTestNode,
@@ -45,7 +38,7 @@ item_classes = {"testharness": TestharnessTest,
 
 
 class TypeData(object):
-    def __init__(self, manifest, type_cls, meta_filters):
+    def __init__(self, manifest, type_cls):
         """Dict-like object containing the TestItems for each test type.
 
         Loading an actual Item class for each test is unnecessarily
@@ -61,7 +54,6 @@ class TypeData(object):
         self.json_data = {}
         self.tests_root = None
         self.data = {}
-        self.meta_filters = meta_filters or []
 
     def __getitem__(self, key):
         if key not in self.data:
@@ -134,7 +126,7 @@ class TypeData(object):
         if self.json_data is not None:
             data = set()
             path = from_os_path(key)
-            for test in iterfilter(self.meta_filters, self.json_data.get(path, [])):
+            for test in self.json_data.get(path, []):
                 manifest_item = self.type_cls.from_json(self.manifest, path, test)
                 data.add(manifest_item)
             try:
@@ -153,7 +145,7 @@ class TypeData(object):
                 if key in self.data:
                     continue
                 data = set()
-                for test in iterfilter(self.meta_filters, self.json_data.get(path, [])):
+                for test in self.json_data.get(path, []):
                     manifest_item = self.type_cls.from_json(self.manifest, path, test)
                     data.add(manifest_item)
                 self.data[key] = data
@@ -185,17 +177,17 @@ class TypeData(object):
         without actually constructing all the items"""
         rv = set(iterkeys(self.data))
         if self.json_data:
-            rv |= set(to_os_path(item) for item in iterkeys(self.json_data))
+            rv |= {to_os_path(item) for item in iterkeys(self.json_data)}
         return rv
 
 
 class ManifestData(dict):
-    def __init__(self, manifest, meta_filters=None):
+    def __init__(self, manifest):
         """Dictionary subclass containing a TypeData instance for each test type,
         keyed by type name"""
         self.initialized = False
         for key, value in iteritems(item_classes):
-            self[key] = TypeData(manifest, value, meta_filters=meta_filters)
+            self[key] = TypeData(manifest, value)
         self.initialized = True
         self.json_obj = None
 
@@ -214,10 +206,10 @@ class ManifestData(dict):
 
 
 class Manifest(object):
-    def __init__(self, tests_root=None, url_base="/", meta_filters=None):
+    def __init__(self, tests_root=None, url_base="/"):
         assert url_base is not None
         self._path_hash = {}
-        self._data = ManifestData(self, meta_filters)
+        self._data = ManifestData(self)
         self._reftest_nodes_by_url = None
         self.tests_root = tests_root
         self.url_base = url_base
@@ -396,12 +388,12 @@ class Manifest(object):
         return rv
 
     @classmethod
-    def from_json(cls, tests_root, obj, types=None, meta_filters=None):
+    def from_json(cls, tests_root, obj, types=None):
         version = obj.get("version")
         if version != CURRENT_VERSION:
             raise ManifestVersionMismatch
 
-        self = cls(tests_root, url_base=obj.get("url_base", "/"), meta_filters=meta_filters)
+        self = cls(tests_root, url_base=obj.get("url_base", "/"))
         if not hasattr(obj, "items") and hasattr(obj, "paths"):
             raise ManifestError
 
@@ -419,17 +411,17 @@ class Manifest(object):
         return self
 
 
-def load(tests_root, manifest, types=None, meta_filters=None):
+def load(tests_root, manifest, types=None):
     logger = get_logger()
 
     logger.warning("Prefer load_and_update instead")
-    return _load(logger, tests_root, manifest, types, meta_filters)
+    return _load(logger, tests_root, manifest, types)
 
 
 __load_cache = {}
 
 
-def _load(logger, tests_root, manifest, types=None, meta_filters=None, allow_cached=True):
+def _load(logger, tests_root, manifest, types=None, allow_cached=True):
     # "manifest" is a path or file-like object.
     manifest_path = (manifest if isinstance(manifest, string_types)
                      else manifest.name)
@@ -445,8 +437,7 @@ def _load(logger, tests_root, manifest, types=None, meta_filters=None, allow_cac
             with open(manifest) as f:
                 rv = Manifest.from_json(tests_root,
                                         fast_json.load(f),
-                                        types=types,
-                                        meta_filters=meta_filters)
+                                        types=types)
         except IOError:
             return None
         except ValueError:
@@ -455,8 +446,7 @@ def _load(logger, tests_root, manifest, types=None, meta_filters=None, allow_cac
     else:
         rv = Manifest.from_json(tests_root,
                                 fast_json.load(manifest),
-                                types=types,
-                                meta_filters=meta_filters)
+                                types=types)
 
     if allow_cached:
         __load_cache[manifest_path] = rv
@@ -472,7 +462,6 @@ def load_and_update(tests_root,
                     cache_root=None,
                     working_copy=True,
                     types=None,
-                    meta_filters=None,
                     write_manifest=True,
                     allow_cached=True):
     logger = get_logger()
@@ -484,7 +473,6 @@ def load_and_update(tests_root,
                              tests_root,
                              manifest_path,
                              types=types,
-                             meta_filters=meta_filters,
                              allow_cached=allow_cached)
         except ManifestVersionMismatch:
             logger.info("Manifest version changed, rebuilding")
@@ -493,7 +481,7 @@ def load_and_update(tests_root,
             logger.info("Manifest url base did not match, rebuilding")
 
     if manifest is None:
-        manifest = Manifest(tests_root, url_base, meta_filters=meta_filters)
+        manifest = Manifest(tests_root, url_base)
         update = True
 
     if update:

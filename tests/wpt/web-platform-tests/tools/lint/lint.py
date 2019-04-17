@@ -373,46 +373,46 @@ class CRRegexp(Regexp):
     description = "CR character in line separator"
 
 class SetTimeoutRegexp(Regexp):
-    pattern = b"setTimeout\s*\("
+    pattern = br"setTimeout\s*\("
     error = "SET TIMEOUT"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "setTimeout used; step_timeout should typically be used instead"
 
 class W3CTestOrgRegexp(Regexp):
-    pattern = b"w3c\-test\.org"
+    pattern = br"w3c\-test\.org"
     error = "W3C-TEST.ORG"
     description = "External w3c-test.org domain used"
 
 class WebPlatformTestRegexp(Regexp):
-    pattern = b"web\-platform\.test"
+    pattern = br"web\-platform\.test"
     error = "WEB-PLATFORM.TEST"
     description = "Internal web-platform.test domain used"
 
 class Webidl2Regexp(Regexp):
-    pattern = b"webidl2\.js"
+    pattern = br"webidl2\.js"
     error = "WEBIDL2.JS"
     description = "Legacy webidl2.js script used"
 
 class ConsoleRegexp(Regexp):
-    pattern = b"console\.[a-zA-Z]+\s*\("
+    pattern = br"console\.[a-zA-Z]+\s*\("
     error = "CONSOLE"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "Console logging API used"
 
 class GenerateTestsRegexp(Regexp):
-    pattern = b"generate_tests\s*\("
+    pattern = br"generate_tests\s*\("
     error = "GENERATE_TESTS"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "generate_tests used"
 
 class PrintRegexp(Regexp):
-    pattern = b"print(?:\s|\s*\()"
+    pattern = br"print(?:\s|\s*\()"
     error = "PRINT STATEMENT"
     file_extensions = [".py"]
     description = "Print function used"
 
 class LayoutTestsRegexp(Regexp):
-    pattern = b"eventSender|testRunner|window\.internals"
+    pattern = br"eventSender|testRunner|window\.internals"
     error = "LAYOUTTESTS APIS"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "eventSender/testRunner/window.internals used; these are LayoutTests-specific APIs (WebKit/Blink)"
@@ -640,8 +640,8 @@ def check_python_ast(repo_root, path, f):
     return errors
 
 
-broken_js_metadata = re.compile(b"//\s*META:")
-broken_python_metadata = re.compile(b"#\s*META:")
+broken_js_metadata = re.compile(br"//\s*META:")
+broken_python_metadata = re.compile(br"#\s*META:")
 
 
 def check_global_metadata(value):

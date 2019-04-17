@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Animations Test: pauses a opacity animation and sets the current time</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-timing-function">
+<link rel="match" href="animation-opacity-pause-and-set-time-ref.html">
+<style>
+#target {
+  width: 50px;
+  height: 50px;
+  background-color: green;
+}
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+window.onload = () => {
+  requestAnimationFrame(() => {
+    let animation = document.getElementById("target").animate([
+      {opacity: '0.8'},
+      {opacity: '0.0'}
+    ], 1000);
+    requestAnimationFrame(() => {
+      animation.pause();
+      animation.currentTime = 500;
+      document.documentElement.removeAttribute('class');
+    });
+  });
+};
+</script>
+</html>

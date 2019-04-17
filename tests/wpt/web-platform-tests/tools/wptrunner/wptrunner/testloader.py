@@ -110,14 +110,13 @@ class TagFilter(object):
 
 class ManifestLoader(object):
     def __init__(self, test_paths, force_manifest_update=False, manifest_download=False,
-                 types=None, meta_filters=None):
+                 types=None):
         do_delayed_imports()
         self.test_paths = test_paths
         self.force_manifest_update = force_manifest_update
         self.manifest_download = manifest_download
         self.types = types
         self.logger = structured.get_default_logger()
-        self.meta_filters = meta_filters
         if self.logger is None:
             self.logger = structured.structuredlog.StructuredLogger("ManifestLoader")
 
@@ -137,7 +136,7 @@ class ManifestLoader(object):
             download_from_github(manifest_path, tests_path)
         return manifest.load_and_update(tests_path, manifest_path, url_base,
                                         cache_root=cache_root, update=self.force_manifest_update,
-                                        meta_filters=self.meta_filters, types=self.types)
+                                        types=self.types)
 
 
 def iterfilter(filters, iter):

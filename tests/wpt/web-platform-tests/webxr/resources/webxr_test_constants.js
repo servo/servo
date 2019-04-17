@@ -30,3 +30,12 @@ const VALID_GRIP_WITH_POINTER_OFFSET =
 
 const VALID_STAGE_TRANSFORM =
     [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.0, 1.65, -1.0, 1];
+
+const VALID_BOUNDS = [
+    { x: 3.0, y: 0, z: -2.0 },
+    { x: 3.5, y: 0, z: 0.0 },
+    { x: 3.0, y: 0, z: 2.0 },
+    { x: -3.0, y: 0, z: 2.0 },
+    { x: -3.5, y: 0, z: 0.0 },
+    { x: -3.0, y: 0, z: -2.0 }
+];

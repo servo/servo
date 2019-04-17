@@ -182,7 +182,7 @@ class TestNode(ManifestItem):
 
     @property
     def is_empty(self):
-        ignore_keys = set(["type"])
+        ignore_keys = {"type"}
         if set(self._data.keys()) - ignore_keys:
             return False
         return all(child.is_empty for child in self.children)
@@ -663,7 +663,7 @@ def group_conditionals(values, property_order=None, boolean_properties=None):
         property_order = ["debug", "os", "version", "processor", "bits"]
 
     if boolean_properties is None:
-        boolean_properties = set(["debug"])
+        boolean_properties = {"debug"}
     else:
         boolean_properties = set(boolean_properties)
 
@@ -676,7 +676,7 @@ def group_conditionals(values, property_order=None, boolean_properties=None):
         if not by_property:
             raise ConditionError
 
-    properties = set(item[0] for item in by_property.iterkeys())
+    properties = {item[0] for item in by_property.iterkeys()}
     include_props = []
 
     for prop in property_order:

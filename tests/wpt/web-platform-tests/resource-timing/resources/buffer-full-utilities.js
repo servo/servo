@@ -18,6 +18,19 @@ let waitForNextTask = () => {
     });
 };
 
+let waitUntilConditionIsMet = cond => {
+    return new Promise(resolve => {
+        let checkCondition = function() {
+            if (cond.apply(null)) {
+                resolve();
+            } else {
+                step_timeout(checkCondition.bind(null,cond), 0);
+            }
+        }
+        step_timeout(checkCondition.bind(null, cond), 0);
+    });
+}
+
 let waitForEventToFire = () => {
     return new Promise(resolve => {
         let waitForIt = function() {

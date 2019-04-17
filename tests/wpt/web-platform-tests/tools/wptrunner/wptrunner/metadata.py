@@ -516,7 +516,7 @@ class PackedResultList(object):
         else:
             value = status_intern.get(value_idx)
 
-        run_info = run_info_intern.get((packed & 0x00FF))
+        run_info = run_info_intern.get(packed & 0x00FF)
 
         return prop, run_info, value
 
