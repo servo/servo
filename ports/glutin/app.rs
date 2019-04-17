@@ -21,21 +21,9 @@ impl App {
 
         let mut browser = browser::Browser::new(window.clone());
 
-        // If the url is not provided, we fallback to the homepage in prefs,
-        // or a blank page in case the homepage is not set either.
-        let cwd = env::current_dir().unwrap();
-        let cmdline_url = opts.url.clone();
-        let pref_url = {
-            let homepage_url = pref!(shell.homepage);
-            parse_url_or_filename(&cwd, &homepage_url).ok()
-        };
-        let blank_url = ServoUrl::parse("about:blank").ok();
-
-        let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
-
         let mut servo = Servo::new(window.clone());
         let browser_id = BrowserId::new();
-        servo.handle_events(vec![WindowEvent::NewBrowser(target_url, browser_id)]);
+        servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
 
         servo.setup_logging();
 
@@ -72,4 +60,18 @@ impl App {
 
         servo.deinit();
     }
+}
+
+fn get_default_url() -> ServoUrl {
+    // If the url is not provided, we fallback to the homepage in prefs,
+    // or a blank page in case the homepage is not set either.
+    let cwd = env::current_dir().unwrap();
+    let cmdline_url = opts::get().url.clone();
+    let pref_url = {
+        let homepage_url = pref!(shell.homepage);
+        parse_url_or_filename(&cwd, &homepage_url).ok()
+    };
+    let blank_url = ServoUrl::parse("about:blank").ok();
+
+    cmdline_url.or(pref_url).or(blank_url).unwrap()
 }
