@@ -11,6 +11,7 @@ mod browser;
 mod keyutils;
 mod window;
 mod resources;
+mod skia_symbols;
 
 use backtrace::Backtrace;
 use servo::{Servo, BrowserId};
@@ -180,56 +181,4 @@ pub fn main() {
     servo.deinit();
 
     platform::deinit()
-}
-
-// These functions aren't actually called. They are here as a link
-// hack because Skia references them.
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glBindVertexArrayOES(_array: usize) {
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glDeleteVertexArraysOES(_n: isize, _arrays: *const ()) {
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glGenVertexArraysOES(_n: isize, _arrays: *const ()) {
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glRenderbufferStorageMultisampleIMG(
-    _: isize,
-    _: isize,
-    _: isize,
-    _: isize,
-    _: isize,
-) {
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glFramebufferTexture2DMultisampleIMG(
-    _: isize,
-    _: isize,
-    _: isize,
-    _: isize,
-    _: isize,
-    _: isize,
-) {
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glDiscardFramebufferEXT(_: isize, _: isize, _: *const ()) {
-    unimplemented!()
 }
