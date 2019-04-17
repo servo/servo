@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "ports/servo",
+    "ports/glutin",
     "ports/libsimpleservo/capi/",
     "ports/libsimpleservo/jniapi/",
     "ports/libmlservo/",
