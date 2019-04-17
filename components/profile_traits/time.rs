@@ -47,8 +47,7 @@ pub enum ProfilerMsg {
     /// Message used to force print the profiling metrics
     Print,
 
-    // TODO pylbrecht
-    // write meaningful docstring
+    /// Report a layout query that could not be processed immediately for a particular URL.
     BlockedLayoutQuery(String),
 
     /// Tells the profiler to shut down.

@@ -203,7 +203,7 @@ struct InProgressLoad {
     navigation_start_precise: u64,
     /// For cancelling the fetch
     canceller: FetchCanceller,
-    /// Flag to indicate if the layout thread is busy handling a request.
+    /// Flag for sharing with the layout thread that is not yet created.
     layout_is_busy: Arc<AtomicBool>,
 }
 

@@ -871,7 +871,7 @@ impl LayoutThread {
             self.webrender_api.clone_sender(),
             self.webrender_document,
             info.paint_time_metrics,
-            self.busy.clone(),
+            info.layout_is_busy,
         );
     }
 
