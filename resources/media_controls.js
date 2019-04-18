@@ -160,7 +160,7 @@
       this.controlEvents = [
         { el: this.elements.playPauseButton, type: "click"},
         { el: this.elements.volumeSwitch, type: "click" },
-        { el: this.elements.volumeLevel, type: "change" },
+        { el: this.elements.volumeLevel, type: "input" },
       ];
       this.controlEvents.forEach(({ el, type }) => {
         el.addEventListener(type, this);
@@ -269,10 +269,10 @@
               break;
           }
           break;
-        case "change":
+        case "input":
           switch (event.currentTarget) {
             case this.elements.volumeLevel:
-              this.render();
+              this.changeVolume();
               break;
           }
           break;
@@ -321,6 +321,13 @@
 
     muteUnmute() {
       this.media.muted = !this.media.muted;
+    }
+
+    changeVolume() {
+      const volume = parseInt(this.elements.volumeLevel.value);
+      if (!isNaN(volume)) {
+        this.media.volume = volume / 100;
+      }
     }
   }
 
