@@ -8,9 +8,7 @@
       "Requesting non-immersive session outside of a user gesture succeeds",
       (t) => {
         return XRTest.simulateDeviceConnection({ supportsImmersive:false })
-          .then( (controller) => navigator.xr.requestSession({
-            mode: 'inline'
-          }))
+          .then( (controller) => navigator.xr.requestSession('inline'))
           .then( (session) => { assert_not_equals(session, null); });
       });
   </script>

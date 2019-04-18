@@ -11,8 +11,8 @@
         return XRTest.simulateDeviceConnection({ supportsImmersive:false })
           .then( (controller) => {
             return Promise.all([
-              navigator.xr.requestSession({ mode: 'inline'}),
-              navigator.xr.requestSession({ mode: 'inline'})
+              navigator.xr.requestSession('inline'),
+              navigator.xr.requestSession('inline')
             ]).then((sessions) => {
               t.step(() => {
                 assert_not_equals(sessions[0], null);

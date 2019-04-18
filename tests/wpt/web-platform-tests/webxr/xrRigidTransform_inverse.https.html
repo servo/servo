@@ -9,7 +9,6 @@
 
 let testName = "XRRigidTransform inverse works";
 let fakeDeviceInitParams = { supportsImmersive: true };
-let requestSessionOptions =  { mode: 'immersive-vr' };
 
 let testFunction =
   (session, fakeDeviceController, t) => new Promise((resolve, reject) => {
@@ -103,6 +102,6 @@ let testFunction =
 });
 
 xr_session_promise_test(testName, testFunction, fakeDeviceInitParams,
-  requestSessionOptions);
+    'immersive-vr');
 
 </script>
