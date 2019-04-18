@@ -7,6 +7,7 @@
 
   const MARKUP = `
     <button id="play-pause-button"></button>
+    <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
     <span id="position-duration-box" class="hidden">
       #1
       <span id="duration"> / #2</span>
@@ -94,6 +95,7 @@
         "duration",
         "play-pause-button",
         "position-duration-box",
+        "progress",
         "volume-switch",
         "volume-level"
       ].forEach(id => {
@@ -187,7 +189,6 @@
 
           const to = TRANSITIONS[name][from];
 
-          console.log(`transitioning from ${from} to ${to}`);
           if (from == to) {
             return;
           }
@@ -215,13 +216,29 @@
         return;
       }
 
-      console.log(`render from ${from} to ${this.state}`);
       if (this.state != from) {
         // Play/Pause button.
         const playPauseButton = this.elements.playPauseButton;
         playPauseButton.classList.remove(from);
         playPauseButton.classList.add(this.state);
       }
+
+      // Progress.
+      const positionPercent = this.media.currentTime / this.media.duration * 100;
+      if (!isNaN(positionPercent) && positionPercent != Infinity) {
+        this.elements.progress.value = positionPercent;
+      } else {
+        this.elements.progress.value = 0;
+      }
+
+      // Current time and duration.
+      let currentTime = "0:00";
+      let duration = "0:00";
+      if (!isNaN(this.media.currentTime) && !isNaN(this.media.duration)) {
+        currentTime = formatTime(Math.round(this.media.currentTime * 1000));
+        duration = formatTime(Math.round(this.media.duration * 1000));
+      }
+      this.elements.positionDurationBox.show(currentTime, duration);
 
       // Volume.
       const volumeSwitchClass = this.media.muted || this.media.volume == 0 ? "muted" : "volumeup";
@@ -233,15 +250,6 @@
       if (this.elements.volumeLevel.value != volumeLevelValue) {
         this.elements.volumeLevel.value = volumeLevelValue;
       }
-
-      // Current time and duration.
-      let currentTime = "0:00";
-      let duration = "0:00";
-      if (!isNaN(this.media.currentTime) && !isNaN(this.media.duration)) {
-        currentTime = formatTime(Math.round(this.media.currentTime * 1000));
-        duration = formatTime(Math.round(this.media.duration * 1000));
-      }
-      this.elements.positionDurationBox.show(currentTime, duration);
     }
 
     handleEvent(event) {
@@ -283,7 +291,6 @@
 
     // HTMLMediaElement event handler
     onMediaEvent(event) {
-      console.log(event.type);
       switch (event.type) {
         case "ended":
           this.end();
