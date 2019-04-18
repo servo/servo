@@ -2889,10 +2889,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
                 },
             },
 
-            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => self
-                .get_attribute(&ns!(), &local_name!("type"))
-                .map_or(false, |attr| attr.value().eq(expected_value)),
-
             // FIXME(heycam): This is wrong, since extended_filtering accepts
             // a string containing commas (separating each language tag in
             // a list) but the pseudo-class instead should be parsing and
