@@ -13,9 +13,6 @@
 
     let fakeDeviceInitParams = { supportsImmersive:true };
 
-    let immersiveSessionOptions = { mode: 'immersive-vr' };
-    let nonImmersiveSessionOptions = { mode: 'inline' };
-
     let testFunction = (session) => new Promise((resolve, reject) => {
 
       // Schedule and immediately cancel animation frame
@@ -49,9 +46,9 @@
     });
 
     xr_session_promise_test(immersiveTestName, testFunction,
-      fakeDeviceInitParams, immersiveSessionOptions);
+      fakeDeviceInitParams, 'immersive-vr');
     xr_session_promise_test(nonImmersiveTestName, testFunction,
-      fakeDeviceInitParams, nonImmersiveSessionOptions);
+      fakeDeviceInitParams, 'inline');
 
   </script>
 </body>

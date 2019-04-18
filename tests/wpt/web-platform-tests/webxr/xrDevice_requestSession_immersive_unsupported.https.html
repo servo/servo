@@ -13,7 +13,7 @@
               resolve(promise_rejects(
                 t,
                 "NotSupportedError",
-                navigator.xr.requestSession({ mode: 'immersive-vr' })
+                navigator.xr.requestSession('immersive-vr')
               ))
             });
           }));
