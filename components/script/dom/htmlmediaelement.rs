@@ -62,7 +62,6 @@ use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use mime::{self, Mime};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder};
@@ -72,7 +71,7 @@ use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, StreamType};
-use servo_media::ServoMedia;
+use servo_media::{ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -1661,20 +1660,10 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
-        match type_.parse::<Mime>() {
-            // XXX GStreamer is currently not very reliable playing OGG and most of
-            //     the media related WPTs uses OGG if we report that we are able to
-            //     play this type. So we report that we are unable to play it to force
-            //     the usage of other types.
-            //     https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/issues/520
-            Ok(ref mime)
-                if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) ||
-                    (mime.subtype() == mime::OGG) =>
-            {
-                CanPlayTypeResult::_empty
-            },
-            Err(_) => CanPlayTypeResult::_empty,
-            _ => CanPlayTypeResult::Maybe,
+        match ServoMedia::get().unwrap().can_play_type(&type_) {
+            SupportsMediaType::No => CanPlayTypeResult::_empty,
+            SupportsMediaType::Maybe => CanPlayTypeResult::Maybe,
+            SupportsMediaType::Probably => CanPlayTypeResult::Probably,
         }
     }
 
