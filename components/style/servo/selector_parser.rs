@@ -282,7 +282,6 @@ pub enum NonTSPseudoClass {
     ReadWrite,
     ReadOnly,
     ServoNonZeroBorder,
-    ServoCaseSensitiveTypeAttr(Atom),
     Target,
     Visited,
 }
@@ -302,18 +301,10 @@ impl ToCss for NonTSPseudoClass {
         W: fmt::Write,
     {
         use self::NonTSPseudoClass::*;
-        match *self {
-            Lang(ref lang) => {
-                dest.write_str(":lang(")?;
-                serialize_identifier(lang, dest)?;
-                return dest.write_str(")");
-            },
-            ServoCaseSensitiveTypeAttr(ref value) => {
-                dest.write_str(":-servo-case-sensitive-type-attr(")?;
-                serialize_identifier(value, dest)?;
-                return dest.write_str(")");
-            },
-            _ => {},
+        if let Lang(ref lang) = *self {
+            dest.write_str(":lang(")?;
+            serialize_identifier(lang, dest)?;
+            return dest.write_str(")");
         }
 
         dest.write_str(match *self {
@@ -333,7 +324,7 @@ impl ToCss for NonTSPseudoClass {
             ServoNonZeroBorder => ":-servo-nonzero-border",
             Target => ":target",
             Visited => ":visited",
-            Lang(_) | ServoCaseSensitiveTypeAttr(_) => unreachable!(),
+            Lang(_) => unreachable!(),
         })
     }
 }
@@ -367,12 +358,7 @@ impl NonTSPseudoClass {
             PlaceholderShown => ElementState::IN_PLACEHOLDER_SHOWN_STATE,
             Target => ElementState::IN_TARGET_STATE,
 
-            AnyLink |
-            Lang(_) |
-            Link |
-            Visited |
-            ServoNonZeroBorder |
-            ServoCaseSensitiveTypeAttr(_) => ElementState::empty(),
+            AnyLink | Lang(_) | Link | Visited | ServoNonZeroBorder => ElementState::empty(),
         }
     }
 
@@ -463,12 +449,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         let pseudo_class = match_ignore_ascii_case! { &name,
             "lang" => {
                 Lang(parser.expect_ident_or_string()?.as_ref().into())
-            }
-            "-servo-case-sensitive-type-attr" => {
-                if !self.in_user_agent_stylesheet() {
-                    return Err(parser.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())));
-                }
-                ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?.as_ref()))
             }
             _ => return Err(parser.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
         };
