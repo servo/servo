@@ -129,7 +129,7 @@ pub use servo_url as url;
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Servo<Window: WindowMethods + 'static> {
+pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
@@ -178,7 +178,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 
 impl<Window> Servo<Window>
 where
-    Window: WindowMethods + 'static,
+    Window: WindowMethods + 'static + ?Sized,
 {
     pub fn new(window: Rc<Window>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.

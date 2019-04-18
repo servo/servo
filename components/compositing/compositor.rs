@@ -103,7 +103,7 @@ impl FrameTreeId {
 enum LayerPixel {}
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
-pub struct IOCompositor<Window: WindowMethods> {
+pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The application window.
     pub window: Rc<Window>,
 
@@ -255,7 +255,7 @@ enum CompositeTarget {
     PngFile,
 }
 
-impl<Window: WindowMethods> IOCompositor<Window> {
+impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState) -> Self {
         let composite_target = match opts::get().output_file {
             Some(_) => CompositeTarget::PngFile,

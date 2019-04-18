@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{browser, window};
+use crate::{browser, headed_window, headless_window};
 use servo::{Servo, BrowserId};
 use servo::config::opts::{self, parse_url_or_filename};
-use servo::compositing::windowing::WindowEvent;
+use servo::compositing::windowing::{WindowMethods, WindowEvent};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use std::env;
+use crate::window_trait::ServoWindow;
+use std::rc::Rc;
 
 pub struct App;
 
@@ -16,8 +18,11 @@ impl App {
     pub fn run() {
         let opts = opts::get();
 
-        let foreground = opts.output_file.is_none() && !opts.headless;
-        let window = window::Window::new(foreground, opts.initial_window_size);
+        let window = if opts.headless {
+            headless_window::Window::new(opts.initial_window_size)
+        } else {
+            headed_window::Window::new(opts.initial_window_size)
+        };
 
         let mut browser = browser::Browser::new(window.clone());
 
@@ -27,36 +32,36 @@ impl App {
 
         servo.setup_logging();
 
-        window.run(|| {
-            let win_events = window.get_events();
+        // window.run(|| {
+        //     let win_events = window.get_events();
 
-            // FIXME: this could be handled by Servo. We don't need
-            // a repaint_synchronously function exposed.
-            let need_resize = win_events.iter().any(|e| match *e {
-                WindowEvent::Resize => true,
-                _ => false,
-            });
+        //     // FIXME: this could be handled by Servo. We don't need
+        //     // a repaint_synchronously function exposed.
+        //     let need_resize = win_events.iter().any(|e| match *e {
+        //         WindowEvent::Resize => true,
+        //         _ => false,
+        //     });
 
-            browser.handle_window_events(win_events);
+        //     browser.handle_window_events(win_events);
 
-            let mut servo_events = servo.get_events();
-            loop {
-                browser.handle_servo_events(servo_events);
-                servo.handle_events(browser.get_events());
-                if browser.shutdown_requested() {
-                    return true;
-                }
-                servo_events = servo.get_events();
-                if servo_events.is_empty() {
-                    break;
-                }
-            }
+        //     let mut servo_events = servo.get_events();
+        //     loop {
+        //         browser.handle_servo_events(servo_events);
+        //         servo.handle_events(browser.get_events());
+        //         if browser.shutdown_requested() {
+        //             return true;
+        //         }
+        //         servo_events = servo.get_events();
+        //         if servo_events.is_empty() {
+        //             break;
+        //         }
+        //     }
 
-            if need_resize {
-                servo.repaint_synchronously();
-            }
-            false
-        });
+        //     if need_resize {
+        //         servo.repaint_synchronously();
+        //     }
+        //     false
+        // });
 
         servo.deinit();
     }

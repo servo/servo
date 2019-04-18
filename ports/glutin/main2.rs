@@ -10,9 +10,11 @@
 mod app;
 mod browser;
 mod keyutils;
+mod headed_window;
+mod headless_window;
 mod resources;
 mod skia_symbols;
-mod window;
+mod window_trait;
 
 use app::App;
 use backtrace::Backtrace;
