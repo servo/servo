@@ -143,6 +143,10 @@ impl Cookie {
         self.last_access = now();
     }
 
+    pub fn set_expiry_time_negative(&mut self) {
+        self.expiry_time = Some(Serde(now() - Duration::seconds(1)));
+    }
+
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
     pub fn default_path(request_path: &str) -> &str {
         // Step 2

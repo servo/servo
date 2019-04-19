@@ -83,6 +83,13 @@ impl CookieStorage {
             Ok(None)
         }
     }
+    pub fn clear_storage(&mut self, url: &ServoUrl) {
+        let domain = reg_host(url.host_str().unwrap_or(""));
+        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+        for cookie in cookies.iter_mut() {
+            cookie.set_expiry_time_negative();
+        }
+    }
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn push(&mut self, mut cookie: Cookie, url: &ServoUrl, source: CookieSource) {
