@@ -30,7 +30,6 @@ use servo::webrender_api::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation,
 };
 use std::cell::{Cell, RefCell};
-#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::mem;
 use std::rc::Rc;
 #[cfg(target_os = "windows")]
@@ -42,8 +41,7 @@ const MULTISAMPLES: u16 = 16;
 fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
     if opts::get().output_file.is_some() {
         // Prevent the window from showing in Dock.app, stealing focus,
-        // or appearing at all when running in headless mode or generating an
-        // output file.
+        // when generating an output file.
         builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
     }
     builder
@@ -54,7 +52,6 @@ fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::Wind
     builder
 }
 
-/// The type of a window.
 pub struct Window {
     gl_window: GlWindow,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
@@ -89,12 +86,11 @@ impl Window {
     ) -> Rc<dyn WindowPortsMethods> {
         let opts = opts::get();
 
-        let is_foreground = opts.output_file.is_none() && !opts.headless;
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = is_foreground && !opts.no_native_titlebar;
+        let visible = opts.output_file.is_none() && !opts.no_native_titlebar;
 
         let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
@@ -123,7 +119,7 @@ impl Window {
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
-            let icon_bytes = include_bytes!("../../../resources/servo64.png");
+            let icon_bytes = include_bytes!("../../resources/servo64.png");
             glutin_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 

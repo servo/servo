@@ -42,7 +42,7 @@ impl EventsLoop {
         }
     }
     pub fn as_winit(&self) -> &glutin::EventsLoop {
-        &self.0.as_ref().unwrap()
+        &self.0.as_ref().expect("Can't access winit event loop while using the fake headless event loop")
     }
     pub fn poll_events<F>(&mut self, callback: F) where F: FnMut(glutin::Event) {
         if let Some(ref mut events_loop) = self.0 {

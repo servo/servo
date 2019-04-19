@@ -8,7 +8,7 @@ use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::window_trait::WindowPortsMethods;
 use crate::events_loop::EventsLoop;
-use crate::{headed_window, headless_window, events_loop};
+use crate::{headed_window, headless_window};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
@@ -30,20 +30,22 @@ pub struct App {
 
 impl App {
     pub fn run() {
-        let opts = opts::get();
+        let events_loop = EventsLoop::new(opts::get().headless);
 
-        let events_loop = events_loop::EventsLoop::new(opts.headless);
-
-        let window = if opts.headless {
-            headless_window::Window::new(opts.initial_window_size)
+        // Implements window methods, used by compositor.
+        let window = if opts::get().headless {
+            headless_window::Window::new(opts::get().initial_window_size)
         } else {
-            headed_window::Window::new(opts.initial_window_size, events_loop.borrow().as_winit())
+            headed_window::Window::new(opts::get().initial_window_size, events_loop.borrow().as_winit())
         };
 
+        // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(
             events_loop.clone(),
-            window.gl().clone(),
+            window.gl(),
         ));
+
+        // Handle browser state.
         let browser = Browser::new(window.clone());
 
         let mut servo = Servo::new(embedder, window.clone());
@@ -112,10 +114,8 @@ impl App {
                 // We block on winit's event loop (window events)
                 events_loop.run_forever(|e| {
                     self.winit_event_to_servo_event(e);
-                    if self.has_events() {
-                        if !self.suspended.get() {
-                            stop = self.handle_events();
-                        }
+                    if self.has_events() && !self.suspended.get() {
+                        stop = self.handle_events();
                     }
                     if stop || self.window.is_animating() && !self.suspended.get() {
                         glutin::ControlFlow::Break
