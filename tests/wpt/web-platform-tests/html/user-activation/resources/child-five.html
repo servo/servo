@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<body style="background: red;">
+<script>
+    window.parent.postMessage(JSON.stringify({"type": "child-five-loaded", "isActive": navigator.userActivation.isActive,
+                                              "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+
+    window.addEventListener("message", event => {
+        if (event.source === window.parent && event.data == "report") {
+            window.parent.postMessage(JSON.stringify({"type": "child-five-report", "isActive": navigator.userActivation.isActive,
+                                                      "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+        }
+    });
+
+</script>
+</body>

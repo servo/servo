@@ -261,8 +261,123 @@ promise_test(async t => {
   localQuicTransport.transport.stop();
   const promise = localQuicTransport.getStats();
   promise_rejects(t, 'InvalidStateError', promise);
-}, 'getStats() promises immediately rejected if called after' +
+}, 'getStats() promises immediately rejected if called after ' +
    `'closed' state.`);
+
+test(t => {
+  const quicTransport = makeStandaloneQuicTransport(t);
+  assert_throws('InvalidStateError',
+      () => quicTransport.sendDatagram(new Uint8Array([1])));
+}, `sendDatagram() throws InvalidStateError if called before 'connected'.`);
+
+test(t => {
+  const quicTransport = makeStandaloneQuicTransport(t);
+  quicTransport.stop();
+  assert_equals(quicTransport.state, 'closed');
+  assert_throws('InvalidStateError',
+      () => quicTransport.sendDatagram(new Uint8Array([1])));
+}, `sendDatagram() throws InvalidStateError if called when 'closed'.`);
+
+test(t => {
+  const quicTransport = makeStandaloneQuicTransport(t);
+  assert_equals(quicTransport.maxDatagramLength, null);
+}, 'maxDatagramLength 0 before connected.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  assert_greater_than(localQuicTransport.maxDatagramLength, 0);
+}, 'maxDatagramLength larger than 0 after connected.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const bigData = new Uint8Array(localQuicTransport.maxDatagramLength + 1);
+  assert_throws('InvalidStateError',
+      () => localQuicTransport.sendDatagram(bigData));
+}, 'sendDatagram() throws InvalidStateError if called with data larger ' +
+    'than maxDatagramLength()');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const datagram = new Uint8Array([42]);
+  await localQuicTransport.readyToSendDatagram();
+  localQuicTransport.sendDatagram(datagram);
+  const receiveDatagrams = await remoteQuicTransport.receiveDatagrams();
+  assert_equals(receiveDatagrams.length, 1);
+  const receiveDatagram = new Uint8Array(receiveDatagrams[0]);
+  assert_array_equals(receiveDatagram, datagram);
+}, 'sendDatagram() sends a datagram to remote side');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const datagram = new Uint8Array([42]);
+  const datagram2 = new Uint8Array([43]);
+  await localQuicTransport.readyToSendDatagram();
+  localQuicTransport.sendDatagram(datagram);
+  const receiveDatagrams = await remoteQuicTransport.receiveDatagrams();
+  assert_equals(receiveDatagrams.length, 1);
+  const receiveDatagram = new Uint8Array(receiveDatagrams[0]);
+  assert_array_equals(receiveDatagram, datagram);
+  await localQuicTransport.readyToSendDatagram();
+  localQuicTransport.sendDatagram(datagram2);
+  const receiveDatagrams2 = await remoteQuicTransport.receiveDatagrams();
+  assert_equals(receiveDatagrams2.length, 1);
+  const receiveDatagram2 = new Uint8Array(receiveDatagrams2[0]);
+  assert_array_equals(receiveDatagram2, datagram2);
+}, 'sendDatagram() sends a multiple datagrams to remote side');
+
+test(t => {
+  const quicTransport = makeStandaloneQuicTransport(t);
+  const promise = quicTransport.readyToSendDatagram();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'readyToSendDatagram() promise immediately rejected if called before ' +
+    'connecting');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  localQuicTransport.stop();
+  const promise = localQuicTransport.readyToSendDatagram();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'readyToSendDatagram() promise immediately rejected if called after ' +
+    `'closed' state.`);
+
+test(t => {
+  const quicTransport = makeStandaloneQuicTransport(t);
+  const promise = quicTransport.receiveDatagrams();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'receiveDatagrams() promise immediately rejected if called before ' +
+    'connecting.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  localQuicTransport.stop();
+  const promise = localQuicTransport.receiveDatagrams();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'receiveDatagrams() promise immediately rejected if called after ' +
+    `'closed' state.`);
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const promise = localQuicTransport.receiveDatagrams();
+  localQuicTransport.stop();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'receiveDatagrams() promise rejected  with InvalidStateError if stop() ' +
+    'is called before being fulfilled.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const promise = localQuicTransport.receiveDatagrams();
+  localQuicTransport.transport.stop();
+  promise_rejects(t, 'InvalidStateError', promise);
+}, 'receiveDatagrams() promises rejected  with InvalidStateError if ' +
+   'RTCIceTransport calls stop() before being fulfilled.');
 
 </script>
 

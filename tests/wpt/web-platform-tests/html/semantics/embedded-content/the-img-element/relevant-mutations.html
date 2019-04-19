@@ -21,16 +21,27 @@
 
 <img src="/images/green-2x2.png" data-desc="src set to same value">
 
-<img data-desc="crossorigin absent to empty">
-<img data-desc="crossorigin absent to anonymous">
-<img data-desc="crossorigin absent to use-credentials">
-<img crossorigin data-desc="crossorigin empty to absent">
-<img crossorigin data-desc="crossorigin empty to use-credentials">
-<img crossorigin=anonymous data-desc="crossorigin anonymous to absent">
-<img crossorigin=anonymous data-desc="crossorigin anonymous to use-credentials">
-<img crossorigin=use-credentials data-desc="crossorigin use-credentials to absent">
-<img crossorigin=use-credentials data-desc="crossorigin use-credentials to empty">
-<img crossorigin=use-credentials data-desc="crossorigin use-credentials to anonymous">
+<img data-desc="crossorigin absent to empty, src absent">
+<img data-desc="crossorigin absent to anonymous, src absent">
+<img data-desc="crossorigin absent to use-credentials, src absent">
+<img crossorigin data-desc="crossorigin empty to absent, src absent">
+<img crossorigin data-desc="crossorigin empty to use-credentials, src absent">
+<img crossorigin=anonymous data-desc="crossorigin anonymous to absent, src absent">
+<img crossorigin=anonymous data-desc="crossorigin anonymous to use-credentials, src absent">
+<img crossorigin=use-credentials data-desc="crossorigin use-credentials to absent, src absent">
+<img crossorigin=use-credentials data-desc="crossorigin use-credentials to empty, src absent">
+<img crossorigin=use-credentials data-desc="crossorigin use-credentials to anonymous, src absent">
+
+<img src="/images/green-2x2.png" data-desc="crossorigin absent to empty, src already set">
+<img src="/images/green-2x2.png" data-desc="crossorigin absent to anonymous, src already set">
+<img src="/images/green-2x2.png" data-desc="crossorigin absent to use-credentials, src already set">
+<img src="/images/green-2x2.png" crossorigin data-desc="crossorigin empty to absent, src already set">
+<img src="/images/green-2x2.png" crossorigin data-desc="crossorigin empty to use-credentials, src already set">
+<img src="/images/green-2x2.png" crossorigin=anonymous data-desc="crossorigin anonymous to absent, src already set">
+<img src="/images/green-2x2.png" crossorigin=anonymous data-desc="crossorigin anonymous to use-credentials, src already set">
+<img src="/images/green-2x2.png" crossorigin=use-credentials data-desc="crossorigin use-credentials to absent, src already set">
+<img src="/images/green-2x2.png" crossorigin=use-credentials data-desc="crossorigin use-credentials to empty, src already set">
+<img src="/images/green-2x2.png" crossorigin=use-credentials data-desc="crossorigin use-credentials to anonymous, src already set">
 
 <img src="/images/green-2x2.png" data-desc="inserted into picture"><picture></picture>
 
@@ -165,45 +176,91 @@ onload = function() {
     img.src = '/images/green-2x2.png';
   }, 'load');
 
-  t('crossorigin absent to empty', function(img) {
+  // When src is absent, changing the crossorigin attribute state MUST NOT
+  // generate events.
+
+  t('crossorigin absent to empty, src absent', function(img) {
     img.crossOrigin = '';
   }, 'timeout');
 
-  t('crossorigin absent to anonymous', function(img) {
+  t('crossorigin absent to anonymous, src absent', function(img) {
     img.crossOrigin = 'anonymous';
   }, 'timeout');
 
-  t('crossorigin absent to use-credentials', function(img) {
+  t('crossorigin absent to use-credentials, src absent', function(img) {
     img.crossOrigin = 'use-credentials';
   }, 'timeout');
 
-  t('crossorigin empty to absent', function(img) {
+  t('crossorigin empty to absent, src absent', function(img) {
     img.removeAttribute('crossorigin');
   }, 'timeout');
 
-  t('crossorigin empty to use-credentials', function(img) {
+  t('crossorigin empty to use-credentials, src absent', function(img) {
     img.crossOrigin = 'use-credentials';
   }, 'timeout');
 
-  t('crossorigin anonymous to absent', function(img) {
+  t('crossorigin anonymous to absent, src absent', function(img) {
     img.removeAttribute('crossorigin');
   }, 'timeout');
 
-  t('crossorigin anonymous to use-credentials', function(img) {
+  t('crossorigin anonymous to use-credentials, src absent', function(img) {
     img.crossOrigin = 'use-credentials';
   }, 'timeout');
 
-  t('crossorigin use-credentials to absent', function(img) {
+  t('crossorigin use-credentials to absent, src absent', function(img) {
     img.removeAttribute('crossorigin');
   }, 'timeout');
 
-  t('crossorigin use-credentials to empty', function(img) {
+  t('crossorigin use-credentials to empty, src absent', function(img) {
     img.crossOrigin = '';
   }, 'timeout');
 
-  t('crossorigin use-credentials to anonymous', function(img) {
+  t('crossorigin use-credentials to anonymous, src absent', function(img) {
     img.crossOrigin = 'anonymous';
   }, 'timeout');
+
+  // When src is set, changing the crossorigin attribute state MUST generate
+  // events.
+
+  t('crossorigin absent to empty, src already set', function(img) {
+    img.crossOrigin = '';
+  }, 'load');
+
+  t('crossorigin absent to anonymous, src already set', function(img) {
+    img.crossOrigin = 'anonymous';
+  }, 'load');
+
+  t('crossorigin absent to use-credentials, src already set', function(img) {
+    img.crossOrigin = 'use-credentials';
+  }, 'load');
+
+  t('crossorigin empty to absent, src already set', function(img) {
+    img.removeAttribute('crossorigin');
+  }, 'load');
+
+  t('crossorigin empty to use-credentials, src already set', function(img) {
+    img.crossOrigin = 'use-credentials';
+  }, 'load');
+
+  t('crossorigin anonymous to absent, src already set', function(img) {
+    img.removeAttribute('crossorigin');
+  }, 'load');
+
+  t('crossorigin anonymous to use-credentials, src already set', function(img) {
+    img.crossOrigin = 'use-credentials';
+  }, 'load');
+
+  t('crossorigin use-credentials to absent, src already set', function(img) {
+    img.removeAttribute('crossorigin');
+  }, 'load');
+
+  t('crossorigin use-credentials to empty, src already set', function(img) {
+    img.crossOrigin = '';
+  }, 'load');
+
+  t('crossorigin use-credentials to anonymous, src already set', function(img) {
+    img.crossOrigin = 'anonymous';
+  }, 'load');
 
   t('inserted into picture', function(img) {
     img.nextSibling.appendChild(img);

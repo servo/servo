@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <body style="background: lightgrey;">
-  <script>
+<script>
     window.parent.postMessage(JSON.stringify({"type": "child-four-loaded", "isActive": navigator.userActivation.isActive,
                                               "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
 

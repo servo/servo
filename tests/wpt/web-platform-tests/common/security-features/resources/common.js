@@ -745,6 +745,136 @@ function requestViaWebSocket(url) {
     });
 }
 
+// Subresource paths and invokers.
+const subresourceMap = {
+  "a-tag": {
+    path: "/common/security-features/subresource/document.py",
+    invoker: requestViaAnchor,
+  },
+  "area-tag": {
+    path: "/common/security-features/subresource/document.py",
+    invoker: requestViaArea,
+  },
+  "audio-tag": {
+    path: "/common/security-features/subresource/audio.py",
+    invoker: requestViaAudio,
+  },
+  "beacon-request": {
+    path: "/common/security-features/subresource/empty.py",
+    invoker: requestViaSendBeacon,
+  },
+  "fetch-request": {
+    path: "/common/security-features/subresource/xhr.py",
+    invoker: requestViaFetch,
+  },
+  "form-tag": {
+    path: "/common/security-features/subresource/empty.py",
+    invoker: requestViaForm,
+  },
+  "iframe-tag": {
+    path: "/common/security-features/subresource/document.py",
+    invoker: requestViaIframe,
+  },
+  "img-tag": {
+    path: "/common/security-features/subresource/image.py",
+    invoker: requestViaImage,
+    invokerForReferrerPolicy: requestViaImageForReferrerPolicy,
+  },
+  "link-css-tag": {
+    path: "/common/security-features/subresource/empty.py",
+    invoker: requestViaLinkStylesheet,
+  },
+  "link-prefetch-tag": {
+    path: "/common/security-features/subresource/empty.py",
+    invoker: requestViaLinkPrefetch,
+  },
+  "object-tag": {
+    path: "/common/security-features/subresource/empty.py",
+    invoker: requestViaObject,
+  },
+  "picture-tag": {
+    path: "/common/security-features/subresource/image.py",
+    invoker: requestViaPicture,
+  },
+  "script-tag": {
+    path: "/common/security-features/subresource/script.py",
+    invoker: requestViaScript,
+  },
+  "video-tag": {
+    path: "/common/security-features/subresource/video.py",
+    invoker: requestViaVideo,
+  },
+  "xhr-request": {
+    path: "/common/security-features/subresource/xhr.py",
+    invoker: requestViaXhr,
+  },
+
+  "worker-request": {
+    path: "/common/security-features/subresource/worker.py",
+    invoker: url => requestViaDedicatedWorker(url),
+  },
+  // TODO: Merge "module-worker" and "module-worker-top-level".
+  "module-worker": {
+    path: "/common/security-features/subresource/worker.py",
+    invoker: url => requestViaDedicatedWorker(url, {type: "module"}),
+  },
+  "module-worker-top-level": {
+    path: "/common/security-features/subresource/worker.py",
+    invoker: url => requestViaDedicatedWorker(url, {type: "module"}),
+  },
+  "module-data-worker-import": {
+    path: "/common/security-features/subresource/worker.py",
+    invoker: url =>
+        requestViaDedicatedWorker(workerUrlThatImports(url), {type: "module"}),
+  },
+  "classic-data-worker-fetch": {
+    path: "/common/security-features/subresource/empty.py",
+    invoker: url =>
+        requestViaDedicatedWorker(dedicatedWorkerUrlThatFetches(url), {}),
+  },
+  "shared-worker": {
+    path: "/common/security-features/subresource/shared-worker.py",
+    invoker: requestViaSharedWorker,
+  },
+
+  "websocket-request": {
+    path: "/stash_responder",
+    invoker: requestViaWebSocket,
+  },
+};
+for (const workletType of ['animation', 'audio', 'layout', 'paint']) {
+  subresourceMap[`worklet-${workletType}-top-level`] = {
+      path: "/common/security-features/subresource/worker.py",
+      invoker: url => requestViaWorklet(workletType, url)
+    };
+  subresourceMap[`worklet-${workletType}-data-import`] = {
+      path: "/common/security-features/subresource/worker.py",
+      invoker: url =>
+          requestViaWorklet(workletType, workerUrlThatImports(url))
+    };
+}
+
+function getRequestURLs(subresourceType, originType, redirectionType) {
+  const key = guid();
+  const value = guid();
+
+  // We use the same stash path for both HTTP/S and WS/S stash requests.
+  const stashPath = encodeURIComponent("/mixed-content");
+
+  const stashEndpoint = "/common/security-features/subresource/xhr.py?key=" +
+                        key + "&path=" + stashPath;
+  return {
+    testUrl:
+      getSubresourceOrigin(originType) +
+        subresourceMap[subresourceType].path +
+        "?redirection=" + encodeURIComponent(redirectionType) +
+        "&action=purge&key=" + key +
+        "&path=" + stashPath,
+    announceUrl: stashEndpoint + "&action=put&value=" + value,
+    assertUrl: stashEndpoint + "&action=take",
+  };
+}
+
 // SanityChecker does nothing in release mode. See sanity-checker.js for debug
 // mode.
 function SanityChecker() {}

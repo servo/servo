@@ -10,7 +10,6 @@
       assert_equals(e.data, "passed");
       bc.close();
     });
-    var portalUrl = encodeURIComponent(`portal-activate-event-portal.html?test=${test}`);
     window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
   }, "Tests that a portal can adopt its predecessor.");
 
@@ -21,7 +20,6 @@
       assert_equals(e.data, "passed");
       bc.close();
     });
-    var portalUrl = encodeURIComponent(`portal-activate-event-portal.html?test=${test}`);
     window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
   }, "Tests that trying to adopt the predecessor twice will throw an exception.");
 </script>

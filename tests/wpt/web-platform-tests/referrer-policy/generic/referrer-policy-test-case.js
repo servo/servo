@@ -1,3 +1,36 @@
+// TODO: This function is currently placed and duplicated at:
+// - mixed-content/generic/mixed-content-test-case.js
+// - referrer-policy/generic/referrer-policy-test-case.js
+// but should be moved to /common/security-features/resources/common.js.
+function getSubresourceOrigin(originType) {
+  const httpProtocol = "http";
+  const httpsProtocol = "https";
+  const wsProtocol = "ws";
+  const wssProtocol = "wss";
+
+  const sameOriginHost = "{{host}}";
+  const crossOriginHost = "{{domains[www1]}}";
+
+  // These values can evaluate to either empty strings or a ":port" string.
+  const httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
+  const httpsPort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
+  const wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
+  const wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
+
+  const originMap = {
+    "same-https": httpsProtocol + "://" + sameOriginHost + httpsPort,
+    "same-http": httpProtocol + "://" + sameOriginHost + httpPort,
+    "cross-https": httpsProtocol + "://" + crossOriginHost + httpsPort,
+    "cross-http": httpProtocol + "://" + crossOriginHost + httpPort,
+    "same-wss": wssProtocol + "://" + sameOriginHost + wssPort,
+    "same-ws": wsProtocol + "://" + sameOriginHost + wsPort,
+    "cross-wss": wssProtocol + "://" + crossOriginHost + wssPort,
+    "cross-ws": wsProtocol + "://" + crossOriginHost + wsPort,
+  };
+
+  return originMap[originType];
+}
+
 // NOTE: This method only strips the fragment and is not in accordance to the
 // recommended draft specification:
 // https://w3c.github.io/webappsec/specs/referrer-policy/#null
@@ -5,14 +38,6 @@
 // scenarios for URLs containing username/password/etc.
 function stripUrlForUseAsReferrer(url) {
   return url.replace(/#.*$/, "");
-}
-
-function normalizePort(targetPort) {
-  var defaultPorts = [80, 443];
-  var isDefaultPortForProtocol = (defaultPorts.indexOf(targetPort) >= 0);
-
-  return (targetPort == "" || isDefaultPortForProtocol) ?
-          "" : ":" + targetPort;
 }
 
 function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
@@ -30,120 +55,65 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
   // This check is A NOOP in release.
   sanityChecker.checkScenario(scenario);
 
-  var subresourceInvoker = {
-    "a-tag": requestViaAnchor,
-    "area-tag": requestViaArea,
-    "fetch-request": requestViaFetch,
-    "iframe-tag": requestViaIframe,
-    "img-tag":  requestViaImageForReferrerPolicy,
-    "script-tag": requestViaScript,
-    "worker-request": url => requestViaDedicatedWorker(url, {}),
-    "module-worker": url => requestViaDedicatedWorker(url, {type: "module"}),
-    "shared-worker": requestViaSharedWorker,
-    "xhr-request": requestViaXhr
+  const originTypeConversion = {
+    "same-origin-http": "same-http",
+    "same-origin-https": "same-https",
+    "cross-origin-http": "cross-http",
+    "cross-origin-https": "cross-https"
   };
-
-  const subresourcePath = {
-    "a-tag": "/common/security-features/subresource/document.py",
-    "area-tag": "/common/security-features/subresource/document.py",
-    "fetch-request": "/common/security-features/subresource/xhr.py",
-    "iframe-tag": "/common/security-features/subresource/document.py",
-    "img-tag": "/common/security-features/subresource/image.py",
-    "script-tag": "/common/security-features/subresource/script.py",
-    "worker-request": "/common/security-features/subresource/worker.py",
-    "module-worker": "/common/security-features/subresource/worker.py",
-    "shared-worker": "/common/security-features/subresource/shared-worker.py",
-    "xhr-request": "/common/security-features/subresource/xhr.py"
-  };
-
-  var referrerUrlResolver = {
-    "omitted": function() {
-      return undefined;
-    },
-    "origin": function() {
-      return self.origin + "/";
-    },
-    "stripped-referrer": function() {
-      return stripUrlForUseAsReferrer(location.toString());
-    }
-  };
-
-  var t = {
-    _scenario: scenario,
-    _testDescription: testDescription,
-    _constructSubresourceUrl: function() {
-      // TODO(kristijanburnik): We should assert that these two domains are
-      // different. E.g. If someone runs the tets over www, this would fail.
-      var domainForOrigin = {
-        "cross-origin":"{{domains[www1]}}",
-        "same-origin": location.hostname
-      };
-
-      // Values obtained and replaced by the wptserve pipeline:
-      // http://wptserve.readthedocs.org/en/latest/pipes.html#built-in-pipes
-      var portForProtocol = {
-        "http": parseInt("{{ports[http][0]}}"),
-        "https": parseInt("{{ports[https][0]}}")
+  const urls = getRequestURLs(
+      scenario.subresource,
+      originTypeConversion[scenario.origin + '-' + scenario.target_protocol],
+      scenario.redirection);
+  const invoker =
+      subresourceMap[scenario.subresource].invokerForReferrerPolicy ||
+      subresourceMap[scenario.subresource].invoker;
+  const checkResult = result => {
+    const referrerUrlResolver = {
+      "omitted": function() {
+        return undefined;
+      },
+      "origin": function() {
+        return self.origin + "/";
+      },
+      "stripped-referrer": function() {
+        return stripUrlForUseAsReferrer(location.toString());
       }
+    };
+    const expectedReferrerUrl =
+      referrerUrlResolver[scenario.referrer_url]();
 
-      var targetPort = portForProtocol[t._scenario.target_protocol];
+    // Check if the result is in valid format. NOOP in release.
+    sanityChecker.checkSubresourceResult(scenario, urls.testUrl, result);
 
-      return t._scenario.target_protocol + "://" +
-             domainForOrigin[t._scenario.origin] +
-             normalizePort(targetPort) +
-             subresourcePath[t._scenario.subresource] +
-             "?redirection=" + t._scenario["redirection"] +
-             "&cache_destroyer=" + (new Date()).getTime();
-    },
+    // Check the reported URL.
+    assert_equals(result.referrer,
+                  expectedReferrerUrl,
+                  "Reported Referrer URL is '" +
+                  scenario.referrer_url + "'.");
+    assert_equals(result.headers.referer,
+                  expectedReferrerUrl,
+                  "Reported Referrer URL from HTTP header is '" +
+                  expectedReferrerUrl + "'");
+  };
 
-    _constructExpectedReferrerUrl: function() {
-      return referrerUrlResolver[t._scenario.referrer_url]();
-    },
-
-    // Returns a promise.
-    _invokeSubresource: function(resourceRequestUrl) {
-      var invoker = subresourceInvoker[t._scenario.subresource];
+  function runTest() {
+    promise_test(_ => {
       // Depending on the delivery method, extend the subresource element with
       // these attributes.
       var elementAttributesForDeliveryMethod = {
-        "attr-referrer":  {referrerPolicy: t._scenario.referrer_policy},
+        "attr-referrer":  {referrerPolicy: scenario.referrer_policy},
         "rel-noreferrer": {rel: "noreferrer"}
       };
-
-      var delivery_method = t._scenario.delivery_method;
-
-      if (delivery_method in elementAttributesForDeliveryMethod) {
-        return invoker(resourceRequestUrl,
-                       elementAttributesForDeliveryMethod[delivery_method],
-                       t._scenario.referrer_policy);
-      } else {
-        return invoker(resourceRequestUrl, {}, t._scenario.referrer_policy);
+      var deliveryMethod = scenario.delivery_method;
+      let elementAttributes = {};
+      if (deliveryMethod in elementAttributesForDeliveryMethod) {
+        elementAttributes = elementAttributesForDeliveryMethod[deliveryMethod];
       }
-    },
-
-    start: function() {
-      promise_test(test => {
-          const resourceRequestUrl = t._constructSubresourceUrl();
-          const expectedReferrerUrl = t._constructExpectedReferrerUrl();
-          return t._invokeSubresource(resourceRequestUrl)
-            .then(result => {
-                // Check if the result is in valid format. NOOP in release.
-                sanityChecker.checkSubresourceResult(
-                    test, t._scenario, resourceRequestUrl, result);
-
-                // Check the reported URL.
-                assert_equals(result.referrer,
-                              expectedReferrerUrl,
-                              "Reported Referrer URL is '" +
-                              t._scenario.referrer_url + "'.");
-                assert_equals(result.headers.referer,
-                              expectedReferrerUrl,
-                              "Reported Referrer URL from HTTP header is '" +
-                              expectedReferrerUrl + "'");
-              });
-        }, t._testDescription);
-    }
+      return invoker(urls.testUrl, elementAttributes, scenario.referrer_policy)
+        .then(checkResult);
+    }, testDescription);
   }
 
-  return t;
+  return {start: runTest};
 }
