@@ -1172,7 +1172,7 @@ fn http_network_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    let _response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
+    let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
 
@@ -1222,14 +1222,7 @@ fn http_network_fetch(
     // This will only get the headers, the body is read later
     let (res, msg) = match response_future.wait() {
         Ok(wrapped_response) => wrapped_response,
-        Err(error) => {
-            context
-                .timing
-                .lock()
-                .unwrap()
-                .set_attribute(ResourceAttribute::ResponseEnd);
-            return Response::network_error(error);
-        },
+        Err(error) => return Response::network_error(error),
     };
 
     if log_enabled!(log::Level::Info) {
@@ -1271,11 +1264,6 @@ fn http_network_fetch(
     let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.lock().unwrap().cancelled() {
-        context
-            .timing
-            .lock()
-            .unwrap()
-            .set_attribute(ResourceAttribute::ResponseEnd);
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
     }
 
@@ -1400,6 +1388,10 @@ fn http_network_fetch(
     // Substep 3
 
     // Step 16
+
+    // Ensure we don't override "responseEnd" on successful return of this function
+    response_end_timer.neuter();
+
     response
 }
 
