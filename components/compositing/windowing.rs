@@ -148,8 +148,6 @@ pub trait WindowMethods {
     /// Return the GL function pointer trait.
     #[cfg(feature = "gl")]
     fn gl(&self) -> Rc<dyn gl::Gl>;
-    /// Returns a thread-safe object to wake up the window's event loop.
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker>;
     /// Get the coordinates of the native window, the screen and the framebuffer.
     fn get_coordinates(&self) -> EmbedderCoordinates;
     /// Set whether the application is currently animating.
@@ -157,6 +155,11 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
+}
+
+pub trait EmbedderMethods {
+    /// Returns a thread-safe object to wake up the window's event loop.
+    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker>;
     /// Register services with a VRServiceManager.
     fn register_vr_services(
         &self,

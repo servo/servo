@@ -67,7 +67,7 @@ use canvas::webgl_thread::WebGLThreads;
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
 };
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::{EmbedderMethods, WindowEvent, WindowMethods};
 use compositing::{CompositingReason, IOCompositor, ShutdownState};
 #[cfg(all(
     not(target_os = "windows"),
@@ -180,7 +180,7 @@ impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
 {
-    pub fn new(window: Rc<Window>) -> Servo<Window> {
+    pub fn new(embedder: Box<EmbedderMethods>, window: Rc<Window>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -199,9 +199,9 @@ where
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
-            create_compositor_channel(window.create_event_loop_waker());
+            create_compositor_channel(embedder.create_event_loop_waker());
         let (embedder_proxy, embedder_receiver) =
-            create_embedder_channel(window.create_event_loop_waker());
+            create_embedder_channel(embedder.create_event_loop_waker());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
@@ -269,7 +269,7 @@ where
         let webvr_services = if pref!(dom.webvr.enabled) {
             let mut services = VRServiceManager::new();
             services.register_defaults();
-            window.register_vr_services(&mut services, &mut webvr_heartbeats);
+            embedder.register_vr_services(&mut services, &mut webvr_heartbeats);
             Some(services)
         } else {
             None
