@@ -13052,6 +13052,19 @@
      {}
     ]
    ],
+   "mozilla/fetch_cannot_overwhelm_system.window.js": [
+    [
+     "mozilla/fetch_cannot_overwhelm_system.window.html",
+     {
+      "script_metadata": [
+       [
+        "title",
+        "Ensure multiple fetch do not crash the browser."
+       ]
+      ]
+     }
+    ]
+   ],
    "mozilla/first-reflow-sheet-assert.html": [
     [
      "mozilla/first-reflow-sheet-assert.html",
@@ -20055,6 +20068,10 @@
   ],
   "mozilla/event_listener.html": [
    "0ba1ce0d5577de68e5e8ff3acbce52043e7dee43",
+   "testharness"
+  ],
+  "mozilla/fetch_cannot_overwhelm_system.window.js": [
+   "989231e9caedd099f5212bd2f9d377c83f929a22",
    "testharness"
   ],
   "mozilla/first-reflow-sheet-assert.html": [
