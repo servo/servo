@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// These functions aren't actually called. They are here as a link
-// hack because Skia references them.
+//! These functions aren't actually called. They are here as a link
+//! hack because Skia references them.
 
 #[allow(non_snake_case)]
 #[no_mangle]

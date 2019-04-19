@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::window_trait::ServoWindow;
+//! A headless window implementation.
+
+use crate::window_trait::WindowPortsMethods;
 use euclid::{TypedPoint2D, TypedScale, TypedSize2D};
 use gleam::gl;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
-use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::{DeviceIntRect, FramebufferIntSize};
-use servo::webvr::VRServiceManager;
-use servo::webvr_traits::WebVRMainThreadHeartbeat;
 use std::cell::Cell;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -105,11 +104,10 @@ pub struct Window {
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     gl: Rc<dyn gl::Gl>,
-    waker: Box<dyn EventLoopWaker>,
 }
 
 impl Window {
-    pub fn new(size: TypedSize2D<u32, DeviceIndependentPixel>, waker: Box<EventLoopWaker>) -> Rc<dyn ServoWindow> {
+    pub fn new(size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<dyn WindowPortsMethods> {
         let context = HeadlessContext::new(size.width, size.height);
         let gl = unsafe {
             gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s))
@@ -122,7 +120,7 @@ impl Window {
         println!("{}", gl.get_string(gl::VERSION));
 
         let window = Window {
-            context, waker, gl,
+            context, gl,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
         };
@@ -138,7 +136,7 @@ impl Window {
     }
 }
 
-impl ServoWindow for Window {
+impl WindowPortsMethods for Window {
 
     fn get_events(&self) -> Vec<WindowEvent> {
         vec![]
@@ -203,17 +201,5 @@ impl WindowMethods for Window {
 
     fn prepare_for_composite(&self) -> bool {
         true
-    }
-
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
-        self.waker.clone()
-    }
-
-    fn register_vr_services(
-        &self,
-        _services: &mut VRServiceManager,
-        _heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>
-    ) {
-        // TODO: support dom.webvr.test in headless environments
     }
 }
