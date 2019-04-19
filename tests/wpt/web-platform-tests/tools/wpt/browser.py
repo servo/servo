@@ -304,7 +304,7 @@ class Firefox(Browser):
         # This is used rather than an API call to avoid rate limits
         tags = call("git", "ls-remote", "--tags", "--refs",
                     "https://github.com/mozilla/geckodriver.git")
-        release_re = re.compile(".*refs/tags/v(\d+)\.(\d+)\.(\d+)")
+        release_re = re.compile(r".*refs/tags/v(\d+)\.(\d+)\.(\d+)")
         latest_release = 0
         for item in tags.split("\n"):
             m = release_re.match(item)

@@ -52,6 +52,7 @@ use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
 use servo_media::ServoMedia;
 use std::cell::Cell;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
@@ -432,6 +433,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let decoded_audio = Arc::new(Mutex::new(Vec::new()));
             let decoded_audio_ = decoded_audio.clone();
             let decoded_audio__ = decoded_audio.clone();
+            // servo-media returns an audio channel position along
+            // with the AudioDecoderCallback progress callback, which
+            // may not be the same as the index of the decoded_audio
+            // Vec.
+            let channels = Arc::new(Mutex::new(HashMap::new()));
             let this = Trusted::new(self);
             let this_ = this.clone();
             let (task_source, canceller) = window
@@ -447,8 +453,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         .unwrap()
                         .resize(channel_count as usize, Vec::new());
                 })
-                .progress(move |buffer, channel| {
+                .progress(move |buffer, channel_pos| {
                     let mut decoded_audio = decoded_audio_.lock().unwrap();
+                    let mut channels = channels.lock().unwrap();
+                    let channel = match channels.entry(channel_pos) {
+                        Entry::Occupied(entry) => *entry.get(),
+                        Entry::Vacant(entry) => *entry.insert(decoded_audio.len()),
+                    };
                     decoded_audio[(channel - 1) as usize].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {

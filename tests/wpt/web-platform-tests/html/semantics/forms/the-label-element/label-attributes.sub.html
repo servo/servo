@@ -271,16 +271,7 @@
   }, "A labelable element not in a document can label element in the same tree.");
 
   test(function () {
-    var isShadowDOMV0;
-    if ("createShadowRoot" in document.getElementById('content')) {
-      isShadowDOMV0 = true;
-    }
-    var root1;
-    if (isShadowDOMV0) {
-      root1 = document.getElementById('content').createShadowRoot();
-    } else {
-      root1 = document.getElementById('content').attachShadow({mode: 'open'});
-    }
+    var root1 = document.getElementById('content').attachShadow({mode: 'open'});
     assert_true(root1 instanceof DocumentFragment,
                 "ShadowRoot should be an instance of DocumentFragment.");
     // <label><input id="shadow1"/></label><div id="div1"></div>
@@ -293,12 +284,7 @@
     var div1 = document.createElement('div');
     label1.appendChild(div1);
     // <label for="shadow2"></label><input id="shadow2"/>
-    var root2;
-    if (isShadowDOMV0) {
-      root2 = div1.createShadowRoot();
-    } else {
-      root2 = div1.attachShadow({mode: 'open'});
-    }
+    var root2 = div1.attachShadow({mode: 'open'});
 
     assert_true(root2 instanceof DocumentFragment,
                 "ShadowRoot should be an instance of DocumentFragment.");

@@ -12,7 +12,7 @@
       return XRTest.simulateDeviceConnection({ supportsImmersive:true })
         .then( (controller) => new Promise((resolve) => {
           XRTest.simulateUserActivation( () => {
-            resolve(navigator.xr.requestSession({ mode: 'immersive-vr' })
+            resolve(navigator.xr.requestSession('immersive-vr')
               .then( (session) => new Promise((resolve) => {
                 XRTest.simulateUserActivation( () => {
                   // Requesting a second immersive session when another immersive
@@ -22,13 +22,13 @@
                   resolve(promise_rejects(
                     t,
                     "InvalidStateError",
-                    navigator.xr.requestSession({ mode: 'immersive-vr' })
+                    navigator.xr.requestSession('immersive-vr')
                   ).then( () => {
                       // End the immersive session and try again. Now the immersive
                       // session creation should succeed.
                       return session.end().then( () => new Promise((resolve) => {
                         XRTest.simulateUserActivation( () => {
-                          resolve(navigator.xr.requestSession({ mode: 'immersive-vr' }));
+                          resolve(navigator.xr.requestSession('immersive-vr'));
                         });
                       }));
                     }));

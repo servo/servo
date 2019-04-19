@@ -478,7 +478,7 @@ class Tokenizer(object):
         elif c == "U":
             return self.decode_escape(6)
         elif c in ["a", "b", "f", "n", "r", "t", "v"]:
-            return eval("'\%s'" % c)
+            return eval(r"'\%s'" % c)
         elif c is eol:
             raise ParseError(self.filename, self.line_number, "EOL in escape")
         else:

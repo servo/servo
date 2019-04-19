@@ -53,15 +53,21 @@ let clearAndAddAnotherEntryToBuffer = () => {
 };
 
 let testThatEntryWasAdded = () => {
-    return new Promise((resolve, reject) => {
-        let waitForIt = function() {
-            if (performance.getEntriesByType("resource").length) {
-                resolve();
+    let tries = 1;
+    let maxTries = 5;
+    return waitUntilConditionIsMet( function() {
+        if (performance.getEntriesByType("resource").length) {
+            return true;
+        } else {
+            if (tries < maxTries) {
+                tries++;
+                return false;
             } else {
-                reject("After buffer full, entry never added to primary");
+                return true;
             }
         }
-        step_timeout(waitForIt, 0);
+    }).then( () => {
+        assert_true((performance.getEntriesByType("resource").length) === 1);
     });
 };
 
@@ -74,7 +80,6 @@ promise_test(async () => {
     await clearAndAddAnotherEntryToBuffer();
     // Since we have no strict guarantees when an entry will be added to the
     // buffer, waiting till next task to try to avoid flakiness.
-    await waitForNextTask();
     await testThatEntryWasAdded();
 }, "Test that entry was added to the buffer after a buffer full event");
 </script>

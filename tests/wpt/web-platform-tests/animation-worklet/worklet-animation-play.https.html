@@ -21,5 +21,25 @@
       return getComputedStyle(target).opacity != '1';
     });
     assert_equals(getComputedStyle(target).opacity, "0.5");
-  }, "Simple worklet animation should output values at specified local time");
+
+    animation.cancel();
+  }, "A running worklet animation should output values at specified local time.");
+
+  promise_test(async t => {
+    await registerConstantLocalTimeAnimator(500);
+    const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+
+    await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+    });
+
+    const prevCurrentTime = animation.currentTime;
+    animation.play();
+    assert_equals(animation.playState, "running");
+    assert_equals(animation.currentTime, prevCurrentTime)
+
+    animation.cancel();
+  }, "Playing a running animation should be a no-op.");
 </script>

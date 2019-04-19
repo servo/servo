@@ -353,7 +353,7 @@ class TestNode(ManifestItem):
 
     @property
     def is_empty(self):
-        required_keys = set(["type"])
+        required_keys = {"type"}
         if set(self._data.keys()) != required_keys:
             return False
         return all(child.is_empty for child in self.children)
