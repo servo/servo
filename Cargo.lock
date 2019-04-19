@@ -4897,7 +4897,7 @@ dependencies = [
 
 [[package]]
 name = "webdriver"
-version = "0.38.1"
+version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4940,7 +4940,7 @@ dependencies = [
  "servo_url 0.0.1",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "webdriver 0.38.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webdriver 0.39.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -5636,7 +5636,7 @@ dependencies = [
 "checksum wayland-protocols 0.21.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d3f6cebb98963f028d397e9bad2acf9d3b2f6b76fae65aea191edd9e7c0df88c"
 "checksum wayland-scanner 0.21.4 (registry+https://github.com/rust-lang/crates.io-index)" = "f1927ee62e4e149c010dc9eca8ca47e238416cd6f45f688eb9f8a8e9c3794c30"
 "checksum wayland-sys 0.21.4 (registry+https://github.com/rust-lang/crates.io-index)" = "ca41ed78a12256f81df6f53fcbe4503213ba442e02cdad3c9c888a64a668eaf4"
-"checksum webdriver 0.38.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c6022ea74cc9f0085c01ff24965d935cd40f9592d7a56f13909c65f08ea98149"
+"checksum webdriver 0.39.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0533b0b0a05e2e5c081317759a038482806c6085c9605dded03c8bbd2498b042"
 "checksum webrender 0.60.0 (git+https://github.com/servo/webrender)" = "<none>"
 "checksum webrender_api 0.60.0 (git+https://github.com/servo/webrender)" = "<none>"
 "checksum webrender_build 0.0.1 (git+https://github.com/servo/webrender)" = "<none>"
