@@ -54,7 +54,6 @@ fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::Wind
     builder
 }
 
-/// The type of a window.
 pub struct Window {
     gl_window: GlWindow,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,

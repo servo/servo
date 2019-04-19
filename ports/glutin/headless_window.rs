@@ -98,7 +98,6 @@ impl HeadlessContext {
     }
 }
 
-/// The type of a window.
 pub struct Window {
     context: HeadlessContext,
     animation_state: Cell<AnimationState>,

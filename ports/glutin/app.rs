@@ -43,7 +43,7 @@ impl App {
 
         let embedder = Box::new(EmbedderCallbacks::new(
             events_loop.clone(),
-            window.gl().clone(),
+            window.gl(),
         ));
         let browser = Browser::new(window.clone());
 

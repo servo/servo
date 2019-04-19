@@ -12,7 +12,6 @@ use servo::webrender_api::{DeviceIntPoint, DeviceIntSize};
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
 
-// FIXME: maybe rename that BrowserMethods
 pub trait WindowPortsMethods: WindowMethods {
     fn get_events(&self) -> Vec<WindowEvent>;
     fn id(&self) -> Option<glutin::WindowId>;
