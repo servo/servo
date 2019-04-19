@@ -468,7 +468,14 @@ where
             .fold(0, |s, (item, _)| s + item.len())
     }
 
+    /// Returns the count of stylesheets for a given origin.
+    #[inline]
+    pub fn sheet_count(&self, origin: Origin) -> usize {
+        self.collections.borrow_for_origin(&origin).len()
+    }
+
     /// Returns the `index`th stylesheet in the set for the given origin.
+    #[inline]
     pub fn get(&self, origin: Origin, index: usize) -> Option<&S> {
         self.collections.borrow_for_origin(&origin).get(index)
     }

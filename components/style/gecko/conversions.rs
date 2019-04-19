@@ -13,9 +13,9 @@
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Components};
-use crate::gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
+use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
-use crate::stylesheets::{Origin, RulesMutateError};
+use crate::stylesheets::RulesMutateError;
 use crate::values::computed::image::LineDirection;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
@@ -814,16 +814,6 @@ impl From<RulesMutateError> for nsresult {
             RulesMutateError::IndexSize => nsresult::NS_ERROR_DOM_INDEX_SIZE_ERR,
             RulesMutateError::HierarchyRequest => nsresult::NS_ERROR_DOM_HIERARCHY_REQUEST_ERR,
             RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
-        }
-    }
-}
-
-impl From<Origin> for SheetType {
-    fn from(other: Origin) -> Self {
-        match other {
-            Origin::UserAgent => SheetType::Agent,
-            Origin::Author => SheetType::Doc,
-            Origin::User => SheetType::User,
         }
     }
 }

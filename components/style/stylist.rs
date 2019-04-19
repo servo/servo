@@ -591,6 +591,18 @@ impl Stylist {
             .remove_stylesheet(Some(&self.device), sheet, guard)
     }
 
+    /// Appends a new stylesheet to the current set.
+    #[inline]
+    pub fn sheet_count(&self, origin: Origin) -> usize {
+        self.stylesheets.sheet_count(origin)
+    }
+
+    /// Appends a new stylesheet to the current set.
+    #[inline]
+    pub fn sheet_at(&self, origin: Origin, index: usize) -> Option<&StylistSheet> {
+        self.stylesheets.get(origin, index)
+    }
+
     /// Returns whether for any of the applicable style rule data a given
     /// condition is true.
     pub fn any_applicable_rule_data<E, F>(&self, element: E, mut f: F) -> bool
