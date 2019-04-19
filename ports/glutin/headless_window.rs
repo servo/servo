@@ -7,8 +7,6 @@
 use crate::window_trait::WindowPortsMethods;
 use euclid::{TypedPoint2D, TypedScale, TypedSize2D};
 use gleam::gl;
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-use image;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::servo_config::opts;
@@ -22,8 +20,6 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
-#[cfg(target_os = "windows")]
-use winapi;
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 struct HeadlessContext {
