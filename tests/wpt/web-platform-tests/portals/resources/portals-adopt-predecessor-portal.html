@@ -2,7 +2,6 @@
 <script>
   var searchParams = new URL(location).searchParams;
   var test = searchParams.get("test");
-  var bc = new BroadcastChannel(`portal-${test}`);
 
   window.onportalactivate = function(e) {
     var portal = e.adoptPredecessor();
@@ -10,19 +9,19 @@
 
     if (test == "adopt-once") {
       if (portal instanceof HTMLPortalElement) {
-        bc.postMessage("passed");
-        bc.close();
+        portal.postMessage("adopted", "*");
       }
     }
     if (test == "adopt-twice") {
       try {
-        portal = e.adoptPredecessor();
+        e.adoptPredecessor();
       } catch(e) {
-        bc.postMessage("passed");
-        bc.close();
+        portal.postMessage("passed", "*");
       }
     }
   }
 
+  var bc = new BroadcastChannel(`portal-${test}`);
   bc.postMessage("loaded");
+  bc.close();
 </script>

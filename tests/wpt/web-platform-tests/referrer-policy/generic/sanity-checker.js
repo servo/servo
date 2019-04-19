@@ -28,22 +28,19 @@ SanityChecker.prototype.checkScenario = function(scenario) {
   }, "[ReferrerPolicyTestCase] The test scenario is valid.");
 }
 
-SanityChecker.prototype.checkSubresourceResult = function(test,
-                                                          scenario,
+SanityChecker.prototype.checkSubresourceResult = function(scenario,
                                                           subresourceUrl,
                                                           result) {
-  test.step(function() {
-    assert_equals(Object.keys(result).length, 3);
-    assert_own_property(result, "location");
-    assert_own_property(result, "referrer");
-    assert_own_property(result, "headers");
+  assert_equals(Object.keys(result).length, 3);
+  assert_own_property(result, "location");
+  assert_own_property(result, "referrer");
+  assert_own_property(result, "headers");
 
-    // Skip location check for scripts.
-    if (scenario.subresource == "script-tag")
-      return;
+  // Skip location check for scripts.
+  if (scenario.subresource == "script-tag")
+    return;
 
-    // Sanity check: location of sub-resource matches reported location.
-    assert_equals(result.location, subresourceUrl,
-                  "Subresource reported location.");
-  }, "Running a valid test scenario.");
+  // Sanity check: location of sub-resource matches reported location.
+  assert_equals(result.location, subresourceUrl,
+                "Subresource reported location.");
 };

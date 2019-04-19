@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async () => {
+    var win = window.open();
+    var portal = win.document.createElement("portal");
+    portal.src = new URL("resources/simple-portal.html", location.href)
+
+    await new Promise((resolve, reject) => {
+      var bc = new BroadcastChannel("simple-portal");
+      bc.onmessage = () => {
+        bc.close();
+        resolve();
+      }
+      win.document.body.appendChild(portal);
+    });
+
+    return portal.activate();
+  });
+</script>

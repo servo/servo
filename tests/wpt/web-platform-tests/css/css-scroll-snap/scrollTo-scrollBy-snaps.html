@@ -74,7 +74,9 @@ var viewport = document.scrollingElement;
 [
   [{left: 800}, 1000, 0],
   [{top: 900}, 0, 1000],
-  [{left: 900, top: 800}, 1000, 1000]
+  [{left: 900, top: 800}, 1000, 1000],
+  [{left: 800, top: -100}, 1000, 0], /* outside bounds on y axis */
+  [{left: 10000, top: -100}, 1000, 0] /* outside bounds on both axes */
 ].forEach(([input, expectedX, expectedY]) => {
   test(() => {
     divScroller.scrollTo(0, 0);

@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <title>Restrictions on return value from `test`</title>
+</head>
+<body>
+<script>
+function makeTest(...bodies) {
+  const closeScript = '<' + '/script>';
+  let src = `
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Document title</title>
+<script src="/resources/testharness.js?${Math.random()}">${closeScript}
+</head>
+
+<body>
+<div id="log"></div>`;
+  bodies.forEach((body) => {
+    src += '<script>(' + body + ')();' + closeScript;
+  });
+
+  const iframe = document.createElement('iframe');
+
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(src);
+
+  return new Promise((resolve) => {
+    window.addEventListener('message', function onMessage(e) {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      if (!e.data || e.data.type !=='complete') {
+        return;
+      }
+      window.removeEventListener('message', onMessage);
+      resolve(e.data);
+    });
+
+    iframe.contentDocument.close();
+  }).then(({ tests, status }) => {
+    const summary = {
+      harness: {
+        status: getEnumProp(status, status.status),
+        message: status.message
+      },
+      tests: {}
+    };
+
+    tests.forEach((test) => {
+      summary.tests[test.name] = getEnumProp(test, test.status);
+    });
+
+    return summary;
+  });
+}
+
+function getEnumProp(object, value) {
+  for (let property in object) {
+    if (!/^[A-Z]+$/.test(property)) {
+      continue;
+    }
+
+    if (object[property] === value) {
+      return property;
+    }
+  }
+}
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => {}, 'before');
+        test(() => {}, 'U+d7ff is not modified: \ud7ff');
+        test(() => {}, 'U+e000 is not modified: \ue000');
+        test(() => {}, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'OK');
+      assert_equals(harness.message, null);
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests['U+d7ff is not modified: \ud7ff'], 'PASS');
+      assert_equals(tests['U+e000 is not modified: \ue000'], 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'sub-test names which include valid code units');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => {}, 'before');
+        test(() => {}, 'U+d800U+dfff is not modified: \ud800\udfff');
+        test(() => {}, 'U+dbffU+dc00 is not modified: \udbff\udc00');
+        test(() => {}, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'OK');
+      assert_equals(harness.message, null);
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests['U+d800U+dfff is not modified: \ud800\udfff'], 'PASS');
+      assert_equals(tests['U+dbffU+dc00 is not modified: \udbff\udc00'], 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'sub-test names which include paired surrogates');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => {}, 'before');
+        test(() => {}, 'U+d800 must be sanitized: \ud800');
+        test(() => {}, 'U+d800U+d801 must be sanitized: \ud800\ud801');
+        test(() => {}, 'U+dfff must be sanitized: \udfff');
+        test(() => {}, 'U+dc00U+d800U+dc00U+d800 must be sanitized: \udc00\ud800\udc00\ud800');
+        test(() => {}, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'OK');
+      assert_equals(harness.message, null);
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests['U+d800 must be sanitized: U+d800'], 'PASS');
+      assert_equals(tests['U+dfff must be sanitized: U+dfff'], 'PASS');
+      assert_equals(
+        tests['U+d800U+d801 must be sanitized: U+d800U+d801'],
+        'PASS'
+      );
+      assert_equals(
+        tests['U+dc00U+d800U+dc00U+d800 must be sanitized: U+dc00\ud800\udc00U+d800'],
+        'PASS'
+      );
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'sub-test names which include unpaired surrogates');
+</script>
+</body>
+</html>

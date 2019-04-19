@@ -5,18 +5,15 @@
   var searchParams = new URL(location).searchParams;
   var test = searchParams.get("test");
   var bc = new BroadcastChannel(`portal-${test}`);
-  bc.onmessage = function(e) {
-    switch (e.data) {
-      case "loaded":
-        document.querySelector("portal").activate();
-        break;
-
-      case "passed":
-        bc.close();
+  bc.onmessage = e => {
+    bc.close();
+    document.querySelector("portal").activate().then(() => {
+      window.portalHost.addEventListener("message", () => {
         var bc_test = new BroadcastChannel(`test-${test}`);
         bc_test.postMessage("passed");
         bc_test.close();
-    }
+      });
+    });
   }
 
   var portal = document.createElement("portal");
