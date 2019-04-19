@@ -899,7 +899,7 @@ fn http_network_or_cache_fetch(
     }
 
     // Step 5.15
-    // TODO: handle `Range` header
+    // TODO: if necessary append `Accept-Encoding`/`identity` to headers
 
     // Step 5.16
     let current_url = http_request.current_url();
@@ -1086,7 +1086,7 @@ fn http_network_or_cache_fetch(
     let mut response = response.unwrap();
 
     // Step 8
-    // TODO: handle `Range` header
+    // TODO: if necessary set response's range-requested flag
 
     // Step 9
     // TODO: handle CORS not set and cross-origin blocked
