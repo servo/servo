@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
-use crate::window_trait::{ServoWindow, LINE_HEIGHT};
+use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{TypedPoint2D, TypedVector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
@@ -25,7 +25,7 @@ use std::thread;
 use std::time::Duration;
 use tinyfiledialogs::{self, MessageBoxIcon};
 
-pub struct Browser<Window: ServoWindow + ?Sized> {
+pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
@@ -52,7 +52,7 @@ enum LoadingState {
     Loaded,
 }
 
-impl<Window> Browser<Window> where Window: ServoWindow + ?Sized {
+impl<Window> Browser<Window> where Window: WindowPortsMethods + ?Sized {
     pub fn new(window: Rc<Window>) -> Browser<Window> {
         Browser {
             title: None,

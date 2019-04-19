@@ -2,27 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! A windowing implementation using winit.
+//! A glutin window implementation.
 
+use crate::app;
 use crate::keyutils::keyboard_event_from_winit;
-use crate::window_trait::{ServoWindow, LINE_HEIGHT};
+use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 use gleam::gl;
-use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
+use glutin::{ContextBuilder, GlContext, GlWindow};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use keyboard_types::{Key, KeyboardEvent, KeyState};
-use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
-use servo::embedder_traits::{Cursor, EventLoopWaker};
+use servo::embedder_traits::Cursor;
 use servo::script_traits::TouchEventType;
-use servo::servo_config::{opts, pref};
+use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation};
-use servo::webvr::VRServiceManager;
-use servo::webvr_traits::WebVRMainThreadHeartbeat;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::mem;
@@ -57,12 +55,11 @@ fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::Wind
 /// The type of a window.
 pub struct Window {
     gl_window: GlWindow,
-    events_loop: Rc<RefCell<glutin::EventsLoop>>,
-    waker: Box<dyn EventLoopWaker>,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
     mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
+    primary_monitor: glutin::MonitorId,
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<KeyboardEvent>>,
@@ -84,7 +81,7 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 }
 
 impl Window {
-    pub fn new(win_size: TypedSize2D<u32, DeviceIndependentPixel>, waker: Box<EventLoopWaker>, events_loop: Rc<RefCell<glutin::EventsLoop>>) -> Rc<dyn ServoWindow> {
+    pub fn new(win_size: TypedSize2D<u32, DeviceIndependentPixel>, events_loop: &glutin::EventsLoop) -> Rc<dyn WindowPortsMethods> {
         let opts = opts::get();
 
         let is_foreground = opts.output_file.is_none() && !opts.headless;
@@ -110,14 +107,14 @@ impl Window {
         window_builder = builder_with_platform_options(window_builder);
 
         let mut context_builder = ContextBuilder::new()
-            .with_gl(Window::gl_version())
+            .with_gl(app::gl_version())
             .with_vsync(opts.enable_vsync);
 
         if opts.use_msaa {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)
         }
 
-        let glutin_window = GlWindow::new(window_builder, context_builder, &events_loop.borrow())
+        let glutin_window = GlWindow::new(window_builder, context_builder, &events_loop)
             .expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -133,10 +130,12 @@ impl Window {
                 .expect("Couldn't make window current");
         }
 
+        let primary_monitor = events_loop.get_primary_monitor();
+
         let PhysicalSize {
             width: screen_width,
             height: screen_height,
-        } = events_loop.borrow().get_primary_monitor().get_dimensions();
+        } = primary_monitor.get_dimensions();
         let screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
         // TODO(ajeffrey): can this fail?
         let LogicalSize { width, height } = glutin_window
@@ -162,7 +161,6 @@ impl Window {
 
         let window = Window {
             gl_window: glutin_window,
-            events_loop: events_loop,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
@@ -172,23 +170,13 @@ impl Window {
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
+            primary_monitor,
             screen_size,
-            waker,
         };
 
         window.present();
 
         Rc::new(window)
-    }
-
-    #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-    fn gl_version() -> GlRequest {
-        return GlRequest::Specific(Api::OpenGl, (3, 2));
-    }
-
-    #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-    fn gl_version() -> GlRequest {
-        GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
 
     fn handle_received_character(&self, mut ch: char) {
@@ -293,7 +281,7 @@ impl Window {
 
 }
 
-impl ServoWindow for Window {
+impl WindowPortsMethods for Window {
 
     fn get_events(&self) -> Vec<WindowEvent> {
         mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
@@ -327,7 +315,7 @@ impl ServoWindow for Window {
 
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
-            self.gl_window.set_fullscreen(Some(self.events_loop.borrow().get_primary_monitor()));
+            self.gl_window.set_fullscreen(Some(self.primary_monitor.clone()));
         }
         self.fullscreen.set(state);
     }
@@ -510,10 +498,6 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
-        self.waker.clone()
-    }
-
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
     }
@@ -523,36 +507,6 @@ impl WindowMethods for Window {
             warn!("Couldn't make window current: {}", err);
         }
         true
-    }
-
-    fn register_vr_services(
-        &self,
-        services: &mut VRServiceManager,
-        heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>
-    ) {
-        if pref!(dom.webvr.test) {
-            warn!("Creating test VR display");
-            // This is safe, because register_vr_services is called from the main thread.
-            let name = String::from("Test VR Display");
-            let size = self.inner_size.get().to_f64();
-            let size = LogicalSize::new(size.width, size.height);
-            let mut window_builder = glutin::WindowBuilder::new()
-                .with_title(name.clone())
-                .with_dimensions(size)
-                .with_visibility(false)
-                .with_multitouch();
-            window_builder = builder_with_platform_options(window_builder);
-            let context_builder = ContextBuilder::new()
-                .with_gl(Window::gl_version())
-                .with_vsync(false); // Assume the browser vsync is the same as the test VR window vsync
-            let gl_window = GlWindow::new(window_builder, context_builder, &*self.events_loop.borrow())
-                .expect("Failed to create window.");
-            let gl = self.gl.clone();
-            let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
-
-            services.register(Box::new(service));
-            heartbeats.push(Box::new(heartbeat));
-        }
     }
 }
 

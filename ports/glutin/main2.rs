@@ -9,6 +9,7 @@
 
 mod app;
 mod browser;
+mod embedder;
 mod keyutils;
 mod headed_window;
 mod headless_window;

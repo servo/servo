@@ -2,25 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{browser, headed_window, headless_window};
+//! Application entry point, runs the event loop.
+
+use crate::{headed_window, headless_window};
+use crate::browser::Browser;
 use servo::{Servo, BrowserId};
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::compositing::windowing::WindowEvent;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use std::env;
-use crate::window_trait::ServoWindow;
+use crate::window_trait::WindowPortsMethods;
 use std::rc::Rc;
 use std::cell::{Cell, RefCell};
-use std::sync::Arc;
-use servo::embedder_traits::EventLoopWaker;
+use crate::embedder::EmbedderCallbacks;
 use std::mem;
 
 pub struct App {
     events_loop: Rc<RefCell<glutin::EventsLoop>>,
-    window: Rc<ServoWindow>,
-    servo: RefCell<Servo<ServoWindow>>,
-    browser: RefCell<browser::Browser<ServoWindow>>,
+    window: Rc<WindowPortsMethods>,
+    servo: RefCell<Servo<WindowPortsMethods>>,
+    browser: RefCell<Browser<WindowPortsMethods>>,
     event_queue: RefCell<Vec<WindowEvent>>,
     suspended: Cell<bool>,
 }
@@ -29,22 +31,22 @@ impl App {
     pub fn run() {
         let opts = opts::get();
 
-        let events_loop = Rc::new(RefCell::new(glutin::EventsLoop::new()));
-
-        let waker = create_event_loop_waker(&events_loop.borrow());
+        let events_loop = glutin::EventsLoop::new();
 
         let window = if opts.headless {
-            headless_window::Window::new(opts.initial_window_size, waker)
+            headless_window::Window::new(opts.initial_window_size)
         } else {
-            headed_window::Window::new(opts.initial_window_size, waker, events_loop.clone())
+            headed_window::Window::new(opts.initial_window_size, &events_loop)
         };
 
-        let browser = browser::Browser::new(window.clone());
+        let events_loop = Rc::new(RefCell::new(events_loop));
 
-        let mut servo = Servo::new(window.clone());
+        let embedder = Box::new(EmbedderCallbacks::new(events_loop.clone(), window.gl().clone()));
+        let browser = Browser::new(window.clone());
+
+        let mut servo = Servo::new(embedder, window.clone());
         let browser_id = BrowserId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
-
         servo.setup_logging();
 
         let app = App {
@@ -69,13 +71,7 @@ impl App {
 
     fn winit_event_to_servo_event(&self, event: glutin::Event) {
         match event {
-            glutin::Event::WindowEvent { window_id, event, .. } => {
-                if Some(window_id) != self.window.id() {
-                    warn!("FIXME");
-                } else {
-                    self.window.winit_event_to_servo_event(event);
-                }
-            },
+            // App level events
             glutin::Event::Suspended(suspended) => {
                 self.suspended.set(suspended);
                 if !suspended {
@@ -86,7 +82,15 @@ impl App {
                 self.event_queue.borrow_mut().push(WindowEvent::Idle);
             },
             glutin::Event::DeviceEvent { .. } => {
-            }
+            },
+            // Window level events
+            glutin::Event::WindowEvent { window_id, event, .. } => {
+                if Some(window_id) != self.window.id() {
+                    warn!("Got an event from unknown window");
+                } else {
+                    self.window.winit_event_to_servo_event(event);
+                }
+            },
         }
     }
 
@@ -176,29 +180,13 @@ fn get_default_url() -> ServoUrl {
     cmdline_url.or(pref_url).or(blank_url).unwrap()
 }
 
-fn create_event_loop_waker(events_loop: &glutin::EventsLoop) -> Box<dyn EventLoopWaker> {
-    struct GlutinEventLoopWaker {
-        proxy: Arc<glutin::EventsLoopProxy>,
-    }
-    impl GlutinEventLoopWaker {
-        fn new(events_loop: &glutin::EventsLoop) -> GlutinEventLoopWaker {
-            let proxy = Arc::new(events_loop.create_proxy());
-            GlutinEventLoopWaker { proxy }
-        }
-    }
-    impl EventLoopWaker for GlutinEventLoopWaker {
-        fn wake(&self) {
-            // kick the OS event loop awake.
-            if let Err(err) = self.proxy.wakeup() {
-                warn!("Failed to wake up event loop ({}).", err);
-            }
-        }
-        fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
-            Box::new(GlutinEventLoopWaker {
-                proxy: self.proxy.clone(),
-            })
-        }
-    }
 
-    Box::new(GlutinEventLoopWaker::new(&events_loop))
+#[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
+pub fn gl_version() -> glutin::GlRequest {
+    glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 2))
+}
+
+#[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
+pub fn gl_version() -> glutin::GlRequest {
+    glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0))
 }
