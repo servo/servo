@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use keyboard_types::{Code, Key, KeyboardEvent, KeyState, Modifiers, Location};
 use glutin::{ElementState, KeyboardInput, ModifiersState, VirtualKeyCode};
+use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, Modifiers};
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]

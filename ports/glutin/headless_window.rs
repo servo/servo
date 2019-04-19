@@ -109,9 +109,7 @@ pub struct Window {
 impl Window {
     pub fn new(size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<dyn WindowPortsMethods> {
         let context = HeadlessContext::new(size.width, size.height);
-        let gl = unsafe {
-            gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s))
-        };
+        let gl = unsafe { gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s)) };
 
         // Print some information about the headless renderer that
         // can be useful in diagnosing CI failures on build machines.
@@ -120,7 +118,8 @@ impl Window {
         println!("{}", gl.get_string(gl::VERSION));
 
         let window = Window {
-            context, gl,
+            context,
+            gl,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
         };
@@ -137,7 +136,6 @@ impl Window {
 }
 
 impl WindowPortsMethods for Window {
-
     fn get_events(&self) -> Vec<WindowEvent> {
         vec![]
     }
@@ -179,7 +177,8 @@ impl WindowMethods for Window {
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
         let dpr = self.servo_hidpi_factor();
-        let size = (TypedSize2D::new(self.context.width, self.context.height).to_f32() * dpr).to_i32();
+        let size =
+            (TypedSize2D::new(self.context.width, self.context.height).to_f32() * dpr).to_i32();
         let viewport = DeviceIntRect::new(TypedPoint2D::zero(), size);
         let framebuffer = FramebufferIntSize::from_untyped(&size.to_untyped());
         EmbedderCoordinates {
@@ -192,8 +191,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn present(&self) {
-    }
+    fn present(&self) {}
 
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);

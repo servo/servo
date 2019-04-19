@@ -4,19 +4,19 @@
 
 //! Application entry point, runs the event loop.
 
-use crate::{headed_window, headless_window};
 use crate::browser::Browser;
-use servo::{Servo, BrowserId};
-use servo::config::opts::{self, parse_url_or_filename};
+use crate::embedder::EmbedderCallbacks;
+use crate::window_trait::WindowPortsMethods;
+use crate::{headed_window, headless_window};
 use servo::compositing::windowing::WindowEvent;
+use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
-use std::env;
-use crate::window_trait::WindowPortsMethods;
-use std::rc::Rc;
+use servo::{BrowserId, Servo};
 use std::cell::{Cell, RefCell};
-use crate::embedder::EmbedderCallbacks;
+use std::env;
 use std::mem;
+use std::rc::Rc;
 
 pub struct App {
     events_loop: Rc<RefCell<glutin::EventsLoop>>,
@@ -41,7 +41,10 @@ impl App {
 
         let events_loop = Rc::new(RefCell::new(events_loop));
 
-        let embedder = Box::new(EmbedderCallbacks::new(events_loop.clone(), window.gl().clone()));
+        let embedder = Box::new(EmbedderCallbacks::new(
+            events_loop.clone(),
+            window.gl().clone(),
+        ));
         let browser = Browser::new(window.clone());
 
         let mut servo = Servo::new(embedder, window.clone());
@@ -81,10 +84,11 @@ impl App {
             glutin::Event::Awakened => {
                 self.event_queue.borrow_mut().push(WindowEvent::Idle);
             },
-            glutin::Event::DeviceEvent { .. } => {
-            },
+            glutin::Event::DeviceEvent { .. } => {},
             // Window level events
-            glutin::Event::WindowEvent { window_id, event, .. } => {
+            glutin::Event::WindowEvent {
+                window_id, event, ..
+            } => {
                 if Some(window_id) != self.window.id() {
                     warn!("Got an event from unknown window");
                 } else {
@@ -179,7 +183,6 @@ fn get_default_url() -> ServoUrl {
 
     cmdline_url.or(pref_url).or(blank_url).unwrap()
 }
-
 
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 pub fn gl_version() -> glutin::GlRequest {

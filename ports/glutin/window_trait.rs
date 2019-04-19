@@ -6,7 +6,7 @@
 //! Implemented by headless and headed windows.
 
 use glutin;
-use servo::compositing::windowing::{WindowMethods, WindowEvent};
+use servo::compositing::windowing::{WindowEvent, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::webrender_api::{DeviceIntPoint, DeviceIntSize};
 
@@ -14,7 +14,7 @@ use servo::webrender_api::{DeviceIntPoint, DeviceIntSize};
 pub const LINE_HEIGHT: f32 = 38.0;
 
 // FIXME: maybe rename that BrowserMethods
-pub trait WindowPortsMethods : WindowMethods {
+pub trait WindowPortsMethods: WindowMethods {
     fn get_events(&self) -> Vec<WindowEvent>;
     fn id(&self) -> Option<glutin::WindowId>;
     fn has_events(&self) -> bool;

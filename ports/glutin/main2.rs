@@ -2,17 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
 #[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
-#[macro_use] extern crate sig;
+#[macro_use]
+extern crate sig;
 
 mod app;
 mod browser;
 mod embedder;
-mod keyutils;
 mod headed_window;
 mod headless_window;
+mod keyutils;
 mod resources;
 mod skia_symbols;
 mod window_trait;
@@ -37,7 +40,10 @@ pub mod platform {
     pub fn deinit() {}
 }
 
-#[cfg(any(not(feature = "unstable"), not(any(target_os = "macos", target_os = "linux"))))]
+#[cfg(any(
+    not(feature = "unstable"),
+    not(any(target_os = "macos", target_os = "linux"))
+))]
 fn install_crash_handler() {}
 
 #[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
