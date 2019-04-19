@@ -971,6 +971,19 @@ impl Handler {
         }
     }
 
+    fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::DeleteCookies(sender);
+        self.browsing_context_script_command(cmd)?;
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window found.",
+            )),
+        }
+    }
+
     fn handle_set_timeouts(
         &mut self,
         parameters: &TimeoutsParameters,
@@ -1261,6 +1274,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => match *extension {
