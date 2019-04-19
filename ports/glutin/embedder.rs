@@ -7,17 +7,17 @@
 use crate::app;
 use gleam::gl;
 use glutin;
-use servo::compositing::windowing::EmbedderMethods;
-use servo::embedder_traits::EventLoopWaker;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::Arc;
-use servo::servo_config::{opts, pref};
 use glutin::dpi::LogicalSize;
 use glutin::{ContextBuilder, GlWindow};
 use rust_webvr::GlWindowVRService;
+use servo::compositing::windowing::EmbedderMethods;
+use servo::embedder_traits::EventLoopWaker;
+use servo::servo_config::{opts, pref};
 use servo::webvr::VRServiceManager;
 use servo::webvr_traits::WebVRMainThreadHeartbeat;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct EmbedderCallbacks {
     events_loop: Rc<RefCell<glutin::EventsLoop>>,
@@ -58,7 +58,11 @@ impl EmbedderMethods for EmbedderCallbacks {
         Box::new(GlutinEventLoopWaker::new(&self.events_loop.borrow()))
     }
 
-    fn register_vr_services(&self, services: &mut VRServiceManager, heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>) {
+    fn register_vr_services(
+        &self,
+        services: &mut VRServiceManager,
+        heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>,
+    ) {
         if opts::get().headless {
             if pref!(dom.webvr.test) {
                 warn!("Creating test VR display");
@@ -74,8 +78,9 @@ impl EmbedderMethods for EmbedderCallbacks {
                 let context_builder = ContextBuilder::new()
                     .with_gl(app::gl_version())
                     .with_vsync(false); // Assume the browser vsync is the same as the test VR window vsync
-                let gl_window = GlWindow::new(window_builder, context_builder, &*self.events_loop.borrow())
-                    .expect("Failed to create window.");
+                let gl_window =
+                    GlWindow::new(window_builder, context_builder, &*self.events_loop.borrow())
+                        .expect("Failed to create window.");
                 let gl = self.gl.clone();
                 let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
 

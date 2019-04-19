@@ -7,12 +7,18 @@
 use crate::app;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
+use euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use gleam::gl;
+use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
+#[cfg(target_os = "macos")]
+use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use glutin::Icon;
 use glutin::{ContextBuilder, GlContext, GlWindow};
+use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
-use keyboard_types::{Key, KeyboardEvent, KeyState};
+use keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
@@ -20,19 +26,15 @@ use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation};
+use servo::webrender_api::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation,
+};
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::mem;
 use std::rc::Rc;
 #[cfg(target_os = "windows")]
 use winapi;
-use glutin::{ElementState, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-use glutin::Icon;
-use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
-#[cfg(target_os = "macos")]
-use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 
 const MULTISAMPLES: u16 = 16;
 
@@ -81,7 +83,10 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 }
 
 impl Window {
-    pub fn new(win_size: TypedSize2D<u32, DeviceIndependentPixel>, events_loop: &glutin::EventsLoop) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(
+        win_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        events_loop: &glutin::EventsLoop,
+    ) -> Rc<dyn WindowPortsMethods> {
         let opts = opts::get();
 
         let is_foreground = opts.output_file.is_none() && !opts.headless;
@@ -94,7 +99,6 @@ impl Window {
         let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
-
 
         let mut window_builder = glutin::WindowBuilder::new()
             .with_title("Servo".to_string())
@@ -145,7 +149,6 @@ impl Window {
 
         glutin_window.show();
 
-
         let gl = match gl::GlType::default() {
             gl::GlType::Gl => unsafe {
                 gl::GlFns::load_with(|s| glutin_window.get_proc_address(s) as *const _)
@@ -194,7 +197,7 @@ impl Window {
             // Some keys like Backspace emit a control character in winit
             // but they are already dealt with in handle_keyboard_input
             // so just ignore the character.
-            return
+            return;
         } else {
             // For combined characters like the letter e with an acute accent
             // no keyboard event is emitted. A dummy event is created in this case.
@@ -206,10 +209,7 @@ impl Window {
             .push(WindowEvent::Keyboard(event));
     }
 
-    fn handle_keyboard_input(
-        &self,
-        input: KeyboardInput,
-    ) {
+    fn handle_keyboard_input(&self, input: KeyboardInput) {
         let event = keyboard_event_from_winit(input);
         if event.state == KeyState::Down && event.key == Key::Unidentified {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
@@ -278,11 +278,9 @@ impl Window {
             },
         }
     }
-
 }
 
 impl WindowPortsMethods for Window {
-
     fn get_events(&self) -> Vec<WindowEvent> {
         mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
     }
@@ -293,7 +291,8 @@ impl WindowPortsMethods for Window {
 
     fn page_height(&self) -> f32 {
         let dpr = self.servo_hidpi_factor();
-        let size = self.gl_window
+        let size = self
+            .gl_window
             .get_inner_size()
             .expect("Failed to get window inner size.");
         size.height as f32 * dpr.get()
@@ -305,17 +304,20 @@ impl WindowPortsMethods for Window {
 
     fn set_inner_size(&self, size: DeviceIntSize) {
         let size = size.to_f32() / self.device_hidpi_factor();
-        self.gl_window.set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
+        self.gl_window
+            .set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
         let point = point.to_f32() / self.device_hidpi_factor();
-        self.gl_window.set_position(LogicalPosition::new(point.x.into(), point.y.into()))
+        self.gl_window
+            .set_position(LogicalPosition::new(point.x.into(), point.y.into()))
     }
 
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
-            self.gl_window.set_fullscreen(Some(self.primary_monitor.clone()));
+            self.gl_window
+                .set_fullscreen(Some(self.primary_monitor.clone()));
         }
         self.fullscreen.set(state);
     }
@@ -378,10 +380,7 @@ impl WindowPortsMethods for Window {
     fn winit_event_to_servo_event(&self, event: glutin::WindowEvent) {
         match event {
             glutin::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
-            glutin::WindowEvent::KeyboardInput {
-                input,
-                ..
-            } => self.handle_keyboard_input(input),
+            glutin::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
             glutin::WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
                     self.handle_mouse(button, state, self.mouse_pos.get());
@@ -464,17 +463,20 @@ impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         // TODO(ajeffrey): can this fail?
         let dpr = self.device_hidpi_factor();
-        let LogicalSize { width, height } = self.gl_window
+        let LogicalSize { width, height } = self
+            .gl_window
             .get_outer_size()
             .expect("Failed to get window outer size.");
-        let LogicalPosition { x, y } = self.gl_window
+        let LogicalPosition { x, y } = self
+            .gl_window
             .get_position()
             .unwrap_or(LogicalPosition::new(0., 0.));
         let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
         let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
         let screen = (self.screen_size.to_f32() * dpr).to_i32();
 
-        let LogicalSize { width, height } = self.gl_window
+        let LogicalSize { width, height } = self
+            .gl_window
             .get_inner_size()
             .expect("Failed to get window inner size.");
         let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
