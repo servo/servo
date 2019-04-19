@@ -351,11 +351,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         self.parse_slotted()
     }
 
-    fn pseudo_element_allows_single_colon(name: &str) -> bool {
-        // FIXME: -moz-tree check should probably be ascii-case-insensitive.
-        ::selectors::parser::is_css2_pseudo_element(name) || name.starts_with("-moz-tree-")
-    }
-
     fn parse_non_ts_pseudo_class(
         &self,
         location: SourceLocation,
