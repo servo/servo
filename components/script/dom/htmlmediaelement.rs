@@ -1554,7 +1554,6 @@ impl HTMLMediaElement {
     }
 }
 
-
 impl Drop for HTMLMediaElement {
     fn drop(&mut self) {
         if let Some(ref player) = *self.player.borrow() {
