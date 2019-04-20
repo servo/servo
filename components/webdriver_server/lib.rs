@@ -109,7 +109,7 @@ struct WebDriverSession {
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
-    script_timeout: u64,
+    script_timeout: Option<u64>,
 
     /// Time to wait for a page to finish loading upon navigation.
     load_timeout: u64,
@@ -129,7 +129,7 @@ impl WebDriverSession {
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
 
-            script_timeout: 30_000,
+            script_timeout: Some(30_000),
             load_timeout: 300_000,
             implicit_wait_timeout: 0,
         }
@@ -994,7 +994,7 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         if let Some(timeout) = parameters.script {
-            session.script_timeout = timeout
+            session.script_timeout = timeout;
         }
         if let Some(timeout) = parameters.page_load {
             session.load_timeout = timeout
@@ -1032,11 +1032,14 @@ impl Handler {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
+        let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
+            format!("setTimeout(webdriverTimeout, {});", script_timeout)
+        } else {
+            "".into()
+        };
         let script = format!(
-            "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
-            self.session()?.script_timeout,
-            func_body,
-            args_string
+            "{} (function(callback) {{ {} }})({})",
+            timeout_script, func_body, args_string
         );
 
         let (sender, receiver) = ipc::channel().unwrap();
