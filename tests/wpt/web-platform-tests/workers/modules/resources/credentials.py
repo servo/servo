@@ -2,8 +2,11 @@ def main(request, response):
     cookie = request.cookies.first("COOKIE_NAME", None)
 
     response_headers = [("Content-Type", "text/javascript"),
-                        ("Access-Control-Allow-Origin", request.headers.get("Origin")),
                         ("Access-Control-Allow-Credentials", "true")]
+
+    origin = request.headers.get("Origin", None)
+    if origin:
+        response_headers.append(("Access-Control-Allow-Origin", origin))
 
     cookie_value = '';
     if cookie:
