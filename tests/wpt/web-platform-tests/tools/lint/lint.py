@@ -13,6 +13,7 @@ import tempfile
 from collections import defaultdict
 
 from . import fnmatch
+from . import rules
 from .. import localpaths
 from ..gitignore.gitignore import PathFilter
 from ..wpt import testfiles
@@ -117,7 +118,7 @@ def _all_files_equal(paths):
 
 def check_path_length(repo_root, path):
     if len(path) + 1 > 150:
-        return [("PATH LENGTH", "/%s longer than maximum path length (%d > 150)" % (path, len(path) + 1), path, None)]
+        return [rules.PathLength.error(path, (path, len(path) + 1))]
     return []
 
 
@@ -127,10 +128,7 @@ def check_worker_collision(repo_root, path):
                (".worker.html", ".worker.js")]
     for path_ending, generated in endings:
         if path.endswith(path_ending):
-            return [("WORKER COLLISION",
-                     "path ends with %s which collides with generated tests from %s files" % (path_ending, generated),
-                     path,
-                     None)]
+            return [rules.WorkerCollision.error(path, (path_ending, generated))]
     return []
 
 
@@ -150,16 +148,13 @@ def check_gitignore_file(repo_root, path):
         path_parts[:3] == ["css", "tools", "apiclient"]):
         return []
 
-    return [("GITIGNORE",
-             ".gitignore found outside the root",
-             path,
-             None)]
+    return [rules.GitIgnoreFile.error(path)]
 
 
 def check_ahem_copy(repo_root, path):
     lpath = path.lower()
     if "ahem" in lpath and lpath.endswith(".ttf"):
-        return [("AHEM COPY", "Don't add extra copies of Ahem, use /fonts/Ahem.ttf", path, None)]
+        return [rules.AhemCopy.error(path)]
     return []
 
 
@@ -177,8 +172,7 @@ def check_git_ignore(repo_root, paths):
                 # If the matching filter reported by check-ignore is a special-case exception,
                 # that's fine. Otherwise, it requires a new special-case exception.
                 if filter_string[0] != '!':
-                    errors += [("IGNORED PATH", "%s matches an ignore filter in .gitignore - "
-                                "please add a .gitignore exception" % path, path, None)]
+                    errors.append(rules.IgnoredPath.error(path, (path,)))
         except subprocess.CalledProcessError:
             # Nonzero return code means that no match exists.
             pass
@@ -264,25 +258,19 @@ def check_css_globally_unique(repo_root, paths):
                 for spec, paths in iteritems(by_spec):
                     if not _all_files_equal([os.path.join(repo_root, x) for x in paths]):
                         for x in paths:
-                            errors.append(("CSS-COLLIDING-TEST-NAME",
-                                           "The filename %s in the %s testsuite is shared by: %s"
-                                           % (name,
-                                              spec,
-                                              ", ".join(sorted(paths))),
-                                           x,
-                                           None))
+                            context = (name, spec, ", ".join(sorted(paths)))
+                            errors.append(rules.CSSCollidingTestName.error(x,
+                                                                           context))
 
-    for error_name, d in [("CSS-COLLIDING-REF-NAME", ref_files),
-                          ("CSS-COLLIDING-SUPPORT-NAME", support_files)]:
+    for rule_class, d in [(rules.CSSCollidingRefName, ref_files),
+                          (rules.CSSCollidingSupportName, support_files)]:
         for name, colliding in iteritems(d):
             if len(colliding) > 1:
                 if not _all_files_equal([os.path.join(repo_root, x) for x in colliding]):
+                    context = (name, ", ".join(sorted(colliding)))
+
                     for x in colliding:
-                        errors.append((error_name,
-                                       "The filename %s is shared by: %s" % (name,
-                                                                             ", ".join(sorted(colliding))),
-                                       x,
-                                       None))
+                        errors.append(rule_class.error(x, context))
 
     return errors
 
@@ -341,102 +329,20 @@ def filter_whitelist_errors(data, errors):
 
     return [item for i, item in enumerate(errors) if not whitelisted[i]]
 
-class Regexp(object):
-    pattern = None
-    file_extensions = None
-    error = None
-    _re = None
-
-    def __init__(self):
-        self._re = re.compile(self.pattern)
-
-    def applies(self, path):
-        return (self.file_extensions is None or
-                os.path.splitext(path)[1] in self.file_extensions)
-
-    def search(self, line):
-        return self._re.search(line)
-
-class TrailingWhitespaceRegexp(Regexp):
-    pattern = b"[ \t\f\v]$"
-    error = "TRAILING WHITESPACE"
-    description = "Whitespace at EOL"
-
-class TabsRegexp(Regexp):
-    pattern = b"^\t"
-    error = "INDENT TABS"
-    description = "Tabs used for indentation"
-
-class CRRegexp(Regexp):
-    pattern = b"\r$"
-    error = "CR AT EOL"
-    description = "CR character in line separator"
-
-class SetTimeoutRegexp(Regexp):
-    pattern = br"setTimeout\s*\("
-    error = "SET TIMEOUT"
-    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
-    description = "setTimeout used; step_timeout should typically be used instead"
-
-class W3CTestOrgRegexp(Regexp):
-    pattern = br"w3c\-test\.org"
-    error = "W3C-TEST.ORG"
-    description = "External w3c-test.org domain used"
-
-class WebPlatformTestRegexp(Regexp):
-    pattern = br"web\-platform\.test"
-    error = "WEB-PLATFORM.TEST"
-    description = "Internal web-platform.test domain used"
-
-class Webidl2Regexp(Regexp):
-    pattern = br"webidl2\.js"
-    error = "WEBIDL2.JS"
-    description = "Legacy webidl2.js script used"
-
-class ConsoleRegexp(Regexp):
-    pattern = br"console\.[a-zA-Z]+\s*\("
-    error = "CONSOLE"
-    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
-    description = "Console logging API used"
-
-class GenerateTestsRegexp(Regexp):
-    pattern = br"generate_tests\s*\("
-    error = "GENERATE_TESTS"
-    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
-    description = "generate_tests used"
-
-class PrintRegexp(Regexp):
-    pattern = br"print(?:\s|\s*\()"
-    error = "PRINT STATEMENT"
-    file_extensions = [".py"]
-    description = "Print function used"
-
-class LayoutTestsRegexp(Regexp):
-    pattern = br"eventSender|testRunner|window\.internals"
-    error = "LAYOUTTESTS APIS"
-    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
-    description = "eventSender/testRunner/window.internals used; these are LayoutTests-specific APIs (WebKit/Blink)"
-
-class SpecialPowersRegexp(Regexp):
-    pattern = b"SpecialPowers"
-    error = "SPECIALPOWERS API"
-    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
-    description = "SpecialPowers used; this is gecko-specific and not supported in wpt"
-
 
 regexps = [item() for item in
-           [TrailingWhitespaceRegexp,
-            TabsRegexp,
-            CRRegexp,
-            SetTimeoutRegexp,
-            W3CTestOrgRegexp,
-            WebPlatformTestRegexp,
-            Webidl2Regexp,
-            ConsoleRegexp,
-            GenerateTestsRegexp,
-            PrintRegexp,
-            LayoutTestsRegexp,
-            SpecialPowersRegexp]]
+           [rules.TrailingWhitespaceRegexp,
+            rules.TabsRegexp,
+            rules.CRRegexp,
+            rules.SetTimeoutRegexp,
+            rules.W3CTestOrgRegexp,
+            rules.WebPlatformTestRegexp,
+            rules.Webidl2Regexp,
+            rules.ConsoleRegexp,
+            rules.GenerateTestsRegexp,
+            rules.PrintRegexp,
+            rules.LayoutTestsRegexp,
+            rules.SpecialPowersRegexp]]
 
 def check_regexp_line(repo_root, path, f):
     errors = []
@@ -446,7 +352,7 @@ def check_regexp_line(repo_root, path, f):
     for i, line in enumerate(f):
         for regexp in applicable_regexps:
             if regexp.search(line):
-                errors.append((regexp.error, regexp.description, path, i+1))
+                errors.append((regexp.name, regexp.description, path, i+1))
 
     return errors
 
@@ -459,12 +365,12 @@ def check_parsed(repo_root, path, f):
         if (source_file.type == "support" and
             not source_file.name_is_non_test and
             not source_file.name_is_reference):
-            return [("SUPPORT-WRONG-DIR", "Support file not in support directory", path, None)]
+            return [rules.SupportWrongDir.error(path)]
 
         if (source_file.type != "support" and
             not source_file.name_is_reference and
             not source_file.spec_links):
-            return [("MISSING-LINK", "Testcase file must have a link to a spec", path, None)]
+            return [rules.MissingLink.error(path)]
 
     if source_file.name_is_non_test:
         return []
@@ -473,13 +379,13 @@ def check_parsed(repo_root, path, f):
         return []
 
     if source_file.root is None:
-        return [("PARSE-FAILED", "Unable to parse file", path, None)]
+        return [rules.ParseFailed.error(path)]
 
     if source_file.type == "manual" and not source_file.name_is_manual:
-        errors.append(("CONTENT-MANUAL", "Manual test whose filename doesn't end in '-manual'", path, None))
+        errors.append(rules.ContentManual.error(path))
 
     if source_file.type == "visual" and not source_file.name_is_visual:
-        errors.append(("CONTENT-VISUAL", "Visual test whose filename doesn't end in '-visual'", path, None))
+        errors.append(rules.ContentVisual.error(path))
 
     about_blank_parts = urlsplit("about:blank")
     for reftest_node in source_file.reftest_nodes:
@@ -490,18 +396,14 @@ def check_parsed(repo_root, path, f):
             continue
 
         if (parts.scheme or parts.netloc):
-            errors.append(("ABSOLUTE-URL-REF",
-                     "Reference test with a reference file specified via an absolute URL: '%s'" % href, path, None))
+            errors.append(rules.AbsoluteUrlRef.error(path, (href,)))
             continue
 
         ref_url = urljoin(source_file.url, href)
         ref_parts = urlsplit(ref_url)
 
         if source_file.url == ref_url:
-            errors.append(("SAME-FILE-REF",
-                           "Reference test which points at itself as a reference",
-                           path,
-                           None))
+            errors.append(rules.SameFileRef.error(path))
             continue
 
         assert ref_parts.path != ""
@@ -510,45 +412,39 @@ def check_parsed(repo_root, path, f):
         reference_rel = reftest_node.attrib.get("rel", "")
 
         if not os.path.isfile(reference_file):
-            errors.append(("NON-EXISTENT-REF",
-                     "Reference test with a non-existent '%s' relationship reference: '%s'" % (reference_rel, href), path, None))
+            errors.append(rules.NonexistentRef.error(path,
+                                                     (reference_rel, href)))
 
     if len(source_file.timeout_nodes) > 1:
-        errors.append(("MULTIPLE-TIMEOUT", "More than one meta name='timeout'", path, None))
+        errors.append(rules.MultipleTimeout.error(path))
 
     for timeout_node in source_file.timeout_nodes:
         timeout_value = timeout_node.attrib.get("content", "").lower()
         if timeout_value != "long":
-            errors.append(("INVALID-TIMEOUT", "Invalid timeout value %s" % timeout_value, path, None))
+            errors.append(rules.InvalidTimeout.error(path, (timeout_value,)))
 
     if source_file.testharness_nodes:
         if len(source_file.testharness_nodes) > 1:
-            errors.append(("MULTIPLE-TESTHARNESS",
-                           "More than one <script src='/resources/testharness.js'>", path, None))
+            errors.append(rules.MultipleTestharness.error(path))
 
         testharnessreport_nodes = source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testharnessreport.js']")
         if not testharnessreport_nodes:
-            errors.append(("MISSING-TESTHARNESSREPORT",
-                           "Missing <script src='/resources/testharnessreport.js'>", path, None))
+            errors.append(rules.MissingTestharnessReport.error(path))
         else:
             if len(testharnessreport_nodes) > 1:
-                errors.append(("MULTIPLE-TESTHARNESSREPORT",
-                               "More than one <script src='/resources/testharnessreport.js'>", path, None))
+                errors.append(rules.MultipleTestharnessReport.error(path))
 
         testharnesscss_nodes = source_file.root.findall(".//{http://www.w3.org/1999/xhtml}link[@href='/resources/testharness.css']")
         if testharnesscss_nodes:
-            errors.append(("PRESENT-TESTHARNESSCSS",
-                           "Explicit link to testharness.css present", path, None))
+            errors.append(rules.PresentTestharnessCSS.error(path))
 
         for element in source_file.variant_nodes:
             if "content" not in element.attrib:
-                errors.append(("VARIANT-MISSING",
-                               "<meta name=variant> missing 'content' attribute", path, None))
+                errors.append(rules.VariantMissing.error(path))
             else:
                 variant = element.attrib["content"]
                 if variant != "" and variant[0] not in ("?", "#"):
-                    errors.append(("MALFORMED-VARIANT",
-                               "%s <meta name=variant> 'content' attribute must be the empty string or start with '?' or '#'" % path, None))
+                    errors.append(rules.MalformedVariant.error(path, (path,)))
 
         seen_elements = {"timeout": False,
                          "testharness": False,
@@ -562,8 +458,7 @@ def check_parsed(repo_root, path, f):
             if source_file.timeout_nodes and elem == source_file.timeout_nodes[0]:
                 seen_elements["timeout"] = True
                 if seen_elements["testharness"]:
-                    errors.append(("LATE-TIMEOUT",
-                                   "<meta name=timeout> seen after testharness.js script", path, None))
+                    errors.append(rules.LateTimeout.error(path))
 
             elif elem == source_file.testharness_nodes[0]:
                 seen_elements["testharness"] = True
@@ -571,46 +466,53 @@ def check_parsed(repo_root, path, f):
             elif testharnessreport_nodes and elem == testharnessreport_nodes[0]:
                 seen_elements["testharnessreport"] = True
                 if not seen_elements["testharness"]:
-                    errors.append(("EARLY-TESTHARNESSREPORT",
-                                   "testharnessreport.js script seen before testharness.js script", path, None))
+                    errors.append(rules.EarlyTestharnessReport.error(path))
 
             if all(seen_elements[name] for name in required_elements):
                 break
 
     if source_file.testdriver_nodes:
         if len(source_file.testdriver_nodes) > 1:
-            errors.append(("MULTIPLE-TESTDRIVER",
-                           "More than one <script src='/resources/testdriver.js'>", path, None))
+            errors.append(rules.MultipleTestdriver.error(path))
 
         testdriver_vendor_nodes = source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testdriver-vendor.js']")
         if not testdriver_vendor_nodes:
-            errors.append(("MISSING-TESTDRIVER-VENDOR",
-                           "Missing <script src='/resources/testdriver-vendor.js'>", path, None))
+            errors.append(rules.MissingTestdriverVendor.error(path))
         else:
             if len(testdriver_vendor_nodes) > 1:
-                errors.append(("MULTIPLE-TESTDRIVER-VENDOR",
-                               "More than one <script src='/resources/testdriver-vendor.js'>", path, None))
+                errors.append(rules.MultipleTestdriverVendor.error(path))
 
     for element in source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src]"):
         src = element.attrib["src"]
-        for name in ["testharness", "testharnessreport", "testdriver", "testdriver-vendor"]:
-            if "%s.js" % name == src or ("/%s.js" % name in src and src != "/resources/%s.js" % name):
-                errors.append(("%s-PATH" % name.upper(), "%s.js script seen with incorrect path" % name, path, None))
+
+        def incorrect_path(script, src):
+            return (script == src or
+                ("/%s" % script in src and src != "/resources/%s" % script))
+
+        if incorrect_path("testharness.js", src):
+            errors.append(rules.TestharnessPath.error(path))
+
+        if incorrect_path("testharnessreport.js", src):
+            errors.append(rules.TestharnessReportPath.error(path))
+
+        if incorrect_path("testdriver.js", src):
+            errors.append(rules.TestdriverPath.error(path))
+
+        if incorrect_path("testdriver-vendor.js", src):
+            errors.append(rules.TestdriverVendorPath.error(path))
 
     return errors
 
 class ASTCheck(object):
     __metaclass__ = abc.ABCMeta
-    error = None
-    description = None
+    rule = None
 
     @abc.abstractmethod
     def check(self, root):
         pass
 
 class OpenModeCheck(ASTCheck):
-    error = "OPEN-NO-MODE"
-    description = "File opened without providing an explicit mode (note: binary files must be read with 'b' in the mode flags)"
+    rule = rules.OpenNoMode
 
     def check(self, root):
         errors = []
@@ -631,12 +533,12 @@ def check_python_ast(repo_root, path, f):
     try:
         root = ast.parse(f.read())
     except SyntaxError as e:
-        return [("PARSE-FAILED", "Unable to parse file", path, e.lineno)]
+        return [rules.ParseFailed.error(path, line_no=e.lineno)]
 
     errors = []
     for checker in ast_checkers:
         for lineno in checker.check(root):
-            errors.append((checker.error, checker.description, path, lineno))
+            errors.append(checker.rule.error(path, line_no=lineno))
     return errors
 
 
@@ -654,19 +556,21 @@ def check_global_metadata(value):
         if global_value.startswith(b"!"):
             excluded_value = global_value[1:]
             if not get_any_variants(excluded_value):
-                yield ("UNKNOWN-GLOBAL-METADATA", "Unexpected value for global metadata")
+                yield (rules.UnknownGlobalMetadata, ())
 
             elif excluded_value in global_values:
-                yield ("BROKEN-GLOBAL-METADATA", "Cannot specify both %s and %s" % (global_value, excluded_value))
+                yield (rules.BrokenGlobalMetadata,
+                       ("Cannot specify both %s and %s" % (global_value, excluded_value)))
 
             else:
                 excluded_variants = get_any_variants(excluded_value)
                 if not (excluded_variants & included_variants):
-                    yield ("BROKEN-GLOBAL-METADATA", "Cannot exclude %s if it is not included" % (excluded_value,))
+                    yield (rules.BrokenGlobalMetadata,
+                           ("Cannot exclude %s if it is not included" % (excluded_value,)))
 
         else:
             if not get_any_variants(global_value):
-                yield ("UNKNOWN-GLOBAL-METADATA", "Unexpected value for global metadata")
+                yield (rules.UnknownGlobalMetadata, ())
 
 
 def check_script_metadata(repo_root, path, f):
@@ -688,10 +592,12 @@ def check_script_metadata(repo_root, path, f):
         if m:
             key, value = m.groups()
             if key == b"global":
-                errors.extend((kind, message, path, idx + 1) for (kind, message) in check_global_metadata(value))
+                for rule_class, context in check_global_metadata(value):
+                    errors.append(rule_class.error(path, context, idx + 1))
             elif key == b"timeout":
                 if value != b"long":
-                    errors.append(("UNKNOWN-TIMEOUT-METADATA", "Unexpected value for timeout metadata", path, idx + 1))
+                    errors.append(rules.UnknownTimeoutMetadata.error(path,
+                                                                     line_no=idx + 1))
             elif key == b"title":
                 pass
             elif key == b"script":
@@ -699,17 +605,19 @@ def check_script_metadata(repo_root, path, f):
             elif key == b"variant":
                 pass
             else:
-                errors.append(("UNKNOWN-METADATA", "Unexpected kind of metadata", path, idx + 1))
+                errors.append(rules.UnknownMetadata.error(path,
+                                                          line_no=idx + 1))
         else:
             done = True
 
         if done:
             if meta_re.match(line):
-                errors.append(("STRAY-METADATA", "Metadata comments should start the file", path, idx + 1))
+                errors.append(rules.StrayMetadata.error(path, line_no=idx + 1))
             elif meta_re.search(line):
-                errors.append(("INDENTED-METADATA", "Metadata comments should start the line", path, idx + 1))
+                errors.append(rules.IndentedMetadata.error(path,
+                                                           line_no=idx + 1))
             elif broken_metadata.search(line):
-                errors.append(("BROKEN-METADATA", "Metadata comment is not formatted correctly", path, idx + 1))
+                errors.append(rules.BrokenMetadata.error(path, line_no=idx + 1))
 
     return errors
 
