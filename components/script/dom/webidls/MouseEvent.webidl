@@ -17,7 +17,7 @@ interface MouseEvent : UIEvent {
     readonly    attribute short          button;
     readonly    attribute EventTarget?   relatedTarget;
     // Introduced in DOM Level 3
-    //readonly    attribute unsigned short buttons;
+    readonly    attribute unsigned short buttons;
     //boolean getModifierState (DOMString keyArg);
 
     [Pref="dom.mouseevent.which.enabled"]
@@ -31,7 +31,7 @@ dictionary MouseEventInit : EventModifierInit {
     long           clientX = 0;
     long           clientY = 0;
     short          button = 0;
-    //unsigned short buttons = 0;
+    unsigned short buttons = 0;
     EventTarget?   relatedTarget = null;
 };
 

@@ -135,6 +135,8 @@ use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
 use profile_traits::time;
+use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
+use script_traits::MouseEventType;
 use script_traits::{webdriver_msg, LogEntry, ScriptToConstellationChan, ServiceWorkerMsg};
 use script_traits::{
     AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, CompositorEvent,
@@ -373,6 +375,10 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Navigation requests from script awaiting approval from the embedder.
     pending_approval_navigations: PendingApprovalNavigations,
+
+    /// Bitmask which indicates which combination of mouse buttons are
+    /// currently being pressed.
+    pressed_mouse_buttons: u16,
 }
 
 /// State needed to construct a constellation.
@@ -715,6 +721,7 @@ where
                     webvr_chan: state.webvr_chan,
                     canvas_chan: CanvasPaintThread::start(),
                     pending_approval_navigations: HashMap::new(),
+                    pressed_mouse_buttons: 0,
                 };
 
                 constellation.run();
@@ -1799,6 +1806,34 @@ where
     }
 
     fn forward_event(&mut self, destination_pipeline_id: PipelineId, event: CompositorEvent) {
+        if let MouseButtonEvent(event_type, button, ..) = &event {
+            match event_type {
+                MouseEventType::MouseDown | MouseEventType::Click => {
+                    self.pressed_mouse_buttons |= *button as u16;
+                },
+                MouseEventType::MouseUp => {
+                    self.pressed_mouse_buttons &= !(*button as u16);
+                },
+            }
+        }
+
+        let event = match event {
+            MouseButtonEvent(event_type, button, point, node_address, point_in_node, _) => {
+                MouseButtonEvent(
+                    event_type,
+                    button,
+                    point,
+                    node_address,
+                    point_in_node,
+                    self.pressed_mouse_buttons,
+                )
+            },
+            MouseMoveEvent(point, node_address, _) => {
+                MouseMoveEvent(point, node_address, self.pressed_mouse_buttons)
+            },
+            _ => event,
+        };
+
         let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
         let result = match self.pipelines.get(&destination_pipeline_id) {
             None => {

@@ -658,6 +658,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             result.point_in_viewport.to_untyped(),
             Some(UntrustedNodeAddress(result.tag.0 as *const c_void)),
             Some(result.point_relative_to_item.to_untyped()),
+            0,
         );
 
         let pipeline_id = PipelineId::from_webrender(result.pipeline);
@@ -701,7 +702,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let results = self.hit_test_at_point(cursor);
         if let Some(item) = results.items.first() {
             let node_address = Some(UntrustedNodeAddress(item.tag.0 as *const c_void));
-            let event = MouseMoveEvent(Some(item.point_in_viewport.to_untyped()), node_address);
+            let event = MouseMoveEvent(Some(item.point_in_viewport.to_untyped()), node_address, 0);
             let pipeline_id = PipelineId::from_webrender(item.pipeline);
             let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
             if let Err(e) = self.constellation_chan.send(msg) {

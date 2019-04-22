@@ -995,6 +995,7 @@ impl Document {
         mouse_event_type: MouseEventType,
         node_address: Option<UntrustedNodeAddress>,
         point_in_node: Option<Point2D<f32>>,
+        pressed_mouse_buttons: u16,
     ) {
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
@@ -1045,6 +1046,7 @@ impl Document {
             false,
             false,
             0i16,
+            pressed_mouse_buttons,
             None,
             point_in_node,
         );
@@ -1076,14 +1078,19 @@ impl Document {
 
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element);
-            self.maybe_fire_dblclick(client_point, node);
+            self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons);
         }
 
         self.window
             .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
-    fn maybe_fire_dblclick(&self, click_pos: Point2D<f32>, target: &Node) {
+    fn maybe_fire_dblclick(
+        &self,
+        click_pos: Point2D<f32>,
+        target: &Node,
+        pressed_mouse_buttons: u16,
+    ) {
         // https://w3c.github.io/uievents/#event-type-dblclick
         let now = Instant::now();
 
@@ -1122,6 +1129,7 @@ impl Document {
                     false,
                     false,
                     0i16,
+                    pressed_mouse_buttons,
                     None,
                     None,
                 );
@@ -1142,6 +1150,7 @@ impl Document {
         client_point: Point2D<f32>,
         target: &EventTarget,
         event_name: FireMouseEventType,
+        pressed_mouse_buttons: u16,
     ) {
         let client_x = client_point.x.to_i32().unwrap_or(0);
         let client_y = client_point.y.to_i32().unwrap_or(0);
@@ -1162,6 +1171,7 @@ impl Document {
             false,
             false,
             0i16,
+            pressed_mouse_buttons,
             None,
             None,
         );
@@ -1176,6 +1186,7 @@ impl Document {
         client_point: Option<Point2D<f32>>,
         prev_mouse_over_target: &MutNullableDom<Element>,
         node_address: Option<UntrustedNodeAddress>,
+        pressed_mouse_buttons: u16,
     ) {
         let client_point = match client_point {
             None => {
@@ -1201,7 +1212,12 @@ impl Document {
             None => return,
         };
 
-        self.fire_mouse_event(client_point, new_target.upcast(), FireMouseEventType::Move);
+        self.fire_mouse_event(
+            client_point,
+            new_target.upcast(),
+            FireMouseEventType::Move,
+            pressed_mouse_buttons,
+        );
 
         // Nothing more to do here, mousemove is sent,
         // and the element under the mouse hasn't changed.
@@ -1234,7 +1250,12 @@ impl Document {
             }
 
             // Remove hover state to old target and its parents
-            self.fire_mouse_event(client_point, old_target.upcast(), FireMouseEventType::Out);
+            self.fire_mouse_event(
+                client_point,
+                old_target.upcast(),
+                FireMouseEventType::Out,
+                pressed_mouse_buttons,
+            );
 
             // TODO: Fire mouseleave here only if the old target is
             // not an ancestor of the new target.
@@ -1253,7 +1274,12 @@ impl Document {
                 element.set_hover_state(true);
             }
 
-            self.fire_mouse_event(client_point, &new_target.upcast(), FireMouseEventType::Over);
+            self.fire_mouse_event(
+                client_point,
+                &new_target.upcast(),
+                FireMouseEventType::Over,
+                pressed_mouse_buttons,
+            );
 
             // TODO: Fire mouseenter here.
         }
