@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
     AudioParamMethods, AutomationRate,
 };
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -188,6 +189,40 @@ impl AudioParamMethods for AudioParam {
             UserAutomationEvent::SetTargetAtTime(*target, *start_time, (*time_constant).into()),
         ));
         DomRoot::from_ref(self)
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvaluecurveattime
+    fn SetValueCurveAtTime(
+        &self,
+        values: Vec<Finite<f32>>,
+        start_time: Finite<f64>,
+        end_time: Finite<f64>,
+    ) -> Fallible<DomRoot<AudioParam>> {
+        if *start_time < 0. {
+            return Err(Error::Range(format!(
+                "start time {} should not be negative",
+                *start_time
+            )));
+        }
+        if values.len() < 2. as usize {
+            return Err(Error::InvalidState);
+        }
+
+        if *end_time < 0. {
+            return Err(Error::Range(format!(
+                "end time {} should not be negative",
+                *end_time
+            )));
+        }
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::SetValueCurveAtTime(
+                values.into_iter().map(|v| *v).collect(),
+                *start_time,
+                *end_time,
+            ),
+        ));
+        Ok(DomRoot::from_ref(self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
