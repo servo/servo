@@ -92,7 +92,7 @@ use net_traits::{ReferrerPolicy, ResourceThreads};
 use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
-use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use profile_traits::time::{ProfilerChan as TimeProfilerChan, ProfilerMsg};
 use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
@@ -117,7 +117,7 @@ use std::fs;
 use std::io::{stderr, stdout, Write};
 use std::mem;
 use std::rc::Rc;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -293,6 +293,10 @@ pub struct Window {
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unneccessary.
     has_sent_idle_message: Cell<bool>,
+
+    /// Flag that indicates if the layout thread is busy handling a request.
+    #[ignore_malloc_size_of = "Arc<T> is hard"]
+    layout_is_busy: Arc<AtomicBool>,
 }
 
 impl Window {
@@ -1558,6 +1562,12 @@ impl Window {
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
+        if self.layout_is_busy.load(Ordering::Relaxed) {
+            let url = self.get_url().into_string();
+            self.time_profiler_chan()
+                .send(ProfilerMsg::BlockedLayoutQuery(url));
+        }
+
         self.reflow(
             ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()),
             ReflowReason::Query,
@@ -2023,6 +2033,7 @@ impl Window {
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
+        layout_is_busy: Arc<AtomicBool>,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2095,6 +2106,7 @@ impl Window {
             exists_mut_observer: Cell::new(false),
             webrender_api_sender,
             has_sent_idle_message: Cell::new(false),
+            layout_is_busy,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }
