@@ -17,6 +17,7 @@ use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
+use crate::stylesheet_set::StylesheetSetRef;
 use dom_struct::dom_struct;
 use selectors::context::QuirksMode;
 use servo_arc::Arc;
@@ -25,7 +26,6 @@ use style::author_styles::AuthorStyles;
 use style::dom::TElement;
 use style::media_queries::Device;
 use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheet_set::StylesheetSetRef;
 use style::stylesheets::Stylesheet;
 
 // https://dom.spec.whatwg.org/#interface-shadowroot

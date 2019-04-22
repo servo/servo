@@ -12,6 +12,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
+use crate::stylesheet_set::StylesheetSetRef;
 use euclid::Point2D;
 use js::jsapi::JS_GetRuntime;
 use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
@@ -24,7 +25,6 @@ use style::context::QuirksMode;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::stylesheet_set::StylesheetSetRef;
 use style::stylesheets::{CssRule, Origin, Stylesheet};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
