@@ -30,7 +30,6 @@ enum XREnvironmentBlendMode {
 
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // Attributes
-  readonly attribute XRSessionMode mode;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
   readonly attribute XRRenderState renderState;
   readonly attribute XRSpace viewerSpace;
@@ -110,7 +109,6 @@ dictionary XRReferenceSpaceOptions {
 
 [SecureContext, Exposed=Window]
 interface XRStationaryReferenceSpace : XRReferenceSpace {
-  readonly attribute XRStationaryReferenceSpaceSubtype subtype;
 };
 
 [SecureContext, Exposed=Window]
@@ -217,9 +215,6 @@ interface XRWebGLLayer : XRLayer {
   readonly attribute XRWebGLRenderingContext context;
 
   readonly attribute boolean antialias;
-  readonly attribute boolean depth;
-  readonly attribute boolean stencil;
-  readonly attribute boolean alpha;
   readonly attribute boolean ignoreDepthValues;
 
   readonly attribute WebGLFramebuffer framebuffer;
