@@ -156,5 +156,7 @@ pub fn init() {
         RegisterBindings::RegisterProxyHandlers();
     }
 
+    color_backtrace::install();
+
     perform_platform_specific_initialization();
 }
