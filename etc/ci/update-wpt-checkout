@@ -10,6 +10,7 @@ set -o pipefail
 
 REMOTE_NAME=sync-fork
 LOG_FILE=test-wpt.log
+BLUETOOTH_LOG_FILE=test-wpt-bluetooth.log
 CURRENT_DATE=$(date +"%d-%m-%Y")
 BRANCH_NAME="wpt_update"
 REMOTE_BRANCH_NAME="wpt_update_${CURRENT_DATE}"
@@ -64,12 +65,16 @@ function unsafe_run_tests() {
     # Run the full testsuite and record the new test results.
     ./mach test-wpt --release --processes 6 --log-raw "${1}" \
            --always-succeed || return 1
+
+    # Run the bluetooth testsuite, which uses the webdriver test harness.
+    ./mach test-wpt --release --processes 1 --product=servodriver --headless \
+           --log-raw "${2}" --always-succeed || return 2
 }
 
 # Using an existing log file, update the expected test results and amend the
 # last commit with the new results.
 function unsafe_update_metadata() {
-    ./mach update-wpt "${1}" || return 1
+    ./mach update-wpt "${1}" "${2}" || return 1
     # Ensure any new directories or ini files are included in these changes.
     git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
     # Merge all changes with the existing commit.
@@ -129,11 +134,11 @@ function pull_from_upstream() {
 }
 
 function run_tests() {
-    unsafe_run_tests "${1}" || { code="${?}"; cleanup; return "${code}"; }
+    unsafe_run_tests "${1}" "${2}" || { code="${?}"; cleanup; return "${code}"; }
 }
 
 function update_metadata() {
-    unsafe_update_metadata "${1}" || { code="${?}"; cleanup; return "${code}"; }
+    unsafe_update_metadata "${1}" "${2}" || { code="${?}"; cleanup; return "${code}"; }
 }
 
 function open_pull_request() {
@@ -143,8 +148,8 @@ function open_pull_request() {
 SCRIPT_NAME="${0}"
 
 function update_test_results() {
-    run_tests "${LOG_FILE}"
-    update_metadata "${LOG_FILE}"
+    run_tests "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}"
+    update_metadata "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}"
 }
 
 function fetch_upstream_changes() {
