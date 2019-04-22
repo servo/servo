@@ -190,6 +190,20 @@ impl AudioParamMethods for AudioParam {
         DomRoot::from_ref(self)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvaluecurveattime
+    fn SetValueCurveAtTime(
+        &self,
+        values: Vec<Finite<f32>>,
+        start_time: Finite<f64>,
+        end_time: Finite<f64>,
+    ) -> DomRoot<AudioParam> {
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::SetValueCurveAtTime(*values, *start_time, *end_time),
+        ));
+        DomRoot::from_ref(self)
+    }
+
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
     fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
         self.message_node(AudioNodeMessage::SetParam(
