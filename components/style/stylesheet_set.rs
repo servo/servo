@@ -376,7 +376,7 @@ where
 }
 
 /// Functionality common to DocumentStylesheetSet and AuthorStylesheetSet.
-pub enum StylesheetSet<'a, S>
+pub enum StylesheetSetRef<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
@@ -386,7 +386,7 @@ where
     Document(&'a mut DocumentStylesheetSet<S>),
 }
 
-impl<'a, S> StylesheetSet<'a, S>
+impl<'a, S> StylesheetSetRef<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
@@ -400,8 +400,8 @@ where
         guard: &SharedRwLockReadGuard,
     ) {
         match self {
-            StylesheetSet::Author(set) => set.append_stylesheet(device, sheet, guard),
-            StylesheetSet::Document(set) => set.append_stylesheet(device, sheet, guard),
+            StylesheetSetRef::Author(set) => set.append_stylesheet(device, sheet, guard),
+            StylesheetSetRef::Document(set) => set.append_stylesheet(device, sheet, guard),
         }
     }
 
@@ -414,10 +414,10 @@ where
         guard: &SharedRwLockReadGuard,
     ) {
         match self {
-            StylesheetSet::Author(set) => {
+            StylesheetSetRef::Author(set) => {
                 set.insert_stylesheet_before(device, sheet, before_sheet, guard)
             },
-            StylesheetSet::Document(set) => {
+            StylesheetSetRef::Document(set) => {
                 set.insert_stylesheet_before(device, sheet, before_sheet, guard)
             },
         }
@@ -431,8 +431,8 @@ where
         guard: &SharedRwLockReadGuard,
     ) {
         match self {
-            StylesheetSet::Author(set) => set.remove_stylesheet(device, sheet, guard),
-            StylesheetSet::Document(set) => set.remove_stylesheet(device, sheet, guard),
+            StylesheetSetRef::Author(set) => set.remove_stylesheet(device, sheet, guard),
+            StylesheetSetRef::Document(set) => set.remove_stylesheet(device, sheet, guard),
         }
     }
 }

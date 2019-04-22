@@ -25,7 +25,7 @@ use style::author_styles::AuthorStyles;
 use style::dom::TElement;
 use style::media_queries::Device;
 use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheet_set::StylesheetSet;
+use style::stylesheet_set::StylesheetSetRef;
 use style::stylesheets::Stylesheet;
 
 // https://dom.spec.whatwg.org/#interface-shadowroot
@@ -102,7 +102,7 @@ impl ShadowRoot {
             .cloned();
         DocumentOrShadowRoot::add_stylesheet(
             owner,
-            StylesheetSet::Author(stylesheets),
+            StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
             self.document.style_shared_lock(),
@@ -115,7 +115,7 @@ impl ShadowRoot {
         DocumentOrShadowRoot::remove_stylesheet(
             owner,
             s,
-            StylesheetSet::Author(&mut self.author_styles.borrow_mut().stylesheets),
+            StylesheetSetRef::Author(&mut self.author_styles.borrow_mut().stylesheets),
         )
     }
 

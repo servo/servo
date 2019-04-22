@@ -24,7 +24,7 @@ use style::context::QuirksMode;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::stylesheet_set::StylesheetSet;
+use style::stylesheet_set::StylesheetSetRef;
 use style::stylesheets::{CssRule, Origin, Stylesheet};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -216,7 +216,7 @@ impl DocumentOrShadowRoot {
     pub fn remove_stylesheet(
         owner: &Element,
         s: &Arc<Stylesheet>,
-        mut stylesheets: StylesheetSet<StyleSheetInDocument>,
+        mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,
     ) {
         let guard = s.shared_lock.read();
 
@@ -236,7 +236,7 @@ impl DocumentOrShadowRoot {
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn add_stylesheet(
         owner: &Element,
-        mut stylesheets: StylesheetSet<StyleSheetInDocument>,
+        mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,
         sheet: Arc<Stylesheet>,
         insertion_point: Option<StyleSheetInDocument>,
         style_shared_lock: &StyleSharedRwLock,
