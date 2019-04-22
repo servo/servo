@@ -32,6 +32,7 @@ pub struct MouseEvent {
     alt_key: Cell<bool>,
     meta_key: Cell<bool>,
     button: Cell<i16>,
+    buttons: Cell<u16>,
     related_target: MutNullableDom<EventTarget>,
     point_in_target: Cell<Option<Point2D<f32>>>,
 }
@@ -49,6 +50,7 @@ impl MouseEvent {
             alt_key: Cell::new(false),
             meta_key: Cell::new(false),
             button: Cell::new(0),
+            buttons: Cell::new(0),
             related_target: Default::default(),
             point_in_target: Cell::new(None),
         }
@@ -78,6 +80,7 @@ impl MouseEvent {
         shift_key: bool,
         meta_key: bool,
         button: i16,
+        buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32>>,
     ) -> DomRoot<MouseEvent> {
@@ -99,6 +102,7 @@ impl MouseEvent {
             button,
             related_target,
         );
+        ev.buttons.set(buttons);
         ev.point_in_target.set(point_in_target);
         ev
     }
@@ -126,6 +130,7 @@ impl MouseEvent {
             init.parent.shiftKey,
             init.parent.metaKey,
             init.button,
+            0,
             init.relatedTarget.deref(),
             None,
         );
@@ -181,6 +186,11 @@ impl MouseEventMethods for MouseEvent {
     // https://w3c.github.io/uievents/#widl-MouseEvent-button
     fn Button(&self) -> i16 {
         self.button.get()
+    }
+
+    // https://w3c.github.io/uievents/#dom-mouseevent-buttons
+    fn Buttons(&self) -> u16 {
+        self.buttons.get()
     }
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget

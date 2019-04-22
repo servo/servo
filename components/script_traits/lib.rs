@@ -444,11 +444,11 @@ pub struct TouchId(pub i32);
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum MouseButton {
     /// The left mouse button.
-    Left,
-    /// The middle mouse button.
-    Middle,
+    Left = 1,
     /// The right mouse button.
-    Right,
+    Right = 2,
+    /// The middle mouse button.
+    Middle = 4,
 }
 
 /// The types of mouse events
@@ -474,9 +474,16 @@ pub enum CompositorEvent {
         Point2D<f32>,
         Option<UntrustedNodeAddress>,
         Option<Point2D<f32>>,
+        // Bitmask of MouseButton values representing the currently pressed buttons
+        u16,
     ),
     /// The mouse was moved over a point (or was moved out of the recognizable region).
-    MouseMoveEvent(Option<Point2D<f32>>, Option<UntrustedNodeAddress>),
+    MouseMoveEvent(
+        Option<Point2D<f32>>,
+        Option<UntrustedNodeAddress>,
+        // Bitmask of MouseButton values representing the currently pressed buttons
+        u16,
+    ),
     /// A touch event was generated with a touch ID and location.
     TouchEvent(
         TouchEventType,
