@@ -13,7 +13,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
-use crate::dom::node::{document_from_node, shadow_root_from_node, window_from_node};
+use crate::dom::node::{containing_shadow_root, document_from_node, window_from_node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -270,7 +270,7 @@ impl<'a> StylesheetLoader<'a> {
         integrity_metadata: String,
     ) {
         let document = document_from_node(self.elem);
-        let shadow_root = shadow_root_from_node(self.elem).map(|sr| Trusted::new(&*sr));
+        let shadow_root = containing_shadow_root(self.elem).map(|sr| Trusted::new(&*sr));
         let gen = self
             .elem
             .downcast::<HTMLLinkElement>()

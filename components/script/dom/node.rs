@@ -2827,7 +2827,7 @@ pub fn document_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomR
     derived.upcast().owner_doc()
 }
 
-pub fn shadow_root_from_node<T: DerivedFrom<Node> + DomObject>(
+pub fn containing_shadow_root<T: DerivedFrom<Node> + DomObject>(
     derived: &T,
 ) -> Option<DomRoot<ShadowRoot>> {
     derived.upcast().owner_shadow_root()
@@ -2837,7 +2837,7 @@ pub fn shadow_root_from_node<T: DerivedFrom<Node> + DomObject>(
 pub fn stylesheets_owner_from_node<T: DerivedFrom<Node> + DomObject>(
     derived: &T,
 ) -> StyleSheetListOwner {
-    if let Some(shadow_root) = shadow_root_from_node(derived) {
+    if let Some(shadow_root) = containing_shadow_root(derived) {
         StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root))
     } else {
         StyleSheetListOwner::Document(Dom::from_ref(&*document_from_node(derived)))
