@@ -48,7 +48,8 @@ use selectors::visitor::SelectorVisitor;
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use smallbitvec::SmallBitVec;
-use std::ops;
+use smallvec::SmallVec;
+use std::{mem, ops};
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
 
@@ -128,15 +129,28 @@ impl UserAgentCascadeDataCache {
         Ok(new_data)
     }
 
-    fn expire_unused(&mut self) {
-        // is_unique() returns false for static references, but we never have
-        // static references to UserAgentCascadeDatas.  If we did, it may not
-        // make sense to put them in the cache in the first place.
-        self.entries.retain(|e| !e.is_unique())
+    /// Returns all the cascade datas that are not being used (that is, that are
+    /// held alive just by this cache).
+    ///
+    /// We return them instead of dropping in place because some of them may
+    /// keep alive some other documents (like the SVG documents kept alive by
+    /// URL references), and thus we don't want to drop them while locking the
+    /// cache to not deadlock.
+    fn take_unused(&mut self) -> SmallVec<[Arc<UserAgentCascadeData>; 3]> {
+        let mut unused = SmallVec::new();
+        for i in (0..self.entries.len()).rev() {
+            // is_unique() returns false for static references, but we never
+            // have static references to UserAgentCascadeDatas.  If we did, it
+            // may not make sense to put them in the cache in the first place.
+            if self.entries[i].is_unique() {
+                unused.push(self.entries.remove(i));
+            }
+        }
+        unused
     }
 
-    fn clear(&mut self) {
-        self.entries.clear();
+    fn take_all(&mut self) -> Vec<Arc<UserAgentCascadeData>> {
+        mem::replace(&mut self.entries, Vec::new())
     }
 
     #[cfg(feature = "gecko")]
@@ -254,13 +268,18 @@ impl DocumentCascadeData {
         // First do UA sheets.
         {
             if flusher.flush_origin(Origin::UserAgent).dirty() {
-                let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
                 let origin_sheets = flusher.origin_sheets(Origin::UserAgent);
-                let ua_cascade_data =
-                    ua_cache.lookup(origin_sheets, device, quirks_mode, guards.ua_or_user)?;
-                ua_cache.expire_unused();
-                debug!("User agent data cache size {:?}", ua_cache.len());
-                self.user_agent = ua_cascade_data;
+                let _unused_cascade_datas = {
+                    let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
+                    self.user_agent = ua_cache.lookup(
+                        origin_sheets,
+                        device,
+                        quirks_mode,
+                        guards.ua_or_user,
+                    )?;
+                    debug!("User agent data cache size {:?}", ua_cache.len());
+                    ua_cache.take_unused()
+                };
             }
         }
 
@@ -1368,7 +1387,7 @@ impl Stylist {
 
     /// Shutdown the static data that this module stores.
     pub fn shutdown() {
-        UA_CASCADE_DATA_CACHE.lock().unwrap().clear()
+        let _entries = UA_CASCADE_DATA_CACHE.lock().unwrap().take_all();
     }
 }
 
