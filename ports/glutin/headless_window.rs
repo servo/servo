@@ -5,6 +5,7 @@
 //! A headless window implementation.
 
 use crate::window_trait::WindowPortsMethods;
+use glutin;
 use euclid::{TypedPoint2D, TypedScale, TypedSize2D};
 use gleam::gl;
 #[cfg(any(target_os = "linux", target_os = "windows"))]

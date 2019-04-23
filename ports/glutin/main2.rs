@@ -13,6 +13,7 @@ extern crate sig;
 mod app;
 mod browser;
 mod embedder;
+mod events_loop;
 mod headed_window;
 mod headless_window;
 mod keyutils;
