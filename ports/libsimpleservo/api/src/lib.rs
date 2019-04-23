@@ -10,7 +10,8 @@ pub mod gl_glue;
 pub use servo::script_traits::MouseButton;
 
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods,
+    AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
+    WindowMethods,
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::EmbedderMsg;
@@ -112,9 +113,9 @@ pub trait HostTrait {
 }
 
 pub struct ServoGlue {
-    servo: Servo<ServoCallbacks>,
+    servo: Servo<ServoWindowCallbacks>,
     batch_mode: bool,
-    callbacks: Rc<ServoCallbacks>,
+    callbacks: Rc<ServoWindowCallbacks>,
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
     browser_id: Option<BrowserId>,
@@ -169,22 +170,25 @@ pub fn init(
     gl.clear(gl::COLOR_BUFFER_BIT);
     gl.finish();
 
-    let callbacks = Rc::new(ServoCallbacks {
+    let window_callbacks = Rc::new(ServoWindowCallbacks {
         gl: gl.clone(),
         host_callbacks: callbacks,
         coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
+    });
+
+    let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
         vr_pointer: init_opts.vr_pointer,
         waker,
     });
 
-    let servo = Servo::new(callbacks.clone());
+    let servo = Servo::new(embedder_callbacks, window_callbacks.clone());
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {
             servo,
             batch_mode: false,
-            callbacks,
+            callbacks: window_callbacks,
             browser_id: None,
             browsers: vec![],
             events: vec![],
@@ -546,16 +550,37 @@ impl ServoGlue {
     }
 }
 
-struct ServoCallbacks {
+struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
+    vr_pointer: Option<*mut c_void>,
+}
+
+struct ServoWindowCallbacks {
     gl: Rc<dyn gl::Gl>,
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     density: f32,
-    vr_pointer: Option<*mut c_void>,
 }
 
-impl WindowMethods for ServoCallbacks {
+impl EmbedderMethods for ServoEmbedderCallbacks {
+    fn register_vr_services(
+        &self,
+        services: &mut VRServiceManager,
+        _: &mut Vec<Box<VRMainThreadHeartbeat>>,
+    ) {
+        debug!("EmbedderMethods::register_vrexternal");
+        if let Some(ptr) = self.vr_pointer {
+            services.register_vrexternal(VRExternalShmemPtr::new(ptr));
+        }
+    }
+
+    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
+        debug!("EmbedderMethods::create_event_loop_waker");
+        self.waker.clone()
+    }
+}
+
+impl WindowMethods for ServoWindowCallbacks {
     fn prepare_for_composite(&self) -> bool {
         debug!("WindowMethods::prepare_for_composite");
         self.host_callbacks.make_current();
@@ -565,11 +590,6 @@ impl WindowMethods for ServoCallbacks {
     fn present(&self) {
         debug!("WindowMethods::present");
         self.host_callbacks.flush();
-    }
-
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
-        debug!("WindowMethods::create_event_loop_waker");
-        self.waker.clone()
     }
 
     fn gl(&self) -> Rc<dyn gl::Gl> {
@@ -592,16 +612,6 @@ impl WindowMethods for ServoCallbacks {
             screen: coords.viewport.size,
             screen_avail: coords.viewport.size,
             hidpi_factor: TypedScale::new(self.density),
-        }
-    }
-
-    fn register_vr_services(
-        &self,
-        services: &mut VRServiceManager,
-        _: &mut Vec<Box<VRMainThreadHeartbeat>>,
-    ) {
-        if let Some(ptr) = self.vr_pointer {
-            services.register_vrexternal(VRExternalShmemPtr::new(ptr));
         }
     }
 }
