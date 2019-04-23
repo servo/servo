@@ -63,6 +63,7 @@ ${helpers.predefined_type(
     "generics::color::ColorOrAuto::Auto",
     spec="https://drafts.csswg.org/css-ui/#caret-color",
     animation_value_type="AnimatedCaretColor",
+    boxed=True,
     ignored_when_colors_disabled=True,
     products="gecko",
 )}

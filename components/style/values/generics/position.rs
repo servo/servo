@@ -18,6 +18,8 @@
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct GenericPosition<H, V> {
@@ -53,6 +55,8 @@ impl<H, V> Position<H, V> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C, u8)]
 pub enum GenericZIndex<I> {

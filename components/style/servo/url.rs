@@ -12,7 +12,7 @@ use std::fmt::{self, Write};
 // nonzero optimization is important in keeping the size of SpecifiedUrl below
 // the threshold.
 use crate::values::computed::{Context, ToComputedValue};
-use std::sync::Arc;
+use servo_arc::Arc;
 use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A CSS url() value for servo.
@@ -26,7 +26,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
 ///
 /// TODO(emilio): This should be shrunk by making CssUrl a wrapper type of an
 /// arc, and keep the serialization in that Arc. See gecko/url.rs for example.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo, ToShmem)]
 pub struct CssUrl {
     /// The original URI. This might be optional since we may insert computed
     /// values of images into the cascade directly, and we don't bother to

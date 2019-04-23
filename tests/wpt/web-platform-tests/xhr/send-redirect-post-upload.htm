@@ -91,6 +91,14 @@
                 if(xhr.readyState >= xhr.HEADERS_RECEIVED) {
                     assert_equals(xhr.status, 200, "JS never gets to see the 30x status code");
                 }
+
+                // The UA may fire multiple "readystatechange" events while in
+                // the "loading" state.
+                // https://xhr.spec.whatwg.org/#the-send()-method
+                if (xhr.readyState === 3 && actual[actual.length - 1] === "xhr onreadystatechange 3") {
+                    return;
+                }
+
                 actual.push("xhr onreadystatechange " + xhr.readyState);
             });
             xhr.onload = test.step_func(function(e)

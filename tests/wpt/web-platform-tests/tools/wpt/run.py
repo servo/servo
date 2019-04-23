@@ -121,7 +121,7 @@ def check_environ(product):
 
         missing_hosts = set(expected_hosts)
         if is_windows:
-            hosts_path = "%s\System32\drivers\etc\hosts" % os.environ.get("SystemRoot", "C:\Windows")
+            hosts_path = r"%s\System32\drivers\etc\hosts" % os.environ.get("SystemRoot", r"C:\Windows")
         else:
             hosts_path = "/etc/hosts"
 

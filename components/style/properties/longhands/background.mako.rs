@@ -9,7 +9,7 @@
 ${helpers.predefined_type(
     "background-color",
     "Color",
-    "computed_value::T::transparent()",
+    "computed::Color::transparent()",
     initial_specified_value="SpecifiedValue::transparent()",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="AnimatedColor",

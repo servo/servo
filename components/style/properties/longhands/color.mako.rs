@@ -67,6 +67,7 @@ pub mod system_colors {
     use crate::gecko_bindings::structs::root::mozilla::LookAndFeel_ColorID;
     use std::fmt::{self, Write};
     use style_traits::{CssWriter, ToCss};
+    use to_shmem::impl_trivial_to_shmem;
     use crate::values::computed::{Context, ToComputedValue};
 
     pub type SystemColor = LookAndFeel_ColorID;
@@ -74,6 +75,8 @@ pub mod system_colors {
     // It's hard to implement MallocSizeOf for LookAndFeel_ColorID because it
     // is a bindgen type. So we implement it on the typedef instead.
     malloc_size_of_is_0!(SystemColor);
+
+    impl_trivial_to_shmem!(SystemColor);
 
     impl ToCss for SystemColor {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result

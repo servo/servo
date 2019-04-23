@@ -31,7 +31,7 @@ use js::jsapi::{JSAutoCompartment, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
-use net_traits::request::{RequestInit, RequestMode};
+use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::MessageData;
 use net_traits::{CoreResourceMsg, FetchChannels};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
@@ -201,12 +201,10 @@ impl WebSocket {
         let address = Trusted::new(&*ws);
 
         // Step 8.
-        let request = RequestInit {
-            url: url_record,
-            origin: global.origin().immutable().clone(),
-            mode: RequestMode::WebSocket { protocols },
-            ..RequestInit::default()
-        };
+        let request = RequestBuilder::new(url_record)
+            .origin(global.origin().immutable().clone())
+            .mode(RequestMode::WebSocket { protocols });
+
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,
             action_receiver: resource_action_receiver,

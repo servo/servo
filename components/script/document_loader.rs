@@ -10,7 +10,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{IpcSend, ResourceThreads};
 use servo_url::ServoUrl;
@@ -131,7 +131,7 @@ impl DocumentLoader {
     pub fn fetch_async(
         &mut self,
         load: LoadType,
-        request: RequestInit,
+        request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
         self.add_blocking_load(load);
@@ -141,7 +141,7 @@ impl DocumentLoader {
     /// Initiate a new fetch that does not block the document load event.
     pub fn fetch_async_background(
         &mut self,
-        request: RequestInit,
+        request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
         let mut canceller = FetchCanceller::new();
@@ -167,8 +167,12 @@ impl DocumentLoader {
             .blocking_loads
             .iter()
             .position(|unfinished| *unfinished == *load);
-        self.blocking_loads
-            .remove(idx.unwrap_or_else(|| panic!("unknown completed load {:?}", load)));
+        match idx {
+            Some(i) => {
+                self.blocking_loads.remove(i);
+            },
+            None => warn!("unknown completed load {:?}", load),
+        }
     }
 
     pub fn is_blocked(&self) -> bool {

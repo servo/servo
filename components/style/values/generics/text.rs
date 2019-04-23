@@ -11,7 +11,16 @@ use style_traits::ParseError;
 
 /// A generic value for the `initial-letter` property.
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum InitialLetter<Number, Integer> {
     /// `normal`
@@ -29,7 +38,7 @@ impl<N, I> InitialLetter<N, I> {
 }
 
 /// A generic spacing value for the `letter-spacing` and `word-spacing` properties.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum Spacing<Value> {
     /// `normal`
     Normal,
@@ -61,6 +70,15 @@ impl<Value> Spacing<Value> {
     }
 }
 
+#[cfg(feature = "gecko")]
+fn line_height_moz_block_height_enabled(context: &ParserContext) -> bool {
+    use crate::gecko_bindings::structs;
+    context.in_ua_sheet() ||
+        unsafe {
+            structs::StaticPrefs_sVarCache_layout_css_line_height_moz_block_height_content_enabled
+        }
+}
+
 /// A generic value for the `line-height` property.
 #[derive(
     Animate,
@@ -73,6 +91,9 @@ impl<Value> Spacing<Value> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToCss,
+    ToShmem,
+    ToResolvedValue,
+    Parse,
 )]
 #[repr(C, u8)]
 pub enum GenericLineHeight<N, L> {
@@ -80,6 +101,7 @@ pub enum GenericLineHeight<N, L> {
     Normal,
     /// `-moz-block-height`
     #[cfg(feature = "gecko")]
+    #[parse(condition = "line_height_moz_block_height_enabled")]
     MozBlockHeight,
     /// `<number>`
     Number(N),

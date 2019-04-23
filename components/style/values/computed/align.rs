@@ -33,7 +33,7 @@ pub use super::specified::{AlignSelf, JustifySelf};
 /// sucks :(.
 ///
 /// See the discussion in https://bugzil.la/1384542.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss, ToResolvedValue)]
 pub struct JustifyItems {
     /// The specified value for the property. Can contain the bare `legacy`
     /// keyword.

@@ -8,7 +8,6 @@ use http::HeaderMap;
 use hyper::Method;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::default::Default;
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
@@ -136,7 +135,7 @@ pub enum CorsSettings {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct RequestInit {
+pub struct RequestBuilder {
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
@@ -172,11 +171,11 @@ pub struct RequestInit {
     pub url_list: Vec<ServoUrl>,
 }
 
-impl Default for RequestInit {
-    fn default() -> RequestInit {
-        RequestInit {
+impl RequestBuilder {
+    pub fn new(url: ServoUrl) -> RequestBuilder {
+        RequestBuilder {
             method: Method::GET,
-            url: ServoUrl::parse("about:blank").unwrap(),
+            url: url,
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
@@ -196,6 +195,139 @@ impl Default for RequestInit {
             integrity_metadata: "".to_owned(),
             url_list: vec![],
         }
+    }
+
+    pub fn method(mut self, method: Method) -> RequestBuilder {
+        self.method = method;
+        self
+    }
+
+    pub fn headers(mut self, headers: HeaderMap) -> RequestBuilder {
+        self.headers = headers;
+        self
+    }
+
+    pub fn unsafe_request(mut self, unsafe_request: bool) -> RequestBuilder {
+        self.unsafe_request = unsafe_request;
+        self
+    }
+
+    pub fn body(mut self, body: Option<Vec<u8>>) -> RequestBuilder {
+        self.body = body;
+        self
+    }
+
+    pub fn service_workers_mode(
+        mut self,
+        service_workers_mode: ServiceWorkersMode,
+    ) -> RequestBuilder {
+        self.service_workers_mode = service_workers_mode;
+        self
+    }
+
+    pub fn destination(mut self, destination: Destination) -> RequestBuilder {
+        self.destination = destination;
+        self
+    }
+
+    pub fn synchronous(mut self, synchronous: bool) -> RequestBuilder {
+        self.synchronous = synchronous;
+        self
+    }
+
+    pub fn mode(mut self, mode: RequestMode) -> RequestBuilder {
+        self.mode = mode;
+        self
+    }
+
+    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestBuilder {
+        self.cache_mode = cache_mode;
+        self
+    }
+
+    pub fn use_cors_preflight(mut self, use_cors_preflight: bool) -> RequestBuilder {
+        self.use_cors_preflight = use_cors_preflight;
+        self
+    }
+
+    pub fn credentials_mode(mut self, credentials_mode: CredentialsMode) -> RequestBuilder {
+        self.credentials_mode = credentials_mode;
+        self
+    }
+
+    pub fn use_url_credentials(mut self, use_url_credentials: bool) -> RequestBuilder {
+        self.use_url_credentials = use_url_credentials;
+        self
+    }
+
+    pub fn origin(mut self, origin: ImmutableOrigin) -> RequestBuilder {
+        self.origin = origin;
+        self
+    }
+
+    pub fn referrer_url(mut self, referrer_url: Option<ServoUrl>) -> RequestBuilder {
+        self.referrer_url = referrer_url;
+        self
+    }
+
+    pub fn referrer_policy(mut self, referrer_policy: Option<ReferrerPolicy>) -> RequestBuilder {
+        self.referrer_policy = referrer_policy;
+        self
+    }
+
+    pub fn pipeline_id(mut self, pipeline_id: Option<PipelineId>) -> RequestBuilder {
+        self.pipeline_id = pipeline_id;
+        self
+    }
+
+    pub fn redirect_mode(mut self, redirect_mode: RedirectMode) -> RequestBuilder {
+        self.redirect_mode = redirect_mode;
+        self
+    }
+
+    pub fn integrity_metadata(mut self, integrity_metadata: String) -> RequestBuilder {
+        self.integrity_metadata = integrity_metadata;
+        self
+    }
+
+    pub fn url_list(mut self, url_list: Vec<ServoUrl>) -> RequestBuilder {
+        self.url_list = url_list;
+        self
+    }
+
+    pub fn build(self) -> Request {
+        let mut request = Request::new(
+            self.url.clone(),
+            Some(Origin::Origin(self.origin)),
+            self.pipeline_id,
+        );
+        request.method = self.method;
+        request.headers = self.headers;
+        request.unsafe_request = self.unsafe_request;
+        request.body = self.body;
+        request.service_workers_mode = self.service_workers_mode;
+        request.destination = self.destination;
+        request.synchronous = self.synchronous;
+        request.mode = self.mode;
+        request.use_cors_preflight = self.use_cors_preflight;
+        request.credentials_mode = self.credentials_mode;
+        request.use_url_credentials = self.use_url_credentials;
+        request.cache_mode = self.cache_mode;
+        request.referrer = if let Some(url) = self.referrer_url {
+            Referrer::ReferrerUrl(url)
+        } else {
+            Referrer::NoReferrer
+        };
+        request.referrer_policy = self.referrer_policy;
+        request.redirect_mode = self.redirect_mode;
+        let mut url_list = self.url_list;
+        if url_list.is_empty() {
+            url_list.push(self.url);
+        }
+        request.redirect_count = url_list.len() as u32 - 1;
+        request.url_list = url_list;
+        request.integrity_metadata = self.integrity_metadata;
+        request
     }
 }
 
@@ -292,41 +424,6 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
         }
-    }
-
-    pub fn from_init(init: RequestInit) -> Request {
-        let mut req = Request::new(
-            init.url.clone(),
-            Some(Origin::Origin(init.origin)),
-            init.pipeline_id,
-        );
-        req.method = init.method;
-        req.headers = init.headers;
-        req.unsafe_request = init.unsafe_request;
-        req.body = init.body;
-        req.service_workers_mode = init.service_workers_mode;
-        req.destination = init.destination;
-        req.synchronous = init.synchronous;
-        req.mode = init.mode;
-        req.use_cors_preflight = init.use_cors_preflight;
-        req.credentials_mode = init.credentials_mode;
-        req.use_url_credentials = init.use_url_credentials;
-        req.cache_mode = init.cache_mode;
-        req.referrer = if let Some(url) = init.referrer_url {
-            Referrer::ReferrerUrl(url)
-        } else {
-            Referrer::NoReferrer
-        };
-        req.referrer_policy = init.referrer_policy;
-        req.redirect_mode = init.redirect_mode;
-        let mut url_list = init.url_list;
-        if url_list.is_empty() {
-            url_list.push(init.url);
-        }
-        req.redirect_count = url_list.len() as u32 - 1;
-        req.url_list = url_list;
-        req.integrity_metadata = init.integrity_metadata;
-        req
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>

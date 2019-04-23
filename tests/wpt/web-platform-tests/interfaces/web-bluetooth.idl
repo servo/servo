@@ -164,6 +164,8 @@ interface BluetoothRemoteGATTCharacteristic : EventTarget {
     getDescriptors(optional BluetoothDescriptorUUID descriptor);
   Promise<DataView> readValue();
   Promise<void> writeValue(BufferSource value);
+  Promise<void> writeValueWithResponse(BufferSource value);
+  Promise<void> writeValueWithoutResponse(BufferSource value);
   Promise<BluetoothRemoteGATTCharacteristic> startNotifications();
   Promise<BluetoothRemoteGATTCharacteristic> stopNotifications();
 };

@@ -15,7 +15,9 @@ use crate::stylesheets::{CssRule, Origin, StylesheetInDocument};
 use crate::values::CssUrl;
 use cssparser::SourceLocation;
 use std::fmt::{self, Write};
+use std::mem::ManuallyDrop;
 use style_traits::{CssWriter, ToCss};
+use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// With asynchronous stylesheet parsing, we can't synchronously create a
 /// GeckoStyleSheet. So we use this placeholder instead.
@@ -178,6 +180,12 @@ pub struct ImportRule {
 
     /// The line and column of the rule's source code.
     pub source_location: SourceLocation,
+}
+
+impl ToShmem for ImportRule {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        panic!("ToShmem failed for ImportRule: cannot handle imported style sheets")
+    }
 }
 
 impl DeepCloneWithLock for ImportRule {

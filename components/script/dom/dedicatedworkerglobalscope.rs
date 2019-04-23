@@ -36,7 +36,7 @@ use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
-use net_traits::request::{CredentialsMode, Destination, RequestInit};
+use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
 use net_traits::{load_whole_resource, IpcSend};
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
@@ -305,17 +305,14 @@ impl DedicatedWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let request = RequestInit {
-                    url: worker_url.clone(),
-                    destination: Destination::Worker,
-                    credentials_mode: CredentialsMode::Include,
-                    use_url_credentials: true,
-                    pipeline_id: pipeline_id,
-                    referrer_url: referrer_url,
-                    referrer_policy: referrer_policy,
-                    origin,
-                    ..RequestInit::default()
-                };
+                let request = RequestBuilder::new(worker_url.clone())
+                    .destination(Destination::Worker)
+                    .credentials_mode(CredentialsMode::Include)
+                    .use_url_credentials(true)
+                    .pipeline_id(pipeline_id)
+                    .referrer_url(referrer_url)
+                    .referrer_policy(referrer_policy)
+                    .origin(origin);
 
                 let (metadata, bytes) =
                     match load_whole_resource(request, &init.resource_threads.sender()) {

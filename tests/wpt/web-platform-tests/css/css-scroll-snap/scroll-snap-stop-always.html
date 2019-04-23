@@ -68,4 +68,29 @@ test(() => {
   assert_equals(scroller.scrollTop, 0);
 }, "A scroll with intended end position should always choose the closest snap " +
    "position regardless of the scroll-snap-stop value.")
+
+// Tests for programmatic scrolls beyond the scroller bounds.
+
+test(() => {
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 0);
+  assert_equals(scroller.scrollTop, 0);
+
+  scroller.scrollBy(100000, 0);
+  assert_equals(scroller.scrollLeft, 100);
+  assert_equals(scroller.scrollTop, 0);
+}, "A scroll outside bounds in the snapping axis with intended direction and " +
+   "end position should not pass a snap area with scroll-snap-stop: always.")
+
+test(() => {
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 0);
+  assert_equals(scroller.scrollTop, 0);
+
+  scroller.scrollBy(300, -10);
+  assert_equals(scroller.scrollLeft, 100);
+  assert_equals(scroller.scrollTop, 0);
+}, "A scroll outside bounds in the non-snapping axis with intended direction " +
+   "and end position should not pass a snap area with scroll-snap-stop: always.")
+
 </script>

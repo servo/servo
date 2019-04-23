@@ -15,7 +15,18 @@ use style_traits::{ParseError, StyleParseErrorKind};
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub enum ListStyleType {
     /// <counter-style> | none
     CounterStyle(CounterStyleOrNone),
@@ -74,7 +85,17 @@ impl Parse for ListStyleType {
 }
 
 /// A quote pair.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct QuotePair {
     /// The opening quote.
     pub opening: Box<str>,
@@ -84,7 +105,17 @@ pub struct QuotePair {
 }
 
 /// Specified and computed `quotes` property.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct Quotes(
     #[css(iterable, if_empty = "none")]
     #[ignore_malloc_size_of = "Arc"]
@@ -137,6 +168,8 @@ impl Parse for Quotes {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum MozListReversed {

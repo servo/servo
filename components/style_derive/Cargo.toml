@@ -11,6 +11,7 @@ proc-macro = true
 
 [dependencies]
 darling = "0.8"
+derive_common = { path = "../derive_common" }
 proc-macro2 = "0.4"
 quote = "0.6"
 syn = { version = "0.15", features = ["visit"] }

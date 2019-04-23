@@ -44,6 +44,7 @@ net_traits = {path = "../net_traits"}
 openssl = "0.10"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}
+rayon = "1"
 serde = "1.0"
 serde_json = "1.0"
 servo_allocator = {path = "../allocator"}

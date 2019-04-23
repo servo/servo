@@ -128,7 +128,7 @@ class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
             if test_window is None:
                 after = self.webdriver.window_handles
                 if len(after) == 2:
-                    test_window = next(iter(set(after) - set([parent])))
+                    test_window = next(iter(set(after) - {parent}))
                 elif after[0] == parent and len(after) > 2:
                     # Hope the first one here is the test window
                     test_window = after[1]
@@ -247,7 +247,7 @@ class SeleniumRun(object):
         timeout = self.timeout
 
         try:
-            self.protocol.base.set_timeout((timeout + extra_timeout))
+            self.protocol.base.set_timeout(timeout + extra_timeout)
         except exceptions.ErrorInResponseException:
             self.logger.error("Lost WebDriver connection")
             return Stop

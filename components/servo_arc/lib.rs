@@ -16,6 +16,8 @@
 //! * We can add methods to support our custom use cases [1].
 //! * We have support for dynamically-sized types (see from_header_and_iter).
 //! * We have support for thin arcs to unsized types (see ThinArc).
+//! * We have support for references to static data, which don't do any
+//!   refcounting.
 //!
 //! [1]: https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
 
@@ -32,6 +34,7 @@ use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
 use stable_deref_trait::{CloneStableDeref, StableDeref};
+use std::alloc::Layout;
 use std::borrow;
 use std::cmp::Ordering;
 use std::convert::From;
@@ -73,6 +76,10 @@ macro_rules! offset_of {
 /// Going above this limit will abort your program (although not
 /// necessarily) at _exactly_ `MAX_REFCOUNT + 1` references.
 const MAX_REFCOUNT: usize = (isize::MAX) as usize;
+
+/// Special refcount value that means the data is not reference counted,
+/// and that the `Arc` is really acting as a read-only static reference.
+const STATIC_REFCOUNT: usize = usize::MAX;
 
 /// An atomically reference counted shared pointer
 ///
@@ -194,6 +201,32 @@ impl<T> Arc<T> {
         }
     }
 
+    /// Create a new static Arc<T> (one that won't reference count the object)
+    /// and place it in the allocation provided by the specified `alloc`
+    /// function.
+    ///
+    /// `alloc` must return a pointer into a static allocation suitable for
+    /// storing data with the `Layout` passed into it. The pointer returned by
+    /// `alloc` will not be freed.
+    #[inline]
+    pub unsafe fn new_static<F>(alloc: F, data: T) -> Arc<T>
+    where
+        F: FnOnce(Layout) -> *mut u8,
+    {
+        let ptr = alloc(Layout::new::<ArcInner<T>>()) as *mut ArcInner<T>;
+
+        let x = ArcInner {
+            count: atomic::AtomicUsize::new(STATIC_REFCOUNT),
+            data,
+        };
+
+        ptr::write(ptr, x);
+
+        Arc {
+            p: ptr::NonNull::new_unchecked(ptr),
+        }
+    }
+
     /// Produce a pointer to the data that can be converted back
     /// to an Arc. This is basically an `&Arc<T>`, without the extra indirection.
     /// It has the benefits of an `&T` but also knows about the underlying refcount
@@ -225,8 +258,14 @@ impl<T> Arc<T> {
 
     /// Returns the address on the heap of the Arc itself -- not the T within it -- for memory
     /// reporting.
+    ///
+    /// If this is a static reference, this returns null.
     pub fn heap_ptr(&self) -> *const c_void {
-        self.p.as_ptr() as *const ArcInner<T> as *const c_void
+        if self.inner().count.load(Relaxed) == STATIC_REFCOUNT {
+            ptr::null()
+        } else {
+            self.p.as_ptr() as *const ArcInner<T> as *const c_void
+        }
     }
 }
 
@@ -262,30 +301,34 @@ impl<T: ?Sized> Arc<T> {
 impl<T: ?Sized> Clone for Arc<T> {
     #[inline]
     fn clone(&self) -> Self {
-        // Using a relaxed ordering is alright here, as knowledge of the
-        // original reference prevents other threads from erroneously deleting
-        // the object.
-        //
-        // As explained in the [Boost documentation][1], Increasing the
-        // reference counter can always be done with memory_order_relaxed: New
-        // references to an object can only be formed from an existing
-        // reference, and passing an existing reference from one thread to
-        // another must already provide any required synchronization.
-        //
-        // [1]: (www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html)
-        let old_size = self.inner().count.fetch_add(1, Relaxed);
+        // Using a relaxed ordering to check for STATIC_REFCOUNT is safe, since
+        // `count` never changes between STATIC_REFCOUNT and other values.
+        if self.inner().count.load(Relaxed) != STATIC_REFCOUNT {
+            // Using a relaxed ordering is alright here, as knowledge of the
+            // original reference prevents other threads from erroneously deleting
+            // the object.
+            //
+            // As explained in the [Boost documentation][1], Increasing the
+            // reference counter can always be done with memory_order_relaxed: New
+            // references to an object can only be formed from an existing
+            // reference, and passing an existing reference from one thread to
+            // another must already provide any required synchronization.
+            //
+            // [1]: (www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html)
+            let old_size = self.inner().count.fetch_add(1, Relaxed);
 
-        // However we need to guard against massive refcounts in case someone
-        // is `mem::forget`ing Arcs. If we don't do this the count can overflow
-        // and users will use-after free. We racily saturate to `isize::MAX` on
-        // the assumption that there aren't ~2 billion threads incrementing
-        // the reference count at once. This branch will never be taken in
-        // any realistic program.
-        //
-        // We abort because such a program is incredibly degenerate, and we
-        // don't care to support it.
-        if old_size > MAX_REFCOUNT {
-            process::abort();
+            // However we need to guard against massive refcounts in case someone
+            // is `mem::forget`ing Arcs. If we don't do this the count can overflow
+            // and users will use-after free. We racily saturate to `isize::MAX` on
+            // the assumption that there aren't ~2 billion threads incrementing
+            // the reference count at once. This branch will never be taken in
+            // any realistic program.
+            //
+            // We abort because such a program is incredibly degenerate, and we
+            // don't care to support it.
+            if old_size > MAX_REFCOUNT {
+                process::abort();
+            }
         }
 
         unsafe {
@@ -351,7 +394,8 @@ impl<T: ?Sized> Arc<T> {
         }
     }
 
-    /// Whether or not the `Arc` is uniquely owned (is the refcount 1?)
+    /// Whether or not the `Arc` is uniquely owned (is the refcount 1?) and not
+    /// a static reference.
     #[inline]
     pub fn is_unique(&self) -> bool {
         // See the extensive discussion in [1] for why this needs to be Acquire.
@@ -364,6 +408,12 @@ impl<T: ?Sized> Arc<T> {
 impl<T: ?Sized> Drop for Arc<T> {
     #[inline]
     fn drop(&mut self) {
+        // Using a relaxed ordering to check for STATIC_REFCOUNT is safe, since
+        // `count` never changes between STATIC_REFCOUNT and other values.
+        if self.inner().count.load(Relaxed) == STATIC_REFCOUNT {
+            return;
+        }
+
         // Because `fetch_sub` is already atomic, we do not need to synchronize
         // with other threads unless we are going to delete the object.
         if self.inner().count.fetch_sub(1, Release) != 1 {
@@ -528,10 +578,20 @@ fn divide_rounding_up(dividend: usize, divisor: usize) -> usize {
 
 impl<H, T> Arc<HeaderSlice<H, [T]>> {
     /// Creates an Arc for a HeaderSlice using the given header struct and
-    /// iterator to generate the slice. The resulting Arc will be fat.
+    /// iterator to generate the slice.
+    ///
+    /// `is_static` indicates whether to create a static Arc.
+    ///
+    /// `alloc` is used to get a pointer to the memory into which the
+    /// dynamically sized ArcInner<HeaderSlice<H, T>> value will be
+    /// written.  If `is_static` is true, then `alloc` must return a
+    /// pointer into some static memory allocation.  If it is false,
+    /// then `alloc` must return an allocation that can be dellocated
+    /// by calling Box::from_raw::<ArcInner<HeaderSlice<H, T>>> on it.
     #[inline]
-    pub fn from_header_and_iter<I>(header: H, mut items: I) -> Self
+    fn from_header_and_iter_alloc<F, I>(alloc: F, header: H, mut items: I, is_static: bool) -> Self
     where
+        F: FnOnce(Layout) -> *mut u8,
         I: Iterator<Item = T> + ExactSizeIterator,
     {
         use std::mem::size_of;
@@ -565,21 +625,19 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
 
         let ptr: *mut ArcInner<HeaderSlice<H, [T]>>;
         unsafe {
-            // Allocate the buffer. We use Vec because the underlying allocation
-            // machinery isn't available in stable Rust.
-            //
-            // To avoid alignment issues, we allocate words rather than bytes,
-            // rounding up to the nearest word size.
-            let buffer = if mem::align_of::<T>() <= mem::align_of::<usize>() {
-                Self::allocate_buffer::<usize>(size)
+            // Allocate the buffer.
+            let layout = if mem::align_of::<T>() <= mem::align_of::<usize>() {
+                Layout::from_size_align_unchecked(size, mem::align_of::<usize>())
             } else if mem::align_of::<T>() <= mem::align_of::<u64>() {
                 // On 32-bit platforms <T> may have 8 byte alignment while usize has 4 byte aligment.
                 // Use u64 to avoid over-alignment.
                 // This branch will compile away in optimized builds.
-                Self::allocate_buffer::<u64>(size)
+                Layout::from_size_align_unchecked(size, mem::align_of::<u64>())
             } else {
                 panic!("Over-aligned type not handled");
             };
+
+            let buffer = alloc(layout);
 
             // Synthesize the fat pointer. We do this by claiming we have a direct
             // pointer to a [T], and then changing the type of the borrow. The key
@@ -594,7 +652,12 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             //
             // Note that any panics here (i.e. from the iterator) are safe, since
             // we'll just leak the uninitialized memory.
-            ptr::write(&mut ((*ptr).count), atomic::AtomicUsize::new(1));
+            let count = if is_static {
+                atomic::AtomicUsize::new(STATIC_REFCOUNT)
+            } else {
+                atomic::AtomicUsize::new(1)
+            };
+            ptr::write(&mut ((*ptr).count), count);
             ptr::write(&mut ((*ptr).data.header), header);
             let mut current: *mut T = &mut (*ptr).data.slice[0];
             for _ in 0..num_items {
@@ -628,8 +691,37 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         }
     }
 
+    /// Creates an Arc for a HeaderSlice using the given header struct and
+    /// iterator to generate the slice. The resulting Arc will be fat.
+    #[inline]
+    pub fn from_header_and_iter<I>(header: H, items: I) -> Self
+    where
+        I: Iterator<Item = T> + ExactSizeIterator,
+    {
+        Arc::from_header_and_iter_alloc(
+            |layout| {
+                // align will only ever be align_of::<usize>() or align_of::<u64>()
+                let align = layout.align();
+                unsafe {
+                    if align == mem::align_of::<usize>() {
+                        Self::allocate_buffer::<usize>(layout.size())
+                    } else {
+                        assert_eq!(align, mem::align_of::<u64>());
+                        Self::allocate_buffer::<u64>(layout.size())
+                    }
+                }
+            },
+            header,
+            items,
+            /* is_static = */ false,
+        )
+    }
+
     #[inline]
     unsafe fn allocate_buffer<W>(size: usize) -> *mut u8 {
+        // We use Vec because the underlying allocation machinery isn't
+        // available in stable Rust. To avoid alignment issues, we allocate
+        // words rather than bytes, rounding up to the nearest word size.
         let words_to_allocate = divide_rounding_up(size, mem::size_of::<W>());
         let mut vec = Vec::<W>::with_capacity(words_to_allocate);
         vec.set_len(words_to_allocate);
@@ -730,11 +822,37 @@ impl<H, T> ThinArc<H, T> {
         Arc::into_thin(Arc::from_header_and_iter(header, items))
     }
 
+    /// Create a static `ThinArc` for a HeaderSlice using the given header
+    /// struct and iterator to generate the slice, placing it in the allocation
+    /// provided by the specified `alloc` function.
+    ///
+    /// `alloc` must return a pointer into a static allocation suitable for
+    /// storing data with the `Layout` passed into it. The pointer returned by
+    /// `alloc` will not be freed.
+    pub unsafe fn static_from_header_and_iter<F, I>(alloc: F, header: H, items: I) -> Self
+    where
+        F: FnOnce(Layout) -> *mut u8,
+        I: Iterator<Item = T> + ExactSizeIterator,
+    {
+        let header = HeaderWithLength::new(header, items.len());
+        Arc::into_thin(Arc::from_header_and_iter_alloc(
+            alloc, header, items, /* is_static = */ true,
+        ))
+    }
+
     /// Returns the address on the heap of the ThinArc itself -- not the T
     /// within it -- for memory reporting.
+    ///
+    /// If this is a static ThinArc, this returns null.
     #[inline]
     pub fn heap_ptr(&self) -> *const c_void {
-        self.ptr as *const ArcInner<T> as *const c_void
+        let is_static =
+            ThinArc::with_arc(self, |a| a.inner().count.load(Relaxed) == STATIC_REFCOUNT);
+        if is_static {
+            ptr::null()
+        } else {
+            self.ptr as *const ArcInner<T> as *const c_void
+        }
     }
 }
 

@@ -80,7 +80,7 @@ macro_rules! declare_viewport_descriptor_inner {
         [ ]
         $number_of_variants: expr
     ) => {
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, ToShmem)]
         #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
         #[allow(missing_docs)]
         pub enum ViewportDescriptor {
@@ -147,7 +147,7 @@ trait FromMeta: Sized {
 /// * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss, ToShmem)]
 pub enum ViewportLength {
     Specified(NonNegativeLengthPercentageOrAuto),
     ExtendToZoom,
@@ -225,7 +225,7 @@ struct ViewportRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToShmem)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
 pub struct ViewportDescriptorDeclaration {
@@ -335,7 +335,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
 }
 
 /// A `@viewport` rule.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToShmem)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct ViewportRule {
     /// The declarations contained in this @viewport rule.

@@ -2383,12 +2383,53 @@ policies and contribution forms [3].
         return duplicates;
     };
 
+    function code_unit_str(char) {
+        return 'U+' + char.charCodeAt(0).toString(16);
+    }
+
+    function sanitize_unpaired_surrogates(str) {
+        return str.replace(/([\ud800-\udbff])(?![\udc00-\udfff])/g,
+                           function(_, unpaired)
+                           {
+                               return code_unit_str(unpaired);
+                           })
+                  // This replacement is intentionally implemented without an
+                  // ES2018 negative lookbehind assertion to support runtimes
+                  // which do not yet implement that language feature.
+                  .replace(/(^|[^\ud800-\udbff])([\udc00-\udfff])/g,
+                           function(_, previous, unpaired) {
+                              if (/[\udc00-\udfff]/.test(previous)) {
+                                  previous = code_unit_str(previous);
+                              }
+
+                              return previous + code_unit_str(unpaired);
+                           });
+    }
+
+    function sanitize_all_unpaired_surrogates(tests) {
+        forEach (tests,
+                 function (test)
+                 {
+                     var sanitized = sanitize_unpaired_surrogates(test.name);
+
+                     if (test.name !== sanitized) {
+                         test.name = sanitized;
+                         delete test._structured_clone;
+                     }
+                 });
+    }
+
     Tests.prototype.notify_complete = function() {
         var this_obj = this;
         var duplicates;
 
         if (this.status.status === null) {
             duplicates = this.find_duplicates();
+
+            // Some transports adhere to UTF-8's restriction on unpaired
+            // surrogates. Sanitize the titles so that the results can be
+            // consistently sent via all transports.
+            sanitize_all_unpaired_surrogates(this.tests);
 
             // Test names are presumed to be unique within test files--this
             // allows consumers to use them for identification purposes.

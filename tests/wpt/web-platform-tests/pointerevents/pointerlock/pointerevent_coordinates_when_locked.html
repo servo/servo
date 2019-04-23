@@ -73,15 +73,15 @@
                 });
 
                 var actions = new test_driver.Actions();
-                actions.pointerMove(/* x = */ 0, /* y = */ 0, {origin: target}).pointerDown();
+                actions.pointerMove(/* x = */ 0, /* y = */ 0, {origin: div1}).pointerDown();
 
-                pos_x = target.getBoundingClientRect().x + target.offsetWidth / 2;
-                pos_y = target.getBoundingClientRect().y + target.offsetHeight / 2;
+                pos_x = div1.offsetWidth / 2;
+                pos_y = div1.offsetHeight / 2;
                 for (var i = 0; i < 10; i++) {
                     // Alternatively move left/right and up/down.
                     pos_x += ((-1)**i) * i * 10;
                     pos_y -= ((-1)**i) * i * 10;
-                    actions.pointerMove(pos_x, pos_y);
+                    actions.pointerMove(pos_x, pos_y, {origin: div1});
                 }
                 actions.pointerUp().send();
             }

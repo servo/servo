@@ -113,10 +113,10 @@ class Response(object):
                         time or interval from now when the cookie expires
 
         """
-        days = dict((i+1, name) for i, name in enumerate(["jan", "feb", "mar",
-                                                          "apr", "may", "jun",
-                                                          "jul", "aug", "sep",
-                                                          "oct", "nov", "dec"]))
+        days = {i+1: name for i, name in enumerate(["jan", "feb", "mar",
+                                                    "apr", "may", "jun",
+                                                    "jul", "aug", "sep",
+                                                    "oct", "nov", "dec"])}
         if value is None:
             value = ''
             max_age = 0

@@ -32,7 +32,9 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::request::{
+    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
+};
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
@@ -290,28 +292,25 @@ fn fetch_a_classic_script(
     let doc = document_from_node(script);
 
     // Step 1, 2.
-    let request = RequestInit {
-        url: url.clone(),
-        destination: Destination::Script,
+    let request = RequestBuilder::new(url.clone())
+        .destination(Destination::Script)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
-        mode: match cors_setting {
+        .mode(match cors_setting {
             Some(_) => RequestMode::CorsMode,
             None => RequestMode::NoCors,
-        },
+        })
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 3-4
-        credentials_mode: match cors_setting {
+        .credentials_mode(match cors_setting {
             Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
             _ => CredentialsMode::Include,
-        },
-        origin: doc.origin().immutable().clone(),
-        pipeline_id: Some(script.global().pipeline_id()),
-        referrer_url: Some(doc.url()),
-        referrer_policy: doc.get_referrer_policy(),
-        integrity_metadata: integrity_metadata,
-        ..RequestInit::default()
-    };
+        })
+        .origin(doc.origin().immutable().clone())
+        .pipeline_id(Some(script.global().pipeline_id()))
+        .referrer_url(Some(doc.url()))
+        .referrer_policy(doc.get_referrer_policy())
+        .integrity_metadata(integrity_metadata);
 
     // TODO: Step 3, Add custom steps to perform fetch
 
@@ -556,7 +555,15 @@ impl HTMLScriptElement {
             },
         }
 
-        let path = PathBuf::from(window_from_node(self).unminified_js_dir().unwrap());
+        let path;
+        match window_from_node(self).unminified_js_dir() {
+            Some(unminified_js_dir) => path = PathBuf::from(unminified_js_dir),
+            None => {
+                warn!("Unminified script directory not found");
+                return;
+            },
+        }
+
         let path = if script.external {
             // External script.
             let path_parts = script.url.path_segments().unwrap();

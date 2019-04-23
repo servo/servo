@@ -28,7 +28,6 @@
     };
 
     const fakeDeviceInitOptions = { supportsImmersive:true };
-    const sessionOptions = { mode: 'immersive-vr' };
 
     let testSession;
 
@@ -77,6 +76,6 @@
     }
 
     xr_session_promise_test(
-      testName, testFunction, fakeDeviceInitOptions, sessionOptions);
+      testName, testFunction, fakeDeviceInitOptions, 'immersive-vr');
   </script>
 </body>

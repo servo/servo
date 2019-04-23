@@ -1,5 +1,6 @@
-import platform
 import os
+import platform
+import subprocess
 
 from six import BytesIO
 
@@ -30,6 +31,27 @@ def to_os_path(path):
     if "/" == os.path.sep:
         return path
     return path.replace("/", os.path.sep)
+
+
+def git(path):
+    def gitfunc(cmd, *args):
+        full_cmd = ["git", cmd] + list(args)
+        try:
+            return subprocess.check_output(full_cmd, cwd=path, stderr=subprocess.STDOUT)
+        except Exception as e:
+            if platform.uname()[0] == "Windows" and isinstance(e, WindowsError):
+                full_cmd[0] = "git.bat"
+                return subprocess.check_output(full_cmd, cwd=path, stderr=subprocess.STDOUT)
+            else:
+                raise
+
+    try:
+        # this needs to be a command that fails if we aren't in a git repo
+        gitfunc("rev-parse", "--show-toplevel")
+    except (subprocess.CalledProcessError, OSError):
+        return None
+    else:
+        return gitfunc
 
 
 class ContextManagerBytesIO(BytesIO):

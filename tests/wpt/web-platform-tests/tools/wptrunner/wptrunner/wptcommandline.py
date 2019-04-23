@@ -53,6 +53,8 @@ scheme host and port.""")
                         help="Prevent regeneration of the test manifest.")
     parser.add_argument("--manifest-download", action="store_true", default=None,
                         help="Attempt to download a preexisting manifest when updating.")
+    parser.add_argument("--no-manifest-download", action="store_false", dest="manifest_download",
+                        help="Prevent download of the test manifest.")
 
     parser.add_argument("--timeout-multiplier", action="store", type=float, default=None,
                         help="Multiplier relative to standard test timeout to use")

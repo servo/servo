@@ -1,9 +1,3 @@
-// Used by common.js.
-function wrapResult(server_data) {
-  // Currently the returned value is not used in mixed-content tests.
-  return null;
-}
-
 const Host = {
   SAME_ORIGIN: "same-origin",
   CROSS_ORIGIN: "cross-origin",

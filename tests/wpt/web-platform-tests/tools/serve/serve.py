@@ -722,7 +722,7 @@ def build_config(override_path=None, **kwargs):
     return rv
 
 def _make_subdomains_product(s, depth=2):
-    return set(u".".join(x) for x in chain(*(product(s, repeat=i) for i in range(1, depth+1))))
+    return {u".".join(x) for x in chain(*(product(s, repeat=i) for i in range(1, depth+1)))}
 
 _subdomains = {u"www",
                u"www1",

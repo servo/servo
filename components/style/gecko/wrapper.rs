@@ -69,6 +69,7 @@ use crate::selector_parser::{AttrValue, HorizontalDirection, Lang};
 use crate::shared_lock::Locked;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
+use crate::values::computed::font::GenericFontFamily;
 use crate::values::specified::length::FontBaseSize;
 use crate::CaseSensitivityExt;
 use app_units::Au;
@@ -985,7 +986,6 @@ fn get_animation_rule(
     element: &GeckoElement,
     cascade_level: CascadeLevel,
 ) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
-    use crate::gecko_bindings::sugar::ownership::HasSimpleFFI;
     use crate::properties::longhands::ANIMATABLE_PROPERTY_COUNT;
 
     // There's a very rough correlation between the number of effects
@@ -1041,7 +1041,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         GeckoFontMetricsProvider::new()
     }
 
-    fn get_size(&self, font_name: &Atom, font_family: u8) -> Au {
+    fn get_size(&self, font_name: &Atom, font_family: GenericFontFamily) -> Au {
         let mut cache = self.font_size_cache.borrow_mut();
         if let Some(sizes) = cache.iter().find(|el| el.0 == *font_name) {
             return sizes.1.size_for_generic(font_family);
@@ -1100,16 +1100,17 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
 }
 
 impl structs::FontSizePrefs {
-    fn size_for_generic(&self, font_family: u8) -> Au {
+    fn size_for_generic(&self, font_family: GenericFontFamily) -> Au {
         Au(match font_family {
-            structs::kPresContext_DefaultVariableFont_ID => self.mDefaultVariableSize,
-            structs::kPresContext_DefaultFixedFont_ID => self.mDefaultFixedSize,
-            structs::kGenericFont_serif => self.mDefaultSerifSize,
-            structs::kGenericFont_sans_serif => self.mDefaultSansSerifSize,
-            structs::kGenericFont_monospace => self.mDefaultMonospaceSize,
-            structs::kGenericFont_cursive => self.mDefaultCursiveSize,
-            structs::kGenericFont_fantasy => self.mDefaultFantasySize,
-            _ => unreachable!("Unknown generic ID"),
+            GenericFontFamily::None => self.mDefaultVariableSize,
+            GenericFontFamily::Serif => self.mDefaultSerifSize,
+            GenericFontFamily::SansSerif => self.mDefaultSansSerifSize,
+            GenericFontFamily::Monospace => self.mDefaultMonospaceSize,
+            GenericFontFamily::Cursive => self.mDefaultCursiveSize,
+            GenericFontFamily::Fantasy => self.mDefaultFantasySize,
+            GenericFontFamily::MozEmoji => unreachable!(
+                "Should never get here, since this doesn't (yet) appear on font family"
+            ),
         })
     }
 }
@@ -1419,16 +1420,6 @@ impl<'le> TElement for GeckoElement<'le> {
             ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
                 ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
                 NODE_DESCENDANTS_NEED_FRAMES as u32,
-        )
-    }
-
-    #[inline]
-    unsafe fn clear_dirty_bits(&self) {
-        self.unset_flags(
-            ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                NODE_DESCENDANTS_NEED_FRAMES as u32 |
-                NODE_NEEDS_FRAME as u32,
         )
     }
 

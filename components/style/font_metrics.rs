@@ -43,7 +43,11 @@ pub trait FontMetricsProvider {
     }
 
     /// Get default size of a given language and generic family.
-    fn get_size(&self, font_name: &Atom, font_family: u8) -> Au;
+    fn get_size(
+        &self,
+        font_name: &Atom,
+        font_family: crate::values::computed::font::GenericFontFamily,
+    ) -> Au;
 
     /// Construct from a shared style context
     fn create_from(context: &SharedStyleContext) -> Self
@@ -66,7 +70,7 @@ impl FontMetricsProvider for ServoMetricsProvider {
         ServoMetricsProvider
     }
 
-    fn get_size(&self, _font_name: &Atom, _font_family: u8) -> Au {
+    fn get_size(&self, _: &Atom, _: crate::values::computed::font::GenericFontFamily) -> Au {
         unreachable!("Dummy provider should never be used to compute font size")
     }
 }

@@ -110,7 +110,7 @@ use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
-use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
+use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
 use net_traits::storage_thread::StorageType;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{
@@ -144,6 +144,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -202,6 +203,8 @@ struct InProgressLoad {
     navigation_start_precise: u64,
     /// For cancelling the fetch
     canceller: FetchCanceller,
+    /// Flag for sharing with the layout thread that is not yet created.
+    layout_is_busy: Arc<AtomicBool>,
 }
 
 impl InProgressLoad {
@@ -216,6 +219,7 @@ impl InProgressLoad {
         window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
+        layout_is_busy: Arc<AtomicBool>,
     ) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns();
@@ -237,6 +241,7 @@ impl InProgressLoad {
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: navigation_start_precise,
             canceller: Default::default(),
+            layout_is_busy: layout_is_busy,
         }
     }
 }
@@ -702,6 +707,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let opener = state.opener;
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
+                let layout_is_busy = state.layout_is_busy.clone();
 
                 let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
 
@@ -722,6 +728,7 @@ impl ScriptThreadFactory for ScriptThread {
                     window_size,
                     load_data.url.clone(),
                     origin,
+                    layout_is_busy,
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
@@ -1834,6 +1841,9 @@ impl ScriptThread {
             WebDriverScriptCommand::AddCookie(params, reply) => {
                 webdriver_handlers::handle_add_cookie(&*documents, pipeline_id, params, reply)
             },
+            WebDriverScriptCommand::DeleteCookies(reply) => {
+                webdriver_handlers::handle_delete_cookies(&*documents, pipeline_id, reply)
+            },
             WebDriverScriptCommand::ExecuteScript(script, reply) => {
                 webdriver_handlers::handle_execute_script(&*documents, pipeline_id, script, reply)
             },
@@ -2015,6 +2025,8 @@ impl ScriptThread {
         let layout_pair = unbounded();
         let layout_chan = layout_pair.0.clone();
 
+        let layout_is_busy = Arc::new(AtomicBool::new(false));
+
         let msg = message::Msg::CreateLayoutThread(LayoutThreadInit {
             id: new_pipeline_id,
             url: load_data.url.clone(),
@@ -2033,6 +2045,7 @@ impl ScriptThread {
                 self.control_chan.clone(),
                 load_data.url.clone(),
             ),
+            layout_is_busy: layout_is_busy.clone(),
         });
 
         // Pick a layout thread, any layout thread
@@ -2066,6 +2079,7 @@ impl ScriptThread {
             window_size,
             load_data.url.clone(),
             origin,
+            layout_is_busy.clone(),
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
@@ -2862,6 +2876,7 @@ impl ScriptThread {
             self.microtask_queue.clone(),
             self.webrender_document,
             self.webrender_api_sender.clone(),
+            incomplete.layout_is_busy,
         );
 
         // Initialize the browsing context for the window.
@@ -3310,21 +3325,18 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, mut incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let req_init = RequestInit {
-            url: load_data.url.clone(),
-            method: load_data.method,
-            destination: Destination::Document,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
-            pipeline_id: Some(id),
-            referrer_url: load_data.referrer_url,
-            referrer_policy: load_data.referrer_policy,
-            headers: load_data.headers,
-            body: load_data.data,
-            redirect_mode: RedirectMode::Manual,
-            origin: incomplete.origin.immutable().clone(),
-            ..RequestInit::default()
-        };
+        let req_init = RequestBuilder::new(load_data.url.clone())
+            .method(load_data.method)
+            .destination(Destination::Document)
+            .credentials_mode(CredentialsMode::Include)
+            .use_url_credentials(true)
+            .pipeline_id(Some(id))
+            .referrer_url(load_data.referrer_url)
+            .referrer_policy(load_data.referrer_policy)
+            .headers(load_data.headers)
+            .body(load_data.data)
+            .redirect_mode(RedirectMode::Manual)
+            .origin(incomplete.origin.immutable().clone());
 
         let context = ParserContext::new(id, load_data.url);
         self.incomplete_parser_contexts

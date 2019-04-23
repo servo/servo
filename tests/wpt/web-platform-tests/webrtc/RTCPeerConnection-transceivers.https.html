@@ -469,4 +469,35 @@ promise_test(async t => {
   await exchangeOfferAndListenToOntrack(t, pc1, pc2);
 }, 'Changing transceiver direction to \'sendrecv\' makes ontrack fire');
 
+// Regression test coverage for https://crbug.com/950280.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const pc2Promise = pc2.createOffer()
+    .then((offer) => { return pc1.setRemoteDescription(offer); })
+    .then(() => { return pc1.createAnswer(); })
+    .then((answer) => { return pc1.setLocalDescription(answer); });
+  const pc1Promise = pc1.createOffer({ offerToReceiveAudio: true})
+    .then(() => { pc1.addTrack(pc1.getReceivers()[0].track); });
+  await Promise.all([pc1Promise, pc2Promise]);
+  assert_equals(pc1.getSenders()[0].track, pc1.getReceivers()[0].track);
+}, 'transceiver.sender.track does not revert to an old state');
+
+// Regression test coverage for https://crbug.com/950280.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const pc2Promise = pc2.createOffer()
+    .then((offer) => { return pc1.setRemoteDescription(offer); })
+    .then(() => { return pc1.createAnswer(); });
+  const pc1Promise = pc1.createOffer({ offerToReceiveAudio: true})
+    .then(() => { pc1.getTransceivers()[0].direction = 'inactive'; });
+  await Promise.all([pc1Promise, pc2Promise]);
+  assert_equals(pc1.getTransceivers()[0].direction, 'inactive');
+}, 'transceiver.direction does not revert to an old state');
+
 </script>

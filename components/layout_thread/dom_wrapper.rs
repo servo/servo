@@ -817,9 +817,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                     _ => true,
                 }
             },
-            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => self
-                .get_attr_enum(&ns!(), &local_name!("type"))
-                .map_or(false, |attr| attr == expected_value),
             NonTSPseudoClass::ReadOnly => !self
                 .element
                 .get_state_for_layout()

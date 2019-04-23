@@ -322,8 +322,8 @@ def test_files_changed_ignore():
 
 def test_files_changed_ignore_rules():
     from tools.wpt.testfiles import compile_ignore_rule
-    assert compile_ignore_rule("foo*bar*/baz").pattern == "^foo\*bar[^/]*/baz$"
-    assert compile_ignore_rule("foo**bar**/baz").pattern == "^foo\*\*bar.*/baz$"
+    assert compile_ignore_rule("foo*bar*/baz").pattern == r"^foo\*bar[^/]*/baz$"
+    assert compile_ignore_rule("foo**bar**/baz").pattern == r"^foo\*\*bar.*/baz$"
     assert compile_ignore_rule("foobar/baz/*").pattern == "^foobar/baz/[^/]*$"
     assert compile_ignore_rule("foobar/baz/**").pattern == "^foobar/baz/.*$"
 

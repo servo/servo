@@ -13,7 +13,7 @@ use crate::platform::font_list::SANS_SERIF_FONT_FAMILY;
 use crate::platform::font_template::FontTemplateData;
 use app_units::Au;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::request::{Destination, RequestInit};
+use net_traits::request::{Destination, RequestBuilder};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -238,13 +238,7 @@ impl FontCache {
                     None => return,
                 };
 
-                let request = RequestInit {
-                    url: url.clone(),
-                    destination: Destination::Font,
-                    // TODO: Add a proper origin - Can't import GlobalScope from gfx
-                    // We can leave origin to be set by default
-                    ..RequestInit::default()
-                };
+                let request = RequestBuilder::new(url.clone()).destination(Destination::Font);
 
                 let channel_to_self = self.channel_to_self.clone();
                 let bytes = Mutex::new(Vec::new());

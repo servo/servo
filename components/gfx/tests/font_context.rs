@@ -20,7 +20,7 @@ use std::rc::Rc;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
-    FamilyName, FamilyNameSyntax, FontFamily, FontFamilyList, FontSize,
+    FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize,
 };
 use style::values::computed::font::{FontStretch, FontWeight, SingleFontFamily};
 use style::values::generics::font::FontStyle;
@@ -114,7 +114,7 @@ fn font_family(names: Vec<&str>) -> FontFamily {
         .map(|name| {
             SingleFontFamily::FamilyName(FamilyName {
                 name: Atom::from(name),
-                syntax: FamilyNameSyntax::Quoted,
+                syntax: FontFamilyNameSyntax::Quoted,
             })
         })
         .collect();

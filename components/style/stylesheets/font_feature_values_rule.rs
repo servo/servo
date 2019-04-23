@@ -30,7 +30,7 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 /// - `SingleValue` is to keep just one unsigned integer value.
 /// - `PairValues` is to keep one or two unsigned integer values.
 /// - `VectorValues` is to keep a list of unsigned integer values.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToShmem)]
 pub struct FFVDeclaration<T> {
     /// An `<ident>` for declaration name.
     pub name: Atom,
@@ -58,7 +58,7 @@ pub trait ToGeckoFontFeatureValues {
 }
 
 /// A @font-feature-values block declaration value that keeps one value.
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss, ToShmem)]
 pub struct SingleValue(pub u32);
 
 impl Parse for SingleValue {
@@ -87,7 +87,7 @@ impl ToGeckoFontFeatureValues for SingleValue {
 }
 
 /// A @font-feature-values block declaration value that keeps one or two values.
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss, ToShmem)]
 pub struct PairValues(pub u32, pub Option<u32>);
 
 impl Parse for PairValues {
@@ -131,7 +131,7 @@ impl ToGeckoFontFeatureValues for PairValues {
 }
 
 /// A @font-feature-values block declaration value that keeps a list of values.
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss, ToShmem)]
 pub struct VectorValues(#[css(iterable)] pub Vec<u32>);
 
 impl Parse for VectorValues {
@@ -225,7 +225,7 @@ macro_rules! font_feature_values_blocks {
         /// The [`@font-feature-values`][font-feature-values] at-rule.
         ///
         /// [font-feature-values]: https://drafts.csswg.org/css-fonts-3/#at-font-feature-values-rule
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, ToShmem)]
         pub struct FontFeatureValuesRule {
             /// Font family list for @font-feature-values rule.
             /// Family names cannot contain generic families. FamilyName

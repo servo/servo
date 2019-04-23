@@ -6,7 +6,7 @@ import zipfile
 from io import BytesIO
 
 try:
-    from typing import Any
+    from typing import Any, Callable
 except ImportError:
     pass
 
@@ -17,10 +17,11 @@ class Kwargs(dict):
     def set_if_none(self,
                     name,            # type: str
                     value,           # type: Any
-                    err_fn=None,     # type: (Kwargs, str) -> Any
+                    err_fn=None,     # type: Callable[[Kwargs, str], Any]
                     desc=None,       # type: str
-                    extra_cond=None  # type: (Kwargs) -> bool
+                    extra_cond=None  # type: Callable[[Kwargs], Any]
                     ):
+        # type: (...) -> Any
         if desc is None:
             desc = name
 

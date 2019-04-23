@@ -21,6 +21,9 @@ extern crate precomputed_hash;
 extern crate servo_arc;
 extern crate smallvec;
 extern crate thin_slice;
+extern crate to_shmem;
+#[macro_use]
+extern crate to_shmem_derive;
 
 pub mod attr;
 pub mod bloom;

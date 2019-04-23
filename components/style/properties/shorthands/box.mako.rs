@@ -303,36 +303,6 @@ macro_rules! try_parse_one {
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="scroll-snap-type" products="gecko"
-                    gecko_pref="layout.css.scroll-snap.enabled"
-                    sub_properties="scroll-snap-type-x scroll-snap-type-y"
-                    spec="https://drafts.csswg.org/css-scroll-snap/#propdef-scroll-snap-type">
-    use crate::properties::longhands::scroll_snap_type_x;
-
-    pub fn parse_value<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Longhands, ParseError<'i>> {
-        let result = scroll_snap_type_x::parse(context, input)?;
-        Ok(expanded! {
-            scroll_snap_type_x: result,
-            scroll_snap_type_y: result,
-        })
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        // Serializes into the single keyword value if both scroll-snap-type-x and scroll-snap-type-y are same.
-        // Otherwise into an empty string. This is done to match Gecko's behaviour.
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if self.scroll_snap_type_x == self.scroll_snap_type_y {
-                self.scroll_snap_type_x.to_css(dest)
-            } else {
-                Ok(())
-            }
-        }
-    }
-</%helpers:shorthand>
-
 ${helpers.two_properties_shorthand(
     "overscroll-behavior",
     "overscroll-behavior-x",

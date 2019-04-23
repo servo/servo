@@ -13,9 +13,6 @@
 
     let fakeDeviceInitParams = { supportsImmersive: true };
 
-    let immersiveSessionOptions = { mode: 'immersive-vr' };
-    let nonImmersiveSessionOptions = { mode: 'inline' };
-
     let testFunction = function(session, fakeDeviceController, t) {
       return promise_rejects(t, new TypeError(), session.requestReferenceSpace({ type: "foo" }))
         .then(() => promise_rejects(t, "NotSupportedError", session.requestReferenceSpace({ type: "stationary" })))
@@ -75,9 +72,9 @@
     };
 
     xr_session_promise_test(
-      immersiveTestName, testFunction, fakeDeviceInitParams, immersiveSessionOptions);
+      immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr');
     xr_session_promise_test(
-      nonImmersiveTestName, testFunction, fakeDeviceInitParams, nonImmersiveSessionOptions);
+      nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline');
 
   </script>
 </body>

@@ -642,6 +642,7 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         };
 
         if let Some(font_family) = font_family {
+            // FIXME(emilio): This in Gecko parses a whole family list.
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
@@ -2886,10 +2887,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
                     Some(_) => true,
                 },
             },
-
-            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => self
-                .get_attribute(&ns!(), &local_name!("type"))
-                .map_or(false, |attr| attr.value().eq(expected_value)),
 
             // FIXME(heycam): This is wrong, since extended_filtering accepts
             // a string containing commas (separating each language tag in

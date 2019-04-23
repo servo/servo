@@ -29,8 +29,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// A pseudo-element, both public and private.
 ///
 /// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 #[repr(usize)]
 pub enum PseudoElement {
@@ -265,8 +264,7 @@ pub type Lang = Box<str>;
 
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 pub enum NonTSPseudoClass {
     Active,
@@ -284,7 +282,6 @@ pub enum NonTSPseudoClass {
     ReadWrite,
     ReadOnly,
     ServoNonZeroBorder,
-    ServoCaseSensitiveTypeAttr(Atom),
     Target,
     Visited,
 }
@@ -304,18 +301,10 @@ impl ToCss for NonTSPseudoClass {
         W: fmt::Write,
     {
         use self::NonTSPseudoClass::*;
-        match *self {
-            Lang(ref lang) => {
-                dest.write_str(":lang(")?;
-                serialize_identifier(lang, dest)?;
-                return dest.write_str(")");
-            },
-            ServoCaseSensitiveTypeAttr(ref value) => {
-                dest.write_str(":-servo-case-sensitive-type-attr(")?;
-                serialize_identifier(value, dest)?;
-                return dest.write_str(")");
-            },
-            _ => {},
+        if let Lang(ref lang) = *self {
+            dest.write_str(":lang(")?;
+            serialize_identifier(lang, dest)?;
+            return dest.write_str(")");
         }
 
         dest.write_str(match *self {
@@ -335,7 +324,7 @@ impl ToCss for NonTSPseudoClass {
             ServoNonZeroBorder => ":-servo-nonzero-border",
             Target => ":target",
             Visited => ":visited",
-            Lang(_) | ServoCaseSensitiveTypeAttr(_) => unreachable!(),
+            Lang(_) => unreachable!(),
         })
     }
 }
@@ -356,7 +345,6 @@ impl NonTSPseudoClass {
     /// selector matching, and it's set from the DOM.
     pub fn state_flag(&self) -> ElementState {
         use self::NonTSPseudoClass::*;
-        use crate::element_state::ElementState;
         match *self {
             Active => ElementState::IN_ACTIVE_STATE,
             Focus => ElementState::IN_FOCUS_STATE,
@@ -370,12 +358,7 @@ impl NonTSPseudoClass {
             PlaceholderShown => ElementState::IN_PLACEHOLDER_SHOWN_STATE,
             Target => ElementState::IN_TARGET_STATE,
 
-            AnyLink |
-            Lang(_) |
-            Link |
-            Visited |
-            ServoNonZeroBorder |
-            ServoCaseSensitiveTypeAttr(_) => ElementState::empty(),
+            AnyLink | Lang(_) | Link | Visited | ServoNonZeroBorder => ElementState::empty(),
         }
     }
 
@@ -466,12 +449,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         let pseudo_class = match_ignore_ascii_case! { &name,
             "lang" => {
                 Lang(parser.expect_ident_or_string()?.as_ref().into())
-            }
-            "-servo-case-sensitive-type-attr" => {
-                if !self.in_user_agent_stylesheet() {
-                    return Err(parser.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())));
-                }
-                ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?.as_ref()))
             }
             _ => return Err(parser.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
         };

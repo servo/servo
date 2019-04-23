@@ -65,6 +65,14 @@ pub unsafe trait HasBoxFFI: HasSimpleFFI {
     fn into_ffi(self: Box<Self>) -> Owned<Self::FFIType> {
         unsafe { transmute(self) }
     }
+
+    /// Drops an owned FFI pointer. This conceptually takes the
+    /// Owned<Self::FFIType>, except it's a bit of a paint to do that without
+    /// much benefit.
+    #[inline]
+    unsafe fn drop_ffi(ptr: *mut Self::FFIType) {
+        let _ = Box::from_raw(ptr as *mut Self);
+    }
 }
 
 /// Helper trait for conversions between FFI Strong/Borrowed types and Arcs
@@ -268,14 +276,6 @@ pub struct Owned<GeckoType> {
 }
 
 impl<GeckoType> Owned<GeckoType> {
-    /// Gets this `Owned` type as a `Box<ServoType>`.
-    pub fn into_box<ServoType>(self) -> Box<ServoType>
-    where
-        ServoType: HasBoxFFI<FFIType = GeckoType>,
-    {
-        unsafe { transmute(self) }
-    }
-
     /// Converts this instance to a (non-null) instance of `OwnedOrNull`.
     pub fn maybe(self) -> OwnedOrNull<GeckoType> {
         unsafe { transmute(self) }

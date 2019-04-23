@@ -19,8 +19,9 @@ async function openPortalAndActivate(logic, activateOptions) {
     portal.src = new URL('resources/portal-activate-data-portal.html?logic=' + encodeURIComponent(logic), location.href);
     w.document.body.appendChild(portal);
     assert_equals((await nextMessage(bc)).data, 'ready');
+    let replyPromise = nextMessage(bc);
     await portal.activate(activateOptions);
-    return (await nextMessage(bc)).data;
+    return (await replyPromise).data;
   } finally {
     w.close();
     bc.close();

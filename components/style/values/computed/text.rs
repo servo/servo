@@ -37,6 +37,7 @@ pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
     PartialEq,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToResolvedValue,
 )]
 pub struct LetterSpacing(pub Length);
 
@@ -102,7 +103,7 @@ impl ToComputedValue for specified::WordSpacing {
 /// A computed value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLength>;
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue)]
 /// text-overflow.
 /// When the specified value only has one side, that's the "second"
 /// side, and the sides are logical, so "second" means "end".  The
@@ -155,7 +156,7 @@ impl ToCss for TextOverflow {
 /// and similar stuff when we implement it.
 ///
 /// FIXME(emilio): Also, should be just a bitfield instead of three bytes.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq, ToResolvedValue)]
 pub struct TextDecorationsInEffect {
     /// Whether an underline is in effect.
     pub underline: bool,
@@ -193,7 +194,7 @@ impl TextDecorationsInEffect {
 }
 
 /// computed value for the text-emphasis-style property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
 pub enum TextEmphasisStyle {
     /// Keyword value for the text-emphasis-style property (`filled` `open`)
     Keyword(TextEmphasisKeywordValue),
@@ -204,7 +205,7 @@ pub enum TextEmphasisStyle {
 }
 
 /// Keyword value for the text-emphasis-style property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
 pub struct TextEmphasisKeywordValue {
     /// fill for the text-emphasis-style property
     pub fill: TextEmphasisFillMode,

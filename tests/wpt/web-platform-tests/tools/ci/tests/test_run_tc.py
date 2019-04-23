@@ -6,12 +6,12 @@ from tools.ci import run_tc
 
 
 @pytest.mark.parametrize("msg,expected", [
-    ("Some initial line\n\ntc-jobs:foo,bar", set(["foo", "bar"])),
-    ("Some initial line\n\ntc-jobs:foo, bar", set(["foo", "bar"])),
-    ("tc-jobs:foo, bar   \nbaz", set(["foo", "bar"])),
-    ("tc-jobs:all", set(["all"])),
+    ("Some initial line\n\ntc-jobs:foo,bar", {"foo", "bar"}),
+    ("Some initial line\n\ntc-jobs:foo, bar", {"foo", "bar"}),
+    ("tc-jobs:foo, bar   \nbaz", {"foo", "bar"}),
+    ("tc-jobs:all", {"all"}),
     ("", set()),
-    ("tc-jobs:foo\ntc-jobs:bar", set(["foo"]))])
+    ("tc-jobs:foo\ntc-jobs:bar", {"foo"})])
 @pytest.mark.parametrize("event", [
     {"commits": [{"message": "<message>"}]},
     {"pull_request": {"body": "<message>"}}

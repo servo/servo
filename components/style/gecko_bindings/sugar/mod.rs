@@ -15,4 +15,3 @@ mod ns_t_array;
 pub mod origin_flags;
 pub mod ownership;
 pub mod refptr;
-mod style_complex_color;

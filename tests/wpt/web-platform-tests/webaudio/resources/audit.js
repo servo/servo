@@ -1210,6 +1210,18 @@ window.Audit = (function() {
       this._taskRunner._runNextTask();
     }
 
+    // Runs |subTask| |time| milliseconds later. |setTimeout| is not allowed in
+    // WPT linter, so a thin wrapper around the harness's |step_timeout| is
+    // used here.
+    timeout(subTask, time) {
+      async_test((test) => {
+        test.step_timeout(() => {
+          subTask();
+          test.done();
+        }, time);
+      });
+    }
+
     isPassed() {
       return this._state === TaskState.FINISHED && this._result;
     }

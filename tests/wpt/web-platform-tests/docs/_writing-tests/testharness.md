@@ -161,6 +161,8 @@ are:
 * `dedicatedworker` (default): to be run at <code><var>x</var>.any.worker.html</code>
 * `serviceworker`: to be run at <code><var>x</var>.https.any.serviceworker.html</code>
 * `sharedworker`: to be run at <code><var>x</var>.any.sharedworker.html</code>
+* `jsshell`: to be run in a JavaScript shell, without access to the DOM
+  (currently only supported in SpiderMonkey, and skipped in wptrunner)
 * `default`: shorthand for the default scopes
 * `worker`: shorthand for the dedicated, shared and service worker scopes
 

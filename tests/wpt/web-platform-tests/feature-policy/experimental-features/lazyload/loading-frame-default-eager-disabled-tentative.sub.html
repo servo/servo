@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+iframe {
+  width: 400px;
+  height: 400px;
+  margin: 10px;
+}
+
+.spacer {
+  width: 100%;
+  height: 10000px;
+}
+</style>
+<div class="spacer"></div>
+<script>
+  let load_timeout = 600; // ms
+  let expected_timeout_msg = false;
+
+  let cross_origin_url =
+      "http://{{hosts[alt][www]}}:{{ports[http][0]}}/" +
+      "feature-policy/experimental-features/resources/lazyload-contents.html";
+
+  window.scrollTo(0, 0);
+
+  // Verify that when 'loading-frame-default-eager' policy is disabled, the
+  // loading attribute "auto" leads to lazy loading.
+  promise_test(async(t) => {
+    // Add a frame with load="off".
+    let frame_loading_auto = createIframe(document.body, {
+        id: "auto",
+        // Sets the "loading" attribute to "auto".
+        loading: "auto",
+        src: `${cross_origin_url}?id=auto`
+      });
+    // Sanity-check: The frame is not visible.
+    assert_greater_than(
+        frame_loading_auto.getBoundingClientRect().top,
+        window.innerHeight * 2,
+        "Unexpected position for <iframe> with ID 'auto'.");
+    let msg_or_timeout =
+        await waitForMessageOrTimeout(t, "auto", load_timeout);
+    assert_false(msg_or_timeout, "Expected the frame not to load.");
+  }, "When 'loading-frame-default-eager' feature is disabled, a frame with " +
+     "'loading attribute 'auto' will be lazily loaded.");
+</script>

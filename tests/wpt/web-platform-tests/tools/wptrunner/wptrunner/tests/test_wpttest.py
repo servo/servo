@@ -62,7 +62,7 @@ def make_mock_manifest(*items):
             filename = dir_path + "/%i.html" % i
             tests.append((test_type,
                           filename,
-                          set([TestharnessTest("/foo.bar", filename, "/", filename)])))
+                          {TestharnessTest("/foo.bar", filename, "/", filename)}))
     return rv
 
 

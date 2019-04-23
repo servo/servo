@@ -29,7 +29,7 @@ use ipc_channel::router::ROUTER;
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponse, ImageState, PendingImageId};
-use net_traits::request::{CredentialsMode, Destination, RequestInit};
+use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
 };
@@ -162,15 +162,12 @@ impl HTMLVideoElement {
     ) {
         // Continuation of step 4.
         let document = document_from_node(self);
-        let request = RequestInit {
-            url: poster_url.clone(),
-            destination: Destination::Image,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
-            origin: document.origin().immutable().clone(),
-            pipeline_id: Some(document.global().pipeline_id()),
-            ..RequestInit::default()
-        };
+        let request = RequestBuilder::new(poster_url.clone())
+            .destination(Destination::Image)
+            .credentials_mode(CredentialsMode::Include)
+            .use_url_credentials(true)
+            .origin(document.origin().immutable().clone())
+            .pipeline_id(Some(document.global().pipeline_id()));
 
         // Step 5.
         // This delay must be independent from the ones created by HTMLMediaElement during

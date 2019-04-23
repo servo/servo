@@ -50,7 +50,7 @@ use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{CookieResponse, CookiesResponse};
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
-use webdriver::response::{WebDriverResponse, WindowRectResponse};
+use webdriver::response::{TimeoutsResponse, WebDriverResponse, WindowRectResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
@@ -109,7 +109,7 @@ struct WebDriverSession {
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
-    script_timeout: u64,
+    script_timeout: Option<u64>,
 
     /// Time to wait for a page to finish loading upon navigation.
     load_timeout: u64,
@@ -129,7 +129,7 @@ impl WebDriverSession {
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
 
-            script_timeout: 30_000,
+            script_timeout: Some(30_000),
             load_timeout: 300_000,
             implicit_wait_timeout: 0,
         }
@@ -971,6 +971,34 @@ impl Handler {
         }
     }
 
+    fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::DeleteCookies(sender);
+        self.browsing_context_script_command(cmd)?;
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window found.",
+            )),
+        }
+    }
+
+    fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
+
+        let timeouts = TimeoutsResponse {
+            script: session.script_timeout,
+            page_load: session.load_timeout,
+            implicit: session.implicit_wait_timeout,
+        };
+
+        Ok(WebDriverResponse::Timeouts(timeouts))
+    }
+
     fn handle_set_timeouts(
         &mut self,
         parameters: &TimeoutsParameters,
@@ -981,7 +1009,7 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         if let Some(timeout) = parameters.script {
-            session.script_timeout = timeout
+            session.script_timeout = timeout;
         }
         if let Some(timeout) = parameters.page_load {
             session.load_timeout = timeout
@@ -1019,11 +1047,14 @@ impl Handler {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
+        let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
+            format!("setTimeout(webdriverTimeout, {});", script_timeout)
+        } else {
+            "".into()
+        };
         let script = format!(
-            "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
-            self.session()?.script_timeout,
-            func_body,
-            args_string
+            "{} (function(callback) {{ {} }})({})",
+            timeout_script, func_body, args_string
         );
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1261,6 +1292,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
+            WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => match *extension {

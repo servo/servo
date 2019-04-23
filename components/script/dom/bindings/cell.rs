@@ -26,7 +26,9 @@ impl<T> DomRefCell<T> {
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
         debug_assert!(thread_state::get().is_layout());
-        &*self.value.as_ptr()
+        self.value
+            .try_borrow_unguarded()
+            .expect("cell is mutably borrowed")
     }
 
     /// Borrow the contents for the purpose of script deallocation.

@@ -15,7 +15,7 @@ use cssparser::{ParserInput, Token};
 
 /// A type that encapsulates a media query list.
 #[css(comma, derive_debug)]
-#[derive(Clone, MallocSizeOf, ToCss)]
+#[derive(Clone, MallocSizeOf, ToCss, ToShmem)]
 pub struct MediaList {
     /// The list of media queries.
     #[css(iterable)]

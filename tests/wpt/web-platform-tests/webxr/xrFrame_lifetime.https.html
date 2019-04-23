@@ -13,9 +13,6 @@
 
     let fakeDeviceInitParams = { supportsImmersive:true };
 
-    let immersiveSessionOptions = { mode: 'immersive-vr' };
-    let nonImmersiveSessionOptions = { outputContext: getOutputContext() };
-
     let testFunction = (testSession, testController, t) => new Promise((resolve) => {
       let staleFrame = null;
       let currentReferenceSpace = null;
@@ -48,9 +45,9 @@
     });
 
     xr_session_promise_test(immersiveTestName, testFunction,
-      fakeDeviceInitParams, immersiveSessionOptions);
+      fakeDeviceInitParams, 'immersive-vr');
     xr_session_promise_test(nonImmersiveTestName, testFunction,
-      fakeDeviceInitParams, nonImmersiveSessionOptions);
+      fakeDeviceInitParams, 'inline');
 
   </script>
 </body>

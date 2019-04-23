@@ -10,12 +10,12 @@ use crate::values::computed::NonNegativeNumber;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
-    GenericLengthOrNumber, MaxSize as GenericMaxSize, Size as GenericSize,
+    GenericLengthOrNumber, GenericLengthPercentageOrNormal, GenericMaxSize, GenericSize,
 };
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
-use crate::values::{specified, CSSFloat, Either, Normal};
+use crate::values::{specified, CSSFloat};
 use crate::Zero;
 use app_units::Au;
 use ordered_float::NotNan;
@@ -75,7 +75,7 @@ impl ToComputedValue for specified::Length {
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, ToAnimatedZero, ToResolvedValue)]
 #[repr(C)]
 pub struct LengthPercentage {
     length: Length,
@@ -608,6 +608,8 @@ impl Size {
     PartialOrd,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct CSSPixelLength(CSSFloat);
@@ -709,9 +711,6 @@ pub type NonNegativeLengthOrAuto = generics::GenericLengthPercentageOrAuto<NonNe
 /// Either a computed `<length>` or a `<number>` value.
 pub type LengthOrNumber = GenericLengthOrNumber<Length, Number>;
 
-/// Either a computed `<length>` or the `normal` keyword.
-pub type LengthOrNormal = Either<Length, Normal>;
-
 /// A wrapper of Length, whose value must be >= 0.
 pub type NonNegativeLength = NonNegative<Length>;
 
@@ -782,11 +781,9 @@ impl From<NonNegativeLength> for Au {
     }
 }
 
-/// Either a computed NonNegativeLength or the `normal` keyword.
-pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
-
 /// Either a computed NonNegativeLengthPercentage or the `normal` keyword.
-pub type NonNegativeLengthPercentageOrNormal = Either<NonNegativeLengthPercentage, Normal>;
+pub type NonNegativeLengthPercentageOrNormal =
+    GenericLengthPercentageOrNormal<NonNegativeLengthPercentage>;
 
 /// Either a non-negative `<length>` or a `<number>`.
 pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, NonNegativeNumber>;
@@ -809,6 +806,8 @@ pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, No
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum ExtremumLength {

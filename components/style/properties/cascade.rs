@@ -683,6 +683,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn recompute_default_font_family_type_if_needed(&mut self) {
         use crate::gecko_bindings::{bindings, structs};
+        use crate::values::computed::font::GenericFontFamily;
 
         if !self.seen.contains(LonghandId::XLang) &&
            !self.seen.contains(LonghandId::FontFamily) {
@@ -697,7 +698,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // System fonts are all right, and should have the default font type
             // set to none already, so bail out early.
             if font.mFont.systemFont {
-                debug_assert_eq!(font.mFont.fontlist.mDefaultFontType, structs::FontFamilyType::eFamily_none);
+                debug_assert_eq!(font.mFont.fontlist.mDefaultFontType, GenericFontFamily::None);
                 return;
             }
 
@@ -717,11 +718,11 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 !use_document_fonts &&
                 matches!(
                     font.mGenericID,
-                    structs::kGenericFont_NONE |
-                    structs::kGenericFont_fantasy |
-                    structs::kGenericFont_cursive
+                    GenericFontFamily::None |
+                    GenericFontFamily::Fantasy |
+                    GenericFontFamily::Cursive
                 ) &&
-                default_font_type != structs::FontFamilyType::eFamily_none;
+                default_font_type != GenericFontFamily::None;
 
             if !prioritize_user_fonts && default_font_type == font.mFont.fontlist.mDefaultFontType {
                 // Nothing to do.

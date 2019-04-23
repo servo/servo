@@ -65,7 +65,7 @@ pub enum CalcUnit {
 /// relative lengths, and to_computed_pixel_length_without_context() handles
 /// this case. Therefore, if you want to add a new field, please make sure this
 /// function work properly.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 pub struct CalcLengthPercentage {
     pub clamping_mode: AllowedNumericType,

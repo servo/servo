@@ -35,13 +35,12 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 
-use servo_media::streams::MediaStream as BackendMediaStream;
+use servo_media::streams::registry::MediaStreamId;
 use servo_media::webrtc::{
     BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
     SignalingState, WebRtcController, WebRtcSignaller,
 };
 use servo_media::ServoMedia;
-use servo_media_auto::Backend;
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -128,7 +127,7 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
-    fn on_add_stream(&self, _: Box<BackendMediaStream>) {}
+    fn on_add_stream(&self, _: &MediaStreamId) {}
 
     fn close(&self) {
         // do nothing
@@ -159,7 +158,6 @@ impl RTCPeerConnection {
             RTCPeerConnectionBinding::Wrap,
         );
         let signaller = this.make_signaller();
-        ServoMedia::init::<Backend>();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
         if let Some(ref servers) = config.iceServers {
             if let Some(ref server) = servers.get(0) {
@@ -572,7 +570,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     fn AddStream(&self, stream: &MediaStream) {
         let mut tracks = stream.get_tracks();
 
-        for track in tracks.drain(..) {
+        for ref track in tracks.drain(..) {
             self.controller.borrow().as_ref().unwrap().add_stream(track);
         }
     }

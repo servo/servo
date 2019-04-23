@@ -1,5 +1,4 @@
 // META: global=jsshell
-// META: script=/wasm/jsapi/wasm-constants.js
 // META: script=/wasm/jsapi/wasm-module-builder.js
 
 function assert_Module(module) {
@@ -64,9 +63,9 @@ promise_test(t => {
   return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly.compile(buffer));
 }, "Empty buffer");
 
-test(() => {
+promise_test(t => {
   const buffer = new Uint8Array(Array.from(emptyModuleBinary).concat([0, 0]));
-  assert_throws(new WebAssembly.CompileError(), () => WebAssembly.compile(buffer));
+  return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly.compile(buffer));
 }, "Invalid code");
 
 promise_test(() => {
@@ -78,7 +77,7 @@ promise_test(() => {
 }, "Stray argument");
 
 promise_test(() => {
-  const buffer = new Uint8Array(new WasmModuleBuilder().toBuffer());
+  const buffer = new WasmModuleBuilder().toBuffer();
   assert_equals(buffer[0], 0);
   const promise = WebAssembly.compile(buffer);
   buffer[0] = 1;

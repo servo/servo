@@ -31,4 +31,4 @@ servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = "1.2"
 uuid = {version = "0.7", features = ["v4"]}
-webdriver = "0.38"
+webdriver = "0.39"

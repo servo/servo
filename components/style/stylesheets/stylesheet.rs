@@ -107,6 +107,34 @@ impl StylesheetContents {
         }
     }
 
+    /// Creates a new StylesheetContents with the specified pre-parsed rules,
+    /// origin, URL data, and quirks mode.
+    ///
+    /// Since the rules have already been parsed, and the intention is that
+    /// this function is used for read only User Agent style sheets, an empty
+    /// namespace map is used, and the source map and source URLs are set to
+    /// None.
+    ///
+    /// An empty namespace map should be fine, as it is only used for parsing,
+    /// not serialization of existing selectors.  Since UA sheets are read only,
+    /// we should never need the namespace map.
+    pub fn from_shared_data(
+        rules: Arc<Locked<CssRules>>,
+        origin: Origin,
+        url_data: UrlExtraData,
+        quirks_mode: QuirksMode,
+    ) -> Self {
+        Self {
+            rules,
+            origin,
+            url_data: RwLock::new(url_data),
+            namespaces: RwLock::new(Namespaces::default()),
+            quirks_mode,
+            source_map_url: RwLock::new(None),
+            source_url: RwLock::new(None),
+        }
+    }
+
     /// Returns a reference to the list of rules.
     #[inline]
     pub fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {

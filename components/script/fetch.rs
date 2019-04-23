@@ -24,7 +24,7 @@ use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
-use net_traits::request::RequestInit as NetTraitsRequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
@@ -98,16 +98,18 @@ fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<ServoUrl>
     request.referrer.to_url().map(|url| url.clone())
 }
 
-fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit {
-    NetTraitsRequestInit {
+fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
+    RequestBuilder {
         method: request.method.clone(),
         url: request.url(),
         headers: request.headers.clone(),
         unsafe_request: request.unsafe_request,
         body: request.body.clone(),
+        service_workers_mode: ServiceWorkersMode::All,
         destination: request.destination,
         synchronous: request.synchronous,
         mode: request.mode.clone(),
+        cache_mode: request.cache_mode,
         use_cors_preflight: request.use_cors_preflight,
         credentials_mode: request.credentials_mode,
         use_url_credentials: request.use_url_credentials,
@@ -120,8 +122,8 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
         redirect_mode: request.redirect_mode,
-        cache_mode: request.cache_mode,
-        ..NetTraitsRequestInit::default()
+        integrity_metadata: "".to_owned(),
+        url_list: vec![],
     }
 }
 

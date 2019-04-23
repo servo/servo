@@ -14,7 +14,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// A binary `and` or `or` operator.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
 #[allow(missing_docs)]
 pub enum Operator {
     And,
@@ -29,7 +29,7 @@ enum AllowOr {
 }
 
 /// Represents a media condition.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum MediaCondition {
     /// A simple media feature expression, implicitly parenthesized.
     Feature(MediaFeatureExpression),

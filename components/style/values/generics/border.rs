@@ -12,7 +12,16 @@ use style_traits::{CssWriter, ToCss};
 
 /// A generic value for a single side of a `border-image-width` property.
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum BorderImageSideWidth<LengthPercentage, Number> {
     /// `<length-or-percentage>`
@@ -25,7 +34,16 @@ pub enum BorderImageSideWidth<LengthPercentage, Number> {
 
 /// A generic value for the `border-image-slice` property.
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct GenericBorderImageSlice<NumberOrPercentage> {
@@ -53,9 +71,15 @@ pub use self::GenericBorderImageSlice as BorderImageSlice;
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
-pub struct GenericBorderCornerRadius<L>(#[css(field_bound)] pub Size2D<L>);
+pub struct GenericBorderCornerRadius<L>(
+    #[css(field_bound)]
+    #[shmem(field_bound)]
+    pub Size2D<L>,
+);
 
 pub use self::GenericBorderCornerRadius as BorderCornerRadius;
 
@@ -90,9 +114,15 @@ impl<L: Zero> Zero for BorderCornerRadius<L> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(transparent)]
-pub struct BorderSpacing<L>(#[css(field_bound)] pub Size2D<L>);
+pub struct BorderSpacing<L>(
+    #[css(field_bound)]
+    #[shmem(field_bound)]
+    pub Size2D<L>,
+);
 
 impl<L> BorderSpacing<L> {
     /// Trivially create a `BorderCornerRadius`.
@@ -115,10 +145,13 @@ impl<L> BorderSpacing<L> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct GenericBorderRadius<LengthPercentage> {
     /// The top left radius.
+    #[shmem(field_bound)]
     pub top_left: GenericBorderCornerRadius<LengthPercentage>,
     /// The top right radius.
     pub top_right: GenericBorderCornerRadius<LengthPercentage>,

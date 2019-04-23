@@ -146,7 +146,7 @@ class TokenizerTest(unittest.TestCase):
 """)
 
     def test_18(self):
-        self.compare("""key: \]
+        self.compare(r"""key: \]
         """, """key: ]
 """)
 

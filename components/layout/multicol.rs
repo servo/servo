@@ -19,9 +19,10 @@ use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::length::{MaxSize, NonNegativeLengthOrAuto, Size};
+use style::values::computed::length::{
+    MaxSize, NonNegativeLengthOrAuto, NonNegativeLengthPercentageOrNormal, Size,
+};
 use style::values::generics::column::ColumnCount;
-use style::values::Either;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for MulticolFlow {}
@@ -106,8 +107,10 @@ impl Flow for MulticolFlow {
         {
             let style = &self.block_flow.fragment.style;
             let column_gap = match style.get_position().column_gap {
-                Either::First(len) => len.0.to_pixel_length(content_inline_size).into(),
-                Either::Second(_normal) => {
+                NonNegativeLengthPercentageOrNormal::LengthPercentage(len) => {
+                    len.0.to_pixel_length(content_inline_size).into()
+                },
+                NonNegativeLengthPercentageOrNormal::Normal => {
                     self.block_flow.fragment.style.get_font().font_size.size()
                 },
             };
