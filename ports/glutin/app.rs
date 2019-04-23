@@ -7,7 +7,8 @@
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::window_trait::WindowPortsMethods;
-use crate::{headed_window, headless_window};
+use crate::events_loop::EventsLoop;
+use crate::{headed_window, headless_window, events_loop};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
@@ -19,7 +20,7 @@ use std::mem;
 use std::rc::Rc;
 
 pub struct App {
-    events_loop: Rc<RefCell<glutin::EventsLoop>>,
+    events_loop: Rc<RefCell<EventsLoop>>,
     window: Rc<WindowPortsMethods>,
     servo: RefCell<Servo<WindowPortsMethods>>,
     browser: RefCell<Browser<WindowPortsMethods>>,
@@ -31,15 +32,13 @@ impl App {
     pub fn run() {
         let opts = opts::get();
 
-        let events_loop = glutin::EventsLoop::new();
+        let events_loop = events_loop::EventsLoop::new(opts.headless);
 
         let window = if opts.headless {
             headless_window::Window::new(opts.initial_window_size)
         } else {
-            headed_window::Window::new(opts.initial_window_size, &events_loop)
+            headed_window::Window::new(opts.initial_window_size, events_loop.borrow().as_winit())
         };
-
-        let events_loop = Rc::new(RefCell::new(events_loop));
 
         let embedder = Box::new(EmbedderCallbacks::new(
             events_loop.clone(),
@@ -74,6 +73,7 @@ impl App {
 
     fn winit_event_to_servo_event(&self, event: glutin::Event) {
         match event {
+
             // App level events
             glutin::Event::Suspended(suspended) => {
                 self.suspended.set(suspended);
@@ -85,6 +85,7 @@ impl App {
                 self.event_queue.borrow_mut().push(WindowEvent::Idle);
             },
             glutin::Event::DeviceEvent { .. } => {},
+
             // Window level events
             glutin::Event::WindowEvent {
                 window_id, event, ..

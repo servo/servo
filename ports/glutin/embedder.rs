@@ -5,6 +5,7 @@
 //! Implements the global methods required by Servo (not window/gl/compositor related).
 
 use crate::app;
+use crate::events_loop::EventsLoop;
 use gleam::gl;
 use glutin;
 use glutin::dpi::LogicalSize;
@@ -17,45 +18,21 @@ use servo::webvr::VRServiceManager;
 use servo::webvr_traits::WebVRMainThreadHeartbeat;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 pub struct EmbedderCallbacks {
-    events_loop: Rc<RefCell<glutin::EventsLoop>>,
+    events_loop: Rc<RefCell<EventsLoop>>,
     gl: Rc<dyn gl::Gl>,
 }
 
 impl EmbedderCallbacks {
-    pub fn new(events_loop: Rc<RefCell<glutin::EventsLoop>>, gl: Rc<gl::Gl>) -> EmbedderCallbacks {
+    pub fn new(events_loop: Rc<RefCell<EventsLoop>>, gl: Rc<gl::Gl>) -> EmbedderCallbacks {
         EmbedderCallbacks { events_loop, gl }
     }
 }
 
 impl EmbedderMethods for EmbedderCallbacks {
     fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
-        struct GlutinEventLoopWaker {
-            proxy: Arc<glutin::EventsLoopProxy>,
-        }
-        impl GlutinEventLoopWaker {
-            fn new(events_loop: &glutin::EventsLoop) -> GlutinEventLoopWaker {
-                let proxy = Arc::new(events_loop.create_proxy());
-                GlutinEventLoopWaker { proxy }
-            }
-        }
-        impl EventLoopWaker for GlutinEventLoopWaker {
-            fn wake(&self) {
-                // kick the OS event loop awake.
-                if let Err(err) = self.proxy.wakeup() {
-                    warn!("Failed to wake up event loop ({}).", err);
-                }
-            }
-            fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
-                Box::new(GlutinEventLoopWaker {
-                    proxy: self.proxy.clone(),
-                })
-            }
-        }
-
-        Box::new(GlutinEventLoopWaker::new(&self.events_loop.borrow()))
+        self.events_loop.borrow().create_event_loop_waker()
     }
 
     fn register_vr_services(
@@ -79,7 +56,7 @@ impl EmbedderMethods for EmbedderCallbacks {
                     .with_gl(app::gl_version())
                     .with_vsync(false); // Assume the browser vsync is the same as the test VR window vsync
                 let gl_window =
-                    GlWindow::new(window_builder, context_builder, &*self.events_loop.borrow())
+                    GlWindow::new(window_builder, context_builder, &*self.events_loop.borrow().as_winit())
                         .expect("Failed to create window.");
                 let gl = self.gl.clone();
                 let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
