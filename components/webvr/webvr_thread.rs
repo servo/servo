@@ -16,7 +16,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::{thread, time};
 use webvr_traits::webvr::*;
-use webvr_traits::{WebVRMsg, WebVRResult};
+use webvr_traits::{WebVRMsg, WebVRPoseInformation, WebVRResult};
 
 /// WebVRThread owns native VRDisplays, handles their life cycle inside Servo and
 /// acts a doorman for untrusted VR requests from DOM Objects. These are the key components
@@ -386,10 +386,23 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                     unsafe { (*compositor.0).start_present(None) };
                 }
             },
-            webgl::WebVRCommand::SyncPoses(compositor_id, near, far, sender) => {
+            webgl::WebVRCommand::SyncPoses(compositor_id, near, far, get_gamepads, sender) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
-                    let pose = unsafe { (*compositor.0).future_frame_data(near, far) };
-                    let _ = sender.send(Ok(pose));
+                    let frame = unsafe { (*compositor.0).future_frame_data(near, far) };
+                    let mut gamepads = vec![];
+                    if get_gamepads {
+                        let gp = unsafe { (*compositor.0).fetch_gamepads() };
+                        if let Ok(gp) = gp {
+                            gamepads = gp
+                                .into_iter()
+                                .map(|g| {
+                                    let g = g.borrow();
+                                    (g.id(), g.state())
+                                })
+                                .collect();
+                        }
+                    }
+                    let _ = sender.send(Ok(WebVRPoseInformation { frame, gamepads }));
                 } else {
                     let _ = sender.send(Err(()));
                 }

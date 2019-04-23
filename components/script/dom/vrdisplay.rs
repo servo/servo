@@ -51,7 +51,7 @@ use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::thread;
-use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRFutureFrameData};
+use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRPoseInformation};
 use webvr_traits::{WebVRLayer, WebVRMsg};
 
 #[dom_struct]
@@ -86,7 +86,7 @@ pub struct VRDisplay {
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_malloc_size_of = "closures are hard"]
-    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<WebVRFutureFrameData, ()>>>>,
+    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<WebVRPoseInformation, ()>>>>,
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
@@ -726,8 +726,13 @@ impl VRDisplay {
                             .unwrap();
 
                         // Run Sync Poses in parallell on Render thread
-                        let msg =
-                            WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
+                        let msg = WebVRCommand::SyncPoses(
+                            display_id,
+                            near,
+                            far,
+                            false,
+                            sync_sender.clone(),
+                        );
                         api_sender.send_vr(msg).unwrap();
                     } else {
                         let _ = wakeup_receiver.recv();
@@ -808,8 +813,8 @@ impl VRDisplay {
     fn sync_frame_data(&self) {
         let status = if let Some(receiver) = self.frame_data_receiver.borrow().as_ref() {
             match receiver.recv().unwrap() {
-                Ok(future_data) => {
-                    *self.frame_data.borrow_mut() = future_data.block();
+                Ok(pose) => {
+                    *self.frame_data.borrow_mut() = pose.frame.block();
                     VRFrameDataStatus::Synced
                 },
                 Err(()) => VRFrameDataStatus::Exit,

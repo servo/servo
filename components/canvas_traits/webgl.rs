@@ -12,7 +12,7 @@ use std::fmt;
 use std::num::NonZeroU32;
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
-use webvr_traits::WebVRFutureFrameData;
+use webvr_traits::WebVRPoseInformation;
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use crate::webgl_channel::webgl_channel;
@@ -508,9 +508,13 @@ pub enum WebVRCommand {
     /// Synchronize the pose information to be used in the frame.
     SyncPoses(
         WebVRDeviceId,
+        // near
         f64,
+        // far
         f64,
-        WebGLSender<Result<WebVRFutureFrameData, ()>>,
+        // sync gamepads too
+        bool,
+        WebGLSender<Result<WebVRPoseInformation, ()>>,
     ),
     /// Submit the frame to a VR device using the specified texture coordinates.
     SubmitFrame(WebVRDeviceId, [f32; 4], [f32; 4]),

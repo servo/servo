@@ -30,3 +30,12 @@ pub use rust_webvr_api::VRLayer as WebVRLayer;
 pub use rust_webvr_api::VRMainThreadHeartbeat as WebVRMainThreadHeartbeat;
 pub use rust_webvr_api::VRPose as WebVRPose;
 pub use rust_webvr_api::VRStageParameters as WebVRStageParameters;
+
+#[derive(Deserialize, Serialize)]
+pub struct WebVRPoseInformation {
+    pub frame: WebVRFutureFrameData,
+    /// List of gamepad ids and their state
+    /// This currently not a future: we may want to change this if platforms
+    /// have restrictions on which thread may request gamepad state
+    pub gamepads: Vec<(u32, WebVRGamepadState)>,
+}
