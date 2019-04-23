@@ -1085,6 +1085,8 @@ impl LonghandId {
         }
     }
 
+    // TODO(emilio): Should we use a function table like CASCADE_PROPERTY does
+    // to avoid blowing up code-size here?
     fn parse_value<'i, 't>(
         &self,
         context: &ParserContext,
@@ -1532,64 +1534,7 @@ impl UnparsedValue {
         quirks_mode: QuirksMode,
         environment: &::custom_properties::CssEnvironment,
     ) -> PropertyDeclaration {
-        crate::custom_properties::substitute(
-            &self.css,
-            self.first_token_type,
-            custom_properties,
-            environment,
-        ).ok().and_then(|css| {
-            // As of this writing, only the base URL is used for property
-            // values.
-            //
-            // NOTE(emilio): we intentionally pase `None` as the rule type here.
-            // If something starts depending on it, it's probably a bug, since
-            // it'd change how values are parsed depending on whether we're in a
-            // @keyframes rule or not, for example... So think twice about
-            // whether you want to do this!
-            //
-            // FIXME(emilio): ParsingMode is slightly fishy...
-            let context = ParserContext::new(
-                Origin::Author,
-                &self.url_data,
-                None,
-                ParsingMode::DEFAULT,
-                quirks_mode,
-                None,
-                None,
-            );
-
-            let mut input = ParserInput::new(&css);
-            Parser::new(&mut input).parse_entirely(|input| {
-                match self.from_shorthand {
-                    None => longhand_id.parse_value(&context, input),
-                    Some(ShorthandId::All) => {
-                        // No need to parse the 'all' shorthand as anything other than a CSS-wide
-                        // keyword, after variable substitution.
-                        Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("all".into())))
-                    }
-                    % for shorthand in data.shorthands_except_all():
-                        Some(ShorthandId::${shorthand.camel_case}) => {
-                            shorthands::${shorthand.ident}::parse_value(&context, input)
-                            .map(|longhands| {
-                                match longhand_id {
-                                    % for property in shorthand.sub_properties:
-                                        LonghandId::${property.camel_case} => {
-                                            PropertyDeclaration::${property.camel_case}(
-                                                longhands.${property.ident}
-                                            )
-                                        }
-                                    % endfor
-                                    _ => unreachable!()
-                                }
-                            })
-                        }
-                    % endfor
-                }
-            })
-            .ok()
-        })
-        .unwrap_or_else(|| {
-            // Invalid at computed-value time.
+        let invalid_at_computed_value_time = || {
             let keyword = if longhand_id.inherited() {
                 CSSWideKeyword::Inherit
             } else {
@@ -1599,7 +1544,80 @@ impl UnparsedValue {
                 id: longhand_id,
                 keyword,
             })
-        })
+        };
+
+        let css = match crate::custom_properties::substitute(
+            &self.css,
+            self.first_token_type,
+            custom_properties,
+            environment,
+        ) {
+            Ok(css) => css,
+            Err(..) => return invalid_at_computed_value_time(),
+        };
+
+        // As of this writing, only the base URL is used for property
+        // values.
+        //
+        // NOTE(emilio): we intentionally pase `None` as the rule type here.
+        // If something starts depending on it, it's probably a bug, since
+        // it'd change how values are parsed depending on whether we're in a
+        // @keyframes rule or not, for example... So think twice about
+        // whether you want to do this!
+        //
+        // FIXME(emilio): ParsingMode is slightly fishy...
+        let context = ParserContext::new(
+            Origin::Author,
+            &self.url_data,
+            None,
+            ParsingMode::DEFAULT,
+            quirks_mode,
+            None,
+            None,
+        );
+
+        let mut input = ParserInput::new(&css);
+        let mut input = Parser::new(&mut input);
+        input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+        if let Ok(keyword) = input.try(CSSWideKeyword::parse) {
+            return PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
+                id: longhand_id,
+                keyword,
+            });
+        }
+
+        let declaration = input.parse_entirely(|input| {
+            match self.from_shorthand {
+                None => longhand_id.parse_value(&context, input),
+                Some(ShorthandId::All) => {
+                    // No need to parse the 'all' shorthand as anything other
+                    // than a CSS-wide keyword, after variable substitution.
+                    Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("all".into())))
+                }
+                % for shorthand in data.shorthands_except_all():
+                Some(ShorthandId::${shorthand.camel_case}) => {
+                    shorthands::${shorthand.ident}::parse_value(&context, input)
+                    .map(|longhands| {
+                        match longhand_id {
+                            % for property in shorthand.sub_properties:
+                                LonghandId::${property.camel_case} => {
+                                    PropertyDeclaration::${property.camel_case}(
+                                        longhands.${property.ident}
+                                    )
+                                }
+                            % endfor
+                            _ => unreachable!()
+                        }
+                    })
+                }
+                % endfor
+            }
+        });
+
+        match declaration {
+            Ok(decl) => decl,
+            Err(..) => invalid_at_computed_value_time(),
+        }
     }
 }
 
