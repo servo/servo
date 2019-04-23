@@ -635,29 +635,22 @@ macro_rules! handle_potential_webgl_error {
 
 macro_rules! impl_rare_data (
     ($type:ty) => (
-        fn init_rare_data(&self) {
+        fn rare_data(&self) -> Ref<Option<Box<$type>>> {
+            self.rare_data.borrow()
+        }
+
+        fn ensure_rare_data(&self) -> RefMut<Box<$type>> {
             let mut rare_data = self.rare_data.borrow_mut();
             if rare_data.is_none() {
                 *rare_data = Some(Default::default());
             }
-        }
-
-        fn rare_data(&self) -> Ref<Option<Box<$type>>> {
-            self.init_rare_data();
-            self.rare_data.borrow()
-        }
-
-        fn rare_data_mut(&self) -> RefMut<Option<Box<$type>>> {
-            self.init_rare_data();
-            self.rare_data.borrow_mut()
+            RefMut::map(rare_data, |rare_data| {
+                rare_data.as_mut().unwrap()
+            })
         }
 
         #[allow(unsafe_code)]
         fn rare_data_for_layout(&self) -> &Option<Box<$type>> {
-            let mut rare_data = self.rare_data.borrow_mut_for_layout();
-            if rare_data.is_none() {
-                *rare_data = Some(Default::default());
-            }
             unsafe { self.rare_data.borrow_for_layout() }
         }
     );

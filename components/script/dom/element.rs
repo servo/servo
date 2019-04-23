@@ -332,75 +332,60 @@ impl Element {
     }
 
     pub fn set_custom_element_state(&self, state: CustomElementState) {
-        self.rare_data_mut().as_mut().unwrap().custom_element_state = state;
+        self.ensure_rare_data().custom_element_state = state;
     }
 
     pub fn get_custom_element_state(&self) -> CustomElementState {
-        self.rare_data().as_ref().unwrap().custom_element_state
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            return rare_data.custom_element_state;
+        }
+        CustomElementState::Undefined
     }
 
     pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
-        self.rare_data_mut()
-            .as_mut()
-            .unwrap()
-            .custom_element_definition = Some(definition);
+        self.ensure_rare_data().custom_element_definition = Some(definition);
     }
 
     pub fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
-        self.rare_data()
-            .as_ref()
-            .unwrap()
-            .custom_element_definition
-            .clone()
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            return rare_data.custom_element_definition.clone();
+        }
+        None
     }
 
     pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
-        self.rare_data_mut()
-            .as_mut()
-            .unwrap()
+        self.ensure_rare_data()
             .custom_element_reaction_queue
             .push(CustomElementReaction::Callback(function, args));
     }
 
     pub fn push_upgrade_reaction(&self, definition: Rc<CustomElementDefinition>) {
-        self.rare_data_mut()
-            .as_mut()
-            .unwrap()
+        self.ensure_rare_data()
             .custom_element_reaction_queue
             .push(CustomElementReaction::Upgrade(definition));
     }
 
     pub fn clear_reaction_queue(&self) {
-        self.rare_data_mut()
-            .as_mut()
-            .unwrap()
+        self.ensure_rare_data()
             .custom_element_reaction_queue
             .clear();
     }
 
     pub fn invoke_reactions(&self) {
-        // TODO: This is not spec compliant, as this will allow some reactions to be processed
-        // after clear_reaction_queue has been called.
-        rooted_vec!(let mut reactions);
-        while !self
-            .rare_data()
-            .as_ref()
-            .unwrap()
-            .custom_element_reaction_queue
-            .is_empty()
-        {
-            mem::swap(
-                &mut *reactions,
-                &mut self
-                    .rare_data_mut()
-                    .as_mut()
-                    .unwrap()
-                    .custom_element_reaction_queue,
-            );
-            for reaction in reactions.iter() {
-                reaction.invoke(self);
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            // TODO: This is not spec compliant, as this will allow some reactions to be processed
+            // after clear_reaction_queue has been called.
+            rooted_vec!(let mut reactions);
+            while !rare_data.custom_element_reaction_queue.is_empty() {
+                mem::swap(
+                    &mut *reactions,
+                    &mut self.ensure_rare_data().custom_element_reaction_queue,
+                );
+                for reaction in reactions.iter() {
+                    reaction.invoke(self);
+                }
+                reactions.clear();
             }
-            reactions.clear();
         }
     }
 
@@ -458,7 +443,10 @@ impl Element {
     }
 
     pub fn is_shadow_host(&self) -> bool {
-        self.rare_data().as_ref().unwrap().shadow_root.is_some()
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            return rare_data.shadow_root.is_some();
+        }
+        false
     }
 
     /// https://dom.spec.whatwg.org/#dom-element-attachshadow
@@ -502,7 +490,7 @@ impl Element {
 
         // Steps 4, 5 and 6.
         let shadow_root = ShadowRoot::new(self, &*self.node.owner_doc());
-        self.rare_data_mut().as_mut().unwrap().shadow_root = Some(Dom::from_ref(&*shadow_root));
+        self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
 
         if self.is_connected() {
             self.node.owner_doc().register_shadow_root(&*shadow_root);
@@ -1076,13 +1064,10 @@ impl LayoutElementHelpers for LayoutDom<Element> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
-        (*self.unsafe_get())
-            .rare_data_for_layout()
-            .as_ref()
-            .unwrap()
-            .shadow_root
-            .as_ref()
-            .map(|sr| sr.to_layout())
+        if let Some(rare_data) = (*self.unsafe_get()).rare_data_for_layout().as_ref() {
+            return rare_data.shadow_root.as_ref().map(|sr| sr.to_layout());
+        }
+        None
     }
 }
 
@@ -2826,13 +2811,15 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(ref shadow_root) = self.rare_data().as_ref().unwrap().shadow_root {
-            doc.register_shadow_root(&shadow_root);
-            let shadow_root = shadow_root.upcast::<Node>();
-            shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-            for node in shadow_root.children() {
-                node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-                node.bind_to_tree(context);
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            if let Some(ref shadow_root) = rare_data.shadow_root {
+                doc.register_shadow_root(&shadow_root);
+                let shadow_root = shadow_root.upcast::<Node>();
+                shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+                for node in shadow_root.children() {
+                    node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+                    node.bind_to_tree(context);
+                }
             }
         }
 
@@ -2864,13 +2851,15 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(ref shadow_root) = self.rare_data().as_ref().unwrap().shadow_root {
-            doc.unregister_shadow_root(&shadow_root);
-            let shadow_root = shadow_root.upcast::<Node>();
-            shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
-            for node in shadow_root.children() {
-                node.set_flag(NodeFlags::IS_CONNECTED, false);
-                node.unbind_from_tree(context);
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            if let Some(ref shadow_root) = rare_data.shadow_root {
+                doc.unregister_shadow_root(&shadow_root);
+                let shadow_root = shadow_root.upcast::<Node>();
+                shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
+                for node in shadow_root.children() {
+                    node.set_flag(NodeFlags::IS_CONNECTED, false);
+                    node.unbind_from_tree(context);
+                }
             }
         }
 
