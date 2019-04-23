@@ -73,7 +73,6 @@ impl App {
 
     fn winit_event_to_servo_event(&self, event: glutin::Event) {
         match event {
-
             // App level events
             glutin::Event::Suspended(suspended) => {
                 self.suspended.set(suspended);
