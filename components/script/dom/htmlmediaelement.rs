@@ -1300,7 +1300,8 @@ impl HTMLMediaElement {
                     }
                 }
             },
-            PlayerEvent::Error => {
+            PlayerEvent::Error(ref error) => {
+                error!("Player error: {:?}", error);
                 self.error.set(Some(&*MediaError::new(
                     &*window_from_node(self),
                     MEDIA_ERR_DECODE,

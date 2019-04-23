@@ -104,7 +104,6 @@ use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationCha
 use servo_config::opts;
 use servo_config::{pref, prefs};
 use servo_media::ServoMedia;
-use servo_media_auto::Backend;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
@@ -117,6 +116,26 @@ pub use keyboard_types;
 pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "arm"),
+    target_arch = "x86_64"
+))]
+mod media_platform {
+    pub use self::servo_media_gstreamer::GStreamerBackend as MediaBackend;
+    use servo_media_gstreamer;
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "arm"),
+    target_arch = "x86_64"
+)))]
+mod media_platform {
+    pub use self::servo_media_dummy::DummyBackend as MediaBackend;
+    use servo_media_dummy;
+}
+
+type MediaBackend = media_platform::MediaBackend;
 
 /// The in-process interface to Servo.
 ///
@@ -185,7 +204,7 @@ where
         let opts = opts::get();
 
         if !opts.multiprocess {
-            ServoMedia::init::<Backend>();
+            ServoMedia::init::<MediaBackend>();
         }
 
         // Make sure the gl context is made current.
@@ -757,7 +776,7 @@ pub fn run_content_process(token: String) {
     script::init();
     script::init_service_workers(sw_senders);
 
-    ServoMedia::init::<Backend>();
+    ServoMedia::init::<MediaBackend>();
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
