@@ -546,7 +546,7 @@ where
     }
 }
 
-/// The set of stylesheets effective for a given XBL binding or Shadow Root.
+/// The set of stylesheets effective for a given Shadow Root.
 #[derive(MallocSizeOf)]
 pub struct AuthorStylesheetSet<S>
 where

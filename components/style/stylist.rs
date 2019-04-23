@@ -636,7 +636,7 @@ impl Stylist {
         let mut maybe = false;
 
         let doc_author_rules_apply =
-            element.each_applicable_non_document_style_rule_data(|data, _, _| {
+            element.each_applicable_non_document_style_rule_data(|data, _| {
                 maybe = maybe || f(&*data);
             });
 
@@ -1072,12 +1072,6 @@ impl Stylist {
     /// Returns whether, given a media feature change, any previously-applicable
     /// style has become non-applicable, or vice-versa for each origin, using
     /// `device`.
-    ///
-    /// Passing `device` is needed because this is used for XBL in Gecko, which
-    /// can be stale in various ways, so we need to pass the device of the
-    /// document itself, which is what is kept up-to-date.
-    ///
-    /// Arguably XBL should use something more lightweight than a Stylist.
     pub fn media_features_change_changed_style(
         &self,
         guards: &StylesheetGuards,
@@ -1261,11 +1255,11 @@ impl Stylist {
         let mut results = SmallBitVec::new();
 
         let matches_document_rules =
-            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
+            element.each_applicable_non_document_style_rule_data(|data, host| {
                 matching_context.with_shadow_host(host, |matching_context| {
                     data.selectors_for_cache_revalidation.lookup(
                         element,
-                        quirks_mode,
+                        self.quirks_mode,
                         |selector_and_hashes| {
                             results.push(matches_selector(
                                 &selector_and_hashes.selector,

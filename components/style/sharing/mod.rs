@@ -727,27 +727,6 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        // Note that in theory we shouldn't need this XBL check. However, XBL is
-        // absolutely broken in all sorts of ways.
-        //
-        // A style change that changes which XBL binding applies to an element
-        // arrives there, with the element still having the old prototype
-        // binding attached. And thus we try to match revalidation selectors
-        // with the old XBL binding, because we can't look at the new ones of
-        // course. And that causes us to revalidate with the wrong selectors and
-        // hit assertions.
-        //
-        // Other than this, we don't need anything else like the containing XBL
-        // binding parent or what not, since two elements with different XBL
-        // bindings will necessarily end up with different style.
-        if !target
-            .element
-            .has_same_xbl_proto_binding_as(candidate.element)
-        {
-            trace!("Miss: Different proto bindings");
-            return None;
-        }
-
         // If the elements are not assigned to the same slot they could match
         // different ::slotted() rules in the slot scope.
         //

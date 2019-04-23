@@ -224,8 +224,8 @@ where
 
         let mut shadow_rule_datas = SmallVec::<[_; 3]>::new();
         let matches_document_author_rules =
-            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
-                shadow_rule_datas.push((data, quirks_mode, host.map(|h| h.opaque())))
+            element.each_applicable_non_document_style_rule_data(|data, host| {
+                shadow_rule_datas.push((data, host.opaque()))
             });
 
         let invalidated_self = {
@@ -258,12 +258,8 @@ where
                 }
             }
 
-            for &(ref data, quirks_mode, ref host) in &shadow_rule_datas {
-                // FIXME(emilio): Replace with assert / remove when we figure
-                // out what to do with the quirks mode mismatches
-                // (that is, when bug 1406875 is properly fixed).
-                collector.matching_context.set_quirks_mode(quirks_mode);
-                collector.matching_context.current_host = host.clone();
+            for &(ref data, ref host) in &shadow_rule_datas {
+                collector.matching_context.current_host = Some(host.clone());
                 collector.collect_dependencies_in_invalidation_map(data.invalidation_map());
             }
 

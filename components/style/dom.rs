@@ -761,7 +761,7 @@ pub trait TElement:
     /// Returns the anonymous content for the current element's XBL binding,
     /// given if any.
     ///
-    /// This is used in Gecko for XBL and shadow DOM.
+    /// This is used in Gecko for XBL.
     fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
         None
     }
@@ -771,11 +771,6 @@ pub trait TElement:
 
     /// The shadow root which roots the subtree this element is contained in.
     fn containing_shadow(&self) -> Option<<Self::ConcreteNode as TNode>::ConcreteShadowRoot>;
-
-    /// XBL hack for style sharing. :(
-    fn has_same_xbl_proto_binding_as(&self, _other: Self) -> bool {
-        true
-    }
 
     /// Return the element which we can use to look up rules in the selector
     /// maps.
@@ -792,56 +787,34 @@ pub trait TElement:
         }
     }
 
-    /// Implements Gecko's `nsBindingManager::WalkRules`.
-    ///
-    /// Returns whether to cut off the binding inheritance, that is, whether
-    /// document rules should _not_ apply.
-    fn each_xbl_cascade_data<'a, F>(&self, _: F) -> bool
-    where
-        Self: 'a,
-        F: FnMut(&'a CascadeData, QuirksMode),
-    {
-        false
-    }
-
     /// Executes the callback for each applicable style rule data which isn't
     /// the main document's data (which stores UA / author rules).
     ///
     /// The element passed to the callback is the containing shadow host for the
-    /// data if it comes from Shadow DOM, None if it comes from XBL.
+    /// data if it comes from Shadow DOM.
     ///
     /// Returns whether normal document author rules should apply.
     fn each_applicable_non_document_style_rule_data<'a, F>(&self, mut f: F) -> bool
     where
         Self: 'a,
-        F: FnMut(&'a CascadeData, QuirksMode, Option<Self>),
+        F: FnMut(&'a CascadeData, Self),
     {
         use rule_collector::containing_shadow_ignoring_svg_use;
 
-        let mut doc_rules_apply = !self.each_xbl_cascade_data(|data, quirks_mode| {
-            f(data, quirks_mode, None);
-        });
+        let mut doc_rules_apply = self.matches_user_and_author_rules();
 
         // Use the same rules to look for the containing host as we do for rule
         // collection.
         if let Some(shadow) = containing_shadow_ignoring_svg_use(*self) {
             doc_rules_apply = false;
             if let Some(data) = shadow.style_data() {
-                f(
-                    data,
-                    self.as_node().owner_doc().quirks_mode(),
-                    Some(shadow.host()),
-                );
+                f(data, shadow.host());
             }
         }
 
         if let Some(shadow) = self.shadow_root() {
             if let Some(data) = shadow.style_data() {
-                f(
-                    data,
-                    self.as_node().owner_doc().quirks_mode(),
-                    Some(shadow.host()),
-                );
+                f(data, shadow.host());
             }
         }
 
@@ -850,11 +823,7 @@ pub trait TElement:
             // Slots can only have assigned nodes when in a shadow tree.
             let shadow = slot.containing_shadow().unwrap();
             if let Some(data) = shadow.style_data() {
-                f(
-                    data,
-                    self.as_node().owner_doc().quirks_mode(),
-                    Some(shadow.host()),
-                );
+                f(data, shadow.host());
             }
             current = slot.assigned_slot();
         }
