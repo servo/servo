@@ -10,6 +10,9 @@ use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::shadowroot::ShadowRoot;
 use std::rc::Rc;
 
+//XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
+//           storage.
+
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct NodeRareData {
