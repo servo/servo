@@ -3,15 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate log;
 #[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
 #[macro_use] extern crate sig;
 
-// The window backed by glutin
-mod glutin_app;
-
-mod resources;
-
 mod browser;
+mod keyutils;
+mod window;
+mod resources;
 
 use backtrace::Backtrace;
 use servo::{Servo, BrowserId};
@@ -122,7 +121,8 @@ pub fn main() {
         process::exit(0);
     }
 
-    let window = glutin_app::create_window();
+    let foreground = opts::get().output_file.is_none() && !opts::get().headless;
+    let window = window::Window::new(foreground, opts::get().initial_window_size);
 
     let mut browser = browser::Browser::new(window.clone());
 

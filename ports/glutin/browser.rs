@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
-use crate::glutin_app::window::{Window, LINE_HEIGHT};
+use crate::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
+use crate::window::{Window, LINE_HEIGHT};
 use euclid::{TypedPoint2D, TypedVector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};

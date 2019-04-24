@@ -17,14 +17,8 @@
 
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 
-// Have this here rather than in non_android_main.rs to work around
-// https://github.com/rust-lang/rust/issues/53205
 #[cfg(not(target_os = "android"))]
-#[macro_use]
-extern crate log;
-
-#[cfg(not(target_os = "android"))]
-include!("non_android_main.rs");
+include!("main2.rs");
 
 #[cfg(target_os = "android")]
 pub fn main() {
