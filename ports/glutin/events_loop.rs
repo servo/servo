@@ -19,7 +19,7 @@ impl EventsLoop {
     // Ideally, we could use the winit event loop in both modes,
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(target_os = "linux"))]
-    pub fn new(headless: bool) -> Rc<RefCell<EventsLoop>> {
+    pub fn new(_headless: bool) -> Rc<RefCell<EventsLoop>> {
         Rc::new(RefCell::new(EventsLoop(Some(glutin::EventsLoop::new()))))
     }
     #[cfg(target_os = "linux")]
