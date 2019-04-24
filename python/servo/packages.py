@@ -3,7 +3,7 @@
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 
 WINDOWS_MSVC = {
-    "cmake": "3.7.2",
+    "cmake": "3.14.3",
     "llvm": "7.0.0",
     "moztools": "3.2",
     "ninja": "1.7.1",
