@@ -310,6 +310,10 @@ class MachCommands(CommandBase):
         if with_debug_assertions:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
+        if sys.platform == "win32":
+            env["CC"] = "clang-cl.exe"
+            env["CXX"] = "clang-cl.exe"
+
         if android:
             if "ANDROID_NDK" not in env:
                 print("Please set the ANDROID_NDK environment variable.")
