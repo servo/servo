@@ -25,11 +25,6 @@ fn main() {
         // We must use Ninja on Windows for this -- msbuild is painfully slow,
         // and ninja is easier to install than make.
         build.generator("Ninja");
-        // because we're using ninja, we need to explicitly set these
-        // to VC++, otherwise it'll try to use cc
-        build
-            .define("CMAKE_C_COMPILER", "cl.exe")
-            .define("CMAKE_CXX_COMPILER", "cl.exe");
         // We have to explicitly specify the full path to link.exe,
         // for reasons that I don't understand.  If we just give
         // link.exe, it tries to use script-*/out/link.exe, which of

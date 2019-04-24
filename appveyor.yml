@@ -30,6 +30,9 @@ environment:
     C:\\Program Files\\Git\\cmd;\
     C:\\Program Files\\Git\\usr\\bin;\
     C:\\Program Files\\AppVeyor\\BuildAgent;"
+  CC: "clang-cl.exe"
+  CXX: "clang-cl.exe"
+
   matrix:
   - TARGET: nightly-x86_64-pc-windows-msvc
 

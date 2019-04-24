@@ -22,5 +22,5 @@ ar = "arm-linux-gnueabihf-ar"
 linker = "aarch64-linux-gnu-gcc"
 ar = "aarch64-linux-gnu-ar"
 
-[target.'cfg(target_os=windows)']
-linker = "./support/android/fakeld/fake-ld.cmd"
+[target.x86_64-pc-windows-msvc]
+linker = "lld-link.exe"

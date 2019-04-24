@@ -1,0 +1,4 @@
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_C_COMPILER "clang-cl.exe")
+set(CMAKE_CXX_COMPILER "clang-cl.exe")
+#set(CMAKE_MAKE_PROGRAM "C:/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/MSBuild.exe")
