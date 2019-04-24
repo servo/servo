@@ -1688,7 +1688,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         // Step 1.
         // FIXME(nox): Reject promise if not allowed to play.

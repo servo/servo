@@ -139,7 +139,7 @@ pub fn Fetch(
 
     // Step 1
     let aic = AlreadyInCompartment::assert(global);
-    let promise = Promise::new_in_current_compartment(global, &InCompartment::Already(&aic));
+    let promise = Promise::new_in_current_compartment(global, InCompartment::Already(&aic));
     let response = Response::new(global);
 
     // Step 2

@@ -139,7 +139,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // Step 1.
@@ -176,7 +176,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // Step 1.
@@ -231,7 +231,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // Step 1.
@@ -272,7 +272,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         let sender = response_async(&p, self);
 

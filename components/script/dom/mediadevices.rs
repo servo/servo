@@ -48,7 +48,7 @@ impl MediaDevicesMethods for MediaDevices {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         let media = ServoMedia::get().unwrap();
         let mut tracks = vec![];

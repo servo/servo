@@ -98,7 +98,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // Step 1.
@@ -134,7 +134,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // Step 1.

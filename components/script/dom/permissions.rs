@@ -102,7 +102,7 @@ impl Permissions {
                 let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
                 Promise::new_in_current_compartment(
                     &self.global(),
-                    &InCompartment::Already(&in_compartment_proof),
+                    InCompartment::Already(&in_compartment_proof),
                 )
             },
         };

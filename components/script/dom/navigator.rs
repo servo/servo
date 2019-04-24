@@ -155,7 +155,7 @@ impl NavigatorMethods for Navigator {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         let displays = self.Xr().get_displays();
         match displays {

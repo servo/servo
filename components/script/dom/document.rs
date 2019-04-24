@@ -3135,7 +3135,7 @@ impl Document {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         let mut error = false;
 
@@ -3206,7 +3206,7 @@ impl Document {
         let in_compartment_proof = AlreadyInCompartment::assert(&global);
         let promise = Promise::new_in_current_compartment(
             &global,
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         // Step 2
         if self.fullscreen_element.get().is_none() {

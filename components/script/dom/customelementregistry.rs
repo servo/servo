@@ -409,7 +409,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             let in_compartment_proof = AlreadyInCompartment::assert(&global_scope);
             let promise = Promise::new_in_current_compartment(
                 &global_scope,
-                &InCompartment::Already(&in_compartment_proof),
+                InCompartment::Already(&in_compartment_proof),
             );
             promise.reject_native(&DOMException::new(&global_scope, DOMErrorName::SyntaxError));
             return promise;
@@ -420,7 +420,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             let in_compartment_proof = AlreadyInCompartment::assert(&global_scope);
             let promise = Promise::new_in_current_compartment(
                 &global_scope,
-                &InCompartment::Already(&in_compartment_proof),
+                InCompartment::Already(&in_compartment_proof),
             );
             promise.resolve_native(&UndefinedValue());
             return promise;
@@ -434,7 +434,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             let in_compartment_proof = AlreadyInCompartment::assert(&global_scope);
             let promise = Promise::new_in_current_compartment(
                 &global_scope,
-                &InCompartment::Already(&in_compartment_proof),
+                InCompartment::Already(&in_compartment_proof),
             );
             map.insert(name, promise.clone());
             promise

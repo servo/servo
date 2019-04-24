@@ -60,7 +60,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         let in_compartment_proof = AlreadyInCompartment::assert(&*self.global());
         let promise = Promise::new_in_current_compartment(
             &*self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         let USVString(ref script_url) = script_url;
         let api_base_url = self.global().api_base_url();

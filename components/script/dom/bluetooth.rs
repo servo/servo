@@ -295,7 +295,7 @@ where
     let in_compartment_proof = AlreadyInCompartment::assert(&attribute.global());
     let p = Promise::new_in_current_compartment(
         &attribute.global(),
-        &InCompartment::Already(&in_compartment_proof),
+        InCompartment::Already(&in_compartment_proof),
     );
 
     let result_uuid = if let Some(u) = uuid {
@@ -539,7 +539,7 @@ impl BluetoothMethods for Bluetooth {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
@@ -561,7 +561,7 @@ impl BluetoothMethods for Bluetooth {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response

@@ -17,6 +17,7 @@ impl AlreadyInCompartment {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum InCompartment<'a> {
     Already(&'a AlreadyInCompartment),
     Entered(&'a JSAutoCompartment),

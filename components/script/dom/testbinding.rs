@@ -1024,7 +1024,7 @@ impl TestBindingMethods for TestBinding {
         let in_compartment_proof = AlreadyInCompartment::assert(&global);
         let p = Promise::new_in_current_compartment(
             &global,
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         p.append_native_handler(&handler);
         return p;
@@ -1052,7 +1052,7 @@ impl TestBindingMethods for TestBinding {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         )
     }
 

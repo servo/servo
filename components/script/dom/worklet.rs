@@ -117,7 +117,7 @@ impl WorkletMethods for Worklet {
         let in_compartment_proof = AlreadyInCompartment::assert(&global);
         let promise = Promise::new_in_current_compartment(
             &global,
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // Step 3.

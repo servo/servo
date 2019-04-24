@@ -54,7 +54,7 @@ pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyTy
     let in_compartment_proof = AlreadyInCompartment::assert(&object.global());
     let promise = Promise::new_in_current_compartment(
         &object.global(),
-        &InCompartment::Already(&in_compartment_proof),
+        InCompartment::Already(&in_compartment_proof),
     );
 
     // Step 1

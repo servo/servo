@@ -432,7 +432,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(Error::Type(format!(
@@ -471,7 +471,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
@@ -487,7 +487,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
@@ -514,7 +514,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
@@ -551,7 +551,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();

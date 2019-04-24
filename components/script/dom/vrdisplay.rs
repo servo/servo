@@ -346,7 +346,7 @@ impl VRDisplayMethods for VRDisplay {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         // TODO: WebVR spec: this method must be called in response to a user gesture
 
@@ -414,7 +414,7 @@ impl VRDisplayMethods for VRDisplay {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // WebVR spec: If the VRDisplay is not presenting the promise MUST be rejected.

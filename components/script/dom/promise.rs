@@ -11,7 +11,7 @@
 //! native Promise values that refer to the same JS value yet are distinct native objects
 //! (ie. address equality for the native objects is meaningless).
 
-use crate::compartments::InCompartment;
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
@@ -80,12 +80,13 @@ impl Drop for Promise {
 }
 
 impl Promise {
-    pub fn new(global: &GlobalScope, comp: &InCompartment) -> Rc<Promise> {
-        Promise::new_in_current_compartment(global, comp)
+    pub fn new(global: &GlobalScope) -> Rc<Promise> {
+        let comp = AlreadyInCompartment::assert(&global);
+        Promise::new_in_current_compartment(global, InCompartment::Already(&comp))
     }
 
     #[allow(unsafe_code)]
-    pub fn new_in_current_compartment(global: &GlobalScope, _comp: &InCompartment) -> Rc<Promise> {
+    pub fn new_in_current_compartment(global: &GlobalScope, _comp: InCompartment) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(cx) let mut obj = ptr::null_mut::<JSObject>());
         unsafe {

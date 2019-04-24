@@ -118,7 +118,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         if self.rendering_started.get() {
             promise.reject_error(Error::InvalidState);

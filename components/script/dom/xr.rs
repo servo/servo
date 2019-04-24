@@ -89,7 +89,7 @@ impl XRMethods for XR {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         if mode == XRSessionMode::Immersive_vr {
             promise.resolve_native(&());
@@ -106,7 +106,7 @@ impl XRMethods for XR {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let promise = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         if options.mode != XRSessionMode::Immersive_vr {
             promise.reject_error(Error::NotSupported);

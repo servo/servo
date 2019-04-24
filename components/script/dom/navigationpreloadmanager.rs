@@ -48,7 +48,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let in_compartment_proof = AlreadyInCompartment::assert(&*self.global());
         let promise = Promise::new_in_current_compartment(
             &*self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // 2.
@@ -74,7 +74,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let in_compartment_proof = AlreadyInCompartment::assert(&*self.global());
         let promise = Promise::new_in_current_compartment(
             &*self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // 2.
@@ -100,7 +100,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let in_compartment_proof = AlreadyInCompartment::assert(&*self.global());
         let promise = Promise::new_in_current_compartment(
             &*self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // 2.
@@ -126,7 +126,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let in_compartment_proof = AlreadyInCompartment::assert(&*self.global());
         let promise = Promise::new_in_current_compartment(
             &*self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         // 2.
         let mut state = NavigationPreloadState::empty();

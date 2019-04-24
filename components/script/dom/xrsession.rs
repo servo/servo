@@ -94,7 +94,7 @@ impl XRSessionMethods for XRSession {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
         self.display.queue_renderstate(init, p.clone());
         p
@@ -120,7 +120,7 @@ impl XRSessionMethods for XRSession {
         let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
         let p = Promise::new_in_current_compartment(
             &self.global(),
-            &InCompartment::Already(&in_compartment_proof),
+            InCompartment::Already(&in_compartment_proof),
         );
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
