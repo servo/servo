@@ -412,7 +412,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             .with_curl_artifact_script(build_task, "target.tar.gz")
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-            .with_max_run_time_minutes(60)
+            .with_max_run_time_minutes(90)
             .with_env(
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
