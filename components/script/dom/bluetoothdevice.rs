@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
@@ -277,9 +278,12 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
-    #[allow(unsafe_code)]
     fn WatchAdvertisements(&self) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         let sender = response_async(&p, self);
         // TODO: Step 1.
         // Note: Steps 2 - 3 are implemented in components/bluetooth/lib.rs in watch_advertisements function

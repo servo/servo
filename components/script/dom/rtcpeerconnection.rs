@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
@@ -427,9 +428,12 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     );
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate
-    #[allow(unsafe_code)]
     fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(Error::Type(format!(
                 "one of sdpMid and sdpMLineIndex must be set"
@@ -463,9 +467,12 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer
-    #[allow(unsafe_code)]
     fn CreateOffer(&self, _options: &RTCOfferOptions) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
             return p;
@@ -476,9 +483,12 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer
-    #[allow(unsafe_code)]
     fn CreateAnswer(&self, _options: &RTCAnswerOptions) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
             return p;
@@ -499,10 +509,13 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setlocaldescription
-    #[allow(unsafe_code)]
     fn SetLocalDescription(&self, desc: &RTCSessionDescriptionInit) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
         let trusted_promise = TrustedPromise::new(p.clone());
@@ -533,10 +546,13 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setremotedescription
-    #[allow(unsafe_code)]
     fn SetRemoteDescription(&self, desc: &RTCSessionDescriptionInit) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
         let trusted_promise = TrustedPromise::new(p.clone());

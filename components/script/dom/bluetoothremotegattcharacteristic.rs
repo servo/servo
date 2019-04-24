@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
@@ -134,9 +135,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
-    #[allow(unsafe_code)]
     fn ReadValue(&self) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -168,9 +172,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
-    #[allow(unsafe_code)]
     fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
@@ -220,9 +227,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
-    #[allow(unsafe_code)]
     fn StartNotifications(&self) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -258,9 +268,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
-    #[allow(unsafe_code)]
     fn StopNotifications(&self) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         let sender = response_async(&p, self);
 
         // TODO: Step 3 - 4: Implement `active notification context set` for BluetoothRemoteGATTCharacteristic,

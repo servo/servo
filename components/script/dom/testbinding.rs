@@ -4,6 +4,7 @@
 
 // check-tidy: no specs after this line
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -1009,7 +1010,6 @@ impl TestBindingMethods for TestBinding {
         );
     }
 
-    #[allow(unsafe_code)]
     fn PromiseNativeHandler(
         &self,
         resolve: Option<Rc<SimpleCallback>>,
@@ -1021,7 +1021,11 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new),
             reject.map(SimpleHandler::new),
         );
-        let p = unsafe { Promise::new_in_current_compartment(&global) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&global);
+        let p = Promise::new_in_current_compartment(
+            &global,
+            &InCompartment::Already(&in_compartment_proof),
+        );
         p.append_native_handler(&handler);
         return p;
 
@@ -1044,9 +1048,12 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    #[allow(unsafe_code)]
     fn PromiseAttribute(&self) -> Rc<Promise> {
-        unsafe { Promise::new_in_current_compartment(&self.global()) }
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        )
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
@@ -89,9 +90,12 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
-    #[allow(unsafe_code)]
     fn UpdateRenderState(&self, init: &XRRenderStateInit) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         self.display.queue_renderstate(init, p.clone());
         p
     }
@@ -112,9 +116,12 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
-    #[allow(unsafe_code)]
     fn RequestReferenceSpace(&self, options: &XRReferenceSpaceOptions) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 

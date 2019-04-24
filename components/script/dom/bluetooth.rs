@@ -7,6 +7,7 @@ use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
@@ -278,7 +279,6 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
-#[allow(unsafe_code)]
 pub fn get_gatt_children<T, F>(
     attribute: &T,
     single: bool,
@@ -292,7 +292,11 @@ where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
-    let p = unsafe { Promise::new_in_current_compartment(&attribute.global()) };
+    let in_compartment_proof = AlreadyInCompartment::assert(&attribute.global());
+    let p = Promise::new_in_current_compartment(
+        &attribute.global(),
+        &InCompartment::Already(&in_compartment_proof),
+    );
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -531,9 +535,12 @@ impl From<BluetoothError> for Error {
 
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    #[allow(unsafe_code)]
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -550,9 +557,12 @@ impl BluetoothMethods for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
-    #[allow(unsafe_code)]
     fn GetAvailability(&self) -> Rc<Promise> {
-        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let p = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);

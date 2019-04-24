@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
@@ -341,9 +342,12 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-requestpresent
-    #[allow(unsafe_code)]
     fn RequestPresent(&self, layers: Vec<VRLayer>) -> Rc<Promise> {
-        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let promise = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
         // TODO: WebVR spec: this method must be called in response to a user gesture
 
         // WebVR spec: If canPresent is false the promise MUST be rejected
@@ -406,9 +410,12 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-exitpresent
-    #[allow(unsafe_code)]
     fn ExitPresent(&self) -> Rc<Promise> {
-        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
+        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+        let promise = Promise::new_in_current_compartment(
+            &self.global(),
+            &InCompartment::Already(&in_compartment_proof),
+        );
 
         // WebVR spec: If the VRDisplay is not presenting the promise MUST be rejected.
         if !self.presenting.get() {

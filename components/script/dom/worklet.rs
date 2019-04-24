@@ -10,6 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
@@ -110,10 +111,14 @@ impl Worklet {
 
 impl WorkletMethods for Worklet {
     /// <https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule>
-    #[allow(unsafe_code)]
     fn AddModule(&self, module_url: USVString, options: &WorkletOptions) -> Rc<Promise> {
         // Step 1.
-        let promise = unsafe { Promise::new_in_current_compartment(self.window.upcast()) };
+        let global = self.window.upcast();
+        let in_compartment_proof = AlreadyInCompartment::assert(&global);
+        let promise = Promise::new_in_current_compartment(
+            &global,
+            &InCompartment::Already(&in_compartment_proof),
+        );
 
         // Step 3.
         let module_url_record = match self.window.Document().base_url().join(&module_url.0) {

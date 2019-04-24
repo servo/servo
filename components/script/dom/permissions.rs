@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionDescriptor;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -87,7 +88,6 @@ impl Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
     // https://w3c.github.io/permissions/#dom-permissions-request
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    #[allow(unsafe_code)]
     fn manipulate(
         &self,
         op: Operation,
@@ -98,7 +98,13 @@ impl Permissions {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
-            None => unsafe { Promise::new_in_current_compartment(&self.global()) },
+            None => {
+                let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+                Promise::new_in_current_compartment(
+                    &self.global(),
+                    &InCompartment::Already(&in_compartment_proof),
+                )
+            },
         };
 
         // (Query, Request, Revoke) Step 1.
