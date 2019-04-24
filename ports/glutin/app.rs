@@ -30,14 +30,12 @@ pub struct App {
 
 impl App {
     pub fn run() {
-        let opts = opts::get();
+        let events_loop = events_loop::EventsLoop::new(opts::get().headless);
 
-        let events_loop = events_loop::EventsLoop::new(opts.headless);
-
-        let window = if opts.headless {
-            headless_window::Window::new(opts.initial_window_size)
+        let window = if opts::get().headless {
+            headless_window::Window::new(opts::get().initial_window_size)
         } else {
-            headed_window::Window::new(opts.initial_window_size, events_loop.borrow().as_winit())
+            headed_window::Window::new(opts::get().initial_window_size, events_loop.borrow().as_winit())
         };
 
         let embedder = Box::new(EmbedderCallbacks::new(

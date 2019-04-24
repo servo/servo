@@ -80,12 +80,10 @@ pub fn main() {
     let args: Vec<String> = env::args().collect();
     let opts_result = opts::from_cmdline_args(&args);
 
-    let opts = opts::get();
-
     let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
         Some(token)
     } else {
-        if opts.is_running_problem_test && env::var("RUST_LOG").is_err() {
+        if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
             env::set_var("RUST_LOG", "compositing::constellation");
         }
 
@@ -127,7 +125,7 @@ pub fn main() {
         return servo::run_content_process(token);
     }
 
-    if opts.is_printing_version {
+    if opts::get().is_printing_version {
         println!("{}", servo_version());
         process::exit(0);
     }
