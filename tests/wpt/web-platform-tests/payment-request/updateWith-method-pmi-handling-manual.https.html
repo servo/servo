@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Copyright © 2017 Mozilla and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <meta charset="utf-8">
 <title>Test for validity of payment method identifiers when calling updateWith() method</title>
 <link rel="help" href="https://www.w3.org/TR/payment-request/#updatewith()-method">
@@ -7,7 +6,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 "use strict";
-setup({ explicit_done: true, explicit_timeout: true });
+setup({
+  explicit_done: true,
+  explicit_timeout: true,
+  allow_uncaught_exception: true,
+});
 const applePay = Object.freeze({
   supportedMethods: "https://apple.com/apple-pay",
   data: {
@@ -16,13 +19,17 @@ const applePay = Object.freeze({
     countryCode: "US",
     merchantCapabilities: ["supports3DS"],
     supportedNetworks: ["visa"],
-  }
+  },
 });
 const validMethod = Object.freeze({
   supportedMethods: "https://:@wpt.fyi:443/payment-request",
 });
 
-const validMethods = Object.freeze([validMethod, applePay]);
+const validMethods = Object.freeze([
+  validMethod,
+  applePay,
+  { supportedMethods: "basic-card" },
+]);
 
 const validAmount = Object.freeze({
   currency: "USD",
@@ -51,23 +58,12 @@ const validModifier = Object.freeze({
   total: validTotal,
 });
 
-test(() => {
-  try {
-    new PaymentRequest(validMethods, validDetails);
-  } catch (err) {
-    done();
-    throw err;
-  }
-}, "smoke test");
-
 function manualTest(button, { invalidMethod }) {
   button.disabled = true;
   promise_test(async t => {
-    const request = new PaymentRequest(
-      [{ supportedMethods: "basic-card" }],
-      validDetails,
-      { requestShipping: true }
-    );
+    const request = new PaymentRequest(validMethods, validDetails, {
+      requestShipping: true,
+    });
     const listener = ev => {
       const invalidModifier = Object.assign({}, validModifier, {
         supportedMethods: invalidMethod,
@@ -130,9 +126,12 @@ function manualTest(button, { invalidMethod }) {
     </button>
   </li>
   <li>
-    <button onclick="manualTest(this, {invalidMethod: 'Basic-Card'}); done();">
+    <button onclick="manualTest(this, {invalidMethod: 'Basic-Card'});">
       Must throw if standardized PMI has uppercase characters.
     </button>
+  </li>
+  <li>
+    <button onclick="done();">Done!</button>
   </li>
 </ol>
 <small>

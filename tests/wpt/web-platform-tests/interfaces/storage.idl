@@ -5,7 +5,7 @@
 
 [SecureContext]
 interface mixin NavigatorStorage {
-  readonly attribute StorageManager storage;
+  [SameObject] readonly attribute StorageManager storage;
 };
 Navigator includes NavigatorStorage;
 WorkerNavigator includes NavigatorStorage;

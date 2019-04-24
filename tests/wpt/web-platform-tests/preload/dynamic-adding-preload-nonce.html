@@ -14,7 +14,7 @@ async_test(function(t) {
     link.nonce = "abc";
     link.onload = link.onerror = t.step_func(function() {
         t.step_timeout(function() {
-            verifyNumberOfDownloads("resources/dummy.js?with-nonce", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?with-nonce", 1);
             t.done();
         }, 0);
     });
@@ -29,7 +29,7 @@ async_test(function(t) {
     link.href = "resources/dummy.js?without-nonce";
     link.onload = link.onerror = t.step_func(function() {
         t.step_timeout(function() {
-            verifyNumberOfDownloads("resources/dummy.js?without-nonce", 0);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?without-nonce", 0);
             t.done();
         }, 0);
     });

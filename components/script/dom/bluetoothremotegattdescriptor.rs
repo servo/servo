@@ -93,8 +93,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
+    #[allow(unsafe_code)]
     fn ReadValue(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -125,8 +126,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
+    #[allow(unsafe_code)]
     fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {

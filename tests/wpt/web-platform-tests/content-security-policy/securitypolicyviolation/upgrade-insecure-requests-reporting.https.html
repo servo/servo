@@ -10,7 +10,7 @@
           if (e.effectiveDirective == effective_directive)
             resolve(e);
         });
-	  });
+      });
     }
 
     async_test(t => {
@@ -70,7 +70,7 @@
 
       window.addEventListener("message", t.step_func(e => {
         if (e.source == i.contentWindow) {
-          if (e.data == (new URL(url)).origin) {
+          if (e.data.location == url) {
             waitForViolation(window, "frame-src")
               .then(t.step_func(e => {
                 reported = true;
@@ -78,7 +78,7 @@
                   t.done();
             }));
             i.contentWindow.location.href = navigate_to;
-          } else if (e.data == (new URL(upgraded)).origin) {
+          } else if (e.data.location == upgraded) {
             loaded = true;
             if (reported)
               t.done();

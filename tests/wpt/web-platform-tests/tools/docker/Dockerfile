@@ -46,6 +46,12 @@ ENV TZ "UTC"
 RUN echo "${TZ}" > /etc/timezone \
   && dpkg-reconfigure --frontend noninteractive tzdata
 
+# Set the locale
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+
 RUN useradd test \
          --shell /bin/bash  \
          --create-home \
@@ -68,7 +74,7 @@ RUN sudo echo ""
 RUN mkdir -p /home/test/artifacts
 RUN mkdir -p /home/test/bin
 
-ENV PATH="/home/test/bin:${PATH}"
+ENV PATH="/home/test/bin:/home/test/.local/bin:${PATH}"
 
 WORKDIR /home/test/
 

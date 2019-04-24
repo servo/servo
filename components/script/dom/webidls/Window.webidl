@@ -72,9 +72,6 @@
 Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
-[NoInterfaceObject]
-interface WindowProxy {};
-
 // https://html.spec.whatwg.org/multipage/#Window-partial
 partial interface Window {
   void captureEvents();

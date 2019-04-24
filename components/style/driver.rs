@@ -161,10 +161,11 @@ pub fn traverse_dom<E, D>(
         let parallel = maybe_tls.is_some();
         if let Some(ref mut tls) = maybe_tls {
             let slots = unsafe { tls.unsafe_get() };
-            aggregate = slots.iter().fold(aggregate, |acc, t| match *t.borrow() {
-                None => acc,
-                Some(ref cx) => &cx.statistics + &acc,
-            });
+            for slot in slots {
+                if let Some(ref cx) = *slot.borrow() {
+                    aggregate += cx.statistics.clone();
+                }
+            }
         }
 
         if report_stats {

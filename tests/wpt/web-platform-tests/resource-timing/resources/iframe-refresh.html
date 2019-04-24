@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing iframe refresh</title>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="nested-contexts.js"></script>
+<script>
+    setup_refresh_test();
+</script>
+<div id=log></div>
+<iframe></iframe>
+<script>
+    document.getElementsByTagName("iframe")[0].src = pre_refresh_url;
+</script>

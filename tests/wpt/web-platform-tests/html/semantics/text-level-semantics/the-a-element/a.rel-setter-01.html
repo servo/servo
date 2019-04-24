@@ -13,8 +13,8 @@ test(function() {
   var a = document.getElementById("test");
 
   test(function() {
-    a.rel = "noreferrer"
-    assert_equals(a.rel, "noreferrer");
+    a.rel = "noreferrer";
+    assert_equals(a.getAttribute("rel"), "noreferrer");
   }, "Test anchor's rel setter");
 });
 </script>

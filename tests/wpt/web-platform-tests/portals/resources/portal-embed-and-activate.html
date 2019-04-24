@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+  Embeds a portal (src specified by query parameter "url") and activates it after
+  receiving a message from the portal. Use query parameter "channelName" to
+  specify the name of the channel used by the portal src send a message
+  indicating that it is ready for activation (default name used is "portal").
+-->
+</title>
+<body>
+  <script>
+    var searchParams = new URL(location).searchParams;
+
+    // TODO(adithyas): Replace this with postmessage once it's implemented for
+    // portals.
+    var channelName = searchParams.get("channelName") || "portal";
+    var bc = new BroadcastChannel(channelName);
+    bc.onmessage = function(e) {
+      document.querySelector("portal").activate();
+      bc.close();
+    }
+
+    let portal = document.createElement("portal");
+    portal.src = searchParams.get("url");
+    document.body.appendChild(portal);
+  </script>
+</body>

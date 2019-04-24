@@ -1,0 +1,233 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>KeyframeEffect interface: style change events</title>
+<link rel="help"
+      href="https://drafts.csswg.org/web-animations-1/#model-liveness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// Test that each property defined in the KeyframeEffect interface does not
+// produce style change events.
+//
+// There are two types of tests:
+//
+//   MakeInEffectTest
+//
+//     For properties that are able to cause the KeyframeEffect to start
+//     affecting the CSS 'opacity' property.
+//
+//     This function takes either:
+//
+//     (a) A function that makes the passed-in KeyframeEffect affect the
+//         'opacity' property.
+//
+//     (b) An object with the following format:
+//
+//         {
+//            setup: elem => { /* return Animation */ }
+//            test: effect => { /* make |effect| affect 'opacity' */ }
+//         }
+//
+//     If the latter form is used, the setup function should return an Animation
+//     whose KeyframeEffect does NOT (yet) affect the 'opacity' property (or is
+//     NOT yet in-effect). Otherwise, the transition we use to detect if a style
+//     change event has occurred will never have a chance to be triggered (since
+//     the animated style will clobber both before-change and after-change
+//     style).
+//
+//  UsePropertyTest
+//
+//    For properties that cannot cause the KeyframeEffect to start affecting the
+//    CSS 'opacity' property.
+//
+//    The shape of the parameter to the UsePropertyTest is identical to the
+//    MakeInEffectTest. The only difference is that the function (or 'test'
+//    function of the object format is used) does not need to make the
+//    KeyframeEffect affect the CSS 'opacity' property, but simply needs to
+//    get/set the property under test.
+
+const MakeInEffectTest = testFuncOrObj => {
+  let test, setup;
+
+  if (typeof testFuncOrObj === 'function') {
+    test = testFuncOrObj;
+  } else {
+    test = testFuncOrObj.test;
+    if (typeof testFuncOrObj.setup === 'function') {
+      setup = testFuncOrObj.setup;
+    }
+  }
+
+  if (!setup) {
+    setup = elem =>
+      elem.animate({ color: ['blue', 'green'] }, 100 * MS_PER_SEC);
+  }
+
+  return { test, setup };
+};
+
+const UsePropertyTest = testFuncOrObj => {
+  const { test, setup } = MakeInEffectTest(testFuncOrObj);
+
+  let coveringAnimation;
+  return {
+    setup: elem => {
+      coveringAnimation = new Animation(
+        new KeyframeEffect(elem, { opacity: [0, 1] }, 100 * MS_PER_SEC)
+      );
+
+      return setup(elem);
+    },
+    test: effect => {
+      test(effect);
+      coveringAnimation.play();
+    },
+  };
+};
+
+const tests = {
+  getTiming: UsePropertyTest(effect => effect.getTiming()),
+  getComputedTiming: UsePropertyTest(effect => effect.getComputedTiming()),
+  updateTiming: MakeInEffectTest({
+    // Initially put the effect in its before phase (with no fill mode)...
+    setup: elem =>
+      elem.animate(
+        { opacity: [0.5, 1] },
+        {
+          duration: 100 * MS_PER_SEC,
+          delay: 100 * MS_PER_SEC,
+        }
+      ),
+    // ... so that when the delay is removed, it begins to affect the opacity.
+    test: effect => {
+      effect.updateTiming({ delay: 0 });
+    },
+  }),
+  get target() {
+    let targetElem;
+    return MakeInEffectTest({
+      setup: (elem, t) => {
+        targetElem = elem;
+        const targetB = createDiv(t);
+        return targetB.animate({ opacity: [0.5, 1] }, 100 * MS_PER_SEC);
+      },
+      test: effect => {
+        effect.target = targetElem;
+      },
+    });
+  },
+  iterationComposite: UsePropertyTest(effect => {
+    // Get iterationComposite
+    effect.iterationComposite;
+
+    // Set iterationComposite
+    effect.iterationComposite = 'accumulate';
+  }),
+  composite: UsePropertyTest(effect => {
+    // Get composite
+    effect.composite;
+
+    // Set composite
+    effect.composite = 'add';
+  }),
+  getKeyframes: UsePropertyTest(effect => effect.getKeyframes()),
+  setKeyframes: MakeInEffectTest(effect =>
+    effect.setKeyframes({ opacity: [0.5, 1] })
+  ),
+  get ['KeyframeEffect constructor']() {
+    let originalElem;
+    let animation;
+    return UsePropertyTest({
+      setup: elem => {
+        originalElem = elem;
+        // Return a dummy animation so the caller has something to wait on
+        return elem.animate(null);
+      },
+      test: () =>
+        new KeyframeEffect(
+          originalElem,
+          { opacity: [0.5, 1] },
+          100 * MS_PER_SEC
+        ),
+    });
+  },
+  get ['KeyframeEffect copy constructor']() {
+    let effectToClone;
+    return UsePropertyTest({
+      setup: elem => {
+        effectToClone = new KeyframeEffect(
+          elem,
+          { opacity: [0.5, 1] },
+          100 * MS_PER_SEC
+        );
+        // Return a dummy animation so the caller has something to wait on
+        return elem.animate(null);
+      },
+      test: () => new KeyframeEffect(effectToClone),
+    });
+  },
+};
+
+// Check that each enumerable property and the constructors follow the
+// expected behavior with regards to triggering style change events.
+const properties = [
+  ...Object.keys(AnimationEffect.prototype),
+  ...Object.keys(KeyframeEffect.prototype),
+  'KeyframeEffect constructor',
+  'KeyframeEffect copy constructor',
+];
+
+test(() => {
+  for (const property of Object.keys(tests)) {
+    assert_in_array(
+      property,
+      properties,
+      `Test property '${property}' should be one of the properties on ` +
+      ' KeyframeEffect'
+    );
+  }
+}, 'All property keys are recognized');
+
+for (const key of properties) {
+  promise_test(async t => {
+    assert_own_property(tests, key, `Should have a test for '${key}' property`);
+    const { setup, test } = tests[key];
+
+    // Setup target element
+    const div = createDiv(t);
+    let gotTransition = false;
+    div.addEventListener('transitionrun', () => {
+      gotTransition = true;
+    });
+
+    // Setup animation
+    const animation = setup(div, t);
+
+    // Setup transition start point
+    div.style.transition = 'opacity 100s';
+    getComputedStyle(div).opacity;
+
+    // Update specified style but don't flush
+    div.style.opacity = '0.5';
+
+    // Trigger the property
+    test(animation.effect);
+
+    // If the test function produced a style change event it will have triggered
+    // a transition.
+
+    // Wait for the animation to start and then for at least one animation
+    // frame to give the transitionrun event a chance to be dispatched.
+    await animation.ready;
+    await waitForAnimationFrames(1);
+
+    assert_false(gotTransition, 'A transition should NOT have been triggered');
+  }, `KeyframeEffect.${key} does NOT trigger a style change event`);
+}
+</script>
+</body>

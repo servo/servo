@@ -9,9 +9,15 @@ html, body {
   width: 100%;
 }
 </style>
-<iframe></iframe>
+<body>
 <script>
   "use strict";
+
+  function newIframe() {
+    var i = document.createElement("iframe");
+    document.body.appendChild(i);
+    return i;
+  }
 
   let iframeElement = document.querySelector("iframe");
   let url = url_base + "document-write.html";
@@ -42,6 +48,7 @@ html, body {
   // is enabled, all dynamic markup insertion API work as intended.
   test_cases.forEach((tc) => {
     promise_test(async() => {
+      let iframeElement = newIframe();
       await loadUrlInIframe(iframeElement, url);
       await sendMessageAndGetResponse(iframeElement.contentWindow, tc).then((response) => {
         assert_false(
@@ -62,6 +69,7 @@ html, body {
   // Disabling 'document-write' throws exception on the included API.
   test_cases.forEach((tc) => {
     promise_test(async() => {
+      let iframeElement = newIframe();
       setFeatureState(iframeElement, "document-write", "'none'");
       await loadUrlInIframe(iframeElement, url);
       await sendMessageAndGetResponse(iframeElement.contentWindow, tc).then((response) => {
@@ -80,3 +88,4 @@ html, body {
   });
 
 </script>
+</body>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC Test: NFCReader NFCReaderOptions url test</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc_help.js"></script>
+<meta name="flags" content="interact">
+
+<p>Tap an NFC tag to the test device with NFC support.</p>
+
+<p>Note: All the actions need to be done in 60 seconds, otherwise it will get TIMEOUT.</p>
+
+<div id="log"></div>
+
+<script>
+
+"use strict";
+
+setup({ explicit_timeout: true });
+
+const desc = "Test that the url of NFCReaderOptions filters relevant data sources correctly.";
+const readOptions = {url: `${location.origin}/custom/path`};
+const unacceptableReadOptions = {url: `${location.origin}/custom/invalid`};
+const message = {
+  url: "/custom/path/update",
+  records: [createTextRecord(test_text_data)]
+}
+
+testNFCReaderOptions(message, readOptions, unacceptableReadOptions, desc);
+
+</script>

@@ -16,7 +16,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
 pub enum Qualifier {
     /// Hide a media query from legacy UAs:
     /// <https://drafts.csswg.org/mediaqueries/#mq-only>
@@ -27,7 +27,7 @@ pub enum Qualifier {
 }
 
 /// <https://drafts.csswg.org/mediaqueries/#media-types>
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub struct MediaType(pub CustomIdent);
 
 impl MediaType {
@@ -58,7 +58,7 @@ impl MediaType {
 /// A [media query][mq].
 ///
 /// [mq]: https://drafts.csswg.org/mediaqueries/
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub struct MediaQuery {
     /// The qualifier for this query.
     pub qualifier: Option<Qualifier>,
@@ -151,7 +151,7 @@ impl MediaQuery {
 }
 
 /// <http://dev.w3.org/csswg/mediaqueries-3/#media0>
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub enum MediaQueryType {
     /// A media type that matches every device.
     All,

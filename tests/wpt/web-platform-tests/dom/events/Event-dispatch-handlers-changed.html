@@ -20,7 +20,7 @@
 </table>
 
 <script>
-async_test(function() {
+test(function() {
   var event_type = "bar";
   var target = document.getElementById("target");
   var parent = document.getElementById("parent");
@@ -39,6 +39,7 @@ async_test(function() {
     parent,
     target,
     target,
+    target, // The additional listener for target runs as we copy its listeners twice
     parent,
     tbody,
     table,
@@ -47,7 +48,7 @@ async_test(function() {
     document,
     window
   ];
-  var expected_listeners = [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1];
+  var expected_listeners = [0,0,0,0,0,0,0,0,1,3,1,1,1,1,1,1,1];
 
   var actual_targets = [], actual_listeners = [];
   var test_event_function = function(i) {
@@ -86,7 +87,5 @@ async_test(function() {
 
   assert_array_equals(actual_targets, expected_targets, "actual_targets");
   assert_array_equals(actual_listeners, expected_listeners, "actual_listeners");
-
-  this.done();
 });
 </script>

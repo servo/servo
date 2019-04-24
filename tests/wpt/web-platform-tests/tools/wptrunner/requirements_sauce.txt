@@ -1,3 +1,3 @@
-mozprocess == 0.26
+mozprocess==1.0.0
 selenium==3.141.0
 requests==2.21.0

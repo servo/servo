@@ -78,7 +78,6 @@ def validate(spec_json, details):
     assert_contains_only_fields(spec_json, ["specification",
                                             "referrer_policy_schema",
                                             "test_expansion_schema",
-                                            "subresource_path",
                                             "excluded_tests"])
     assert_non_empty_list(spec_json, "specification")
     assert_non_empty_list(spec_json, "referrer_policy_schema")
@@ -89,7 +88,6 @@ def validate(spec_json, details):
     referrer_policy_schema = spec_json['referrer_policy_schema']
     test_expansion_schema = spec_json['test_expansion_schema']
     excluded_tests = spec_json['excluded_tests']
-    subresource_path = spec_json['subresource_path']
 
     valid_test_expansion_fields = ['name'] + test_expansion_schema.keys()
 
@@ -151,16 +149,6 @@ def validate(spec_json, details):
                 artifact,
                 test_expansion_schema[artifact])
             del details['test_expansion_field']
-
-    # Validate subresource paths.
-    details['object'] = subresource_path
-    assert_contains_only_fields(subresource_path,
-                                test_expansion_schema['subresource']);
-
-    for subresource in subresource_path:
-        local_rel_path = "." + subresource_path[subresource]
-        full_path = os.path.join(test_root_directory, local_rel_path)
-        assert os.path.isfile(full_path), "%s is not an existing file" % path
 
     del details['object']
 

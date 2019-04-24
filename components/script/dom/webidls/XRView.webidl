@@ -13,6 +13,5 @@ enum XREye {
 interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
-  readonly attribute Float32Array viewMatrix;
-  // readonly attribute XRRigidTransform transform;
+  readonly attribute XRRigidTransform transform;
 };

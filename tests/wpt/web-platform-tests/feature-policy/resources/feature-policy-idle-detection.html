@@ -1,0 +1,10 @@
+<script>
+'use strict';
+
+new IdleDetector().start().then(() => {
+  window.parent.postMessage({ enabled: true }, '*');
+}, error => {
+  window.parent.postMessage({ enabled: false }, '*');
+});
+
+</script>

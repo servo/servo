@@ -32,6 +32,12 @@ test(function() {
     }, description);
   });
 });
+
+test(function() {
+  var audio = new Audio();
+  assert_equals(Object.getPrototypeOf(audio), HTMLAudioElement.prototype);
+}, "Prototype of object created with named constructor");
+
 test(function() {
   assert_throws(new TypeError(), function() {
     Audio();

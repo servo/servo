@@ -110,7 +110,7 @@ the same way as the test.
 
 <label>
 <input type="checkbox">
-The test and reference render within a 600x600 viewport, only displaying
+The test and reference render within a 800x600 viewport, only displaying
 scrollbars if their presence is being tested.
 </label>
 
@@ -180,7 +180,7 @@ several minutes thinking or asking questions.
 
 <label>
 <input type="checkbox">
-The test renders within a 600x600 viewport, only displaying scrollbars if their
+The test renders within a 800x600 viewport, only displaying scrollbars if their
 presence is being tested.
 </label>
 

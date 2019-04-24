@@ -34,10 +34,11 @@ const longValue = "s".repeat(127);
 function runTests(testArray) {
   testArray = testArray.concat([
     ["dpr", "2"],
-    ["downlink", "1"], // https://wicg.github.io/netinfo/
+    ["downlink", "1"],
     ["save-data", "on"],
     ["viewport-width", "100"],
-    ["width", "100"]
+    ["width", "100"],
+    ["unknown", "doesitmatter"]
   ]);
   testArray.forEach(testItem => {
     const [headerName, headerValue] = testItem;

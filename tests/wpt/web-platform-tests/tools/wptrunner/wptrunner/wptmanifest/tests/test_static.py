@@ -1,3 +1,5 @@
+import pytest
+import sys
 import unittest
 
 from ..backends import static
@@ -6,6 +8,8 @@ from ..backends import static
 # use test_serializer for the majority of cases
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="wptmanifest.parser doesn't support py3")
 class TestStatic(unittest.TestCase):
     def compile(self, input_text, input_data):
         return static.compile(input_text, input_data)
@@ -83,8 +87,8 @@ key_1: other_value
         self.assertTrue(manifest.has_key("key_1"))
         self.assertFalse(manifest.has_key("key_2"))
 
-        self.assertEquals(set(manifest.iterkeys()), set(["key", "key_1"]))
-        self.assertEquals(set(manifest.itervalues()), set(["value_1", "other_value"]))
+        self.assertEquals(set(manifest.iterkeys()), {"key", "key_1"})
+        self.assertEquals(set(manifest.itervalues()), {"value_1", "other_value"})
 
     def test_is_empty_1(self):
         data = """

@@ -9,3 +9,9 @@ interface ProximitySensor : Sensor {
   readonly attribute double? max;
   readonly attribute boolean? near;
 };
+
+dictionary ProximityReadingValues {
+  required double? distance;
+  required double? max;
+  required boolean? near;
+};

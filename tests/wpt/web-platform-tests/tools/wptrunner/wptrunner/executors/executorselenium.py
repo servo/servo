@@ -128,7 +128,7 @@ class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
             if test_window is None:
                 after = self.webdriver.window_handles
                 if len(after) == 2:
-                    test_window = next(iter(set(after) - set([parent])))
+                    test_window = next(iter(set(after) - {parent}))
                 elif after[0] == parent and len(after) > 2:
                     # Hope the first one here is the test window
                     test_window = after[1]
@@ -213,9 +213,6 @@ class SeleniumProtocol(Protocol):
                                                                             resolve_ip=False),
                                           desired_capabilities=self.capabilities)
 
-    def after_conect(self):
-        pass
-
     def teardown(self):
         self.logger.debug("Hanging up on Selenium session")
         try:
@@ -250,7 +247,7 @@ class SeleniumRun(object):
         timeout = self.timeout
 
         try:
-            self.protocol.base.set_timeout((timeout + extra_timeout))
+            self.protocol.base.set_timeout(timeout + extra_timeout)
         except exceptions.ErrorInResponseException:
             self.logger.error("Lost WebDriver connection")
             return Stop
@@ -362,6 +359,9 @@ class SeleniumRefTestExecutor(RefTestExecutor):
         with open(os.path.join(here, "reftest-wait_webdriver.js")) as f:
             self.wait_script = f.read()
 
+    def reset(self):
+        self.implementation.reset()
+
     def is_alive(self):
         return self.protocol.is_alive()
 
@@ -372,7 +372,8 @@ class SeleniumRefTestExecutor(RefTestExecutor):
             """return [window.outerWidth - window.innerWidth,
                        window.outerHeight - window.innerHeight];"""
         )
-        self.protocol.webdriver.set_window_size(600 + width_offset, 600 + height_offset)
+        self.protocol.webdriver.set_window_size(0, 0)
+        self.protocol.webdriver.set_window_position(800 + width_offset, 600 + height_offset)
 
         result = self.implementation.run_test(test)
 

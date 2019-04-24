@@ -47,19 +47,20 @@
 </script>
 <link rel=preload href="resources/foo.vtt" as=track type="text/foobar" onload="gibberishLoaded++;">
 <body>
-<script src="resources/dummy.js?pipe=trickle(d5)&preload-with-type"></script>
 <script>
     window.onload = t.step_func(function() {
-        verifyPreloadAndRTSupport();
-        assert_true(styleLoaded, "style triggered load event");
-        assert_true(scriptLoaded, "script triggered load event");
-        assert_true(imageLoaded, "image triggered load event");
-        assert_true(fontLoaded, "font triggered load event");
-        assert_true(videoLoaded, "video triggered load event");
-        assert_true(audioLoaded, "audio triggered load event");
-        assert_true(trackLoaded, "track triggered load event");
-        assert_equals(gibberishLoaded, 0, "resources with gibberish type should not be loaded");
-        t.done();
+        t.step_timeout(function() {
+            verifyPreloadAndRTSupport();
+            assert_true(styleLoaded, "style triggered load event");
+            assert_true(scriptLoaded, "script triggered load event");
+            assert_true(imageLoaded, "image triggered load event");
+            assert_true(fontLoaded, "font triggered load event");
+            assert_true(videoLoaded, "video triggered load event");
+            assert_true(audioLoaded, "audio triggered load event");
+            assert_true(trackLoaded, "track triggered load event");
+            assert_equals(gibberishLoaded, 0, "resources with gibberish type should not be loaded");
+            t.done();
+        }, 5000);
     });
 </script>
 </body>

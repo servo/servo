@@ -50,7 +50,9 @@ use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webrender_api::{
@@ -261,6 +263,8 @@ pub enum ConstellationControlMsg {
     Resize(PipelineId, WindowSizeData, WindowSizeType),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
+    /// Window switched from fullscreen mode.
+    ExitFullScreen(PipelineId),
     /// Notifies the script that the document associated with this pipeline should 'unload'.
     UnloadDocument(PipelineId),
     /// Notifies the script that a pipeline should be closed.
@@ -303,6 +307,7 @@ pub enum ConstellationControlMsg {
     UpdatePipelineId(
         PipelineId,
         BrowsingContextId,
+        TopLevelBrowsingContextId,
         PipelineId,
         UpdatePipelineIdReason,
     ),
@@ -386,6 +391,7 @@ impl fmt::Debug for ConstellationControlMsg {
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
+            ExitFullScreen(..) => "ExitFullScreen",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
@@ -595,6 +601,8 @@ pub struct InitialScriptState {
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
     pub webrender_api_sender: RenderApiSender,
+    /// Flag to indicate if the layout thread is busy handling a request.
+    pub layout_is_busy: Arc<AtomicBool>,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
@@ -776,6 +784,12 @@ pub enum ConstellationMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
     SetCursor(Cursor),
+    /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
+    EnableProfiler(Duration, Duration),
+    /// Disable the sampling profiler.
+    DisableProfiler,
+    /// Request to exit from fullscreen mode
+    ExitFullScreen(TopLevelBrowsingContextId),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -803,6 +817,9 @@ impl fmt::Debug for ConstellationMsg {
             SelectBrowser(..) => "SelectBrowser",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
+            EnableProfiler(..) => "EnableProfiler",
+            DisableProfiler => "DisableProfiler",
+            ExitFullScreen(..) => "ExitFullScreen",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

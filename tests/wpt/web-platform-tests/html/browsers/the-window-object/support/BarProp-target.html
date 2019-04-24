@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script>
+  const barProps = ["locationbar", "menubar", "personalbar", "scrollbars", "statusbar", "toolbar"];
+  const barPropsObj = {};
+  const channelName = location.search.substr(1);
+  const channel = new BroadcastChannel(channelName);
+  for (const prop of barProps) {
+    barPropsObj[prop] = window[prop].visible;
+  }
+  channel.postMessage(barPropsObj);
+
+  // Because messages are not delivered synchronously and because closing a
+  // browsing context prompts the eventual clearing of all task sources, this
+  // document should not be closed until the opener document has confirmed
+  // receipt.
+  channel.onmessage = () => { window.close() };
+</script>

@@ -1,3 +1,4 @@
+// META: timeout=long
 // META: global=window,dedicatedworker,sharedworker
 // META: script=/common/get-host-info.sub.js
 

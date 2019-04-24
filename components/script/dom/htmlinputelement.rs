@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEvent
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
@@ -903,7 +903,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
         }
     }
 
-    do_broadcast(doc.upcast(), broadcaster, owner.r(), group)
+    do_broadcast(doc.upcast(), broadcaster, owner.deref(), group)
 }
 
 // https://html.spec.whatwg.org/multipage/#radio-button-group
@@ -914,7 +914,7 @@ fn in_same_group(
 ) -> bool {
     other.input_type() == InputType::Radio &&
     // TODO Both a and b are in the same home subtree.
-    other.form_owner().r() == owner &&
+    other.form_owner().deref() == owner &&
     match (other.radio_group_name(), group) {
         (Some(ref s1), Some(s2)) => compatibility_caseless_match_str(s1, s2) && s2 != &atom!(""),
         _ => false
@@ -1629,8 +1629,8 @@ impl Activatable for HTMLInputElement {
                         .query_selector_iter(DOMString::from("input[type=radio]"))
                         .unwrap()
                         .filter_map(DomRoot::downcast::<HTMLInputElement>)
-                        .find(|r| in_same_group(&*r, owner.r(), group.as_ref()) && r.Checked());
-                    cache.checked_radio = checked_member.r().map(Dom::from_ref);
+                        .find(|r| in_same_group(&*r, owner.deref(), group.as_ref()) && r.Checked());
+                    cache.checked_radio = checked_member.deref().map(Dom::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 },
@@ -1666,22 +1666,21 @@ impl Activatable for HTMLInputElement {
             InputType::Radio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
-                    match cache.checked_radio.r() {
-                        Some(o) => {
-                            // Avoiding iterating through the whole tree here, instead
-                            // we can check if the conditions for radio group siblings apply
-                            if in_same_group(
-                                &o,
-                                self.form_owner().r(),
-                                self.radio_group_name().as_ref(),
-                            ) {
-                                o.SetChecked(true);
-                            } else {
-                                self.SetChecked(false);
-                            }
-                        },
-                        None => self.SetChecked(false),
-                    };
+                    if let Some(ref o) = cache.checked_radio {
+                        // Avoiding iterating through the whole tree here, instead
+                        // we can check if the conditions for radio group siblings apply
+                        if in_same_group(
+                            &o,
+                            self.form_owner().deref(),
+                            self.radio_group_name().as_ref(),
+                        ) {
+                            o.SetChecked(true);
+                        } else {
+                            self.SetChecked(false);
+                        }
+                    } else {
+                        self.SetChecked(false);
+                    }
                     self.checked_changed.set(cache.checked_changed);
                 }
             },

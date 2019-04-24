@@ -80,6 +80,8 @@ macro_rules! define_keyword_type {
             ToAnimatedZero,
             ToComputedValue,
             ToCss,
+            ToResolvedValue,
+            ToShmem,
         )]
         pub struct $name;
 
@@ -98,23 +100,6 @@ macro_rules! define_keyword_type {
                     .expect_ident_matching($css)
                     .map(|_| $name)
                     .map_err(|e| e.into())
-            }
-        }
-    };
-}
-
-#[cfg(feature = "gecko")]
-macro_rules! impl_bitflags_conversions {
-    ($name:ident) => {
-        impl From<u8> for $name {
-            fn from(bits: u8) -> $name {
-                $name::from_bits(bits).expect("bits contain valid flag")
-            }
-        }
-
-        impl From<$name> for u8 {
-            fn from(v: $name) -> u8 {
-                v.bits()
             }
         }
     };

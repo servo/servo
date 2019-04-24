@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  promise_test(async t => {
+    await test_driver.bless("request full screen", () => {
+      return document.documentElement.requestFullscreen();
+    });
+
+    const promiseToChange = new Promise(resolve => {
+      screen.orientation.addEventListener("change", resolve);
+    });
+
+    const result = await Promise.race([
+      screen.orientation.lock("landscape"),
+      promiseToChange
+    ]);
+
+    assert_true(result instanceof Event, "Expected an instance of Event");
+    return document.exitFullscreen();
+  }, "The 'change' event must fire before the [[orientationPendingPromise]] is resolved.");
+</script>

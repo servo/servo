@@ -12,8 +12,7 @@
 
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
-use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue};
+use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Components};
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::stylesheets::{Origin, RulesMutateError};
@@ -23,12 +22,11 @@ use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, Gradient, Image};
 use crate::values::computed::{Integer, LengthPercentage};
 use crate::values::computed::{Length, Percentage, TextAlign};
-use crate::values::computed::{LengthPercentageOrAuto, NonNegativeLengthPercentageOrAuto};
 use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
 use crate::values::generics::rect::Rect;
-use crate::values::generics::NonNegative;
+use crate::Zero;
 use app_units::Au;
 use std::f32::consts::PI;
 use style_traits::values::specified::AllowedNumericType;
@@ -61,42 +59,6 @@ impl From<nsStyleCoord_CalcValue> for LengthPercentage {
         )
     }
 }
-
-impl LengthPercentageOrAuto {
-    /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
-    pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
-        match *self {
-            LengthPercentageOrAuto::LengthPercentage(len) => Some(From::from(len)),
-            LengthPercentageOrAuto::Auto => None,
-        }
-    }
-}
-
-impl From<nsStyleCoord_CalcValue> for LengthPercentageOrAuto {
-    fn from(other: nsStyleCoord_CalcValue) -> LengthPercentageOrAuto {
-        LengthPercentageOrAuto::LengthPercentage(LengthPercentage::from(other))
-    }
-}
-
-// FIXME(emilio): A lot of these impl From should probably become explicit or
-// disappear as we move more stuff to cbindgen.
-impl From<nsStyleCoord_CalcValue> for NonNegativeLengthPercentageOrAuto {
-    fn from(other: nsStyleCoord_CalcValue) -> Self {
-        NonNegative(LengthPercentageOrAuto::LengthPercentage(
-            LengthPercentage::with_clamping_mode(
-                Au(other.mLength).into(),
-                if other.mHasPercent {
-                    Some(Percentage(other.mPercent))
-                } else {
-                    None
-                },
-                AllowedNumericType::NonNegative,
-                /* was_calc = */ true,
-            ),
-        ))
-    }
-}
-
 impl From<Angle> for CoordDataValue {
     fn from(reference: Angle) -> Self {
         CoordDataValue::Degree(reference.degrees())
@@ -161,14 +123,11 @@ impl nsStyleImage {
         match image {
             GenericImage::Gradient(boxed_gradient) => self.set_gradient(*boxed_gradient),
             GenericImage::Url(ref url) => unsafe {
-                bindings::Gecko_SetLayerImageImageValue(self, (url.0).0.url_value.get());
+                bindings::Gecko_SetLayerImageImageValue(self, url.url_value_ptr())
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    bindings::Gecko_SetLayerImageImageValue(
-                        self,
-                        (image_rect.url.0).0.url_value.get(),
-                    );
+                    bindings::Gecko_SetLayerImageImageValue(self, image_rect.url.url_value_ptr());
                     bindings::Gecko_InitializeImageCropRect(self);
 
                     // Set CropRect
@@ -459,10 +418,8 @@ impl nsStyleImage {
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
-        use crate::values::computed::image::LineDirection;
         use crate::values::computed::position::Position;
-        use crate::values::computed::Length;
-        use crate::values::generics::image::{Circle, ColorStop, CompatMode, Ellipse};
+        use crate::values::generics::image::{Circle, ColorStop, Ellipse};
         use crate::values::generics::image::{EndingShape, GradientKind, ShapeExtent};
 
         let gecko_gradient = bindings::Gecko_GetGradientImageValue(self)
@@ -613,30 +570,24 @@ pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
 
     use crate::gecko::values::GeckoStyleCoordConvertible;
-    use crate::gecko_bindings::structs;
-    use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
+    use crate::gecko_bindings::structs::nsStyleCoord;
     use crate::gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use crate::gecko_bindings::structs::{
         StyleGeometryBox, StyleShapeSource, StyleShapeSourceType,
     };
-    use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use crate::gecko_bindings::sugar::refptr::RefPtr;
     use crate::values::computed::basic_shape::{
         BasicShape, ClippingShape, FloatAreaShape, ShapeRadius,
     };
-    use crate::values::computed::border::{BorderCornerRadius, BorderRadius};
     use crate::values::computed::length::LengthPercentage;
     use crate::values::computed::motion::OffsetPath;
-    use crate::values::computed::position;
     use crate::values::computed::url::ComputedUrl;
     use crate::values::generics::basic_shape::{
         BasicShape as GenericBasicShape, InsetRect, Polygon,
     };
     use crate::values::generics::basic_shape::{Circle, Ellipse, Path, PolygonCoord};
     use crate::values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
-    use crate::values::generics::border::BorderRadius as GenericBorderRadius;
     use crate::values::generics::rect::Rect;
-    use crate::values::generics::NonNegative;
     use crate::values::specified::SVGPathData;
     use std::borrow::Borrow;
 
@@ -746,8 +697,7 @@ pub mod basic_shape {
                     let r = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[1]);
                     let b = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
                     let l = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
-                    let round: BorderRadius = (&other.mRadius).into();
-                    let round = if round.all_zero() { None } else { Some(round) };
+                    let round = other.mRadius;
                     let rect = Rect::new(
                         t.expect("inset() offset should be a length, percentage, or calc value"),
                         r.expect("inset() offset should be a length, percentage, or calc value"),
@@ -758,12 +708,12 @@ pub mod basic_shape {
                 },
                 StyleBasicShapeType::Circle => GenericBasicShape::Circle(Circle {
                     radius: (&other.mCoordinates[0]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Ellipse => GenericBasicShape::Ellipse(Ellipse {
                     semiaxis_x: (&other.mCoordinates[0]).into(),
                     semiaxis_y: (&other.mCoordinates[1]).into(),
-                    position: (&other.mPosition).into(),
+                    position: other.mPosition,
                 }),
                 StyleBasicShapeType::Polygon => {
                     let mut coords = Vec::with_capacity(other.mCoordinates.len() / 2);
@@ -792,90 +742,11 @@ pub mod basic_shape {
         }
     }
 
-    impl<'a> From<&'a nsStyleCorners> for BorderRadius {
-        fn from(other: &'a nsStyleCorners) -> Self {
-            let get_corner = |index| {
-                BorderCornerRadius::new(
-                    NonNegative(
-                        LengthPercentage::from_gecko_style_coord(&other.data_at(index)).expect(
-                            "<border-radius> should be a length, percentage, or calc value",
-                        ),
-                    ),
-                    NonNegative(
-                        LengthPercentage::from_gecko_style_coord(&other.data_at(index + 1)).expect(
-                            "<border-radius> should be a length, percentage, or calc value",
-                        ),
-                    ),
-                )
-            };
-
-            GenericBorderRadius {
-                top_left: get_corner(0),
-                top_right: get_corner(2),
-                bottom_right: get_corner(4),
-                bottom_left: get_corner(6),
-            }
-        }
-    }
-
-    // Can't be a From impl since we need to set an existing
-    // nsStyleCorners, not create a new one
-    impl BorderRadius {
-        /// Set this `BorderRadius` into a given `nsStyleCoord`.
-        pub fn set_corners(&self, other: &mut nsStyleCorners) {
-            let mut set_corner = |field: &BorderCornerRadius, index| {
-                field
-                    .0
-                    .width()
-                    .to_gecko_style_coord(&mut other.data_at_mut(index));
-                field
-                    .0
-                    .height()
-                    .to_gecko_style_coord(&mut other.data_at_mut(index + 1));
-            };
-            set_corner(&self.top_left, 0);
-            set_corner(&self.top_right, 2);
-            set_corner(&self.bottom_right, 4);
-            set_corner(&self.bottom_left, 6);
-        }
-    }
-
-    /// We use None for a nonexistant radius, but Gecko uses (0 0 0 0 / 0 0 0 0)
-    pub fn set_corners_from_radius(radius: Option<BorderRadius>, other: &mut nsStyleCorners) {
-        if let Some(radius) = radius {
-            radius.set_corners(other);
-        } else {
-            for i in 0..8 {
-                other.data_at_mut(i).set_value(CoordDataValue::Coord(0));
-            }
-        }
-    }
-
-    // Can't be a From impl since we need to set an existing
-    // Position, not create a new one
-    impl From<position::Position> for structs::Position {
-        fn from(other: position::Position) -> Self {
-            structs::Position {
-                mXPosition: other.horizontal.into(),
-                mYPosition: other.vertical.into(),
-            }
-        }
-    }
-
     impl<'a> From<&'a nsStyleCoord> for ShapeRadius {
         fn from(other: &'a nsStyleCoord) -> Self {
             let other = other.borrow();
             ShapeRadius::from_gecko_style_coord(other)
                 .expect("<shape-radius> should be a length, percentage, calc, or keyword value")
-        }
-    }
-
-    impl<'a> From<&'a structs::Position> for position::Position {
-        fn from(other: &'a structs::Position) -> Self {
-            position::Position {
-                horizontal: other.mXPosition.into(),
-                vertical: other.mYPosition.into(),
-            }
         }
     }
 
@@ -961,8 +832,7 @@ impl TrackSize<LengthPercentage> {
     /// Return TrackSize from given two nsStyleCoord
     pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
         use crate::gecko_bindings::structs::root::nsStyleUnit;
-        use crate::values::computed::length::LengthPercentage;
-        use crate::values::generics::grid::{TrackBreadth, TrackSize};
+        use crate::values::generics::grid::TrackBreadth;
 
         if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
             debug_assert!(
@@ -989,8 +859,6 @@ impl TrackSize<LengthPercentage> {
 
     /// Save TrackSize to given gecko fields.
     pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
-        use crate::values::generics::grid::TrackSize;
-
         match *self {
             TrackSize::FitContent(ref lop) => {
                 // Gecko sets min value to None and max value to the actual value in fit-content
@@ -1020,8 +888,6 @@ impl TrackListValue<LengthPercentage, Integer> {
 
     /// Save TrackSize to given gecko fields.
     pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
-        use crate::values::generics::grid::TrackListValue;
-
         match *self {
             TrackListValue::TrackSize(ref size) => size.to_gecko_style_coords(gecko_min, gecko_max),
             _ => unreachable!("Should only transform from track-size computed values"),
@@ -1045,8 +911,6 @@ where
     pub fn from_gecko_rect(
         sides: &crate::gecko_bindings::structs::nsStyleSides,
     ) -> Option<crate::values::generics::rect::Rect<T>> {
-        use crate::values::generics::rect::Rect;
-
         Some(Rect::new(
             T::from_gecko_style_coord(&sides.data_at(0)).expect("coord[0] cound not convert"),
             T::from_gecko_style_coord(&sides.data_at(1)).expect("coord[1] cound not convert"),
@@ -1109,8 +973,8 @@ pub unsafe fn string_from_chars_pointer(p: *const u16) -> String {
     String::from_utf16_lossy(char_vec)
 }
 
-impl<'a> From<&'a RawGeckoGfxMatrix4x4> for Matrix3D {
-    fn from(m: &'a RawGeckoGfxMatrix4x4) -> Matrix3D {
+impl<'a> From<&'a Matrix4x4Components> for Matrix3D {
+    fn from(m: &'a Matrix4x4Components) -> Matrix3D {
         Matrix3D {
             m11: m[0],
             m12: m[1],
@@ -1132,8 +996,8 @@ impl<'a> From<&'a RawGeckoGfxMatrix4x4> for Matrix3D {
     }
 }
 
-impl From<Matrix3D> for RawGeckoGfxMatrix4x4 {
-    fn from(matrix: Matrix3D) -> RawGeckoGfxMatrix4x4 {
+impl From<Matrix3D> for Matrix4x4Components {
+    fn from(matrix: Matrix3D) -> Self {
         [
             matrix.m11, matrix.m12, matrix.m13, matrix.m14, matrix.m21, matrix.m22, matrix.m23,
             matrix.m24, matrix.m31, matrix.m32, matrix.m33, matrix.m34, matrix.m41, matrix.m42,

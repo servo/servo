@@ -29,12 +29,13 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
+use crate::dom::cdatasection::CDATASection;
 use crate::dom::closeevent::CloseEvent;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
@@ -122,7 +123,7 @@ use metrics::{
 use mime::{self, Mime};
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -136,7 +137,7 @@ use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventTyp
 use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
 use servo_atoms::Atom;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
@@ -640,7 +641,7 @@ impl Document {
                     .upcast::<Element>()
                     .has_attribute(&local_name!("href"))
             });
-        self.base_element.set(base.r());
+        self.base_element.set(base.deref());
     }
 
     pub fn dom_count(&self) -> u32 {
@@ -766,7 +767,7 @@ impl Document {
         {
             let mut id_map = self.id_map.borrow_mut();
             let elements = id_map.entry(id.clone()).or_insert(Vec::new());
-            elements.insert_pre_order(element, root.r().upcast::<Node>());
+            elements.insert_pre_order(element, root.upcast::<Node>());
         }
         self.reset_form_owner_for_listeners(&id);
     }
@@ -817,10 +818,10 @@ impl Document {
         let target = self.find_fragment_node(fragment);
 
         // Step 1
-        self.set_target_element(target.r());
+        self.set_target_element(target.deref());
 
         let point = target
-            .r()
+            .as_ref()
             .map(|element| {
                 // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
                 // Really what needs to happen is that this needs to go through layout to ask which
@@ -858,7 +859,7 @@ impl Document {
                 y,
                 global_scope.pipeline_id().root_scroll_id(),
                 ScrollBehavior::Instant,
-                target.r(),
+                target.deref(),
             );
         }
     }
@@ -922,7 +923,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-        if self.focused == self.possibly_focused.get().r() {
+        if self.focused == self.possibly_focused.get().deref() {
             return;
         }
         if let Some(ref elem) = self.focused.get() {
@@ -937,7 +938,7 @@ impl Document {
             }
         }
 
-        self.focused.set(self.possibly_focused.get().r());
+        self.focused.set(self.possibly_focused.get().deref());
 
         if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(true);
@@ -1089,16 +1090,9 @@ impl Document {
         let opt = self.last_click_info.borrow_mut().take();
 
         if let Some((last_time, last_pos)) = opt {
-            let DBL_CLICK_TIMEOUT = Duration::from_millis(
-                PREFS
-                    .get("dom.document.dblclick_timeout")
-                    .as_u64()
-                    .unwrap_or(300),
-            );
-            let DBL_CLICK_DIST_THRESHOLD = PREFS
-                .get("dom.document.dblclick_dist")
-                .as_u64()
-                .unwrap_or(1);
+            let DBL_CLICK_TIMEOUT =
+                Duration::from_millis(pref!(dom.document.dblclick_timeout) as u64);
+            let DBL_CLICK_DIST_THRESHOLD = pref!(dom.document.dblclick_dist) as u64;
 
             // Calculate distance between this click and the previous click.
             let line = click_pos - last_pos;
@@ -1265,7 +1259,7 @@ impl Document {
         }
 
         // Store the current mouse over target for next frame.
-        prev_mouse_over_target.set(maybe_new_target.r());
+        prev_mouse_over_target.set(maybe_new_target.deref());
 
         self.window
             .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
@@ -1718,7 +1712,7 @@ impl Document {
     pub fn fetch_async(
         &self,
         load: LoadType,
-        request: RequestInit,
+        request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
         let mut loader = self.loader.borrow_mut();
@@ -2190,19 +2184,19 @@ impl Document {
 
         // Step 4.1.
         let window = self.window();
+        let document = Trusted::new(self);
         window
             .task_manager()
             .dom_manipulation_task_source()
-            .queue_event(
-                self.upcast(),
-                atom!("DOMContentLoaded"),
-                EventBubbles::Bubbles,
-                EventCancelable::NotCancelable,
-                window,
-            );
-
-        window.reflow(ReflowGoal::Full, ReflowReason::DOMContentLoaded);
-        update_with_current_time_ms(&self.dom_content_loaded_event_end);
+            .queue(
+                task!(fire_dom_content_loaded_event: move || {
+                let document = document.root();
+                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
+                update_with_current_time_ms(&document.dom_content_loaded_event_end);
+                }),
+                window.upcast(),
+            )
+            .unwrap();
 
         // html parsing has finished - set dom content loaded
         self.interactive_time
@@ -2423,11 +2417,7 @@ impl Document {
         local_name: &LocalName,
         is: Option<&LocalName>,
     ) -> Option<Rc<CustomElementDefinition>> {
-        if !PREFS
-            .get("dom.customelements.enabled")
-            .as_boolean()
-            .unwrap_or(false)
-        {
+        if !pref!(dom.custom_elements.enabled) {
             return None;
         }
 
@@ -2860,7 +2850,7 @@ impl Document {
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
         let doc = self.GetDocumentElement();
-        let maybe_node = doc.r().map(Castable::upcast::<Node>);
+        let maybe_node = doc.deref().map(Castable::upcast::<Node>);
         let iter = maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder())
@@ -3139,9 +3129,10 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+    #[allow(unsafe_code)]
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
-        let promise = Promise::new(self.global().r());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let mut error = false;
 
         // Step 4
@@ -3164,8 +3155,16 @@ impl Document {
         if !pending.fullscreen_element_ready_check() {
             error = true;
         }
-        // TODO fullscreen is supported
-        // TODO This algorithm is allowed to request fullscreen.
+
+        if pref!(dom.fullscreen.test) {
+            // For reftests we just take over the current window,
+            // and don't try to really enter fullscreen.
+            info!("Tests don't really enter fullscreen.");
+        } else {
+            // TODO fullscreen is supported
+            // TODO This algorithm is allowed to request fullscreen.
+            warn!("Fullscreen not supported yet");
+        }
 
         // Step 5 Parallel start
 
@@ -3197,10 +3196,11 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#exit-fullscreen
+    #[allow(unsafe_code)]
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
-        let promise = Promise::new(global.r());
+        let promise = unsafe { Promise::new_in_current_compartment(&global) };
         // Step 2
         if self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")));
@@ -3213,11 +3213,11 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = EmbedderMsg::SetFullscreenState(true);
+        let event = EmbedderMsg::SetFullscreenState(false);
         self.send_to_embedder(event);
 
         // Step 9
-        let trusted_element = Trusted::new(element.r());
+        let trusted_element = Trusted::new(&*element);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
         let pipeline_id = Some(global.pipeline_id());
@@ -3264,7 +3264,6 @@ impl Document {
         if let Some(listeners) = map.get(id) {
             for listener in listeners {
                 listener
-                    .r()
                     .as_maybe_form_control()
                     .expect("Element must be a form control")
                     .reset_form_owner();
@@ -3600,6 +3599,22 @@ impl DocumentMethods for Document {
         Text::new(data, self)
     }
 
+    // https://dom.spec.whatwg.org/#dom-document-createcdatasection
+    fn CreateCDATASection(&self, data: DOMString) -> Fallible<DomRoot<CDATASection>> {
+        // Step 1
+        if self.is_html_document {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 2
+        if data.contains("]]>") {
+            return Err(Error::InvalidCharacter);
+        }
+
+        // Step 3
+        Ok(CDATASection::new(data, self))
+    }
+
     // https://dom.spec.whatwg.org/#dom-document-createcomment
     fn CreateComment(&self, data: DOMString) -> DomRoot<Comment> {
         Comment::new(data, self)
@@ -3830,7 +3845,7 @@ impl DocumentMethods for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().r())
+                        .InsertBefore(child, parent.GetFirstChild().deref())
                         .unwrap()
                 },
             }
@@ -3915,7 +3930,7 @@ impl DocumentMethods for Document {
 
         // Step 2.
         let old_body = self.GetBody();
-        if old_body.r() == Some(new_body) {
+        if old_body.deref() == Some(new_body) {
             return Ok(());
         }
 

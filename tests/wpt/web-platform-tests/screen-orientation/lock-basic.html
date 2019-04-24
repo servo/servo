@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 test(() => {
   screen.orientation.unlock();
@@ -12,11 +14,18 @@ test(() => {
 }, "Test that screen.orientation.unlock() returns a void value");
 
 promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
   const value = await screen.orientation.lock('any');
   assert_equals(value, undefined);
+  return document.exitFullscreen();
 }, "Test that screen.orientation.lock returns a promise which will be fulfilled with a void value.");
 
 promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
   const orientations = [
     'any',
     'natural',
@@ -50,9 +59,13 @@ promise_test(async t => {
     }
   }
   screen.orientation.unlock();
+  return document.exitFullscreen();
 }, "Test that screen.orientation.lock returns a pending promise.");
 
 promise_test(async t => {
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
   const preType = screen.orientation.type;
   const isPortrait = preType.includes("portrait");
   const newType = `${ isPortrait ? "landscape" : "portrait" }-primary`;
@@ -60,5 +73,6 @@ promise_test(async t => {
   assert_equals(screen.orientation.type, preType, "Must not change orientation until next spin of event loop");
   await p;
   assert_equals(screen.orientation.type, newType);
+  return document.exitFullscreen();
 }, "Test that screen.orientation.lock() is actually async");
 </script>

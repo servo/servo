@@ -67,7 +67,7 @@ interface TouchEvent : UIEvent {
     readonly        attribute boolean shiftKey;
 };
 
-partial interface GlobalEventHandlers {
+partial interface mixin GlobalEventHandlers {
                     attribute EventHandler ontouchstart;
                     attribute EventHandler ontouchend;
                     attribute EventHandler ontouchmove;

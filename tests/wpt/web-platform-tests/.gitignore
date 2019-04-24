@@ -1,18 +1,20 @@
 # Python
 *.py[co]
-.virtualenv/
-_venv/
 .cache/
+.coverage*
 .pytest_cache/
 .tox/
-.coverage*
+.virtualenv/
+_venv/
+_virtualenv/
 
 # Node
 node_modules/
 
 # WPT repo stuff
-/MANIFEST.json
 .wptcache/
+/MANIFEST.json
+/_certs
 /config.json
 
 # Files generated when regenerating pre-generated certs
@@ -22,11 +24,25 @@ node_modules/
 
 # Various OS/editor specific files
 *#
+*.orig
+*.rej
+*.svn
 *.sw[po]
+*.xcodeproj
+*Thumbs.db
 *~
-\#*
-scratch
+.DS_Store
+.directory*
 .idea/
 .vscode/
-.DS_Store
-*.rej
+\#*
+scratch
+
+# Testsuite-specific rules
+/conformance-checkers/vnu.jar
+/cors/resources/log.txt
+/css/build-temp
+/css/dist
+/css/dist_last
+/css/tools/cache
+/webaudio/idl/*

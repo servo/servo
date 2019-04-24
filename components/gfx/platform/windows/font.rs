@@ -280,7 +280,8 @@ impl FontHandleMethods for FontHandle {
 
             let face = font_file
                 .unwrap()
-                .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE);
+                .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
+                .map_err(|_| ())?;
             let info = FontInfo::new_from_face(&face)?;
             (info, face)
         } else {

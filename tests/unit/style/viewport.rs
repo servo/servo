@@ -6,7 +6,7 @@ use cssparser::{Parser, ParserInput};
 use euclid::TypedScale;
 use euclid::TypedSize2D;
 use servo_arc::Arc;
-use servo_config::prefs::{PrefValue, PREFS};
+use servo_config::set_pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -14,8 +14,9 @@ use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::viewport_rule::*;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, StylesheetInDocument};
+use style::values::generics::length::LengthPercentageOrAuto::{self, Auto};
+use style::values::generics::NonNegative;
 use style::values::specified::LengthPercentage;
-use style::values::specified::LengthPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style_traits::viewport::*;
@@ -44,7 +45,7 @@ fn test_viewport_rule<F>(css: &str, device: &Device, callback: F)
 where
     F: Fn(&Vec<ViewportDescriptorDeclaration>, &str),
 {
-    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
+    set_pref!(layout.viewport.enabled, true);
     let stylesheet = stylesheet!(css, Author);
     let mut rule_count = 0;
     stylesheet.effective_viewport_rules(&device, &stylesheet.shared_lock.read(), |rule| {
@@ -97,14 +98,14 @@ macro_rules! assert_decl_len {
 
 macro_rules! viewport_length {
     ($value:expr, px) => {
-        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(
+        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(NonNegative(
             LengthPercentage::Length(NoCalcLength::from_px($value)),
-        ))
+        )))
     };
     ($value:expr, vw) => {
-        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(
+        ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(NonNegative(
             LengthPercentage::Length(ViewportPercentage(Vw($value))),
-        ))
+        )))
     };
 }
 
@@ -444,7 +445,7 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
-    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
+    set_pref!(layout.viewport.enabled, true);
     let device = Device::new(
         MediaType::screen(),
         TypedSize2D::new(800., 600.),

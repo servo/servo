@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    promise_test(async t => {
+      var iframe = document.createElement("iframe");
+      iframe.src = "resources/portal-inside-iframe.html"
+      var waitForLoad = new Promise((resolve, reject) => {
+        iframe.onload = resolve;
+      });
+      document.body.appendChild(iframe);
+      await waitForLoad;
+      const portal = iframe.contentDocument.getElementById("portal");
+      return promise_rejects(t, "InvalidStateError", portal.activate());
+    }, "activating portal inside iframe should fail");
+  </script>
+</body>

@@ -10,10 +10,6 @@ enum XRStationaryReferenceSpaceSubtype {
   "position-disabled"
 };
 
-dictionary XRStationaryReferenceSpaceOptions : XRReferenceSpaceOptions {
-  required XRStationaryReferenceSpaceSubtype subtype;
-};
-
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRStationaryReferenceSpace: XRReferenceSpace {
   // readonly attribute XRStationaryReferenceSpaceSubtype subtype;

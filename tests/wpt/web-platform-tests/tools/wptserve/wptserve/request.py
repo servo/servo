@@ -593,9 +593,7 @@ class MultiDict(dict):
                 values = [values]
 
             for value in values:
-                if value.filename:
-                    value = value
-                else:
+                if not value.filename:
                     value = value.value
                 self.add(key, value)
         return self

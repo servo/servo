@@ -57,7 +57,7 @@ use js::rust::CustomAutoRooterGuard;
 use js::rust::{HandleObject, HandleValue};
 use js::typedarray;
 use script_traits::MsDuration;
-use servo_config::prefs::PREFS;
+use servo_config::prefs;
 use std::borrow::ToOwned;
 use std::ptr;
 use std::ptr::NonNull;
@@ -887,12 +887,15 @@ impl TestBindingMethods for TestBinding {
     #[allow(unsafe_code)]
     unsafe fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
-        PREFS.get(pref_name.as_ref()).as_boolean().unwrap_or(false)
+        prefs::pref_map()
+            .get(pref_name.as_ref())
+            .as_bool()
+            .unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        PREFS
+        prefs::pref_map()
             .get(pref_name.as_ref())
-            .as_string()
+            .as_str()
             .map(|s| DOMString::from(s))
             .unwrap_or_else(|| DOMString::new())
     }
@@ -1006,6 +1009,7 @@ impl TestBindingMethods for TestBinding {
         );
     }
 
+    #[allow(unsafe_code)]
     fn PromiseNativeHandler(
         &self,
         resolve: Option<Rc<SimpleCallback>>,
@@ -1017,7 +1021,7 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new),
             reject.map(SimpleHandler::new),
         );
-        let p = Promise::new(&global);
+        let p = unsafe { Promise::new_in_current_compartment(&global) };
         p.append_native_handler(&handler);
         return p;
 
@@ -1040,8 +1044,9 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
+    #[allow(unsafe_code)]
     fn PromiseAttribute(&self) -> Rc<Promise> {
-        Promise::new(&self.global())
+        unsafe { Promise::new_in_current_compartment(&self.global()) }
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}

@@ -16,8 +16,14 @@ use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gl")]
 use std::rc::Rc;
+use std::time::Duration;
 use style_traits::DevicePixel;
-use webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, ScrollLocation};
+use webrender_api::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, FramebufferIntRect,
+    FramebufferIntSize, ScrollLocation,
+};
+use webvr::VRServiceManager;
+use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -72,6 +78,8 @@ pub enum WindowEvent {
     Navigation(TopLevelBrowsingContextId, TraversalDirection),
     /// Sent when the user quits the application
     Quit,
+    /// Sent when the user exits from fullscreen mode
+    ExitFullScreen(TopLevelBrowsingContextId),
     /// Sent when a key input state changes
     Keyboard(KeyboardEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
@@ -89,6 +97,8 @@ pub enum WindowEvent {
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
     CaptureWebRender,
+    /// Toggle sampling profiler with the given sampling rate and max duration.
+    ToggleSamplingProfiler(Duration, Duration),
 }
 
 impl Debug for WindowEvent {
@@ -116,6 +126,8 @@ impl Debug for WindowEvent {
             WindowEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
             WindowEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             WindowEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
+            WindowEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
+            WindowEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
         }
     }
 }
@@ -145,6 +157,13 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
+    /// Register services with a VRServiceManager.
+    fn register_vr_services(
+        &self,
+        _: &mut VRServiceManager,
+        _: &mut Vec<Box<WebVRMainThreadHeartbeat>>,
+    ) {
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -158,7 +177,16 @@ pub struct EmbedderCoordinates {
     /// Size of the native window.
     pub window: (DeviceIntSize, DeviceIntPoint),
     /// Size of the GL buffer in the window.
-    pub framebuffer: DeviceIntSize,
+    pub framebuffer: FramebufferIntSize,
     /// Coordinates of the document within the framebuffer.
     pub viewport: DeviceIntRect,
+}
+
+impl EmbedderCoordinates {
+    pub fn get_flipped_viewport(&self) -> FramebufferIntRect {
+        let fb_height = self.framebuffer.height;
+        let mut view = self.viewport.clone();
+        view.origin.y = fb_height - view.origin.y - view.size.height;
+        FramebufferIntRect::from_untyped(&view.to_untyped())
+    }
 }

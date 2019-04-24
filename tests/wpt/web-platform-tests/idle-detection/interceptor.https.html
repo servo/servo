@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/samuelgoto/idle-detection">
+<title>Tests the Idle Detection API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/gen/layout_test_data/mojo/public/js/mojo_bindings.js"></script>
+<script src="/gen/mojo/public/mojom/base/string16.mojom.js"></script>
+<script src="/gen/mojo/public/mojom/base/time.mojom.js"></script>
+<script src="/gen/third_party/blink/public/mojom/idle/idle_manager.mojom.js"></script>
+<script src="mock.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  // Basic test that expects start() to call internally
+  // addMonitor, which in turn return an ACTIVE state.
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      return Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.LOCKED
+        }
+      });
+  });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  let watcher = new EventWatcher(t, detector, ["change"]);
+
+  await detector.start();
+
+  // Waits for the first event.
+  await watcher.wait_for("change");
+
+  assert_equals(detector.state.user, "active");
+  assert_equals(detector.state.screen, "locked");
+
+  detector.stop();
+}, 'query()');
+
+promise_test(async t => {
+  // Verifies that an event is thrown when a change of state from IDLE to ACTIVE
+  // is detected.
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      let first = Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.UNLOCKED
+        }
+      });
+
+      t.step_timeout(() => {
+        monitorPtr.update({
+          user: UserIdleState.IDLE,
+          screen: ScreenIdleState.UNLOCKED
+        });
+      }, 0);
+
+      return first;
+    });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  let watcher = new EventWatcher(t, detector, ["change"]);
+
+  await detector.start();
+
+  // Wait for the initial state.
+  await watcher.wait_for("change");
+
+  // Wait for the first change in state.
+  await watcher.wait_for("change");
+
+  assert_equals(detector.state.user, "idle");
+  assert_equals(detector.state.screen, "unlocked");
+
+  detector.stop();
+}, 'updates once');
+
+
+promise_test(async t => {
+  // Simulates the user being active, going idle and then going back active
+  // again.
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      let first = Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.UNLOCKED
+        }
+      });
+
+      // Updates the client once with the user idle.
+      t.step_timeout(() => {
+        monitorPtr.update({
+          user: UserIdleState.IDLE,
+          screen: ScreenIdleState.UNLOCKED
+        });
+      }, 0);
+      // Updates the client a second time with the user active.
+      t.step_timeout(() => {
+        monitorPtr.update({
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.UNLOCKED
+        });
+      }, 1);
+      return first;
+    });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  let watcher = new EventWatcher(t, detector, ["change"]);
+
+  await detector.start();
+
+  // Waits for the initial state.
+  await watcher.wait_for("change");
+
+  // Waits for the first event.
+  await watcher.wait_for("change");
+  assert_equals(detector.state.user, "idle");
+
+  // Waits for the second event.
+  await watcher.wait_for("change");
+  assert_equals(detector.state.user, "active");
+
+  detector.stop();
+}, 'updates twice');
+
+promise_test(async t => {
+  // Simulates a locked screen.
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      return Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.LOCKED
+        }
+      });
+    });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  let watcher = new EventWatcher(t, detector, ["change"]);
+
+  await detector.start();
+
+  // waits for the initial state.
+  await watcher.wait_for("change");
+
+  assert_equals(detector.state.screen, "locked");
+
+  detector.stop();
+}, 'locked screen');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      return Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.LOCKED
+        }
+      });
+  });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  let event = new Promise((resolve, reject) => {
+    detector.onchange = resolve;
+  });
+
+  await detector.start();
+
+  // Waits for the first event.
+  await event;
+
+  assert_equals(detector.state.user, "active");
+  assert_equals(detector.state.screen, "locked");
+
+  detector.stop();
+}, 'IdleDetector.onchange');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      return Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.UNLOCKED
+        }
+      });
+    });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  let watcher = new EventWatcher(t, detector, ["change"]);
+
+  // Calling start() multiple times should be safe.
+  await detector.start();
+  await detector.start();
+  await detector.start();
+  await detector.start();
+
+  // waits for the initial state.
+  await watcher.wait_for("change");
+  assert_equals(detector.state.user, "active");
+  assert_equals(detector.state.screen, "unlocked");
+
+  // Calling stop() multiple times should be safe.
+  detector.stop();
+  detector.stop();
+  detector.stop();
+  detector.stop();
+}, 'Safe to call start() or stop() multiple times');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      return Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.UNLOCKED
+        }
+      });
+    });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  // Calling stop() before start() is a no-op.
+  detector.stop();
+
+  let watcher = new EventWatcher(t, detector, ["change"]);
+
+  await detector.start();
+
+  // waits for the initial state.
+  await watcher.wait_for("change");
+  assert_equals(detector.state.user, "active");
+  assert_equals(detector.state.screen, "unlocked");
+
+  detector.stop();
+}, 'Calling stop() after start() is a no-op');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      return Promise.resolve({
+        state: {
+          user: UserIdleState.ACTIVE,
+          screen: ScreenIdleState.UNLOCKED
+        }
+      });
+    });
+
+  let detector = new IdleDetector({threshold: 60});
+
+  let watcher = new EventWatcher(t, detector, ["change"]);
+
+  await detector.start();
+  await watcher.wait_for("change");
+  detector.stop();
+
+  expect(addMonitor).andReturn((threshold, monitorPtr) => {
+      return Promise.resolve({
+        state: {
+          user: UserIdleState.IDLE,
+          screen: ScreenIdleState.LOCKED
+        }
+      });
+    });
+
+  // Restarting the monitor.
+  await detector.start();
+  await watcher.wait_for("change");
+  assert_equals(detector.state.user, "idle");
+  assert_equals(detector.state.screen, "locked");
+
+  detector.stop();
+}, 'Calling start() after stop(): re-starting monitor.');
+
+</script>

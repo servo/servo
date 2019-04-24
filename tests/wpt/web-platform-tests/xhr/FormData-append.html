@@ -80,6 +80,14 @@
         assert_equals(fd.get('key'), "null");
     }, 'testFormDataAppendToFormNull2');
     test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws(new TypeError(), () => {fd.append('name', "string", 'filename')});
+    }, 'testFormDataAppendToFormString');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws(new TypeError(), () => {fd.append('name', new URLSearchParams(), 'filename')});
+    }, 'testFormDataAppendToFormWrongPlatformObject');
+    test(function() {
         var before = new Date(new Date().getTime() - 2000); // two seconds ago, in case there's clock drift
         var fd = create_formdata(['key', new Blob(), 'blank.txt']).get('key');
         assert_equals(fd.name, "blank.txt");

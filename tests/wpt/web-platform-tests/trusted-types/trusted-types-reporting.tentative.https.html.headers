@@ -1,0 +1,4 @@
+Content-Security-Policy: trusted-types one
+Content-Security-Policy-Report-Only: trusted-types two; report-uri /content-security-policy/resources/dummy-report.php
+Content-Security-Policy: plugin-types bla/blubb
+

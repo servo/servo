@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test <svg:image>'s sizing with css size as auto, with dynamic image change</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#geometry-Sizing"/>
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-Placement"/>
+<svg height="0">
+  <image width="128" height="128" xlink:href="/images/green-256x256.png" style="width:auto; height:auto"/>
+</svg>
+<script>
+async_test(function(t) {
+  var image = document.querySelector('image');
+  window.onload = t.step_func(function() {
+    var rectBBox = image.getBBox();
+    assert_equals(rectBBox.width, 256);
+    assert_equals(rectBBox.height, 256);
+    image.setAttributeNS("http://www.w3.org/1999/xlink","href","data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'></svg>");
+    image.onload = t.step_func_done(function() {
+        var rectBBox = image.getBBox();
+        assert_equals(rectBBox.width, 64);
+        assert_equals(rectBBox.height, 64);
+    });
+  });
+});
+</script>

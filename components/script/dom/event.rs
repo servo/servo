@@ -6,11 +6,14 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
 use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, DomSlice, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
@@ -21,6 +24,7 @@ use crate::dom::window::Window;
 use crate::task::TaskOnce;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
+use metrics::ToMs;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
@@ -40,7 +44,7 @@ pub struct Event {
     trusted: Cell<bool>,
     dispatching: Cell<bool>,
     initialized: Cell<bool>,
-    timestamp: u64,
+    precise_time_ns: u64,
 }
 
 impl Event {
@@ -59,7 +63,7 @@ impl Event {
             trusted: Cell::new(false),
             dispatching: Cell::new(false),
             initialized: Cell::new(false),
-            timestamp: time::get_time().sec as u64,
+            precise_time_ns: time::precise_time_ns(),
         }
     }
 
@@ -188,9 +192,10 @@ impl Event {
     }
 
     pub fn status(&self) -> EventStatus {
-        match self.DefaultPrevented() {
-            true => EventStatus::Canceled,
-            false => EventStatus::NotCanceled,
+        if self.DefaultPrevented() {
+            EventStatus::Canceled
+        } else {
+            EventStatus::NotCanceled
         }
     }
 
@@ -296,9 +301,36 @@ impl EventMethods for Event {
         self.cancelable.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    fn ReturnValue(&self) -> bool {
+        self.canceled.get() == EventDefault::Allowed
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    fn SetReturnValue(&self, val: bool) {
+        if !val {
+            self.PreventDefault();
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    fn CancelBubble(&self) -> bool {
+        self.stop_propagation.get()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    fn SetCancelBubble(&self, value: bool) {
+        if value {
+            self.stop_propagation.set(true)
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-event-timestamp
-    fn TimeStamp(&self) -> u64 {
-        self.timestamp
+    fn TimeStamp(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(
+            (self.precise_time_ns - (*self.global().performance().TimeOrigin()).round() as u64)
+                .to_ms(),
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-event-initevent
@@ -320,9 +352,10 @@ pub enum EventBubbles {
 
 impl From<bool> for EventBubbles {
     fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventBubbles::Bubbles,
-            false => EventBubbles::DoesNotBubble,
+        if boolean {
+            EventBubbles::Bubbles
+        } else {
+            EventBubbles::DoesNotBubble
         }
     }
 }
@@ -344,9 +377,10 @@ pub enum EventCancelable {
 
 impl From<bool> for EventCancelable {
     fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventCancelable::Cancelable,
-            false => EventCancelable::NotCancelable,
+        if boolean {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
         }
     }
 }
@@ -450,7 +484,12 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
 
     // Step 6.
     for object in event_path.iter().rev() {
-        invoke(window.r(), object, event, Some(ListenerPhase::Capturing));
+        invoke(
+            window.deref(),
+            object,
+            event,
+            Some(ListenerPhase::Capturing),
+        );
         if event.stop_propagation.get() {
             return;
         }
@@ -462,7 +501,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     event.phase.set(EventPhase::AtTarget);
 
     // Step 8.
-    invoke(window.r(), target, event, None);
+    invoke(window.deref(), target, event, None);
     if event.stop_propagation.get() {
         return;
     }
@@ -478,7 +517,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
 
     // Step 9.2.
     for object in event_path {
-        invoke(window.r(), object, event, Some(ListenerPhase::Bubbling));
+        invoke(window.deref(), object, event, Some(ListenerPhase::Bubbling));
         if event.stop_propagation.get() {
             return;
         }

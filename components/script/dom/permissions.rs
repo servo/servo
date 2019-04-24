@@ -22,7 +22,7 @@ use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 #[cfg(target_os = "linux")]
 use servo_config::opts;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use tinyfiledialogs::{self, MessageBoxIcon, YesNo};
@@ -87,6 +87,7 @@ impl Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
     // https://w3c.github.io/permissions/#dom-permissions-request
     // https://w3c.github.io/permissions/#dom-permissions-revoke
+    #[allow(unsafe_code)]
     fn manipulate(
         &self,
         op: Operation,
@@ -97,7 +98,7 @@ impl Permissions {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
-            None => Promise::new(&self.global()),
+            None => unsafe { Promise::new_in_current_compartment(&self.global()) },
         };
 
         // (Query, Request, Revoke) Step 1.
@@ -304,26 +305,22 @@ pub fn get_descriptor_permission_state(
     // The current solution is a workaround with a message box to warn about this,
     // if the feature is not allowed in non-secure contexcts,
     // and let the user decide to grant the permission or not.
-    let state = match allowed_in_nonsecure_contexts(&permission_name) {
-        true => PermissionState::Prompt,
-        false => match PREFS
-            .get("dom.permissions.testing.allowed_in_nonsecure_contexts")
-            .as_boolean()
-            .unwrap_or(false)
-        {
-            true => PermissionState::Granted,
-            false => {
-                settings
-                    .as_window()
-                    .permission_state_invocation_results()
-                    .borrow_mut()
-                    .remove(&permission_name.to_string());
-                prompt_user(&format!(
-                    "The {} {}",
-                    permission_name, NONSECURE_DIALOG_MESSAGE
-                ))
-            },
-        },
+    let state = if allowed_in_nonsecure_contexts(&permission_name) {
+        PermissionState::Prompt
+    } else {
+        if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
+            PermissionState::Granted
+        } else {
+            settings
+                .as_window()
+                .permission_state_invocation_results()
+                .borrow_mut()
+                .remove(&permission_name.to_string());
+            prompt_user(&format!(
+                "The {} {}",
+                permission_name, NONSECURE_DIALOG_MESSAGE
+            ))
+        }
     };
 
     // Step 3.

@@ -494,3 +494,17 @@ test(() => {
   assert_throws(new RangeError(), () => rs.getReader({ mode }), 'getReader() should throw');
   assert_true(toStringCalled, 'toString() should be called');
 }, 'getReader() should call ToString() on mode');
+
+promise_test(() => {
+  const rs = new ReadableStream({
+    pull(controller) {
+      controller.close();
+    }
+  });
+
+  const reader = rs.getReader();
+  return reader.read().then(() => {
+    // The test passes if releaseLock() does not throw.
+    reader.releaseLock();
+  });
+}, 'controller.close() should clear the list of pending read requests');

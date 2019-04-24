@@ -35,6 +35,8 @@ const j = obj => JSON.stringify(obj);
  {video: {height: {exact: 240}}},
  {video: {frameRate: {min: 4}}},
  {video: {frameRate: {exact: 4}}},
+ {audio: true},
+ {video: false, audio: true},
 ].forEach(constraints => promise_test(async t => {
   try {
     stopTracks(await navigator.mediaDevices.getDisplayMedia(constraints));
@@ -47,7 +49,6 @@ const j = obj => JSON.stringify(obj);
 
 [
  {video: true, audio: true},
- {audio: true},
 ].forEach(constraints => promise_test(async t => {
   const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
   t.add_cleanup(() => stopTracks(stream));

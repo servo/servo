@@ -23,6 +23,8 @@ use style_traits::{ParseError, StyleParseErrorKind};
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum OffsetPath {
     // We could merge SVGPathData into ShapeSource, so we could reuse them. However,

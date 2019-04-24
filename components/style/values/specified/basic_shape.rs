@@ -18,6 +18,7 @@ use crate::values::specified::position::{HorizontalPosition, Position, VerticalP
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::SVGPathData;
 use crate::values::specified::{LengthPercentage, NonNegativeLengthPercentage};
+use crate::Zero;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -202,9 +203,9 @@ impl InsetRect {
     ) -> Result<Self, ParseError<'i>> {
         let rect = Rect::parse_with(context, input, LengthPercentage::parse)?;
         let round = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
-            Some(BorderRadius::parse(context, input)?)
+            BorderRadius::parse(context, input)?
         } else {
-            None
+            BorderRadius::zero()
         };
         Ok(generic::InsetRect { rect, round })
     }

@@ -8,12 +8,13 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
+use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cdatasection::CDATASection;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -50,7 +51,10 @@ impl CharacterData {
                 let pi = self.downcast::<ProcessingInstruction>().unwrap();
                 DomRoot::upcast(ProcessingInstruction::new(pi.Target(), data, &document))
             },
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
+                DomRoot::upcast(CDATASection::new(data, &document))
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
                 DomRoot::upcast(Text::new(data, &document))
             },
             _ => unreachable!(),

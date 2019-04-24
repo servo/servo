@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCIceConnectionState and RTCIceCandidatePair</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const [track] = stream.getTracks();
+  caller.addTrack(track, stream);
+  exchangeIceCandidates(caller, callee);
+  await doSignalingHandshake(caller, callee);
+  await listenToIceConnected(caller);
+
+  const report = await caller.getStats();
+  let succeededPairFound = false;
+  report.forEach(stats => {
+    if (stats.type == 'candidate-pair' && stats.state == 'succeeded')
+      succeededPairFound = true;
+  });
+  assert_true(succeededPairFound, 'A succeeded candidate-pair should exist');
+}, 'On ICE connected, getStats() contains a connected candidate-pair');
+
+</script>

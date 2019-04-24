@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<script>
+  // Site
+  promise_test(t => {
+    return fetch("https://{{host}}.:{{ports[https][0]}}/fetch/sec-metadata/resources/echo-as-json.py")
+        .then(r => r.json())
+        .then(j => {
+          assert_header_equals(j, {
+            "dest": "empty",
+            "site": "cross-site",
+            "user": "",
+            "mode": "cors",
+          });
+        });
+  }, "Fetching a resource from the same origin, but spelled with a trailing dot.");
+
+  promise_test(t => {
+    return fetch("https://{{hosts[][www]}}.:{{ports[https][0]}}/fetch/sec-metadata/resources/echo-as-json.py")
+        .then(r => r.json())
+        .then(j => {
+          assert_header_equals(j, {
+            "dest": "empty",
+            "site": "cross-site",
+            "user": "",
+            "mode": "cors",
+          });
+        });
+  }, "Fetching a resource from the same site, but spelled with a trailing dot.");
+
+  promise_test(t => {
+    return fetch("https://{{hosts[alt][www]}}.:{{ports[https][0]}}/fetch/sec-metadata/resources/echo-as-json.py")
+        .then(r => r.json())
+        .then(j => {
+          assert_header_equals(j, {
+            "dest": "empty",
+            "site": "cross-site",
+            "user": "",
+            "mode": "cors",
+          });
+        });
+  }, "Fetching a resource from a cross-site host, spelled with a trailing dot.");
+</script>

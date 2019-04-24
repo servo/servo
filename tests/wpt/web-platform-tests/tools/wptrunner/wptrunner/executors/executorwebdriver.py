@@ -20,7 +20,8 @@ from .protocol import (BaseProtocolPart,
                        ClickProtocolPart,
                        SendKeysProtocolPart,
                        ActionSequenceProtocolPart,
-                       TestDriverProtocolPart)
+                       TestDriverProtocolPart,
+                       GenerateTestReportProtocolPart)
 from ..testrunner import Stop
 
 import webdriver as client
@@ -120,7 +121,7 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
             if test_window is None:
                 after = self.webdriver.handles
                 if len(after) == 2:
-                    test_window = next(iter(set(after) - set([parent])))
+                    test_window = next(iter(set(after) - {parent}))
                 elif after[0] == parent and len(after) > 2:
                     # Hope the first one here is the test window
                     test_window = after[1]
@@ -188,6 +189,15 @@ class WebDriverTestDriverProtocolPart(TestDriverProtocolPart):
         self.webdriver.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
 
 
+class WebDriverGenerateTestReportProtocolPart(GenerateTestReportProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def generate_test_report(self, message):
+        json_message = {"message": message}
+        self.webdriver.send_session_command("POST", "reporting/generate_test_report", json_message)
+
+
 class WebDriverProtocol(Protocol):
     implements = [WebDriverBaseProtocolPart,
                   WebDriverTestharnessProtocolPart,
@@ -195,7 +205,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverClickProtocolPart,
                   WebDriverSendKeysProtocolPart,
                   WebDriverActionSequenceProtocolPart,
-                  WebDriverTestDriverProtocolPart]
+                  WebDriverTestDriverProtocolPart,
+                  WebDriverGenerateTestReportProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super(WebDriverProtocol, self).__init__(executor, browser)
@@ -213,9 +224,6 @@ class WebDriverProtocol(Protocol):
         self.webdriver = client.Session(host, port, capabilities=capabilities)
         self.webdriver.start()
 
-
-    def after_conect(self):
-        pass
 
     def teardown(self):
         self.logger.debug("Hanging up on WebDriver session")
@@ -250,7 +258,7 @@ class WebDriverRun(object):
         timeout = self.timeout
 
         try:
-            self.protocol.base.set_timeout((timeout + extra_timeout))
+            self.protocol.base.set_timeout(timeout + extra_timeout)
         except client.UnknownErrorException:
             self.logger.error("Lost WebDriver connection")
             return Stop
@@ -348,6 +356,20 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
         while True:
             result = protocol.base.execute_script(
                 self.script_resume % format_map, async=True)
+
+            # As of 2019-03-29, WebDriver does not define expected behavior for
+            # cases where the browser crashes during script execution:
+            #
+            # https://github.com/w3c/webdriver/issues/1308
+            if not isinstance(result, list) or len(result) != 2:
+                try:
+                    is_alive = self.is_alive()
+                except client.WebDriverException:
+                    is_alive = False
+
+                if not is_alive:
+                    raise Exception("Browser crashed during script execution.")
+
             done, rv = handler(result)
             if done:
                 break
@@ -397,6 +419,9 @@ class WebDriverRefTestExecutor(RefTestExecutor):
         with open(os.path.join(here, "reftest-wait_webdriver.js")) as f:
             self.wait_script = f.read()
 
+    def reset(self):
+        self.implementation.reset()
+
     def is_alive(self):
         return self.protocol.is_alive()
 
@@ -405,7 +430,12 @@ class WebDriverRefTestExecutor(RefTestExecutor):
             """return [window.outerWidth - window.innerWidth,
                        window.outerHeight - window.innerHeight];"""
         )
-        self.protocol.webdriver.window.size = (600 + width_offset, 600 + height_offset)
+        try:
+            self.protocol.webdriver.window.position = (0, 0)
+        except client.InvalidArgumentException:
+            # Safari 12 throws with 0 or 1, treating them as bools; fixed in STP
+            self.protocol.webdriver.window.position = (2, 2)
+        self.protocol.webdriver.window.size = (800 + width_offset, 600 + height_offset)
 
         result = self.implementation.run_test(test)
 

@@ -36,7 +36,7 @@ New-NetFirewallRule -DisplayName "Allow livelog GET requests" `
 # Install generic-worker and dependencies
 md C:\generic-worker
 $client.DownloadFile("https://github.com/taskcluster/generic-worker/releases/download" +
-    "/v10.11.3/generic-worker-windows-amd64.exe", "C:\generic-worker\generic-worker.exe")
+    "/v13.0.2/generic-worker-windows-amd64.exe", "C:\generic-worker\generic-worker.exe")
 $client.DownloadFile("https://github.com/taskcluster/livelog/releases/download" +
     "/v1.1.0/livelog-windows-amd64.exe", "C:\generic-worker\livelog.exe")
 Expand-ZIPFile -File "C:\nssm-2.24.zip" -Destination "C:\" `
@@ -44,10 +44,16 @@ Expand-ZIPFile -File "C:\nssm-2.24.zip" -Destination "C:\" `
 Start-Process C:\generic-worker\generic-worker.exe -ArgumentList `
     "new-openpgp-keypair --file C:\generic-worker\generic-worker-gpg-signing-key.key" `
     -Wait -NoNewWindow -PassThru `
-    -RedirectStandardOutput C:\generic-worker\generate-signing-key.log `
-    -RedirectStandardError C:\generic-worker\generate-signing-key.err
+    -RedirectStandardOutput C:\generic-worker\generate-gpg-signing-key.log `
+    -RedirectStandardError C:\generic-worker\generate-gpg-signing-key.err
+Start-Process C:\generic-worker\generic-worker.exe -ArgumentList `
+    "new-ed25519-keypair --file C:\generic-worker\generic-worker-ed25519-signing-key.key" `
+    -Wait -NoNewWindow -PassThru `
+    -RedirectStandardOutput C:\generic-worker\generate-ed25519-signing-key.log `
+    -RedirectStandardError C:\generic-worker\generate-ed25519-signing-key.err
 Start-Process C:\generic-worker\generic-worker.exe -ArgumentList (
         "install service --nssm C:\nssm-2.24\win64\nssm.exe " +
+        "--configure-for-aws " +
         "--config C:\generic-worker\generic-worker.config"
     ) -Wait -NoNewWindow -PassThru `
     -RedirectStandardOutput C:\generic-worker\install.log `
@@ -65,6 +71,8 @@ Start-Process C:\generic-worker\generic-worker.exe -ArgumentList (
 # Start-Process C:\nssm-2.24\win64\nssm.exe -ArgumentList `
 #     "set", "servo-ping", "AppExit", "Default", "Exit"
 
+Expand-ZIPFile -File "C:\depends22_x86.zip" -Destination "C:\" `
+    -Url "http://www.dependencywalker.com/depends22_x86.zip"
 
 # Visual C++ Build Tools
 # https://blogs.msdn.microsoft.com/vcblog/2016/11/16/introducing-the-visual-studio-build-tools/

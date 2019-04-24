@@ -11,6 +11,7 @@ use crate::values::generics::border::BorderRadius;
 use crate::values::generics::position::Position;
 use crate::values::generics::rect::Rect;
 use crate::values::specified::SVGPathData;
+use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -30,6 +31,8 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum GeometryBox {
     FillBox,
@@ -57,6 +60,8 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum ShapeBox {
     MarginBox,
@@ -78,6 +83,8 @@ pub enum ShapeBox {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     #[animation(error)]
@@ -103,11 +110,25 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
-    Inset(#[css(field_bound)] InsetRect<LengthPercentage, NonNegativeLengthPercentage>),
-    Circle(#[css(field_bound)] Circle<H, V, NonNegativeLengthPercentage>),
-    Ellipse(#[css(field_bound)] Ellipse<H, V, NonNegativeLengthPercentage>),
+    Inset(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        InsetRect<LengthPercentage, NonNegativeLengthPercentage>,
+    ),
+    Circle(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        Circle<H, V, NonNegativeLengthPercentage>,
+    ),
+    Ellipse(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        Ellipse<H, V, NonNegativeLengthPercentage>,
+    ),
     Polygon(Polygon<LengthPercentage>),
 }
 
@@ -124,10 +145,13 @@ pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     pub rect: Rect<LengthPercentage>,
-    pub round: Option<BorderRadius<NonNegativeLengthPercentage>>,
+    #[shmem(field_bound)]
+    pub round: BorderRadius<NonNegativeLengthPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
@@ -144,6 +168,8 @@ pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct Circle<H, V, NonNegativeLengthPercentage> {
     pub position: Position<H, V>,
@@ -164,6 +190,8 @@ pub struct Circle<H, V, NonNegativeLengthPercentage> {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     pub position: Position<H, V>,
@@ -185,6 +213,8 @@ pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub enum ShapeRadius<NonNegativeLengthPercentage> {
     Length(NonNegativeLengthPercentage),
@@ -207,6 +237,8 @@ pub enum ShapeRadius<NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct Polygon<LengthPercentage> {
     /// The filling rule for a polygon.
@@ -227,6 +259,8 @@ pub struct Polygon<LengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercentage);
 
@@ -248,6 +282,8 @@ pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercen
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum FillRule {
@@ -269,6 +305,8 @@ pub enum FillRule {
     ToAnimatedValue,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct Path {
     /// The filling rule for the svg path.
@@ -311,7 +349,7 @@ impl<B, T, U> ToAnimatedZero for ShapeSource<B, T, U> {
 impl<Length, NonNegativeLength> ToCss for InsetRect<Length, NonNegativeLength>
 where
     Length: ToCss + PartialEq,
-    NonNegativeLength: ToCss + PartialEq,
+    NonNegativeLength: ToCss + PartialEq + Zero,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -319,9 +357,9 @@ where
     {
         dest.write_str("inset(")?;
         self.rect.to_css(dest)?;
-        if let Some(ref radius) = self.round {
+        if !self.round.is_zero() {
             dest.write_str(" round ")?;
-            radius.to_css(dest)?;
+            self.round.to_css(dest)?;
         }
         dest.write_str(")")
     }

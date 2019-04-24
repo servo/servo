@@ -47,7 +47,8 @@ function createUrlRecord(url) {
   return createRecord('url', 'text/plain', url);
 }
 
-function assertWebNFCMessagesEqual(a, b) {
+function assertWebNDEFMessagesEqual(a, b) {
+  if (b.url) assert_equals(a.url, `${location.origin}${b.url}`);
   assert_equals(a.records.length, b.records.length);
   for(let i in a.records) {
     let recordA = a.records[i];
@@ -59,23 +60,26 @@ function assertWebNFCMessagesEqual(a, b) {
           new Uint8Array(recordB.data));
     } else if (typeof recordA.data === 'object') {
       assert_object_equals(recordA.data, recordB.data);
-    }
-    if (typeof recordA.data === 'number'
+    } else if (typeof recordA.data === 'number'
         || typeof recordA.data === 'string') {
       assert_true(recordA.data == recordB.data);
     }
   }
 }
 
-function testNFCMessage(pushedMessage, watchOptions, desc) {
-  promise_test(t => {
-    return navigator.nfc.push(pushedMessage)
-      .then(() => {
-        return new Promise(resolve => {
-          navigator.nfc.watch((message) => resolve(message), watchOptions);
-        }).then((message) => {
-          assertWebNFCMessagesEqual(message, pushedMessage);
-        });
-      });
+function testNFCReaderOptions(pushedMessage, readOptions, unacceptableReadOptions, desc) {
+  promise_test(async t => {
+    const writer = new NFCWriter();
+    const reader1 = new NFCReader(unacceptableReadOptions);
+    const reader2 = new NFCReader(readOptions);
+    await writer.push(pushedMessage);
+
+    reader1.onreading = t.unreached_func("reading event should not be fired.");
+    reader1.start();
+
+    const readerWatcher = new EventWatcher(t, reader2, ["reading", "error"]);
+    reader2.start();
+    const event = await readerWatcher.wait_for("reading");
+    assertWebNDEFMessagesEqual(event.message, pushedMessage);
   }, desc);
 }

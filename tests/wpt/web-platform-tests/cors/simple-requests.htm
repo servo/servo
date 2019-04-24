@@ -61,14 +61,6 @@ check_simple_headers({
                         'content-type': 'text/plain; parameter=whatever'
                      })
 
-check_simple_headers({
-                        'save-data': 'on',
-                        'device-memory': '2.0',
-                        'dpr': '3.0',
-                        'width': '1200',
-                        'viewport-width': '1300'
-                     })
-
 check_simple('Get', {'content-type': 'text/plain; parameter=extra_bonus'})
 check_simple('post', {'content-type': 'text/plain'})
 

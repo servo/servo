@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+    https://github.com/whatwg/html/issues/4364
+
+-->
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <h1>User activation can be transferred to a cross-origin child frame
+    via a postMessage option.</h1>
+  <ol id="instructions">
+    <li>Click this instruction text.
+  </ol>
+  <iframe id="child1" width="200" height="200"></iframe>
+  <iframe id="child2" width="200" height="200"></iframe>
+  <script>
+    async_test(function(t) {
+      var child1 = document.getElementById("child1");
+      var child2 = document.getElementById("child2");
+      var is_child_four_loaded = false;
+      var is_child_five_loaded = false;
+      assert_false(navigator.userActivation.isActive);
+      assert_false(navigator.userActivation.hasBeenActive);
+
+      function tryClickInstructions() {
+        if (is_child_four_loaded && is_child_five_loaded)
+          test_driver.click(document.getElementById('instructions'));
+      }
+
+      window.addEventListener("message", t.step_func(event => {
+        var msg = JSON.parse(event.data);
+        if (msg.type == 'child-four-loaded') {
+          // state should be false after load
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+
+          // click in parent document after both child frames load
+          is_child_four_loaded = true;
+          tryClickInstructions();
+        } else if (msg.type == 'child-four-report') {
+          assert_true(msg.isActive);
+          assert_true(msg.hasBeenActive);
+
+          // check sender's activation state again
+          assert_false(navigator.userActivation.isActive);
+          assert_false(navigator.userActivation.hasBeenActive);
+
+          child2.contentWindow.postMessage('report', '*');
+        } else if (msg.type == 'child-five-loaded') {
+          // state should be false after load
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+
+          // click in parent document after both child frames load
+          is_child_five_loaded = true;
+          tryClickInstructions();
+        } else if (msg.type == 'child-five-report') {
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+
+          // check sender's activation state again
+          assert_false(navigator.userActivation.isActive);
+          assert_false(navigator.userActivation.hasBeenActive);
+          t.done();
+        }
+      }));
+      window.addEventListener("click", t.step_func(event => {
+          assert_true(navigator.userActivation.isActive);
+          assert_true(navigator.userActivation.hasBeenActive);
+
+          // transfer user activation to the child frame
+          child1.contentWindow.postMessage("transfer_user_activation",
+              {targetOrigin: "*", transferUserActivation: true});
+
+          // sender's activation state is updated synchronously
+          assert_false(navigator.userActivation.isActive);
+          assert_false(navigator.userActivation.hasBeenActive);
+      }));
+      child1.src = "http://{{domains[www]}}:{{ports[http][0]}}/html/user-activation/resources/child-four.html";
+      child2.src = "http://{{domains[www1]}}:{{ports[http][0]}}/html/user-activation/resources/child-five.html";
+    }, "Cross-origin user activation transfer through postMessages");
+  </script>
+</body>
+</html>

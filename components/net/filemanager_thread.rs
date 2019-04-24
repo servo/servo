@@ -18,7 +18,6 @@ use net_traits::filemanager_thread::{
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
 use servo_arc::Arc as ServoArc;
-use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
@@ -126,20 +125,8 @@ impl FileManager {
         )
     }
 
-    pub fn promote_memory(
-        &self,
-        blob_buf: BlobBuf,
-        set_valid: bool,
-        sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
-        origin: FileOrigin,
-    ) {
-        let store = self.store.clone();
-        thread::Builder::new()
-            .name("transfer memory".to_owned())
-            .spawn(move || {
-                store.promote_memory(blob_buf, set_valid, sender, origin);
-            })
-            .expect("Thread spawning failed");
+    pub fn promote_memory(&self, id: Uuid, blob_buf: BlobBuf, set_valid: bool, origin: FileOrigin) {
+        self.store.promote_memory(id, blob_buf, set_valid, origin);
     }
 
     /// Message handler
@@ -168,8 +155,8 @@ impl FileManager {
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
                 self.read_file(sender, id, check_url_validity, origin);
             },
-            FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, sender, origin) => {
-                self.promote_memory(blob_buf, set_valid, sender, origin);
+            FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin) => {
+                self.promote_memory(id, blob_buf, set_valid, origin);
             },
             FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) => {
                 self.store.add_sliced_url_entry(id, rel_pos, sender, origin);
@@ -311,7 +298,7 @@ impl FileManagerStore {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
-        let opt_s = if select_files_pref_enabled() {
+        let opt_s = if pref!(dom.testing.html_input_element.select_files.enabled) {
             opt_test_path
         } else {
             self.query_files_from_embedder(patterns, false, embedder_proxy)
@@ -342,7 +329,7 @@ impl FileManagerStore {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
-        let opt_v = if select_files_pref_enabled() {
+        let opt_v = if pref!(dom.testing.html_input_element.select_files.enabled) {
             opt_test_paths
         } else {
             self.query_files_from_embedder(patterns, true, embedder_proxy)
@@ -667,17 +654,10 @@ impl FileManagerStore {
         Ok(())
     }
 
-    fn promote_memory(
-        &self,
-        blob_buf: BlobBuf,
-        set_valid: bool,
-        sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
-        origin: FileOrigin,
-    ) {
+    fn promote_memory(&self, id: Uuid, blob_buf: BlobBuf, set_valid: bool, origin: FileOrigin) {
         match Url::parse(&origin) {
             // parse to check sanity
             Ok(_) => {
-                let id = Uuid::new_v4();
                 self.insert(
                     id,
                     FileStoreEntry {
@@ -687,12 +667,8 @@ impl FileManagerStore {
                         is_valid_url: AtomicBool::new(set_valid),
                     },
                 );
-
-                let _ = sender.send(Ok(id));
             },
-            Err(_) => {
-                let _ = sender.send(Err(BlobURLStoreError::InvalidOrigin));
-            },
+            Err(_) => {},
         }
     }
 
@@ -738,13 +714,6 @@ impl FileManagerStore {
         }
         res
     }
-}
-
-fn select_files_pref_enabled() -> bool {
-    PREFS
-        .get("dom.testing.htmlinputelement.select_files.enabled")
-        .as_boolean()
-        .unwrap_or(false)
 }
 
 fn read_file_in_chunks(

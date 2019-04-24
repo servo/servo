@@ -90,13 +90,13 @@ impl MutationObserver {
     }
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
-    pub fn queue_mutation_observer_compound_microtask() {
+    pub fn queue_mutation_observer_microtask() {
         // Step 1
-        if ScriptThread::is_mutation_observer_compound_microtask_queued() {
+        if ScriptThread::is_mutation_observer_microtask_queued() {
             return;
         }
         // Step 2
-        ScriptThread::set_mutation_observer_compound_microtask_queued(true);
+        ScriptThread::set_mutation_observer_microtask_queued(true);
         // Step 3
         ScriptThread::enqueue_microtask(Microtask::NotifyMutationObservers);
     }
@@ -104,7 +104,7 @@ impl MutationObserver {
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
     pub fn notify_mutation_observers() {
         // Step 1
-        ScriptThread::set_mutation_observer_compound_microtask_queued(false);
+        ScriptThread::set_mutation_observer_microtask_queued(false);
         // Step 2
         let notify_list = ScriptThread::get_mutation_observers();
         // TODO: steps 3-4 (slots)
@@ -239,7 +239,7 @@ impl MutationObserver {
         }
 
         // Step 5
-        MutationObserver::queue_mutation_observer_compound_microtask();
+        MutationObserver::queue_mutation_observer_microtask();
     }
 }
 

@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe image inside SVG</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+let beforeRender;
+async_test(function (t) {
+  const observer = new PerformanceObserver(
+    t.step_func_done(function(entryList) {
+      assert_equals(entryList.getEntries().length, 1);
+      const entry = entryList.getEntries()[0];
+      const index = window.location.href.lastIndexOf('/');
+      const pathname = window.location.href.substring(0, index) +
+          '/resources/circle.svg';
+      checkElement(entry, pathname, 'my_svg', 'svg_id', beforeRender);
+      // Assume viewport has size at least 200, so the element is fully visible.
+      checkRect(entry, [0, 200, 0, 200]);
+      checkNaturalSize(entry, 200, 200);
+    })
+  );
+  observer.observe({entryTypes: ['element']});
+  beforeRender = performance.now();
+}, "Able to observe svg image.");
+</script>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<svg width="300" height="300">
+  <image href='resources/circle.svg' elementtiming='my_svg' id='svg_id'/>
+</svg>

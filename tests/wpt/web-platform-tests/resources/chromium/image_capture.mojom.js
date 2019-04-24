@@ -434,7 +434,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 16}
+      {version: 0, numBytes: 24}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -445,15 +445,15 @@
     return validator.validationError.NONE;
   };
 
-  Point2D.encodedSize = codec.kStructHeaderSize + 8;
+  Point2D.encodedSize = codec.kStructHeaderSize + 16;
 
   Point2D.decode = function(decoder) {
     var packed;
     var val = new Point2D();
     var numberOfBytes = decoder.readUint32();
     var version = decoder.readUint32();
-    val.x = decoder.decodeStruct(codec.Float);
-    val.y = decoder.decodeStruct(codec.Float);
+    val.x = decoder.decodeStruct(codec.Double);
+    val.y = decoder.decodeStruct(codec.Double);
     return val;
   };
 
@@ -461,8 +461,8 @@
     var packed;
     encoder.writeUint32(Point2D.encodedSize);
     encoder.writeUint32(0);
-    encoder.encodeStruct(codec.Float, val.x);
-    encoder.encodeStruct(codec.Float, val.y);
+    encoder.encodeStruct(codec.Double, val.x);
+    encoder.encodeStruct(codec.Double, val.y);
   };
   function PhotoSettings(values) {
     this.initDefaults_();

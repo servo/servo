@@ -1,32 +1,32 @@
-[SecureContext]
-interface mixin NavigatorIdle {
-  readonly attribute IdleManager idle;
-};
-
-Navigator includes NavigatorIdle;
-WorkerNavigator includes NavigatorIdle;
-
-[
-  SecureContext,
-  Exposed=(Window,Worker)
-] interface IdleManager {
-  Promise<IdleStatus> query(optional IdleOptions options);
-};
-
 dictionary IdleOptions {
   unsigned long threshold;
 };
 
 [
   SecureContext,
+  Constructor(optional IdleOptions options),
   Exposed=(Window,Worker)
-] interface IdleStatus : EventTarget {
+] interface IdleDetector : EventTarget {
   readonly attribute IdleState state;
   attribute EventHandler onchange;
+  Promise<any> start();
+  void stop();
 };
 
-enum IdleState {
+[
+  SecureContext,
+  Exposed=(Window,Worker)
+] interface IdleState {
+  readonly attribute UserIdleState user;
+  readonly attribute ScreenIdleState screen;
+};
+
+enum UserIdleState {
     "active",
-    "idle",
-    "locked"
+    "idle"
+};
+
+enum ScreenIdleState {
+    "locked",
+    "unlocked"
 };

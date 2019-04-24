@@ -61,6 +61,7 @@
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const stream = await navigator.mediaDevices.getUserMedia({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
@@ -92,6 +93,7 @@
    */
   promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const stream = await navigator.mediaDevices.getUserMedia({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
@@ -99,6 +101,7 @@
     const { sender } = transceiver;
 
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
     assert_throws('InvalidAccessError', () => pc2.removeTrack(sender));
   }, 'addTransceiver - Calling removeTrack on different connection should throw InvalidAccessError');
 
@@ -112,6 +115,7 @@
     const sender = pc.addTrack(track, stream);
 
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
     assert_throws('InvalidAccessError', () => pc2.removeTrack(sender));
   }, 'addTrack - Calling removeTrack on different connection should throw InvalidAccessError')
 
@@ -121,6 +125,7 @@
    */
   promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const stream = await navigator.mediaDevices.getUserMedia({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();

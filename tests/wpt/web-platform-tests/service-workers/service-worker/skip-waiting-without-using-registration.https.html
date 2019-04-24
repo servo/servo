@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>Service Worker: Skip waiting without using registration</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
@@ -36,7 +37,7 @@ promise_test(function(t) {
                         'Document controller should still be null');
           assert_not_equals(sw_registration.active, null,
                             'Registration active worker should not be null');
-          fetch_tests_from_worker(sw_registration.active);
+          return fetch_tests_from_worker(sw_registration.active);
         });
   }, 'Test skipWaiting while a client is not being controlled');
 

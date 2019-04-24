@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/get-host-info.sub.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script>
+  'use strict';
+
+  async function gDM({audio, video}) {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({audio, video});
+      if (stream.getVideoTracks().length == 0) {
+        throw {name: `requested video track must be present with ` +
+                     `audio ${audio} and video ${video}, or fail`};
+      }
+    } finally {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    }
+  }
+
+  const cross_domain = get_host_info().HTTPS_REMOTE_ORIGIN;
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'display-capture',
+    'NotAllowedError',
+    async () => {
+      await gDM({video: true});
+      await gDM({audio: true, video: true});
+      await gDM({audio: true});
+    }
+  );
+  </script>
+</body>

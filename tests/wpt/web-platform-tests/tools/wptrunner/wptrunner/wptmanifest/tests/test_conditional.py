@@ -1,9 +1,13 @@
+import pytest
+import sys
 import unittest
 
 from ..backends import conditional
 from ..node import BinaryExpressionNode, BinaryOperatorNode, VariableNode, NumberNode
 
 
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="wptmanifest.parser doesn't support py3")
 class TestConditional(unittest.TestCase):
     def compile(self, input_text):
         return conditional.compile(input_text)
@@ -138,4 +142,4 @@ key_1: other_value
         self.assertTrue(manifest.has_key("key_1"))
         self.assertFalse(manifest.has_key("key_2"))
 
-        self.assertEquals(set(manifest.iterkeys()), set(["key", "key_1"]))
+        self.assertEquals(set(manifest.iterkeys()), {"key", "key_1"})

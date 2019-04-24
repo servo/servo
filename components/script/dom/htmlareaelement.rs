@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::activation::Activatable;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -16,12 +15,11 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlanchorelement::follow_hyperlink;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
-use net_traits::ReferrerPolicy;
 use std::default::Default;
 use std::f32;
 use std::str;
@@ -301,6 +299,12 @@ impl VirtualMethods for HTMLAreaElement {
 }
 
 impl HTMLAreaElementMethods for HTMLAreaElement {
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_getter!(Target, "target");
+
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_setter!(SetTarget, "target");
+
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list
@@ -332,18 +336,6 @@ impl Activatable for HTMLAreaElement {
     }
 
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        // Step 1
-        let doc = document_from_node(self);
-        if !doc.is_fully_active() {
-            return;
-        }
-        // Step 2
-        // TODO : We should be choosing a browsing context and navigating to it.
-        // Step 3
-        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-            true => Some(ReferrerPolicy::NoReferrer),
-            false => None,
-        };
-        follow_hyperlink(self.upcast::<Element>(), None, referrer_policy);
+        follow_hyperlink(self.as_element(), None);
     }
 }

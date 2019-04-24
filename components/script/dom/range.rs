@@ -14,7 +14,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::weakref::{WeakRef, WeakRefVec};
@@ -707,14 +707,14 @@ impl RangeMethods for Range {
         }
         match start_node.type_id() {
             // Handled under step 2.
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => (),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => (),
             NodeTypeId::CharacterData(_) => return Err(Error::HierarchyRequest),
             _ => (),
         }
 
         // Step 2.
-        let (reference_node, parent) =
-            if start_node.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text) {
+        let (reference_node, parent) = match start_node.type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 // Step 3.
                 let parent = match start_node.GetParentNode() {
                     Some(parent) => parent,
@@ -723,14 +723,16 @@ impl RangeMethods for Range {
                 };
                 // Step 5.
                 (Some(DomRoot::from_ref(&*start_node)), parent)
-            } else {
+            },
+            _ => {
                 // Steps 4-5.
                 let child = start_node.ChildNodes().Item(start_offset);
                 (child, DomRoot::from_ref(&*start_node))
-            };
+            },
+        };
 
         // Step 6.
-        Node::ensure_pre_insertion_validity(node, &parent, reference_node.r())?;
+        Node::ensure_pre_insertion_validity(node, &parent, reference_node.deref())?;
 
         // Step 7.
         let split_text;
@@ -738,14 +740,14 @@ impl RangeMethods for Range {
             Some(text) => {
                 split_text = text.SplitText(start_offset)?;
                 let new_reference = DomRoot::upcast::<Node>(split_text);
-                assert!(new_reference.GetParentNode().r() == Some(&parent));
+                assert!(new_reference.GetParentNode().deref() == Some(&parent));
                 Some(new_reference)
             },
             _ => reference_node,
         };
 
         // Step 8.
-        let reference_node = if Some(node) == reference_node.r() {
+        let reference_node = if Some(node) == reference_node.deref() {
             node.GetNextSibling()
         } else {
             reference_node
@@ -755,7 +757,9 @@ impl RangeMethods for Range {
         node.remove_self();
 
         // Step 10.
-        let new_offset = reference_node.r().map_or(parent.len(), |node| node.index());
+        let new_offset = reference_node
+            .as_ref()
+            .map_or(parent.len(), |node| node.index());
 
         // Step 11
         let new_offset = new_offset +
@@ -766,7 +770,7 @@ impl RangeMethods for Range {
             };
 
         // Step 12.
-        Node::pre_insert(node, &parent, reference_node.r())?;
+        Node::pre_insert(node, &parent, reference_node.deref())?;
 
         // Step 13.
         if self.Collapsed() {
@@ -842,7 +846,7 @@ impl RangeMethods for Range {
         }
 
         // Step 8.
-        for child in contained_children.r() {
+        for child in &*contained_children {
             child.remove_self();
         }
 
@@ -953,13 +957,13 @@ impl RangeMethods for Range {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentElement(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::DocumentType => unreachable!(),
         };
 
         // Step 2.
-        let element = Element::fragment_parsing_context(&owner_doc, element.r());
+        let element = Element::fragment_parsing_context(&owner_doc, element.deref());
 
         // Step 3.
         let fragment_node = element.parse_fragment(fragment)?;

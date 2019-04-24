@@ -1,0 +1,273 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.connectionState</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.htm
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  // exchangeIceCandidates
+  // doSignalingHandshake
+
+  /*
+    4.3.2.  Interface Definition
+      interface RTCPeerConnection : EventTarget {
+        ...
+        readonly  attribute RTCPeerConnectionState connectionState;
+                  attribute EventHandler           onconnectionstatechange;
+      };
+
+    4.4.3.  RTCPeerConnectionState Enum
+      enum RTCPeerConnectionState {
+        "new",
+        "connecting",
+        "connected",
+        "disconnected",
+        "failed",
+        "closed"
+      };
+
+    5.5.  RTCDtlsTransport Interface
+      interface RTCDtlsTransport {
+        readonly attribute RTCIceTransport       iceTransport;
+        readonly attribute RTCDtlsTransportState state;
+        ...
+      };
+
+      enum RTCDtlsTransportState {
+        "new",
+        "connecting",
+        "connected",
+        "closed",
+        "failed"
+      };
+
+    5.6.  RTCIceTransport Interface
+      interface RTCIceTransport {
+        readonly attribute RTCIceTransportState state;
+        ...
+      };
+
+      enum RTCIceTransportState {
+        "new",
+        "checking",
+        "connected",
+        "completed",
+        "failed",
+        "disconnected",
+        "closed"
+      };
+   */
+
+  /*
+    4.4.3.  RTCPeerConnectionState Enum
+      new
+        Any of the RTCIceTransports or RTCDtlsTransports are in the new
+        state and none of the transports are in the connecting, checking,
+        failed or disconnected state, or all transports are in the closed state.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.connectionState, 'new');
+  }, 'Initial connectionState should be new');
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    pc.close();
+    assert_equals(pc.connectionState, 'closed');
+  }, 'Closing the connection should set connectionState to closed');
+
+  /*
+    4.4.3.  RTCPeerConnectionState Enum
+      connected
+        All RTCIceTransports and RTCDtlsTransports are in the connected,
+        completed or closed state and at least of them is in the connected
+        or completed state.
+
+    5.5.  RTCDtlsTransportState
+      connected
+        DTLS has completed negotiation of a secure connection.
+
+    5.6.  RTCIceTransportState
+      connected
+        The RTCIceTransport has found a usable connection, but is still
+        checking other candidate pairs to see if there is a better connection.
+        It may also still be gathering and/or waiting for additional remote
+        candidates. If consent checks [RFC7675] fail on the connection in use,
+        and there are no other successful candidate pairs available, then the
+        state transitions to "checking" (if there are candidate pairs remaining
+        to be checked) or "disconnected" (if there are no candidate pairs to
+        check, but the peer is still gathering and/or waiting for additional
+        remote candidates).
+
+      completed
+        The RTCIceTransport has finished gathering, received an indication that
+        there are no more remote candidates, finished checking all candidate
+        pairs and found a connection. If consent checks [RFC7675] subsequently
+        fail on all successful candidate pairs, the state transitions to "failed".
+   */
+
+  async_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    let had_connecting = false;
+
+    const onConnectionStateChange = t.step_func(() => {
+      const {connectionState} = pc1;
+      if (connectionState === 'connecting') {
+        had_connecting = true;
+      } else if (connectionState === 'connected') {
+        assert_true(had_connecting, "state should pass connecting before reaching connected");
+        t.done();
+      }
+    });
+
+    pc1.createDataChannel('test');
+
+    pc1.addEventListener('connectionstatechange', onConnectionStateChange);
+
+    exchangeIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+  }, 'connection with one data channel should eventually have connected connection state');
+
+  async_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const onConnectionStateChange = t.step_func(() => {
+      const {connectionState} = pc1;
+      if (connectionState === 'connected') {
+        const sctpTransport = pc1.sctp;
+
+        const dtlsTransport = sctpTransport.transport;
+        assert_equals(dtlsTransport.state, 'connected',
+          'Expect DTLS transport to be in connected state');
+
+        const iceTransport = dtlsTransport.iceTransport
+        assert_true(iceTransport.state ===  'connected' ||
+          iceTransport.state === 'completed',
+          'Expect ICE transport to be in connected or completed state');
+
+        t.done();
+      }
+    });
+
+    pc1.createDataChannel('test');
+
+    pc1.addEventListener('connectionstatechange', onConnectionStateChange);
+
+    exchangeIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+  }, 'connection with one data channel should eventually have transports in connected state');
+
+  /*
+    TODO
+    4.4.3.  RTCPeerConnectionState Enum
+      connecting
+        Any of the RTCIceTransports or RTCDtlsTransports are in the
+        connecting or checking state and none of them is in the failed state.
+
+      disconnected
+        Any of the RTCIceTransports or RTCDtlsTransports are in the disconnected
+        state and none of them are in the failed or connecting or checking state.
+
+      failed
+        Any of the RTCIceTransports or RTCDtlsTransports are in a failed state.
+
+      closed
+        The RTCPeerConnection object's [[isClosed]] slot is true.
+
+     5.5. RTCDtlsTransportState
+      new
+        DTLS has not started negotiating yet.
+
+      connecting
+        DTLS is in the process of negotiating a secure connection.
+
+      closed
+        The transport has been closed.
+
+      failed
+        The transport has failed as the result of an error (such as a failure
+        to validate the remote fingerprint).
+
+    5.6.  RTCIceTransportState
+      new
+        The RTCIceTransport is gathering candidates and/or waiting for
+        remote candidates to be supplied, and has not yet started checking.
+
+      checking
+        The RTCIceTransport has received at least one remote candidate and
+        is checking candidate pairs and has either not yet found a connection
+        or consent checks [RFC7675] have failed on all previously successful
+        candidate pairs. In addition to checking, it may also still be gathering.
+
+      failed
+        The RTCIceTransport has finished gathering, received an indication that
+        there are no more remote candidates, finished checking all candidate pairs,
+        and all pairs have either failed connectivity checks or have lost consent.
+
+      disconnected
+        The ICE Agent has determined that connectivity is currently lost for this
+        RTCIceTransport . This is more aggressive than failed, and may trigger
+        intermittently (and resolve itself without action) on a flaky network.
+        The way this state is determined is implementation dependent.
+
+        Examples include:
+          Losing the network interface for the connection in use.
+          Repeatedly failing to receive a response to STUN requests.
+
+        Alternatively, the RTCIceTransport has finished checking all existing
+        candidates pairs and failed to find a connection (or consent checks
+        [RFC7675] once successful, have now failed), but it is still gathering
+        and/or waiting for additional remote candidates.
+
+      closed
+        The RTCIceTransport has shut down and is no longer responding to STUN requests.
+   */
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    await doSignalingHandshake(caller, callee);
+
+    assert_equals(caller.iceConnectionState, 'new');
+    assert_equals(callee.iceConnectionState, 'new');
+  }, 'connectionState remains new when not adding remote ice candidates');
+
+  promise_test(async t => {
+
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    const states = [];
+    caller.addEventListener('connectionstatechange', () => states.push(caller.connectionState));
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+
+    await listenToConnected(caller);
+
+    assert_array_equals(states, ['connecting', 'connected']);
+  }, 'connectionState transitions to connected via connecting');
+</script>

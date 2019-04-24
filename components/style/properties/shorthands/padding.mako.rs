@@ -4,50 +4,56 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-${helpers.four_sides_shorthand("padding", "padding-%s", "specified::NonNegativeLengthPercentage::parse",
-                               spec="https://drafts.csswg.org/css-box-3/#propdef-padding",
-                               allow_quirks=True)}
+${helpers.four_sides_shorthand(
+    "padding",
+    "padding-%s",
+    "specified::NonNegativeLengthPercentage::parse",
+    spec="https://drafts.csswg.org/css-box-3/#propdef-padding",
+    allow_quirks=True,
+)}
 
-% for axis in ["block", "inline"]:
-    <%
-        spec = "https://drafts.csswg.org/css-logical/#propdef-padding-%s" % axis
-    %>
-    <%helpers:shorthand
-        name="padding-${axis}"
-        sub_properties="${' '.join(
-            'padding-%s-%s' % (axis, side)
-            for side in ['start', 'end']
-        )}"
-        spec="${spec}">
+${helpers.two_properties_shorthand(
+    "padding-block",
+    "padding-block-start",
+    "padding-block-end",
+    "specified::NonNegativeLengthPercentage::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-padding-block"
+)}
 
-        use crate::parser::Parse;
-        use crate::values::specified::length::NonNegativeLengthPercentage;
-        pub fn parse_value<'i, 't>(
-            context: &ParserContext,
-            input: &mut Parser<'i, 't>,
-        ) -> Result<Longhands, ParseError<'i>> {
-            let start_value = NonNegativeLengthPercentage::parse(context, input)?;
-            let end_value =
-                input.try(|input| NonNegativeLengthPercentage::parse(context, input))
-                    .unwrap_or_else(|_| start_value.clone());
+${helpers.two_properties_shorthand(
+    "padding-inline",
+    "padding-inline-start",
+    "padding-inline-end",
+    "specified::NonNegativeLengthPercentage::parse",
+    spec="https://drafts.csswg.org/css-logical/#propdef-padding-inline"
+)}
 
-            Ok(expanded! {
-                padding_${axis}_start: start_value,
-                padding_${axis}_end: end_value,
-            })
-        }
+${helpers.four_sides_shorthand(
+    "scroll-padding",
+    "scroll-padding-%s",
+    "specified::NonNegativeLengthPercentageOrAuto::parse",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap-v1.enabled",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding"
+)}
 
-        impl<'a> ToCss for LonghandsToSerialize<'a>  {
-            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-                self.padding_${axis}_start.to_css(dest)?;
+${helpers.two_properties_shorthand(
+    "scroll-padding-block",
+    "scroll-padding-block-start",
+    "scroll-padding-block-end",
+    "specified::NonNegativeLengthPercentageOrAuto::parse",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap-v1.enabled",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-block"
+)}
 
-                if self.padding_${axis}_end != self.padding_${axis}_start {
-                    dest.write_str(" ")?;
-                    self.padding_${axis}_end.to_css(dest)?;
-                }
+${helpers.two_properties_shorthand(
+    "scroll-padding-inline",
+    "scroll-padding-inline-start",
+    "scroll-padding-inline-end",
+    "specified::NonNegativeLengthPercentageOrAuto::parse",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap-v1.enabled",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-inline"
+)}
 
-                Ok(())
-            }
-        }
-    </%helpers:shorthand>
-% endfor

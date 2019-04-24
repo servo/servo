@@ -1,3 +1,4 @@
+// META: timeout=long
 // META: script=/webusb/resources/fake-devices.js
 // META: script=/webusb/resources/usb-helpers.js
 'use strict';

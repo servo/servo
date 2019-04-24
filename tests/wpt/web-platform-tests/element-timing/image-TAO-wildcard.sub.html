@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe elements from same-origin iframes</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  async_test((t) => {
+    let beforeRender;
+    const img_src = 'http://{{domains[www]}}:{{ports[http][1]}}/element-timing/'
+        + 'resources/TAOImage.py?tao=wildcard';
+    const observer = new PerformanceObserver(
+      t.step_func_done((entryList) => {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        checkElement(entry, img_src, 'my_image', 'my_id', beforeRender);
+        // Assume viewport has size at least 20, so the element is fully visible.
+        checkRect(entry, [0, 20, 0, 20]);
+        checkNaturalSize(entry, 20, 20);
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the image during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    // TODO(npm): change observer to use buffered flag.
+    window.onload = t.step_func(() => {
+      const img = document.createElement('img');
+      img.src = img_src;
+      img.setAttribute('elementtiming', 'my_image');
+      img.setAttribute('id', 'my_id');
+      img.onload = t.step_func(() => {
+        // After a short delay, assume that the entry was not dispatched.
+        t.step_timeout(() => {
+          assert_unreached("Should have received an entry!");
+          t.done();
+        }, 100);
+      });
+      document.body.appendChild(img);
+      beforeRender = performance.now();
+    });
+  }, 'Cross-origin element with wildcard TAO is observed.');
+</script>
+
+</body>

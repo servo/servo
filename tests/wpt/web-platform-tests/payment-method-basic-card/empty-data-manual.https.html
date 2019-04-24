@@ -39,8 +39,8 @@ const visaCredit = {
 };
 
 async function getCardResponse(data) {
-  const method = Object.assign({ data }, methodCard);
-  const response = await new PaymentRequest([method], defaultDetails).show();
+  const payMethod = Object.assign({ data }, method);
+  const response = await new PaymentRequest([payMethod], details).show();
   await response.complete("success");
   return response.details;
 }
@@ -54,7 +54,7 @@ function runPromiseTest(button, data, expectedCard = visaCredit, expectedAddress
   promise_test(async () => {
     const card = await getCardResponse(data);
     for (const [member, expectedValue] of Object.entries(expectedCard)) {
-      const msg = `Expected card.${member} to equal ${expectedValue}.`;
+      const msg = `Expected "card.${member}" to equal "${expectedValue}".`;
       assert_equals(card[member], expectedValue, msg);
     }
     const { billingAddress } = card;
@@ -118,6 +118,11 @@ function runPromiseTest(button, data, expectedCard = visaCredit, expectedAddress
   <li>
     <button onclick="runPromiseTest(this, { supportedNetworks: [] });">
       Returns a card on any network, because zero length supportedNetworks.
+    </button>
+  </li>
+  <li>
+    <button onclick="done();">
+      Done!
     </button>
   </li>
 </ol>

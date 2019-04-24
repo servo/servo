@@ -11,7 +11,6 @@ use crate::values::CSSFloat;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use std::iter::{Cloned, Peekable};
-use std::ops::AddAssign;
 use std::slice;
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -20,7 +19,15 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 ///
 /// https://www.w3.org/TR/SVG11/paths.html#PathData
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 pub struct SVGPathData(Box<[PathCommand]>);
 
@@ -148,6 +155,7 @@ impl ComputeSquaredDistance for SVGPathData {
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedZero,
+    ToShmem,
 )]
 #[allow(missing_docs)]
 #[repr(C, u8)]
@@ -474,6 +482,7 @@ impl ToCss for PathCommand {
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedZero,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum IsAbsolute {
@@ -491,6 +500,7 @@ impl IsAbsolute {
 
 /// The path coord type.
 #[derive(
+    AddAssign,
     Animate,
     Clone,
     ComputeSquaredDistance,
@@ -501,6 +511,7 @@ impl IsAbsolute {
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToCss,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct CoordPair(CSSFloat, CSSFloat);
@@ -513,16 +524,8 @@ impl CoordPair {
     }
 }
 
-impl AddAssign for CoordPair {
-    #[inline]
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-        self.1 += other.1;
-    }
-}
-
 /// The EllipticalArc flag type.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
 #[repr(C)]
 pub struct ArcFlag(bool);
 

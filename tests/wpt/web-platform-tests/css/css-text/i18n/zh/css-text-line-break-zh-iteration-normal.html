@@ -44,17 +44,26 @@ for (var i=0;i<lines.length;i++) {
 	 '<div class="ref" id="ref'+i+'" lang="zh">文文文文文<br/>文&#x'+hex+';字<span id="refSpan'+i+'">字</span></div>' +
 	 '</div>'
 	}
+function spansNearEnough(counter) {
+  return Math.abs( document.getElementById('testSpan'+counter).getBoundingClientRect().left
+           - document.getElementById('refSpan'+counter).getBoundingClientRect().left ) < 1;
+}
+
 document.querySelector('body').innerHTML = out
-// hide successful tests
-for (i=0;i<lines.length;i++) {
-    if (document.getElementById('testSpan'+i).offsetLeft === document.getElementById('refSpan'+i).offsetLeft) document.getElementById('test'+i).parentNode.style.display = 'none'
-    }
-// run the test framework
- for (i=0;i<lines.length;i++) {
-   test(function() {
-        assert_true(document.getElementById('testSpan'+i).offsetLeft === document.getElementById('refSpan'+i).offsetLeft);
-        }, lines[i]+' may NOT appear at line start if zh and normal');
-   }
+setup({explicit_done: true});
+
+document.fonts.ready.then(validate);
+
+function validate() {
+  for (i=0;i<lines.length;i++) {
+    test(function() {
+      assert_true(spansNearEnough(i));
+    }, lines[i]+' may NOT appear at line start if zh and normal');
+    // Hide successful tests.
+    if (spansNearEnough(i)) document.getElementById('test'+i).parentNode.style.display = 'none'
+  }
+  done();
+}
 </script>
 <!--Notes:
 The test creates a box with room for 6 characters, causing wrapping to occur either between the 6th and the 7th character, or before the 6th if the breaks after the 6th or before the 7th are prohibited.

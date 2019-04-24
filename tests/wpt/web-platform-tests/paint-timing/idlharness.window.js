@@ -19,6 +19,9 @@ idl_test(
         resolve();
       });
       observer.observe({ entryTypes: ['paint'] });
+      const div = document.createElement('div');
+      div.innerHTML = 'Hello World';
+      document.body.appendChild(div);
     });
     const timeout = new Promise((_, reject) => {
       t.step_timeout(() => reject('Timed out waiting for paint event'), 3000);

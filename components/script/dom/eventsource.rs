@@ -32,7 +32,7 @@ use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
-use net_traits::request::{RequestInit, RequestMode};
+use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
 use net_traits::{FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -61,7 +61,7 @@ enum ReadyState {
 pub struct EventSource {
     eventtarget: EventTarget,
     url: ServoUrl,
-    request: DomRefCell<Option<RequestInit>>,
+    request: DomRefCell<Option<RequestBuilder>>,
     last_event_id: DomRefCell<DOMString>,
     reconnection_time: Cell<u64>,
     generation_id: Cell<GenerationId>,
@@ -482,7 +482,7 @@ impl EventSource {
         );
     }
 
-    pub fn request(&self) -> RequestInit {
+    pub fn request(&self) -> RequestBuilder {
         self.request.borrow().clone().unwrap()
     }
 
@@ -519,20 +519,18 @@ impl EventSource {
         };
         // Step 8
         // TODO: Step 9 set request's client settings
-        let mut request = RequestInit {
-            url: url_record,
-            origin: global.origin().immutable().clone(),
-            pipeline_id: Some(global.pipeline_id()),
+        let mut request = RequestBuilder::new(url_record)
+            .origin(global.origin().immutable().clone())
+            .pipeline_id(Some(global.pipeline_id()))
             // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-            use_url_credentials: true,
-            mode: RequestMode::CorsMode,
-            credentials_mode: if cors_attribute_state == CorsSettings::Anonymous {
+            .use_url_credentials(true)
+            .mode(RequestMode::CorsMode)
+            .credentials_mode(if cors_attribute_state == CorsSettings::Anonymous {
                 CredentialsMode::CredentialsSameOrigin
             } else {
                 CredentialsMode::Include
-            },
-            ..RequestInit::default()
-        };
+            });
+
         // Step 10
         // TODO(eijebong): Replace once typed headers allow it
         request.headers.insert(

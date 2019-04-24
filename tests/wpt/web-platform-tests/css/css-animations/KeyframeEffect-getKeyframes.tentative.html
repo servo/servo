@@ -679,7 +679,7 @@ test(t => {
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       transform: "none" },
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
-      transform: "translate(100px, 0px)" },
+      transform: "translate(100px)" },
   ];
   for (let i = 0; i < frames.length; i++) {
     assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
@@ -743,7 +743,7 @@ test(t => {
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
-      transform: "translate(100px, 0px)" },
+      transform: "translate(100px)" },
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       transform: "none" },
   ];

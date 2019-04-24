@@ -4,16 +4,19 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
 <body>
 <script>
+  let nonce = token();
+
   promise_test(t => {
     return new Promise((resolve, reject) => {
-      let key = "embed-same-origin";
+      let key = "embed-same-origin" + nonce;
 
       let e = document.createElement('embed');
       e.src = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"embed", "site":"same-origin", "user":"?F"};
+        let expected = {"dest":"embed", "site":"same-origin", "user":"", "mode":"no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -27,12 +30,12 @@
 
   promise_test(t => {
     return new Promise((resolve, reject) => {
-      let key = "embed-same-site";
+      let key = "embed-same-site" + nonce;
 
       let e = document.createElement('embed');
       e.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"embed", "site":"same-site", "user":"?F"};
+        let expected = {"dest":"embed", "site":"same-site", "user":"", "mode":"no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))
@@ -46,12 +49,12 @@
 
   promise_test(t => {
     return new Promise((resolve, reject) => {
-      let key = "embed-cross-site";
+      let key = "embed-cross-site" + nonce;
 
       let e = document.createElement('embed');
       e.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
       e.onload = e => {
-        let expected = {"dest":"embed", "site":"cross-site", "user":"?F"};
+        let expected = {"dest":"embed", "site":"cross-site", "user":"", "mode":"no-cors"};
         fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
           .then(response => response.text())
           .then(text => assert_header_equals(text, expected))

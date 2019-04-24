@@ -20,12 +20,14 @@ interface Event {
   readonly attribute unsigned short eventPhase;
 
   void stopPropagation();
+  attribute boolean cancelBubble;
   void stopImmediatePropagation();
 
   [Pure]
   readonly attribute boolean bubbles;
   [Pure]
   readonly attribute boolean cancelable;
+  attribute boolean returnValue;  // historical
   void preventDefault();
   [Pure]
   readonly attribute boolean defaultPrevented;
@@ -33,9 +35,9 @@ interface Event {
   [Unforgeable]
   readonly attribute boolean isTrusted;
   [Constant]
-  readonly attribute DOMTimeStamp timeStamp;
+  readonly attribute DOMHighResTimeStamp timeStamp;
 
-  void initEvent(DOMString type, boolean bubbles, boolean cancelable);
+  void initEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false);
 };
 
 dictionary EventInit {

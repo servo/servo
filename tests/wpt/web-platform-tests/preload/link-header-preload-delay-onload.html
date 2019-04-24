@@ -31,10 +31,10 @@
             }
         }
         assert_true(found_background_first);
-        verifyNumberOfDownloads("resources/square.png?link-header-preload-delay-onload", 1);
-        verifyNumberOfDownloads("resources/square.png?background", 1);
-        verifyNumberOfDownloads("resources/dummy.js?link-header-preload-delay-onload", 1);
-        verifyNumberOfDownloads("resources/dummy.css?link-header-preload-delay-onload", 1);
+        verifyLoadedAndNoDoubleDownload("resources/square.png?link-header-preload-delay-onload");
+        verifyLoadedAndNoDoubleDownload("resources/square.png?background");
+        verifyLoadedAndNoDoubleDownload("resources/dummy.js?link-header-preload-delay-onload");
+        verifyLoadedAndNoDoubleDownload("resources/dummy.css?link-header-preload-delay-onload");
         t.done();
     }));
 </script>

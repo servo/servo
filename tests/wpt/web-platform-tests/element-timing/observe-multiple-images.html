@@ -1,0 +1,122 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: multiple images</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+#img1 {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+#img2 {
+  margin-top:150px;
+  margin-left:50px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender, image1Observed=0, image2Observed=0, image3Observed=0;
+  async_test(function (t) {
+    const index = window.location.href.lastIndexOf('/');
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        entryList.getEntries().forEach( entry => {
+          if (entry.identifier === 'image1') {
+            if (image1Observed) {
+              assert_unreached("Observer received image1 more than once");
+              t.done();
+            }
+            image1Observed = 1;
+            const pathname1 = window.location.href.substring(0, index) +
+                '/resources/square100.png';
+            // The images do not contain ID, so expect an empty ID.
+            checkElement(entry, pathname1, 'image1', 'img1', beforeRender);
+            // This image is horizontally centered.
+            // Using abs and comparing to 1 because the viewport sizes could be odd.
+            // If a size is odd, then image cannot be in the pure center, but left
+            // and right should still be very close to their estimated coordinates.
+            assert_less_than_equal(Math.abs(entry.intersectionRect.left -
+              (document.documentElement.clientWidth / 2 - 50)), 1,
+              'left of rect for image1');
+            assert_less_than_equal(Math.abs(entry.intersectionRect.right -
+              (document.documentElement.clientWidth / 2 + 50)), 1,
+              'right of rect for image1');
+            assert_equals(entry.intersectionRect.top, 0, 'top of rect for image1');
+            assert_equals(entry.intersectionRect.bottom,
+              100, 'bottom of rect for image1');
+            checkNaturalSize(entry, 100, 100);
+          }
+          else if (entry.identifier === 'image2') {
+            if (image2Observed) {
+              assert_unreached("Observer received image2 more than once");
+              t.done();
+            }
+            image2Observed = 1;
+            const pathname2 = window.location.href.substring(0, index) +
+                '/resources/square20.png';
+            checkElement(entry, pathname2, 'image2', 'img2', beforeRender);
+            // This image should be below image 1, and should respect the margin.
+            checkRect(entry, [50, 250, 250, 450], "of image2");
+            checkNaturalSize(entry, 20, 20);
+          }
+          else if (entry.identifier === 'image3') {
+            if (image3Observed) {
+              assert_unreached("Observer received image3 more than once");
+              t.done();
+            }
+            image3Observed = 1;
+            const pathname3 = window.location.href.substring(0, index) +
+                '/resources/circle.svg';
+            checkElement(entry, pathname3, 'image3', 'img3', beforeRender);
+            // This image is just to the right of image2.
+            checkRect(entry, [250, 450, 250, 450], "of image3");
+            checkNaturalSize(entry, 200, 200);
+          }
+          else {
+            assert_unreached("Received an unexpected identifier.");
+            t.done();
+          }
+          if (image1Observed && image2Observed && image3Observed) {
+            t.done();
+          }
+        });
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    function addImage(number, source, width=0) {
+      const img = document.createElement('img');
+      img.src = source;
+      // Set a different id and elementtiming value for each image.
+      img.id = 'img' + number;
+      img.setAttribute('elementtiming', 'image' + number);
+      if (width !== 0)
+        img.width = width;
+      document.body.appendChild(img);
+    }
+    // Add the images during onload to be sure that the observer is registered in
+    // time to observe the element timing.
+    window.onload = () => {
+      addImage(1, 'resources/square100.png');
+      // Use requestAnimationFrame and a timeout to ensure that the images are
+      // processed in the order we want.
+      requestAnimationFrame( () => {
+        t.step_timeout( () => {
+          // Set the size equal to that of image3 to make positioning easier.
+          addImage(2, 'resources/square20.png', 200);
+          requestAnimationFrame( () => {
+            t.step_timeout( () => {
+              addImage(3, 'resources/circle.svg');
+            }, 0);
+          });
+        }, 0);
+      });
+      beforeRender = performance.now();
+    };
+  }, 'PerformanceObserver can observe multiple image elements.');
+</script>
+</body>

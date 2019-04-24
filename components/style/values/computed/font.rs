@@ -24,9 +24,13 @@ use cssparser::{serialize_identifier, CssStringWriter, Parser};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
+#[cfg(feature = "gecko")]
+use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "servo")]
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
+#[cfg(feature = "gecko")]
+use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
@@ -37,7 +41,9 @@ pub use crate::values::specified::font::{XLang, XTextZoom};
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
 ///
 /// This is effectively just a `Number`.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(
+    Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontWeight(pub Number);
 
@@ -71,6 +77,7 @@ impl ToAnimatedValue for FontWeight {
     PartialEq,
     ToAnimatedZero,
     ToCss,
+    ToResolvedValue,
 )]
 /// The computed value of font-size
 pub struct FontSize {
@@ -152,55 +159,8 @@ impl FontSize {
             keyword_info: Some(KeywordInfo::medium()),
         }
     }
-
-    /// FIXME(emilio): This is very complex. Also, it should move to
-    /// StyleBuilder.
-    pub fn cascade_inherit_font_size(context: &mut Context) {
-        // If inheriting, we must recompute font-size in case of language
-        // changes using the font_size_keyword. We also need to do this to
-        // handle mathml scriptlevel changes
-        let kw_inherited_size = context
-            .builder
-            .get_parent_font()
-            .clone_font_size()
-            .keyword_info
-            .map(|info| {
-                specified::FontSize::Keyword(info)
-                    .to_computed_value(context)
-                    .size
-            });
-        let mut font = context.builder.take_font();
-        font.inherit_font_size_from(
-            context.builder.get_parent_font(),
-            kw_inherited_size,
-            context.builder.device,
-        );
-        context.builder.put_font(font);
-    }
-
-    /// Cascade the initial value for the `font-size` property.
-    ///
-    /// FIXME(emilio): This is the only function that is outside of the
-    /// `StyleBuilder`, and should really move inside!
-    ///
-    /// Can we move the font stuff there?
-    pub fn cascade_initial_font_size(context: &mut Context) {
-        // font-size's default ("medium") does not always
-        // compute to the same value and depends on the font
-        let computed = specified::FontSize::medium().to_computed_value(context);
-        context.builder.mutate_font().set_font_size(computed);
-        #[cfg(feature = "gecko")]
-        {
-            let device = context.builder.device;
-            context.builder.mutate_font().fixup_font_min_size(device);
-        }
-    }
 }
 
-/// XXXManishearth it might be better to
-/// animate this as computed, however this complicates
-/// clamping and might not be the right thing to do.
-/// We should figure it out.
 impl ToAnimatedValue for FontSize {
     type AnimatedValue = NonNegativeLength;
 
@@ -218,18 +178,26 @@ impl ToAnimatedValue for FontSize {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, PartialEq, ToResolvedValue)]
+#[cfg_attr(feature = "servo", derive(Hash, MallocSizeOf))]
 /// Specifies a prioritized list of font family names or generic family names.
-pub struct FontFamily(pub FontFamilyList);
+pub struct FontFamily {
+    /// The actual list of family names.
+    pub families: FontFamilyList,
+    /// Whether this font-family came from a specified system-font.
+    pub is_system_font: bool,
+}
 
 impl FontFamily {
     #[inline]
     /// Get default font family as `serif` which is a generic font-family
     pub fn serif() -> Self {
-        FontFamily(FontFamilyList::new(Box::new([SingleFontFamily::Generic(
-            atom!("serif"),
-        )])))
+        FontFamily {
+            families: FontFamilyList::new(Box::new([SingleFontFamily::Generic(
+                GenericFontFamily::Serif,
+            )])),
+            is_system_font: false,
+        }
     }
 }
 
@@ -239,7 +207,8 @@ impl MallocSizeOf for FontFamily {
         // SharedFontList objects are generally shared from the pointer
         // stored in the specified value. So only count this if the
         // SharedFontList is unshared.
-        unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThisIfUnshared((self.0).0.get()) }
+        let shared_font_list = self.families.shared_font_list().get();
+        unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(shared_font_list) }
     }
 }
 
@@ -248,7 +217,7 @@ impl ToCss for FontFamily {
     where
         W: fmt::Write,
     {
-        let mut iter = self.0.iter();
+        let mut iter = self.families.iter();
         iter.next().unwrap().to_css(dest)?;
         for family in iter {
             dest.write_str(", ")?;
@@ -258,14 +227,14 @@ impl ToCss for FontFamily {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// The name of a font family of choice
 pub struct FamilyName {
     /// Name of the font family
     pub name: Atom,
     /// Syntax of the font family
-    pub syntax: FamilyNameSyntax,
+    pub syntax: FontFamilyNameSyntax,
 }
 
 impl ToCss for FamilyName {
@@ -274,12 +243,12 @@ impl ToCss for FamilyName {
         W: fmt::Write,
     {
         match self.syntax {
-            FamilyNameSyntax::Quoted => {
+            FontFamilyNameSyntax::Quoted => {
                 dest.write_char('"')?;
                 write!(CssStringWriter::new(dest), "{}", self.name)?;
                 dest.write_char('"')
             },
-            FamilyNameSyntax::Identifiers => {
+            FontFamilyNameSyntax::Identifiers => {
                 let mut first = true;
                 for ident in self.name.to_string().split(' ') {
                     if first {
@@ -301,11 +270,12 @@ impl ToCss for FamilyName {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// Font family names must either be given quoted as strings,
 /// or unquoted as a sequence of one or more identifiers.
-pub enum FamilyNameSyntax {
+#[repr(u8)]
+pub enum FontFamilyNameSyntax {
     /// The family name was specified in a quoted form, e.g. "Font Name"
     /// or 'Font Name'.
     Quoted,
@@ -315,85 +285,59 @@ pub enum FamilyNameSyntax {
     Identifiers,
 }
 
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize, Hash))]
 /// A set of faces that vary in weight, width or slope.
 pub enum SingleFontFamily {
     /// The name of a font family of choice.
     FamilyName(FamilyName),
     /// Generic family name.
-    Generic(Atom),
+    Generic(GenericFontFamily),
+}
+
+/// A generic font-family name.
+///
+/// The order here is important, if you change it make sure that
+/// `gfxPlatformFontList.h`s ranged array and `gfxFontFamilyList`'s
+/// sSingleGenerics are updated as well.
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, Parse, ToCss, ToResolvedValue, ToShmem,
+)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[repr(u8)]
+#[allow(missing_docs)]
+pub enum GenericFontFamily {
+    /// No generic family specified, only for internal usage.
+    #[css(skip)]
+    None,
+    Serif,
+    SansSerif,
+    #[parse(aliases = "-moz-fixed")]
+    Monospace,
+    Cursive,
+    Fantasy,
+    /// An internal value for emoji font selection.
+    #[css(skip)]
+    #[cfg(feature = "gecko")]
+    MozEmoji,
 }
 
 impl SingleFontFamily {
-    #[inline]
-    /// Get font family name as Atom
-    pub fn atom(&self) -> &Atom {
-        match *self {
-            SingleFontFamily::FamilyName(ref family_name) => &family_name.name,
-            SingleFontFamily::Generic(ref name) => name,
-        }
-    }
-
-    #[inline]
-    #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
-    /// Get font family name
-    pub fn name(&self) -> &str {
-        self.atom()
-    }
-
-    #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
-    /// Get the corresponding font-family with Atom
-    pub fn from_atom(input: Atom) -> SingleFontFamily {
-        match input {
-            atom!("serif") |
-            atom!("sans-serif") |
-            atom!("cursive") |
-            atom!("fantasy") |
-            atom!("monospace") => return SingleFontFamily::Generic(input),
-            _ => {},
-        }
-        match_ignore_ascii_case! { &input,
-            "serif" => return SingleFontFamily::Generic(atom!("serif")),
-            "sans-serif" => return SingleFontFamily::Generic(atom!("sans-serif")),
-            "cursive" => return SingleFontFamily::Generic(atom!("cursive")),
-            "fantasy" => return SingleFontFamily::Generic(atom!("fantasy")),
-            "monospace" => return SingleFontFamily::Generic(atom!("monospace")),
-            _ => {}
-        }
-
-        // We don't know if it's quoted or not. So we set it to
-        // quoted by default.
-        SingleFontFamily::FamilyName(FamilyName {
-            name: input,
-            syntax: FamilyNameSyntax::Quoted,
-        })
-    }
-
-    /// Parse a font-family value
+    /// Parse a font-family value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
             return Ok(SingleFontFamily::FamilyName(FamilyName {
                 name: Atom::from(&*value),
-                syntax: FamilyNameSyntax::Quoted,
+                syntax: FontFamilyNameSyntax::Quoted,
             }));
         }
-        let first_ident = input.expect_ident()?.clone();
 
-        // FIXME(bholley): The fast thing to do here would be to look up the
-        // string (as lowercase) in the static atoms table. We don't have an
-        // API to do that yet though, so we do the simple thing for now.
-        let mut css_wide_keyword = false;
-        match_ignore_ascii_case! { &first_ident,
-            "serif" => return Ok(SingleFontFamily::Generic(atom!("serif"))),
-            "sans-serif" => return Ok(SingleFontFamily::Generic(atom!("sans-serif"))),
-            "cursive" => return Ok(SingleFontFamily::Generic(atom!("cursive"))),
-            "fantasy" => return Ok(SingleFontFamily::Generic(atom!("fantasy"))),
-            "monospace" => return Ok(SingleFontFamily::Generic(atom!("monospace"))),
+        let first_ident = input.expect_ident_cloned()?;
+        if let Ok(generic) = GenericFontFamily::from_ident(&first_ident) {
+            return Ok(SingleFontFamily::Generic(generic));
+        }
 
-            #[cfg(feature = "gecko")]
-            "-moz-fixed" => return Ok(SingleFontFamily::Generic(atom!("-moz-fixed"))),
-
+        let reserved = match_ignore_ascii_case! { &first_ident,
             // https://drafts.csswg.org/css-fonts/#propdef-font-family
             // "Font family names that happen to be the same as a keyword value
             //  (`inherit`, `serif`, `sans-serif`, `monospace`, `fantasy`, and `cursive`)
@@ -401,18 +345,15 @@ impl SingleFontFamily {
             //  The keywords ‘initial’ and ‘default’ are reserved for future use
             //  and must also be quoted when used as font names.
             //  UAs must not consider these keywords as matching the <family-name> type."
-            "inherit" => css_wide_keyword = true,
-            "initial" => css_wide_keyword = true,
-            "unset" => css_wide_keyword = true,
-            "default" => css_wide_keyword = true,
-            _ => {}
-        }
+            "inherit" | "initial" | "unset" | "revert" | "default" => true,
+            _ => false,
+        };
 
         let mut value = first_ident.as_ref().to_owned();
 
         // These keywords are not allowed by themselves.
         // The only way this value can be valid with with another keyword.
-        if css_wide_keyword {
+        if reserved {
             let ident = input.expect_ident()?;
             value.push(' ');
             value.push_str(&ident);
@@ -426,9 +367,9 @@ impl SingleFontFamily {
             // `font-family: \ a\ \ b\ \ c\ ;`, it is tricky to serialize them
             // as identifiers correctly. Just mark them quoted so we don't need
             // to worry about them in serialization code.
-            FamilyNameSyntax::Quoted
+            FontFamilyNameSyntax::Quoted
         } else {
-            FamilyNameSyntax::Identifiers
+            FontFamilyNameSyntax::Identifiers
         };
         Ok(SingleFontFamily::FamilyName(FamilyName {
             name: Atom::from(value),
@@ -436,134 +377,97 @@ impl SingleFontFamily {
         }))
     }
 
-    #[cfg(feature = "gecko")]
-    /// Return the generic ID for a given generic font name
-    pub fn generic(name: &Atom) -> (structs::FontFamilyType, u8) {
-        use crate::gecko_bindings::structs::FontFamilyType;
-        if *name == atom!("serif") {
-            (FontFamilyType::eFamily_serif, structs::kGenericFont_serif)
-        } else if *name == atom!("sans-serif") {
-            (
-                FontFamilyType::eFamily_sans_serif,
-                structs::kGenericFont_sans_serif,
-            )
-        } else if *name == atom!("cursive") {
-            (
-                FontFamilyType::eFamily_cursive,
-                structs::kGenericFont_cursive,
-            )
-        } else if *name == atom!("fantasy") {
-            (
-                FontFamilyType::eFamily_fantasy,
-                structs::kGenericFont_fantasy,
-            )
-        } else if *name == atom!("monospace") {
-            (
-                FontFamilyType::eFamily_monospace,
-                structs::kGenericFont_monospace,
-            )
-        } else if *name == atom!("-moz-fixed") {
-            (
-                FontFamilyType::eFamily_moz_fixed,
-                structs::kGenericFont_moz_fixed,
-            )
-        } else {
-            panic!("Unknown generic {}", name);
+    #[cfg(feature = "servo")]
+    /// Get the corresponding font-family with Atom
+    pub fn from_atom(input: Atom) -> SingleFontFamily {
+        match input {
+            atom!("serif") => return SingleFontFamily::Generic(GenericFontFamily::Serif),
+            atom!("sans-serif") => return SingleFontFamily::Generic(GenericFontFamily::SansSerif),
+            atom!("cursive") => return SingleFontFamily::Generic(GenericFontFamily::Cursive),
+            atom!("fantasy") => return SingleFontFamily::Generic(GenericFontFamily::Fantasy),
+            atom!("monospace") => return SingleFontFamily::Generic(GenericFontFamily::Monospace),
+            _ => {},
         }
+
+        match_ignore_ascii_case! { &input,
+            "serif" => return SingleFontFamily::Generic(GenericFontFamily::Serif),
+            "sans-serif" => return SingleFontFamily::Generic(GenericFontFamily::SansSerif),
+            "cursive" => return SingleFontFamily::Generic(GenericFontFamily::Cursive),
+            "fantasy" => return SingleFontFamily::Generic(GenericFontFamily::Fantasy),
+            "monospace" => return SingleFontFamily::Generic(GenericFontFamily::Monospace),
+            _ => {}
+        }
+
+        // We don't know if it's quoted or not. So we set it to
+        // quoted by default.
+        SingleFontFamily::FamilyName(FamilyName {
+            name: input,
+            syntax: FontFamilyNameSyntax::Quoted,
+        })
     }
 
     #[cfg(feature = "gecko")]
     /// Get the corresponding font-family with family name
     fn from_font_family_name(family: &structs::FontFamilyName) -> SingleFontFamily {
-        use crate::gecko_bindings::structs::FontFamilyType;
-
-        match family.mType {
-            FontFamilyType::eFamily_sans_serif => SingleFontFamily::Generic(atom!("sans-serif")),
-            FontFamilyType::eFamily_serif => SingleFontFamily::Generic(atom!("serif")),
-            FontFamilyType::eFamily_monospace => SingleFontFamily::Generic(atom!("monospace")),
-            FontFamilyType::eFamily_cursive => SingleFontFamily::Generic(atom!("cursive")),
-            FontFamilyType::eFamily_fantasy => SingleFontFamily::Generic(atom!("fantasy")),
-            FontFamilyType::eFamily_moz_fixed => SingleFontFamily::Generic(atom!("-moz-fixed")),
-            FontFamilyType::eFamily_named => {
-                let name = unsafe { Atom::from_raw(family.mName.mRawPtr) };
-                SingleFontFamily::FamilyName(FamilyName {
-                    name,
-                    syntax: FamilyNameSyntax::Identifiers,
-                })
-            },
-            FontFamilyType::eFamily_named_quoted => {
-                let name = unsafe { Atom::from_raw(family.mName.mRawPtr) };
-                SingleFontFamily::FamilyName(FamilyName {
-                    name,
-                    syntax: FamilyNameSyntax::Quoted,
-                })
-            },
-            _ => panic!("Found unexpected font FontFamilyType"),
+        if family.mName.mRawPtr.is_null() {
+            debug_assert_ne!(family.mGeneric, GenericFontFamily::None);
+            return SingleFontFamily::Generic(family.mGeneric);
         }
-    }
-}
-
-impl ToCss for SingleFontFamily {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        match *self {
-            SingleFontFamily::FamilyName(ref name) => name.to_css(dest),
-
-            // All generic values accepted by the parser are known to not require escaping.
-            SingleFontFamily::Generic(ref name) => {
-                #[cfg(feature = "gecko")]
-                {
-                    // We should treat -moz-fixed as monospace
-                    if name == &atom!("-moz-fixed") {
-                        return dest.write_str("monospace");
-                    }
-                }
-
-                write!(dest, "{}", name)
-            },
-        }
+        let name = unsafe { Atom::from_raw(family.mName.mRawPtr) };
+        SingleFontFamily::FamilyName(FamilyName {
+            name,
+            syntax: family.mSyntax,
+        })
     }
 }
 
 #[cfg(feature = "servo")]
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
 /// A list of SingleFontFamily
 pub struct FontFamilyList(Box<[SingleFontFamily]>);
 
 #[cfg(feature = "gecko")]
 #[derive(Clone, Debug)]
 /// A list of SingleFontFamily
-pub struct FontFamilyList(pub RefPtr<structs::SharedFontList>);
+pub enum FontFamilyList {
+    /// A strong reference to a Gecko SharedFontList object.
+    SharedFontList(RefPtr<structs::SharedFontList>),
+    /// A font-family generic ID.
+    Generic(GenericFontFamily),
+}
 
 #[cfg(feature = "gecko")]
-impl Hash for FontFamilyList {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        use crate::string_cache::WeakAtom;
-
-        for name in self.0.mNames.iter() {
-            name.mType.hash(state);
-            if !name.mName.mRawPtr.is_null() {
-                unsafe {
-                    WeakAtom::new(name.mName.mRawPtr).hash(state);
-                }
-            }
-        }
+impl ToShmem for FontFamilyList {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        // In practice, the only SharedFontList objects we create from shared
+        // style sheets are ones with a single generic entry.
+        ManuallyDrop::new(match *self {
+            FontFamilyList::SharedFontList(ref r) => {
+                assert!(
+                    r.mNames.len() == 1 && r.mNames[0].mName.mRawPtr.is_null(),
+                    "ToShmem failed for FontFamilyList: cannot handle non-generic families",
+                );
+                FontFamilyList::Generic(r.mNames[0].mGeneric)
+            },
+            FontFamilyList::Generic(t) => FontFamilyList::Generic(t),
+        })
     }
 }
 
 #[cfg(feature = "gecko")]
 impl PartialEq for FontFamilyList {
     fn eq(&self, other: &FontFamilyList) -> bool {
-        if self.0.mNames.len() != other.0.mNames.len() {
+        let self_list = self.shared_font_list();
+        let other_list = other.shared_font_list();
+
+        if self_list.mNames.len() != other_list.mNames.len() {
             return false;
         }
-        for (a, b) in self.0.mNames.iter().zip(other.0.mNames.iter()) {
-            if a.mType != b.mType || a.mName.mRawPtr != b.mName.mRawPtr {
+        for (a, b) in self_list.mNames.iter().zip(other_list.mNames.iter()) {
+            if a.mSyntax != b.mSyntax ||
+                a.mName.mRawPtr != b.mName.mRawPtr ||
+                a.mGeneric != b.mGeneric
+            {
                 return false;
             }
         }
@@ -575,14 +479,14 @@ impl PartialEq for FontFamilyList {
 impl Eq for FontFamilyList {}
 
 impl FontFamilyList {
-    #[cfg(feature = "servo")]
     /// Return FontFamilyList with a vector of SingleFontFamily
+    #[cfg(feature = "servo")]
     pub fn new(families: Box<[SingleFontFamily]>) -> FontFamilyList {
         FontFamilyList(families)
     }
 
-    #[cfg(feature = "gecko")]
     /// Return FontFamilyList with a vector of SingleFontFamily
+    #[cfg(feature = "gecko")]
     pub fn new(families: Box<[SingleFontFamily]>) -> FontFamilyList {
         let fontlist;
         let names;
@@ -594,58 +498,69 @@ impl FontFamilyList {
 
         for family in families.iter() {
             match *family {
-                SingleFontFamily::FamilyName(ref f) => {
-                    let quoted = matches!(f.syntax, FamilyNameSyntax::Quoted);
-                    unsafe {
-                        bindings::Gecko_nsTArray_FontFamilyName_AppendNamed(
-                            names,
-                            f.name.as_ptr(),
-                            quoted,
-                        );
-                    }
+                SingleFontFamily::FamilyName(ref f) => unsafe {
+                    bindings::Gecko_nsTArray_FontFamilyName_AppendNamed(
+                        names,
+                        f.name.as_ptr(),
+                        f.syntax,
+                    );
                 },
-                SingleFontFamily::Generic(ref name) => {
-                    let (family_type, _generic) = SingleFontFamily::generic(name);
-                    unsafe {
-                        bindings::Gecko_nsTArray_FontFamilyName_AppendGeneric(names, family_type);
-                    }
+                SingleFontFamily::Generic(family) => unsafe {
+                    bindings::Gecko_nsTArray_FontFamilyName_AppendGeneric(names, family);
                 },
             }
         }
 
-        FontFamilyList(unsafe { RefPtr::from_addrefed(fontlist) })
+        FontFamilyList::SharedFontList(unsafe { RefPtr::from_addrefed(fontlist) })
     }
 
-    #[cfg(feature = "servo")]
     /// Return iterator of SingleFontFamily
+    #[cfg(feature = "servo")]
     pub fn iter(&self) -> slice::Iter<SingleFontFamily> {
         self.0.iter()
     }
 
-    #[cfg(feature = "gecko")]
     /// Return iterator of SingleFontFamily
+    #[cfg(feature = "gecko")]
     pub fn iter(&self) -> FontFamilyNameIter {
         FontFamilyNameIter {
-            names: &self.0.mNames,
+            names: &self.shared_font_list().mNames,
             cur: 0,
         }
     }
 
-    #[cfg(feature = "gecko")]
     /// Return the generic ID if it is a single generic font
-    pub fn single_generic(&self) -> Option<u8> {
+    pub fn single_generic(&self) -> Option<GenericFontFamily> {
         let mut iter = self.iter();
-        if let Some(SingleFontFamily::Generic(ref name)) = iter.next() {
+        if let Some(SingleFontFamily::Generic(f)) = iter.next() {
             if iter.next().is_none() {
-                return Some(SingleFontFamily::generic(name).1);
+                return Some(f.clone());
             }
         }
         None
     }
+
+    /// Return a reference to the Gecko SharedFontList.
+    #[cfg(feature = "gecko")]
+    pub fn shared_font_list(&self) -> &RefPtr<structs::SharedFontList> {
+        match *self {
+            FontFamilyList::SharedFontList(ref r) => r,
+            FontFamilyList::Generic(t) => {
+                unsafe {
+                    // TODO(heycam): Should really add StaticRefPtr sugar.
+                    let index = t as usize;
+                    mem::transmute::<
+                        &structs::StaticRefPtr<structs::SharedFontList>,
+                        &RefPtr<structs::SharedFontList>,
+                    >(&structs::SharedFontList_sSingleGenerics[index])
+                }
+            },
+        }
+    }
 }
 
-#[cfg(feature = "gecko")]
 /// Iterator of FontFamily
+#[cfg(feature = "gecko")]
 pub struct FontFamilyNameIter<'a> {
     names: &'a structs::nsTArray<structs::FontFamilyName>,
     cur: usize,
@@ -666,8 +581,18 @@ impl<'a> Iterator for FontFamilyNameIter<'a> {
     }
 }
 
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// Preserve the readability of text when font fallback occurs
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToCss,
+    ToResolvedValue,
+)]
 pub enum FontSizeAdjust {
     #[animation(error)]
     /// None variant
@@ -748,7 +673,7 @@ pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 /// OpenType "language system" tag, so we should be able to compute
 /// it and store it as a 32-bit integer
 /// (see http://www.microsoft.com/typography/otspec/languagetags.htm).
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToResolvedValue)]
 #[repr(C)]
 pub struct FontLanguageOverride(pub u32);
 
@@ -854,7 +779,7 @@ impl ToComputedValue for specified::MozScriptLevel {
 
 /// A wrapper over an `Angle`, that handles clamping to the appropriate range
 /// for `font-style` animation.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontStyleAngle(pub Angle);
 
@@ -951,7 +876,9 @@ impl ToCss for FontStyle {
 /// A value for the font-stretch property per:
 ///
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-stretch
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(
+    Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontStretch(pub NonNegativePercentage);
 

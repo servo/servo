@@ -1,0 +1,11 @@
+*#
+*.py[co]
+*.sw[po]
+*~
+MANIFEST.json
+\#*
+.vscode/
+.DS_Store
+*.rej
+_venv
+.wptcache/

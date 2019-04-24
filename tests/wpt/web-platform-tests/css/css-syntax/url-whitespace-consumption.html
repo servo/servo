@@ -1,0 +1,32 @@
+<!doctype html>
+<title>url whitespace consumption</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+.foo {}
+
+</style>
+
+<meta name=author title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#consume-ident-like-token">
+
+<script>
+
+function roundTripUrl(input) {
+    const rule = document.styleSheets[0].cssRules[0].style;
+    const fallback = 'url("fallback")';
+    rule.setProperty("background-image", fallback);
+    rule.setProperty("background-image", input);
+    const value = rule.getPropertyValue("background-image");
+    if(value == fallback) return false;
+    return value;
+}
+
+test(()=>{
+    assert_equals(roundTripUrl('url("foo")'), 'url("foo")');
+    assert_equals(roundTripUrl('url( "foo")'), 'url("foo")');
+    assert_equals(roundTripUrl('url("foo" )'), 'url("foo")');
+}, "whitespace is optional between url( token and the string token");
+
+</script>

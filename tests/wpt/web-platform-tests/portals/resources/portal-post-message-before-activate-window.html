@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    var portal = document.createElement("portal");
+    portal.src = "portal-post-message-before-activate-portal.html";
+    document.body.appendChild(portal);
+
+    var bc = new BroadcastChannel("portal");
+    bc.onmessage = () => {
+      portal.postMessage("message");
+      portal.activate();
+      bc.close();
+    }
+  </script>
+</body>

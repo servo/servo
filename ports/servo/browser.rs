@@ -13,12 +13,16 @@ use servo::msg::constellation_msg::TraversalDirection;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
-use servo::servo_config::prefs::PREFS;
+use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
+use std::env;
+use std::fs::File;
+use std::io::Write;
 use std::mem;
 use std::rc::Rc;
 use std::thread;
+use std::time::Duration;
 use tinyfiledialogs::{self, MessageBoxIcon};
 
 pub struct Browser {
@@ -112,6 +116,18 @@ impl Browser {
             .shortcut(CMD_OR_CONTROL, 'Q', || {
                 self.event_queue.push(WindowEvent::Quit);
             })
+            .shortcut(CMD_OR_CONTROL, 'P', || {
+                let rate = env::var("SAMPLING_RATE")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(10);
+                let duration = env::var("SAMPLING_DURATION")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(10);
+                self.event_queue.push(WindowEvent::ToggleSamplingProfiler(
+                    Duration::from_millis(rate), Duration::from_secs(duration)));
+            })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 self.event_queue.push(WindowEvent::CaptureWebRender)
             })
@@ -143,7 +159,15 @@ impl Browser {
                 }
             })
             .shortcut(Modifiers::empty(), Key::Escape, || {
-                self.event_queue.push(WindowEvent::Quit);
+                let state = self.window.get_fullscreen();
+                if state {
+                    if let Some(id) = self.browser_id {
+                        let event = WindowEvent::ExitFullScreen(id);
+                        self.event_queue.push(event);
+                    }
+                } else {
+                    self.event_queue.push(WindowEvent::Quit);
+                }
             })
             .otherwise(|| self.platform_handle_key(key_event));
     }
@@ -378,6 +402,15 @@ impl Browser {
                 EmbedderMsg::HideIME => {
                     debug!("HideIME received");
                 },
+                EmbedderMsg::ReportProfile(bytes) => {
+                    let filename = env::var("PROFILE_OUTPUT")
+                        .unwrap_or("samples.json".to_string());
+                    let result = File::create(&filename)
+                        .and_then(|mut f| f.write_all(&bytes));
+                    if let Err(e) = result {
+                        error!("Failed to store profile: {}", e);
+                    }
+                }
             }
         }
     }
@@ -461,12 +494,7 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
             }
         })
         .or_else(|| {
-            PREFS
-                .get("shell.searchpage")
-                .as_string()
-                .and_then(|s: &str| {
-                    let url = s.replace("%s", request);
-                    ServoUrl::parse(&url).ok()
-                })
+            let url = pref!(shell.searchpage).replace("%s", request);
+            ServoUrl::parse(&url).ok()
         })
 }

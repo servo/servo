@@ -22,6 +22,7 @@ import subprocess
 from subprocess import PIPE
 import sys
 import tarfile
+import zipfile
 from xml.etree.ElementTree import XML
 from servo.util import download_file
 import urllib2
@@ -86,10 +87,14 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
     dest_archive = os.path.abspath(dest_archive)
     with cd(dir_to_archive):
         current_dir = "."
-        file_list = [current_dir]
+        file_list = []
         for root, dirs, files in os.walk(current_dir):
-            for name in itertools.chain(dirs, files):
-                file_list.append(os.path.join(root, name))
+            if dest_archive.endswith(".zip"):
+                for f in files:
+                    file_list.append(os.path.join(root, f))
+            else:
+                for name in itertools.chain(dirs, files):
+                    file_list.append(os.path.join(root, name))
 
         # Sort file entries with the fixed locale
         with setlocale('C'):
@@ -100,13 +105,21 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         # TODO do this in a temporary folder after #11983 is fixed
         temp_file = '{}.temp~'.format(dest_archive)
         with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0644), 'w') as out_file:
-            with gzip.GzipFile('wb', fileobj=out_file, mtime=0) as gzip_file:
-                with tarfile.open(fileobj=gzip_file, mode='w:') as tar_file:
+            if dest_archive.endswith('.zip'):
+                with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for entry in file_list:
                         arcname = entry
                         if prepend_path is not None:
                             arcname = os.path.normpath(os.path.join(prepend_path, arcname))
-                        tar_file.add(entry, filter=reset, recursive=False, arcname=arcname)
+                        zip_file.write(entry, arcname=arcname)
+            else:
+                with gzip.GzipFile('wb', fileobj=out_file, mtime=0) as gzip_file:
+                    with tarfile.open(fileobj=gzip_file, mode='w:') as tar_file:
+                        for entry in file_list:
+                            arcname = entry
+                            if prepend_path is not None:
+                                arcname = os.path.normpath(os.path.join(prepend_path, arcname))
+                            tar_file.add(entry, filter=reset, recursive=False, arcname=arcname)
         os.rename(temp_file, dest_archive)
 
 
@@ -352,7 +365,7 @@ class CommandBase(object):
         return path.join(base_path, build_type, apk_name)
 
     def get_gstreamer_path(self):
-        return path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
+        return path.join(self.context.topdir, "support", "linux", "gstreamer", "gst")
 
     def get_binary_path(self, release, dev, android=False, magicleap=False):
         # TODO(autrilla): this function could still use work - it shouldn't
@@ -552,7 +565,7 @@ install them, let us know by filing a bug!")
            but may still need dynamic search paths. This command sets that up"""
         if not android and self.needs_gstreamer_env(None):
             gstpath = self.get_gstreamer_path()
-            os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib", "x86_64-linux-gnu")
+            os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
 
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
@@ -599,7 +612,7 @@ install them, let us know by filing a bug!")
         if self.needs_gstreamer_env(target):
             gstpath = self.get_gstreamer_path()
             extra_path += [path.join(gstpath, "bin")]
-            libpath = path.join(gstpath, "lib", "x86_64-linux-gnu")
+            libpath = path.join(gstpath, "lib")
             # we append in the reverse order so that system gstreamer libraries
             # do not get precedence
             extra_path = [libpath] + extra_path

@@ -26,6 +26,8 @@
         assert_equals(CSS.supports("color: red"), true, "CSS.supports: Single-argument form allows for declarations without enclosing parentheses");
         assert_equals(CSS.supports("(color: red) and (color: blue)"), true, "CSS.supports: Complex conditions allowed");
         assert_equals(CSS.supports("not (foobar)"), true, "CSS.supports: general_enclosed still parses");
+        assert_equals(CSS.supports("color: something-pointless var(--foo)"), true, "Variable references always parse");
+        assert_equals(CSS.supports("color: something-pointless(var(--foo))"), true, "Variable references in an unknown function always parse");
     }, "CSS.supports, one argument form");
     test(function () {
         // https://drafts.csswg.org/css-conditional/#dom-css-supports

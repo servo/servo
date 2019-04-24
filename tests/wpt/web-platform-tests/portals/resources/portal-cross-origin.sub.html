@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    var iframe = document.createElement("iframe");
+    iframe.src = "http://{{host}}:{{ports[http][0]}}/portals/resources/portal-forward-with-broadcast.html?broadcastchannel=portals-cross-origin-load";
+    iframe.onload = e => {
+      iframe.contentWindow.postMessage("loaded", "*");
+    }
+    document.body.appendChild(iframe);
+  </script>
+</body>

@@ -66,11 +66,11 @@ lazy_static! {
             Ok(num) => num,
             #[cfg(feature = "servo")]
             _ => {
+                use servo_config::pref;
                 // We always set this pref on startup, before layout or script
                 // have had a chance of accessing (and thus creating) the
                 // thread-pool.
-                use servo_config::prefs::PREFS;
-                PREFS.get("layout.threads").as_u64().unwrap() as usize
+                pref!(layout.threads) as usize
             }
             #[cfg(feature = "gecko")]
             _ => {

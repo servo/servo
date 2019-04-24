@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Unclosed URL At EOF</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta name=author title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#consume-url-token">
+
+<div id=test1-control style="background-image:url(foo)"></div>
+<div id=test1-experiment style="background-image:url(foo"></div>
+
+<div id=test2-control style="background-image:url()"></div>
+<div id=test2-experiment style="background-image:url("></div>
+
+<script>
+
+test(()=>{
+    const control = document.querySelector("#test1-control");
+    const experiment = document.querySelector("#test1-experiment");
+    assert_equals(control.style.backgroundImage, experiment.style.backgroundImage);
+}, "Unclosed url token at EOF is valid.");
+
+test(()=>{
+    const control = document.querySelector("#test2-control");
+    const experiment = document.querySelector("#test2-experiment");
+    assert_equals(control.style.backgroundImage, experiment.style.backgroundImage);
+}, "Unclosed empty url token at EOF is valid.");
+
+</script>

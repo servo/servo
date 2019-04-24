@@ -1,11 +1,12 @@
 import os
 import subprocess
+from six.moves.urllib.parse import urljoin
 from collections import defaultdict
 
-from wptmanifest.parser import atoms
+from .wptmanifest.parser import atoms
 
 atom_reset = atoms["Reset"]
-enabled_tests = set(["testharness", "reftest", "wdspec"])
+enabled_tests = {"testharness", "reftest", "wdspec"}
 
 
 class Result(object):
@@ -38,28 +39,28 @@ class SubtestResult(object):
 
 class TestharnessResult(Result):
     default_expected = "OK"
-    statuses = set(["OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = {"OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"}
 
 
 class TestharnessSubtestResult(SubtestResult):
     default_expected = "PASS"
-    statuses = set(["PASS", "FAIL", "TIMEOUT", "NOTRUN"])
+    statuses = {"PASS", "FAIL", "TIMEOUT", "NOTRUN"}
 
 
 class ReftestResult(Result):
     default_expected = "PASS"
-    statuses = set(["PASS", "FAIL", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT",
-                    "CRASH"])
+    statuses = {"PASS", "FAIL", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT",
+                "CRASH"}
 
 
 class WdspecResult(Result):
     default_expected = "OK"
-    statuses = set(["OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = {"OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"}
 
 
 class WdspecSubtestResult(SubtestResult):
     default_expected = "PASS"
-    statuses = set(["PASS", "FAIL", "ERROR"])
+    statuses = {"PASS", "FAIL", "ERROR"}
 
 
 def get_run_info(metadata_root, product, **kwargs):
@@ -149,12 +150,12 @@ class Test(object):
     def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
         timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
         protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
-        return cls(manifest_item.source_file.tests_root,
+        return cls(manifest_file.tests_root,
                    manifest_item.url,
                    inherit_metadata,
                    test_metadata,
                    timeout=timeout,
-                   path=manifest_item.source_file.path,
+                   path=os.path.join(manifest_file.tests_root, manifest_item.path),
                    protocol=protocol)
 
     @property
@@ -279,12 +280,12 @@ class Test(object):
     @property
     def prefs(self):
         prefs = {}
-        for meta in self.itermeta():
+        for meta in reversed(list(self.itermeta())):
             meta_prefs = meta.prefs
-            prefs.update(meta_prefs)
             if atom_reset in meta_prefs:
-                del prefs[atom_reset]
-                break
+                del meta_prefs[atom_reset]
+                prefs = {}
+            prefs.update(meta_prefs)
         return prefs
 
     def expected(self, subtest=None):
@@ -327,18 +328,19 @@ class TestharnessTest(Test):
         protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
         testdriver = manifest_item.testdriver if hasattr(manifest_item, "testdriver") else False
         jsshell = manifest_item.jsshell if hasattr(manifest_item, "jsshell") else False
-        script_metadata = manifest_item.source_file.script_metadata or []
+        script_metadata = manifest_item.script_metadata or []
         scripts = [v for (k, v) in script_metadata if k == b"script"]
-        return cls(manifest_item.source_file.tests_root,
+        return cls(manifest_file.tests_root,
                    manifest_item.url,
                    inherit_metadata,
                    test_metadata,
                    timeout=timeout,
-                   path=manifest_item.source_file.path,
+                   path=os.path.join(manifest_file.tests_root, manifest_item.path),
                    protocol=protocol,
                    testdriver=testdriver,
                    jsshell=jsshell,
-                   scripts=scripts)
+                   scripts=scripts
+                   )
 
     @property
     def id(self):
@@ -358,7 +360,7 @@ class ReftestTest(Test):
     test_type = "reftest"
 
     def __init__(self, tests_root, url, inherit_metadata, test_metadata, references,
-                 timeout=None, path=None, viewport_size=None, dpi=None, protocol="http"):
+                 timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None, protocol="http"):
         Test.__init__(self, tests_root, url, inherit_metadata, test_metadata, timeout,
                       path, protocol)
 
@@ -369,6 +371,7 @@ class ReftestTest(Test):
         self.references = references
         self.viewport_size = viewport_size
         self.dpi = dpi
+        self._fuzzy = fuzzy or {}
 
     @classmethod
     def from_manifest(cls,
@@ -388,7 +391,7 @@ class ReftestTest(Test):
 
         url = manifest_test.url
 
-        node = cls(manifest_test.source_file.tests_root,
+        node = cls(manifest_file.tests_root,
                    manifest_test.url,
                    inherit_metadata,
                    test_metadata,
@@ -397,7 +400,8 @@ class ReftestTest(Test):
                    path=manifest_test.path,
                    viewport_size=manifest_test.viewport_size,
                    dpi=manifest_test.dpi,
-                   protocol="https" if hasattr(manifest_test, "https") and manifest_test.https else "http")
+                   protocol="https" if hasattr(manifest_test, "https") and manifest_test.https else "http",
+                   fuzzy=manifest_test.fuzzy)
 
         nodes[url] = node
 
@@ -424,7 +428,7 @@ class ReftestTest(Test):
                                                       nodes,
                                                       references_seen)
             else:
-                reference = ReftestTest(manifest_test.source_file.tests_root,
+                reference = ReftestTest(manifest_file.tests_root,
                                         ref_url,
                                         [],
                                         None,
@@ -452,6 +456,30 @@ class ReftestTest(Test):
     @property
     def keys(self):
         return ("reftype", "refurl")
+
+    @property
+    def fuzzy(self):
+        return self._fuzzy
+
+    @property
+    def fuzzy_override(self):
+        values = {}
+        for meta in reversed(list(self.itermeta(None))):
+            value = meta.fuzzy
+            if not value:
+                continue
+            if atom_reset in value:
+                value.remove(atom_reset)
+                values = {}
+            for key, data in value:
+                if len(key) == 3:
+                    key[0] = urljoin(self.url, key[0])
+                    key[1] = urljoin(self.url, key[1])
+                else:
+                    # Key is just a relative url to a ref
+                    key = urljoin(self.url, key)
+                values[key] = data
+        return values
 
 
 class WdspecTest(Test):

@@ -22,6 +22,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::f32;
 use std::fmt;
+use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
 use webrender_api::{BorderRadius, ClipMode};
 use webrender_api::{ComplexClipRegion, ExternalScrollId, FilterOp};
@@ -189,6 +190,9 @@ pub struct StackingContext {
     /// The `z-index` for this stacking context.
     pub z_index: i32,
 
+    /// Whether this is the top layer.
+    pub in_top_layer: InTopLayer,
+
     /// CSS filters to be applied to this stacking context (including opacity).
     pub filters: Vec<FilterOp>,
 
@@ -220,6 +224,7 @@ impl StackingContext {
         bounds: LayoutRect,
         overflow: LayoutRect,
         z_index: i32,
+        in_top_layer: InTopLayer,
         filters: Vec<FilterOp>,
         mix_blend_mode: MixBlendMode,
         transform: Option<LayoutTransform>,
@@ -234,6 +239,7 @@ impl StackingContext {
             bounds,
             overflow,
             z_index,
+            in_top_layer,
             filters,
             mix_blend_mode,
             transform,
@@ -252,6 +258,7 @@ impl StackingContext {
             LayoutRect::zero(),
             LayoutRect::zero(),
             0,
+            InTopLayer::None,
             vec![],
             MixBlendMode::Normal,
             None,
@@ -283,6 +290,16 @@ impl StackingContext {
 
 impl Ord for StackingContext {
     fn cmp(&self, other: &Self) -> Ordering {
+        if self.in_top_layer == InTopLayer::Top {
+            if other.in_top_layer == InTopLayer::Top {
+                return Ordering::Equal;
+            } else {
+                return Ordering::Greater;
+            }
+        } else if other.in_top_layer == InTopLayer::Top {
+            return Ordering::Less;
+        }
+
         if self.z_index != 0 || other.z_index != 0 {
             return self.z_index.cmp(&other.z_index);
         }

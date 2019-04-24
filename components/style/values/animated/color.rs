@@ -100,8 +100,8 @@ impl Color {
     fn effective_intermediate_rgba(&self) -> RGBA {
         match *self {
             GenericColor::Numeric(color) => color,
-            GenericColor::Foreground => RGBA::transparent(),
-            GenericColor::Complex(color, ratios) => RGBA {
+            GenericColor::CurrentColor => RGBA::transparent(),
+            GenericColor::Complex { color, ratios } => RGBA {
                 alpha: color.alpha * ratios.bg,
                 ..color.clone()
             },
@@ -111,8 +111,8 @@ impl Color {
     fn effective_ratios(&self) -> ComplexColorRatios {
         match *self {
             GenericColor::Numeric(..) => ComplexColorRatios::NUMERIC,
-            GenericColor::Foreground => ComplexColorRatios::FOREGROUND,
-            GenericColor::Complex(.., ratios) => ratios,
+            GenericColor::CurrentColor => ComplexColorRatios::CURRENT_COLOR,
+            GenericColor::Complex { ratios, .. } => ratios,
         }
     }
 }
@@ -128,18 +128,18 @@ impl Animate for Color {
 
         Ok(match (*self, *other, procedure) {
             // Any interpolation of currentcolor with currentcolor returns currentcolor.
-            (Foreground, Foreground, Procedure::Interpolate { .. }) => Foreground,
+            (CurrentColor, CurrentColor, Procedure::Interpolate { .. }) => CurrentColor,
             // Animating two numeric colors.
             (Numeric(c1), Numeric(c2), _) => Numeric(c1.animate(&c2, procedure)?),
             // Combinations of numeric color and currentcolor
-            (Foreground, Numeric(color), _) => Self::with_ratios(
+            (CurrentColor, Numeric(color), _) => Self::with_ratios(
                 color,
                 ComplexColorRatios {
                     bg: other_weight as f32,
                     fg: this_weight as f32,
                 },
             ),
-            (Numeric(color), Foreground, _) => Self::with_ratios(
+            (Numeric(color), CurrentColor, _) => Self::with_ratios(
                 color,
                 ComplexColorRatios {
                     bg: this_weight as f32,
@@ -148,7 +148,7 @@ impl Animate for Color {
             ),
 
             // Any other animation of currentcolor with currentcolor.
-            (Foreground, Foreground, _) => Self::with_ratios(
+            (CurrentColor, CurrentColor, _) => Self::with_ratios(
                 RGBA::transparent(),
                 ComplexColorRatios {
                     bg: 0.,
@@ -162,8 +162,8 @@ impl Animate for Color {
                 fn scaled_rgba(color: &Color) -> RGBA {
                     match *color {
                         GenericColor::Numeric(color) => color,
-                        GenericColor::Foreground => RGBA::transparent(),
-                        GenericColor::Complex(color, ratios) => RGBA {
+                        GenericColor::CurrentColor => RGBA::transparent(),
+                        GenericColor::Complex { color, ratios } => RGBA {
                             red: color.red * ratios.bg,
                             green: color.green * ratios.bg,
                             blue: color.blue * ratios.bg,
@@ -236,9 +236,9 @@ impl ComputeSquaredDistance for Color {
 
         // All comments from the Animate impl also applies here.
         Ok(match (*self, *other) {
-            (Foreground, Foreground) => SquaredDistance::from_sqrt(0.),
+            (CurrentColor, CurrentColor) => SquaredDistance::from_sqrt(0.),
             (Numeric(c1), Numeric(c2)) => c1.compute_squared_distance(&c2)?,
-            (Foreground, Numeric(color)) | (Numeric(color), Foreground) => {
+            (CurrentColor, Numeric(color)) | (Numeric(color), CurrentColor) => {
                 // `computed_squared_distance` is symmetric.
                 color.compute_squared_distance(&RGBA::transparent())? +
                     SquaredDistance::from_sqrt(1.)

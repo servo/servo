@@ -48,6 +48,7 @@
         declaration.setProperty("margin-left", "15px");
         declaration.setProperty("padding-left", "15px");
 
+
         assert_equals(declaration.length, 2);
         assert_equals(declaration.item(0), "margin-left");
         assert_equals(declaration.item(1), "padding-left");
@@ -57,7 +58,14 @@
         var computedStyle = window.getComputedStyle(document.getElementById("test"));
         assert_equals(computedStyle.getPropertyValue("margin-left"), "15px");
         assert_equals(computedStyle.getPropertyValue("padding-left"), "15px");
+
     }, "Calling CSSStyleDeclaration#setProperty");
+
+    test(function() {
+        declaration.setProperty("background-color", "red", "ImPoRtAnt");
+        assert_equals(declaration.getPropertyPriority("background-color"), "important");
+    }, "setProperty priority should be case-insensitive");
+
  </script>
  </body>
 </html>

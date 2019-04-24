@@ -33,19 +33,25 @@
         <div id="unsetTest" style="--var: unset;"></div>
     </div>
 
+    <div id="revertParent" style="--var: 20px;">
+        <div id="revertTest" style="--var: revert;"></div>
+    </div>
+
     <script type="text/javascript">
         "use strict";
 
         let computedStyle = [
             { elementId: "inheritTest", property: "--var", expectedValue: "20px", testName: "computed style inherit" },
             { elementId: "initialTest", property: "--var", expectedValue: "", testName: "computed style initial" },
-            { elementId: "unsetTest", property: "--var", expectedValue: "20px", testName: "computed style unset" }
+            { elementId: "unsetTest", property: "--var", expectedValue: "20px", testName: "computed style unset" },
+            { elementId: "revertTest", property: "--var", expectedValue: "20px", testName: "computed style revert" }
         ];
 
         let specifiedStyle = [
             { elementId: "inheritTest", property: "--var", expectedValue: "inherit", testName: "specified style inherit" },
             { elementId: "initialTest", property: "--var", expectedValue: "initial", testName: "specified style initial" },
-            { elementId: "unsetTest", property: "--var", expectedValue: "unset", testName: "specified style unset" }
+            { elementId: "unsetTest", property: "--var", expectedValue: "unset", testName: "specified style unset" },
+            { elementId: "revertTest", property: "--var", expectedValue: "revert", testName: "specified style revert" }
         ];
 
         computedStyle.forEach(function (csTest) {

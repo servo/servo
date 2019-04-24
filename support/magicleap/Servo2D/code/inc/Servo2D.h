@@ -59,7 +59,12 @@ public:
   /**
    * Update the browser history UI
    */
-  void updateHistory(bool canGoBack, const char* url, bool canGoForward);
+  void updateHistory(bool canGoBack, bool canGoForward);
+
+  /**
+   * Update the browser url bar.
+   */
+  void updateUrl(const char* url);
 
   /**
    * Make the keyboard visible

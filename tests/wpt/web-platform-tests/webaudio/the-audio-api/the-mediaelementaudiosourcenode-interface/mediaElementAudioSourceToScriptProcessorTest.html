@@ -51,8 +51,10 @@ Somewhat similiar to a test from Mozilla:
    return result;
  }
 
- // Create Audio context
- context = new AudioContext();
+ // Create Audio context.  The reference wav file is sampled at 44.1 kHz so
+ // use the same rate for the context to remove extra resampling that might
+ // be required.
+ context = new AudioContext({sampleRate: 44100});
 
  // Create an audio element, and a media element source
  audio = document.createElement('audio');

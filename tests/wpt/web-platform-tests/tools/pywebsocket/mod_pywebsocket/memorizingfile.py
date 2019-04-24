@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright 2011, Google Inc.
 # All rights reserved.
 #
@@ -62,7 +60,7 @@ class MemorizingFile(object):
 
     def __getattribute__(self, name):
         """Return a file attribute.
-        
+
         Returns the value overridden by this class for some attributes,
         and forwards the call to _file for the other attributes.
         """

@@ -1,17 +1,11 @@
-import sys
-
 from os.path import join, dirname
 
 import mock
 import pytest
 
 from .base import all_products, active_products
-
-sys.path.insert(0, join(dirname(__file__), "..", "..", "..", ".."))  # repo root
-from tools import localpaths  # noqa: flake8
-
-from wptrunner import environment
-from wptrunner import products
+from .. import environment
+from .. import products
 
 test_paths = {"/": {"tests_path": join(dirname(__file__), "..", "..", "..", "..")}}  # repo root
 environment.do_delayed_imports(None, test_paths)

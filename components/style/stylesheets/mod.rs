@@ -23,6 +23,10 @@ mod stylesheet;
 pub mod supports_rule;
 pub mod viewport_rule;
 
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::sugar::refptr::RefCounted;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::{bindings, structs};
 use crate::parser::ParserContext;
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -32,7 +36,11 @@ use cssparser::{parse_one_rule, Parser, ParserInput};
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
 use std::fmt;
+#[cfg(feature = "gecko")]
+use std::mem::{self, ManuallyDrop};
 use style_traits::ParsingMode;
+#[cfg(feature = "gecko")]
+use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 pub use self::counter_style_rule::CounterStyleRule;
 pub use self::document_rule::DocumentRule;
@@ -60,18 +68,76 @@ pub use self::viewport_rule::ViewportRule;
 pub type UrlExtraData = ::servo_url::ServoUrl;
 
 /// Extra data that the backend may need to resolve url values.
+///
+/// If the usize's lowest bit is 0, then this is a strong reference to a
+/// structs::URLExtraData object.
+///
+/// Otherwise, shifting the usize's bits the right by one gives the
+/// UserAgentStyleSheetID value corresponding to the style sheet whose
+/// URLExtraData this is, which is stored in URLExtraData_sShared.  We don't
+/// hold a strong reference to that object from here, but we rely on that
+/// array's objects being held alive until shutdown.
+///
+/// We use this packed representation rather than an enum so that
+/// `from_ptr_ref` can work.
 #[cfg(feature = "gecko")]
-#[derive(Clone, PartialEq)]
-pub struct UrlExtraData(
-    pub crate::gecko_bindings::sugar::refptr::RefPtr<crate::gecko_bindings::structs::URLExtraData>,
-);
+#[derive(PartialEq)]
+pub struct UrlExtraData(usize);
+
+#[cfg(feature = "gecko")]
+impl Clone for UrlExtraData {
+    fn clone(&self) -> UrlExtraData {
+        UrlExtraData::new(self.ptr())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl Drop for UrlExtraData {
+    fn drop(&mut self) {
+        // No need to release when we have an index into URLExtraData_sShared.
+        if self.0 & 1 == 0 {
+            unsafe {
+                self.as_ref().release();
+            }
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ToShmem for UrlExtraData {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+        if self.0 & 1 == 0 {
+            let shared_extra_datas = unsafe { &structs::URLExtraData_sShared };
+            let self_ptr = self.as_ref() as *const _ as *mut _;
+            let sheet_id = shared_extra_datas
+                .iter()
+                .position(|r| r.mRawPtr == self_ptr)
+                .expect(
+                    "ToShmem failed for UrlExtraData: expected sheet's URLExtraData to be in \
+                     URLExtraData::sShared",
+                );
+            ManuallyDrop::new(UrlExtraData((sheet_id << 1) | 1))
+        } else {
+            ManuallyDrop::new(UrlExtraData(self.0))
+        }
+    }
+}
 
 #[cfg(feature = "gecko")]
 impl UrlExtraData {
+    /// Create a new UrlExtraData wrapping a pointer to the specified Gecko
+    /// URLExtraData object.
+    pub fn new(ptr: *mut structs::URLExtraData) -> UrlExtraData {
+        unsafe {
+            (*ptr).addref();
+        }
+        UrlExtraData(ptr as usize)
+    }
+
     /// True if this URL scheme is chrome.
     #[inline]
     pub fn is_chrome(&self) -> bool {
-        self.0.mIsChrome
+        self.as_ref().mIsChrome
     }
 
     /// Create a reference to this `UrlExtraData` from a reference to pointer.
@@ -80,16 +146,30 @@ impl UrlExtraData {
     ///
     /// This method doesn't touch refcount.
     #[inline]
-    pub unsafe fn from_ptr_ref(ptr: &*mut crate::gecko_bindings::structs::URLExtraData) -> &Self {
-        ::std::mem::transmute(ptr)
+    pub unsafe fn from_ptr_ref(ptr: &*mut structs::URLExtraData) -> &Self {
+        mem::transmute(ptr)
+    }
+
+    /// Returns a pointer to the Gecko URLExtraData object.
+    pub fn ptr(&self) -> *mut structs::URLExtraData {
+        if self.0 & 1 == 0 {
+            self.0 as *mut structs::URLExtraData
+        } else {
+            unsafe {
+                let sheet_id = self.0 >> 1;
+                structs::URLExtraData_sShared[sheet_id].mRawPtr
+            }
+        }
+    }
+
+    fn as_ref(&self) -> &structs::URLExtraData {
+        unsafe { &*(self.ptr() as *const structs::URLExtraData) }
     }
 }
 
 #[cfg(feature = "gecko")]
 impl fmt::Debug for UrlExtraData {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use crate::gecko_bindings::{bindings, structs};
-
         struct DebugURI(*mut structs::nsIURI);
         impl fmt::Debug for DebugURI {
             fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -105,10 +185,13 @@ impl fmt::Debug for UrlExtraData {
         formatter
             .debug_struct("URLExtraData")
             .field("is_chrome", &self.is_chrome())
-            .field("base", &DebugURI(self.0.mBaseURI.raw::<structs::nsIURI>()))
+            .field(
+                "base",
+                &DebugURI(self.as_ref().mBaseURI.raw::<structs::nsIURI>()),
+            )
             .field(
                 "referrer",
-                &DebugURI(self.0.mReferrer.raw::<structs::nsIURI>()),
+                &DebugURI(self.as_ref().mReferrer.raw::<structs::nsIURI>()),
             )
             .finish()
     }
@@ -122,7 +205,7 @@ impl Eq for UrlExtraData {}
 /// A CSS rule.
 ///
 /// TODO(emilio): Lots of spec links should be around.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToShmem)]
 #[allow(missing_docs)]
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM

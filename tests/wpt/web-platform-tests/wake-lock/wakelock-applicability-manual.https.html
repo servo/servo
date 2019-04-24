@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>wake lock applicability test</title>
-<link rel="help" href="https://w3c.github.io/wake-lock/#dfn-the-wake-lock-is-applicable">
+<link rel="help" href="https://w3c.github.io/wake-lock/#dfn-applicable-wake-lock">
 <meta name="flags" content="interact">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -16,10 +16,14 @@
 setup({ explicit_timeout: true });
 
 promise_test(async t => {
-  const wakeLock = await navigator.getWakeLock("screen");
-  const request = wakeLock.createRequest();
+  const wakeLock = new WakeLock("screen");
+
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  await wakeLock.request({ signal });
   assert_true(wakeLock.active, "the active is true when wake lock is acquired");
-  const eventWatcher = new EventWatcher(t, document, "visibilitychange")
+  const eventWatcher = new EventWatcher(t, document, "visibilitychange");
 
   //lock screen to fire 'visibilitychange'
   await eventWatcher.wait_for("visibilitychange");
@@ -30,22 +34,26 @@ promise_test(async t => {
   await eventWatcher.wait_for("visibilitychange");
   assert_false(document.hidden, "document is visiable when screen is unlocked");
   assert_true(wakeLock.active, "the screen wake lock is active when screen is switched on again");
-  request.cancel();
+  controller.abort();
 }, "The screen wake lock isn't applicable after the screen is manually swiched off"
   + " by the user until it is switched on again.");
 
 
 promise_test(async t => {
-  const wakeLock = await navigator.getWakeLock("system");
-  const request = wakeLock.createRequest();
+  const wakeLock = new WakeLock("system");
+
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  await wakeLock.request({ signal });
   assert_true(wakeLock.active, "the active is true when wake lock is acquired");
-  const eventWatcher = new EventWatcher(t, document, "visibilitychange")
+  const eventWatcher = new EventWatcher(t, document, "visibilitychange");
 
   //lock screen to fire 'visibilitychange'
   await eventWatcher.wait_for("visibilitychange");
   assert_true(document.hidden, "document is hidden when screen is locked");
   assert_true(wakeLock.active, "the system wake lock is still active when screen is switched off");
-  request.cancel();
+  controller.abort();
 }, "Manually switching off the screen will not affect the applicability of the system wake lock.");
 
 </script>

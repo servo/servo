@@ -60,8 +60,8 @@ pub type StylistSheet = crate::stylesheets::DocumentStyleSheet;
 #[cfg(feature = "gecko")]
 pub type StylistSheet = crate::gecko::data::GeckoStyleSheet;
 
-/// A cache of computed user-agent data, to be shared across documents.
 lazy_static! {
+    /// A cache of computed user-agent data, to be shared across documents.
     static ref UA_CASCADE_DATA_CACHE: Mutex<UserAgentCascadeDataCache> =
         Mutex::new(UserAgentCascadeDataCache::new());
 }
@@ -129,6 +129,9 @@ impl UserAgentCascadeDataCache {
     }
 
     fn expire_unused(&mut self) {
+        // is_unique() returns false for static references, but we never have
+        // static references to UserAgentCascadeDatas.  If we did, it may not
+        // make sense to put them in the cache in the first place.
         self.entries.retain(|e| !e.is_unique())
     }
 

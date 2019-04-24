@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>'border-image-repeat' with 'space' and 'round'</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-image-repeat">
+<link rel="match" href="reference/border-image-repeat-005-ref.html">
+<style>
+#target {
+  width: 255px;
+  height: 80px;
+  border: 10px solid red;
+  border-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='green'/></svg>") 0 fill / 0px space round;
+}
+</style>
+<p>There should be two green rectangles below:</p>
+<div id="target"></div>

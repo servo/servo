@@ -163,9 +163,12 @@ def err_string(results_dict, iterations):
     """Create and return string with errors from test run."""
     rv = []
     total_results = sum(results_dict.values())
-    for key, value in sorted(results_dict.items()):
-        rv.append("%s%s" %
-                  (key, ": %s/%s" % (value, iterations) if value != iterations else ""))
+    if total_results > iterations:
+        rv.append("Duplicate subtest name")
+    else:
+        for key, value in sorted(results_dict.items()):
+            rv.append("%s%s" %
+                      (key, ": %s/%s" % (value, iterations) if value != iterations else ""))
     if total_results < iterations:
         rv.append("MISSING: %s/%s" % (iterations - total_results, iterations))
     rv = ", ".join(rv)

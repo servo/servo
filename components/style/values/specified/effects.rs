@@ -20,6 +20,7 @@ use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::{Angle, NumberOrPercentage};
 #[cfg(not(feature = "gecko"))]
 use crate::values::Impossible;
+use crate::Zero;
 use cssparser::{self, BasicParseErrorKind, Parser, Token};
 use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 
@@ -36,7 +37,7 @@ pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, SimpleShadow, 
 pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, Impossible, Impossible>;
 
 /// A value for the `<factor>` parts in `Filter`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub struct Factor(NumberOrPercentage);
 
 impl Factor {

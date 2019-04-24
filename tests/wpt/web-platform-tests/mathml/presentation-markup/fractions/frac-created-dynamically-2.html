@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>mfrac created dynamically</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
+<meta name="assert" content="A dynamically added mfrac should render like the equivalent markup.">
+<link rel="match" href="frac-created-dynamically-2-ref.html">
+<script>
+  window.addEventListener("DOMContentLoaded", function() {
+  var mfrac = document.createElementNS("http://www.w3.org/1998/Math/MathML","mfrac");
+  var mspace1 = document.createElementNS("http://www.w3.org/1998/Math/MathML","mspace");
+  mspace1.setAttribute("width", "50px");
+  mspace1.setAttribute("height", "50px");
+  mspace1.setAttribute("style", "background: black");
+  var mspace2 = document.createElementNS("http://www.w3.org/1998/Math/MathML","mspace");
+  mspace2.setAttribute("width", "50px");
+  mspace2.setAttribute("height", "50px");
+  mspace2.setAttribute("style", "background: black");
+  var mspace3 = document.createElementNS("http://www.w3.org/1998/Math/MathML","mspace");
+  mspace3.setAttribute("width", "50px");
+  mspace3.setAttribute("height", "50px");
+  mspace3.setAttribute("style", "background: black");
+  document.getElementsByTagName("math")[0].appendChild(mfrac);
+  mfrac.appendChild(mspace1);
+  mfrac.appendChild(mspace2);
+  mfrac.appendChild(mspace3);
+  });
+</script>
+</head>
+<body>
+  <p>This test passes if it renders the same as an invalid fraction with 3 children.</p>
+  <math>
+</body>
+</html>

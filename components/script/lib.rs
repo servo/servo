@@ -4,10 +4,12 @@
 
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
+#![feature(borrow_state)]
 #![feature(const_fn)]
 #![feature(drain_filter)]
+#![feature(inner_deref)]
 #![feature(plugin)]
-#![feature(try_from)]
+#![feature(type_alias_enum_variants)]
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 #![doc = "The script crate contains all matters DOM."]
@@ -83,7 +85,7 @@ mod webdriver_handlers;
 /// TODO(emilio): A few of the FooHelpers can go away, presumably...
 pub mod layout_exports {
     pub use crate::dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
-    pub use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
+    pub use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId, TextTypeId};
     pub use crate::dom::bindings::root::LayoutDom;
     pub use crate::dom::characterdata::LayoutCharacterDataHelpers;
     pub use crate::dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};

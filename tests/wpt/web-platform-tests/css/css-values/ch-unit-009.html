@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: ch unit in height (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#font-relative-lengths">
+  <link rel="match" href="reference/ch-unit-009-ref.html">
+
+  <meta name="flags" content="">
+
+  <style>
+  div
+    {
+      float: left;
+      font-size: 80px; /* arbitrary font size */
+    }
+
+  div#test-blue
+    {
+      background-color: blue;
+      height: 5ch;
+      width: 1.8em;
+    }
+
+  div#reference-orange
+    {
+      background-color: orange;
+      color: orange;
+      line-height: 1.8; /* arbitrary line-height */
+      writing-mode: vertical-rl;
+    }
+  </style>
+
+  <p>Test passes if there is a blue rectangle with the <strong>same height</strong> as an orange rectangle.
+
+  <div id="test-blue"></div>
+
+  <div id="reference-orange">00000</div>

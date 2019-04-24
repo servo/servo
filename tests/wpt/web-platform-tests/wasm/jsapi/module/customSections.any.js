@@ -1,5 +1,4 @@
 // META: global=jsshell
-// META: script=/wasm/jsapi/wasm-constants.js
 // META: script=/wasm/jsapi/wasm-module-builder.js
 
 function assert_ArrayBuffer(buffer, expected) {
@@ -97,7 +96,7 @@ test(() => {
   });
 
   const builder = new WasmModuleBuilder();
-  builder.addExplicitSection(binary);
+  builder.addExplicitSection(binary.trunc_buffer());
   const buffer = builder.toBuffer()
   const module = new WebAssembly.Module(buffer);
 
@@ -127,7 +126,7 @@ test(() => {
   });
 
   const builder = new WasmModuleBuilder();
-  builder.addExplicitSection(binary);
+  builder.addExplicitSection(binary.trunc_buffer());
   const buffer = builder.toBuffer();
   const module = new WebAssembly.Module(buffer);
 
@@ -148,7 +147,7 @@ test(() => {
   });
 
   const builder = new WasmModuleBuilder();
-  builder.addExplicitSection(binary);
+  builder.addExplicitSection(binary.trunc_buffer());
   const buffer = builder.toBuffer();
   const module = new WebAssembly.Module(buffer);
 
@@ -156,9 +155,7 @@ test(() => {
   assert_sections(WebAssembly.Module.customSections(module, "na\uFFFDme"), [
     bytes,
   ]);
-  assert_sections(WebAssembly.Module.customSections(module, "na\uDC01me"), [
-    bytes,
-  ]);
+  assert_sections(WebAssembly.Module.customSections(module, "na\uDC01me"), []);
 }, "Custom sections with U+FFFD");
 
 test(() => {

@@ -26,21 +26,6 @@ async function initiateSingleTrackCallAndReturnReceiver(t, kind) {
   return trackEvent.receiver;
 }
 
-function listenForSSRCs(t, receiver) {
-  return new Promise((resolve) => {
-    function listen() {
-      const ssrcs = receiver.getSynchronizationSources();
-      assert_true(ssrcs != undefined);
-      if (ssrcs.length > 0) {
-        resolve(ssrcs);
-        return;
-      }
-      t.step_timeout(listen, 0);
-    };
-    listen();
-  });
-}
-
 for (const kind of ['audio', 'video']) {
   promise_test(async t => {
     const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);

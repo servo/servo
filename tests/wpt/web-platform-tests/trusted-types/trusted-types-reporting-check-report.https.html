@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>Check Trusted Type violation reports</title>
+
+<!-- We assume these HTTP headers are set on the request:
+
+  Set-Cookie: trusted-types-reporting-check-report={{$id:uuid()}}; Path=/trusted-types/
+  Content-Security-Policy-Report-Only: \
+     trusted-types one two; \
+     report-uri ../content-security-policy/support/report.py?op=put&reportID={{$id}}
+-->
+</head>
+<body>
+  <script>
+    TrustedTypes.createPolicy("three", {});
+  </script>
+  <script async defer src='../content-security-policy/support/checkReport.sub.js?reportField=violated-directive&reportValue=trusted-types'></script>
+</body>
+</html>

@@ -50,9 +50,9 @@ for (let lengthUnit of lengthUnits) {
     target.style.strokeWidth = length;
 
     const ref = document.getElementById('ref');
-    ref.style.wordSpacing = length;
+    ref.style.textIndent = length;
 
-    assert_equals(getComputedStyle(target).strokeWidth, getComputedStyle(ref).wordSpacing);
+    assert_equals(getComputedStyle(target).strokeWidth, getComputedStyle(ref).textIndent);
   }, 'stroke-width computes ' + lengthUnit + ' lengths');
 }
 

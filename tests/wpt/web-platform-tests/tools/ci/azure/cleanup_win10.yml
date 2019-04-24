@@ -1,0 +1,13 @@
+# This is cleanup for update_hosts.yml and killing all Edge and WebDriver
+# processes to leave the agent in a clean state for the next job. This is
+# necessary because the Windows 10 agents aren't reset between each job.
+steps:
+- powershell: |
+    $hostFile = "$env:systemroot\System32\drivers\etc\hosts"
+    Copy-Item -Path "$hostFile.back" -Destination $hostFile -Force
+    taskkill /f /im MicrosoftEdge*
+    taskkill /f /im MicrosoftWebDriver.exe
+  displayName: 'Restore hosts file and cleanup test machine'
+  condition: always()
+  errorActionPreference: silentlyContinue
+  ignoreLASTEXITCODE: true

@@ -16,9 +16,10 @@ class Response(object):
     body has been read and parsed as appropriate.
     """
 
-    def __init__(self, status, body):
+    def __init__(self, status, body, headers):
         self.status = status
         self.body = body
+        self.headers = headers
 
     def __repr__(self):
         cls_name = self.__class__.__name__
@@ -39,11 +40,12 @@ class Response(object):
     def from_http(cls, http_response, decoder=json.JSONDecoder, **kwargs):
         try:
             body = json.load(http_response, cls=decoder, **kwargs)
+            headers = dict(http_response.getheaders())
         except ValueError:
             raise ValueError("Failed to decode response body as JSON:\n" +
                 http_response.read())
 
-        return cls(http_response.status, body)
+        return cls(http_response.status, body, headers)
 
 
 class HTTPWireProtocol(object):

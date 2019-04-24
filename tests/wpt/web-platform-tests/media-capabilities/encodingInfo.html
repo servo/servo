@@ -287,7 +287,19 @@ promise_test(t => {
     assert_equals(typeof ability.smooth, "boolean");
     assert_equals(typeof ability.powerEfficient, "boolean");
   });
-}, "Test that encodingInfo returns a valid MediaCapabilitiesInfo objects");
+}, "Test that encodingInfo returns a valid MediaCapabilitiesInfo objects for record type");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.encodingInfo({
+    type: 'transmission',
+    video: minimalVideoConfiguration,
+    audio: minimalAudioConfiguration,
+  }).then(ability => {
+    assert_equals(typeof ability.supported, "boolean");
+    assert_equals(typeof ability.smooth, "boolean");
+    assert_equals(typeof ability.powerEfficient, "boolean");
+  });
+}, "Test that encodingInfo returns a valid MediaCapabilitiesInfo objects for transmission type");
 
 async_test(t => {
   var validTypes = [ 'record', 'transmission' ];

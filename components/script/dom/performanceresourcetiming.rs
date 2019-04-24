@@ -66,7 +66,6 @@ pub struct PerformanceResourceTiming {
 // TODO(#21260): domain_lookup_end
 // TODO(#21261): connect_start
 // TODO(#21262): connect_end
-// TODO(#21263): response_end
 impl PerformanceResourceTiming {
     pub fn new_inherited(
         url: ServoUrl,
@@ -116,17 +115,17 @@ impl PerformanceResourceTiming {
             initiator_type: initiator_type,
             next_hop: next_hop,
             worker_start: 0.,
-            redirect_start: 0.,
+            redirect_start: resource_timing.redirect_start as f64,
             redirect_end: 0.,
             fetch_start: resource_timing.fetch_start as f64,
             domain_lookup_start: 0.,
             domain_lookup_end: 0.,
             connect_start: 0.,
-            connect_end: 0.,
+            connect_end: resource_timing.connect_end as f64,
             secure_connection_start: 0.,
             request_start: resource_timing.request_start as f64,
             response_start: resource_timing.response_start as f64,
-            response_end: 0.,
+            response_end: resource_timing.response_end as f64,
         }
     }
 
@@ -175,18 +174,31 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-requeststart
     fn RequestStart(&self) -> DOMHighResTimeStamp {
-        // TODO
         Finite::wrap(self.request_start)
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart
+    fn RedirectStart(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.redirect_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestart
     fn ResponseStart(&self) -> DOMHighResTimeStamp {
-        // TODO
         Finite::wrap(self.response_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
     fn FetchStart(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.fetch_start)
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectend
+    fn ConnectEnd(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.connect_end)
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend
+    fn ResponseEnd(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.response_end)
     }
 }

@@ -4,24 +4,11 @@
 // Source: CSS Pseudo-Elements Module Level 4 (https://drafts.csswg.org/css-pseudo-4/)
 
 [Exposed=Window]
-interface CSSPseudoElement {
+interface CSSPseudoElement : EventTarget {
     readonly attribute CSSOMString type;
     readonly attribute Element element;
-    readonly attribute CSSStyleDeclaration style;
 };
 
-CSSPseudoElement implements EventTarget;
-
-[Exposed=Window]
-interface CSSPseudoElementList {
-    readonly attribute unsigned long length;
-    CSSPseudoElement item(unsigned long index);
-    CSSPseudoElement getByType(CSSOMString type);
-                     // replies null if no pseudo-element exists for
-                     //     the requested type
-};
-
-partial interface Window {
-  CSSPseudoElementList getPseudoElements(Element elt,
-                                       CSSOMString type);
+partial interface Element {
+  CSSPseudoElement? pseudo(CSSOMString type);
 };

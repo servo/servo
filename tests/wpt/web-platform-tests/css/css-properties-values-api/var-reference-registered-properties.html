@@ -136,6 +136,15 @@ test(function(){
     element.style = '';
 }, 'Lists with relative units are absolutized when substituting');
 
+test(function(){
+    let length = generate_property('none | <length>');
+    let universal = generate_property('*');
+    element.style = `font-size: 10px; ${length}: 10em; ${universal}: var(${length})`;
+    let computedStyle = getComputedStyle(element);
+    assert_equals(computedStyle.getPropertyValue(universal), ' 100px');
+    element.style = '';
+}, 'Values are absolutized when substituting into properties with universal syntax');
+
 function test_valid_fallback(syntax, value, fallback) {
     test(function(){
         let name = generate_property(syntax);

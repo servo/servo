@@ -41,7 +41,7 @@ class Config:
         self.index_read_only = False
         self.scopes_for_all_subtasks = []
         self.routes_for_all_subtasks = []
-        self.docker_image_buil_worker_type = None
+        self.docker_image_build_worker_type = None
         self.docker_images_expire_in = "1 month"
         self.repacked_msi_files_expire_in = "1 month"
         self.treeherder_repository_name = None
@@ -431,14 +431,15 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             cd repo
         """
         if sparse_checkout:
+            self.with_mounts({
+                "file": "sparse-checkout",
+                "content": {"raw": "\n".join(sparse_checkout)},
+            })
             git += """
                 git config core.sparsecheckout true
-                echo %SPARSE_CHECKOUT_BASE64% > .git\\info\\sparse.b64
-                certutil -decode .git\\info\\sparse.b64 .git\\info\\sparse-checkout
+                copy ..\\sparse-checkout .git\\info\\sparse-checkout
                 type .git\\info\\sparse-checkout
             """
-            self.env["SPARSE_CHECKOUT_BASE64"] = base64.b64encode(
-                "\n".join(sparse_checkout).encode("utf-8"))
         git += """
             git fetch --depth 1 %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%
@@ -722,7 +723,7 @@ class DockerWorkerTask(UnixTaskMixin, Task):
 
         image_build_task = (
             DockerWorkerTask("Docker image: " + image_name)
-            .with_worker_type(CONFIG.docker_image_buil_worker_type or self.worker_type)
+            .with_worker_type(CONFIG.docker_image_build_worker_type or self.worker_type)
             .with_max_run_time_minutes(30)
             .with_index_and_artifacts_expire_in(CONFIG.docker_images_expire_in)
             .with_features("dind")

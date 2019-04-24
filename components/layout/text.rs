@@ -14,7 +14,6 @@ use gfx::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
-use ordered_float::NotNan;
 use range::Range;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
@@ -196,11 +195,7 @@ impl TextRunScanner {
                 };
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing;
-                word_spacing = inherited_text_style
-                    .word_spacing
-                    .value()
-                    .map(|lop| lop.to_hash_key())
-                    .unwrap_or((Au(0), NotNan::new(0.0).unwrap()));
+                word_spacing = inherited_text_style.word_spacing.to_hash_key();
                 text_rendering = inherited_text_style.text_rendering;
                 word_break = inherited_text_style.word_break;
             }
@@ -321,10 +316,8 @@ impl TextRunScanner {
             // example, `finally` with a wide `letter-spacing` renders as `f i n a l l y` and not
             // `ﬁ n a l l y`.
             let mut flags = ShapingFlags::empty();
-            if let Some(v) = letter_spacing.value() {
-                if v.px() != 0. {
-                    flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-                }
+            if letter_spacing.0.px() != 0. {
+                flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
             }
             if text_rendering == TextRendering::Optimizespeed {
                 flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
@@ -334,8 +327,12 @@ impl TextRunScanner {
                 flags.insert(ShapingFlags::KEEP_ALL_FLAG);
             }
             let options = ShapingOptions {
-                letter_spacing: letter_spacing.value().cloned().map(Au::from),
-                word_spacing: word_spacing,
+                letter_spacing: if letter_spacing.0.px() == 0. {
+                    None
+                } else {
+                    Some(Au::from(letter_spacing.0))
+                },
+                word_spacing,
                 script: Script::Common,
                 flags: flags,
             };

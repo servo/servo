@@ -1368,3 +1368,10 @@ promise_test(t => {
                               e => assert_equals(e, 'string argument', 'e should be \'string argument\''));
   });
 }, 'abort with a string argument should set the stored error to that argument');
+
+promise_test(t => {
+  const ws = new WritableStream();
+  const writer = ws.getWriter();
+  return promise_rejects(t, new TypeError(), ws.abort(), 'abort should reject')
+    .then(() => writer.ready);
+}, 'abort on a locked stream should reject');

@@ -13,7 +13,7 @@
     ${helpers.predefined_type(
         side,
         "LengthPercentageOrAuto",
-        "computed::LengthPercentageOrAuto::Auto",
+        "computed::LengthPercentageOrAuto::auto()",
         spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
         animation_value_type="ComputedValue",
@@ -27,7 +27,7 @@
     ${helpers.predefined_type(
         "inset-%s" % side,
         "LengthPercentageOrAuto",
-        "computed::LengthPercentageOrAuto::Auto",
+        "computed::LengthPercentageOrAuto::auto()",
         spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
         alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
@@ -75,6 +75,7 @@ ${helpers.single_keyword(
     extra_prefixes="webkit",
     animation_value_type="discrete",
     servo_restyle_damage = "reflow",
+    gecko_enum_prefix = "StyleFlexDirection",
 )}
 
 ${helpers.single_keyword(
@@ -225,7 +226,7 @@ ${helpers.predefined_type(
     extra_prefixes="webkit",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-flexbox/#order-property",
-    servo_restyle_damage = "reflow",
+    servo_restyle_damage="reflow",
 )}
 
 ${helpers.predefined_type(
@@ -235,7 +236,8 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
     extra_prefixes="webkit",
     animation_value_type="FlexBasis",
-    servo_restyle_damage = "reflow",
+    servo_restyle_damage="reflow",
+    boxed=True,
 )}
 
 % for (size, logical) in ALL_SIZES:
@@ -244,81 +246,42 @@ ${helpers.predefined_type(
         if logical:
             spec = "https://drafts.csswg.org/css-logical-props/#propdef-%s"
     %>
-    % if product == "gecko":
-        // width, height, block-size, inline-size
-        ${helpers.predefined_type(
-            size,
-            "MozLength",
-            "computed::MozLength::auto()",
-            logical=logical,
-            logical_group="size",
-            allow_quirks=not logical,
-            spec=spec % size,
-            animation_value_type="MozLength",
-            flags="GETCS_NEEDS_LAYOUT_FLUSH",
-            servo_restyle_damage="reflow",
-        )}
-        // min-width, min-height, min-block-size, min-inline-size,
-        ${helpers.predefined_type(
-            "min-%s" % size,
-            "MozLength",
-            "computed::MozLength::auto()",
-            logical=logical,
-            logical_group="min-size",
-            allow_quirks=not logical,
-            spec=spec % size,
-            animation_value_type="MozLength",
-            servo_restyle_damage="reflow",
-        )}
-        ${helpers.predefined_type(
-            "max-%s" % size,
-            "MaxLength",
-            "computed::MaxLength::none()",
-            logical=logical,
-            logical_group="max-size",
-            allow_quirks=not logical,
-            spec=spec % size,
-            animation_value_type="MaxLength",
-            servo_restyle_damage="reflow",
-        )}
-    % else:
-        // servo versions (no keyword support)
-        ${helpers.predefined_type(
-            size,
-            "LengthPercentageOrAuto",
-            "computed::LengthPercentageOrAuto::Auto",
-            "parse_non_negative",
-            spec=spec % size,
-            logical_group="size",
-            allow_quirks=not logical,
-            animation_value_type="ComputedValue", logical = logical,
-            servo_restyle_damage="reflow",
-        )}
-        ${helpers.predefined_type(
-            "min-%s" % size,
-            "LengthPercentage",
-            "computed::LengthPercentage::zero()",
-            "parse_non_negative",
-            spec=spec % ("min-%s" % size),
-            logical_group="min-size",
-            animation_value_type="ComputedValue",
-            logical=logical,
-            allow_quirks=not logical,
-            servo_restyle_damage="reflow",
-        )}
-        ${helpers.predefined_type(
-            "max-%s" % size,
-            "LengthPercentageOrNone",
-            "computed::LengthPercentageOrNone::None",
-            "parse_non_negative",
-            spec=spec % ("max-%s" % size),
-            logical_group="max-size",
-            animation_value_type="ComputedValue",
-            logical=logical,
-            allow_quirks=not logical,
-            servo_restyle_damage="reflow",
-        )}
-    % endif
+    // width, height, block-size, inline-size
+    ${helpers.predefined_type(
+        size,
+        "Size",
+        "computed::Size::auto()",
+        logical=logical,
+        logical_group="size",
+        allow_quirks=not logical,
+        spec=spec % size,
+        animation_value_type="Size",
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        servo_restyle_damage="reflow",
+    )}
+    // min-width, min-height, min-block-size, min-inline-size
+    ${helpers.predefined_type(
+        "min-%s" % size,
+        "Size",
+        "computed::Size::auto()",
+        logical=logical,
+        logical_group="min-size",
+        allow_quirks=not logical,
+        spec=spec % size,
+        animation_value_type="Size",
+        servo_restyle_damage="reflow",
+    )}
+    ${helpers.predefined_type(
+        "max-%s" % size,
+        "MaxSize",
+        "computed::MaxSize::none()",
+        logical=logical,
+        logical_group="max-size",
+        allow_quirks=not logical,
+        spec=spec % size,
+        animation_value_type="MaxSize",
+        servo_restyle_damage="reflow",
+    )}
 % endfor
 
 ${helpers.single_keyword(
@@ -409,7 +372,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "column-gap",
     "length::NonNegativeLengthPercentageOrNormal",
-    "Either::Second(Normal)",
+    "computed::length::NonNegativeLengthPercentageOrNormal::normal()",
     alias="grid-column-gap" if product == "gecko" else "",
     extra_prefixes="moz",
     servo_pref="layout.columns.enabled",
@@ -422,7 +385,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "row-gap",
     "length::NonNegativeLengthPercentageOrNormal",
-    "Either::Second(Normal)",
+    "computed::length::NonNegativeLengthPercentageOrNormal::normal()",
     alias="grid-row-gap",
     products="gecko",
     spec="https://drafts.csswg.org/css-align-3/#propdef-row-gap",

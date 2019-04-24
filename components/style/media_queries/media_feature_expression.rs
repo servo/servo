@@ -17,19 +17,17 @@ use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "servo")]
 use crate::servo::media_queries::MEDIA_FEATURES;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
-use crate::stylesheets::Origin;
 use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::{Integer, Length, Number, Resolution};
 use crate::values::{serialize_atom_identifier, CSSFloat};
-use crate::Atom;
+use crate::{Atom, Zero};
 use cssparser::{Parser, Token};
-use num_traits::Zero;
 use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// An aspect ratio, with a numerator and denominator.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub struct AspectRatio(pub u32, pub u32);
 
 impl ToCss for AspectRatio {
@@ -53,7 +51,7 @@ impl PartialOrd for AspectRatio {
 }
 
 /// The kind of matching that should be performed on a media feature value.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub enum Range {
     /// At least the specified value.
     Min,
@@ -62,7 +60,7 @@ pub enum Range {
 }
 
 /// The operator that was specified in this media feature.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub enum Operator {
     /// =
     Equal,
@@ -95,7 +93,7 @@ impl ToCss for Operator {
 ///
 /// Ranged media features are not allowed with operations (that'd make no
 /// sense).
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub enum RangeOrOperator {
     /// A `Range`.
     Range(Range),
@@ -153,7 +151,7 @@ impl RangeOrOperator {
 
 /// A feature expression contains a reference to the media feature, the value
 /// the media query contained, and the range to evaluate.
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf, ToShmem)]
 pub struct MediaFeatureExpression {
     feature_index: usize,
     value: Option<MediaExpressionValue>,
@@ -291,7 +289,7 @@ impl MediaFeatureExpression {
 
             let mut requirements = ParsingRequirements::empty();
 
-            if context.chrome_rules_enabled() || context.stylesheet_origin == Origin::UserAgent {
+            if context.in_ua_or_chrome_sheet() {
                 requirements.insert(ParsingRequirements::CHROME_AND_UA_ONLY);
             }
 
@@ -469,7 +467,7 @@ impl MediaFeatureExpression {
 /// If the first, this would need to store the relevant values.
 ///
 /// See: https://github.com/w3c/csswg-drafts/issues/1968
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum MediaExpressionValue {
     /// A length.
     Length(Length),

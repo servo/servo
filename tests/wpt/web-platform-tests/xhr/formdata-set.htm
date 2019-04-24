@@ -80,6 +80,14 @@
         assert_equals(fd.get('key'), "value1");
     }, 'testFormDataSetToFormNull2');
     test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws(new TypeError(), () => {fd.set('name', "string", 'filename')});
+    }, 'testFormDataSetToFormString');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws(new TypeError(), () => {fd.set('name', new URLSearchParams(), 'filename')});
+    }, 'testFormDataSetToFormWrongPlatformObject');
+    test(function() {
         var fd = new FormData();
         fd.set('key', new Blob([]), 'blank.txt');
         var file = fd.get('key');

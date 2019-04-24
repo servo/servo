@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+// These tests verify that detected{Face, Barcode}'s boundingBox
+// should be DOMRectReadOnly.
+const imageDataTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        mockTestName: "FaceDetectionTest",
+        name: "Face - detectedFace.boundingBox should be DOMRectReadOnly"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        mockTestName: "BarcodeDetectionTest",
+        name: "Barcode - detectedBarcode.boundingBox should be DOMRectReadOnly"
+      }
+    ];
+
+for (let imageDataTest of imageDataTests) {
+  detection_test(imageDataTest.mockTestName, async t => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = "/images/green-16x16.png";
+    await imgWatcher.wait_for("load");
+
+    const canvas = document.createElement("canvas");
+    canvas.getContext("2d").drawImage(img, 0, 0);
+
+    const detector = imageDataTest.createDetector();
+    const detectionResult = await detector.detect(canvas.getContext("2d")
+        .getImageData(0, 0, canvas.width, canvas.height));
+    CheckDetectedReadOnlyBoundingBoxes(detectionResult);
+  }, imageDataTest.name);
+}
+
+function CheckDetectedReadOnlyBoundingBoxes(detectedObjects) {
+  const properties =
+      ['x', 'y', 'width', 'height', 'top', 'right', 'bottom', 'left'];
+
+  detectedObjects.forEach(detectedObject => {
+    properties.forEach(property => {
+      assert_readonly(detectedObject.boundingBox, property);
+    });
+  });
+}
+
+</script>

@@ -1,0 +1,23 @@
+
+<!doctype html>
+<title>Testing font-style angle's unit type consideration</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-style-prop" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body {
+    font-style: oblique 0.785398165rad;
+}
+
+</style>
+<script>
+var test_description = "font-style angle's unit type must be considered";
+promise_test(
+    t => {
+        return new Promise(test => addEventListener('load', () => test()))
+        .then(test => assert_equals(getComputedStyle(document.querySelector("body"))['font-style'], "oblique 45deg", "Invalid gCS($(\"body\"))['font-style'];"))
+    },
+    test_description
+);
+</script>

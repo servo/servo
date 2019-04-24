@@ -1,4 +1,5 @@
 <!doctype html>
+<meta name="timeout" content="long"/>
 <meta charset=utf-8>
 <title>RTCPeerConnection-transceivers.https.html</title>
 <script src="/resources/testharness.js"></script>
@@ -138,9 +139,13 @@ promise_test(async t => {
   const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
   assert_true(trackEvent.track instanceof MediaStreamTrack,
               'trackEvent.track instanceof MediaStreamTrack');
-  assert_equals(trackEvent.track.id, track.id,
-                'trackEvent.track.id == track.id');
-}, 'setRemoteDescription(offer): ontrack\'s track.id is the same as track.id');
+  assert_equals(trackEvent.streams.length, 1,
+                'trackEvent contains a single stream');
+  assert_true(trackEvent.streams[0] instanceof MediaStream,
+              'trackEvent has a MediaStream');
+  assert_equals(trackEvent.streams[0].id, stream.id,
+                'trackEvent.streams[0].id == stream.id');
+}, 'setRemoteDescription(offer): ontrack\'s stream.id is the same as stream.id');
 
 promise_test(async t => {
   const pc1 = createPeerConnectionWithCleanup(t);
@@ -205,10 +210,10 @@ promise_test(async t => {
   const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
   const transceiver = trackEvent.transceiver;
   assert_equals(transceiver.currentDirection, null,
-                'SRD(offer): transciever.currentDirection is null');
+                'SRD(offer): transceiver.currentDirection is null');
   await pc2.setLocalDescription(await pc2.createAnswer());
   assert_equals(transceiver.currentDirection, 'recvonly',
-                'SLD(answer): transciever.currentDirection is recvonly');
+                'SLD(answer): transceiver.currentDirection is recvonly');
 }, 'setLocalDescription(answer): transceiver.currentDirection is recvonly');
 
 promise_test(async t => {
@@ -218,10 +223,10 @@ promise_test(async t => {
   const pc2 = createPeerConnectionWithCleanup(t);
   await exchangeOffer(pc1, pc2);
   assert_equals(transceiver.currentDirection, null,
-                'SLD(offer): transciever.currentDirection is null');
+                'SLD(offer): transceiver.currentDirection is null');
   await exchangeAnswer(pc1, pc2);
   assert_equals(transceiver.currentDirection, 'sendonly',
-                'SRD(answer): transciever.currentDirection is sendonly');
+                'SRD(answer): transceiver.currentDirection is sendonly');
 }, 'setLocalDescription(answer): transceiver.currentDirection is sendonly');
 
 promise_test(async t => {
@@ -463,5 +468,36 @@ promise_test(async t => {
   localTransceiver.direction = 'sendrecv';
   await exchangeOfferAndListenToOntrack(t, pc1, pc2);
 }, 'Changing transceiver direction to \'sendrecv\' makes ontrack fire');
+
+// Regression test coverage for https://crbug.com/950280.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const pc2Promise = pc2.createOffer()
+    .then((offer) => { return pc1.setRemoteDescription(offer); })
+    .then(() => { return pc1.createAnswer(); })
+    .then((answer) => { return pc1.setLocalDescription(answer); });
+  const pc1Promise = pc1.createOffer({ offerToReceiveAudio: true})
+    .then(() => { pc1.addTrack(pc1.getReceivers()[0].track); });
+  await Promise.all([pc1Promise, pc2Promise]);
+  assert_equals(pc1.getSenders()[0].track, pc1.getReceivers()[0].track);
+}, 'transceiver.sender.track does not revert to an old state');
+
+// Regression test coverage for https://crbug.com/950280.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const pc2Promise = pc2.createOffer()
+    .then((offer) => { return pc1.setRemoteDescription(offer); })
+    .then(() => { return pc1.createAnswer(); });
+  const pc1Promise = pc1.createOffer({ offerToReceiveAudio: true})
+    .then(() => { pc1.getTransceivers()[0].direction = 'inactive'; });
+  await Promise.all([pc1Promise, pc2Promise]);
+  assert_equals(pc1.getTransceivers()[0].direction, 'inactive');
+}, 'transceiver.direction does not revert to an old state');
 
 </script>

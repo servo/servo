@@ -90,7 +90,7 @@ test(() => {
   const table = new WebAssembly.Table(argument);
   assert_equal_to_array(table, nulls(5), "before");
 
-  const result = table.grow(3, {});
+  const result = table.grow(3, null, {});
   assert_equals(result, 5);
   assert_equal_to_array(table, nulls(8), "after");
 }, "Stray argument");

@@ -160,6 +160,8 @@ pub enum EmbedderMsg {
     HideIME,
     /// Servo has shut down
     Shutdown,
+    /// Report a complete sampled profile
+    ReportProfile(Vec<u8>),
 }
 
 impl Debug for EmbedderMsg {
@@ -189,6 +191,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
             EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
             EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
+            EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
         }
     }
 }

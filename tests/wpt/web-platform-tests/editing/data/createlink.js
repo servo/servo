@@ -239,5 +239,10 @@ var browserTests = [
     [["createlink",""]],
     "foo[bar]baz",
     [false],
-    {"createlink":[false,false,"",false,false,""]}]
+    {"createlink":[false,false,"",false,false,""]}],
+["foo[bar]baz",
+    [["createlink","http://www.google.com/\u65E5\u672C\u8A9E\u30D1\u30B9"]],
+    "foo<a href=\"http://www.google.com/\u65E5\u672C\u8A9E\u30D1\u30B9\">[bar]</a>baz",
+    [true],
+    {"createlink":[false,false,"",false,false,""]}],
 ]

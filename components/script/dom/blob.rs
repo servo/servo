@@ -238,23 +238,17 @@ impl Blob {
             bytes: bytes.to_vec(),
         };
 
-        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let msg = FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, tx, origin.clone());
+        let id = Uuid::new_v4();
+        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
         self.send_to_file_manager(msg);
 
-        match rx.recv().unwrap() {
-            Ok(id) => {
-                *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
-                    id: id.clone(),
-                    name: None,
-                    cache: DomRefCell::new(Some(bytes.to_vec())),
-                    size: bytes.len() as u64,
-                });
-                id
-            },
-            // Dummy id
-            Err(_) => Uuid::new_v4(),
-        }
+        *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
+            id: id.clone(),
+            name: None,
+            cache: DomRefCell::new(Some(bytes.to_vec())),
+            size: bytes.len() as u64,
+        });
+        id
     }
 
     /// Get a FileID representing sliced parent-blob content

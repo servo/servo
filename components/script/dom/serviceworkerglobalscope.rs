@@ -29,12 +29,13 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
-use net_traits::request::{CredentialsMode, Destination, RequestInit};
+use msg::constellation_msg::PipelineId;
+use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
 use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
 use script_traits::{
     ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::thread;
@@ -61,8 +62,14 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
                 Some(&task_source)
             },
-            _ => return None,
+            _ => None,
         }
+    }
+
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        // Workers always return None, since the pipeline_id is only used to check for document activity,
+        // and this check does not apply to worker event-loops.
+        None
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {
@@ -83,6 +90,11 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
         let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg))
+    }
+
+    fn inactive_msg() -> Self {
+        // Inactive is only relevant in the context of a browsing-context event-loop.
+        panic!("Workers should never receive messages marked as inactive");
     }
 
     fn wake_up_msg() -> Self {
@@ -269,17 +281,14 @@ impl ServiceWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let request = RequestInit {
-                    url: script_url.clone(),
-                    destination: Destination::ServiceWorker,
-                    credentials_mode: CredentialsMode::Include,
-                    use_url_credentials: true,
-                    pipeline_id: pipeline_id,
-                    referrer_url: referrer_url,
-                    referrer_policy: referrer_policy,
-                    origin,
-                    ..RequestInit::default()
-                };
+                let request = RequestBuilder::new(script_url.clone())
+                    .destination(Destination::ServiceWorker)
+                    .credentials_mode(CredentialsMode::Include)
+                    .use_url_credentials(true)
+                    .pipeline_id(pipeline_id)
+                    .referrer_url(referrer_url)
+                    .referrer_policy(referrer_policy)
+                    .origin(origin);
 
                 let (url, source) =
                     match load_whole_resource(request, &init.resource_threads.sender()) {
@@ -324,10 +333,7 @@ impl ServiceWorkerGlobalScope {
                 thread::Builder::new()
                     .name("SWTimeoutThread".to_owned())
                     .spawn(move || {
-                        let sw_lifetime_timeout = PREFS
-                            .get("dom.serviceworker.timeout_seconds")
-                            .as_u64()
-                            .unwrap();
+                        let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
                         thread::sleep(Duration::new(sw_lifetime_timeout, 0));
                         let _ = timer_chan.send(());
                     })

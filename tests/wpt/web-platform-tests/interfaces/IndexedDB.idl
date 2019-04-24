@@ -171,6 +171,7 @@ interface IDBCursor {
   readonly attribute IDBCursorDirection direction;
   readonly attribute any key;
   readonly attribute any primaryKey;
+  readonly attribute IDBRequest request;
 
   void advance([EnforceRange] unsigned long count);
   void continue(optional any key);

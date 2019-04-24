@@ -82,6 +82,30 @@
     assert_false(TrustedTypes.isURL(url3));
   }, 'TrustedTypePolicyFactory.isURL requires the object to be created via policy.');
 
+  // Test non-object parameters.
+  test(t => {
+    assert_false(TrustedTypes.isHTML(null));
+    assert_false(TrustedTypes.isHTML(123));
+    assert_false(TrustedTypes.isHTML(0.5));
+    assert_false(TrustedTypes.isHTML('test'));
+    assert_false(TrustedTypes.isHTML({}));
+    assert_false(TrustedTypes.isScript(null));
+    assert_false(TrustedTypes.isScript(123));
+    assert_false(TrustedTypes.isScript(0.5));
+    assert_false(TrustedTypes.isScript('test'));
+    assert_false(TrustedTypes.isScript({}));
+    assert_false(TrustedTypes.isURL(null));
+    assert_false(TrustedTypes.isURL(123));
+    assert_false(TrustedTypes.isURL(0.5));
+    assert_false(TrustedTypes.isURL('test'));
+    assert_false(TrustedTypes.isURL({}));
+    assert_false(TrustedTypes.isScriptURL(null));
+    assert_false(TrustedTypes.isScriptURL(123));
+    assert_false(TrustedTypes.isScriptURL(0.5));
+    assert_false(TrustedTypes.isScriptURL('test'));
+    assert_false(TrustedTypes.isScriptURL({}));
+  }, 'TrustedTypePolicyFactory.isXXX should accept anything without throwing.');
+
   // Redefinition tests, assign to property.
   // (Assignments will through in the polyfill (because the objects are frozen)
   //  but will be silently dropped in the native implementation (because that's

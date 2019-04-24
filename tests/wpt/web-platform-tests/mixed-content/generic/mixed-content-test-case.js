@@ -3,6 +3,39 @@
  * @author burnik@google.com (Kristijan Burnik)
  */
 
+// TODO: This function is currently placed and duplicated at:
+// - mixed-content/generic/mixed-content-test-case.js
+// - referrer-policy/generic/referrer-policy-test-case.js
+// but should be moved to /common/security-features/resources/common.js.
+function getSubresourceOrigin(originType) {
+  const httpProtocol = "http";
+  const httpsProtocol = "https";
+  const wsProtocol = "ws";
+  const wssProtocol = "wss";
+
+  const sameOriginHost = "{{host}}";
+  const crossOriginHost = "{{domains[www1]}}";
+
+  // These values can evaluate to either empty strings or a ":port" string.
+  const httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
+  const httpsPort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
+  const wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
+  const wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
+
+  const originMap = {
+    "same-https": httpsProtocol + "://" + sameOriginHost + httpsPort,
+    "same-http": httpProtocol + "://" + sameOriginHost + httpPort,
+    "cross-https": httpsProtocol + "://" + crossOriginHost + httpsPort,
+    "cross-http": httpProtocol + "://" + crossOriginHost + httpPort,
+    "same-wss": wssProtocol + "://" + sameOriginHost + wssPort,
+    "same-ws": wsProtocol + "://" + sameOriginHost + wsPort,
+    "cross-wss": wssProtocol + "://" + crossOriginHost + wssPort,
+    "cross-ws": wsProtocol + "://" + crossOriginHost + wsPort,
+  };
+
+  return originMap[originType];
+}
+
 /**
  * MixedContentTestCase exercises all the tests for checking browser behavior
  * when resources regarded as mixed-content are requested. A single run covers
@@ -16,156 +49,43 @@
  * @return {object} Object wrapping the start method used to run the test.
  */
 function MixedContentTestCase(scenario, description, sanityChecker) {
-  var httpProtocol = "http";
-  var httpsProtocol = "https";
-  var wsProtocol = "ws";
-  var wssProtocol = "wss";
-
-  var sameOriginHost = location.hostname;
-  var crossOriginHost = "{{domains[www1]}}";
-
-  // These values can evaluate to either empty strings or a ":port" string.
-  var httpPort = getNormalizedPort(parseInt("{{ports[http][0]}}", 10));
-  var httpsPort = getNormalizedPort(parseInt("{{ports[https][0]}}", 10));
-  var wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
-  var wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
-
-  var resourcePath = "/mixed-content/generic/expect.py";
-  var wsResourcePath = "/stash_responder";
-
-  // Map all endpoints to scenario for use in the test.
-  var endpoint = {
-    "same-origin":
-      location.origin + resourcePath,
-    "same-host-https":
-      httpsProtocol + "://" + sameOriginHost + httpsPort + resourcePath,
-    "same-host-http":
-      httpProtocol + "://" + sameOriginHost + httpPort + resourcePath,
-    "cross-origin-https":
-      httpsProtocol + "://" + crossOriginHost + httpsPort + resourcePath,
-    "cross-origin-http":
-      httpProtocol + "://" + crossOriginHost + httpPort + resourcePath,
-    "same-host-wss":
-      wssProtocol + "://" + sameOriginHost + wssPort + wsResourcePath,
-    "same-host-ws":
-      wsProtocol + "://" + sameOriginHost + wsPort + wsResourcePath,
-    "cross-origin-wss":
-      wssProtocol + "://" + crossOriginHost + wssPort + wsResourcePath,
-    "cross-origin-ws":
-      wsProtocol + "://" + crossOriginHost + wsPort + wsResourcePath
+  sanityChecker.checkScenario(scenario, subresourceMap);
+  const originTypeConversion = {
+    "same-host-https": "same-https",
+    "same-host-http": "same-http",
+    "cross-origin-https": "cross-https",
+    "cross-origin-http": "cross-http",
+    "same-host-wss": "same-wss",
+    "same-host-ws": "same-ws",
+    "cross-origin-wss": "cross-wss",
+    "cross-origin-ws": "cross-ws",
   };
-
-  // Mapping all the resource requesting methods to the scenario.
-  var resourceMap = {
-    "a-tag": requestViaAnchor,
-    "area-tag": requestViaArea,
-    "beacon-request": requestViaSendBeacon,
-    "fetch-request": requestViaFetch,
-    "form-tag": requestViaForm,
-    "iframe-tag": requestViaIframe,
-    "img-tag":  requestViaImage,
-    "script-tag": requestViaScript,
-    "worker-request":
-        url => requestViaDedicatedWorker(url),
-    "module-worker-top-level":
-        url => requestViaDedicatedWorker(url, {type: "module"}),
-    "module-data-worker-import":
-        url => requestViaDedicatedWorker(workerUrlThatImports(url), {type: "module"}),
-    "classic-data-worker-fetch":
-        url => requestViaDedicatedWorker(dedicatedWorkerUrlThatFetches(url), {}),
-    "xhr-request": requestViaXhr,
-    "audio-tag": requestViaAudio,
-    "video-tag": requestViaVideo,
-    "picture-tag": requestViaPicture,
-    "object-tag": requestViaObject,
-    "link-css-tag": requestViaLinkStylesheet,
-    "link-prefetch-tag": requestViaLinkPrefetch,
-    "websocket-request": requestViaWebSocket
+  const urls = getRequestURLs(scenario.subresource,
+                              originTypeConversion[scenario.origin],
+                              scenario.redirection);
+  const invoker = subresourceMap[scenario.subresource].invoker;
+  const checkResult = _ => {
+    // Send request to check if the key has been torn down.
+    return xhrRequest(urls.assertUrl)
+      .then(assertResult => {
+          // Now check if the value has been torn down. If it's still there,
+          // we have blocked the request to mixed-content.
+          assert_equals(assertResult.status, scenario.expectation,
+            "The resource request should be '" + scenario.expectation + "'.");
+        });
   };
-
-  // Mapping all expected MIME types to the scenario.
-  var contentType = {
-    "a-tag": "text/html",
-    "area-tag": "text/html",
-    "beacon-request": "text/plain",
-    "fetch-request": "application/json",
-    "form-tag": "text/html",
-    "iframe-tag": "text/html",
-    "img-tag":  "image/png",
-    "script-tag": "text/javascript",
-
-    "worker-request": "application/javascript",
-    "module-worker-top-level": "application/javascript",
-    "module-data-worker-import": "application/javascript",
-    "classic-data-worker-fetch": "application/javascript",
-
-    "xhr-request": "application/json",
-    "audio-tag": "audio/wav",
-    "video-tag": "video/ogg",
-    "picture-tag": "image/png",
-    "object-tag": "text/html",
-    "link-css-tag": "text/css",
-    "link-prefetch-tag": "text/html",
-    "websocket-request": "application/json"
-  };
-
-  for (const workletType of ['animation', 'audio', 'layout', 'paint']) {
-    resourceMap[`worklet-${workletType}-top-level`] =
-      url => requestViaWorklet(workletType, url);
-    contentType[`worklet-${workletType}-top-level`] =
-      "application/javascript";
-
-    resourceMap[`worklet-${workletType}-data-import`] =
-      url => requestViaWorklet(workletType, workerUrlThatImports(url));
-    contentType[`worklet-${workletType}-data-import`] =
-      "application/javascript";
-  }
-
-  sanityChecker.checkScenario(scenario, resourceMap);
-
-  var mixed_content_test = async_test(description);
 
   function runTest() {
-    sanityChecker.setFailTimeout(mixed_content_test);
-
-    var key = guid();
-    var value = guid();
-    // We use the same path for both HTTP/S and WS/S stash requests.
-    var stash_path = encodeURIComponent("/mixed-content");
-    var announceResourceRequestUrl = endpoint['same-origin'] +
-                                     "?action=put&key=" + key +
-                                     "&value=" + value +
-                                     "&path=" + stash_path;
-    var assertResourceRequestUrl = endpoint['same-origin'] +
-                                  "?action=take&key=" + key +
-                                  "&path=" + stash_path;
-    var resourceRequestUrl = endpoint[scenario.origin] + "?redirection=" +
-                             scenario.redirection + "&action=purge&key=" + key +
-                             "&path=" + stash_path + "&content_type=" +
-                             contentType[scenario.subresource];
-
-    xhrRequest(announceResourceRequestUrl)
-      .then(mixed_content_test.step_func(_ => {
+    promise_test(() => {
+      return xhrRequest(urls.announceUrl)
         // Send out the real resource request.
         // This should tear down the key if it's not blocked.
-        return resourceMap[scenario.subresource](resourceRequestUrl);
-      }))
-      .then(mixed_content_test.step_func(_ => {
-        // Send request to check if the key has been torn down.
-        return xhrRequest(assertResourceRequestUrl);
-      }))
-      .catch(mixed_content_test.step_func(e => {
-        // When requestResource fails, we also check the key state.
-        return xhrRequest(assertResourceRequestUrl);
-      }))
-      .then(mixed_content_test.step_func_done(response => {
-         // Now check if the value has been torn down. If it's still there,
-         // we have blocked the request to mixed-content.
-         assert_equals(response.status, scenario.expectation,
-           "The resource request should be '" + scenario.expectation + "'.");
-      }));
-
+        .then(_ => invoker(urls.testUrl))
+        // We check the key state, regardless of whether the main request
+        // succeeded or failed.
+        .then(checkResult, checkResult);
+      }, description);
   }  // runTest
 
-  return {start: mixed_content_test.step_func(runTest) };
+  return {start: runTest};
 }  // MixedContentTestCase

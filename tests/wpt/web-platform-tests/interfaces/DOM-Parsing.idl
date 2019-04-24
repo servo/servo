@@ -18,12 +18,18 @@ enum SupportedType {
 
 [Constructor, Exposed=Window]
 
-  interface XMLSerializer {
+interface XMLSerializer {
   DOMString serializeToString(Node root);
 };
 
-partial interface Element {
+interface mixin InnerHTML {
   [CEReactions, TreatNullAs=EmptyString] attribute DOMString innerHTML;
+};
+
+Element includes InnerHTML;
+ShadowRoot includes InnerHTML;
+
+partial interface Element {
   [CEReactions, TreatNullAs=EmptyString] attribute DOMString outerHTML;
   [CEReactions] void insertAdjacentHTML(DOMString position, DOMString text);
 };

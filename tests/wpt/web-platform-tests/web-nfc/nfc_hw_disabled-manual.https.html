@@ -11,7 +11,7 @@
 <h2>Precondition</h2>
 <ol>
   <li>
-    Disable the NFC Module.
+    Disable the NFC module or run test on a device without NFC module.
   </li>
 </ol>
 
@@ -21,12 +21,17 @@
 
 "use strict";
 
-promise_test(t => {
- return promise_rejects(t, 'NotSupportedError', navigator.nfc.watch(noop));
-}, "Test that nfc.watch fails if NFC HW is disabled.");
+promise_test(async t => {
+  const reader = new NFCReader();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  reader.start();
+  const event = await readerWatcher.wait_for("error");
+  assert_equals(event.error.name, 'NotReadableError');
+}, "NFCReader.start should fail if NFC HW is disabled.");
 
 promise_test(t => {
-  return promise_rejects(t, 'NotSupportedError', navigator.nfc.push(test_text_data));
-}, "nfc.push should fail when NFC HW is disabled.");
+  const writer = new NFCWriter();
+  return promise_rejects(t, 'NotReadableError', writer.push(test_text_data));
+}, "NFCWriter.push should fail when NFC HW is disabled.");
 
 </script>

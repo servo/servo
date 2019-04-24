@@ -9,9 +9,10 @@
 <meta name="assert" content="A single leading white-space should account as soft breaking opportunity, honoring the 'white-space: break-spaces', on top to the ones provided by 'word-break: break-all'.">
 <style>
 div {
-   position: relative;
-   font-size: 20px;
-   font-family: Ahem;
+  position: relative;
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
 }
 .red {
   position: absolute;
@@ -20,11 +21,10 @@ div {
   width: 100px;
   height: 100px;
   z-index: -1;
+  white-space: pre;
 }
 .test {
   color: green;
-  background: green;
-  line-height: 1em;
   width: 1ch;
   white-space: break-spaces;
   word-break: break-all;
@@ -32,6 +32,6 @@ div {
 </style>
 <body>
   <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
-  <div class="red">X<br>X<br>X</div>
+  <div class="red"> <br>X<br>X</div>
   <div class="test"> XX</div>
 </body>

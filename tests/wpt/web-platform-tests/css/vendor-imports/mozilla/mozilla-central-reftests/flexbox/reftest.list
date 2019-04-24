@@ -146,12 +146,15 @@
 == flexbox-intrinsic-ratio-005v.html flexbox-intrinsic-ratio-005-ref.html
 == flexbox-intrinsic-ratio-006.html flexbox-intrinsic-ratio-006-ref.html
 == flexbox-intrinsic-ratio-006v.html flexbox-intrinsic-ratio-006-ref.html
+== flexbox-intrinsic-ratio-007.html flexbox-intrinsic-ratio-007-ref.html
+== flexbox-intrinsic-ratio-007v.html flexbox-intrinsic-ratio-007-ref.html
 
 # Test for definite and indefinite sizes.
 == flexbox-definite-sizes-001.html flexbox-definite-sizes-001-ref.html
 == flexbox-definite-sizes-002.html flexbox-definite-sizes-001-ref.html
 == flexbox-definite-sizes-003.html flexbox-definite-sizes-001-ref.html
 == flexbox-definite-sizes-004.html flexbox-definite-sizes-001-ref.html
+== flexbox-definite-sizes-005.html flexbox-definite-sizes-005-ref.html
 
 # Tests for flex items as (pseudo) stacking contexts
 == flexbox-items-as-stacking-contexts-001.xhtml flexbox-items-as-stacking-contexts-001-ref.xhtml

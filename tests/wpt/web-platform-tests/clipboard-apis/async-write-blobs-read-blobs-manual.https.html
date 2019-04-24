@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard write blobs -> read blobs tests
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async function loadBlob(fileName) {
+  const fetched = await fetch(fileName);
+  return await fetched.blob();
+}
+
+promise_test(async t => {
+  const blobText = new Blob(['test text'], {type: 'text/plain'});
+  const blobImage = await loadBlob('resources/greenbox.png');
+
+  assert_equals(blobText.type, 'text/plain');
+  assert_equals(blobImage.type, 'image/png');
+
+  const clipboardItemInput = new ClipboardItem(
+        {'text/plain' : blobText, 'image/png' : blobImage});
+
+  await navigator.clipboard.write([clipboardItemInput]);
+  const clipboardItems = await navigator.clipboard.read();
+
+  assert_equals(clipboardItems.length, 1);
+  const clipboardItem = clipboardItems[0];
+  assert_true(clipboardItem instanceof ClipboardItem);
+
+  assert_equals(clipboardItem.types.length, 2);
+  const blobTextOutput = await clipboardItem.getType('text/plain');
+  const blobImageOutput = await clipboardItem.getType('image/png');
+  assert_equals(blobTextOutput.type, 'text/plain');
+  assert_equals(blobImageOutput.type, 'image/png');
+}, 'Verify write and read clipboard (multiple types)');
+</script>
+<p>
+  Note: This is a manual test because it writes/reads to the shared system
+  clipboard and thus cannot be run async with other tests that might interact
+  with the clipboard.
+</p>

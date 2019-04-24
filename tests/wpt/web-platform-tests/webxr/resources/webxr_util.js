@@ -53,7 +53,10 @@ function xr_session_promise_test(
                               testSession = session;
                               // Session must have a baseLayer or frame requests
                               // will be ignored.
-                              session.baseLayer = new XRWebGLLayer(session, gl);
+                              session.updateRenderState({
+                                  baseLayer: new XRWebGLLayer(session, gl),
+                                  outputContext: getOutputContext()
+                              });
                               resolve(func(session, testDeviceController, t));
                             })
                             .catch((err) => {

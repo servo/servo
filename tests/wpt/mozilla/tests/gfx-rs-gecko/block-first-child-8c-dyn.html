@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="match" href="block-first-child-8-ref.html">
+<html class="reftest-wait">
+<head>
+<style type="text/css">
+#separator {
+ height: 40px;
+ background-color: green;
+}
+#first-child {
+ display: none;
+ height: 40px;
+ margin-top: -20px;
+ background-color: blue;
+}
+#parent {
+ margin-top: -20px;
+}
+</style>
+<script type="text/javascript">
+function test() {
+ document.getElementById('first-child').style.display = 'block';
+ document.documentElement.removeAttribute('class');
+}
+document.addEventListener('DOMContentLoaded', test);
+</script>
+</head>
+<body>
+<div id="separator"></div>
+<div id="parent">
+ <div id="first-child"></div>
+</div>
+</body>
+</html>

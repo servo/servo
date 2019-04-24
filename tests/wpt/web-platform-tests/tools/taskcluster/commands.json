@@ -1,0 +1,4 @@
+{
+    "tc-verify": {"path": "verify.py", "script": "run", "parser": "create_parser", "help": "Verify .taskcluster.yml file is parsable",
+                  "virtualenv": true, "install": ["json-e", "pyyaml"]}
+}

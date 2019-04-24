@@ -374,9 +374,9 @@ def test_ssl_env_openssl():
 
 
 def test_ssl_env_bogus():
-        with pytest.raises(ValueError):
-            with config.ConfigBuilder(ssl={"type": "foobar"}):
-                pass
+    with pytest.raises(ValueError):
+        with config.ConfigBuilder(ssl={"type": "foobar"}):
+            pass
 
 
 def test_pickle():

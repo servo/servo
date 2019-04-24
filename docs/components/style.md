@@ -1,22 +1,21 @@
 # Servo's style system overview
 
-This needs to be filled more extensively. Meanwhile, you can also take a look to
+This needs to be filled more extensively. Meanwhile, you can also take a look at
 the [style doc comments][style-doc], or the [Styling
-Overview][wiki-styling-overview] in the wiki, which is a conversation between
+Overview][wiki-styling-overview] in the wiki, a conversation between
 Boris Zbarsky and Patrick Walton about how style sharing works.
 
 <a name="selector-impl"></a>
 ## Selector Implementation
 
-The style system is generic over quite a few things, in order to be shareable
-with Servo's layout system, and with [Stylo][stylo], an ambitious project that
-aims to integrate Servo's style system into Gecko.
+In order to be sharable and compatible with [Stylo][stylo](a project that aims 
+to integrate Servo's style system into Gecko), the style must be consistent.
 
-The main generic trait is [selectors' SelectorImpl][selector-impl], that has all
-the logic related to parsing pseudo-elements and other pseudo-classes appart
-from [tree-structural ones][tree-structural-pseudo-classes].
+The consistency is implemented in [selectors' SelectorImpl][selector-impl], 
+containing the logic related to parsing pseudo-elements and other pseudo-classes 
+apart from [tree-structural ones][tree-structural-pseudo-classes].
 
-Servo [extends][selector-impl-ext] that trait in order to allow a few more
+Servo extends the selector implementation trait in order to allow a few more
 things to be shared between Stylo and Servo.
 
 The main Servo implementation (the one that is used in regular builds) is
@@ -31,34 +30,30 @@ traits involved.
 Style's [`dom` traits][style-dom-traits] (`TDocument`, `TElement`, `TNode`,
 `TRestyleDamage`) are the main "wall" between layout and style.
 
-Layout's [`wrapper`][layout-wrapper] module is the one that makes sure that
+Layout's [`wrapper`][layout-wrapper] module makes sure that
 layout traits have the required traits implemented.
 
 <a name="stylist"></a>
 ## The Stylist
 
-The [`stylist`][stylist] structure is the one that holds all the selectors and
+The [`stylist`][stylist] structure holds all the selectors and
 device characteristics for a given document.
 
-The stylesheets' CSS rules are converted into [`Rule`][selectors-rule]s, and
-introduced in a [`SelectorMap`][selectors-selectormap] depending on the
-pseudo-element (see [`PerPseudoElementSelectorMap`][per-pseudo-selectormap]),
+The stylesheets' CSS rules are converted into [`Rule`][selectors-rule]s.
+They are then introduced in a [`SelectorMap`][selectors-selectormap] depending
+on the pseudo-element (see [`PerPseudoElementSelectorMap`][per-pseudo-selectormap]),
 stylesheet origin (see [`PerOriginSelectorMap`][per-origin-selectormap]), and
 priority (see the `normal` and `important` fields in
 [`PerOriginSelectorMap`][per-origin-selectormap]).
 
 This structure is effectively created once per [pipeline][docs-pipeline], in the
-LayoutThread corresponding to that pipeline.
+corresponding LayoutThread.
 
 <a name="properties"></a>
 ## The `properties` module
 
-The [properties module][properties-module] is a mako template where all the
-properties, computed value computation and cascading logic resides.
-
-It's a complex template with a **lot** of code, but the main function it exposes
-is the [`cascade` function][properties-cascade-fn], which performs all the
-computation.
+The [properties module][properties-module] is a mako template. Its complexity is derived 
+from the code that stores properties, [`cascade` function][properties-cascade-fn] and computation logic of the returned value which is exposed in the main function.
 
 <a name="pseudo-elements"></a>
 ## Pseudo-Element resolution

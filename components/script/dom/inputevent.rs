@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEven
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, RootedReference};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
@@ -54,7 +54,7 @@ impl InputEvent {
             type_,
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
-            init.parent.view.r(),
+            init.parent.view.deref(),
             init.parent.detail,
             init.data.clone(),
             init.isComposing,

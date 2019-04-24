@@ -1,0 +1,27 @@
+<!doctype html>
+<script>
+  var searchParams = new URL(location).searchParams;
+  var test = searchParams.get("test");
+
+  window.onportalactivate = function(e) {
+    var portal = e.adoptPredecessor();
+    document.body.appendChild(portal);
+
+    if (test == "adopt-once") {
+      if (portal instanceof HTMLPortalElement) {
+        portal.postMessage("adopted", "*");
+      }
+    }
+    if (test == "adopt-twice") {
+      try {
+        e.adoptPredecessor();
+      } catch(e) {
+        portal.postMessage("passed", "*");
+      }
+    }
+  }
+
+  var bc = new BroadcastChannel(`portal-${test}`);
+  bc.postMessage("loaded");
+  bc.close();
+</script>

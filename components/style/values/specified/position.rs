@@ -17,6 +17,7 @@ use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::transform::OriginComponent;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
 use crate::values::{Either, None_};
+use crate::Zero;
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
@@ -34,7 +35,7 @@ pub type HorizontalPosition = PositionComponent<X>;
 pub type VerticalPosition = PositionComponent<Y>;
 
 /// The specified value of a component of a CSS `<position>`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub enum PositionComponent<S> {
     /// `center`
     Center,
@@ -57,6 +58,8 @@ pub enum PositionComponent<S> {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[allow(missing_docs)]
 pub enum X {
@@ -77,6 +80,8 @@ pub enum X {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[allow(missing_docs)]
 pub enum Y {
@@ -433,7 +438,17 @@ impl ToCss for LegacyPosition {
 }
 
 #[derive(
-    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 /// Auto-placement algorithm Option
 pub enum AutoFlow {
@@ -446,7 +461,17 @@ pub enum AutoFlow {
 }
 
 #[derive(
-    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 /// Controls how the auto-placement algorithm works
 /// specifying exactly how auto-placed items get flowed into the grid
@@ -546,8 +571,17 @@ impl From<GridAutoFlow> for u8 {
     }
 }
 
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
     /// `named area` containing for each template area
@@ -653,7 +687,17 @@ impl Parse for TemplateAreas {
 }
 
 /// Arc type for `Arc<TemplateAreas>`
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
 
 impl Parse for TemplateAreasArc {
@@ -667,8 +711,7 @@ impl Parse for TemplateAreasArc {
     }
 }
 
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
 /// Not associated with any particular grid item, but can
 /// be referenced from the grid-placement properties.
 pub struct NamedArea {
@@ -731,15 +774,3 @@ impl GridTemplateAreas {
 
 /// A specified value for the `z-index` property.
 pub type ZIndex = GenericZIndex<Integer>;
-
-impl Parse for ZIndex {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(GenericZIndex::Auto);
-        }
-        Ok(GenericZIndex::Integer(Integer::parse(context, input)?))
-    }
-}

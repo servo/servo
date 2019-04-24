@@ -37,6 +37,10 @@ use std::fmt::{self, Write};
 /// * if `#[css(skip_if = "function")]` is found on a field, the `ToCss` call
 ///   for that field is skipped if `function` returns true. This function is
 ///   provided the field as an argument;
+/// * if `#[css(contextual_skip_if = "function")]` is found on a field, the
+///   `ToCss` call for that field is skipped if `function` returns true. This
+///   function is given all the fields in the current struct or variant as an
+///   argument;
 /// * `#[css(represents_keyword)]` can be used on bool fields in order to
 ///   serialize the field name if the field is true, or nothing otherwise.  It
 ///   also collects those keywords for `SpecifiedValueInfo`.
@@ -437,7 +441,7 @@ macro_rules! define_css_keyword_enum {
     (pub enum $name:ident { $($variant:ident = $css:expr,)+ }) => {
         #[allow(missing_docs)]
         #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
         pub enum $name {
             $($variant),+
         }
@@ -493,7 +497,7 @@ pub mod specified {
 
     /// Whether to allow negative lengths or not.
     #[repr(u8)]
-    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd)]
+    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, ToShmem)]
     pub enum AllowedNumericType {
         /// Allow all kind of numeric values.
         All,

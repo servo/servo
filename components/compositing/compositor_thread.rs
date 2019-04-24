@@ -18,6 +18,7 @@ use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
 use webrender_api::{self, DeviceIntPoint, DeviceIntSize};
+use webvr_traits::WebVRMainThreadHeartbeat;
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
@@ -153,4 +154,5 @@ pub struct InitialCompositorState {
     pub webrender: webrender::Renderer,
     pub webrender_document: webrender_api::DocumentId,
     pub webrender_api: webrender_api::RenderApi,
+    pub webvr_heartbeats: Vec<Box<WebVRMainThreadHeartbeat>>,
 }

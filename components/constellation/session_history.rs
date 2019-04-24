@@ -37,6 +37,7 @@ impl JointSessionHistory {
     }
 
     pub fn push_diff(&mut self, diff: SessionHistoryDiff) -> Vec<SessionHistoryDiff> {
+        debug!("pushing a past entry; removing future");
         self.past.push(diff);
         mem::replace(&mut self.future, vec![])
     }
@@ -85,6 +86,7 @@ impl JointSessionHistory {
     }
 
     pub fn remove_entries_for_browsing_context(&mut self, context_id: BrowsingContextId) {
+        debug!("removing entries for context {}", context_id);
         self.past.retain(|diff| match diff {
             SessionHistoryDiff::BrowsingContextDiff {
                 browsing_context_id,

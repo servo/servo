@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use keyboard_types::{Code, Key, KeyboardEvent, KeyState, Modifiers, Location};
-use winit::{ElementState, KeyboardInput, ModifiersState, VirtualKeyCode};
+use glutin::{ElementState, KeyboardInput, ModifiersState, VirtualKeyCode};
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]
@@ -18,7 +18,7 @@ pub const CMD_OR_ALT: Modifiers = Modifiers::META;
 pub const CMD_OR_ALT: Modifiers = Modifiers::ALT;
 
 fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
-    use winit::VirtualKeyCode::*;
+    use glutin::VirtualKeyCode::*;
     // TODO: figure out how to map NavigateForward, NavigateBackward
     // TODO: map the remaining keys if possible
     let key = if let Some(key) = key {
@@ -127,7 +127,7 @@ fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
 }
 
 fn get_servo_location_from_winit_key(key: Option<VirtualKeyCode>) -> Location {
-    use winit::VirtualKeyCode::*;
+    use glutin::VirtualKeyCode::*;
     // TODO: add more numpad keys
     let key = if let Some(key) = key {
         key

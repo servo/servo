@@ -68,3 +68,15 @@ ${helpers.predefined_type(
     boxed=True,
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)",
 )}
+
+${helpers.predefined_type(
+    "-moz-list-reversed",
+    "MozListReversed",
+    "computed::MozListReversed::False",
+    animation_value_type="discrete",
+    products="gecko",
+    enabled_in="ua",
+    needs_context=False,
+    spec="Internal implementation detail for <ol reversed>",
+    servo_restyle_damage="rebuild_and_reflow",
+)}

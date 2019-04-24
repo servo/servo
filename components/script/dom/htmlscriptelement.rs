@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{
@@ -32,7 +32,9 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::request::{
+    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
+};
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
@@ -290,28 +292,25 @@ fn fetch_a_classic_script(
     let doc = document_from_node(script);
 
     // Step 1, 2.
-    let request = RequestInit {
-        url: url.clone(),
-        destination: Destination::Script,
+    let request = RequestBuilder::new(url.clone())
+        .destination(Destination::Script)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
-        mode: match cors_setting {
+        .mode(match cors_setting {
             Some(_) => RequestMode::CorsMode,
             None => RequestMode::NoCors,
-        },
+        })
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 3-4
-        credentials_mode: match cors_setting {
+        .credentials_mode(match cors_setting {
             Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
             _ => CredentialsMode::Include,
-        },
-        origin: doc.origin().immutable().clone(),
-        pipeline_id: Some(script.global().pipeline_id()),
-        referrer_url: Some(doc.url()),
-        referrer_policy: doc.get_referrer_policy(),
-        integrity_metadata: integrity_metadata,
-        ..RequestInit::default()
-    };
+        })
+        .origin(doc.origin().immutable().clone())
+        .pipeline_id(Some(script.global().pipeline_id()))
+        .referrer_url(Some(doc.url()))
+        .referrer_policy(doc.get_referrer_policy())
+        .integrity_metadata(integrity_metadata);
 
     // TODO: Step 3, Add custom steps to perform fetch
 
@@ -409,8 +408,8 @@ impl HTMLScriptElement {
         // Step 13.
         let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
         let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
-        match (for_attribute.r(), event_attribute.r()) {
-            (Some(for_attribute), Some(event_attribute)) => {
+        match (for_attribute, event_attribute) {
+            (Some(ref for_attribute), Some(ref event_attribute)) => {
                 let for_value = for_attribute.value().to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
@@ -441,7 +440,7 @@ impl HTMLScriptElement {
 
         // Step 18: Integrity metadata.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
-        let integrity_val = im_attribute.r().map(|a| a.value());
+        let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
             None => "",
@@ -556,7 +555,15 @@ impl HTMLScriptElement {
             },
         }
 
-        let path = PathBuf::from(window_from_node(self).unminified_js_dir().unwrap());
+        let path;
+        match window_from_node(self).unminified_js_dir() {
+            Some(unminified_js_dir) => path = PathBuf::from(unminified_js_dir),
+            None => {
+                warn!("Unminified script directory not found");
+                return;
+            },
+        }
+
         let path = if script.external {
             // External script.
             let path_parts = script.url.path_segments().unwrap();
@@ -619,7 +626,7 @@ impl HTMLScriptElement {
         self.run_a_classic_script(&script);
 
         // Step 6.
-        document.set_current_script(old_script.r());
+        document.set_current_script(old_script.deref());
 
         // Step 7.
         if let Some(doc) = neutralized_doc {

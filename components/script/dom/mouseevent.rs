@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -16,7 +16,7 @@ use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use std::cell::Cell;
 use std::default::Default;
 
@@ -115,7 +115,7 @@ impl MouseEvent {
             type_,
             bubbles,
             cancelable,
-            init.parent.parent.view.r(),
+            init.parent.parent.view.deref(),
             init.parent.parent.detail,
             init.screenX,
             init.screenY,
@@ -126,7 +126,7 @@ impl MouseEvent {
             init.parent.shiftKey,
             init.parent.metaKey,
             init.button,
-            init.relatedTarget.r(),
+            init.relatedTarget.deref(),
             None,
         );
         Ok(event)
@@ -194,11 +194,7 @@ impl MouseEventMethods for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if PREFS
-            .get("dom.mouseevent.which.enabled")
-            .as_boolean()
-            .unwrap_or(false)
-        {
+        if pref!(dom.mouse_event.which.enabled) {
             (self.button.get() + 1) as i32
         } else {
             0

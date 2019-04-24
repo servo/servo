@@ -1,9 +1,9 @@
-from node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
-from parser import atoms, precedence
+from .node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
+from .parser import atoms, precedence
 
-atom_names = {v:"@%s" % k for (k,v) in atoms.iteritems()}
+atom_names = {v:"@%s" % k for (k,v) in atoms.items()}
 
-named_escapes = set(["\a", "\b", "\f", "\n", "\r", "\t", "\v"])
+named_escapes = {"\a", "\b", "\f", "\n", "\r", "\t", "\v"}
 
 def escape(string, extras=""):
     # Assumes input bytes are either UTF8 bytes or unicode.

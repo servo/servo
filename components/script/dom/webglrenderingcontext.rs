@@ -50,10 +50,11 @@ use crate::dom::window::Window;
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
-    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, Parameter,
+    TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
+    WebGLContextShareMode, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
+    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand,
+    YAxisTreatment,
 };
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
@@ -67,11 +68,10 @@ use js::typedarray::{
 };
 use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image_cache::ImageResponse;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::{self, PixelFormat};
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
@@ -117,8 +117,8 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     }
 }
 
-/// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
+    /// Set of bitflags for texture unpacking (texImage2d, etc...)
     #[derive(JSTraceable, MallocSizeOf)]
     struct TextureUnpacking: u8 {
         const FLIP_Y_AXIS = 0x01;
@@ -173,10 +173,7 @@ impl WebGLRenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Result<WebGLRenderingContext, String> {
-        if let Some(true) = PREFS
-            .get("webgl.testing.context_creation_error")
-            .as_boolean()
-        {
+        if pref!(webgl.testing.context_creation_error) {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 
@@ -708,7 +705,7 @@ impl WebGLRenderingContext {
             alpha_treatment,
             y_axis_treatment,
             pixel_format: pixels.pixel_format,
-            data: pixels.data,
+            data: pixels.data.into(),
         });
 
         if let Some(fb) = self.bound_framebuffer.get() {
@@ -783,7 +780,7 @@ impl WebGLRenderingContext {
             alpha_treatment,
             y_axis_treatment,
             pixel_format: pixels.pixel_format,
-            data: pixels.data,
+            data: pixels.data.into(),
         });
     }
 

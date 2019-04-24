@@ -49,6 +49,22 @@ for (const type of ["i32", "f32", "f64"]) {
       assert_equals(global.value, 0, "post-set value");
       assert_equals(global.valueOf(), 0, "post-set valueOf");
     }, `Immutable ${type} (${name})`);
+
+    test(t => {
+      opts.value = type;
+      const global = new WebAssembly.Global(opts);
+      assert_equals(global.value, 0, "initial value");
+      assert_equals(global.valueOf(), 0, "initial valueOf");
+
+      const value = {
+        valueOf: t.unreached_func("should not call valueOf"),
+        toString: t.unreached_func("should not call toString"),
+      };
+      assert_throws(new TypeError(), () => global.value = value);
+
+      assert_equals(global.value, 0, "post-set value");
+      assert_equals(global.valueOf(), 0, "post-set valueOf");
+    }, `Immutable ${type} with ToNumber side-effects (${name})`);
   }
 
   const mutableOptions = [
@@ -80,6 +96,15 @@ test(() => {
   assert_throws(new TypeError(), () => global.valueOf());
 }, "i64 with default");
 
+test(t => {
+  const argument = { "value": "i64", "mutable": true };
+  const global = new WebAssembly.Global(argument);
+  const value = {
+    valueOf: t.unreached_func("should not call valueOf"),
+    toString: t.unreached_func("should not call toString"),
+  };
+  assert_throws(new TypeError(), () => global.value = value);
+}, "i64 with ToNumber side-effects");
 
 test(() => {
   const argument = { "value": "i32", "mutable": true };

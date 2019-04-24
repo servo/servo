@@ -1,6 +1,5 @@
 spec: https://drafts.csswg.org/selectors/
 suggested_reviewers:
-  - tantek
   - fantasai
   - frivoal
   - plinss

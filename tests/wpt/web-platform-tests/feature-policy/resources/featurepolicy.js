@@ -433,3 +433,16 @@ function test_frame_policy(
     assert_false(frame_policy.allowedFeatures().includes(feature));
   }
 }
+
+function expect_reports(report_count, policy_name, description) {
+  async_test(t => {
+    var num_received_reports = 0;
+    new ReportingObserver(t.step_func((reports, observer) => {
+        const relevant_reports = reports.filter(r => (r.body.featureId === policy_name));
+        num_received_reports += relevant_reports.length;
+        if (num_received_reports >= report_count) {
+            t.done();
+        }
+   }), {types: ['feature-policy-violation'], buffered: true}).observe();
+  }, description);
+}

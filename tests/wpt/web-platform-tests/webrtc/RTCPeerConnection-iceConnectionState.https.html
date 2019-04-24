@@ -1,0 +1,246 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.iceConnectionState</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  // exchangeIceCandidates
+  // doSignalingHandshake
+
+  /*
+    4.3.2.  Interface Definition
+      interface RTCPeerConnection : EventTarget {
+        ...
+        readonly  attribute RTCIceConnectionState  iceConnectionState;
+                  attribute EventHandler           oniceconnectionstatechange;
+      };
+
+    4.4.4 RTCIceConnectionState Enum
+      enum RTCIceConnectionState {
+        "new",
+        "checking",
+        "connected",
+        "completed",
+        "failed",
+        "disconnected",
+        "closed"
+      };
+
+    5.6.  RTCIceTransport Interface
+      interface RTCIceTransport {
+        readonly attribute RTCIceTransportState state;
+                 attribute EventHandler         onstatechange;
+
+        ...
+      };
+
+      enum RTCIceTransportState {
+        "new",
+        "checking",
+        "connected",
+        "completed",
+        "failed",
+        "disconnected",
+        "closed"
+      };
+   */
+
+  /*
+    4.4.4 RTCIceConnectionState Enum
+      new
+        Any of the RTCIceTransports are in the new state and none of them
+        are in the checking, failed or disconnected state, or all
+        RTCIceTransport s are in the closed state.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.iceConnectionState, 'new');
+  }, 'Initial iceConnectionState should be new');
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    pc.close();
+    assert_equals(pc.iceConnectionState, 'closed');
+  }, 'Closing the connection should set iceConnectionState to closed');
+
+  /*
+    4.4.4 RTCIceConnectionState Enum
+      checking
+        Any of the RTCIceTransport s are in the checking state and none of
+        them are in the failed or disconnected state.
+
+      connected
+        All RTCIceTransport s are in the connected, completed or closed state
+        and at least one of them is in the connected state.
+
+      completed
+        All RTCIceTransport s are in the completed or closed state and at least
+        one of them is in the completed state.
+
+      checking
+        The RTCIceTransport has received at least one remote candidate and
+        is checking candidate pairs and has either not yet found a connection
+        or consent checks [RFC7675] have failed on all previously successful
+        candidate pairs. In addition to checking, it may also still be gathering.
+
+    5.6.  enum RTCIceTransportState
+      connected
+        The RTCIceTransport has found a usable connection, but is still
+        checking other candidate pairs to see if there is a better connection.
+        It may also still be gathering and/or waiting for additional remote
+        candidates. If consent checks [RFC7675] fail on the connection in use,
+        and there are no other successful candidate pairs available, then the
+        state transitions to "checking" (if there are candidate pairs remaining
+        to be checked) or "disconnected" (if there are no candidate pairs to
+        check, but the peer is still gathering and/or waiting for additional
+        remote candidates).
+
+      completed
+        The RTCIceTransport has finished gathering, received an indication that
+        there are no more remote candidates, finished checking all candidate
+        pairs and found a connection. If consent checks [RFC7675] subsequently
+        fail on all successful candidate pairs, the state transitions to "failed".
+   */
+  async_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    let had_checking = false;
+
+    const onIceConnectionStateChange = t.step_func(() => {
+      const {iceConnectionState} = pc1;
+      if (iceConnectionState === 'checking') {
+        had_checking = true;
+      } else if (iceConnectionState === 'connected' ||
+                 iceConnectionState === 'completed') {
+        assert_true(had_checking, 'state should pass checking before' +
+                                  ' reaching connected or completed');
+        t.done();
+      }
+    });
+
+    pc1.createDataChannel('test');
+
+    pc1.addEventListener('iceconnectionstatechange', onIceConnectionStateChange);
+
+    exchangeIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+  }, 'connection with one data channel should eventually have connected or ' +
+     'completed connection state');
+
+async_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    const onIceConnectionStateChange = t.step_func(() => {
+      const { iceConnectionState } = pc1;
+
+      if(iceConnectionState === 'checking') {
+        const iceTransport = pc1.sctp.transport.iceTransport;
+
+        assert_equals(iceTransport.state, 'checking',
+          'Expect ICE transport to be in checking state when' +
+          ' iceConnectionState is checking');
+
+      } else if(iceConnectionState === 'connected') {
+        const iceTransport = pc1.sctp.transport.iceTransport;
+
+        assert_equals(iceTransport.state, 'connected',
+          'Expect ICE transport to be in connected state when' +
+          ' iceConnectionState is connected');
+
+      } else if(iceConnectionState === 'completed') {
+        const iceTransport = pc1.sctp.transport.iceTransport;
+
+        assert_equals(iceTransport.state, 'completed',
+          'Expect ICE transport to be in connected state when' +
+          ' iceConnectionState is completed');
+      }
+    });
+
+    pc1.createDataChannel('test');
+
+    assert_equals(pc1.oniceconnectionstatechange, null,
+      'Expect connection to have iceconnectionstatechange event');
+
+    pc1.addEventListener('iceconnectionstatechange', onIceConnectionStateChange);
+
+    exchangeIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+  }, 'connection with one data channel should eventually ' +
+     'have connected connection state');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    caller.addTransceiver('audio', {direction:'recvonly'});
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const [track] = stream.getTracks();
+    callee.addTrack(track, stream);
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+
+    assert_equals(caller.getTransceivers().length, 1);
+    const [transceiver] = caller.getTransceivers();
+    assert_equals(transceiver.currentDirection, 'recvonly');
+
+    await listenToIceConnected(caller);
+  }, 'ICE can connect in a recvonly usecase');
+
+  /*
+    TODO
+    4.4.4 RTCIceConnectionState Enum
+      failed
+        Any of the RTCIceTransport s are in the failed state.
+
+      disconnected
+        Any of the RTCIceTransport s are in the disconnected state and none of
+        them are in the failed state.
+
+      closed
+        The RTCPeerConnection object's [[ isClosed]] slot is true.
+
+    5.6.  enum RTCIceTransportState
+      new
+        The RTCIceTransport is gathering candidates and/or waiting for
+        remote candidates to be supplied, and has not yet started checking.
+
+      failed
+        The RTCIceTransport has finished gathering, received an indication that
+        there are no more remote candidates, finished checking all candidate pairs,
+        and all pairs have either failed connectivity checks or have lost consent.
+
+      disconnected
+        The ICE Agent has determined that connectivity is currently lost for this
+        RTCIceTransport . This is more aggressive than failed, and may trigger
+        intermittently (and resolve itself without action) on a flaky network.
+        The way this state is determined is implementation dependent.
+
+        Examples include:
+          Losing the network interface for the connection in use.
+          Repeatedly failing to receive a response to STUN requests.
+
+        Alternatively, the RTCIceTransport has finished checking all existing
+        candidates pairs and failed to find a connection (or consent checks
+        [RFC7675] once successful, have now failed), but it is still gathering
+        and/or waiting for additional remote candidates.
+
+      closed
+        The RTCIceTransport has shut down and is no longer responding to STUN requests.
+   */
+</script>

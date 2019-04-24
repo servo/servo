@@ -6,7 +6,7 @@
 
 use js::jsapi::JSContext;
 use js::rust::HandleObject;
-use servo_config::prefs::PREFS;
+use servo_config::prefs;
 
 /// A container with a condition.
 pub struct Guard<T: Clone + Copy> {
@@ -48,7 +48,7 @@ pub enum Condition {
 impl Condition {
     unsafe fn is_satisfied(&self, cx: *mut JSContext, obj: HandleObject) -> bool {
         match *self {
-            Condition::Pref(name) => PREFS.get(name).as_boolean().unwrap_or(false),
+            Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),
             Condition::Satisfied => true,
         }

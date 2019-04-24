@@ -72,29 +72,55 @@
         })));
   }, 'Calling createOffer() and setLocalDescription() again after one round of local-offer/remote-answer should succeed');
 
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
     const states = [];
-    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+    pc1.addEventListener('signalingstatechange', () => states.push(pc1.signalingState));
 
-    return generateDataChannelOffer(pc)
-    .then(offer => pc.setRemoteDescription(offer))
-    .then(() => pc.createAnswer())
-    .then(answer =>
-      pc.setLocalDescription(answer)
-      .then(() => generateVideoReceiveOnlyOffer(pc))
-      .then(offer =>
-        pc.setLocalDescription(offer)
-        .then(() => {
-          assert_equals(pc.signalingState, 'have-local-offer');
-          assert_session_desc_similar(pc.localDescription, offer);
-          assert_session_desc_similar(pc.currentLocalDescription, answer);
-          assert_session_desc_similar(pc.pendingLocalDescription, offer);
+    assert_equals(pc1.localDescription, null);
+    assert_equals(pc1.currentLocalDescription, null);
+    assert_equals(pc1.pendingLocalDescription, null);
 
-          assert_array_equals(states, ['have-remote-offer', 'stable', 'have-local-offer']);
-        })));
+    pc1.createDataChannel('test');
+    const offer = await pc1.createOffer();
+
+    assert_equals(pc1.localDescription, null);
+    assert_equals(pc1.currentLocalDescription, null);
+    assert_equals(pc1.pendingLocalDescription, null);
+
+    await pc1.setLocalDescription(offer);
+
+    assert_session_desc_similar(pc1.localDescription, offer);
+    assert_equals(pc1.currentLocalDescription, null);
+    assert_session_desc_similar(pc1.pendingLocalDescription, offer);
+
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+
+    assert_equals(pc1.signalingState, 'stable');
+    assert_session_desc_similar(pc1.localDescription, offer);
+    assert_session_desc_similar(pc1.currentLocalDescription, offer);
+    assert_equals(pc1.pendingLocalDescription, null);
+
+    const stream = await getNoiseStream({audio:true});
+    pc2.addTrack(stream.getTracks()[0], stream);
+
+    const reoffer = await pc2.createOffer();
+    await pc2.setLocalDescription(reoffer);
+    await pc1.setRemoteDescription(reoffer);
+    const reanswer = await pc1.createAnswer();
+    await pc1.setLocalDescription(reanswer);
+
+    assert_session_desc_similar(pc1.localDescription, reanswer);
+    assert_session_desc_similar(pc1.currentLocalDescription, reanswer);
+    assert_equals(pc1.pendingLocalDescription, null);
   }, 'Switching role from answerer to offerer after going back to stable state should succeed');
 
   promise_test(async t => {

@@ -1,0 +1,21 @@
+<html manifest="appcache.manifest">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../resources/sxg-util.js"></script>
+<script>
+const cache_ready = new Promise(resolve => {
+  ['cached','noupdate'].forEach(event_name => {
+    window.applicationCache.addEventListener(event_name, resolve);
+  });
+});
+
+promise_test(async (t) => {
+  await cache_ready;
+
+  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/appcache/resources/sxg/sxg-appcached.sxg';
+  const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
+  assert_equals(message.location, innerURLOrigin() + '/signed-exchange/appcache/resources/appcached-url.html');
+  assert_false(message.appcacheContent);
+}, 'SignedHTTPExchange inner resp should take precedence to appcache.');
+</script>

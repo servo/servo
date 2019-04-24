@@ -98,7 +98,7 @@ async_test(function() {
     results.push(3)
   }), true)
   b.dispatchEvent(new Event("x"))
-  assert_array_equals(results, [1, 2, 3])
+  assert_array_equals(results, [1, 3, 2])
   this.done()
-}, "Event listeners should be called in order of addition")
+}, "Capturing event listeners should be called before non-capturing ones")
 </script>

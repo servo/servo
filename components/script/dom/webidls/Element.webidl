@@ -109,10 +109,10 @@ partial interface Element {
 
 // https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
 partial interface Element {
-  [CEReactions, Throws,TreatNullAs=EmptyString]
-  attribute DOMString innerHTML;
-  [CEReactions, Throws,TreatNullAs=EmptyString]
-  attribute DOMString outerHTML;
+  [CEReactions, Throws]
+  attribute [TreatNullAs=EmptyString] DOMString innerHTML;
+  [CEReactions, Throws]
+  attribute [TreatNullAs=EmptyString] DOMString outerHTML;
 };
 
 // https://fullscreen.spec.whatwg.org/#api

@@ -21,10 +21,11 @@ div {
   width: 100px;
   height: 100px;
   z-index: -1;
+  white-space: pre;
 }
+span { color: green; }
 .test {
   color: green;
-  background: green;
   width: 1ch;
   white-space: pre-wrap;
   word-break: break-all;
@@ -32,6 +33,6 @@ div {
 </style>
 <body>
   <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
-  <div class="red">X<br>X<br>X</div>
+  <div class="red"> <br>X<br>X</div>
   <div class="test"> XX</div>
 </body>

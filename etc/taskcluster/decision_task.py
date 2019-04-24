@@ -75,6 +75,7 @@ def main(task_for):
     elif task_for == "github-pull-request":
         CONFIG.treeherder_repository_name = "servo-prs"
         CONFIG.index_read_only = True
+        CONFIG.docker_image_build_worker_type = None
 
         # We want the merge commit that GitHub creates for the PR.
         # The event does contain a `pull_request.merge_commit_sha` key, but it is wrong:
@@ -120,6 +121,7 @@ linux_build_env = {
 macos_build_env = {}
 windows_build_env = {
     "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
+    "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
 }
 windows_sparse_checkout = [
     "/*",
@@ -165,7 +167,7 @@ def linux_tidy_unit_docs():
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
 
-            ./mach doc
+            RUSTDOCFLAGS="--disable-minification" ./mach doc
             cd target/doc
             git init
             time git add .
@@ -564,6 +566,12 @@ def windows_build_task(name):
         .with_rustup()
         .with_repacked_msi(
             url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                "1.14.3/gstreamer-1.0-x86_64-1.14.3.msi",
+            sha256="f4f20c713766ed6718b914b9ae57ed993a59ffe194e6ef530c8547508b4484d8",
+            path="gst",
+        )
+        .with_repacked_msi(
+            url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
                 "1.14.3/gstreamer-1.0-devel-x86_64-1.14.3.msi",
             sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
             path="gst",
@@ -618,7 +626,7 @@ def macos_build_task(name):
 
 CONFIG.task_name_template = "Servo: %s"
 CONFIG.index_prefix = "project.servo.servo"
-CONFIG.docker_image_buil_worker_type = "servo-docker-worker"
+CONFIG.docker_image_build_worker_type = "servo-docker-worker"
 CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
 

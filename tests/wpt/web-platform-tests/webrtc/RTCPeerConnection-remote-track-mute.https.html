@@ -50,9 +50,13 @@ promise_test(async t => {
   exchangeIceCandidates(pc1, pc2);
 
   const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  // Need to wait for the initial unmute event before renegotiating, otherwise
+  // there will be no transition from unmuted->muted.
+  const muteWatcher = new EventWatcher(t, e.track, ['mute', 'unmute']);
+  const unmutePromise = muteWatcher.wait_for('unmute');
   await exchangeAnswer(pc1, pc2);
+  await unmutePromise;
 
-  const muteWatcher = new EventWatcher(t, e.track, ['mute']);
   const mutePromise = muteWatcher.wait_for('mute');
   localTransceiver.direction = 'inactive';
   await exchangeOfferAnswer(pc1, pc2);
@@ -88,8 +92,13 @@ promise_test(async t => {
   exchangeIceCandidates(pc1, pc2);
 
   const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  // Need to wait for the initial unmute event before closing, otherwise
+  // there will be no transition from unmuted->muted.
+  const muteWatcher = new EventWatcher(t, e.track, ['mute', 'unmute']);
+  const unmutePromise = muteWatcher.wait_for('unmute');
   await exchangeAnswer(pc1, pc2);
-  const muteWatcher = new EventWatcher(t, e.track, ['mute']);
+  await unmutePromise;
+
   const mutePromise = muteWatcher.wait_for('mute');
   pc2.close();
   await mutePromise;

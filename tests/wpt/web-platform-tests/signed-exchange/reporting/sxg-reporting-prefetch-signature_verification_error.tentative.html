@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>SXG reporting test of sxg.signature_verification_error for prefetch</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/network-error-logging/support/nel.sub.js"></script>
+<script src="../resources/sxg-util.js"></script>
+<body>
+<script>
+const alt_origin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+
+nel_test(async t => {
+  await fetchResourceWithBasicPolicy();
+  const sxg_url =
+      alt_origin +
+      '/signed-exchange/resources/sxg/sxg-invalid-cert-sha256-cert-on-alt-origin.sxg?prefetch';
+  const cert_url = alt_origin + '/signed-exchange/resources/127.0.0.1.sxg.pem.cbor';
+  addPrefetch(sxg_url);
+  assert_true(await reportsExist([
+    {
+      url: sxg_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "sxg",
+        type: "sxg.signature_verification_error",
+        status_code: 200,
+        referrer: location.href,
+        sxg: {
+          outer_url: sxg_url,
+          inner_url:
+              innerURLOrigin() + '/signed-exchange/resources/inner-url.html',
+          cert_url: [cert_url]
+        }
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    {
+      url: sxg_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "application",
+        type: "ok",
+        status_code: 200,
+        referrer: location.href,
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+  ]));
+}, 'SXG reporting test of sxg.signature_verification_error for prefetch.');
+</script>
+</body>

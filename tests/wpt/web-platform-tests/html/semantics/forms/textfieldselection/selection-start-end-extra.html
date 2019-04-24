@@ -69,10 +69,36 @@
     el.selectionStart = 3;
     el.selectionEnd = 5;
 
-    el.textContent = "abcdef\r\nwhatevs";
+    el.firstChild.data = "abcdef\r\nwhatevs";
     assert_equals(el.selectionStart, 3);
     assert_equals(el.selectionEnd, 5);
   }, "Setting the same value (with different newlines) in a textarea should NOT update selection{Start,End}");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.textContent = "foobar";
+    el.selectionStart = 3;
+    el.selectionEnd = 5;
+    el.firstChild.remove();
+    assert_equals(el.selectionStart, 0, 'selectionStart after node removal');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after node removal');
+    el.appendChild(document.createTextNode("foobar"));
+    assert_equals(el.selectionStart, 0, 'selectionStart after appendChild');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after appendChild');
+
+    el.selectionStart = 3;
+    el.selectionEnd = 5;
+    el.textContent = "foobar2"; // This removes the child node first.
+    assert_equals(el.selectionStart, 0, 'selectionStart after textContent setter');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after textContent setter');
+
+    el.selectionStart = 3;
+    el.selectionEnd = 5;
+    el.defaultValue = "foobar"; // Same as textContent setter.
+    assert_equals(el.selectionStart, 0, 'selectionStart after defaultValue setter');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after defaultValue setter');
+
+  }, "Removing child nodes in non-dirty textarea should make selection{Start,End} 0");
 
   test(function() {
     var el = document.createElement("textarea");
@@ -105,8 +131,12 @@
     assert_equals(el.selectionEnd, 9);
     el.type = "color";
     el.type = "text";
-    assert_equals(el.selectionStart, 7);
-    assert_equals(el.selectionEnd, 7);
+    // https://html.spec.whatwg.org/C/input.html#the-input-element:attr-input-type-15
+    // 9. If previouslySelectable is false and nowSelectable is true, set the
+    // element's text entry cursor position to the beginning of the text
+    // control, ...
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
   }, "Shortening value by turning the input type into 'color' and back to 'text' should correct selection{Start,End}");
 
   test(function() {

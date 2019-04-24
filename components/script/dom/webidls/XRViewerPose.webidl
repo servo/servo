@@ -5,8 +5,7 @@
 // https://immersive-web.github.io/webxr/#xrviewerpose-interface
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
-interface XRViewerPose {
-  // readonly attribute XRRigidTransform transform;
+interface XRViewerPose : XRPose {
   // readonly attribute FrozenArray<XRView> views;
   // workaround until we have FrozenArray
   // see https://github.com/servo/servo/issues/10427#issuecomment-449593626

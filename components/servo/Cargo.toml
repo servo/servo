@@ -16,6 +16,7 @@ max_log_level = ["log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 debugmozjs = ["script/debugmozjs"]
+profilemozjs = ["script/profilemozjs"]
 googlevr = ["webvr/googlevr"]
 js_backtrace = ["script/js_backtrace"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
@@ -51,6 +52,7 @@ euclid = "0.19"
 gfx = {path = "../gfx"}
 gleam = "0.6"
 ipc-channel = "0.11"
+keyboard-types = "0.4"
 layout_thread = {path = "../layout_thread"}
 log = "0.4"
 msg = {path = "../msg"}
@@ -63,6 +65,7 @@ script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
+servo-media = {git = "https://github.com/servo/media"}
 servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits", features = ["servo"]}
@@ -74,3 +77,9 @@ webvr_traits = {path = "../webvr_traits"}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
+
+[target.'cfg(any(all(target_os = "android", target_arch = "arm"), target_arch = "x86_64"))'.dependencies.servo-media-gstreamer]
+git = "https://github.com/servo/media"
+
+[target.'cfg(not(any(all(target_os = "android", target_arch = "arm"), target_arch = "x86_64")))'.dependencies.servo-media-dummy]
+git = "https://github.com/servo/media"

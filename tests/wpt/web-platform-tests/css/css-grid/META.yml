@@ -2,10 +2,8 @@ spec: https://drafts.csswg.org/css-grid/
 suggested_reviewers:
   - mrego
   - plinss
-  - jxs
   - tabatkins
   - fantasai
-  - atanassov
   - javifernandez
   - rachelandrew
   - svillar

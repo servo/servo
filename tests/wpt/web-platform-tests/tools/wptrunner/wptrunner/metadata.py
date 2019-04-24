@@ -1,3 +1,4 @@
+from __future__ import print_function
 import array
 import os
 import shutil
@@ -7,12 +8,12 @@ from collections import defaultdict, namedtuple
 
 from mozlog import structuredlog
 
-import manifestupdate
-import testloader
-import wptmanifest
-import wpttest
-from expected import expected_path
-from vcs import git
+from . import manifestupdate
+from . import testloader
+from . import wptmanifest
+from . import wpttest
+from .expected import expected_path
+from .vcs import git
 manifest = None  # Module that will be imported relative to test_root
 manifestitem = None
 
@@ -49,12 +50,12 @@ def update_expected(test_paths, serve_root, log_file_names,
             for test in updated_ini.iterchildren():
                 for subtest in test.iterchildren():
                     if subtest.new_disabled:
-                        print "disabled: %s" % os.path.dirname(subtest.root.test_path) + "/" + subtest.name
+                        print("disabled: %s" % os.path.dirname(subtest.root.test_path) + "/" + subtest.name)
                     if test.new_disabled:
-                        print "disabled: %s" % test.root.test_path
+                        print("disabled: %s" % test.root.test_path)
 
 
-def do_delayed_imports(serve_root):
+def do_delayed_imports(serve_root=None):
     global manifest, manifestitem
     from manifest import manifest, item as manifestitem
 
@@ -359,12 +360,12 @@ class ExpectedUpdater(object):
         try:
             test_data = self.id_test_map[test_id]
         except KeyError:
-            print "Test not found %s, skipping" % test_id
+            print("Test not found %s, skipping" % test_id)
             return
 
         if self.ignore_existing:
             test_data.set_requires_update()
-            test_data.clear.append("expected")
+            test_data.clear.add("expected")
         self.tests_visited[test_id] = set()
 
     def test_status(self, data):
@@ -442,8 +443,9 @@ class ExpectedUpdater(object):
 def create_test_tree(metadata_path, test_manifest):
     """Create a map of test_id to TestFileData for that test.
     """
+    do_delayed_imports()
     id_test_map = {}
-    exclude_types = frozenset(["stub", "helper", "manual", "support", "conformancechecker"])
+    exclude_types = frozenset(["stub", "helper", "manual", "support", "conformancechecker", "reftest_base"])
     all_types = manifestitem.item_types.keys()
     include_types = set(all_types) - exclude_types
     for item_type, test_path, tests in test_manifest.itertypes(*include_types):
@@ -514,7 +516,7 @@ class PackedResultList(object):
         else:
             value = status_intern.get(value_idx)
 
-        run_info = run_info_intern.get((packed & 0x00FF))
+        run_info = run_info_intern.get(packed & 0x00FF)
 
         return prop, run_info, value
 

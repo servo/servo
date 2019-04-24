@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helper.js"></script>
+
+<script>
+// This tests is for fallbacks with the pattern of
+// `"https://some.external/url": ["@std/x", "https://some.external/url"]`
+// which maps "https://some.external/url" to "@std/x" if "@std/x" is
+// implemented, or leaves it unmodified otherwise.
+//
+// This is the primary use case where fallback should work.
+// Some other patterns of fallbacks are intentionally blocked due to ongoing
+// spec issues. See fallback-disallowed.sub.tentative.html.
+const importMap = `
+{
+  "imports": {
+    "./resources/log.js?pipe=sub&name=blank": [
+      "@std/blank",
+      "./resources/log.js?pipe=sub&name=blank"
+    ],
+    "./resources/log.js?pipe=sub&name=none": [
+      "@std/none",
+      "./resources/log.js?pipe=sub&name=none"
+    ],
+    "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-blank": [
+      "@std/blank",
+      "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-blank"
+    ],
+    "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-none": [
+      "@std/none",
+      "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-none"
+    ],
+
+    "./resources/log.js?pipe=sub&name=std-blank": [
+      "std:blank",
+      "./resources/log.js?pipe=sub&name=std-blank"
+    ],
+    "./resources/log.js?pipe=sub&name=std-none": [
+      "std:none",
+      "./resources/log.js?pipe=sub&name=std-none"
+    ],
+    "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=std-cross-origin-blank": [
+      "std:blank",
+      "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=std-cross-origin-blank"
+    ],
+    "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=std-cross-origin-none": [
+      "std:none",
+      "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=std-cross-origin-none"
+    ]
+
+  }
+}
+`;
+const tests = {
+  // Arrays of expected results for:
+  // - <script src type="module">,
+  // - <script src> (classic script),
+  // - static import, and
+  // - dynamic import.
+  // Result.URL indicates that the specifier was not re-mapped by import maps,
+  // i.e. either considered as a relative path, or fallback occured.
+  "./resources/log.js?pipe=sub&name=blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "./resources/log.js?pipe=sub&name=none":
+    [Result.URL, Result.URL, Result.URL, Result.URL],
+  "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-none":
+    [Result.URL, Result.URL, Result.URL, Result.URL],
+
+  "./resources/log.js?pipe=sub&name=std-blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "./resources/log.js?pipe=sub&name=std-none":
+    [Result.URL, Result.URL, Result.URL, Result.URL],
+  "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=std-cross-origin-blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=std-cross-origin-none":
+    [Result.URL, Result.URL, Result.URL, Result.URL],
+};
+
+doTests(importMap, null, tests);
+</script>
+<body>

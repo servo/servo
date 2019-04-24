@@ -33,7 +33,11 @@ runInAnimationWorklet(
   const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
   const animation = new WorkletAnimation('iframe_animator', effect);
   animation.play();
-  waitForAnimationFrames(2).then(_ => {
+
+  // wait until local times are synced back to the main thread.
+  waitForAnimationFrameWithCondition(_ => {
+    return getComputedStyle(target).opacity != '1';
+  }).then(_ => {
     window.parent.postMessage(getComputedStyle(target).opacity, '*');
   });
  });

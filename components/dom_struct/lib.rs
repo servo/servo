@@ -19,6 +19,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
         #[derive(DenyPublicFields, DomObject, JSTraceable, MallocSizeOf)]
         #[must_root]
         #[repr(C)]
+        #[webidl]
     };
 
     // Work around https://github.com/rust-lang/rust/issues/46489

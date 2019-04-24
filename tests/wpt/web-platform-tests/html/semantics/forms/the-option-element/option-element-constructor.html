@@ -127,4 +127,9 @@
     assert_false(option.selected);
   }, "Option constructor does not set dirtiness (so, manipulating the selected content attribute still updates the " +
      "selected IDL attribute)");
+
+  test(function() {
+    var option = new Option();
+    assert_equals(Object.getPrototypeOf(option), HTMLOptionElement.prototype);
+  }, "Prototype of object created with named constructor");
 </script>

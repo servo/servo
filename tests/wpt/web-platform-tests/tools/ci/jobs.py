@@ -25,7 +25,7 @@ job_path_map = {
     "manifest_upload": [".*"],
     "resources_unittest": ["resources/", "tools/"],
     "tools_unittest": ["tools/"],
-    "wptrunner_unittest": ["tools/wptrunner/*"],
+    "wptrunner_unittest": ["tools/"],
     "build_css": ["css/"],
     "update_built": ["2dcontext/",
                      "html/",
@@ -84,8 +84,7 @@ def get_paths(**kwargs):
         revish = kwargs["revish"]
 
     changed, _ = files_changed(revish)
-    all_changed = set(os.path.relpath(item, wpt_root)
-                      for item in set(changed))
+    all_changed = {os.path.relpath(item, wpt_root) for item in set(changed)}
     return all_changed
 
 

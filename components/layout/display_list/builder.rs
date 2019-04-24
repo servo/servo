@@ -58,7 +58,7 @@ use style::properties::{style_structs, ComputedValues};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::Image as ComputedImage;
-use style::values::computed::Gradient;
+use style::values::computed::{Gradient, LengthOrAuto};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
 use style::values::specified::ui::CursorKind;
@@ -390,7 +390,25 @@ impl<'a> DisplayListBuildState<'a> {
         } else {
             self.current_clipping_and_scrolling
         };
+        self.create_base_display_item_with_clipping_and_scrolling(
+            bounds,
+            clip_rect,
+            node,
+            cursor,
+            section,
+            clipping_and_scrolling,
+        )
+    }
 
+    fn create_base_display_item_with_clipping_and_scrolling(
+        &self,
+        bounds: Rect<Au>,
+        clip_rect: Rect<Au>,
+        node: OpaqueNode,
+        cursor: Option<Cursor>,
+        section: DisplayListSection,
+        clipping_and_scrolling: ClippingAndScrolling,
+    ) -> BaseDisplayItem {
         BaseDisplayItem::new(
             bounds.to_layout(),
             DisplayItemMetadata {
@@ -745,11 +763,13 @@ impl Fragment {
                     let background_size =
                         get_cyclic(&style.get_background().background_size.0, i).clone();
                     let size = match background_size {
-                        BackgroundSize::Explicit { width, height } => Size2D::new(
-                            MaybeAuto::from_style(width.0, bounding_box_size.width)
-                                .specified_or_default(bounding_box_size.width),
-                            MaybeAuto::from_style(height.0, bounding_box_size.height)
-                                .specified_or_default(bounding_box_size.height),
+                        BackgroundSize::ExplicitSize { width, height } => Size2D::new(
+                            width
+                                .to_used_value(bounding_box_size.width)
+                                .unwrap_or(bounding_box_size.width),
+                            height
+                                .to_used_value(bounding_box_size.height)
+                                .unwrap_or(bounding_box_size.height),
                         ),
                         _ => bounding_box_size,
                     };
@@ -1640,14 +1660,15 @@ impl Fragment {
             // of this fragment's background but behind its content. This ensures that any
             // hit tests inside the content box but not on actual content target the current
             // scrollable ancestor.
-            let content_size = TypedRect::from_size(content_size);
-            let base = state.create_base_display_item(
+            let content_size = TypedRect::new(stacking_relative_border_box.origin, content_size);
+            let base = state.create_base_display_item_with_clipping_and_scrolling(
                 content_size,
                 content_size,
                 self.node,
                 // FIXME(emilio): Why does this ignore pointer-events?
                 get_cursor(&self.style, Cursor::Default).or(Some(Cursor::Default)),
-                DisplayListSection::Content,
+                display_list_section,
+                state.current_clipping_and_scrolling,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
@@ -1917,6 +1938,7 @@ impl Fragment {
             border_box.to_layout(),
             overflow.to_layout(),
             self.effective_z_index(),
+            self.style().get_box()._servo_top_layer,
             filters,
             self.style().get_effects().mix_blend_mode.to_layout(),
             self.transform_matrix(&border_box),
@@ -1990,6 +2012,7 @@ impl Fragment {
                         offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
                         color: self.style.resolve_color(shadow.color).to_layout(),
                         blur_radius: shadow.blur.px(),
+                        should_inflate: true,
                     },
                 },
             )));
@@ -2605,19 +2628,22 @@ impl BlockFlow {
             _ => return,
         }
 
+        fn extract_clip_component(p: &LengthOrAuto) -> Option<Au> {
+            match *p {
+                LengthOrAuto::Auto => None,
+                LengthOrAuto::LengthPercentage(ref length) => Some(Au::from(*length)),
+            }
+        }
+
         let clip_origin = Point2D::new(
             stacking_relative_border_box.origin.x +
-                style_clip_rect.left.map(Au::from).unwrap_or(Au(0)),
+                extract_clip_component(&style_clip_rect.left).unwrap_or_default(),
             stacking_relative_border_box.origin.y +
-                style_clip_rect.top.map(Au::from).unwrap_or(Au(0)),
+                extract_clip_component(&style_clip_rect.top).unwrap_or_default(),
         );
-        let right = style_clip_rect
-            .right
-            .map(Au::from)
+        let right = extract_clip_component(&style_clip_rect.right)
             .unwrap_or(stacking_relative_border_box.size.width);
-        let bottom = style_clip_rect
-            .bottom
-            .map(Au::from)
+        let bottom = extract_clip_component(&style_clip_rect.bottom)
             .unwrap_or(stacking_relative_border_box.size.height);
         let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
 

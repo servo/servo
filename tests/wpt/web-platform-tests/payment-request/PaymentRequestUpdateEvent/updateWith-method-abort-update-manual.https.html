@@ -141,7 +141,7 @@ recursiveData.foo = recursiveData;
 Object.freeze(recursiveData);
 
 const modifierWithRecursiveData = Object.freeze({
-  supportedMethods: validMethodBasicCard,
+  supportedMethods: "basic-card",
   total: validTotal,
   data: recursiveData,
 });
@@ -186,7 +186,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
 <ol>
   <li>
     <button onclick="
-      const rejectedPromise = Promise.reject(new SyntaxError('test')).catch(err => err);
+      const rejectedPromise = Promise.reject(new SyntaxError('test'));
       testBadUpdate(this, rejectedPromise, 'AbortError');
     ">
       Rejection of detailsPromise must abort the update with an "AbortError" DOMException.
@@ -220,7 +220,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
       const badDetails = Object.assign({}, validDetails, { displayItems: invalidPaymentItems });
       testBadUpdate(this, badDetails, new RangeError());
     ">
-      Updating with a displayItem with an invalid currency results in TypeError.
+      Updating with a displayItem with an invalid currency results in RangeError.
     </button>
   </li>
   <li>

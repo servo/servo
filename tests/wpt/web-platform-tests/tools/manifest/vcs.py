@@ -1,15 +1,19 @@
 import json
 import os
-import platform
 import stat
-import subprocess
 from collections import deque
 
 from .sourcefile import SourceFile
+from .utils import git
+
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import Dict, Optional
 
 
 def get_tree(tests_root, manifest, manifest_path, cache_root,
-             working_copy=False, rebuild=False):
+             working_copy=True, rebuild=False):
     tree = None
     if cache_root is None:
         cache_root = os.path.join(tests_root, ".wptcache")
@@ -20,11 +24,8 @@ def get_tree(tests_root, manifest, manifest_path, cache_root,
             cache_root = None
 
     if not working_copy:
-        tree = Git.for_path(tests_root,
-                            manifest.url_base,
-                            manifest_path=manifest_path,
-                            cache_path=cache_root,
-                            rebuild=rebuild)
+        raise ValueError("working_copy=False unsupported")
+
     if tree is None:
         tree = FileSystem(tests_root,
                           manifest.url_base,
@@ -34,82 +35,45 @@ def get_tree(tests_root, manifest, manifest_path, cache_root,
     return tree
 
 
-class Git(object):
-    def __init__(self, repo_root, url_base, cache_path, manifest_path=None,
-                 rebuild=False):
-        self.root = repo_root
-        self.git = Git.get_func(repo_root)
-        self.url_base = url_base
-        # rebuild is a noop for now since we don't cache anything
-
-    @staticmethod
-    def get_func(repo_path):
-        def git(cmd, *args):
-            full_cmd = ["git", cmd] + list(args)
-            try:
-                return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
-            except Exception as e:
-                if platform.uname()[0] == "Windows" and isinstance(e, WindowsError):
-                        full_cmd[0] = "git.bat"
-                        return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
-                else:
-                    raise
-        return git
-
-    @classmethod
-    def for_path(cls, path, url_base, cache_path, manifest_path=None, rebuild=False):
-        git = Git.get_func(path)
-        try:
-            return cls(git("rev-parse", "--show-toplevel").rstrip(), url_base, cache_path,
-                       manifest_path=manifest_path, rebuild=rebuild)
-        except (subprocess.CalledProcessError, OSError):
-            return None
+class GitHasher(object):
+    def __init__(self, path):
+        self.git = git(path)
 
     def _local_changes(self):
-        changes = {}
+        """get a set of files which have changed between HEAD and working copy"""
+        changes = set()
+
         cmd = ["status", "-z", "--ignore-submodules=all"]
         data = self.git(*cmd)
 
-        if data == "":
-            return changes
-
-        rename_data = None
-        for entry in data.split("\0")[:-1]:
-            if rename_data is not None:
-                status, rel_path = entry.split(" ")
-                if status[0] == "R":
-                    rename_data = (rel_path, status)
-                else:
-                    changes[rel_path] = (status, None)
+        in_rename = False
+        for line in data.split(b"\0")[:-1]:
+            if in_rename:
+                changes.add(line)
+                in_rename = False
             else:
-                rel_path = entry
-                changes[rel_path] = rename_data
-                rename_data = None
+                status = line[:2]
+                if b"R" in status or b"C" in status:
+                    in_rename = True
+                changes.add(line[3:])
+
         return changes
 
-    def _show_file(self, path):
-        path = os.path.relpath(os.path.abspath(path), self.root)
-        return self.git("show", "HEAD:%s" % path)
+    def hash_cache(self):
+        # type: () -> Dict[str, Optional[str]]
+        """
+        A dict of rel_path -> current git object id if the working tree matches HEAD else None
+        """
+        hash_cache = {}
 
-    def __iter__(self):
         cmd = ["ls-tree", "-r", "-z", "HEAD"]
         local_changes = self._local_changes()
         for result in self.git(*cmd).split("\0")[:-1]:
-            rel_path = result.split("\t")[-1]
-            hash = result.split()[2]
-            if not os.path.isdir(os.path.join(self.root, rel_path)):
-                if rel_path in local_changes:
-                    contents = self._show_file(rel_path)
-                else:
-                    contents = None
-                yield SourceFile(self.root,
-                                 rel_path,
-                                 self.url_base,
-                                 hash,
-                                 contents=contents), True
+            data, rel_path = result.rsplit("\t", 1)
+            hash_cache[rel_path] = None if rel_path in local_changes else data.split(" ", 3)[2]
 
-    def dump_caches(self):
-        pass
+        return hash_cache
+
 
 
 class FileSystem(object):
@@ -127,6 +91,11 @@ class FileSystem(object):
         self.path_filter = gitignore.PathFilter(self.root,
                                                 extras=[".git/"],
                                                 cache=self.ignore_cache)
+        git = GitHasher(root)
+        if git is not None:
+            self.hash_cache = git.hash_cache()
+        else:
+            self.hash_cache = {}
 
     def __iter__(self):
         mtime_cache = self.mtime_cache
@@ -134,7 +103,8 @@ class FileSystem(object):
             for filename, path_stat in filenames:
                 path = os.path.join(dirpath, filename)
                 if mtime_cache is None or mtime_cache.updated(path, path_stat):
-                    yield SourceFile(self.root, path, self.url_base), True
+                    hash = self.hash_cache.get(path, None)
+                    yield SourceFile(self.root, path, self.url_base, hash), True
                 else:
                     yield path, False
 

@@ -16,7 +16,6 @@
 <link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing>
 <link rel=preload href="resources/dummy.xml?single-download-preload">
 <body>
-<script src="resources/dummy.js?pipe=trickle(d3)&single-download-preload"></script>
 <style>
     #background {
         width: 200px;
@@ -45,17 +44,17 @@
     window.addEventListener("load", t.step_func(function() {
         verifyPreloadAndRTSupport();
         setTimeout(t.step_func(function() {
-            verifyNumberOfDownloads("resources/dummy.js?single-download-preload", 1);
-            verifyNumberOfDownloads("resources/dummy.css?single-download-preload", 1);
-            verifyNumberOfDownloads("resources/square.png?single-download-preload", 1);
-            verifyNumberOfDownloads("resources/square.png?background&single-download-preload", 1);
-            verifyNumberOfDownloads("/fonts/CanvasTest.ttf?single-download-preload", 1);
-            verifyNumberOfDownloads("resources/dummy.xml?foobar", 0);
-            verifyNumberOfDownloads("resources/foo.vtt?single-download-preload", 1);
-            verifyNumberOfDownloads("resources/dummy.xml?single-download-preload", 1);
+            verifyLoadedAndNoDoubleDownload("resources/dummy.js?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/dummy.css?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/square.png?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/square.png?background&single-download-preload");
+            verifyLoadedAndNoDoubleDownload("/fonts/CanvasTest.ttf?single-download-preload");
+            verifyNumberOfResourceTimingEntries("resources/dummy.xml?foobar", 0);
+            verifyLoadedAndNoDoubleDownload("resources/foo.vtt?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/dummy.xml?single-download-preload");
             // FIXME: We should verify for video and audio as well, but they seem to (flakily?) trigger multiple partial requests.
             t.done();
-        }), 0);
+        }), 3000);
     }));
 </script>
 <span>PASS - this text is here just so that the browser will download the font.</span>

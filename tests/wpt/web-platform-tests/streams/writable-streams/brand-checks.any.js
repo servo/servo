@@ -104,6 +104,11 @@ promise_test(t => {
 }, 'WritableStreamDefaultWriter.prototype.close enforces a brand check');
 
 test(() => {
+  methodThrowsForAll(WriterProto, 'releaseLock',
+                     [fakeWSDefaultWriter(), realWS(), realWSDefaultController(), undefined, null]);
+}, 'WritableStreamDefaultWriter.prototype.releaseLock enforces a brand check');
+
+test(() => {
   methodThrowsForAll(WritableStreamDefaultController.prototype, 'error',
                      [fakeWSDefaultController(), realWS(), realWSDefaultWriter(), undefined, null]);
 }, 'WritableStreamDefaultController.prototype.error enforces a brand check');

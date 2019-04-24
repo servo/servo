@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::document::{Document, FocusType};
@@ -694,7 +694,7 @@ impl HTMLElement {
             .take_while(|elem| !elem.is_labelable_element())
             .filter_map(DomRoot::downcast::<HTMLLabelElement>)
             .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
-            .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
+            .filter(|elem| elem.first_labelable_descendant().deref() == Some(self))
             .map(DomRoot::upcast::<Node>);
 
         let id = element.Id();

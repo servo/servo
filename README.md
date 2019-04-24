@@ -51,6 +51,9 @@ Please select your operating system:
 * [Android](#cross-compilation-for-android)
 
 #### macOS
+
+Xcode version 10.2 or above is recommended.
+
 ##### On macOS (homebrew)
 
 ``` sh
@@ -73,6 +76,8 @@ export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
 ./mach build ...
 ```
 
+##### Note: Please make sure the required `PKG_CONFIG_PATH` environment variable is set the same as the one provided from `brew info libffi` ([Check this comment for more details](https://github.com/servo/servo/issues/23015#issuecomment-475050175)).
+
 If you've already partially compiled servo but forgot to do this step, run `./mach clean`, set the shell variables, and recompile.
 
 #### On Debian-based Linuxes
@@ -85,9 +90,9 @@ If this doesn't work, file a bug, and, run the commands below:
 sudo apt install git curl autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
-    libssl1.0-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
+    libssl1.0-dev libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
-    libharfbuzz-dev ccache clang \
+    libharfbuzz-dev ccache clang libunwind-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
 ```
 
@@ -142,7 +147,7 @@ If this doesn't work, file a bug, and, run the commands below:
 sudo dnf install curl libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python2 python2-virtualenv python2-pip expat-devel \
-    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
+    rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel ncurses-devel harfbuzz-devel ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```

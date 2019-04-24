@@ -80,7 +80,7 @@ impl ToCss for ViewportConstraints {
 }
 
 /// <https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom>
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ToShmem)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum Zoom {
     /// A number value.

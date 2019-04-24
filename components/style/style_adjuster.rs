@@ -174,10 +174,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// <https://drafts.csswg.org/css2/visuren.html#dis-pos-flo>
+    /// A ::marker pseudo-element with 'list-style-position:outside' needs to
+    /// have its 'display' blockified.
     fn blockify_if_necessary<E>(&mut self, layout_parent_style: &ComputedValues, element: Option<E>)
     where
         E: TElement,
     {
+        use crate::computed_values::list_style_position::T as ListStylePosition;
+
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -200,6 +204,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.floated());
         blockify_if!(self.style.out_of_flow_positioned());
+        blockify_if!(
+            self.style.pseudo.map_or(false, |p| p.is_marker()) &&
+                self.style.get_parent_list().clone_list_style_position() ==
+                    ListStylePosition::Outside
+        );
 
         if !blockify {
             return;
@@ -226,22 +235,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .is_empty()
         {
             self.style
-                .flags
-                .insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
+                .add_flags(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
         }
 
         if self.style.is_pseudo_element() {
             self.style
-                .flags
-                .insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
+                .add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
         #[cfg(feature = "servo")]
         {
             if self.style.get_parent_column().is_multicol() {
-                self.style
-                    .flags
-                    .insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
+                self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);
             }
         }
     }
@@ -280,9 +285,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if writing_mode != WritingMode::HorizontalTb &&
             text_combine_upright == TextCombineUpright::All
         {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::IS_TEXT_COMBINED);
+            self.style.add_flags(ComputedValueFlags::IS_TEXT_COMBINED);
             self.style
                 .mutate_inherited_box()
                 .set_writing_mode(WritingMode::HorizontalTb);
@@ -304,8 +307,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
         {
             self.style
-                .flags
-                .insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+                .add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
         }
     }
 
@@ -592,8 +594,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // Check whether line break should be suppressed for this element.
         if self.should_suppress_linebreak(layout_parent_style) {
             self.style
-                .flags
-                .insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+                .add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
             if !self.skip_item_display_fixup(element) {
                 let inline_display = self_display.inlinify();
@@ -652,13 +653,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if element.unwrap().is_visited_link() {
             self.style
-                .flags
-                .insert(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+                .add_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         } else {
             // Need to remove to handle unvisited link inside visited.
             self.style
-                .flags
-                .remove(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+                .remove_flags(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         }
     }
 

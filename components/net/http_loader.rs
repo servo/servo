@@ -38,8 +38,8 @@ use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use net_traits::ResourceAttribute;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
+use net_traits::{RedirectStartValue, ResourceAttribute, ResourceFetchTiming};
 use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
@@ -48,8 +48,7 @@ use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::Mutex;
-use std::sync::RwLock;
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, SystemTime};
 use time::{self, Tm};
 use tokio::prelude::{future, Future, Stream};
@@ -346,6 +345,7 @@ fn obtain_response(
     iters: u32,
     request_id: Option<&str>,
     is_xhr: bool,
+    context: &FetchContext,
 ) -> Box<
     dyn Future<
         Item = (HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>),
@@ -397,8 +397,12 @@ fn obtain_response(
     };
     *request.headers_mut() = headers.clone();
 
-    //TODO(#21262) connect_end
     let connect_end = precise_time_ms();
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
     let request_id = request_id.map(|v| v.to_owned());
     let pipeline_id = pipeline_id.clone();
@@ -444,7 +448,6 @@ fn obtain_response(
             })
             .map_err(move |e| NetworkError::from_hyper_error(&e)),
     )
-    // TODO(#21263) response_end (also needs to be set above if fetch is aborted due to an error)
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
@@ -525,7 +528,6 @@ pub fn http_fetch(
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
         //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
         //   secure_connection_start)
-        // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
         // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
         //   (https://w3c.github.io/resource-timing/#dfn-starttime)
         context
@@ -616,8 +618,7 @@ pub fn http_fetch(
             request.redirect_count as u16,
         ));
 
-    let timing = &*context.timing.lock().unwrap();
-    response.resource_timing = timing.clone();
+    response.resource_timing = context.timing.lock().unwrap().clone();
 
     // Step 6
     response
@@ -656,6 +657,15 @@ pub fn http_redirect_fetch(
     };
 
     // Step 1 of https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
+    // TODO: check origin and timing allow check
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::RedirectStart(
+            RedirectStartValue::FetchStart,
+        ));
+
     context
         .timing
         .lock()
@@ -1131,6 +1141,27 @@ fn http_network_or_cache_fetch(
     response
 }
 
+// Convenience struct that implements Done, for setting responseEnd on function return
+struct ResponseEndTimer(Option<Arc<Mutex<ResourceFetchTiming>>>);
+
+impl ResponseEndTimer {
+    fn neuter(&mut self) {
+        self.0 = None;
+    }
+}
+
+impl Drop for ResponseEndTimer {
+    fn drop(&mut self) {
+        let ResponseEndTimer(resource_fetch_timing_opt) = self;
+
+        resource_fetch_timing_opt.as_ref().map_or((), |t| {
+            t.lock()
+                .unwrap()
+                .set_attribute(ResourceAttribute::ResponseEnd);
+        })
+    }
+}
+
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 fn http_network_fetch(
     request: &Request,
@@ -1138,6 +1169,7 @@ fn http_network_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
+    let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
 
@@ -1180,6 +1212,7 @@ fn http_network_fetch(
         request.redirect_count + 1,
         request_id.as_ref().map(Deref::deref),
         is_xhr,
+        context,
     );
 
     let pipeline_id = request.pipeline_id;
@@ -1196,8 +1229,8 @@ fn http_network_fetch(
         }
     }
 
-    let timing = &*context.timing.lock().unwrap();
-    let mut response = Response::new(url.clone(), timing.clone());
+    let timing = context.timing.lock().unwrap().clone();
+    let mut response = Response::new(url.clone(), timing);
     response.status = Some((
         res.status(),
         res.status().canonical_reason().unwrap_or("").into(),
@@ -1254,6 +1287,8 @@ fn http_network_fetch(
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();
+    let timing_ptr2 = context.timing.clone();
+    let timing_ptr3 = context.timing.clone();
     HANDLE.lock().unwrap().spawn(
         res.into_body()
             .map_err(|_| ())
@@ -1277,6 +1312,10 @@ fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
+                timing_ptr2
+                    .lock()
+                    .unwrap()
+                    .set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender2.send(Data::Done);
                 future::ok(())
             })
@@ -1287,6 +1326,10 @@ fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
+                timing_ptr3
+                    .lock()
+                    .unwrap()
+                    .set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender3.send(Data::Done);
             }),
     );
@@ -1342,6 +1385,10 @@ fn http_network_fetch(
     // Substep 3
 
     // Step 16
+
+    // Ensure we don't override "responseEnd" on successful return of this function
+    response_end_timer.neuter();
+
     response
 }
 

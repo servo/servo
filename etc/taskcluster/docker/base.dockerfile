@@ -16,8 +16,10 @@ RUN \
         #
         # Running mach
         python \
-        virtualenv \
+        python-pip \
         #
         # Installing rustup and sccache (build dockerfile) or fetching build artifacts (run tasks)
-        curl
+        curl && \
+    # Running mach
+    pip install virtualenv
 

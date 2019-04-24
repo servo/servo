@@ -16,7 +16,14 @@ function runTest(button, options, expected){
     await response.retry({ error });
     const event = await eventPromise;
     assert_true(event instanceof PaymentRequestUpdateEvent);
-    for(const [prop, value] of Object.entries(expected)){
+    for([prop, value] of Object.entries(expected)){
+      if (prop === 'payerPhone') {
+        // |payerPhone| may optionally adhere to E164 structure, which does not
+        // contain formatting, e.g. +180000000 instead of +1-800-000-0000.
+        // Strip out the formatting in case the user agent implements E164.
+        // https://w3c.github.io/payment-request/#addressinit-dictionary
+        value = value.replace(/[-\(\) ]/g, '');
+      }
       assert_equals(response[prop], value);
     }
     await response.complete("success");
@@ -52,7 +59,7 @@ function runTest(button, options, expected){
     <p>
       Change payer's phone to "+1-800-000-0000".
     </p>
-    <button onclick="runTest(this, {requestPayerPhone: true}, { payerPhone: '+1-800-000-0000' })">
+    <button onclick="runTest(this, {requestPayerPhone: true}, { payerPhone: '+18000000000' })">
       PaymentRequestUpdateEvent is dispatched when payer phone changes.
     </button>
   </li>

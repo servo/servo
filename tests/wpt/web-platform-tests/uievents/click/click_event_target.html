@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Click targets the nearest common ancestor</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+    div {
+      padding: 10px;
+      margin: 5px;
+    }
+    </style>
+  </head>
+  <body id='body'>
+    <h1>Click targeting when targets of down and up are different</h1>
+
+    <ul>
+      <li>Press down the primary button on red div and move to blue box and release.</li>
+      <li>Press down the primary button on button b1 and move to button b2 and release.</li>
+      <li>Press down the primary button on link 1 and move to link 2 and release.</li>
+      <li>Click done.</li>
+    </ul>
+
+    <div id="div_container" style="background: green">
+      <div id="red_div" style="background: red">
+      </div>
+      <div id="blue_div" style="background: blue">
+      </div>
+    </div>
+
+    <div id="button_container" style="background: green">
+      <button id="button1"> b1
+      </button>
+      <button id="button2"> b2
+      </button>
+    </div>
+
+    <div id="link_container" style="background: green">
+      <a id="link1" href="#">link1
+      </a>
+      <br/>
+      <a id="link2" href="#">link2
+      </a>
+    </div>
+
+    <button id="done">Done</button>
+    <script>
+    var test_click_target = async_test("Click targets the nearest common ancestor");
+
+    // Prevent drag to avoid interfering with the click.
+    document.addEventListener('dragstart', (e) => e.preventDefault());
+
+    var events = [];
+    var nodes = ['div_container', 'red_div', 'blue_div', 'button_container', 'button1', 'button2', 'link_container', 'link1', 'link2', 'body'];
+
+    for (var i = 0; i < nodes.length; i++) {
+     ['mousedown', 'mouseup', 'click'].forEach((eventName) => {
+       document.getElementById(nodes[i]).addEventListener(eventName, (e) => {
+         if (e.eventPhase == Event.AT_TARGET)
+           events.push(e.type + '@' + e.target.id);
+        });
+      });
+    }
+    document.getElementById('done').addEventListener('click', () => {
+      test_click_target.step(() => {
+        assert_equals (events.join(','),
+        "mousedown@red_div,mouseup@blue_div,click@div_container,mousedown@button1,mouseup@button2,click@button_container,mousedown@link1,mouseup@link2,click@link_container",
+        "Click should be sent to the nearest common ancestor");
+      });
+      test_click_target.done();
+    });
+
+    // Inject mouse events.
+    var actions = new test_driver.Actions();
+    actions.pointerMove(0, 0, {origin: document.getElementById('red_div')})
+           .pointerDown()
+           .pointerMove(0, 0, {origin: document.getElementById('blue_div')})
+           .pointerUp()
+           .pointerMove(0, 0, {origin: document.getElementById('button1')})
+           .pointerDown()
+           .pointerMove(0, 0, {origin: document.getElementById('button2')})
+           .pointerUp()
+           .pointerMove(0, 0, {origin: document.getElementById('link1')})
+           .pointerDown()
+           .pointerMove(0, 0, {origin: document.getElementById('link2')})
+           .pointerUp()
+           .pointerMove(0, 0, {origin: document.getElementById('done')})
+           .pointerDown()
+           .pointerUp()
+           .send();
+    </script>
+  </body>
+</html>

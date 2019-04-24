@@ -19,9 +19,10 @@ use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::{LengthPercentageOrAuto, LengthPercentageOrNone};
+use style::values::computed::length::{
+    MaxSize, NonNegativeLengthOrAuto, NonNegativeLengthPercentageOrNormal, Size,
+};
 use style::values::generics::column::ColumnCount;
-use style::values::Either;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for MulticolFlow {}
@@ -106,15 +107,19 @@ impl Flow for MulticolFlow {
         {
             let style = &self.block_flow.fragment.style;
             let column_gap = match style.get_position().column_gap {
-                Either::First(len) => len.0.to_pixel_length(content_inline_size).into(),
-                Either::Second(_normal) => {
+                NonNegativeLengthPercentageOrNormal::LengthPercentage(len) => {
+                    len.0.to_pixel_length(content_inline_size).into()
+                },
+                NonNegativeLengthPercentageOrNormal::Normal => {
                     self.block_flow.fragment.style.get_font().font_size.size()
                 },
             };
 
             let column_style = style.get_column();
             let mut column_count;
-            if let Either::First(column_width) = column_style.column_width {
+            if let NonNegativeLengthOrAuto::LengthPercentage(column_width) =
+                column_style.column_width
+            {
                 let column_width = Au::from(column_width);
                 column_count = max(
                     1,
@@ -155,16 +160,12 @@ impl Flow for MulticolFlow {
             available_block_size: {
                 let style = &self.block_flow.fragment.style;
                 let size = match style.content_block_size() {
-                    LengthPercentageOrAuto::Auto => None,
-                    LengthPercentageOrAuto::LengthPercentage(ref lp) => {
-                        lp.maybe_to_used_value(None)
-                    },
+                    Size::Auto => None,
+                    Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(None),
                 };
                 let size = size.or_else(|| match style.max_block_size() {
-                    LengthPercentageOrNone::None => None,
-                    LengthPercentageOrNone::LengthPercentage(ref lp) => {
-                        lp.maybe_to_used_value(None)
-                    },
+                    MaxSize::None => None,
+                    MaxSize::LengthPercentage(ref lp) => lp.maybe_to_used_value(None),
                 });
 
                 size.unwrap_or_else(|| {

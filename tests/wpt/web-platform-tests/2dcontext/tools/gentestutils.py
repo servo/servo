@@ -343,6 +343,8 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
 
         notes = '<p class="notes">%s' % test['notes'] if 'notes' in test else ''
 
+        timeout = '\n<meta name="timeout" content="%s">' % test['timeout'] if 'timeout' in test else ''
+
         scripts = ''
         for s in test.get('scripts', []):
             scripts += '<script src="%s"></script>\n' % (s)
@@ -385,7 +387,7 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
                 'mapped_name':mapped_name,
                 'desc':desc, 'escaped_desc':escaped_desc,
                 'prev':prev, 'next':next, 'refs':refs, 'notes':notes, 'images':images,
-                'fonts':fonts, 'fonthack':fonthack,
+                'fonts':fonts, 'fonthack':fonthack, 'timeout': timeout,
                 'canvas':canvas, 'expected':expectation_html, 'code':code,
                 'scripts':scripts + extra_script,
                 'fallback':fallback

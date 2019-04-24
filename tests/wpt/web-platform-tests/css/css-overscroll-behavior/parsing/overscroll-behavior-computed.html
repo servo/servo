@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overscroll Behavior: getComputedValue().overscrollBehavior*</title>
+<link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior/#overscroll-behavior-properties">
+<meta name="assert" content="overscroll-behavior-x computed value is as specified.">
+<meta name="assert" content="overscroll-behavior-y computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+for (let property of ["overscroll-behavior-x", "overscroll-behavior-y"]) {
+  test_computed_value(property, "contain");
+  test_computed_value(property, "none");
+  test_computed_value(property, "auto");
+}
+</script>
+</body>
+</html>

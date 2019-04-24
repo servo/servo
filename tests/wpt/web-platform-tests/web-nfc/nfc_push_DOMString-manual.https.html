@@ -21,17 +21,16 @@
 
 setup({ explicit_timeout: true });
 
-promise_test(t => {
-  return navigator.nfc.push(test_text_data)
-    .then(() => {
-      return new Promise(resolve => {
-        navigator.nfc.watch(message => resolve(message))
-      }).then((message) => {
-        for (let record of message.records) {
-          assert_equals(record.data, test_text_data);
-        }
-      });
-    });
-}, "Test that nfc.push succeeds when message is DOMString.");
+promise_test(async t => {
+  const writer = new NFCWriter();
+  const reader = new NFCReader();
+  await writer.push(test_text_data);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  reader.start();
+  const event = await readerWatcher.wait_for("reading");
+  for (let record of event.message.records) {
+    assert_equals(record.data, test_text_data);
+  }
+}, "Test that NFCWriter.push succeeds when message is DOMString.");
 
 </script>

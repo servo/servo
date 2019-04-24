@@ -125,29 +125,27 @@ promise_test(function () {
 
 test_with_window(function (contentWindow, contentDocument) {
     const element = define_custom_element_in_window(contentWindow, 'my-custom-element', []);
-    // document-open-steps spec doesn't match most browsers; see https://github.com/whatwg/html/issues/1698.
-    // However, as explained in https://github.com/whatwg/html/issues/1698#issuecomment-298748641
-    // the custom element registry will be replaced after document-open-steps.
+    // document-open-steps spec doesn't do anything with the custom element
+    // registry, so it should just stick around.
     contentDocument.write('<my-custom-element></my-custom-element>');
 
     var instance = contentDocument.querySelector('my-custom-element');
 
     assert_true(instance instanceof contentWindow.HTMLElement);
-    assert_false(instance instanceof element.class);
+    assert_true(instance instanceof element.class);
 
 }, 'document.write() must not instantiate a custom element without a defined insertion point');
 
 test_with_window(function (contentWindow, contentDocument) {
     const element = define_custom_element_in_window(contentWindow, 'my-custom-element', []);
-    // document-open-steps spec doesn't match most browsers; see https://github.com/whatwg/html/issues/1698.
-    // However, as explained in https://github.com/whatwg/html/issues/1698#issuecomment-298748641
-    // the custom element registry will be replaced after document-open-steps.
+    // document-open-steps spec doesn't do anything with the custom element
+    // registry, so it should just stick around.
     contentDocument.writeln('<my-custom-element></my-custom-element>');
 
     var instance = contentDocument.querySelector('my-custom-element');
 
     assert_true(instance instanceof contentWindow.HTMLElement);
-    assert_false(instance instanceof element.class);
+    assert_true(instance instanceof element.class);
 
 }, 'document.writeln() must not instantiate a custom element without a defined insertion point');
 

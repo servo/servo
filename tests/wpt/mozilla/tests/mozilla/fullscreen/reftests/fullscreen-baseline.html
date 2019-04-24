@@ -1,0 +1,18 @@
+<!doctype html>
+<head>
+  <meta charset=utf-8>
+  <title>Baseline fullscreen</title>
+  <link rel=match href=fullscreen-baseline-ref.html>
+  <style>
+    div { background: red; }
+    #it { background: green; }
+  </style>
+</head>
+<body>
+  <div>-1</div>
+  <div id="it">0</div>
+  <div>1</div>
+</body>
+<script>
+  document.getElementById("it").requestFullscreen();
+</script>

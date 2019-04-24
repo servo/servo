@@ -18,3 +18,5 @@ def main(request, response):
             response.headers.set("downlink-received", request.headers.get("downlink"))
     if "ect" in request.headers:
             response.headers.set("ect-received", request.headers.get("ect"))
+    if "Sec-CH-Lang" in request.headers:
+            response.headers.set("lang-received", request.headers.get("Sec-CH-Lang"))

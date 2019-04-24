@@ -2,7 +2,8 @@
 
 function assert_ArrayBuffer(actual, expected, message) {
   // https://github.com/WebAssembly/spec/issues/840
-  assert_equals(Object.getPrototypeOf(actual), ArrayBuffer.prototype,
+  const bufferType = expected.shared ? self.SharedArrayBuffer : ArrayBuffer;
+  assert_equals(Object.getPrototypeOf(actual), bufferType.prototype,
                 `${message}: prototype`);
   if (expected.detached) {
     // https://github.com/tc39/ecma262/issues/678
@@ -183,3 +184,29 @@ test(() => {
   assert_ArrayBuffer(oldMemory, { "detached": true }, "Old buffer after growing");
   assert_ArrayBuffer(newMemory, { "size": 2 }, "New buffer after growing");
 }, "Stray argument");
+
+test(() => {
+  const argument = { "initial": 1, "maximum": 2, "shared": true };
+  const memory = new WebAssembly.Memory(argument);
+  const oldMemory = memory.buffer;
+  assert_ArrayBuffer(oldMemory, { "size": 1, "shared": true }, "Buffer before growing");
+
+  const result = memory.grow(1);
+  assert_equals(result, 1);
+
+  const newMemory = memory.buffer;
+  assert_not_equals(oldMemory, newMemory);
+  assert_ArrayBuffer(oldMemory, { "size": 1, "shared": true }, "Old buffer after growing");
+  assert_ArrayBuffer(newMemory, { "size": 2, "shared": true }, "New buffer after growing");
+
+  // The old and new buffers must have the same value for the
+  // [[ArrayBufferData]] internal slot.
+  const oldArray = new Uint8Array(oldMemory);
+  const newArray = new Uint8Array(newMemory);
+  assert_equals(oldArray[0], 0, "old first element");
+  assert_equals(newArray[0], 0, "new first element");
+  oldArray[0] = 1;
+  assert_equals(oldArray[0], 1, "old first element");
+  assert_equals(newArray[0], 1, "new first element");
+
+}, "Growing shared memory does not detach old buffer");

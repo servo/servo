@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    function forwardMessage(e) {
+      let broadcastChannel = new BroadcastChannel(new URL(location).searchParams.get('broadcastchannel'));
+      try {
+        broadcastChannel.postMessage(e.data);
+      } finally {
+        broadcastChannel.close();
+      }
+    }
+    window.addEventListener("message", forwardMessage);
+  </script>
+</body>

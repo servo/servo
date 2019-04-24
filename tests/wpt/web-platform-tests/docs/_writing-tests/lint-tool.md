@@ -21,7 +21,7 @@ you must either [fix all lint errors](#fixing-lint-errors), or you must
 You must fix any errors the lint tool reports, unless an error is for
 something essential to a certain test or that for some other
 exceptional reason shouldn't prevent the test from being merged; in
-those cases you can [whitelist test files](#updating-the-whiteslist)
+those cases you can [whitelist test files](#updating-the-whitelist)
 to suppress the errors. In all other cases, follow the instructions
 below to fix all errors reported.
 

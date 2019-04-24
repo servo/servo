@@ -10,6 +10,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepadlist::GamepadList;
+use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mimetypearray::MimeTypeArray;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
@@ -29,6 +30,7 @@ pub struct Navigator {
     mime_types: MutNullableDom<MimeTypeArray>,
     service_worker: MutNullableDom<ServiceWorkerContainer>,
     xr: MutNullableDom<XR>,
+    mediadevices: MutNullableDom<MediaDevices>,
     gamepads: MutNullableDom<GamepadList>,
     permissions: MutNullableDom<Permissions>,
 }
@@ -42,6 +44,7 @@ impl Navigator {
             mime_types: Default::default(),
             service_worker: Default::default(),
             xr: Default::default(),
+            mediadevices: Default::default(),
             gamepads: Default::default(),
             permissions: Default::default(),
         }
@@ -147,8 +150,9 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
+    #[allow(unsafe_code)]
     fn GetVRDisplays(&self) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let displays = self.Xr().get_displays();
         match displays {
             Ok(displays) => promise.resolve_native(&displays),
@@ -160,5 +164,11 @@ impl NavigatorMethods for Navigator {
     /// https://immersive-web.github.io/webxr/#dom-navigator-xr
     fn Xr(&self) -> DomRoot<XR> {
         self.xr.or_init(|| XR::new(&self.global()))
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices
+    fn MediaDevices(&self) -> DomRoot<MediaDevices> {
+        self.mediadevices
+            .or_init(|| MediaDevices::new(&self.global()))
     }
 }

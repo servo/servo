@@ -4,10 +4,8 @@
 
 //! Animation implementation for various length-related types.
 
-use super::{Animate, Procedure, ToAnimatedValue};
+use super::{Animate, Procedure};
 use crate::values::computed::length::LengthPercentage;
-use crate::values::computed::MaxLength as ComputedMaxLength;
-use crate::values::computed::MozLength as ComputedMozLength;
 use crate::values::computed::Percentage;
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
@@ -36,53 +34,5 @@ impl Animate for LengthPercentage {
             self.clamping_mode,
             is_calc,
         ))
-    }
-}
-
-// FIXME(emilio): These should use NonNegative<> instead.
-impl ToAnimatedValue for ComputedMaxLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use crate::values::computed::LengthPercentageOrNone;
-        use crate::values::generics::length::MaxLength as GenericMaxLength;
-        match animated {
-            GenericMaxLength::LengthPercentageOrNone(lpn) => {
-                let result = match lpn {
-                    LengthPercentageOrNone::LengthPercentage(len) => {
-                        LengthPercentageOrNone::LengthPercentage(len.clamp_to_non_negative())
-                    },
-                    LengthPercentageOrNone::None => lpn,
-                };
-                GenericMaxLength::LengthPercentageOrNone(result)
-            },
-            _ => animated,
-        }
-    }
-}
-
-impl ToAnimatedValue for ComputedMozLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use crate::values::generics::length::MozLength as GenericMozLength;
-        match animated {
-            GenericMozLength::LengthPercentageOrAuto(lpa) => {
-                GenericMozLength::LengthPercentageOrAuto(lpa.clamp_to_non_negative())
-            },
-            _ => animated,
-        }
     }
 }

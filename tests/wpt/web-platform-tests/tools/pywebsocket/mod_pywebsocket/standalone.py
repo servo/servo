@@ -369,7 +369,7 @@ def _alias_handlers(dispatcher, websock_handlers_map_file):
         for line in fp:
             if line[0] == '#' or line.isspace():
                 continue
-            m = re.match('(\S+)\s+(\S+)', line)
+            m = re.match(r'(\S+)\s+(\S+)', line)
             if not m:
                 logging.warning('Wrong format in map file:' + line)
                 continue

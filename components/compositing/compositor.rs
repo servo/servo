@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
+use crate::compositor_thread::CompositorReceiver;
 use crate::compositor_thread::{InitialCompositorState, Msg};
 #[cfg(feature = "gl")]
 use crate::gl;
@@ -41,8 +41,11 @@ use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
+use webrender_api::{
+    self, DeviceIntPoint, DevicePoint, FramebufferIntSize, HitTestFlags, HitTestResult,
+};
 use webrender_api::{LayoutVector2D, ScrollLocation};
+use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -176,6 +179,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The webrender interface, if enabled.
     webrender_api: webrender_api::RenderApi,
 
+    /// Some VR displays want to be sent a heartbeat from the main thread.
+    webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
+
     /// Map of the pending paint metrics per layout thread.
     /// The layout thread for each specific pipeline expects the compositor to
     /// paint frames with specific given IDs (epoch). Once the compositor paints
@@ -249,45 +255,6 @@ enum CompositeTarget {
     PngFile,
 }
 
-#[derive(Clone)]
-pub struct RenderNotifier {
-    compositor_proxy: CompositorProxy,
-}
-
-impl RenderNotifier {
-    pub fn new(compositor_proxy: CompositorProxy) -> RenderNotifier {
-        RenderNotifier {
-            compositor_proxy: compositor_proxy,
-        }
-    }
-}
-
-impl webrender_api::RenderNotifier for RenderNotifier {
-    fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
-        Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
-    }
-
-    fn wake_up(&self) {
-        self.compositor_proxy
-            .recomposite(CompositingReason::NewWebRenderFrame);
-    }
-
-    fn new_frame_ready(
-        &self,
-        _document_id: webrender_api::DocumentId,
-        scrolled: bool,
-        composite_needed: bool,
-        _render_time_ns: Option<u64>,
-    ) {
-        if scrolled {
-            self.compositor_proxy
-                .send(Msg::NewScrollFrameReady(composite_needed));
-        } else {
-            self.wake_up();
-        }
-    }
-}
-
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState) -> Self {
         let composite_target = match opts::get().output_file {
@@ -322,6 +289,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
+            webvr_heartbeats: state.webvr_heartbeats,
             pending_paint_metrics: HashMap::new(),
         }
     }
@@ -609,10 +577,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
 
-        self.webrender_api.set_window_parameters(
+        self.webrender_api.set_document_view(
             self.webrender_document,
-            self.embedder_coordinates.framebuffer,
-            self.embedder_coordinates.viewport,
+            self.embedder_coordinates.get_flipped_viewport(),
             self.embedder_coordinates.hidpi_factor.get(),
         );
 
@@ -646,9 +613,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.update_zoom_transform();
         }
 
-        if self.embedder_coordinates.viewport == old_coords.viewport &&
-            self.embedder_coordinates.framebuffer == old_coords.framebuffer
-        {
+        if self.embedder_coordinates.viewport == old_coords.viewport {
             return;
         }
 
@@ -958,7 +923,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 pipeline_ids.push(*pipeline_id);
             }
         }
-        let animation_state = if pipeline_ids.is_empty() {
+        let animation_state = if pipeline_ids.is_empty() && !self.webvr_heartbeats_racing() {
             windowing::AnimationState::Idle
         } else {
             windowing::AnimationState::Animating
@@ -967,6 +932,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for pipeline_id in &pipeline_ids {
             self.tick_animations_for_pipeline(*pipeline_id)
         }
+    }
+
+    fn webvr_heartbeats_racing(&self) -> bool {
+        self.webvr_heartbeats.iter().any(|hb| hb.heart_racing())
     }
 
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
@@ -1233,11 +1202,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             || {
                 debug!("compositor: compositing");
 
+                let size = FramebufferIntSize::from_untyped(
+                    &self.embedder_coordinates.framebuffer.to_untyped(),
+                );
+
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
-                self.webrender
-                    .render(self.embedder_coordinates.framebuffer)
-                    .ok();
+                self.clear_background();
+                self.webrender.render(size).ok();
             },
         );
 
@@ -1343,6 +1315,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
+    fn clear_background(&self) {
+        let gl = self.window.gl();
+
+        // Make framebuffer fully transparent.
+        gl.clear_color(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+
+        // Make the viewport white.
+        let viewport = self.embedder_coordinates.get_flipped_viewport();
+        gl.scissor(
+            viewport.origin.x,
+            viewport.origin.y,
+            viewport.size.width,
+            viewport.size.height,
+        );
+        gl.clear_color(1.0, 1.0, 1.0, 1.0);
+        gl.enable(gleam::gl::SCISSOR_TEST);
+        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+        gl.disable(gleam::gl::SCISSOR_TEST);
+    }
+
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {
         self.root_pipeline.as_ref().map(|pipeline| pipeline.id)
     }
@@ -1382,6 +1375,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.composition_request {
             CompositionRequest::NoCompositingNecessary => {},
             CompositionRequest::CompositeNow(_) => self.composite(),
+        }
+
+        // Send every VR display that wants one a main-thread heartbeat
+        for webvr_heartbeat in &mut self.webvr_heartbeats {
+            webvr_heartbeat.heartbeat();
         }
 
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {

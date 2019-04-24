@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Layout Jank: observe jank fraction via PerformanceObserver</title>
+<body>
+<style>
+#myDiv { position: relative; width: 300px; height: 100px; }
+</style>
+<div id='myDiv'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(function (t) {
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        assert_equals(entry.entryType, "layoutJank");
+        assert_equals(entry.name, "");
+        assert_equals(entry.startTime, 0.0);
+        assert_equals(entry.duration, 0.0);
+        // The layout jank fraction should be: 300 * (100 + 60) / viewport size.
+        assert_equals(entry.fraction, 300 * (100 + 60) /
+          (document.documentElement.clientWidth * document.documentElement.clientHeight));
+      })
+    );
+    observer.observe({entryTypes: ['layoutJank']});
+    window.onload = () => {
+      // Modify the position of the div.
+      document.getElementById('myDiv').style = "top: 60px";
+    };
+  }, 'LayoutJank is observable via PerformanceObserver.');
+</script>
+
+</body>

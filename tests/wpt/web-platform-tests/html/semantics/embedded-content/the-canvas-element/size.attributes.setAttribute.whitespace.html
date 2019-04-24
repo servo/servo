@@ -19,13 +19,13 @@
 var t = async_test("Parsing of non-negative integers in setAttribute");
 _addTest(function(canvas, ctx) {
 
-canvas.setAttribute('width', '\n\t\x0c100');
-canvas.setAttribute('height', '\n\t\x0c100');
+canvas.setAttribute('width', '\r\n\t\x0c100');
+canvas.setAttribute('height', '\r\n\t\x0c100');
 _assertSame(canvas.width, 100, "canvas.width", "100");
 _assertSame(canvas.height, 100, "canvas.height", "100");
 _assertSame(window.getComputedStyle(canvas, null).getPropertyValue("width"), "100px", "window.getComputedStyle(canvas, null).getPropertyValue(\"width\")", "\"100px\"");
-_assertSame(canvas.getAttribute('width'), '\n\t\x0c100', "canvas.getAttribute('width')", "'\\n\\t\\x0c100'");
-_assertSame(canvas.getAttribute('height'), '\n\t\x0c100', "canvas.getAttribute('height')", "'\\n\\t\\x0c100'");
+_assertSame(canvas.getAttribute('width'), '\r\n\t\x0c100', "canvas.getAttribute('width')", "'\\r\\n\\t\\x0c100'");
+_assertSame(canvas.getAttribute('height'), '\r\n\t\x0c100', "canvas.getAttribute('height')", "'\\r\\n\\t\\x0c100'");
 
 
 });

@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::OfflineAudioCompletionEventBinding:
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
@@ -59,7 +59,7 @@ impl OfflineAudioCompletionEvent {
             Atom::from(type_),
             bubbles,
             cancelable,
-            init.renderedBuffer.r(),
+            &init.renderedBuffer,
         ))
     }
 }

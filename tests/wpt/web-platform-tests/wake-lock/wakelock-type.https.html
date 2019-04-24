@@ -7,22 +7,32 @@
 
 <script>
 
-promise_test(async t => {
-  const wakeLock = await navigator.getWakeLock("screen");
+test(() => {
+  const wakeLock = new WakeLock("screen");
   assert_equals(wakeLock.type, "screen");
 }, "Test that wakeLock.type is 'screen' when screen wake lock is invoked");
 
-promise_test(async t => {
-  const wakeLock = await navigator.getWakeLock("system");
+test(() => {
+  const wakeLock = new WakeLock("system");
   assert_equals(wakeLock.type, "system");
 }, "Test that wakeLock.type is 'system' when system wake lock is invoked");
 
-promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.getWakeLock());
+test(() => {
+  assert_throws(new TypeError(), () => new WakeLock());
 }, "'TypeError' is thrown when set an empty wake lock type");
 
-promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.getWakeLock("unsupported"));
-}, "'TypeError' is thrown when set an unsupported wake lock type");
+test(() => {
+  const invalidTypes = [
+    "invalid",
+    null,
+    123,
+    {},
+    "",
+    true
+  ];
+  invalidTypes.map(invalidType => {
+    assert_throws(new TypeError(), () => new WakeLock(invalidType));
+  })
+}, "'TypeError' is thrown when set an invalid wake lock type");
 
 </script>

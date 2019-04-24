@@ -4,7 +4,7 @@
     <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#RectElement"/>
     <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#CircleElement"/>
     <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#EllipseElement"/>
-    <h:link rel="match" href="support/empty.svg"/>
+    <h:link rel="match" href="reference/empty.svg"/>
   </metadata>
   <g stroke="red" stroke-width="100">
     <g transform="translate(50, 50)">

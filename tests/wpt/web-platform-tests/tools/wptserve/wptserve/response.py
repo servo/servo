@@ -8,7 +8,7 @@ from .constants import response_codes, h2_headers
 from .logger import get_logger
 from io import BytesIO
 
-from six import binary_type, text_type, itervalues
+from six import binary_type, text_type, integer_types, itervalues, PY3
 from hyperframe.frame import HeadersFrame, DataFrame, ContinuationFrame
 from hpack.struct import HeaderTuple
 
@@ -113,10 +113,10 @@ class Response(object):
                         time or interval from now when the cookie expires
 
         """
-        days = dict((i+1, name) for i, name in enumerate(["jan", "feb", "mar",
-                                                          "apr", "may", "jun",
-                                                          "jul", "aug", "sep",
-                                                          "oct", "nov", "dec"]))
+        days = {i+1: name for i, name in enumerate(["jan", "feb", "mar",
+                                                    "apr", "may", "jun",
+                                                    "jul", "aug", "sep",
+                                                    "oct", "nov", "dec"])}
         if value is None:
             value = ''
             max_age = 0
@@ -157,6 +157,8 @@ class Response(object):
         cookies = self.headers.get("Set-Cookie")
         parser = BaseCookie()
         for cookie in cookies:
+            if PY3:
+                cookie = cookie.decode("iso-8859-1")
             parser.load(cookie)
 
         if name in parser.keys():
@@ -237,18 +239,18 @@ class MultipartContent(object):
     def __init__(self, boundary=None, default_content_type=None):
         self.items = []
         if boundary is None:
-            boundary = str(uuid.uuid4())
+            boundary = text_type(uuid.uuid4())
         self.boundary = boundary
         self.default_content_type = default_content_type
 
     def __call__(self):
-        boundary = "--" + self.boundary
-        rv = ["", boundary]
+        boundary = b"--" + self.boundary.encode("ascii")
+        rv = [b"", boundary]
         for item in self.items:
-            rv.append(str(item))
+            rv.append(item.to_bytes())
             rv.append(boundary)
-        rv[-1] += "--"
-        return "\r\n".join(rv)
+        rv[-1] += b"--"
+        return b"\r\n".join(rv)
 
     def append_part(self, data, content_type=None, headers=None):
         if content_type is None:
@@ -265,6 +267,7 @@ class MultipartContent(object):
 
 class MultipartPart(object):
     def __init__(self, data, content_type=None, headers=None):
+        assert isinstance(data, binary_type), data
         self.headers = ResponseHeaders()
 
         if content_type is not None:
@@ -272,7 +275,7 @@ class MultipartPart(object):
 
         if headers is not None:
             for name, value in headers:
-                if name.lower() == "content-type":
+                if name.lower() == b"content-type":
                     func = self.headers.set
                 else:
                     func = self.headers.append
@@ -280,13 +283,36 @@ class MultipartPart(object):
 
         self.data = data
 
-    def __str__(self):
+    def to_bytes(self):
         rv = []
-        for item in self.headers:
-            rv.append("%s: %s" % item)
-        rv.append("")
+        for key, value in self.headers:
+            assert isinstance(key, binary_type)
+            assert isinstance(value, binary_type)
+            rv.append(b"%s: %s" % (key, value))
+        rv.append(b"")
         rv.append(self.data)
-        return "\r\n".join(rv)
+        return b"\r\n".join(rv)
+
+
+def _maybe_encode(s):
+    """Encodes a text-type string into binary data using iso-8859-1.
+
+    Returns `str` in Python 2 and `bytes` in Python 3. The function is a no-op
+    if the argument already has a binary type.
+    """
+    if isinstance(s, binary_type):
+        return s
+
+    # Python 3 assumes iso-8859-1 when parsing headers, which will garble text
+    # with non ASCII characters. We try to encode the text back to binary.
+    # https://github.com/python/cpython/blob/273fc220b25933e443c82af6888eb1871d032fb8/Lib/http/client.py#L213
+    if isinstance(s, text_type):
+        return s.encode("iso-8859-1")
+
+    if isinstance(s, integer_types):
+        return b"%i" % (s,)
+
+    raise TypeError("Unexpected value in ResponseHeaders: %r" % s)
 
 
 class ResponseHeaders(object):
@@ -301,6 +327,8 @@ class ResponseHeaders(object):
         :param key: Name of the header to set
         :param value: Value to set the header to
         """
+        key = _maybe_encode(key)
+        value = _maybe_encode(value)
         self.data[key.lower()] = (key, [value])
 
     def append(self, key, value):
@@ -310,6 +338,8 @@ class ResponseHeaders(object):
         :param key: Name of the header to add
         :param value: Value to set for the header
         """
+        key = _maybe_encode(key)
+        value = _maybe_encode(value)
         if key.lower() in self.data:
             self.data[key.lower()][1].append(value)
         else:
@@ -317,6 +347,7 @@ class ResponseHeaders(object):
 
     def get(self, key, default=missing):
         """Get the set values for a particular header."""
+        key = _maybe_encode(key)
         try:
             return self[key]
         except KeyError:
@@ -328,12 +359,15 @@ class ResponseHeaders(object):
         """Get a list of values for a particular header
 
         """
+        key = _maybe_encode(key)
         return self.data[key.lower()][1]
 
     def __delitem__(self, key):
+        key = _maybe_encode(key)
         del self.data[key.lower()]
 
     def __contains__(self, key):
+        key = _maybe_encode(key)
         return key.lower() in self.data
 
     def __setitem__(self, key, value):
@@ -623,6 +657,9 @@ class ResponseWriter(object):
         self.file_chunk_size = 32 * 1024
         self.default_status = 200
 
+    def _seen_header(self, name):
+        return self.encode(name.lower()) in self._headers_seen
+
     def write_status(self, code, message=None):
         """Write out the status line of a response.
 
@@ -648,19 +685,25 @@ class ResponseWriter(object):
         """
         if not self._status_written:
             self.write_status(self.default_status)
-        self._headers_seen.add(name.lower())
-        self.write("%s: %s\r\n" % (name, value))
+        self._headers_seen.add(self.encode(name.lower()))
+        self.write(name)
+        self.write(b": ")
+        if isinstance(value, int):
+            self.write(text_type(value))
+        else:
+            self.write(value)
+        self.write(b"\r\n")
         if not self._response.explicit_flush:
             self.flush()
 
     def write_default_headers(self):
         for name, f in [("Server", self._handler.version_string),
                         ("Date", self._handler.date_time_string)]:
-            if name.lower() not in self._headers_seen:
+            if not self._seen_header(name):
                 self.write_header(name, f())
 
         if (isinstance(self._response.content, (binary_type, text_type)) and
-            "content-length" not in self._headers_seen):
+            not self._seen_header("content-length")):
             #Would be nice to avoid double-encoding here
             self.write_header("Content-Length", len(self.encode(self._response.content)))
 
@@ -675,7 +718,7 @@ class ResponseWriter(object):
             self.write_default_headers()
 
         self.write("\r\n")
-        if "content-length" not in self._headers_seen:
+        if not self._seen_header("content-length"):
             self._response.close_connection = True
         if not self._response.explicit_flush:
             self.flush()
@@ -735,7 +778,7 @@ class ResponseWriter(object):
         elif isinstance(data, text_type):
             return data.encode(self._response.encoding)
         else:
-            raise ValueError
+            raise ValueError("data %r should be text or binary, but is %s" % (data, type(data)))
 
     def flush(self):
         """Flush the output. Returns False if the flush failed due to

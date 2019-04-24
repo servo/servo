@@ -302,6 +302,10 @@ textarea { white-space: pre-wrap; }
 
   /* intentionally not !important */
   object-fit:contain;
+
+  /* The internal-only -servo-top-layer property is used
+     to implement https://fullscreen.spec.whatwg.org/#top-layer */
+  -servo-top-layer: top;
 }
 
 iframe:fullscreen {

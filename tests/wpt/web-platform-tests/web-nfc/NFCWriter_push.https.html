@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: Test exceptions in NFCWriter.push</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc_help.js"></script>
+
+<div id="log"></div>
+
+<script>
+
+"use strict";
+
+const invalid_type_messages =
+    [
+      // Invalid NDEFMessageSource type
+      undefined,
+
+      // NDEFMessage.records: should have at least 1 valid record.
+      // https://w3c.github.io/web-nfc/#the-push-method - Step 8.
+      createMessage([{}]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-text-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createTextRecord()]),
+
+      // NDEFRecord.data for 'text' record must be number or string.
+      createMessage([createTextRecord(test_buffer_data)]),
+      createMessage([createTextRecord(test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-a-json-object-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createJsonRecord()]),
+
+      // NDEFRecord.data for 'json' record must be object.
+      createMessage([createJsonRecord(test_buffer_data)]),
+      createMessage([createJsonRecord(test_number_data)]),
+      createMessage([createJsonRecord(test_text_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-a-url-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createUrlRecord()]),
+
+      // NDEFRecord.data for 'url' record must be string.
+      createMessage([createUrlRecord(test_buffer_data)]),
+      createMessage([createUrlRecord(test_number_data)]),
+      createMessage([createUrlRecord(test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-binary-data-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createOpaqueRecord()]),
+
+      // NDEFRecord.data for 'opaque' record must be ArrayBuffer.
+      createMessage([createOpaqueRecord(test_text_data)]),
+      createMessage([createOpaqueRecord(test_number_data)]),
+      createMessage([createOpaqueRecord(test_json_data)])
+    ];
+
+const invalid_syntax_messages =
+    [
+      // NDEFRecord.mediaType for 'text' record must be 'text/*'.
+      createMessage([createRecord('text', 'application/json',
+          test_number_data)]),
+
+      // Data for 'url' record, must be a valid URL.
+      createMessage([createUrlRecord('Invalid URL:// Data')]),
+
+      // NDEFRecord.mediaType for 'json' record must be 'application/json' or
+      // starts with 'application/' and ends with '+json'.
+      createMessage([createRecord('json', 'image/png', test_json_data)]),
+      createMessage([createRecord('json', 'application/x+y', test_json_data)]),
+      createMessage([createRecord('json', 'custom/app+json', test_json_data)]),
+    ];
+
+const invalid_signals = [
+  "string",
+  123,
+  {},
+  true,
+  Symbol(),
+  () => {},
+  self
+]
+
+const non_strings = [
+  123,
+  {},
+  true,
+  Symbol(),
+  () => {},
+  self
+]
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  invalid_type_messages.forEach(message => {
+    promises.push(
+      promise_rejects(t, new TypeError(), writer.push(message)));
+  });
+  return Promise.all(promises);
+}, "Test that promise is rejected with TypeError if NDEFMessageSource is invalid.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  invalid_syntax_messages.forEach(message => {
+    promises.push(
+      promise_rejects(t, 'SyntaxError', writer.push(message)));
+  });
+  return Promise.all(promises);
+}, "'Test that promise is rejected with SyntaxError if NDEFMessageSource contains invalid records.");
+
+promise_test(async t => {
+  const writer = new NFCWriter();
+  const controller = new AbortController();
+  const p = writer.push(test_text_data, { signal: controller.signal });
+  const rejected = promise_rejects(t, 'AbortError', p);
+  let callback_called = false;
+  t.step_timeout(() => {
+    callback_called = true;
+    controller.abort();
+  }, 10);
+  await rejected;
+  assert_true(callback_called, 'timeout should have caused the abort');
+}, "NFCWriter.push should fail if abort push request before push happends.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const controller = new AbortController();
+  assert_false(controller.signal.aborted);
+  controller.abort();
+  assert_true(controller.signal.aborted);
+  return promise_rejects(t, 'AbortError', writer.push(test_text_data, { signal: controller.signal }));
+}, "NFCWriter.push should fail if signal's aborted flag is set.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  invalid_signals.forEach(invalid_signal => {
+    promises.push(
+      promise_rejects(t, 'TypeError', writer.push(test_text_data, { signal: invalid_signal })));
+  });
+  return Promise.all(promises);
+}, "NFCWriter.push should fail if signal is not an AbortSignal.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  return promise_rejects(t, new TypeError(), writer.push(test_text_data, { timeout: "invalid"}));
+}, "NFCWriter.push should fail with TypeError when invalid timeout is provided.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  return promise_rejects(t, new TypeError(), writer.push(test_text_data, { timeout: -1 }));
+}, "NFCWriter.push should fail with TypeError when invalid negative timeout value is provided.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  return promise_rejects(t, 'TimeoutError', writer.push(test_text_data, { timeout: 1 }));
+}, "NFCWriter.push should fail with TimeoutError when timer expires.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  return promise_rejects(t, 'NotSupportedError', writer.push(new ArrayBuffer(32 * 1024 + 1)));
+}, "Reject promise with NotSupportedError if NFC message size exceeds 32KB.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const message = createMessage([createTextRecord(test_text_data)]);
+  message.url = '%00/invalid/ path';
+  return promise_rejects(t, 'SyntaxError', writer.push(message));
+}, "Reject promise with SyntaxError if WebNFC Id cannot be created from provided URL.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const message = createMessage([createRecord('json','application/json',
+      { get x(){ return this; } })]);
+  return promise_rejects(t, 'SyntaxError', writer.push(message));
+}, "Reject promise with SyntaxError if 'json' record cannot be serialized.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  return promise_rejects(t, new TypeError(), writer.push(test_text_data, {target: "invalid"}));
+}, "NFCWriter.push should fail with TypeError when invalid target value is provided.");
+
+promise_test(() => {
+  return new Promise((resolve,reject) => {
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = `<script>
+                      window.onmessage = message => {
+                        if (message.data === "Ready") {
+                          const onSuccess = () => { parent.postMessage("Failure", "*"); };
+                          const onError = error => {
+                            if (error.name == "SecurityError") {
+                              parent.postMessage("Success", "*");
+                            } else {
+                              parent.postMessage("Failure", "*");
+                            }
+                          };
+                          try {
+                            const writer = new NFCWriter();
+                            writer.push("Test").then(onSuccess, onError);
+                          } catch(e) {
+                            parent.postMessage("Failure", "*");
+                          }
+                        }
+                      };
+                    <\/script>`;
+    iframe.onload = () => iframe.contentWindow.postMessage('Ready', '*');
+    document.body.appendChild(iframe);
+    window.onmessage = message => {
+      if (message.data == 'Success') {
+        resolve();
+      } else if (message.data == 'Failure') {
+        reject();
+      }
+    }
+  });
+}, 'Test that WebNFC API is not accessible from iframe context.');
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  non_strings.forEach(invalid_url => {
+    promises.push(
+      promise_rejects(t, new TypeError(), writer.push({
+        url: invalid_url,
+        records: [{ recordType: "text", data: 'Hello World' }]
+      }));
+    );
+  });
+  return Promise.all(promises);
+}, "Test that promise is rejected with TypeError if NDEFMessageSource contains non-string url.");
+
+promise_test(t => {
+  const writer = new NFCWriter();
+  const promises = [];
+  non_strings.forEach(invalid_serialNumber => {
+    promises.push(
+      promise_rejects(t, new TypeError(), writer.push({
+        serialNumber: invalid_serialNumber,
+        records: [{ recordType: "text", data: 'Hello World' }]
+      }));
+    );
+  });
+  return Promise.all(promises);
+}, "Test that promise is rejected with TypeError if NDEFMessageSource contains non-string serialNumber.");
+
+</script>

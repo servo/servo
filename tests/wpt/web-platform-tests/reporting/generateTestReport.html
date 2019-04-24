@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Reporting: Generate Test Report</title>
+<link rel="author" title="Paul Meyer" href="paulmeyer@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  // Test that the "generate_test_report" API works.
+  async_test(function(test) {
+    var observer = new ReportingObserver(function(reports) {
+      test.step(function() {
+        assert_equals(reports.length, 1);
+        // Ensure that the contents of the report are valid.
+        assert_equals(reports[0].type, "test");
+        assert_true(reports[0].url.endsWith("reporting/generateTestReport.html"));
+        assert_equals(reports[0].body.message, "Test message.");
+      });
+      test.done();
+    });
+    observer.observe();
+
+    // This should result in a "test" type report being generated and observed.
+    test_driver.generate_test_report("Test message.");
+  }, "Generate Test Report");
+</script>

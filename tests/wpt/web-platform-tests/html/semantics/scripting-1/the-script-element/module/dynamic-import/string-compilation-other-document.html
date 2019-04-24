@@ -26,14 +26,6 @@ function startTest() {
     "the Function constructor"(x) {
       otherWindow.Function(x)();
     },
-    "reflected inline event handlers"(x) {
-      otherDiv.setAttribute("onclick", x);
-      otherDiv.onclick();
-    },
-    "inline event handlers triggered by JS"(x) {
-      otherDiv.setAttribute("onclick", x);
-      otherDiv.click(); // different from .**on**click()
-    }
   };
 
   for (const [label, evaluator] of Object.entries(evaluators)) {
@@ -46,6 +38,35 @@ function startTest() {
       const promise = createTestPromise();
 
       evaluator(`import('../imports-a.js?label=${label}').then(window.continueTest, window.errorTest);`);
+
+      return promise.then(module => {
+        assert_true(otherWindow.evaluated_imports_a, "The module must have been evaluated");
+        assert_equals(module.A.from, "imports-a.js", "The module namespace object must be correct");
+      });
+    }, label + " should successfully import");
+  };
+
+  const eventHandlerEvaluators = {
+    "reflected inline event handlers"(x) {
+      otherDiv.setAttribute("onclick", x);
+      otherDiv.onclick();
+    },
+    "inline event handlers triggered by JS"(x) {
+      otherDiv.setAttribute("onclick", x);
+      otherDiv.click(); // different from .**on**click()
+    }
+  };
+
+  for (const [label, evaluator] of Object.entries(eventHandlerEvaluators)) {
+    promise_test(t => {
+      t.add_cleanup(() => {
+        otherDiv.removeAttribute("onclick");
+        delete otherWindow.evaluated_imports_a;
+      });
+
+      const promise = createTestPromise();
+
+      evaluator(`import('../../imports-a.js?label=${label}').then(window.continueTest, window.errorTest);`);
 
       return promise.then(module => {
         assert_true(otherWindow.evaluated_imports_a, "The module must have been evaluated");

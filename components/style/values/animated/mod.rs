@@ -16,7 +16,7 @@ use crate::values::computed::Image;
 use crate::values::specified::SVGPathData;
 use crate::values::CSSFloat;
 use app_units::Au;
-use euclid::{Point2D, Size2D};
+use euclid::Point2D;
 use smallvec::SmallVec;
 use std::cmp;
 
@@ -241,19 +241,6 @@ impl Animate for Au {
     }
 }
 
-impl<T> Animate for Size2D<T>
-where
-    T: Animate,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Size2D::new(
-            self.width.animate(&other.width, procedure)?,
-            self.height.animate(&other.height, procedure)?,
-        ))
-    }
-}
-
 impl<T> Animate for Point2D<T>
 where
     T: Animate,
@@ -397,16 +384,13 @@ where
     }
 }
 
-impl<T> ToAnimatedZero for Size2D<T>
+impl<T> ToAnimatedZero for Vec<T>
 where
     T: ToAnimatedZero,
 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(Size2D::new(
-            self.width.to_animated_zero()?,
-            self.height.to_animated_zero()?,
-        ))
+        self.iter().map(|v| v.to_animated_zero()).collect()
     }
 }
 

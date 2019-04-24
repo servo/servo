@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: backingStore getter</title>
+<!-- See https://github.com/WICG/kv-storage/issues/45 -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { storage } from "std:kv-storage";
+
+test(() => {
+  assert_equals(storage.backingStore, storage.backingStore);
+}, "backingStore must return the same object each time");
+
+test(() => {
+  assert_true(Object.isFrozen(storage.backingStore));
+}, "backingStore must be a frozen object");
+
+test(() => {
+  const { backingStore } = storage;
+  assert_array_equals(Object.keys(backingStore), ["database", "store", "version"], "property names");
+  assert_array_equals(Object.getOwnPropertySymbols(backingStore), [], "no symbols")
+  assert_own_property(backingStore, "database");
+  assert_own_property(backingStore, "store");
+  assert_own_property(backingStore, "version");
+  assert_equals(Object.getPrototypeOf(backingStore), Object.prototype);
+
+  assert_equals(backingStore.database, "kv-storage:default");
+  assert_equals(backingStore.store, "store");
+  assert_equals(backingStore.version, 1);
+}, "backingStore object must have the right shape");
+</script>

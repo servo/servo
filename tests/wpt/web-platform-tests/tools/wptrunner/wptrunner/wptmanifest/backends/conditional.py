@@ -205,7 +205,7 @@ class ManifestItem(object):
         self._data = {}
 
     def __repr__(self):
-        return "<ManifestItem %s>" % (self.node.data)
+        return "<conditional.ManifestItem %s>" % (self.node.data)
 
     def __str__(self):
         rv = [repr(self)]
@@ -341,6 +341,8 @@ class ManifestItem(object):
             yield item
 
     def remove_value(self, key, value):
+        if key not in self._data:
+            return
         try:
             self._data[key].remove(value)
         except ValueError:

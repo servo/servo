@@ -1,6 +1,7 @@
 {
     "run": {"path": "run.py", "script": "run", "parser": "create_parser", "help": "Run tests in a browser",
-            "virtualenv": true, "install": ["requests"], "requirements": ["../wptrunner/requirements.txt"]},
+            "virtualenv": true, "install": ["requests", "zstandard"],
+            "requirements": ["../wptrunner/requirements.txt"]},
     "create": {"path": "create.py", "script": "run", "parser": "get_parser", "help": "Create a new wpt test"},
     "update-expectations": {"path": "update.py", "script": "update_expectations",
                             "parser": "create_parser_update", "help": "Update expectations files from raw logs.",

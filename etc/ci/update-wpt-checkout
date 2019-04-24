@@ -10,8 +10,10 @@ set -o pipefail
 
 REMOTE_NAME=sync-fork
 LOG_FILE=test-wpt.log
+BLUETOOTH_LOG_FILE=test-wpt-bluetooth.log
 CURRENT_DATE=$(date +"%d-%m-%Y")
-BRANCH_NAME="wpt_update_${CURRENT_DATE}"
+BRANCH_NAME="wpt_update"
+REMOTE_BRANCH_NAME="wpt_update_${CURRENT_DATE}"
 
 export GIT_AUTHOR_NAME="WPT Sync Bot"
 export GIT_AUTHOR_EMAIL="josh+wptsync@joshmatthews.net"
@@ -63,12 +65,16 @@ function unsafe_run_tests() {
     # Run the full testsuite and record the new test results.
     ./mach test-wpt --release --processes 6 --log-raw "${1}" \
            --always-succeed || return 1
+
+    # Run the bluetooth testsuite, which uses the webdriver test harness.
+    ./mach test-wpt --release --processes 1 --product=servodriver --headless \
+           --log-raw "${2}" /bluetooth --always-succeed || return 2
 }
 
 # Using an existing log file, update the expected test results and amend the
 # last commit with the new results.
 function unsafe_update_metadata() {
-    ./mach update-wpt "${1}" || return 1
+    ./mach update-wpt "${1}" "${2}" || return 1
     # Ensure any new directories or ini files are included in these changes.
     git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
     # Merge all changes with the existing commit.
@@ -94,7 +100,7 @@ function unsafe_open_pull_request() {
     AUTH="${WPT_SYNC_USER}:${WPT_SYNC_TOKEN}"
     UPSTREAM="https://${AUTH}@github.com/${WPT_SYNC_USER}/servo.git"
     git remote add "${REMOTE_NAME}" "${UPSTREAM}" || return 2
-    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}" &>/dev/null || return 3
+    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}:${REMOTE_BRANCH_NAME}" &>/dev/null || return 3
 
     # Prepare the pull request metadata.
     BODY="Automated downstream sync of changes from upstream as of "
@@ -103,7 +109,7 @@ function unsafe_open_pull_request() {
     cat <<EOF >prdata.json || return 4
 {
   "title": "Sync WPT with upstream (${CURRENT_DATE})",
-  "head": "${WPT_SYNC_USER}:${BRANCH_NAME}",
+  "head": "${WPT_SYNC_USER}:${REMOTE_BRANCH_NAME}",
   "base": "master",
   "body": "${BODY}",
   "maintainer_can_modify": true
@@ -111,10 +117,16 @@ function unsafe_open_pull_request() {
 EOF
 
     # Open a pull request using the new branch.
-    curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
-         -H "Content-Type: application/json" \
-         --data @prdata.json \
-         https://api.github.com/repos/servo/servo/pulls || return 5
+    OPEN_PR_RESPONSE=$(curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
+                            -H "Content-Type: application/json" \
+                            --data @prdata.json \
+                            https://api.github.com/repos/servo/servo/pulls) || return 5
+
+    echo "${OPEN_PR_RESPONSE}" | \
+        jq '.review_comments_url' | \
+        sed 's/pulls/issues/' | \
+        xargs curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
+                   --data "{\"body\":\"@bors-servo r+\"}" || return 6
 }
 
 function pull_from_upstream() {
@@ -122,11 +134,11 @@ function pull_from_upstream() {
 }
 
 function run_tests() {
-    unsafe_run_tests "${1}" || { code="${?}"; cleanup; return "${code}"; }
+    unsafe_run_tests "${1}" "${2}" || { code="${?}"; cleanup; return "${code}"; }
 }
 
 function update_metadata() {
-    unsafe_update_metadata "${1}" || { code="${?}"; cleanup; return "${code}"; }
+    unsafe_update_metadata "${1}" "${2}" || { code="${?}"; cleanup; return "${code}"; }
 }
 
 function open_pull_request() {
@@ -136,8 +148,8 @@ function open_pull_request() {
 SCRIPT_NAME="${0}"
 
 function update_test_results() {
-    run_tests "${LOG_FILE}"
-    update_metadata "${LOG_FILE}"
+    run_tests "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}"
+    update_metadata "${LOG_FILE}" "${BLUETOOTH_LOG_FILE}"
 }
 
 function fetch_upstream_changes() {

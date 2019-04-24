@@ -3,16 +3,30 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: CSS Animation Worklet API (https://wicg.github.io/animation-worklet/)
 
+[Exposed=Window]
 partial namespace CSS {
     [SameObject] readonly attribute Worklet animationWorklet;
 };
 
-[ Exposed=AnimationWorklet, Global=AnimationWorklet ]
-interface AnimationWorkletGlobalScope : WorkletGlobalScope {
-    void registerAnimator(DOMString name, VoidFunction animatorCtor);
+[Exposed=AnimationWorklet, Global=AnimationWorklet, Constructor (optional any options)]
+interface StatelessAnimator {
 };
 
-[Constructor (DOMString animatorName,
+[Exposed=AnimationWorklet, Global=AnimationWorklet,
+Constructor (optional any options, optional any state)]
+interface StatefulAnimator {
+  any state();
+};
+
+[ Exposed=AnimationWorklet, Global=AnimationWorklet ]
+interface AnimationWorkletGlobalScope : WorkletGlobalScope {
+    void registerAnimator(DOMString name, AnimatorInstanceConstructor animatorCtor);
+};
+
+callback AnimatorInstanceConstructor = any (any options, optional any state);
+
+[Exposed=Window,
+ Constructor (DOMString animatorName,
               optional (AnimationEffect or sequence<AnimationEffect>)? effects = null,
               optional AnimationTimeline? timeline,
               optional any options)]
@@ -20,6 +34,7 @@ interface WorkletAnimation : Animation {
         readonly attribute DOMString animatorName;
 };
 
+[Exposed=AnimationWorklet]
 interface WorkletGroupEffect {
   sequence<AnimationEffect> getChildren();
 };

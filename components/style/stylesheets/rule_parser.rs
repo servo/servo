@@ -133,7 +133,7 @@ pub enum State {
     Body = 4,
 }
 
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf, ToShmem)]
 /// Vendor prefix.
 pub enum VendorPrefix {
     /// -moz prefix.
@@ -186,6 +186,13 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         match_ignore_ascii_case! { &*name,
             "import" => {
                 if !self.check_state(State::Imports) {
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedImportRule))
+                }
+
+                // FIXME(emilio): We should always be able to have a loader
+                // around! See bug 1533783.
+                if self.loader.is_none() {
+                    error!("Saw @import rule, but no way to trigger the load");
                     return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedImportRule))
                 }
 
@@ -541,7 +548,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     self.namespaces,
                 );
 
-                let declarations = parse_property_declaration_list(&context, input);
+                let declarations = parse_property_declaration_list(&context, input, None);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
                     block: Arc::new(self.shared_lock.wrap(declarations)),
                     source_location,
@@ -589,7 +596,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         let context =
             ParserContext::new_with_rule_type(self.context, CssRuleType::Style, self.namespaces);
 
-        let declarations = parse_property_declaration_list(&context, input);
+        let declarations = parse_property_declaration_list(&context, input, Some(&selectors));
         let block = Arc::new(self.shared_lock.wrap(declarations));
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors,

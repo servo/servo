@@ -11,7 +11,7 @@ use crate::applicable_declarations::ApplicableDeclarationList;
 use crate::gecko::selector_parser::PseudoElement;
 use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use crate::stylesheets::StyleRule;
+use crate::stylesheets::{Origin, StyleRule};
 use crate::thread_state;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -75,8 +75,15 @@ impl Drop for RuleTree {
 #[cfg(feature = "gecko")]
 impl MallocSizeOf for RuleTree {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = unsafe { ops.malloc_size_of(self.root.ptr()) };
-        n += self.root.get().size_of(ops);
+        let mut n = 0;
+        let mut stack = SmallVec::<[_; 32]>::new();
+        stack.push(self.root.downgrade());
+
+        while let Some(node) = stack.pop() {
+            n += unsafe { ops.malloc_size_of(node.ptr()) };
+            stack.extend(unsafe { (*node.ptr()).iter_children() });
+        }
+
         n
     }
 }
@@ -659,6 +666,25 @@ impl CascadeLevel {
         }
     }
 
+    /// Returns the cascade origin of the rule.
+    #[inline]
+    pub fn origin(&self) -> Origin {
+        match *self {
+            CascadeLevel::UAImportant | CascadeLevel::UANormal => Origin::UserAgent,
+            CascadeLevel::UserImportant | CascadeLevel::UserNormal => Origin::User,
+            CascadeLevel::PresHints |
+            CascadeLevel::InnerShadowNormal |
+            CascadeLevel::SameTreeAuthorNormal |
+            CascadeLevel::StyleAttributeNormal |
+            CascadeLevel::SMILOverride |
+            CascadeLevel::Animations |
+            CascadeLevel::SameTreeAuthorImportant |
+            CascadeLevel::StyleAttributeImportant |
+            CascadeLevel::InnerShadowImportant |
+            CascadeLevel::Transitions => Origin::Author,
+        }
+    }
+
     /// Returns whether this cascade level represents an animation rules.
     #[inline]
     pub fn is_animation(&self) -> bool {
@@ -925,18 +951,6 @@ impl RuleNode {
                 Some(WeakRuleNode::from_ptr(first_child))
             },
         }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl MallocSizeOf for RuleNode {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = 0;
-        for child in self.iter_children() {
-            n += unsafe { ops.malloc_size_of(child.ptr()) };
-            n += unsafe { (*child.ptr()).size_of(ops) };
-        }
-        n
     }
 }
 
@@ -1220,7 +1234,7 @@ impl StrongRuleNode {
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_BACKGROUND;
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_BORDER;
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_PADDING;
-        use crate::properties::{CSSWideKeyword, LonghandId, LonghandIdSet};
+        use crate::properties::{CSSWideKeyword, LonghandId};
         use crate::properties::{PropertyDeclaration, PropertyDeclarationId};
         use crate::values::specified::Color;
         use std::borrow::Cow;

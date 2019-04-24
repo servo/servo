@@ -1,0 +1,4 @@
+steps:
+- script: systeminfo
+  displayName: 'Show system info (Windows)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))

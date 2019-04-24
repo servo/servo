@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Mouse Button Back/Forward</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script>
+            var testMouseUp = async_test('Tests that when pointer is locked, the mouseup is preventable.');
+            var received_back = false;
+            var received_forward = false;
+            const left_button = 0;
+            const back_button = 3;
+            const forward_button = 4;
+            window.addEventListener('mouseup', function(e) {
+              if (e.button == left_button) {
+                document.body.requestPointerLock();
+              } else if (e.button == back_button) {
+                received_back = true;
+                e.preventDefault();
+              } else if (e.button == forward_button) {
+                received_forward = true;
+                e.preventDefault();
+              }
+              if (document.pointerLockElement && received_back && received_forward) {
+                testMouseUp.done();
+                document.exitPointerLock();
+              }
+            });
+
+            // Inject mouse input
+            var actions = new test_driver.Actions();
+            actions.pointerMove(1, 1)
+              .pointerDown({button: actions.ButtonType.LEFT})
+              .pointerUp({button: actions.ButtonType.LEFT})
+              .pointerDown({button: actions.ButtonType.BACK})
+              .pointerUp({button: actions.ButtonType.BACK})
+              .pointerDown({button: actions.ButtonType.FORWARD})
+              .pointerUp({button: actions.ButtonType.FORWARD})
+              .send();
+        </script>
+
+    </head>
+    <body id="target">
+        <h4>Test Description: Tests that the mouseup event is prevented.
+            <ol>
+                <li>Click the left mouse button to lock pointer</li>
+                <li>Click the back mouse button</li>
+                <li>Click the forward mouse button</li>
+            </ol>
+        </h4>
+    </body>
+</html>

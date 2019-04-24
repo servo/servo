@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: content' and margin collapsing</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#contain-property">
+  <link rel="match" href="reference/contain-paint-ifc-011-ref.html">
+
+  <meta content="This test checks that a block element with 'contain: content' establishes a new block formatting context which is independent and separate from others. This causes margin collapsing to be ineffective among vertically-adjacent boxes. In this test, the top margin of parent boxes and top margin of their respective first in-flow child do not collapse. Also, in this test, the bottom margin of the last in-flow child of boxes and bottom margin of their respective parent boxes do not collapse." name="assert">
+  <meta name="flags" content="">
+
+  <style>
+  div
+    {
+      contain: content;
+      margin: 30px 0px;
+    }
+
+  div#grand-grand-parent-orange
+    {
+      background-color: orange;
+    }
+
+  div#grand-parent-blue
+    {
+      background-color: blue;
+    }
+
+  div#parent-lime
+    {
+      background-color: lime;
+    }
+
+  div#collapse-through-child  /* margin collapsing through element */
+    {
+      contain: none;
+    }
+  </style>
+
+  <p>Test passes if there are 5 horizontal stripes across the page in this order (from top to bottom): an orange stripe, a blue stripe, a bright green stripe, a blue stripe and then an orange stripe.
+
+  <div id="grand-grand-parent-orange">
+
+    <div id="grand-parent-blue">
+
+      <div id="parent-lime">
+
+        <div id="collapse-through-child"></div>
+
+      </div>
+
+    </div>
+
+  </div>

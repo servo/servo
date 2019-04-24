@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body, html {
+  margin: 0;
+}
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+iframe {
+  width: 100px;
+  height: 100px;
+  border: 0;
+}
+#text-shadow {
+  display: inline-block;
+  font-size: 144px;
+  font-weight: 1000;
+  color: rgba(0, 0, 0, 0);
+  text-shadow: -100px 0 0 rgba(255, 0, 0, .7);
+}
+</style>
+
+<iframe id=target srcdoc="<!DOCTYPE html><div>Lorem ipsum. Lorem ipsum. Lorem ipsum. Lorem ipsum. Lorem ipsum. Lorem ipsum. Lorem ipsum. Lorem ipsum. Lorem ipsum. Lorem ipsum.</div>"></iframe><div id=text-shadow>O</div>
+
+<script>
+var delay = 100;
+var entries = [];
+var target;
+var occluder;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  occluder = document.getElementById("text-shadow");
+  assert_true(!!target, "target exists");
+  assert_true(!!occluder, "occluder exists");
+  let observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {trackVisibility: true, delay: delay});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.", delay);
+}, "IntersectionObserverV2 observing an iframe element.", delay);
+
+function step0() {
+  occluder.style.textShadow = "none";
+  runTestCycle(step1, 'occluder.style.textShadow = "none"', delay);
+  assert_equals(entries.length, 1, "Initial notification.");
+  assert_equals(entries[0].isVisible, false, "Initially occluded.");
+}
+
+function step1() {
+  occluder.style.textShadow = "";
+  runTestCycle(step2, 'occluder.style.textShadow = ""', delay);
+  assert_equals(entries.length, 2, "Notification after removing text shadow.");
+  assert_equals(entries[1].isVisible, true, "Visible when text shadow removed.");
+}
+
+function step2() {
+  assert_equals(entries.length, 3, "Notification after re-adding text shadow.");
+  assert_equals(entries[2].isVisible, false, "Occluded when text shadow re-added.");
+}
+</script>

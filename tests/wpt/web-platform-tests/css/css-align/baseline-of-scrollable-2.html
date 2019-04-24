@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>
+    CSS Test: baseline of scrollable "details" element should be derived
+    from its margin-box.
+  </title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/css-align/#baseline-export">
+  <link rel="match" href="reference/baseline-of-scrollable-2-ref.html">
+  <style>
+    .overflow-ib {
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    details {
+      height: 40px;
+      width: 100px;
+      /* Transparent text & "details-arrow", so that it's easier to make
+         a simple reference case: */
+      color: transparent;
+      border-color: gray;
+      border-style: solid;
+      border-width: 2px 3px 4px 5px;
+      padding: 4px 5px 7px 8px;
+      margin: 1px 2px 3px 4px;
+    }
+</style>
+</head>
+<body>
+  Test passes if the a/b text aligns with the bottom margin-edge of the
+  gray rects.
+  <br><br>
+
+  a
+  <details class="overflow-ib">
+    c<br>d<br>e<br>f<br>g
+  </details>
+  b
+  <br>
+
+  a
+  <details class="overflow-ib" open>
+    c<br>d<br>e<br>f<br>g
+  </details>
+  b
+  <br>
+
+  a
+  <div class="overflow-ib">
+    <details>
+      c<br>d<br>e<br>f<br>g
+    </details>
+  </div>
+  b
+  <br>
+
+  a
+  <div class="overflow-ib">
+    <details open>
+      c<br>d<br>e<br>f<br>g
+    </details>
+  </div>
+  b
+
+</body>
+</html>

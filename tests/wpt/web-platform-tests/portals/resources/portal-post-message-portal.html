@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script>
+  var bc = new BroadcastChannel("portals-post-message");
+  bc.postMessage("loaded");
+  bc.close();
+  window.portalHost.addEventListener("message", e => {
+    var message = {
+      origin: e.origin,
+      data: e.data,
+      sourceIsPortalHost: e.source === window.portalHost,
+      gotUserActivation: !!e.userActivation,
+      userActivation: {
+        isActive: e.userActivation && e.userActivation.isActive,
+        hasBeenActive: e.userActivation && e.userActivation.hasBeenActive
+      }
+    };
+
+    if (e.data.arrayBuffer) {
+      message.data = {
+        array: Array.from(new Uint8Array(e.data.arrayBuffer))
+      };
+    }
+
+    if (e.ports.length > 0) {
+      e.ports[0].postMessage(message);
+      e.ports[0].close();
+      return;
+    }
+
+    bc = new BroadcastChannel("portals-post-message");
+    bc.postMessage(message);
+    bc.close();
+  });
+</script>

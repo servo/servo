@@ -156,6 +156,45 @@
             });
           });
 
+      audit.define(
+          {
+            label: 'test-audiocontextoptions-sampleRate',
+            description:
+                'Test creating contexts with non-default sampleRate values.'
+          },
+          function(task, should) {
+            // A sampleRate of 1 is unlikely to be supported on any browser,
+            // test that this rate is rejected.
+            should(
+                () => {
+                  context = new AudioContext({sampleRate: 1})
+                },
+                'context = new AudioContext({sampleRate: 1})')
+                .throw(DOMException);
+
+            // A sampleRate of 1,000,000 is unlikely to be supported on any
+            // browser, test that this rate is also rejected.
+            should(
+                () => {
+                  context = new AudioContext({sampleRate: 1000000})
+                },
+                'context = new AudioContext({sampleRate: 1000000})')
+                .throw(DOMException);
+
+            should(
+                () => {
+                  context = new AudioContext({sampleRate: 24000})
+                },
+                'context = new AudioContext({sampleRate: 24000})')
+                .notThrow();
+            should(
+                context.sampleRate, 'sampleRate inrange')
+                .beEqualTo(24000);
+
+            context.close();
+            task.done();
+          });
+
       audit.run();
     </script>
   </body>

@@ -25,7 +25,8 @@ try {
         }
     });
 } catch(ex) {
-    if (ex.name == 'TypeError' && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': The provided value cannot be converted to a sequence.")
+    // 'inputProperties' property is 42, not a sequence<DOMString>.
+    if (ex.name == 'TypeError')
         testsPassed = true;
 }
 

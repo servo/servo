@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection.prototype.iceConnectionState - disconnection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+
+    await listenToIceConnected(caller);
+
+    callee.close();
+    await waitForIceStateChange(caller, ['disconnected', 'failed']);
+    // TODO: this should eventually transition to failed but that takes
+    // somewhat long (15-30s) so is not testable.
+  }, 'ICE goes to disconnected if the other side goes away');
+</script>

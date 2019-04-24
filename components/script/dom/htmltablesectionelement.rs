@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, RawLayoutElementHelpers};
@@ -58,7 +58,8 @@ impl HTMLTableSectionElement {
 struct RowsFilter;
 impl CollectionFilter for RowsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>() && elem.upcast::<Node>().GetParentNode().r() == Some(root)
+        elem.is::<HTMLTableRowElement>() &&
+            elem.upcast::<Node>().GetParentNode().deref() == Some(root)
     }
 }
 

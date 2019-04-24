@@ -5,7 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#htmlmediaelement
 
 enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
-typedef /* (MediaStream or MediaSource or */ Blob /* ) */ MediaProvider;
+typedef (MediaStream /*or MediaSource */ or Blob) MediaProvider;
 
 [Abstract]
 interface HTMLMediaElement : HTMLElement {
@@ -55,12 +55,12 @@ interface HTMLMediaElement : HTMLElement {
   // controls
   // [CEReactions] attribute boolean controls;
   [Throws] attribute double volume;
-  // attribute boolean muted;
-  // [CEReactions] attribute boolean defaultMuted;
+  attribute boolean muted;
+  [CEReactions] attribute boolean defaultMuted;
 
   // tracks
-  // readonly attribute AudioTrackList audioTracks;
-  // readonly attribute VideoTrackList videoTracks;
+  readonly attribute AudioTrackList audioTracks;
+  readonly attribute VideoTrackList videoTracks;
   readonly attribute TextTrackList textTracks;
   TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
 };

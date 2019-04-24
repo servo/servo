@@ -32,9 +32,11 @@ html.vrl { writing-mode: vertical-rl; }
 .vpush { height: 80px !important; }
 .hpush { width: 70px !important; }
 
+#anchor-container {
+  display: inline-block;
+}
 #anchor {
   position: relative;
-  display: inline-block;
   background-color: #8e8;
   min-width: 100px;
   min-height: 100px;
@@ -49,8 +51,10 @@ html.vrl { writing-mode: vertical-rl; }
 </style>
 <div id="container">
   <div id="block_pusher"></div><br>
-  <div id="inline_pusher"></div><div id="anchor">
-    <div id="grower"></div>
+  <div id="inline_pusher"></div><div id="anchor-container">
+    <div id="anchor">
+      <div id="grower"></div>
+    </div>
   </div>
 </div>
 <script>

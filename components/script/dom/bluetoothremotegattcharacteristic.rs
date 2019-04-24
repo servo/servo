@@ -134,8 +134,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
+    #[allow(unsafe_code)]
     fn ReadValue(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -167,8 +168,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
+    #[allow(unsafe_code)]
     fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
@@ -218,8 +220,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
+    #[allow(unsafe_code)]
     fn StartNotifications(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -255,8 +258,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
+    #[allow(unsafe_code)]
     fn StopNotifications(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let p = unsafe { Promise::new_in_current_compartment(&self.global()) };
         let sender = response_async(&p, self);
 
         // TODO: Step 3 - 4: Implement `active notification context set` for BluetoothRemoteGATTCharacteristic,

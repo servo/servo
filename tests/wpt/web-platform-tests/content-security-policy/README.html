@@ -62,7 +62,7 @@
 
     <p>This code includes three tests. The first one in the script block will generate a failure if it runs. The second one, in the onerror handler for the img which does not exist should also generate a failure if it runs. But for a successful CSP implementation, neither of these tests does run. The final test is run by the link to <span class=code>../support/checkReport.sub.js</span>. It will load some script in the page (make sure its not blocked by your policy!) which contacts the server asynchronously and sees if the expected report was sent. This should always run an generate a positive or negative result even if the inline tests are blocked as we expect.</p>
 
-    <p>Now, to acutally exercise these tests against a policy, we'll need to set headers. In the same directory we'll place this file:</p>
+    <p>Now, to actually exercise these tests against a policy, we'll need to set headers. In the same directory we'll place this file:</p>
 
     <p class=codeTitle>script-src-1_1.html.sub.headers</p>
     <pre><code class="html">

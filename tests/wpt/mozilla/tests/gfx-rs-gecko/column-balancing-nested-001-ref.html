@@ -1,0 +1,64 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/licenses/publicdomain/
+-->
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>Testing nested balancing column sets</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=822053">
+<style type="text/css">
+        html,body {
+            color:black; background-color:white; font-family:monospace; font-size:16px; padding:0; margin:0;
+        }
+
+  .colset {
+    -moz-column-count: 2;
+    -moz-column-gap: 0px;
+    -moz-column-rule: 1px solid black;
+    margin-bottom:1em;
+    width:30ch;
+  }
+  .colset.lvl2 {
+    -moz-column-rule: 1px solid blue;
+  }
+  .colset.lvl3 {
+    -moz-column-rule: 1px solid red;
+  }
+  p { margin: 0; }
+  .non-balancing {
+    -moz-column-count: 1;
+  }
+  .fixed-height.lvl2 {
+    -moz-column-count: 2;
+  }
+  .fixed-height {
+    -moz-column-count: 1;
+    height:3em;
+  }
+</style>
+</head>
+<body>
+<div class="colset">
+  <p>one one one one one</p>
+  <div class="colset non-balancing lvl2">
+    <p>two two two two<br>two</p>
+  </div>
+</div>
+<div class="colset">
+  <p>one one one one one<br>one</p>
+  <div class="colset fixed-height lvl2">
+    <p>two two two two two</p>
+  </div>
+</div>
+<div class="colset">
+  <p>one<br>one</p>
+  <div class="colset lvl2">
+    <p>two</p>
+    <div class="colset fixed-height lvl3">
+      <p>three three three three three three</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -6,6 +6,7 @@ use servo_atoms::Atom;
 use std::fmt;
 use std::fs::File;
 use std::io::{Error, Read};
+use std::path::PathBuf;
 use webrender_api::NativeFontHandle;
 
 /// Platform specific font representation for Linux.
@@ -61,7 +62,7 @@ impl FontTemplateData {
     pub fn native_font(&self) -> Option<NativeFontHandle> {
         if self.bytes.is_none() {
             Some(NativeFontHandle {
-                pathname: String::from(&*self.identifier),
+                path: PathBuf::from(&*self.identifier),
                 index: 0,
             })
         } else {

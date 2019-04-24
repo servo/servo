@@ -6,14 +6,15 @@
     var t = async_test('Makes sure that Link headers preload resources');
 </script>
 <body>
-<script src="resources/dummy.js?pipe=trickle(d5)&link-header-preload"></script>
 <script>
     window.addEventListener("load", t.step_func(function() {
-        verifyPreloadAndRTSupport();
-        verifyNumberOfDownloads("resources/square.png?link-header-preload", 1);
-        verifyNumberOfDownloads("resources/dummy.js?link-header-preload", 1);
-        verifyNumberOfDownloads("resources/dummy.css?link-header-preload", 1);
-        t.done();
+        t.step_timeout(function() {
+            verifyPreloadAndRTSupport();
+            verifyNumberOfResourceTimingEntries("resources/square.png?link-header-preload", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-preload", 1);
+            t.done();
+        }, 5000);
     }));
 </script>
 </body>

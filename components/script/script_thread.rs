@@ -33,8 +33,8 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
-use crate::dom::bindings::root::{RootedReference, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::bindings::trace::JSTraceable;
@@ -108,7 +108,7 @@ use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
-use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
+use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
 use net_traits::storage_thread::StorageType;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{
@@ -142,6 +142,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -200,6 +201,8 @@ struct InProgressLoad {
     navigation_start_precise: u64,
     /// For cancelling the fetch
     canceller: FetchCanceller,
+    /// Flag for sharing with the layout thread that is not yet created.
+    layout_is_busy: Arc<AtomicBool>,
 }
 
 impl InProgressLoad {
@@ -214,6 +217,7 @@ impl InProgressLoad {
         window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
+        layout_is_busy: Arc<AtomicBool>,
     ) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns();
@@ -235,6 +239,7 @@ impl InProgressLoad {
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: navigation_start_precise,
             canceller: Default::default(),
+            layout_is_busy: layout_is_busy,
         }
     }
 }
@@ -269,6 +274,8 @@ pub enum MainThreadScriptMsg {
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
+    /// A task related to a not fully-active document has been throttled.
+    Inactive,
     /// Wake-up call from the task queue.
     WakeUp,
 }
@@ -283,7 +290,20 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
                 Some(&task_source)
             },
+            _ => None,
+        }
+    }
+
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        let script_msg = match self {
+            MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
+        };
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => {
+                pipeline_id.clone()
+            },
+            _ => None,
         }
     }
 
@@ -305,6 +325,10 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
         let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         MainThreadScriptMsg::Common(script_msg)
+    }
+
+    fn inactive_msg() -> Self {
+        MainThreadScriptMsg::Inactive
     }
 
     fn wake_up_msg() -> Self {
@@ -594,7 +618,7 @@ pub struct ScriptThread {
     microtask_queue: Rc<MicrotaskQueue>,
 
     /// Microtask Queue for adding support for mutation observer microtasks
-    mutation_observer_compound_microtask_queued: Cell<bool>,
+    mutation_observer_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
@@ -681,6 +705,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let opener = state.opener;
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
+                let layout_is_busy = state.layout_is_busy.clone();
 
                 let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
 
@@ -701,6 +726,7 @@ impl ScriptThreadFactory for ScriptThread {
                     window_size,
                     load_data.url.clone(),
                     origin,
+                    layout_is_busy,
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
@@ -746,21 +772,17 @@ impl ScriptThread {
         })
     }
 
-    pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
+    pub fn set_mutation_observer_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .mutation_observer_compound_microtask_queued
-                .set(value);
+            script_thread.mutation_observer_microtask_queued.set(value);
         })
     }
 
-    pub fn is_mutation_observer_compound_microtask_queued() -> bool {
+    pub fn is_mutation_observer_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            return script_thread
-                .mutation_observer_compound_microtask_queued
-                .get();
+            return script_thread.mutation_observer_microtask_queued.get();
         })
     }
 
@@ -788,11 +810,13 @@ impl ScriptThread {
 
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .docs_with_no_blocking_loads
-                .borrow_mut()
-                .insert(Dom::from_ref(doc));
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread
+                    .docs_with_no_blocking_loads
+                    .borrow_mut()
+                    .insert(Dom::from_ref(doc));
+            }
         })
     }
 
@@ -875,6 +899,29 @@ impl ScriptThread {
             root.get().and_then(|script_thread| {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.documents.borrow().find_document(id)
+            })
+        })
+    }
+
+    pub fn get_fully_active_document_ids() -> HashSet<PipelineId> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.get().map_or(HashSet::new(), |script_thread| {
+                let script_thread = unsafe { &*script_thread };
+                script_thread
+                    .documents
+                    .borrow()
+                    .iter()
+                    .filter_map(|(id, document)| {
+                        if document.is_fully_active() {
+                            Some(id.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .fold(HashSet::new(), |mut set, id| {
+                        let _ = set.insert(id);
+                        set
+                    })
             })
         })
     }
@@ -1099,7 +1146,7 @@ impl ScriptThread {
 
             microtask_queue: Default::default(),
 
-            mutation_observer_compound_microtask_queued: Default::default(),
+            mutation_observer_microtask_queued: Default::default(),
 
             mutation_observers: Default::default(),
 
@@ -1167,7 +1214,11 @@ impl ScriptThread {
         let mut event = select! {
             recv(self.task_queue.select()) -> msg => {
                 self.task_queue.take_tasks(msg.unwrap());
-                FromScript(self.task_queue.recv().unwrap())
+                let event = self
+                    .task_queue
+                    .recv()
+                    .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
+                FromScript(event)
             },
             recv(self.control_port) -> msg => FromConstellation(msg.unwrap()),
             recv(self.timer_event_port) -> msg => FromScheduler(msg.unwrap()),
@@ -1250,6 +1301,14 @@ impl ScriptThread {
                         Some(index) => sequential[index] = event,
                     }
                 },
+                FromScript(MainThreadScriptMsg::Inactive) => {
+                    // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
+                    // Continue without adding it to "sequential".
+                },
+                FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
+                    .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
+                        self.handle_exit_fullscreen(id);
+                    }),
                 _ => {
                     sequential.push(event);
                 },
@@ -1427,7 +1486,7 @@ impl ScriptThread {
                     NotifyVisibilityChange(id, ..) => Some(id),
                     Navigate(id, ..) => Some(id),
                     PostMessage { target: id, .. } => Some(id),
-                    UpdatePipelineId(_, _, id, _) => Some(id),
+                    UpdatePipelineId(_, _, _, id, _) => Some(id),
                     UpdateHistoryState(id, ..) => Some(id),
                     RemoveHistoryStates(id, ..) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
@@ -1446,6 +1505,7 @@ impl ScriptThread {
                     Reload(id, ..) => Some(id),
                     WebVREvents(id, ..) => Some(id),
                     PaintMetric(..) => None,
+                    ExitFullScreen(id, ..) => Some(id),
                 }
             },
             MixedMessage::FromDevtools(_) => None,
@@ -1458,6 +1518,7 @@ impl ScriptThread {
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                 MainThreadScriptMsg::DispatchJobQueue { .. } => None,
+                MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
@@ -1615,11 +1676,13 @@ impl ScriptThread {
             ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
+                top_level_browsing_context_id,
                 new_pipeline_id,
                 reason,
             ) => self.handle_update_pipeline_id(
                 parent_pipeline_id,
                 browsing_context_id,
+                top_level_browsing_context_id,
                 new_pipeline_id,
                 reason,
             ),
@@ -1674,6 +1737,7 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
+            msg @ ConstellationControlMsg::ExitFullScreen(..) |
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
@@ -1701,6 +1765,7 @@ impl ScriptThread {
             MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
                 self.job_queue_map.run_job(scope_url, self)
             },
+            MainThreadScriptMsg::Inactive => {},
             MainThreadScriptMsg::WakeUp => {},
         }
     }
@@ -1784,6 +1849,9 @@ impl ScriptThread {
             WebDriverScriptCommand::AddCookie(params, reply) => {
                 webdriver_handlers::handle_add_cookie(&*documents, pipeline_id, params, reply)
             },
+            WebDriverScriptCommand::DeleteCookies(reply) => {
+                webdriver_handlers::handle_delete_cookies(&*documents, pipeline_id, reply)
+            },
             WebDriverScriptCommand::ExecuteScript(script, reply) => {
                 webdriver_handlers::handle_execute_script(&*documents, pipeline_id, script, reply)
             },
@@ -1799,6 +1867,15 @@ impl ScriptThread {
                 webdriver_handlers::handle_find_elements_css(
                     &*documents,
                     pipeline_id,
+                    selector,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::FindElementElementCSS(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_element_css(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
                     selector,
                     reply,
                 )
@@ -1886,6 +1963,19 @@ impl ScriptThread {
         warn!("resize sent to nonexistent pipeline");
     }
 
+    // exit_fullscreen creates a new JS promise object, so we need to have entered a compartment
+    fn handle_exit_fullscreen(&self, id: PipelineId) {
+        let document = self.documents.borrow().find_document(id);
+        if let Some(document) = document {
+            let _ac = JSAutoCompartment::new(
+                document.global().get_cx(),
+                document.reflector().get_jsobject().get(),
+            );
+            document.exit_fullscreen();
+            return;
+        }
+    }
+
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
@@ -1943,6 +2033,8 @@ impl ScriptThread {
         let layout_pair = unbounded();
         let layout_chan = layout_pair.0.clone();
 
+        let layout_is_busy = Arc::new(AtomicBool::new(false));
+
         let msg = message::Msg::CreateLayoutThread(LayoutThreadInit {
             id: new_pipeline_id,
             url: load_data.url.clone(),
@@ -1961,6 +2053,7 @@ impl ScriptThread {
                 self.control_chan.clone(),
                 load_data.url.clone(),
             ),
+            layout_is_busy: layout_is_busy.clone(),
         });
 
         // Pick a layout thread, any layout thread
@@ -1994,6 +2087,7 @@ impl ScriptThread {
             window_size,
             load_data.url.clone(),
             origin,
+            layout_is_busy.clone(),
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
@@ -2151,6 +2245,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
     ) {
@@ -2160,6 +2255,21 @@ impl ScriptThread {
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id, reason);
+        }
+
+        if let Some(window) = self.documents.borrow().find_window(new_pipeline_id) {
+            // Ensure that the state of any local window proxies accurately reflects
+            // the new pipeline.
+            let _ = self.local_window_proxy(
+                &*window,
+                browsing_context_id,
+                top_level_browsing_context_id,
+                Some(parent_pipeline_id),
+                // Any local window proxy has already been created, so there
+                // is no need to pass along existing opener information that
+                // will be discarded.
+                None,
+            );
         }
     }
 
@@ -2176,7 +2286,7 @@ impl ScriptThread {
                     pipeline_id
                 );
             },
-            Some(window) => window.History().r().activate_state(history_state_id, url),
+            Some(window) => window.History().activate_state(history_state_id, url),
         }
     }
 
@@ -2192,7 +2302,7 @@ impl ScriptThread {
                     pipeline_id
                 );
             },
-            Some(window) => window.History().r().remove_states(history_states),
+            Some(window) => window.History().remove_states(history_states),
         }
     }
 
@@ -2635,7 +2745,7 @@ impl ScriptThread {
             global_to_clone,
             browsing_context_id,
             top_level_browsing_context_id,
-            parent.r(),
+            parent.deref(),
             opener,
         );
         self.window_proxies
@@ -2681,8 +2791,8 @@ impl ScriptThread {
             &window,
             browsing_context_id,
             top_level_browsing_context_id,
-            iframe.r().map(Castable::upcast),
-            parent.r(),
+            iframe.deref().map(Castable::upcast),
+            parent.deref(),
             opener,
         );
         self.window_proxies
@@ -2774,6 +2884,7 @@ impl ScriptThread {
             self.microtask_queue.clone(),
             self.webrender_document,
             self.webrender_api_sender.clone(),
+            incomplete.layout_is_busy,
         );
 
         // Initialize the browsing context for the window.
@@ -2868,6 +2979,7 @@ impl ScriptThread {
             self.handle_update_pipeline_id(
                 parent_pipeline,
                 window_proxy.browsing_context_id(),
+                window_proxy.top_level_browsing_context_id(),
                 incomplete.pipeline_id,
                 UpdatePipelineIdReason::Navigation,
             );
@@ -3228,21 +3340,18 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, mut incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let req_init = RequestInit {
-            url: load_data.url.clone(),
-            method: load_data.method,
-            destination: Destination::Document,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
-            pipeline_id: Some(id),
-            referrer_url: load_data.referrer_url,
-            referrer_policy: load_data.referrer_policy,
-            headers: load_data.headers,
-            body: load_data.data,
-            redirect_mode: RedirectMode::Manual,
-            origin: incomplete.origin.immutable().clone(),
-            ..RequestInit::default()
-        };
+        let req_init = RequestBuilder::new(load_data.url.clone())
+            .method(load_data.method)
+            .destination(Destination::Document)
+            .credentials_mode(CredentialsMode::Include)
+            .use_url_credentials(true)
+            .pipeline_id(Some(id))
+            .referrer_url(load_data.referrer_url)
+            .referrer_policy(load_data.referrer_policy)
+            .headers(load_data.headers)
+            .body(load_data.data)
+            .redirect_mode(RedirectMode::Manual)
+            .origin(incomplete.origin.immutable().clone());
 
         let context = ParserContext::new(id, load_data.url);
         self.incomplete_parser_contexts

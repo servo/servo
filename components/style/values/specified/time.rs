@@ -15,7 +15,7 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 /// A time value according to CSS-VALUES § 6.2.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub struct Time {
     seconds: CSSFloat,
     unit: TimeUnit,
@@ -23,7 +23,7 @@ pub struct Time {
 }
 
 /// A time unit.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
 pub enum TimeUnit {
     /// `s`
     Second,
@@ -93,8 +93,9 @@ impl Time {
             Ok(&Token::Dimension {
                 value, ref unit, ..
             }) if clamping_mode.is_ok(ParsingMode::DEFAULT, value) => {
-                return Time::parse_dimension(value, unit, /* from_calc = */ false)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                return Time::parse_dimension(value, unit, /* from_calc = */ false).map_err(|()| {
+                    location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                });
             },
             Ok(&Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {},
             Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),

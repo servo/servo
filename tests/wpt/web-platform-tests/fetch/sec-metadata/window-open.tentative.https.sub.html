@@ -17,7 +17,8 @@
       assert_header_equals(e.data, {
         "dest": "document",
         "site": "same-origin",
-        "user":"?F"
+        "user": "",
+        "mode": "navigate",
       });
       t.done();
     }));
@@ -33,7 +34,8 @@
       assert_header_equals(e.data, {
         "dest": "document",
         "site": "same-site",
-        "user":"?F"
+        "user": "",
+        "mode": "navigate",
       });
       t.done();
     }));
@@ -49,11 +51,84 @@
       assert_header_equals(e.data, {
         "dest": "document",
         "site": "cross-site",
-        "user":"?F"
+        "user": "",
+        "mode": "navigate",
       });
       t.done();
     }));
   }, "Cross-site window, forced");
+
+  async_test(t => {
+    let w = window.open("https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+    t.add_cleanup(_ => w.close());
+    let messages = 0;
+    window.addEventListener('message', t.step_func(e => {
+      messages++;
+      if (e.source != w)
+        return;
+
+      assert_header_equals(e.data, {
+        "dest": "document",
+        "site": "same-origin",
+        "user": "",
+        "mode": "navigate",
+      });
+
+      if (messages == 1) {
+        w.location.reload();
+      } else {
+        t.done();
+      }
+    }));
+  }, "Same-origin window, forced, reloaded");
+
+  async_test(t => {
+    let w = window.open("https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+    t.add_cleanup(_ => w.close());
+    let messages = 0;
+    window.addEventListener('message', t.step_func(e => {
+      messages++;
+      if (e.source != w)
+        return;
+
+      assert_header_equals(e.data, {
+        "dest": "document",
+        "site": "same-site",
+        "user": "",
+        "mode": "navigate",
+      });
+
+      if (messages == 1) {
+        w.location.reload();
+      } else {
+        t.done();
+      }
+    }));
+  }, "Same-site window, forced, reloaded");
+
+  async_test(t => {
+    let w = window.open("https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+    t.add_cleanup(_ => w.close());
+    let messages = 0;
+    window.addEventListener('message', t.step_func(e => {
+      messages++;
+      if (e.source != w)
+        return;
+
+      assert_header_equals(e.data, {
+        "dest": "document",
+        "site": "cross-site",
+        "user": "",
+        "mode": "navigate",
+      });
+
+      if (messages == 1) {
+        w.location.reload();
+      } else {
+        t.done();
+      }
+    }));
+  }, "Cross-site window, forced, reloaded");
 
   // User-activated navigations:
   async_test(t => {
@@ -68,7 +143,8 @@
         assert_header_equals(e.data, {
           "dest": "document",
           "site": "same-origin",
-          "user": "?T"
+          "user": "?1",
+          "mode": "navigate",
         });
         t.done();
       }));
@@ -89,7 +165,8 @@
         assert_header_equals(e.data, {
           "dest": "document",
           "site": "same-site",
-          "user": "?T"
+          "user": "?1",
+          "mode": "navigate",
         });
         t.done();
       }));
@@ -110,7 +187,8 @@
         assert_header_equals(e.data, {
           "dest": "document",
           "site": "cross-site",
-          "user": "?T"
+          "user": "?1",
+          "mode": "navigate",
         });
         t.done();
       }));

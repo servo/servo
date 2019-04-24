@@ -34,6 +34,7 @@ max_log_level = ["log/release_max_level_info"]
 webdriver = ["libservo/webdriver"]
 energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
+profilemozjs = ["libservo/profilemozjs"]
 unstable = ["libservo/unstable"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webrender_debugger = ["libservo/webrender_debugger"]
@@ -49,13 +50,17 @@ glutin = "0.19"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
+libc = "0.2"
 log = "0.4"
+rust-webvr = { version = "0.10.2", features = ["glwindow"] }
 tinyfiledialogs = "3.0"
-winit = {version = "0.18", features = ["icon_loading"]}
-sig = "0.1"
+
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+image = "0.21"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 osmesa-sys = "0.1.2"
+sig = "1.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 x11 = "2.0.0"

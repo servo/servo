@@ -21,7 +21,9 @@ use encoding_rs::UTF_8;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::request::{
+    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
+};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
 };
@@ -308,28 +310,25 @@ impl<'a> StylesheetLoader<'a> {
             document.increment_script_blocking_stylesheet_count();
         }
 
-        let request = RequestInit {
-            url: url.clone(),
-            destination: Destination::Style,
+        let request = RequestBuilder::new(url.clone())
+            .destination(Destination::Style)
             // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
             // Step 1
-            mode: match cors_setting {
+            .mode(match cors_setting {
                 Some(_) => RequestMode::CorsMode,
                 None => RequestMode::NoCors,
-            },
+            })
             // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
             // Step 3-4
-            credentials_mode: match cors_setting {
+            .credentials_mode(match cors_setting {
                 Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
                 _ => CredentialsMode::Include,
-            },
-            origin: document.origin().immutable().clone(),
-            pipeline_id: Some(self.elem.global().pipeline_id()),
-            referrer_url: Some(document.url()),
-            referrer_policy: referrer_policy,
-            integrity_metadata: integrity_metadata,
-            ..RequestInit::default()
-        };
+            })
+            .origin(document.origin().immutable().clone())
+            .pipeline_id(Some(self.elem.global().pipeline_id()))
+            .referrer_url(Some(document.url()))
+            .referrer_policy(referrer_policy)
+            .integrity_metadata(integrity_metadata);
 
         document.fetch_async(LoadType::Stylesheet(url), request, action_sender);
     }

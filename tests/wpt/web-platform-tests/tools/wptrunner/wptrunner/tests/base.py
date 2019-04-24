@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, join(dirname(__file__), "..", ".."))
 
-from wptrunner import browsers
+from .. import browsers
 
 
 _products = browsers.product_list

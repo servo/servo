@@ -4,13 +4,15 @@
 
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding;
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
-use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::xrpose::XRPose;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::XRSession;
-use crate::dom::xrview::XRView;
+use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRFrameData;
@@ -52,16 +54,34 @@ impl XRFrameMethods for XRFrame {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose
-    fn GetViewerPose(&self, reference: Option<&XRReferenceSpace>) -> Option<DomRoot<XRViewerPose>> {
-        // We assume the reference space is eye level for now
-        // since it's the only one 3DOF devices support
-        if reference.is_some() {
-            // it's not possible to obtain a reference
-            // space at all yet
-            return None;
+    fn GetViewerPose(
+        &self,
+        reference: &XRReferenceSpace,
+    ) -> Result<Option<DomRoot<XRViewerPose>>, Error> {
+        if self.session != reference.upcast::<XRSpace>().session() {
+            return Err(Error::InvalidState);
         }
-        let left = XRView::new(&self.global(), &self.session, XREye::Left, &self.data);
-        let right = XRView::new(&self.global(), &self.session, XREye::Right, &self.data);
-        Some(XRViewerPose::new(&self.global(), &left, &right))
+        let pose = reference.get_viewer_pose(&self.data);
+        Ok(Some(XRViewerPose::new(
+            &self.global(),
+            &self.session,
+            pose,
+            &self.data,
+        )))
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose
+    fn GetPose(
+        &self,
+        space: &XRSpace,
+        relative_to: &XRSpace,
+    ) -> Result<Option<DomRoot<XRPose>>, Error> {
+        if self.session != space.session() || self.session != relative_to.session() {
+            return Err(Error::InvalidState);
+        }
+        let space = space.get_pose(&self.data);
+        let relative_to = relative_to.get_pose(&self.data);
+        let pose = relative_to.inverse().pre_mul(&space);
+        Ok(Some(XRPose::new(&self.global(), pose)))
     }
 }

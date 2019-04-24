@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Break opportunities after nowrap</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="match" href="reference/white-space-wrap-after-nowrap-001-ref.html">
+<meta name="assert" content="This test ensures that break opportunities after nowrap can break lines.">
+<style>
+div {
+  width: 10ch;
+  border: 2px solid blue;
+  line-height: 1;
+}
+.ideo > div {
+  width: 1em;
+}
+.normal {
+  white-space: normal;
+}
+.nowrap {
+  white-space: nowrap;
+}
+</style>
+<body>
+  <section>
+    <div><span class="nowrap">12345</span> 67890</div>
+    <div><span class="nowrap">12345</span><span class="normal"> 67890</span></div>
+    <div><span class="nowrap">12345<span class="normal"> 67890</span></span></div>
+    <div class="nowrap">12345<span class="normal"> 67890</span></div>
+
+    <div class="nowrap"><span class="normal"><span class="nowrap">12345</span> </span>67890</div>
+    <div class="nowrap"><span class="normal"><span class="nowrap">12345 </span> </span>67890</div>
+  </section>
+
+  <section class="ideo">
+    <div><span class="nowrap">国</span>国</div>
+    <div><span class="nowrap">国</span><span class="normal">国</span></div>
+    <div><span class="nowrap">国<span class="normal">国</span></span></div>
+    <div class="nowrap">国<span class="normal">国</span></div>
+  </section>
+</body>

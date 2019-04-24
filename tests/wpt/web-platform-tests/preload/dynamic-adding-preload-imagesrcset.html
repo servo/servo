@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var t = async_test('Makes sure that a dynamically added preload with imagesrcset works');
+</script>
+<body>
+<script>
+    t.step(function() {
+        verifyPreloadAndRTSupport();
+        var link = document.createElement("link");
+        link.as = "image";
+        link.rel = "preload";
+        link.href = "resources/square.png?default";
+        link.imageSrcset = "resources/square.png?200 200w, resources/square.png?400 400w, resources/square.png?800 800w";
+        link.imageSizes = "400px";
+        link.onload = t.step_func(function() {
+            t.step_timeout(function() {
+                verifyNumberOfResourceTimingEntries("resources/square.png?default", 0);
+                verifyNumberOfResourceTimingEntries("resources/square.png?200", 0);
+                verifyNumberOfResourceTimingEntries("resources/square.png?400", 1);
+                verifyNumberOfResourceTimingEntries("resources/square.png?800", 0);
+                t.done();
+            }, 0);
+        });
+        document.body.appendChild(link);
+    });
+</script>
+</body>

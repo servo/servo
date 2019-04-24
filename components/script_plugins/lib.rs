@@ -25,11 +25,16 @@ extern crate rustc;
 extern crate rustc_plugin;
 extern crate syntax;
 
+extern crate webidl;
+
 use rustc_plugin::Registry;
 use syntax::feature_gate::AttributeType::Whitelisted;
 
 #[cfg(feature = "unrooted_must_root_lint")]
 mod unrooted_must_root;
+
+#[cfg(feature = "webidl_lint")]
+mod webidl_must_inherit;
 
 /// Utilities for writing plugins
 #[cfg(feature = "unrooted_must_root_lint")]
@@ -40,7 +45,11 @@ pub fn plugin_registrar(reg: &mut Registry) {
     #[cfg(feature = "unrooted_must_root_lint")]
     reg.register_late_lint_pass(Box::new(unrooted_must_root::UnrootedPass::new()));
 
+    #[cfg(feature = "webidl_lint")]
+    reg.register_late_lint_pass(Box::new(webidl_must_inherit::WebIdlPass::new()));
+
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
     reg.register_attribute("allow_unrooted_in_rc".to_string(), Whitelisted);
     reg.register_attribute("must_root".to_string(), Whitelisted);
+    reg.register_attribute("webidl".to_string(), Whitelisted);
 }

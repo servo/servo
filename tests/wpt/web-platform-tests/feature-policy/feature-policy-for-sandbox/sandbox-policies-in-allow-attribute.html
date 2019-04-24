@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="iframe-embedder"></div>
+<script src="./resources/helper.js"></script>
+<script>
+'use strict';
+
+const iframe_src = "/feature-policy/feature-policy-for-sandbox/resources/window_opener.html";
+
+promise_test( async () => {
+  for (const feature of sandbox_features) {
+    // For the test to work correctly we need "scripts";
+    const sandbox_flags = feature === "scripts" ? "" : "allow-scripts";
+    const iframe = await add_iframe(
+        {src: iframe_src, allow: `${feature} *`, sandbox: sandbox_flags});
+    iframe.contentWindow.postMessage({type: "feature", feature: feature}, "*");
+    const iframe_state = await feature_update(feature);
+    assert_true(iframe_state,
+                `'${feature}' should not be disabled in <iframe>.'`);
+    iframe.parentElement.removeChild(iframe);
+  }
+}, "Verify that when a sandbox related feature is enabled in 'allow' then " +
+   " the feature will be enabled regardless of sandbox attribute's value.");
+
+promise_test( async() => {
+  for (const feature of sandbox_features) {
+    const sandbox_flags = `allow-${feature} allow-scripts`;
+    const iframe = await add_iframe(
+        {src: iframe_src, allow: `${feature} 'none'`, sandbox: sandbox_flags});
+    iframe.contentWindow.postMessage({type: "feature", feature: feature}, "*");
+    // 'scripts' will block running code in the subframe and no update can be
+    // sent. A timeout determines the feature is disabled.
+    const timeout = (feature === "scripts") ? 10 : false;
+    const iframe_state = await feature_update(feature, timeout);
+    assert_false(iframe_state,
+                `'${feature}' should be disabled in <iframe>.'`);
+    iframe.parentElement.removeChild(iframe);
+  }
+}, "Verify that when a sandbox related feature is disabled in 'allow' then " +
+   " the feature will be disabled regardless of sandbox attribute's value.");
+</script>
+</body>

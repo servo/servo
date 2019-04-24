@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBi
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
@@ -285,7 +285,7 @@ impl HTMLLinkElement {
         let cors_setting = cors_setting_for_element(element);
 
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
-        let value = mq_attribute.r().map(|a| a.value());
+        let value = mq_attribute.as_ref().map(|a| a.value());
         let mq_str = match value {
             Some(ref value) => &***value,
             None => "",
@@ -309,7 +309,7 @@ impl HTMLLinkElement {
         let media = MediaList::parse(&context, &mut css_parser);
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
-        let integrity_val = im_attribute.r().map(|a| a.value());
+        let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
             None => "",

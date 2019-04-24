@@ -1,0 +1,3 @@
+Report-To: { "group": "report-to-group", "max_age": 1000, "endpoints": [{ "url": "https://{{hosts[alt][]}}:{{ports[https][0]}}/content-security-policy/support/report.py?op=put&reportID=5b4d35b6-0771-46fe-8700-ed2bb59ed4be" }] }
+Sec-Origin-Policy: policy=nonexistingpolicy, report-to=report-to-group
+

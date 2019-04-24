@@ -108,13 +108,13 @@
       const { iceGatheringState } = pc2;
 
       if(iceGatheringState === 'gathering') {
-        const iceTransport = pc2.sctp.transport.transport;
+        const iceTransport = pc2.sctp.transport.iceTransport;
 
         assert_equals(iceTransport.gatheringState, 'gathering',
           'Expect ICE transport to be in checking gatheringState when iceGatheringState is checking');
 
       } else if(iceGatheringState === 'complete') {
-        const iceTransport = pc2.sctp.transport.transport;
+        const iceTransport = pc2.sctp.transport.iceTransport;
 
         assert_equals(iceTransport.gatheringState, 'complete',
           'Expect ICE transport to be in complete gatheringState when iceGatheringState is complete');

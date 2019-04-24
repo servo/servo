@@ -12,13 +12,19 @@
 </head>
 <body>
 <script>
+// https://drafts.csswg.org/css-transforms-2/#individual-transform-serialization
+
+// Serialize as the keyword none if and only if none was originally specified.
 test_valid_value("rotate", "none");
 
+// If a 2d rotation is specified, the property must serialize as just an <angle>.
 test_valid_value("rotate", "0deg");
 
+// If a 3d rotation is specified, the property must serialize with an axis specified.
 test_valid_value("rotate", "100 200 300 400grad");
 test_valid_value("rotate", "400grad 100 200 300", "100 200 300 400grad");
 
+// If the axis is parallel with the x, y, or z axis, it must serialize as the appropriate keyword.
 test_valid_value("rotate", "x 400grad");
 test_valid_value("rotate", "400grad x", "x 400grad");
 test_valid_value("rotate", "1 0 0 400grad", "x 400grad");

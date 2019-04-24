@@ -23,7 +23,8 @@ try {
     b.prototype = 42;
     registerPaint('foo6', b);
 } catch(ex) {
-    if (ex.name == 'TypeError' && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': The 'prototype' property on the class is not an object.")
+    // The prototype object is 42, not an object.
+    if (ex.name == 'TypeError')
         testsPassed = true;
 }
 

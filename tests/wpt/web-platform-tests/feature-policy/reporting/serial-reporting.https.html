@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+var check_report_format = ([reports, observer]) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.featureId, "serial");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+  assert_equals(report.body.disposition, "enforce");
+};
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['feature-policy-violation']}).observe();
+  });
+
+  await test_driver.bless('Activate document for serial.requestPort');
+  try {
+    await navigator.serial.requestPort({ filters: [] });
+    assert_unreached("Serial port access should not be allowed in this document.");
+  } catch (e) {
+    assert_equals(e.code, DOMException.SECURITY_ERR);
+  }
+  check_report_format(await report);
+}, "requestPort in serial reporting mode");
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['feature-policy-violation']}).observe();
+  });
+
+  try {
+    await navigator.serial.getPorts();
+    assert_unreached("Serial port access should not be allowed in this document.");
+  } catch (e) {
+    assert_equals(e.code, DOMException.SECURITY_ERR);
+  }
+  check_report_format(await report);
+}, "getPorts in serial reporting mode");
+    </script>
+  </body>
+</html>

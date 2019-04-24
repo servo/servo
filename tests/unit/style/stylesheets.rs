@@ -9,7 +9,7 @@ use selectors::attr::*;
 use selectors::parser::*;
 use servo_arc::Arc;
 use servo_atoms::Atom;
-use servo_config::prefs::{PrefValue, PREFS};
+use servo_config::set_pref;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -339,7 +339,7 @@ impl ParseErrorReporter for TestingErrorReporter {
 
 #[test]
 fn test_report_error_stylesheet() {
-    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
+    set_pref!(layout.viewport.enabled, true);
     let css = r"
     div {
         background-color: red;

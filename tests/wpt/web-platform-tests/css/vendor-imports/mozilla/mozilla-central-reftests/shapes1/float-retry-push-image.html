@@ -15,7 +15,7 @@
 
   #too-wide {
     display: inline-block;
-    height: 20px;
+    height: 21px;
     width: 250px;
     background: blue;
   }
@@ -24,11 +24,31 @@
     width: 100px;
     height: 100px;
     float: left;
+    /* We use a gradient, which is part of the CSS 'image' type.
+     * We set it up to create a hard diagonal edge from the bottom left to the
+     * top right of #shape, which slices through each pixel along the diagonal.
+     * Theoretically, this should place #too-wide at position 50,50 within
+     * #shape's 100x100 region, but on some devices, the gradient rasterization
+     * may leave pixel 50,49 unshaded enough that #too-wide is placed there
+     * instead. To account for that possible off-by-one rounding scenario,
+     * we set things up as follows:
+     *  - We make #too-wide 1px taller than the corresponding content in the
+     * reference case.
+     *  - We clip the outermost div using a 'clip-path' that only paints
+     * the region where the corresponding content is in the reference case.
+     *  - If the testcase renders properly, then #too-wide will have 1px of
+     * content clipped off of its top or bottom (depending on how the
+     * linear-gradient rasterization and rounding works out). Either way,
+     * it'll match the reference case.
+     */
     shape-outside: linear-gradient(135deg, black, black 50%, transparent 50%);
+  }
+  .clip {
+    clip-path: inset(50px 0 30px 0px);
   }
 </style>
 
-<div style="width: 300px; height: 100px;">
+<div style="width: 300px; height: 100px;" class="clip">
 <div id="shape"></div>
 <span id="too-wide"></span>
 <div>

@@ -11,7 +11,7 @@ use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use std::rc::Rc;
 
 /// WebGL Threading API entry point that lives in the constellation.
@@ -35,7 +35,7 @@ impl WebGLThreads {
             webrender_api_sender,
             webvr_compositor.map(|c| WebVRRenderWrapper(c)),
         );
-        let output_handler = if PREFS.is_dom_to_texture_enabled() {
+        let output_handler = if pref!(dom.webgl.dom_to_texture.enabled) {
             Some(Box::new(OutputHandler::new(
                 webrender_gl.clone(),
                 channel.clone(),
@@ -112,8 +112,13 @@ impl WebGLExternalImageApi for WebGLExternalImages {
 struct WebVRRenderWrapper(Box<dyn WebVRRenderHandler>);
 
 impl WebVRRenderHandler for WebVRRenderWrapper {
-    fn handle(&mut self, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
-        self.0.handle(command, texture);
+    fn handle(
+        &mut self,
+        gl: &dyn gl::Gl,
+        command: WebVRCommand,
+        texture: Option<(u32, Size2D<i32>)>,
+    ) {
+        self.0.handle(gl, command, texture);
     }
 }
 
@@ -146,7 +151,7 @@ impl webrender::OutputImageHandler for OutputHandler {
     fn lock(
         &mut self,
         id: webrender_api::PipelineId,
-    ) -> Option<(u32, webrender_api::DeviceIntSize)> {
+    ) -> Option<(u32, webrender_api::FramebufferIntSize)> {
         // Insert a fence in the WR command queue
         let gl_sync = self
             .webrender_gl
@@ -159,7 +164,7 @@ impl webrender::OutputImageHandler for OutputHandler {
         self.lock_channel.1.recv().unwrap().map(|(tex_id, size)| {
             (
                 tex_id,
-                webrender_api::DeviceIntSize::new(size.width, size.height),
+                webrender_api::FramebufferIntSize::new(size.width, size.height),
             )
         })
     }

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  var minor = "";
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      var w;
+      window.onmessage = e => {
+        try {
+          assert_not_equals(e.data.header, "", "The `Sec-CH-UA` header is delivered.");
+          minor = e.data.header;
+        } catch (ex) {
+          reject(ex);
+        }
+        w.close();
+        resolve();
+      };
+      w = window.open("./resources/sec-ch-ua.py");
+    });
+  }, "Open HTTPS window prior to opt-in: `Sec-CH-UA` header with minor version.")
+
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      var w;
+      window.onmessage = e => {
+        try {
+          assert_not_equals(e.data.header, "", "The `Sec-CH-UA` header is delivered.");
+          assert_not_equals(e.data.header, minor, "The `Sec-CH-UA` header is different after the opt-in than before.");
+        } catch (ex) {
+          reject(ex);
+        }
+        w.close();
+        resolve();
+      };
+      w = window.open("./resources/sec-ch-ua.py");
+    });
+  }, "Open HTTPS window post-opt-in: `Sec-CH-UA` header with minor version.")
+</script>
+</head>

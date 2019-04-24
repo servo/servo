@@ -81,7 +81,7 @@ for mathvariant in mathvariantTransforms:
     reftest.write(source % mathvariant)
     reftestReference.write(source % ("%s (reference)" % mathvariant))
     source ='\
-<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS3.SSS1.tab2"/>\n\
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#cssproperties"/>\n\
 <link rel="match" href="mathvariant-%s-ref.html"/>\n\
 <meta name="assert" content="Verify that a single-char <mtext> with a %s mathvariant is equivalent to an <mtext> with the transformed unicode character.">\n'
     reftest.write(source % (mathvariant, mathvariant))

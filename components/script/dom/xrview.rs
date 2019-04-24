@@ -8,8 +8,10 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
+use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
+use euclid::{RigidTransform3D, Vector3D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use std::ptr::NonNull;
 use webvr_traits::WebVRFrameData;
@@ -21,16 +23,18 @@ pub struct XRView {
     eye: XREye,
     proj: Heap<*mut JSObject>,
     view: Heap<*mut JSObject>,
+    transform: Dom<XRRigidTransform>,
 }
 
 impl XRView {
-    fn new_inherited(session: &XRSession, eye: XREye) -> XRView {
+    fn new_inherited(session: &XRSession, transform: &XRRigidTransform, eye: XREye) -> XRView {
         XRView {
             reflector_: Reflector::new(),
             session: Dom::from_ref(session),
             eye,
             proj: Heap::default(),
             view: Heap::default(),
+            transform: Dom::from_ref(transform),
         }
     }
 
@@ -39,24 +43,37 @@ impl XRView {
         global: &GlobalScope,
         session: &XRSession,
         eye: XREye,
+        pose: &RigidTransform3D<f64>,
         data: &WebVRFrameData,
     ) -> DomRoot<XRView> {
+        let vr_display = session.display();
+
+        // XXXManishearth compute and cache projection matrices on the Display
+        let (proj, offset) = if eye == XREye::Left {
+            (
+                &data.left_projection_matrix,
+                vr_display.left_eye_params_offset(),
+            )
+        } else {
+            (
+                &data.right_projection_matrix,
+                vr_display.right_eye_params_offset(),
+            )
+        };
+
+        let offset = Vector3D::new(offset[0] as f64, offset[1] as f64, offset[2] as f64);
+        let transform = pose.post_mul(&offset.into());
+        let transform = XRRigidTransform::new(global, transform);
+
         let ret = reflect_dom_object(
-            Box::new(XRView::new_inherited(session, eye)),
+            Box::new(XRView::new_inherited(session, &transform, eye)),
             global,
             XRViewBinding::Wrap,
         );
 
-        let (proj, view) = if eye == XREye::Left {
-            (&data.left_projection_matrix, &data.left_view_matrix)
-        } else {
-            (&data.right_projection_matrix, &data.right_view_matrix)
-        };
-
         let cx = global.get_cx();
         unsafe {
             create_typed_array(cx, proj, &ret.proj);
-            create_typed_array(cx, view, &ret.view);
         }
         ret
     }
@@ -78,9 +95,8 @@ impl XRViewMethods for XRView {
         NonNull::new(self.proj.get()).unwrap()
     }
 
-    #[allow(unsafe_code)]
-    /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
-    unsafe fn ViewMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new(self.view.get()).unwrap()
+    /// https://immersive-web.github.io/webxr/#dom-xrview-transform
+    fn Transform(&self) -> DomRoot<XRRigidTransform> {
+        DomRoot::from_ref(&self.transform)
     }
 }

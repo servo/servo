@@ -1,0 +1,12 @@
+<!doctype html>
+<title>fieldset accessibility test: fieldset visibility: hidden</title>
+<link rel=help href=https://w3c.github.io/html-aam/#fieldset-element-accessible-name-computation>
+<style>
+ fieldset { visibility: hidden; }
+ legend, input { visibility: visible; }
+</style>
+<fieldset id=fieldset>
+ <legend>Foo</legend>
+ <input>
+</fieldset>
+<p>Expected no accessible node for id=fieldset.

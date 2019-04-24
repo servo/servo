@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — reference file for emoji sequence line-breaking test</title>
+<link rel=author title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<style>
+div {
+    line-height: 1em;
+    font-size: 30px;
+}
+.container {
+    position: relative;
+    margin: .5em;
+}
+.ref {
+    background-color: white;
+    padding: .25em;
+}
+</style>
+<body>
+    <p>Each emoji should appear on a single line with no red background.</p>
+    <div class=container>
+        <div class=ref>&#x1F468;&#x200D;&#x1F4BB;</div><!-- man technologist -->
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F469;&#x200D;&#x1F467;&#x200D;&#x1F466;</div><!-- family with mother, son and daughter -->
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F939;&#x200D;&#x2640;&#xFE0F;</div><!-- woman juggling -->
+    </div>
+    <div class=container>
+        <div class=ref>&#x26F9;&#x1F3FF;&#x200D;&#x2640;&#xFE0F;</div><!-- woman basketball player (fitzpatrick type 6) -->
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F3F3;&#xFE0F;&#x200D;&#x1F308;</div><!-- rainbow flag -->
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F3F4;&#xE0067;&#xE0062;&#xE0077;&#xE006C;&#xE0073;&#xE007F;</div><!-- flag of Wales -->
+    </div>
+</body>
+</html>

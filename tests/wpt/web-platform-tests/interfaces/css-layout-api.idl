@@ -134,7 +134,7 @@ dictionary FragmentResultOptions {
     BreakTokenOptions breakToken = null;
 };
 
-[Constructor(FragmentResultOptions)]
+[Constructor(optional FragmentResultOptions options)]
 interface FragmentResult {
     readonly attribute double inlineSize;
     readonly attribute double blockSize;

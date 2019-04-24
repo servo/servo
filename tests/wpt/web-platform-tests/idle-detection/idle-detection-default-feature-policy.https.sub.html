@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/feature-policy/resources/featurepolicy.js></script>
+<script>
+'use strict';
+
+const same_origin_src =
+  '/feature-policy/resources/feature-policy-idle-detection.html'
+const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+  same_origin_src;
+
+promise_test(async () => {
+  await new IdleDetector().start()
+},
+  'Default "idle-detection" feature policy ["self"] ' +
+  'allows the top-level document.');
+
+async_test(t => {
+  test_feature_availability('new IdleDetector().start()', t, same_origin_src,
+      expect_feature_available_default);
+}, 'Default "idle-detection" feature policy ["self"] ' +
+   'allows same-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('new IdleDetector().start()', t, cross_origin_src,
+      expect_feature_unavailable_default);
+}, 'Default "idle-detection" feature policy ["self"] ' +
+   'disallows cross-origin iframes.');
+
+</script>
+</body>

@@ -23,7 +23,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
@@ -643,6 +643,7 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         };
 
         if let Some(font_family) = font_family {
+            // FIXME(emilio): This in Gecko parses a whole family list.
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
@@ -718,9 +719,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length(value),
-                )),
+                ))),
             ));
         }
 
@@ -745,20 +746,20 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match width {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                let width_value = specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
-                );
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value),
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                let width_value = specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
                         specified::AbsoluteLength::Px(length.to_f32_px()),
                     )),
-                );
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value),
@@ -779,20 +780,20 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         match height {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                let height_value = specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
-                );
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value),
                 ));
             },
             LengthOrPercentageOrAuto::Length(length) => {
-                let height_value = specified::LengthPercentageOrAuto::LengthPercentage(
+                let height_value = specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
                         specified::AbsoluteLength::Px(length.to_f32_px()),
                     )),
-                );
+                ));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value),
@@ -819,9 +820,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Width(specified::LengthPercentageOrAuto::LengthPercentage(
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length(value),
-                )),
+                ))),
             ));
         }
 
@@ -843,9 +844,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             ));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Height(specified::LengthPercentageOrAuto::LengthPercentage(
+                PropertyDeclaration::Height(specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length(value),
-                )),
+                ))),
             ));
         }
 
@@ -1292,7 +1293,7 @@ impl Element {
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
-        assert!(attr.GetOwnerElement().r() == Some(self));
+        assert!(attr.GetOwnerElement().deref() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
         if attr.namespace() == &ns!() {
@@ -1607,12 +1608,12 @@ impl Element {
                 }
             },
             AdjacentPosition::AfterBegin => {
-                Node::pre_insert(node, &self_node, self_node.GetFirstChild().r()).map(Some)
+                Node::pre_insert(node, &self_node, self_node.GetFirstChild().deref()).map(Some)
             },
             AdjacentPosition::BeforeEnd => Node::pre_insert(node, &self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
-                    Node::pre_insert(node, &parent, self_node.GetNextSibling().r()).map(Some)
+                    Node::pre_insert(node, &parent, self_node.GetNextSibling().deref()).map(Some)
                 } else {
                     Ok(None)
                 }
@@ -1652,7 +1653,7 @@ impl Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2121,7 +2122,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2171,7 +2172,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2217,7 +2218,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2268,7 +2269,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2533,13 +2534,14 @@ impl ElementMethods for Element {
         let position = position.parse::<AdjacentPosition>()?;
 
         let context = match position {
-            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => match self
-                .upcast::<Node>()
-                .GetParentNode()
-            {
-                Some(ref node) if node.is::<Document>() => return Err(Error::NoModificationAllowed),
-                None => return Err(Error::NoModificationAllowed),
-                Some(node) => node,
+            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
+                match self.upcast::<Node>().GetParentNode() {
+                    Some(ref node) if node.is::<Document>() => {
+                        return Err(Error::NoModificationAllowed)
+                    },
+                    None => return Err(Error::NoModificationAllowed),
+                    Some(node) => node,
+                }
             },
             AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => {
                 DomRoot::from_ref(self.upcast::<Node>())
@@ -2736,7 +2738,7 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
         let fullscreen = doc.GetFullscreenElement();
-        if fullscreen.r() == Some(self) {
+        if fullscreen.deref() == Some(self) {
             doc.exit_fullscreen();
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
@@ -2886,10 +2888,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
                     Some(_) => true,
                 },
             },
-
-            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => self
-                .get_attribute(&ns!(), &local_name!("type"))
-                .map_or(false, |attr| attr.value().eq(expected_value)),
 
             // FIXME(heycam): This is wrong, since extended_filtering accepts
             // a string containing commas (separating each language tag in
@@ -3391,7 +3389,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     fn run_once(self) {
         let element = self.element.root();
         let promise = self.promise.root();
-        let document = document_from_node(element.r());
+        let document = document_from_node(&*element);
 
         // Step 7.1
         if self.error || !element.fullscreen_element_ready_check() {
@@ -3441,7 +3439,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
     #[allow(unrooted_must_root)]
     fn run_once(self) {
         let element = self.element.root();
-        let document = document_from_node(element.r());
+        let document = document_from_node(&*element);
         // TODO Step 9.1-5
         // Step 9.6
         element.set_fullscreen_state(false);

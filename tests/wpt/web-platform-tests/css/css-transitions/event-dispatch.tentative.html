@@ -9,12 +9,20 @@
 <script>
 'use strict';
 
+// All transition events should be received on the next animation frame. If
+// two animation frames pass before receiving the expected events then we
+// can immediately fail the current test.
+const transitionEventsTimeout = () => {
+  return waitForAnimationFrames(2);
+};
+
 const setupTransition = (t, transitionStyle) => {
   const div = addDiv(t, { style: 'transition: ' + transitionStyle });
   const watcher = new EventWatcher(t, div, [ 'transitionrun',
                                              'transitionstart',
                                              'transitionend',
-                                             'transitioncancel' ]);
+                                             'transitioncancel' ],
+                                   transitionEventsTimeout);
   getComputedStyle(div).marginLeft;
 
   div.style.marginLeft = '100px';

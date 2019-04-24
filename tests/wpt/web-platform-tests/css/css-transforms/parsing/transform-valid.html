@@ -39,7 +39,7 @@ test_valid_value("transform", "rotate(90deg)");
 test_valid_value("transform", "skew(0)", "skew(0deg)");
 test_valid_value("transform", "skew(90deg)");
 test_valid_value("transform", "skew(0, -90deg)", "skew(0deg, -90deg)");
-test_valid_value("transform", "skew(90deg, 0)", "skew(90deg, 0deg)");
+test_valid_value("transform", "skew(90deg, 0)", ["skew(90deg)", "skew(90deg, 0deg)"]);
 
 test_valid_value("transform", "skewX(0)", "skewX(0deg)");
 test_valid_value("transform", "skewX(90deg)");

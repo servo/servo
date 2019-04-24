@@ -7,8 +7,12 @@
 <script>
 
 promise_test(async t => {
-  const wakeLock = await navigator.getWakeLock("screen");
-  const request = wakeLock.createRequest();
+  const wakeLock = new WakeLock("screen");
+
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  await wakeLock.request({ signal });
   assert_true(wakeLock.active, "the active is true when wake lock is acquired");
   const eventWatcher = new EventWatcher(t, document, "visibilitychange");
   const win = window.open("about:blank", "_blank");
@@ -21,7 +25,7 @@ promise_test(async t => {
   await eventWatcher.wait_for("visibilitychange");
   assert_false(document.hidden, "document is visiable when new window is closed");
   assert_true(wakeLock.active, "the active is true when document regains visibility");
-  request.cancel();
+  controller.abort();
 }, "Test that screen wake lock will not be actived in hidden document");
 
 </script>

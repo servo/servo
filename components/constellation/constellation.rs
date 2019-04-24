@@ -124,13 +124,13 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
-use msg::constellation_msg::{BackgroundHangMonitorRegister, HangAlert};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
     BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::pub_domains::reg_host;
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
@@ -150,8 +150,7 @@ use script_traits::{IFrameSizeMsg, WindowSizeData, WindowSizeType};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
-use servo_config::opts;
-use servo_config::prefs::PREFS;
+use servo_config::{opts, pref};
 use servo_rand::{random, Rng, SeedableRng, ServoRng};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -208,13 +207,16 @@ pub struct Constellation<Message, LTF, STF> {
     /// None when in multiprocess mode.
     background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
 
+    /// Channels to control all sampling profilers.
+    sampling_profiler_control: Vec<IpcSender<SamplerControlMsg>>,
+
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    background_hang_monitor_sender: IpcSender<HangAlert>,
+    background_hang_monitor_sender: IpcSender<HangMonitorAlert>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
-    background_hang_monitor_receiver: Receiver<Result<HangAlert, IpcError>>,
+    background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -614,11 +616,19 @@ where
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
-                let background_monitor_register = match opts::multiprocess() {
-                    true => None,
-                    false => Some(HangMonitorRegister::init(
-                        background_hang_monitor_sender.clone(),
-                    )),
+                let (background_monitor_register, sampler_chan) = if opts::multiprocess() {
+                    (None, vec![])
+                } else {
+                    let (sampling_profiler_control, sampling_profiler_port) =
+                        ipc::channel().expect("ipc channel failure");
+
+                    (
+                        Some(HangMonitorRegister::init(
+                            background_hang_monitor_sender.clone(),
+                            sampling_profiler_port,
+                        )),
+                        vec![sampling_profiler_control],
+                    )
                 };
 
                 let (ipc_layout_sender, ipc_layout_receiver) =
@@ -639,6 +649,7 @@ where
                     background_hang_monitor_sender,
                     background_hang_monitor_receiver,
                     background_monitor_register,
+                    sampling_profiler_control: sampler_chan,
                     layout_sender: ipc_layout_sender,
                     script_receiver: script_receiver,
                     compositor_receiver: compositor_receiver,
@@ -840,6 +851,10 @@ where
             Err(e) => return self.handle_send_error(pipeline_id, e),
         };
 
+        if let Some(sampler_chan) = pipeline.sampler_control_chan {
+            self.sampling_profiler_control.push(sampler_chan);
+        }
+
         if let Some(host) = host {
             debug!(
                 "Adding new host entry {} for top-level browsing context {}.",
@@ -847,11 +862,11 @@ where
             );
             let _ = self
                 .event_loops
-                .insert(host, Rc::downgrade(&pipeline.event_loop));
+                .insert(host, Rc::downgrade(&pipeline.pipeline.event_loop));
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
-        self.pipelines.insert(pipeline_id, pipeline);
+        self.pipelines.insert(pipeline_id, pipeline.pipeline);
     }
 
     /// Get an iterator for the fully active browsing contexts in a subtree.
@@ -921,6 +936,14 @@ where
     }
 
     fn add_pending_change(&mut self, change: SessionHistoryChange) {
+        debug!(
+            "adding pending session history change with {}",
+            if change.replace.is_some() {
+                "replacement"
+            } else {
+                "no replacement"
+            },
+        );
         self.handle_load_start_msg(
             change.top_level_browsing_context_id,
             change.browsing_context_id,
@@ -933,7 +956,7 @@ where
         #[derive(Debug)]
         enum Request {
             Script((PipelineId, FromScriptMsg)),
-            BackgroundHangMonitor(HangAlert),
+            BackgroundHangMonitor(HangMonitorAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
@@ -999,10 +1022,17 @@ where
         }
     }
 
-    fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
-        // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
-        // via the embedder?
-        warn!("Component hang alert: {:?}", message);
+    fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
+        match message {
+            HangMonitorAlert::Profile(bytes) => self
+                .embedder_proxy
+                .send((None, EmbedderMsg::ReportProfile(bytes))),
+            HangMonitorAlert::Hang(hang) => {
+                // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
+                // via the embedder?
+                warn!("Component hang alert: {:?}", hang);
+            },
+        }
     }
 
     fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {
@@ -1186,6 +1216,23 @@ where
                 self.forward_event(destination_pipeline_id, event);
             },
             FromCompositorMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
+            FromCompositorMsg::EnableProfiler(rate, max_duration) => {
+                for chan in &self.sampling_profiler_control {
+                    if let Err(e) = chan.send(SamplerControlMsg::Enable(rate, max_duration)) {
+                        warn!("error communicating with sampling profiler: {}", e);
+                    }
+                }
+            },
+            FromCompositorMsg::DisableProfiler => {
+                for chan in &self.sampling_profiler_control {
+                    if let Err(e) = chan.send(SamplerControlMsg::Disable) {
+                        warn!("error communicating with sampling profiler: {}", e);
+                    }
+                }
+            },
+            FromCompositorMsg::ExitFullScreen(top_level_browsing_context_id) => {
+                self.handle_exit_fullscreen_msg(top_level_browsing_context_id);
+            },
         }
     }
 
@@ -1312,9 +1359,6 @@ where
                         warn!("Error setting clipboard contents ({})", e);
                     }
                 }
-            },
-            FromScriptMsg::SetVisible(is_visible) => {
-                self.handle_set_visible_msg(source_pipeline_id, is_visible);
             },
             FromScriptMsg::VisibilityChangeComplete(is_visible) => {
                 self.handle_visibility_change_complete(source_pipeline_id, is_visible);
@@ -1890,11 +1934,11 @@ where
     fn handle_navigate_request(
         &self,
         id: PipelineId,
-        req_init: RequestInit,
+        request_builder: RequestBuilder,
         cancel_chan: IpcReceiver<()>,
     ) {
         let listener = NetworkListener::new(
-            req_init,
+            request_builder,
             id,
             self.public_resource_threads.clone(),
             self.network_listener_sender.clone(),
@@ -1914,13 +1958,29 @@ where
             top_level_browsing_context_id,
             new_pipeline_id,
             is_private,
-            replace,
+            mut replace,
         } = load_info.info;
 
         // If no url is specified, reload.
         let old_pipeline = load_info
             .old_pipeline_id
             .and_then(|id| self.pipelines.get(&id));
+
+        // Replacement enabled also takes into account whether the document is "completely loaded",
+        // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
+        debug!("checking old pipeline? {:?}", load_info.old_pipeline_id);
+        if let Some(old_pipeline) = old_pipeline {
+            replace |= !old_pipeline.completely_loaded;
+            debug!(
+                "old pipeline is {}completely loaded",
+                if old_pipeline.completely_loaded {
+                    ""
+                } else {
+                    "not "
+                }
+            );
+        }
+
         let load_data = load_info.load_data.unwrap_or_else(|| {
             let url = match old_pipeline {
                 Some(old_pipeline) => old_pipeline.url.clone(),
@@ -1963,11 +2023,16 @@ where
                 );
             },
         };
+
         let replace = if replace {
             Some(NeedsToReload::No(browsing_context.pipeline_id))
         } else {
             None
         };
+
+        // https://github.com/rust-lang/rust/issues/59159
+        let browsing_context_size = browsing_context.size;
+        let browsing_context_is_visible = browsing_context.is_visible;
 
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(
@@ -1976,11 +2041,11 @@ where
             top_level_browsing_context_id,
             Some(parent_pipeline_id),
             None,
-            browsing_context.size,
+            browsing_context_size,
             load_data,
             load_info.sandbox,
             is_private,
-            browsing_context.is_visible,
+            browsing_context_is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -2213,7 +2278,12 @@ where
         load_data: LoadData,
         replace: bool,
     ) -> Option<PipelineId> {
-        debug!("Loading {} in pipeline {}.", load_data.url, source_id);
+        debug!(
+            "Loading {} in pipeline {}, {}replacing.",
+            load_data.url,
+            source_id,
+            if replace { "" } else { "not " }
+        );
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated
         // the new load. The framing element must be notified about the
@@ -2373,6 +2443,11 @@ where
         }
         if webdriver_reset {
             self.webdriver.load_channel = None;
+        }
+
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            debug!("marking pipeline {:?} as loaded", pipeline_id);
+            pipeline.completely_loaded = true;
         }
 
         // Notify the embedder that the TopLevelBrowsingContext current document
@@ -2639,12 +2714,16 @@ where
             },
         };
 
-        let (old_pipeline_id, parent_pipeline_id) =
+        let (old_pipeline_id, parent_pipeline_id, top_level_id) =
             match self.browsing_contexts.get_mut(&browsing_context_id) {
                 Some(browsing_context) => {
                     let old_pipeline_id = browsing_context.pipeline_id;
                     browsing_context.update_current_entry(new_pipeline_id);
-                    (old_pipeline_id, browsing_context.parent_pipeline_id)
+                    (
+                        old_pipeline_id,
+                        browsing_context.parent_pipeline_id,
+                        browsing_context.top_level_id,
+                    )
                 },
                 None => {
                     return warn!(
@@ -2654,6 +2733,13 @@ where
                 },
             };
 
+        if let Some(old_pipeline) = self.pipelines.get(&old_pipeline_id) {
+            old_pipeline.notify_visibility(false);
+        }
+        if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
+            new_pipeline.notify_visibility(true);
+        }
+
         self.update_activity(old_pipeline_id);
         self.update_activity(new_pipeline_id);
 
@@ -2661,6 +2747,7 @@ where
             let msg = ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
+                top_level_id,
                 new_pipeline_id,
                 UpdatePipelineIdReason::Traversal,
             );
@@ -2816,7 +2903,7 @@ where
             },
             None => {
                 let event = (None, EmbedderMsg::Keyboard(event));
-                self.embedder_proxy.clone().send(event);
+                self.embedder_proxy.send(event);
             },
         }
     }
@@ -2988,38 +3075,6 @@ where
         result
     }
 
-    fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, is_visible: bool) {
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.browsing_context_id,
-            None => {
-                return warn!(
-                    "No browsing context associated with pipeline {:?}",
-                    pipeline_id
-                );
-            },
-        };
-
-        // TODO(mandreyel): can we make a mutable version of
-        // AllBrowsingContextsIterator to directly modify a browsing context
-        // without the need for this indirection?
-        let nested_ctx_ids: Vec<BrowsingContextId> = self
-            .all_descendant_browsing_contexts_iter(browsing_context_id)
-            .filter(|ctx| ctx.is_visible != is_visible)
-            .map(|ctx| ctx.id)
-            .collect();
-
-        for ctx_id in nested_ctx_ids {
-            if let Some(browsing_context) = self.browsing_contexts.get_mut(&ctx_id) {
-                browsing_context.is_visible = is_visible;
-                for pipeline_id in browsing_context.pipelines.iter() {
-                    if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
-                        pipeline.notify_visibility(is_visible);
-                    }
-                }
-            }
-        }
-    }
-
     fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
@@ -3126,7 +3181,9 @@ where
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),
-                    None => return warn!("Pipeline {:?} ScriptCommand after closure.", pipeline_id),
+                    None => {
+                        return warn!("Pipeline {:?} ScriptCommand after closure.", pipeline_id)
+                    },
                 };
                 if let Err(e) = result {
                     self.handle_send_error(pipeline_id, e);
@@ -3370,6 +3427,10 @@ where
                 self.notify_history_changed(change.top_level_browsing_context_id);
             },
             Some(old_pipeline_id) => {
+                if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
+                    pipeline.notify_visibility(false);
+                }
+
                 // https://html.spec.whatwg.org/multipage/#unload-a-document
                 self.unload_document(old_pipeline_id);
                 // Deactivate the old pipeline, and activate the new one.
@@ -3487,10 +3548,7 @@ where
         let pipelines_to_evict = {
             let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
-            let history_length = PREFS
-                .get("session-history.max-length")
-                .as_u64()
-                .unwrap_or(20) as usize;
+            let history_length = pref!(session_history.max_length) as usize;
 
             // The past is stored with older entries at the front.
             // We reverse the iter so that newer entries are at the front and then
@@ -3578,6 +3636,7 @@ where
                     let msg = ConstellationControlMsg::UpdatePipelineId(
                         parent_pipeline_id,
                         change.browsing_context_id,
+                        change.top_level_browsing_context_id,
                         pipeline_id,
                         UpdatePipelineIdReason::Navigation,
                     );
@@ -3610,6 +3669,15 @@ where
         }
 
         self.window_size = new_size;
+    }
+
+    /// Called when the window exits from fullscreen mode
+    fn handle_exit_fullscreen_msg(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) {
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        self.switch_fullscreen_mode(browsing_context_id);
     }
 
     /// Handle updating actual viewport / zoom due to @viewport rules
@@ -3845,6 +3913,25 @@ where
                     size_type,
                 ));
             }
+        }
+    }
+
+    // Handle switching from fullscreen mode
+    fn switch_fullscreen_mode(&mut self, browsing_context_id: BrowsingContextId) {
+        if let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) {
+            let pipeline_id = browsing_context.pipeline_id;
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                None => {
+                    return warn!(
+                        "Pipeline {:?} switched from fullscreen mode after closing.",
+                        pipeline_id
+                    )
+                },
+                Some(pipeline) => pipeline,
+            };
+            let _ = pipeline
+                .event_loop
+                .send(ConstellationControlMsg::ExitFullScreen(pipeline.id));
         }
     }
 

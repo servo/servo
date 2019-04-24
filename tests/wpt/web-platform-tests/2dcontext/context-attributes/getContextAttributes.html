@@ -6,13 +6,16 @@
 var testScenarios = [
     {testDescription: "Test default context creation attributes",
         canvasContextAttributes: {},
-        expectedContextAttributes: {alpha : true}},
+        expectedContextAttributes: {alpha : true, desynchronized: false}},
     {testDescription: "Test context creation attributes alpha: true",
         canvasContextAttributes: {alpha: true},
         expectedContextAttributes: {alpha : true}},
     {testDescription: "Test context creation attributes alpha: false",
         canvasContextAttributes: {alpha: false},
         expectedContextAttributes: {alpha : false}},
+    {testDescription: "Test context creation attributes desynchronized: false",
+        canvasContextAttributes: {desynchronized: false},
+        expectedContextAttributes: {desynchronized : false}},
 ];
 
 function runTestScenario(testScenario) {
@@ -20,8 +23,14 @@ function runTestScenario(testScenario) {
         var canvas = document. createElement('canvas');
         var ctx = canvas.getContext('2d', testScenario.canvasContextAttributes);
         var contextAttributes = ctx.getContextAttributes();
-        assert_equals(contextAttributes.alpha,
-            testScenario.expectedContextAttributes.alpha);
+        if (testScenario.expectedContextAttributes.alpha !== undefined) {
+            assert_equals(contextAttributes.alpha,
+                testScenario.expectedContextAttributes.alpha);
+        }
+        if (testScenario.expectedContextAttributes.desynchronized !== undefined) {
+            assert_equals(contextAttributes.desynchronized,
+                testScenario.expectedContextAttributes.desynchronized);
+        }
     }, testScenario.testDescription);
 }
 

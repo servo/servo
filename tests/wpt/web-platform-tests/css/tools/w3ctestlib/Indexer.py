@@ -124,9 +124,8 @@ class Indexer:
 
   def __writeTemplate(self, template, data, outfile):
     o = self.tt.process(template, data)
-    f = open(outfile, 'w')
-    f.write(o.encode('utf-8'))
-    f.close()
+    with open(outfile, 'w') as f:
+      f.write(o.encode('utf-8'))
 
   def writeOverview(self, destDir, errorOut=sys.stderr, addTests=[]):
     """Write format-agnostic pages such as test suite overview pages,

@@ -304,7 +304,7 @@ impl ElementCascadeInputs {
 /// Statistics gathered during the traversal. We gather statistics on each
 /// thread and then combine them after the threads join via the Add
 /// implementation below.
-#[derive(Default)]
+#[derive(AddAssign, Clone, Default)]
 pub struct PerThreadTraversalStatistics {
     /// The total number of elements traversed.
     pub elements_traversed: u32,
@@ -317,20 +317,6 @@ pub struct PerThreadTraversalStatistics {
     /// The number of styles reused via rule node comparison from the
     /// StyleSharingCache.
     pub styles_reused: u32,
-}
-
-/// Implementation of Add to aggregate statistics across different threads.
-impl<'a> ops::Add for &'a PerThreadTraversalStatistics {
-    type Output = PerThreadTraversalStatistics;
-    fn add(self, other: Self) -> PerThreadTraversalStatistics {
-        PerThreadTraversalStatistics {
-            elements_traversed: self.elements_traversed + other.elements_traversed,
-            elements_styled: self.elements_styled + other.elements_styled,
-            elements_matched: self.elements_matched + other.elements_matched,
-            styles_shared: self.styles_shared + other.styles_shared,
-            styles_reused: self.styles_reused + other.styles_reused,
-        }
-    }
 }
 
 /// Statistics gathered during the traversal plus some information from

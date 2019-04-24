@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: content' does not turn on style containment</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+  <link rel="match" href="reference/contain-content-011-ref.html">
+
+  <meta name="flags" content="">
+  <meta name="assert" content="'contain: content' does not turn on style containment. So, in this test, the counter of div.abspos child should not be reset and must not be reset.">
+
+  <style>
+  body
+    {
+      counter-reset: counter-of-abspos-div 17;
+    }
+
+    /*
+    This creates a new counter identified as
+    "counter-of-abspos-div" and initially sets
+    such counter to 17 (an entirely arbitrary
+    number)
+    */
+
+  div
+    {
+      width: 100px;
+    }
+
+
+  div#contain-content
+    {
+      background-color: red;
+      contain: content;
+      height: 100px;
+    }
+
+  div.abspos
+    {
+      background-color: green;
+      height: 50px;
+      position: absolute;
+      right: 0;
+    }
+
+  div#contain-content > div.abspos
+    {
+      counter-increment: counter-of-abspos-div 4;
+    }
+
+    /*
+    This increments the counter identified as
+    "counter-of-abspos-div" of the step value
+    of 4 (an entirely arbitrary number) each and
+    every time there is a div.abspos child
+    within the subtree of div#contain-content
+    */
+
+  div#first-abspos
+    {
+      top: 0px;
+    }
+
+  div#second-abspos
+    {
+      bottom: 0px;
+    }
+
+  div#result::after
+    {
+      content: counter(counter-of-abspos-div);
+      font-size: 3em;
+    }
+
+    /*
+    Now, the generated content is set to the
+    current value of the counter identified
+    as "counter-of-abspos-div":
+    17 + 4 * 2 == 25
+    */
+  </style>
+
+  <body>
+
+  <p>Test passes if there is a filled green square, no red and the number 25.
+
+  <div id="contain-content">
+    <div id="first-abspos" class="abspos"></div>
+    <div id="second-abspos" class="abspos"></div>
+  </div>
+
+  <div id="result"></div>

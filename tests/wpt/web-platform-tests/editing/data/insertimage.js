@@ -349,5 +349,10 @@ var browserTests = [
     [["insertimage","/img/lion.svg"]],
     "<div>foo<p>bar<img src=\"/img/lion.svg\">{}baz</p></div>",
     [true],
-    {"insertimage":[false,false,"",false,false,""]}]
+    {"insertimage":[false,false,"",false,false,""]}],
+["foo[]bar",
+    [["insertimage","/\u65E5\u672C\u8A9E\u30D1\u30B9/lion.svg"]],
+    "foo<img src=\"/\u65E5\u672C\u8A9E\u30D1\u30B9/lion.svg\">{}bar",
+    [true],
+    {"insertimage":[false,false,"",false,false,""]}],
 ]

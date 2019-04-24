@@ -29,7 +29,7 @@ use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
 use serde_json::{self, Value};
-use servo_config::prefs::{PrefValue, PREFS};
+use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
@@ -50,7 +50,7 @@ use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{CookieResponse, CookiesResponse};
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
-use webdriver::response::{WebDriverResponse, WindowRectResponse};
+use webdriver::response::{TimeoutsResponse, WebDriverResponse, WindowRectResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
@@ -109,7 +109,7 @@ struct WebDriverSession {
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
-    script_timeout: u64,
+    script_timeout: Option<u64>,
 
     /// Time to wait for a page to finish loading upon navigation.
     load_timeout: u64,
@@ -129,7 +129,7 @@ impl WebDriverSession {
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
 
-            script_timeout: 30_000,
+            script_timeout: Some(30_000),
             load_timeout: 300_000,
             implicit_wait_timeout: 0,
         }
@@ -218,9 +218,10 @@ impl Serialize for WebDriverPrefValue {
         S: Serializer,
     {
         match self.0 {
-            PrefValue::Boolean(b) => serializer.serialize_bool(b),
-            PrefValue::String(ref s) => serializer.serialize_str(&s),
-            PrefValue::Number(f) => serializer.serialize_f64(f),
+            PrefValue::Bool(b) => serializer.serialize_bool(b),
+            PrefValue::Str(ref s) => serializer.serialize_str(&s),
+            PrefValue::Float(f) => serializer.serialize_f64(f),
+            PrefValue::Int(i) => serializer.serialize_i64(i),
             PrefValue::Missing => serializer.serialize_unit(),
         }
     }
@@ -244,35 +245,35 @@ impl<'de> Deserialize<'de> for WebDriverPrefValue {
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Number(value)))
+                Ok(WebDriverPrefValue(PrefValue::Float(value)))
             }
 
             fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Number(value as f64)))
+                Ok(WebDriverPrefValue(PrefValue::Int(value)))
             }
 
             fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Number(value as f64)))
+                Ok(WebDriverPrefValue(PrefValue::Int(value as i64)))
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::String(value.to_owned())))
+                Ok(WebDriverPrefValue(PrefValue::Str(String::from(value))))
             }
 
             fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
             where
                 E: ::serde::de::Error,
             {
-                Ok(WebDriverPrefValue(PrefValue::Boolean(value)))
+                Ok(WebDriverPrefValue(PrefValue::Bool(value)))
             }
         }
 
@@ -766,6 +767,42 @@ impl Handler {
         }
     }
 
+    // https://w3c.github.io/webdriver/#find-element-from-element
+    fn handle_find_element_element(
+        &self,
+        element: &WebElement,
+        parameters: &LocatorParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        if parameters.using != LocatorStrategy::CSSSelector {
+            return Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation,
+                "Unsupported locator strategy",
+            ));
+        }
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::FindElementElementCSS(
+            parameters.value.clone(),
+            element.id.clone(),
+            sender,
+        );
+
+        self.browsing_context_script_command(cmd)?;
+
+        match receiver.recv().unwrap() {
+            Ok(value) => {
+                let value_resp = serde_json::to_value(
+                    value.map(|x| serde_json::to_value(WebElement::new(x)).unwrap()),
+                )?;
+                Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+            },
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::InvalidSelector,
+                "Invalid selector",
+            )),
+        }
+    }
+
     // https://w3c.github.io/webdriver/webdriver-spec.html#get-element-rect
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -934,6 +971,34 @@ impl Handler {
         }
     }
 
+    fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::DeleteCookies(sender);
+        self.browsing_context_script_command(cmd)?;
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window found.",
+            )),
+        }
+    }
+
+    fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
+
+        let timeouts = TimeoutsResponse {
+            script: session.script_timeout,
+            page_load: session.load_timeout,
+            implicit: session.implicit_wait_timeout,
+        };
+
+        Ok(WebDriverResponse::Timeouts(timeouts))
+    }
+
     fn handle_set_timeouts(
         &mut self,
         parameters: &TimeoutsParameters,
@@ -944,7 +1009,7 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         if let Some(timeout) = parameters.script {
-            session.script_timeout = timeout
+            session.script_timeout = timeout;
         }
         if let Some(timeout) = parameters.page_load {
             session.load_timeout = timeout
@@ -982,11 +1047,14 @@ impl Handler {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
+        let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
+            format!("setTimeout(webdriverTimeout, {});", script_timeout)
+        } else {
+            "".into()
+        };
         let script = format!(
-            "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
-            self.session()?.script_timeout,
-            func_body,
-            args_string
+            "{} (function(callback) {{ {} }})({})",
+            timeout_script, func_body, args_string
         );
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1110,7 +1178,12 @@ impl Handler {
         let prefs = parameters
             .prefs
             .iter()
-            .map(|item| (item.clone(), serde_json::to_value(PREFS.get(item)).unwrap()))
+            .map(|item| {
+                (
+                    item.clone(),
+                    serde_json::to_value(prefs::pref_map().get(item)).unwrap(),
+                )
+            })
             .collect::<BTreeMap<_, _>>();
 
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1123,7 +1196,9 @@ impl Handler {
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         for &(ref key, ref value) in parameters.prefs.iter() {
-            PREFS.set(key, value.0.clone());
+            prefs::pref_map()
+                .set(key, value.0.clone())
+                .expect("Failed to set preference");
         }
         Ok(WebDriverResponse::Void)
     }
@@ -1133,7 +1208,7 @@ impl Handler {
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let prefs = if parameters.prefs.len() == 0 {
-            PREFS.reset_all();
+            prefs::pref_map().reset_all();
             BTreeMap::new()
         } else {
             parameters
@@ -1142,7 +1217,10 @@ impl Handler {
                 .map(|item| {
                     (
                         item.clone(),
-                        serde_json::to_value(PREFS.reset(item)).unwrap(),
+                        serde_json::to_value(
+                            prefs::pref_map().reset(item).unwrap_or(PrefValue::Missing),
+                        )
+                        .unwrap(),
                     )
                 })
                 .collect::<BTreeMap<_, _>>()
@@ -1192,6 +1270,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
+            WebDriverCommand::FindElementElement(ref element, ref parameters) => {
+                self.handle_find_element_element(element, parameters)
+            },
             WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
@@ -1211,6 +1292,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
+            WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => match *extension {

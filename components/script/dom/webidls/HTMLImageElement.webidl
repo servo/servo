@@ -43,8 +43,8 @@ partial interface HTMLImageElement {
   [CEReactions]
            attribute DOMString longDesc;
 
-  [CEReactions, TreatNullAs=EmptyString]
-  attribute DOMString border;
+  [CEReactions]
+  attribute [TreatNullAs=EmptyString] DOMString border;
 };
 
 // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlimageelement-interface

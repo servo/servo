@@ -12,9 +12,14 @@ interface Blob {
   readonly attribute DOMString type;
 
   // slice Blob into byte-ranged chunks
-  Blob slice([Clamp] optional long long start,
-            [Clamp] optional long long end,
+  Blob slice(optional [Clamp] long long start,
+            optional [Clamp] long long end,
             optional DOMString contentType);
+
+  // read from the Blob.
+  [NewObject] ReadableStream stream();
+  [NewObject] Promise<USVString> text();
+  [NewObject] Promise<ArrayBuffer> arrayBuffer();
 };
 
 enum EndingType { "transparent", "native" };
@@ -75,7 +80,6 @@ interface FileReader: EventTarget {
   attribute EventHandler onabort;
   attribute EventHandler onerror;
   attribute EventHandler onloadend;
-
 };
 
 [Constructor, Exposed=(DedicatedWorker,SharedWorker)]
@@ -90,6 +94,6 @@ interface FileReaderSync {
 
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 partial interface URL {
-  static DOMString createObjectURL(Blob blob);
+  static DOMString createObjectURL((Blob or MediaSource) obj);
   static void revokeObjectURL(DOMString url);
 };

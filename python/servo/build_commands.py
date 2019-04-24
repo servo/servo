@@ -18,6 +18,7 @@ import subprocess
 import sys
 import urllib
 import zipfile
+import stat
 
 from time import time
 
@@ -282,6 +283,7 @@ class MachCommands(CommandBase):
 
             opts += ["--target", target]
 
+        env = self.build_env(target=target, is_build=True)
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 
@@ -289,6 +291,10 @@ class MachCommands(CommandBase):
 
         if debug_mozjs:
             features += ["debugmozjs"]
+
+        if with_frame_pointer:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
+            features += ["profilemozjs"]
 
         if self.config["build"]["webgl-backtrace"]:
             features += ["webgl-backtrace"]
@@ -299,14 +305,10 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
-        env = self.build_env(target=target, is_build=True)
         env["CARGO_TARGET_DIR"] = target_path
 
         if with_debug_assertions:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
-
-        if with_frame_pointer:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
 
         if android:
             if "ANDROID_NDK" not in env:
@@ -446,7 +448,7 @@ class MachCommands(CommandBase):
             # Build the name of the package containing all GStreamer dependencies
             # according to the build target.
             gst_lib = "gst-build-{}".format(self.config["android"]["lib"])
-            gst_lib_zip = "gstreamer-{}-1.14.3-20181105-103937.zip".format(self.config["android"]["lib"])
+            gst_lib_zip = "gstreamer-{}-1.14.3-20190201-081639.zip".format(self.config["android"]["lib"])
             gst_dir = os.path.join(target_path, "gstreamer")
             gst_lib_path = os.path.join(gst_dir, gst_lib)
             pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
@@ -592,6 +594,122 @@ class MachCommands(CommandBase):
                 for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
                     shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                 servo_exe_dir)
+                # Search for the generated nspr4.dll
+                build_path = path.join(servo_exe_dir, "build")
+                nspr4 = "nspr4.dll"
+                nspr4_path = None
+                for root, dirs, files in os.walk(build_path):
+                    if nspr4 in files:
+                        nspr4_path = path.join(root, nspr4)
+                        break
+                if nspr4_path is None:
+                    print("WARNING: could not find nspr4.dll")
+                else:
+                    shutil.copy(nspr4_path, servo_exe_dir)
+                # copy needed gstreamer DLLs in to servo.exe dir
+                gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
+                gst_root = ""
+                gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
+                gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
+                if os.path.exists(path.join(gst_default_path, "bin", "libffi-7.dll")) or \
+                   os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
+                    gst_root = gst_default_path
+                elif os.environ.get(gst_env) is not None:
+                    gst_root = os.environ.get(gst_env)
+                else:
+                    print("Could not found GStreamer installation directory.")
+                    status = 1
+                gst_dlls = [
+                    ["libffi-7.dll", "ffi-7.dll"],
+                    ["libgio-2.0-0.dll", "gio-2.0-0.dll"],
+                    ["libglib-2.0-0.dll", "glib-2.0-0.dll"],
+                    ["libgmodule-2.0-0.dll", "gmodule-2.0-0.dll"],
+                    ["libgobject-2.0-0.dll", "gobject-2.0-0.dll"],
+                    ["libgstapp-1.0-0.dll", "gstapp-1.0-0.dll"],
+                    ["libgstaudio-1.0-0.dll", "gstaudio-1.0-0.dll"],
+                    ["libgstbase-1.0-0.dll", "gstbase-1.0-0.dll"],
+                    ["libgstgl-1.0-0.dll", "gstgl-1.0-0.dll"],
+                    ["libgstpbutils-1.0-0.dll", "gstpbutils-1.0-0.dll"],
+                    ["libgstplayer-1.0-0.dll", "gstplayer-1.0-0.dll"],
+                    ["libgstreamer-1.0-0.dll", "gstreamer-1.0-0.dll"],
+                    ["libgstrtp-1.0-0.dll", "gstrtp-1.0-0.dll"],
+                    ["libgstsdp-1.0-0.dll", "gstsdp-1.0-0.dll"],
+                    ["libgsttag-1.0-0.dll", "gsttag-1.0-0.dll"],
+                    ["libgstvideo-1.0-0.dll", "gstvideo-1.0-0.dll"],
+                    ["libgstwebrtc-1.0-0.dll", "gstwebrtc-1.0-0.dll"],
+                    ["libintl-8.dll", "intl-8.dll"],
+                    ["liborc-0.4-0.dll", "orc-0.4-0.dll"],
+                    ["libwinpthread-1.dll", "winpthread-1.dll"],
+                    ["libz.dll", "libz-1.dll", "z-1.dll"]
+                ]
+                if gst_root:
+                    for gst_lib in gst_dlls:
+                        if isinstance(gst_lib, str):
+                            gst_lib = [gst_lib]
+                        for lib in gst_lib:
+                            try:
+                                shutil.copy(path.join(gst_root, "bin", lib),
+                                            servo_exe_dir)
+                                break
+                            except:
+                                pass
+                        else:
+                            print("ERROR: could not find required GStreamer DLL: " + str(gst_lib))
+                            sys.exit(1)
+
+                # copy some MSVC DLLs to servo.exe dir
+                msvc_redist_dir = None
+                vs_platform = os.environ.get("PLATFORM", "").lower()
+                vc_dir = os.environ.get("VCINSTALLDIR", "")
+                vs_version = os.environ.get("VisualStudioVersion", "")
+                msvc_deps = [
+                    "api-ms-win-crt-runtime-l1-1-0.dll",
+                    "msvcp140.dll",
+                    "vcruntime140.dll",
+                ]
+                # Check if it's Visual C++ Build Tools or Visual Studio 2015
+                vs14_vcvars = path.join(vc_dir, "vcvarsall.bat")
+                is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
+                if is_vs14:
+                    msvc_redist_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
+                elif vs_version == "15.0":
+                    redist_dir = path.join(os.environ.get("VCINSTALLDIR", ""), "Redist", "MSVC")
+                    if os.path.isdir(redist_dir):
+                        for p in os.listdir(redist_dir)[::-1]:
+                            redist_path = path.join(redist_dir, p)
+                            for v in ["VC141", "VC150"]:
+                                # there are two possible paths
+                                # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
+                                redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
+                                redist2 = path.join(redist_path, "onecore", vs_platform, "Microsoft.{}.CRT".format(v))
+                                if os.path.isdir(redist1):
+                                    msvc_redist_dir = redist1
+                                    break
+                                elif os.path.isdir(redist2):
+                                    msvc_redist_dir = redist2
+                                    break
+                            if msvc_redist_dir:
+                                break
+                if msvc_redist_dir:
+                    redist_dirs = [
+                        msvc_redist_dir,
+                        path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
+                    ]
+                    for msvc_dll in msvc_deps:
+                        dll_found = False
+                        for dll_dir in redist_dirs:
+                            dll = path.join(dll_dir, msvc_dll)
+                            servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
+                            if os.path.isfile(dll):
+                                if os.path.isfile(servo_dir_dll):
+                                    # avoid permission denied error when overwrite dll in servo build directory
+                                    os.chmod(servo_dir_dll, stat.S_IWUSR)
+                                shutil.copy(dll, servo_exe_dir)
+                                dll_found = True
+                                break
+                        if not dll_found:
+                            print("DLL file `{}` not found!".format(msvc_dll))
+                            status = 1
 
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools

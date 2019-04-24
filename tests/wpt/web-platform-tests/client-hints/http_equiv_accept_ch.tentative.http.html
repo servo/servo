@@ -1,5 +1,5 @@
 <html>
-<meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Device-Memory, rtt, downlink, ect">
+<meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Device-Memory, rtt, downlink, ect, lang">
 <title>Accept-CH http-equiv insecure transport test</title>
 <body>
 <script src="/resources/testharness.js"></script>
@@ -27,6 +27,7 @@ promise_test(t => {
     assert_false(r.headers.has("rtt-received"), "rtt-received");
     assert_false(r.headers.has("downlink-received"), "downlink-received");
     assert_false(r.headers.has("ect-received"), "ect-received");
+    assert_false(r.headers.has("lang-received"), "lang-received");
   });
 }, "Accept-CH http-equiv test over insecure transport");
 

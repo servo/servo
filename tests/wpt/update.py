@@ -31,6 +31,7 @@ def set_defaults(kwargs):
         kwargs["product"] = "servo"
     if kwargs["config"] is None:
         kwargs["config"] = wpt_path('config.ini')
+    kwargs["store_state"] = False
     updatecommandline.check_args(kwargs)
 
 

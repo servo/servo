@@ -4,7 +4,7 @@ brew "cmake"
 brew "openssl"
 brew "pkg-config"
 brew "gstreamer"
-brew "gst-plugins-base", args: ["with-orc", "with-libogg", "with-opus", "with-theora", "with-libvorbis", "with-pango"]
+brew "gst-plugins-base"
 brew "gst-libav"
 brew "gst-plugins-bad"
 brew "gst-plugins-good"

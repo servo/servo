@@ -278,9 +278,7 @@ impl HTMLIFrameElement {
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
-        // Replacement enabled also takes into account whether the document is "completely loaded",
-        // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
-        let replace = is_about_blank || !document.is_completely_loaded();
+        let replace = is_about_blank;
         self.navigate_or_reload_child_browsing_context(
             Some(load_data),
             NavigationType::Regular,
@@ -397,16 +395,6 @@ impl HTMLIFrameElement {
         if self.visibility.get() != visibility {
             self.visibility.set(visibility);
         }
-    }
-
-    pub fn set_visible(&self, visible: bool) {
-        let msg = ScriptMsg::SetVisible(visible);
-        let window = window_from_node(self);
-        window
-            .upcast::<GlobalScope>()
-            .script_to_constellation_chan()
-            .send(msg)
-            .unwrap();
     }
 
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4

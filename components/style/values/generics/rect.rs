@@ -22,7 +22,10 @@ use style_traits::{CssWriter, ParseError, ToCss};
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
+#[repr(C)]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
 impl<T> Rect<T> {

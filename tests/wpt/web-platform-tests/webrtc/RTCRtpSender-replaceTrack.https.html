@@ -3,6 +3,7 @@
 <title>RTCRtpSender.prototype.replaceTrack</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -30,7 +31,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
@@ -51,7 +52,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream = await navigator.mediaDevices.getUserMedia({video: true});
+    const stream = await getNoiseStream({video: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
@@ -70,7 +71,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
@@ -91,7 +92,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
@@ -108,10 +109,10 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream1 = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream1 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
     const [track1] = stream1.getTracks();
-    const stream2 = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream2 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
     const [track2] = stream2.getTracks();
 
@@ -129,7 +130,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
@@ -158,7 +159,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
@@ -190,10 +191,10 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream1 = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream1 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
     const [track1] = stream1.getTracks();
-    const stream2 = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream2 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
     const [track2] = stream1.getTracks();
 
@@ -226,10 +227,10 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream1 = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream1 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
     const [track1] = stream1.getTracks();
-    const stream2 = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream2 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
     const [track2] = stream1.getTracks();
 

@@ -1,9 +1,16 @@
+// GENERATED PREAMBLE - DO NOT EDIT
+// This preamble was added by reffy-reports for web-platform-tests.
+// CSSOMString is an implementation-defined type of either DOMString or
+// USVString in CSSOM: https://drafts.csswg.org/cssom/#cssomstring-type
+// For web-platform-tests, use DOMString because USVString has additional
+// requirements in type conversion and could result in spurious failures for
+// implementations that use DOMString.
+typedef DOMString CSSOMString;
+
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
 // Source: CSS Object Model (CSSOM) (https://drafts.csswg.org/cssom/)
-
-typedef USVString CSSOMString;
 
 [Exposed=Window]
 interface MediaList {
@@ -19,7 +26,7 @@ interface StyleSheet {
   readonly attribute CSSOMString type;
   readonly attribute USVString? href;
   readonly attribute (Element or ProcessingInstruction)? ownerNode;
-  readonly attribute StyleSheet? parentStyleSheet;
+  readonly attribute CSSStyleSheet? parentStyleSheet;
   readonly attribute DOMString? title;
   [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
   attribute boolean disabled;
@@ -35,16 +42,16 @@ interface CSSStyleSheet : StyleSheet {
 
 [Exposed=Window]
 interface StyleSheetList {
-  getter StyleSheet? item(unsigned long index);
+  getter CSSStyleSheet? item(unsigned long index);
   readonly attribute unsigned long length;
 };
 
-partial interface Document {
+partial interface mixin DocumentOrShadowRoot {
   [SameObject] readonly attribute StyleSheetList styleSheets;
 };
 
 interface mixin LinkStyle {
-  readonly attribute StyleSheet? sheet;
+  readonly attribute CSSStyleSheet? sheet;
 };
 
 ProcessingInstruction includes LinkStyle;

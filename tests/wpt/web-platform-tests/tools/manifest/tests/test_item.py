@@ -1,23 +1,41 @@
-from ..item import SupportFile, URLManifestItem
-from ..sourcefile import SourceFile
+import pytest
+
+from ..item import URLManifestItem
 
 
-def test_base_meta_flags():
-    s = SourceFile("/", "a.b.c.d", "/", contents="")
-    m = SupportFile(s)
+@pytest.mark.parametrize("path", [
+    "a.https.c",
+    "a.b.https.c",
+    "a.https.b.c",
+    "a.b.https.c.d",
+    "a.serviceworker.c",
+    "a.b.serviceworker.c",
+    "a.serviceworker.b.c",
+    "a.b.serviceworker.c.d",
+])
+def test_url_https(path):
+    m = URLManifestItem("/foo", "bar/" + path, "/", "bar/" + path)
 
-    assert m.meta_flags == {"b", "c"}
+    assert m.https is True
 
 
-def test_url_meta_flags():
-    s = SourceFile("/", "a.b.c", "/", contents="")
-    m = URLManifestItem(s, "/foo.bar/a.b.d.e")
+@pytest.mark.parametrize("path", [
+    "https",
+    "a.https",
+    "a.b.https",
+    "https.a",
+    "https.a.b",
+    "a.bhttps.c",
+    "a.httpsb.c",
+    "serviceworker",
+    "a.serviceworker",
+    "a.b.serviceworker",
+    "serviceworker.a",
+    "serviceworker.a.b",
+    "a.bserviceworker.c",
+    "a.serviceworkerb.c",
+])
+def test_url_not_https(path):
+    m = URLManifestItem("/foo", "bar/" + path, "/", "bar/" + path)
 
-    assert m.meta_flags == {"b", "d"}
-
-
-def test_url_empty_meta_flags():
-    s = SourceFile("/", "a.b.c", "/", contents="")
-    m = URLManifestItem(s, "/foo.bar/abcde")
-
-    assert m.meta_flags == set()
+    assert m.https is False

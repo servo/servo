@@ -57,7 +57,7 @@ impl XRViewportMethods for XRViewport {
 
     /// https://immersive-web.github.io/webxr/#dom-xrviewport-width
     fn Width(&self) -> i32 {
-        self.height as i32
+        self.width as i32
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrviewport-height

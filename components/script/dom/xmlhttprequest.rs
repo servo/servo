@@ -58,7 +58,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
@@ -69,6 +69,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::cmp;
 use std::default::Default;
 use std::ptr;
 use std::ptr::NonNull;
@@ -94,7 +95,6 @@ pub struct GenerationId(u32);
 struct XHRContext {
     xhr: TrustedXHRAddress,
     gen_id: GenerationId,
-    buf: DomRefCell<Vec<u8>>,
     sync_status: DomRefCell<Option<ErrorResult>>,
     resource_timing: ResourceFetchTiming,
 }
@@ -104,7 +104,7 @@ pub enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<HeaderMap>, Option<(u16, Vec<u8>)>),
     /// Partial progress (after receiving headers), containing portion of the response
-    Loading(GenerationId, ByteString),
+    Loading(GenerationId, Vec<u8>),
     /// Loading is done
     Done(GenerationId),
     /// There was an error (only Error::Abort, Error::Timeout or Error::Network is used)
@@ -132,7 +132,7 @@ pub struct XMLHttpRequest {
     response_url: DomRefCell<String>,
     status: Cell<u16>,
     status_text: DomRefCell<ByteString>,
-    response: DomRefCell<ByteString>,
+    response: DomRefCell<Vec<u8>>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
     response_blob: MutNullableDom<Blob>,
@@ -184,7 +184,7 @@ impl XMLHttpRequest {
             response_url: DomRefCell::new(String::new()),
             status: Cell::new(0),
             status_text: DomRefCell::new(ByteString::new(vec![])),
-            response: DomRefCell::new(ByteString::new(vec![])),
+            response: DomRefCell::new(vec![]),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
@@ -232,7 +232,7 @@ impl XMLHttpRequest {
         context: Arc<Mutex<XHRContext>>,
         task_source: NetworkingTaskSource,
         global: &GlobalScope,
-        init: RequestInit,
+        init: RequestBuilder,
         cancellation_chan: ipc::IpcReceiver<()>,
     ) {
         impl FetchResponseListener for XHRContext {
@@ -252,11 +252,8 @@ impl XMLHttpRequest {
                 }
             }
 
-            fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
-                self.buf.borrow_mut().append(&mut chunk);
-                self.xhr
-                    .root()
-                    .process_data_available(self.gen_id, self.buf.borrow().clone());
+            fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+                self.xhr.root().process_data_available(self.gen_id, chunk);
             }
 
             fn process_response_eof(
@@ -640,27 +637,24 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             unreachable!()
         };
 
-        let mut request = RequestInit {
-            method: self.request_method.borrow().clone(),
-            url: self.request_url.borrow().clone().unwrap(),
-            headers: (*self.request_headers.borrow()).clone(),
-            unsafe_request: true,
+        let mut request = RequestBuilder::new(self.request_url.borrow().clone().unwrap())
+            .method(self.request_method.borrow().clone())
+            .headers((*self.request_headers.borrow()).clone())
+            .unsafe_request(true)
             // XXXManishearth figure out how to avoid this clone
-            body: extracted_or_serialized.as_ref().map(|e| e.0.clone()),
+            .body(extracted_or_serialized.as_ref().map(|e| e.0.clone()))
             // XXXManishearth actually "subresource", but it doesn't exist
             // https://github.com/whatwg/xhr/issues/71
-            destination: Destination::None,
-            synchronous: self.sync.get(),
-            mode: RequestMode::CorsMode,
-            use_cors_preflight: has_handlers,
-            credentials_mode: credentials_mode,
-            use_url_credentials: use_url_credentials,
-            origin: self.global().origin().immutable().clone(),
-            referrer_url: self.referrer_url.clone(),
-            referrer_policy: self.referrer_policy.clone(),
-            pipeline_id: Some(self.global().pipeline_id()),
-            ..RequestInit::default()
-        };
+            .destination(Destination::None)
+            .synchronous(self.sync.get())
+            .mode(RequestMode::CorsMode)
+            .use_cors_preflight(has_handlers)
+            .credentials_mode(credentials_mode)
+            .use_url_credentials(use_url_credentials)
+            .origin(self.global().origin().immutable().clone())
+            .referrer_url(self.referrer_url.clone())
+            .referrer_policy(self.referrer_policy.clone())
+            .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
         match extracted_or_serialized {
@@ -1007,7 +1001,7 @@ impl XMLHttpRequest {
     }
 
     fn process_data_available(&self, gen_id: GenerationId, payload: Vec<u8>) {
-        self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
+        self.process_partial_response(XHRProgress::Loading(gen_id, payload));
     }
 
     fn process_response_complete(
@@ -1076,18 +1070,34 @@ impl XMLHttpRequest {
                 headers
                     .as_ref()
                     .map(|h| *self.response_headers.borrow_mut() = h.clone());
+                {
+                    let len = headers.and_then(|h| h.typed_get::<ContentLength>());
+                    let mut response = self.response.borrow_mut();
+                    response.clear();
+                    if let Some(len) = len {
+                        // don't attempt to prereserve more than 4 MB of memory,
+                        // to avoid giving servers the ability to DOS the client by
+                        // providing arbitrarily large content-lengths.
+                        //
+                        // this number is arbitrary, it's basically big enough that most
+                        // XHR requests won't hit it, but not so big that it allows for DOS
+                        let size = cmp::min(0b100_0000000000_0000000000, len.0 as usize);
 
+                        // preallocate the buffer
+                        response.reserve(size);
+                    }
+                }
                 // Substep 3
                 if !self.sync.get() {
                     self.change_ready_state(XMLHttpRequestState::HeadersReceived);
                 }
             },
-            XHRProgress::Loading(_, partial_response) => {
+            XHRProgress::Loading(_, mut partial_response) => {
                 // For synchronous requests, this should not fire any events, and just store data
                 // Part of step 11, send() (processing response body)
                 // XXXManishearth handle errors, if any (substep 2)
 
-                *self.response.borrow_mut() = partial_response;
+                self.response.borrow_mut().append(&mut partial_response);
                 if !self.sync.get() {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
                         self.ready_state.set(XMLHttpRequestState::Loading);
@@ -1431,8 +1441,6 @@ impl XMLHttpRequest {
 
     fn filter_response_headers(&self) -> HeaderMap {
         // https://fetch.spec.whatwg.org/#concept-response-header-list
-        use http::header::{self, HeaderName};
-
         let mut headers = self.response_headers.borrow().clone();
         headers.remove(header::SET_COOKIE);
         headers.remove(HeaderName::from_static("set-cookie2"));
@@ -1444,13 +1452,12 @@ impl XMLHttpRequest {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(&self, init: RequestInit, global: &GlobalScope) -> ErrorResult {
+    fn fetch(&self, init: RequestBuilder, global: &GlobalScope) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
             gen_id: self.generation_id.get(),
-            buf: DomRefCell::new(vec![]),
             sync_status: DomRefCell::new(None),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));

@@ -1,5 +1,5 @@
 <html>
-<meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Device-Memory, rtt, downlink, ect">
+<meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Device-Memory, rtt, downlink, ect, lang">
 <title>Accept-CH http-equiv cross-navigation test</title>
 <body>
 <script src="/resources/testharness.js"></script>
@@ -39,9 +39,9 @@ promise_test(t => {
 // not persisted for the origin.
 window.open("resources/do_not_expect_client_hints_headers.html");
 async_test(t => {
-window.addEventListener('message', function(event) {
-  t.done();
-})
+  window.addEventListener('message', t.step_func_done(e => {
+    assert_equals(e.data, 'PASS');
+  }));
 }, "Loading of resources/do_not_expect_client_hints_headers.html did not finish.");
 
 </script>

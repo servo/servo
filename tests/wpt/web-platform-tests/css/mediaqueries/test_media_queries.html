@@ -539,6 +539,40 @@ function run() {
     var overflow_inline_none = query_applies("(overflow-inline: none)");
     assert_not_equals(any_overflow_inline, overflow_inline_none, "overflow-inline should be equivalent to not (overflow-inline: none)");
 
+    // Parsing tests for interaction media features.
+    expression_should_be_parseable("hover")
+    expression_should_be_parseable("hover: hover")
+    expression_should_be_parseable("hover: none")
+    expression_should_be_parseable("any-hover")
+    expression_should_be_parseable("any-hover: hover")
+    expression_should_be_parseable("any-hover: none")
+
+    assert_equals(query_applies("(hover)"), query_applies("(hover: hover)"), "(hover) == (hover: hover)");
+    assert_not_equals(query_applies("(hover)"), query_applies("(hover: none)"), "(hover) == not (hover: none)");
+    assert_equals(query_applies("(any-hover)"), query_applies("(any-hover: hover)"), "(any-hover) == (any-hover: hover)");
+    assert_not_equals(query_applies("(any-hover)"), query_applies("(any-hover: none)"), "(any-hover) == not (any-hover: none)");
+
+    expression_should_be_parseable("pointer")
+    expression_should_be_parseable("pointer: coarse")
+    expression_should_be_parseable("pointer: fine")
+    expression_should_be_parseable("pointer: none")
+    expression_should_be_parseable("any-pointer")
+    expression_should_be_parseable("any-pointer: coarse")
+    expression_should_be_parseable("any-pointer: fine")
+    expression_should_be_parseable("any-pointer: none")
+    assert_equals(query_applies("(pointer)"),
+                  query_applies("(pointer: coarse)") || query_applies("(pointer: fine)"),
+                  "(pointer) == (pointer: coarse) or (pointer: fine)");
+    assert_not_equals(query_applies("(pointer)"),
+                      query_applies("(pointer: none)"),
+                      "(pointer) == not (pointer: none)");
+    assert_equals(query_applies("(any-pointer)"),
+                  query_applies("(any-pointer: coarse)") || query_applies("(any-pointer: fine)"),
+                  "(any-pointer) == (any-pointer: coarse) or (any-pointer: fine)");
+    assert_not_equals(query_applies("(any-pointer)"),
+                      query_applies("(any-pointer: none)"),
+                      "(any-pointer) == not (any-pointer: none)");
+
     done();
 }
 

@@ -40,6 +40,8 @@ interface Document : Node {
   DocumentFragment createDocumentFragment();
   [NewObject]
   Text createTextNode(DOMString data);
+  [NewObject, Throws]
+  CDATASection createCDATASection(DOMString data);
   [NewObject]
   Comment createComment(DOMString data);
   [NewObject, Throws]
@@ -152,8 +154,8 @@ Document implements DocumentAndElementEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
-  [CEReactions, TreatNullAs=EmptyString]
-  attribute DOMString fgColor;
+  [CEReactions]
+  attribute [TreatNullAs=EmptyString] DOMString fgColor;
 
   // https://github.com/servo/servo/issues/8715
   // [CEReactions, TreatNullAs=EmptyString]
@@ -167,8 +169,8 @@ partial interface Document {
   // [CEReactions, TreatNullAs=EmptyString]
   // attribute DOMString alinkColor;
 
-  [CEReactions, TreatNullAs=EmptyString]
-  attribute DOMString bgColor;
+  [CEReactions]
+  attribute [TreatNullAs=EmptyString] DOMString bgColor;
 
   [SameObject]
   readonly attribute HTMLCollection anchors;

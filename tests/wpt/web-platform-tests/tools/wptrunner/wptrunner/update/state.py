@@ -1,11 +1,9 @@
 import os
-import cPickle as pickle
+from six.moves import cPickle as pickle  # noqa: N813
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
-class State(object):
-    filename = os.path.join(here, ".wpt-update.lock")
-
+class BaseState(object):
     def __new__(cls, logger):
         rv = cls.load(logger)
         if rv is not None:
@@ -17,11 +15,6 @@ class State(object):
 
     def __init__(self, logger):
         """Object containing state variables created when running Steps.
-
-        On write the state is serialized to disk, such that it can be restored in
-        the event that the program is interrupted before all steps are complete.
-        Note that this only works well if the values are immutable; mutating an
-        existing value will not cause the data to be serialized.
 
         Variables are set and get as attributes e.g. state_obj.spam = "eggs".
 
@@ -40,23 +33,6 @@ class State(object):
         del rv["_logger"]
         return rv
 
-    @classmethod
-    def load(cls, logger):
-        """Load saved state from a file"""
-        try:
-            if not os.path.isfile(cls.filename):
-                return None
-            with open(cls.filename) as f:
-                try:
-                    rv = pickle.load(f)
-                    logger.debug("Loading data %r" % (rv._data,))
-                    rv._logger = logger
-                    rv._index = 0
-                    return rv
-                except EOFError:
-                    logger.warning("Found empty state file")
-        except IOError:
-            logger.debug("IOError loading stored state")
 
     def push(self, init_values):
         """Push a new clean state dictionary
@@ -66,22 +42,12 @@ class State(object):
 
         return StateContext(self, init_values)
 
-    def save(self):
-        """Write the state to disk"""
-        with open(self.filename, "w") as f:
-            pickle.dump(self, f)
-
     def is_empty(self):
         return len(self._data) == 1 and self._data[0] == {}
 
     def clear(self):
         """Remove all state and delete the stored copy."""
-        try:
-            os.unlink(self.filename)
-        except OSError:
-            pass
         self._data = [{}]
-
 
     def __setattr__(self, key, value):
         if key.startswith("_"):
@@ -108,6 +74,62 @@ class State(object):
 
     def keys(self):
         return self._data[self._index].keys()
+
+
+    @classmethod
+    def load(cls):
+        raise NotImplementedError
+
+    def save(self):
+        raise NotImplementedError
+
+
+class SavedState(BaseState):
+    """On write the state is serialized to disk, such that it can be restored in
+       the event that the program is interrupted before all steps are complete.
+       Note that this only works well if the values are immutable; mutating an
+       existing value will not cause the data to be serialized."""
+    filename = os.path.join(here, ".wpt-update.lock")
+
+    @classmethod
+    def load(cls, logger):
+        """Load saved state from a file"""
+        try:
+            if not os.path.isfile(cls.filename):
+                return None
+            with open(cls.filename) as f:
+                try:
+                    rv = pickle.load(f)
+                    logger.debug("Loading data %r" % (rv._data,))
+                    rv._logger = logger
+                    rv._index = 0
+                    return rv
+                except EOFError:
+                    logger.warning("Found empty state file")
+        except IOError:
+            logger.debug("IOError loading stored state")
+
+    def save(self):
+        """Write the state to disk"""
+        with open(self.filename, "w") as f:
+            pickle.dump(self, f)
+
+    def clear(self):
+        super(SavedState, self).clear()
+        try:
+            os.unlink(self.filename)
+        except OSError:
+            pass
+
+
+class UnsavedState(BaseState):
+    @classmethod
+    def load(cls, logger):
+        return None
+
+    def save(self):
+        return
+
 
 class StateContext(object):
     def __init__(self, state, init_values):

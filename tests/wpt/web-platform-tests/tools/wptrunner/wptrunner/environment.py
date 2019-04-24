@@ -8,11 +8,15 @@ import time
 
 from mozlog import get_default_logger, handlers, proxy
 
-from wptlogging import LogLevelRewriter
-from wptserve.handlers import StringHandler
+from .wptlogging import LogLevelRewriter
 
 here = os.path.split(__file__)[0]
 repo_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir, os.pardir))
+
+sys.path.insert(0, repo_root)
+from tools import localpaths  # noqa: flake8
+
+from wptserve.handlers import StringHandler
 
 serve = None
 
@@ -202,11 +206,13 @@ class TestEnvironment(object):
 
     def ensure_started(self):
         # Pause for a while to ensure that the server has a chance to start
-        for _ in xrange(60):
+        total_sleep_secs = 30
+        each_sleep_secs = 0.01
+        for _ in xrange(int(total_sleep_secs / each_sleep_secs)):
             failed = self.test_servers()
             if not failed:
                 return
-            time.sleep(0.5)
+            time.sleep(each_sleep_secs)
         raise EnvironmentError("Servers failed to start: %s" %
                                ", ".join("%s:%s" % item for item in failed))
 

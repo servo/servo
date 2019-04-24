@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/feature-policy/resources/featurepolicy.js"></script>
+  <title>Test oversized-images policy with threshold 1.5</title>
+</head>
+<body>
+  <!-- The sample image has an intrinsic image size of 200x200px -->
+  <img src="resources/sample-1.png" width="200" height="200">
+  <img src="resources/sample-1.png" width="100" height="200">
+  <img src="resources/sample-1.png" width="50" height="200">
+  <br>
+  <img src="resources/sample-1.png" width="200" height="100">
+  <img src="resources/sample-1.png" width="100" height="100">
+  <img src="resources/sample-1.png" width="50" height="100">
+  <br>
+  <img src="resources/sample-1.png" width="200" height="50">
+  <img src="resources/sample-1.png" width="100" height="50">
+  <img src="resources/sample-1.png" width="50" height="50">
+
+  <script>
+    expect_reports(8, "oversized-images", "8 images should be blocked by policy");
+  </script>
+</body>
+</html>

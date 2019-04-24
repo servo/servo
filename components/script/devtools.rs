@@ -29,7 +29,6 @@ use js::rust::wrappers::ObjectClassName;
 use msg::constellation_msg::PipelineId;
 use std::ffi::CStr;
 use std::str;
-use style::properties::longhands::{margin_bottom, margin_left, margin_right, margin_top};
 use uuid::Uuid;
 
 #[allow(unsafe_code)]
@@ -178,10 +177,10 @@ fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
     let style = window.style_query(node.to_trusted_node_address()).unwrap();
     let margin = style.get_margin();
     AutoMargins {
-        top: margin.margin_top == margin_top::computed_value::T::Auto,
-        right: margin.margin_right == margin_right::computed_value::T::Auto,
-        bottom: margin.margin_bottom == margin_bottom::computed_value::T::Auto,
-        left: margin.margin_left == margin_left::computed_value::T::Auto,
+        top: margin.margin_top.is_auto(),
+        right: margin.margin_right.is_auto(),
+        bottom: margin.margin_bottom.is_auto(),
+        left: margin.margin_left.is_auto(),
     }
 }
 

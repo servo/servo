@@ -1,5 +1,10 @@
 <!doctype html>
 <html>
+  <script>
+    if (location.search == "?setdomain") {
+      document.domain = document.domain;
+    }
+  </script>
   <body>
     <!--- Some frames to test ordering -->
     <iframe name="a"></iframe>

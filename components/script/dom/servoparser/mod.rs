@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::ServoParserBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
@@ -52,7 +52,7 @@ use profile_traits::time::{
     profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use script_traits::DocumentActivity;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -135,11 +135,7 @@ impl ServoParser {
     }
 
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = if PREFS
-            .get("dom.servoparser.async_html_tokenizer.enabled")
-            .as_boolean()
-            .unwrap()
-        {
+        let parser = if pref!(dom.servoparser.async_html_tokenizer.enabled) {
             ServoParser::new(
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
@@ -203,7 +199,7 @@ impl ServoParser {
 
         let fragment_context = FragmentContext {
             context_elem: context_node,
-            form_elem: form.r(),
+            form_elem: form.deref(),
         };
 
         let parser = ServoParser::new(

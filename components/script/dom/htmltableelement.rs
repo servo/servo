@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -119,7 +119,7 @@ impl HTMLTableElement {
 
         if let Some(section) = section {
             let reference_element = node.child_elements().find(reference_predicate);
-            let reference_node = reference_element.r().map(|e| e.upcast());
+            let reference_node = reference_element.as_ref().map(|e| e.upcast());
 
             node.InsertBefore(section.upcast(), reference_node)?;
         }
@@ -190,7 +190,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
         if let Some(caption) = new_caption {
             let node = self.upcast::<Node>();
-            node.InsertBefore(caption.upcast(), node.GetFirstChild().r())
+            node.InsertBefore(caption.upcast(), node.GetFirstChild().deref())
                 .expect("Insertion failed");
         }
     }
@@ -281,7 +281,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             fn filter(&self, elem: &Element, root: &Node) -> bool {
                 elem.is::<HTMLTableSectionElement>() &&
                     elem.local_name() == &local_name!("tbody") &&
-                    elem.upcast::<Node>().GetParentNode().r() == Some(root)
+                    elem.upcast::<Node>().GetParentNode().deref() == Some(root)
             }
         }
 
@@ -303,7 +303,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
         let reference_element = last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        node.InsertBefore(tbody.upcast(), reference_element.r())
+        node.InsertBefore(tbody.upcast(), reference_element.deref())
             .expect("Insertion failed");
         tbody
     }

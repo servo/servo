@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+<script src="resources/webxr_math_utils.js"></script>
+
+<script>
+
+let matrix_tests_name = "XRRay matrix works";
+
+let matrix_tests = function() {
+  // Matrix tests for XRRay.
+  // Spec: https://immersive-web.github.io/webxr/#xrray-interface
+
+  const initialOrigin = {x : 0, y : 0, z : 0, w : 1};
+  const initialDirection = {x : 0, y : 0, z : -1, w : 0};
+
+  // Test 1. Simple translation and rotation.
+  {
+    let originDict = {x : 10.0, y : 10.0, z : 10.0, w : 1.0};
+    let directionDict = {x : 10.0, y : 0.0, z : 0.0, w : 0.0};
+    let directionNorm = {x :  1.0, y : 0.0, z : 0.0, w : 0.0};
+    let xrRay = new XRRay(
+      DOMPoint.fromPoint(originDict),
+      DOMPoint.fromPoint(directionDict));
+
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
+
+    assert_point_approx_equals(
+      originDict, transformedOrigin,
+      FLOAT_EPSILON, "origin-test1:");
+    assert_point_approx_equals(
+      directionNorm, transformedDirection,
+      FLOAT_EPSILON, "direction-test1:");
+  }
+
+  // Test 2. Co-linear direction - rotation by 180 deg.
+  {
+    let originDict = {x : 10.0, y : 10.0, z : 10.0, w : 1.0};
+    let directionDict = {x : 0.0, y : 0.0, z : 1.0, w : 0.0};
+    let directionNorm = {x : 0.0, y : 0.0, z : 1.0, w : 0.0};
+    let xrRay = new XRRay(
+      DOMPoint.fromPoint(originDict),
+      DOMPoint.fromPoint(directionDict));
+
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
+
+    assert_point_approx_equals(
+      originDict, transformedOrigin,
+      FLOAT_EPSILON, "origin-test2:");
+    assert_point_approx_equals(
+      directionNorm, transformedDirection,
+      FLOAT_EPSILON, "direction-test2:");
+  }
+
+  // Test 3. No translation.
+  {
+    let originDict = {x : 0.0, y : 0.0, z : 0.0, w : 1.0};
+    let directionDict = {x : 10.0, y : 0.0, z : 0.0, w : 0.0};
+    let directionNorm = {x :  1.0, y : 0.0, z : 0.0, w : 0.0};
+    let xrRay = new XRRay(
+      DOMPoint.fromPoint(originDict),
+      DOMPoint.fromPoint(directionDict));
+
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
+
+    assert_point_approx_equals(
+      originDict, transformedOrigin,
+      FLOAT_EPSILON, "origin-test3:");
+    assert_point_approx_equals(
+      directionNorm, transformedDirection,
+      FLOAT_EPSILON, "direction-test3:");
+  }
+
+  // Test 4. No rotation.
+  {
+    let originDict = {x : 10.0, y : 10.0, z : 10.0, w : 1.0};
+    let directionDict = {x : 0.0, y : 0.0, z : -1.0, w : 0.0};
+    let directionNorm = {x : 0.0, y : 0.0, z : -1.0, w : 0.0};
+    let xrRay = new XRRay(
+      DOMPoint.fromPoint(originDict),
+      DOMPoint.fromPoint(directionDict));
+
+    let transformedOrigin = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialOrigin));
+    let transformedDirection = normalize_perspective(transform_point_by_matrix(xrRay.matrix, initialDirection));
+
+    assert_point_approx_equals(
+      originDict, transformedOrigin,
+      FLOAT_EPSILON, "origin-test4:");
+    assert_point_approx_equals(
+      directionNorm, transformedDirection,
+      FLOAT_EPSILON, "direction-test4:");
+  }
+};
+
+test(matrix_tests, matrix_tests_name);
+
+</script>

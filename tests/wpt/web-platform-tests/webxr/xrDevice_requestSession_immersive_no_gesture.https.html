@@ -9,7 +9,7 @@
       (t) => {
         return XRTest.simulateDeviceConnection({ supportsImmersive:true })
           .then( (controller) => promise_rejects(
-            t, 'SecurityError', navigator.xr.requestSession({ mode: 'immersive-vr' })));
+            t, 'SecurityError', navigator.xr.requestSession('immersive-vr')));
       });
   </script>
 </body>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helper.js"></script>
+
+<script>
+// "bare/..." (i.e. without leading "./") are bare specifiers
+// (not relative paths).
+//
+// Discussions about notations for builtin modules are ongoing, e.g.
+// https://github.com/tc39/proposal-javascript-standard-library/issues/12
+// Currently the tests expects two notations are accepted.
+// TODO: Once the discussions converge, update the tests.
+const importMap = `
+{
+  "imports": {
+    "bare": "./resources/log.js?pipe=sub&name=bare",
+
+    "./resources/log.js?pipe=sub&name=foo": "./resources/log.js?pipe=sub&name=bar",
+    "./resources/log.js?pipe=sub&name=cross-origin-foo": "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-bar",
+    "./resources/log.js?pipe=sub&name=to-data": "data:text/javascript,log.push('dataURL')",
+
+    "./resources/log.js?pipe=sub&name=std-blank": "std:blank",
+    "./resources/log.js?pipe=sub&name=blank": "@std/blank",
+    "./resources/log.js?pipe=sub&name=std-none": "std:none",
+    "./resources/log.js?pipe=sub&name=none": "@std/none",
+
+    "./resources/log.js?pipe=sub&name=to-bare": "bare"
+  }
+}
+`;
+
+const tests = {
+  // Arrays of expected results for:
+  // - <script src type="module">,
+  // - <script src> (classic script),
+  // - static import, and
+  // - dynamic import.
+
+  // Currently, Chromium's implementation resolves import maps as a part of
+  // specifier resolution, and thus failure in import map resolution causes
+  // a parse error, not fetch error. Therefore, we use Result.PARSE_ERROR
+  // below. https://crbug.com/928435
+
+  // HTTP(S) to HTTP(S).
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=foo":
+    [Result.URL, Result.URL, "log:bar", "log:bar"],
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-foo":
+    [Result.URL, Result.URL, "log:cross-origin-bar", "log:cross-origin-bar"],
+
+  // HTTP(S) to data:
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=to-data":
+    [Result.URL, Result.URL, "dataURL", "dataURL"],
+
+  // HTTP(S) to built-in.
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=std-blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=blank":
+    [Result.URL, Result.URL, Result.BUILTIN, Result.BUILTIN],
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=std-none":
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR],
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=none":
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR],
+
+  // HTTP(S) to bare mapping is disabled.
+  "{{location[server]}}/import-maps/resources/log.js?pipe=sub&name=to-bare":
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR],
+};
+
+doTests(importMap, null, tests);
+</script>
+<body>

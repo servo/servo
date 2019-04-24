@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid areas 'overflowing' the grid container size</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-model">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#propdef-overflow">
+<link rel="match" href="reference/100x100-grey-box-with-horizontal-scrollbar.html">
+<meta name="assert" content="This test verifies that the horizontal scrollbar is shown on a grid with an item placed below the bottom of the grid container.">
+<link href="support/grid.css" rel="stylesheet">
+<style>
+    .grid {
+       grid: 100px 100px / 100px 100px;
+       width: 100px;
+       height: 100px;
+    }
+    .item {
+       grid-column: 1;
+       grid-row: 2;
+       width: 50px;
+       height: 50px;
+    }
+</style>
+<p>The test passes if you see a grey square below and only the horizontal scrollbar is visible.</p>
+<div class="grid"><div class="item"></div></div>

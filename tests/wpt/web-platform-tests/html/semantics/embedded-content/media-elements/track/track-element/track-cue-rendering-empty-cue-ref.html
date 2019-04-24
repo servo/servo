@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Reference for track rendering with empty cue</title>
+<script src="/common/reftest-wait.js"></script>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.container {
+  display: inline-block;
+  position: relative;
+}
+</style>
+<div class="container">
+  <video width="320" height="180">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <script>
+      var video = document.querySelector("video");
+      video.addEventListener('playing', () => {
+        video.pause();
+        takeScreenshot();
+      }, { once: true});
+      video.play();
+    </script>
+  </video>
+</div>
+</html>

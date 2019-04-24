@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style type="text/css">
+    button {
+        color: blue;
+    }
+
+    #target-wrap {
+        position: relative;
+        background-color: lightgrey;
+        width: 200px;
+        height: 100px;
+        border: grey 1px solid;
+    }
+
+    #target {
+        position: relative;
+        background-color: lightyellow;
+        width: 100px;
+        height: 30px;
+        border: yellow 1px solid;
+    }
+
+    #status-log {
+        margin: 10px 0;
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that pointer lock will be lost when the target is disconnected.</p>
+    <hr/>
+
+    <h2>Manual Test Steps:</h2>
+    <p>
+        <ol>
+            <li>Click the "lockTarget" button to request a pointer lock.</li>
+            <li>Test is done.</li>
+        </ol>
+    </p>
+    <hr/>
+
+    <button id="Button" onclick="lockTarget();">lockTarget</button>
+
+    <div id="target-wrap">
+        <div id="status-log">Click the "lockTarget" button.</div>
+        <div id="target">Target</div>
+    </div>
+    <hr/>
+
+    <div id="log"></div>
+
+    <script type="text/javascript" >
+        var target = document.querySelector('#target'),
+            target_wrap = document.querySelector('#target-wrap')
+            status_log = document.querySelector('#status-log');
+
+        var removeTargetTest = async_test("Test that pointer lock will be lost when taking the target element out of the DOM.");
+
+        document.addEventListener("pointerlockchange", function() {
+            if(document.pointerLockElement) {
+                status_log.innerHTML = "Target is locked!";
+
+                target_wrap.removeChild(target);
+            } else {
+                status_log.innerHTML = "Pointer lock exited!";
+
+                removeTargetTest.step(function() {
+                    assert_true(document.pointerLockElement === null, "Pointer lock exited!");
+                });
+
+                removeTargetTest.done();
+            }
+        });
+
+        function lockTarget() {
+            target.requestPointerLock();
+        }
+
+        // Inject mouse inputs.
+        new test_driver.Actions()
+                       .pointerMove(0, 0, {origin: Button})
+                       .pointerDown()
+                       .pointerUp()
+                       .send();
+    </script>
+    </body>
+</html>

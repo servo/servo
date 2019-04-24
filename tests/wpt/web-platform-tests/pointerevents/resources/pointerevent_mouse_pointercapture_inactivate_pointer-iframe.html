@@ -1,0 +1,10 @@
+<body id='innerFrame' style='height:500px; width: 500px; padding: 0; margin: 0;'>
+  <script>
+      document.addEventListener('pointerdown', function(event) {
+          top.captureMousePointer(event);
+      });
+      document.addEventListener('pointerup', function(event) {
+          top.finishTest();
+      });
+  </script>
+</body>

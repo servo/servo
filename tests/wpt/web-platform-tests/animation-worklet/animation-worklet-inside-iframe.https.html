@@ -48,7 +48,11 @@ async_test(t => {
       animation.play();
 
       assert_equals(data, '0.4');
-      waitForAsyncAnimationFrames(1).then(t.step_func_done(() => {
+
+      // wait until local times are synced back to the main thread.
+      waitForAnimationFrameWithCondition(_ => {
+        return getComputedStyle(target).opacity != '1';
+      }).then(t.step_func_done(() => {
         assert_equals(getComputedStyle(target).opacity, '0.5');
       }));
     });

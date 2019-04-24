@@ -150,13 +150,6 @@ function stepStart(nsteps) {
   };
 }
 
-function framesTiming(nframes) {
-  return x => {
-    const result = Math.floor(x * nframes) / (nframes - 1);
-    return (result > 1.0 && x <= 1.0) ? 1.0 : result;
-  };
-}
-
 function waitForAnimationFrames(frameCount) {
   return new Promise(resolve => {
     function handleFrame() {
@@ -191,13 +184,13 @@ function waitForAnimationFramesWithDelay(minDelay) {
 function waitForNextFrame() {
   const timeAtStart = document.timeline.currentTime;
   return new Promise(resolve => {
-    window.requestAnimationFrame(() => {
-      if (timeAtStart === document.timeline.currentTime) {
-        window.requestAnimationFrame(resolve);
-      } else {
-        resolve();
-      }
-    });
+   (function handleFrame() {
+    if (timeAtStart === document.timeline.currentTime) {
+      window.requestAnimationFrame(handleFrame);
+    } else {
+      resolve();
+    }
+  }());
   });
 }
 

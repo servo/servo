@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<head>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="iframe-embedder"></div>
+<script src="./resources/helper.js"></script>
+<script>
+'use strict';
+
+// TODO(ekaramad): Add cross-origin examples both for the <iframe> and the
+// opened window.
+const iframe_src = "/feature-policy/feature-policy-for-sandbox/resources/window_opener.html";
+const window_url_main = "/feature-policy/feature-policy-for-sandbox/resources/opened_window.html";
+
+promise_test( async () => {
+    for (const feature of features_that_propagate) {
+     const iframe = await add_iframe(
+        {src: iframe_src, allow: `${feature} 'none'`});
+    iframe.contentWindow.postMessage({type: "feature", feature: feature}, "*");
+    const iframe_state = await feature_update(feature);
+    assert_false(iframe_state, `'${feature}' is not disabled in <iframe>.'`);
+    iframe.contentWindow.postMessage({
+        type: "open_window",
+        url: `${window_url_main}?${feature}`
+    }, "*");
+    const window_state = await feature_update(feature);
+    assert_false(window_state,
+                 `'${feature}' is not disabled in new window.`);
+    const did_close = await close_aux_window(iframe);
+    assert_true(did_close);
+    iframe.parentElement.removeChild(iframe);
+  }
+}, "Verify feature policies are inherited by the auxiliary browsing context " +
+   "if opened from a non-sandboxed same-origin <iframe>.");
+
+promise_test( async() => {
+  for (const feature of features_that_propagate) {
+    const iframe = await add_iframe({
+        src: iframe_src,
+        allow: `${feature} 'none'`,
+        sandbox: "allow-scripts allow-popups allow-popups-to-escape-sandbox"});
+    iframe.contentWindow.postMessage({type: "feature", feature: feature}, "*");
+    const iframe_state = await feature_update(feature);
+    assert_false(iframe_state,
+                 `'${feature}' is not disabled in <iframe>.'`);
+    iframe.contentWindow.postMessage({
+        type: "open_window",
+        url: `${window_url_main}?${feature}`
+    }, "*");
+    const window_state = await feature_update(feature);
+    assert_true(window_state, `'${feature}' is disabled.`);
+    const did_close = await close_aux_window(iframe);
+    assert_true(did_close);
+    iframe.parentElement.removeChild(iframe);
+  }
+}, "Verify feature policies are NOT inherited by the auxiliary browsing " +
+   "context if opened from a sandboxed same-origin <iframe> which allows " +
+   "popups to escape sandbox.");
+</script>
+</body>

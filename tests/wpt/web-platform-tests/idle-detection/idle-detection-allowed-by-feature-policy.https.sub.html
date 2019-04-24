@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/feature-policy/resources/featurepolicy.js></script>
+<script>
+'use strict';
+
+const sub = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const same_origin_src =
+  '/feature-policy/resources/feature-policy-idle-detection.html'
+const same_origin_worker_frame_src =
+    '/feature-policy/resources/feature-policy-idle-detection-worker.html';
+const cross_origin_src = sub + same_origin_src;
+const cross_origin_worker_frame_src = sub + same_origin_worker_frame_src;
+
+promise_test(async () => {
+  await new IdleDetector().start();
+},
+  'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
+  'frame allows the top-level document.');
+
+async_test(t => {
+  test_feature_availability('new IdleDetector().start()', t, same_origin_src,
+      expect_feature_available_default);
+}, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
+   'frame allows same-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('new IdleDetector().start()', t, same_origin_worker_frame_src,
+      expect_feature_available_default);
+}, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
+   'frame allows workers in same-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('new IdleDetector().start()', t, cross_origin_src,
+      expect_feature_available_default);
+}, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
+   'frame allows cross-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('new IdleDetector().start()', t, cross_origin_worker_frame_src,
+      expect_feature_available_default);
+}, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
+   'frame allows workers in cross-origin iframes.');
+
+fetch_tests_from_worker(new Worker(
+  'resources/idle-detection-allowed-by-feature-policy-worker.js'))
+
+</script>
+</body>

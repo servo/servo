@@ -5,7 +5,9 @@ order: 8.5
 ---
 
 testdriver.js provides a means to automate tests that cannot be
-written purely using web platform APIs.
+written purely using web platform APIs. Outside of automation
+contexts, it allows human operators to provide expected input
+manually (for operations which may be described in simple terms).
 
 It is currently supported only for [testharness.js][testharness]
 tests.
@@ -22,7 +24,7 @@ context (and not therefore in any frame or window opened from it).
 Usage: `test_driver.action_sequence(actions)`
  * `actions`: an array of `Action` objects
 
-This function causes a sequence of actions to be sent to the browser. It is based of the [WebDriver API](https://w3c.github.io/webdriver/#actions).
+This function causes a sequence of actions to be sent to the browser. It is based on the [WebDriver API](https://w3c.github.io/webdriver/#actions).
 The action can be a keyboard action, a pointer action or a pause. It returns a `Promise` that
 resolves after the actions have been sent or rejects if an error was thrown.
 

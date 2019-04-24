@@ -14,10 +14,10 @@ use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
 use simpleservo::{
-    self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
+    self, gl_glue, Coordinates, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO,
 };
 use std::os::raw::{c_char, c_int, c_void};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 
 struct HostCallbacks {
@@ -66,7 +66,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         // debug!() will only show in a debug build. Use info!() if logs
         // should show up in adb logcat with a release build.
         let filters = [
+            "servo",
             "simpleservo",
+            "simpleservo::jniapi",
             "simpleservo::gl_glue::egl",
             // Show JS errors by default.
             "script::dom::bindings::error",
@@ -101,11 +103,10 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     };
 
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
-    let readfile = Box::new(ReadFileCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
     if let Err(err) =
-        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, readfile, callbacks))
+        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, callbacks))
     {
         throw(&env, err)
     };
@@ -130,14 +131,13 @@ pub fn Java_org_mozilla_servoview_JNIServo_deinit(_env: JNIEnv, _class: JClass) 
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_resize(
-    env: JNIEnv,
-    _: JClass,
-    width: jint,
-    height: jint,
-) {
-    debug!("resize {}/{}", width, height);
-    call(&env, |s| s.resize(width as u32, height as u32));
+pub fn Java_org_mozilla_servoview_JNIServo_resize(env: JNIEnv, _: JClass, coordinates: JObject) {
+    let coords = jni_coords_to_rust_coords(&env, coordinates);
+    debug!("resize {:#?}", coords);
+    match coords {
+        Ok(coords) => call(&env, |s| s.resize(coords.clone())),
+        Err(error) => throw(&env, &error),
+    }
 }
 
 #[no_mangle]
@@ -201,7 +201,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
 ) {
     debug!("scrollStart");
     call(&env, |s| {
-        s.scroll_start(dx as i32, dy as i32, x as u32, y as u32)
+        s.scroll_start(dx as f32, dy as f32, x as i32, y as i32)
     });
 }
 
@@ -216,7 +216,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
 ) {
     debug!("scrollEnd");
     call(&env, |s| {
-        s.scroll_end(dx as i32, dy as i32, x as u32, y as u32)
+        s.scroll_end(dx as f32, dy as f32, x as i32, y as i32)
     });
 }
 
@@ -230,7 +230,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scroll(
     y: jint,
 ) {
     debug!("scroll");
-    call(&env, |s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| s.scroll(dx as f32, dy as f32, x as i32, y as i32));
 }
 
 #[no_mangle]
@@ -322,7 +322,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
     debug!("click");
-    call(&env, |s| s.click(x as u32, y as u32));
+    call(&env, |s| s.click(x as f32, y as f32));
 }
 
 pub struct WakeupCallback {
@@ -349,39 +349,6 @@ impl EventLoopWaker for WakeupCallback {
         let env = self.jvm.attach_current_thread().unwrap();
         env.call_method(self.callback.as_obj(), "wakeup", "()V", &[])
             .unwrap();
-    }
-}
-
-pub struct ReadFileCallback {
-    callback: Mutex<GlobalRef>,
-    jvm: JavaVM,
-}
-
-impl ReadFileCallback {
-    pub fn new(callback: GlobalRef, env: &JNIEnv) -> ReadFileCallback {
-        let jvm = env.get_java_vm().unwrap();
-        let callback = Mutex::new(callback);
-        ReadFileCallback { callback, jvm }
-    }
-}
-
-impl ReadFileTrait for ReadFileCallback {
-    fn readfile(&self, file: &str) -> Vec<u8> {
-        // FIXME: we'd rather use attach_current_thread but it detaches the VM too early.
-        let env = self.jvm.attach_current_thread_as_daemon().unwrap();
-        let s = match new_string(&env, &file) {
-            Ok(s) => s,
-            Err(_) => return vec![],
-        };
-        let s = JValue::from(JObject::from(s));
-        let array = env.call_method(
-            self.callback.lock().unwrap().as_obj(),
-            "readfile",
-            "(Ljava/lang/String;)[B",
-            &[s],
-        );
-        let array = array.unwrap().l().unwrap().into_inner();
-        env.convert_byte_array(array).unwrap()
     }
 }
 
@@ -488,6 +455,8 @@ impl HostTrait for HostCallbacks {
         )
         .unwrap();
     }
+
+    fn on_ime_state_changed(&self, _show: bool) {}
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
@@ -619,6 +588,28 @@ fn new_string(env: &JNIEnv, s: &str) -> Result<jstring, jstring> {
     }
 }
 
+fn jni_coords_to_rust_coords(env: &JNIEnv, obj: JObject) -> Result<Coordinates, String> {
+    let x = get_non_null_field(env, obj, "x", "I")?
+        .i()
+        .map_err(|_| "x not an int")? as i32;
+    let y = get_non_null_field(env, obj, "y", "I")?
+        .i()
+        .map_err(|_| "y not an int")? as i32;
+    let width = get_non_null_field(env, obj, "width", "I")?
+        .i()
+        .map_err(|_| "width not an int")? as i32;
+    let height = get_non_null_field(env, obj, "height", "I")?
+        .i()
+        .map_err(|_| "height not an int")? as i32;
+    let fb_width = get_non_null_field(env, obj, "fb_width", "I")?
+        .i()
+        .map_err(|_| "fb_width not an int")? as i32;
+    let fb_height = get_non_null_field(env, obj, "fb_height", "I")?
+        .i()
+        .map_err(|_| "fb_height not an int")? as i32;
+    Ok(Coordinates::new(x, y, width, height, fb_width, fb_height))
+}
+
 fn get_field<'a>(
     env: &'a JNIEnv,
     obj: JObject,
@@ -670,12 +661,6 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
     let log_str = get_string(env, opts, "logStr")?;
-    let width = get_non_null_field(env, opts, "width", "I")?
-        .i()
-        .map_err(|_| "width not an int")? as u32;
-    let height = get_non_null_field(env, opts, "height", "I")?
-        .i()
-        .map_err(|_| "height not an int")? as u32;
     let density = get_non_null_field(env, opts, "density", "F")?
         .f()
         .map_err(|_| "densitiy not a float")? as f32;
@@ -686,13 +671,29 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         get_non_null_field(env, opts, "enableSubpixelTextAntialiasing", "Z")?
             .z()
             .map_err(|_| "enableSubpixelTextAntialiasing not a boolean")?;
+    let vr_pointer = get_non_null_field(env, opts, "VRExternalContext", "J")?
+        .j()
+        .map_err(|_| "VRExternalContext is not a long")? as *mut c_void;
+    let coordinates = get_non_null_field(
+        env,
+        opts,
+        "coordinates",
+        "Lorg/mozilla/servoview/JNIServo$ServoCoordinates;",
+    )?
+    .l()
+    .map_err(|_| "coordinates is not an object")?;
+    let coordinates = jni_coords_to_rust_coords(&env, coordinates)?;
     let opts = InitOptions {
         args,
         url,
-        width,
-        height,
+        coordinates,
         density,
         enable_subpixel_text_antialiasing,
+        vr_pointer: if vr_pointer.is_null() {
+            None
+        } else {
+            Some(vr_pointer)
+        },
     };
     Ok((opts, log, log_str))
 }

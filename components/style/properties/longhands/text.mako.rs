@@ -5,16 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import Method %>
 
-<% data.new_style_struct(
-    "Text",
-    inherited=False,
-    gecko_name="TextReset",
-    additional_methods=[
-        Method("has_underline", "bool"),
-        Method("has_overline", "bool"),
-        Method("has_line_through", "bool"),
-    ]
-) %>
+<% data.new_style_struct("Text", inherited=False, gecko_name="TextReset") %>
 
 ${helpers.predefined_type(
     "text-overflow",

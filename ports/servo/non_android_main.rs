@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use] extern crate lazy_static;
-#[cfg(feature = "unstable")] #[macro_use] extern crate sig;
+#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
+#[macro_use] extern crate sig;
 
 // The window backed by glutin
 mod glutin_app;
@@ -17,7 +18,7 @@ use servo::{Servo, BrowserId};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
 use servo::config::servo_version;
-use servo::servo_config::prefs::PREFS;
+use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use std::env;
 use std::panic;
@@ -35,26 +36,24 @@ pub mod platform {
     pub fn deinit() {}
 }
 
-#[cfg(not(feature = "unstable"))]
+#[cfg(any(not(feature = "unstable"), not(any(target_os = "macos", target_os = "linux"))))]
 fn install_crash_handler() {}
 
-#[cfg(feature = "unstable")]
+#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
 fn install_crash_handler() {
     use backtrace::Backtrace;
+    use libc::_exit;
     use sig::ffi::Sig;
-    use std::intrinsics::abort;
     use std::thread;
 
-    fn handler(_sig: i32) {
+    extern "C" fn handler(sig: i32) {
         let name = thread::current()
             .name()
             .map(|n| format!(" for thread \"{}\"", n))
             .unwrap_or("".to_owned());
         println!("Stack trace{}\n{:?}", name, Backtrace::new());
         unsafe {
-            // N.B. Using process::abort() here causes the crash handler to be
-            //      triggered recursively.
-            abort();
+            _exit(sig);
         }
     }
 
@@ -127,14 +126,14 @@ pub fn main() {
 
     let mut browser = browser::Browser::new(window.clone());
 
-    // If the url is not provided, we fallback to the homepage in PREFS,
+    // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
     let cmdline_url = opts::get().url.clone();
-    let pref_url = PREFS
-        .get("shell.homepage")
-        .as_string()
-        .and_then(|str| parse_url_or_filename(&cwd, str).ok());
+    let pref_url = {
+        let homepage_url = pref!(shell.homepage);
+        parse_url_or_filename(&cwd, &homepage_url).ok()
+    };
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();

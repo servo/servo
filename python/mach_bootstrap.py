@@ -78,14 +78,7 @@ CATEGORIES = {
 # Possible names of executables
 # NOTE: Windows Python doesn't provide versioned executables, so we must use
 # the plain names. On MSYS, we still use Windows Python.
-if sys.platform in ['msys', 'win32']:
-    PYTHON_NAMES = ["python"]
-    VIRTUALENV_NAMES = ["virtualenv"]
-    PIP_NAMES = ["pip"]
-else:
-    PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
-    VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
-    PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
+PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
 
 
 def _get_exec_path(names, is_valid_path=lambda _path: True):
@@ -154,7 +147,7 @@ def wptserve_path(is_firefox, topdir, *paths):
 def _activate_virtualenv(topdir, is_firefox):
     virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
     check_exec_path = lambda path: path.startswith(virtualenv_path)
-    python = _get_exec_path(PYTHON_NAMES)   # If there was no python, mach wouldn't have run at all!
+    python = sys.executable   # If there was no python, mach wouldn't have run at all!
     if not python:
         sys.exit('Failed to find python executable for starting virtualenv.')
 
@@ -162,11 +155,13 @@ def _activate_virtualenv(topdir, is_firefox):
     activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
     need_pip_upgrade = False
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        virtualenv = _get_exec_path(VIRTUALENV_NAMES)
-        if not virtualenv:
+        import imp
+        try:
+            imp.find_module('virtualenv')
+        except ImportError:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
-        _process_exec([virtualenv, "-p", python, "--system-site-packages", virtualenv_path])
+        _process_exec([python, "-m", "virtualenv", "-p", python, "--system-site-packages", virtualenv_path])
 
         # We want to upgrade pip when virtualenv created for the first time
         need_pip_upgrade = True

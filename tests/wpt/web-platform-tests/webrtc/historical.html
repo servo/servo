@@ -4,9 +4,14 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-test(function() {
-  assert_false("reliable" in RTCDataChannel.prototype);
-}, "RTCDataChannel member reliable should not exist");
+[
+  'reliable',
+  'maxRetransmitTime',
+].forEach((member) => {
+  test(() => {
+    assert_false(member in RTCDataChannel.prototype);
+  }, `RTCDataChannel member ${member} should not exist`);
+});
 
 [
   "addStream",

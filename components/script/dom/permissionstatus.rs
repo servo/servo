@@ -56,7 +56,7 @@ impl PermissionStatusMethods for PermissionStatus {
     }
 
     // https://w3c.github.io/permissions/#dom-permissionstatus-onchange
-    event_handler!(onchange, GetOnchange, SetOnchange);
+    event_handler!(change, GetOnchange, SetOnchange);
 }
 
 impl Display for PermissionName {

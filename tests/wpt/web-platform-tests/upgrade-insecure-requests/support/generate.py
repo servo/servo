@@ -13,7 +13,7 @@ template = '''<!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="./support/testharness-helper.sub.js"></script>
-<script src="/mixed-content/generic/common.js"></script>
+<script src="/common/security-features/resources/common.js"></script>
 
 <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 </head>
@@ -33,8 +33,8 @@ for name, resourceType in [
   ('layout-worklet', 'WORKLET'), ('paint-worklet', 'WORKLET'),
   ('worker', 'WORKER'),
   ('module-worker', 'WORKER'),
-  ('worker-subresource-xhr', 'IMAGE'),
-  ('worker-subresource-fetch', 'IMAGE')]:
+  ('worker-subresource-xhr', 'FETCH'),
+  ('worker-subresource-fetch', 'FETCH')]:
   sameOriginOnly = 'true' if resourceType == 'WORKER' else 'false'
   types = [('', 'generateTests'), ('-redirect', 'generateRedirectTests')]
   if name == 'module-worker' or resourceType == 'WORKLET':

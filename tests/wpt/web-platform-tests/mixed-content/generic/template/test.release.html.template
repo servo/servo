@@ -10,7 +10,7 @@
     <meta name="assert" content="%(test_description)s">%(meta_opt_in)s
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/mixed-content/generic/common.js"></script>
+    <script src="/common/security-features/resources/common.js"></script>
     <script src="/mixed-content/generic/mixed-content-test-case.js?pipe=sub"></script>
   </head>
   <body>

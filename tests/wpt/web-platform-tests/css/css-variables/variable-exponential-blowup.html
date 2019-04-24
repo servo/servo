@@ -10,8 +10,8 @@
   let css = `
     --v0: "Something really really really long";
   `;
-  for (let i = 0; i < 30; ++i)
-    css += `--v${i + 1}: var(--v${i}), var(--v${i});`;
+  for (let i = 0; i < 31; ++i)
+    css += `--v${i + 1}: var(--v${i}) var(--v${i});`;
   let s = document.createElement("style");
   s.innerHTML = `
     :root { ${css}; }

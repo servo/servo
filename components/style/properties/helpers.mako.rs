@@ -19,6 +19,8 @@
         #[allow(unused_imports)]
         use crate::values::specified::AllowQuirks;
         #[allow(unused_imports)]
+        use crate::Zero;
+        #[allow(unused_imports)]
         use smallvec::SmallVec;
         pub use crate::values::specified::${type} as SpecifiedValue;
         pub mod computed_value {
@@ -103,7 +105,7 @@
             #[allow(unused_imports)]
             use crate::values::{computed, specified};
             #[allow(unused_imports)]
-            use crate::values::{Auto, Either, None_, Normal};
+            use crate::values::{Auto, Either, None_};
             ${caller.body()}
         }
 
@@ -126,8 +128,15 @@
             % if separator == "Comma":
             #[css(comma)]
             % endif
-            #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
-                     ToCss)]
+            #[derive(
+                Clone,
+                Debug,
+                MallocSizeOf,
+                PartialEq,
+                ToAnimatedValue,
+                ToResolvedValue,
+                ToCss,
+            )]
             pub struct List<T>(
                 % if not allow_empty:
                 #[css(iterable)]
@@ -203,7 +212,7 @@
         % if separator == "Comma":
         #[css(comma)]
         % endif
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         pub struct SpecifiedValue(
             % if not allow_empty:
             #[css(iterable)]
@@ -283,7 +292,7 @@
         #[allow(unused_imports)]
         use crate::properties::{UnparsedValue, ShorthandId};
         #[allow(unused_imports)]
-        use crate::values::{Auto, Either, None_, Normal};
+        use crate::values::{Auto, Either, None_};
         #[allow(unused_imports)]
         use crate::error_reporting::ParseErrorReporter;
         #[allow(unused_imports)]
@@ -324,29 +333,28 @@
                 PropertyDeclaration::CSSWideKeyword(ref declaration) => {
                     debug_assert_eq!(declaration.id, LonghandId::${property.camel_case});
                     match declaration.keyword {
-                        % if not data.current_style_struct.inherited:
+                        % if not property.style_struct.inherited:
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Initial => {
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_initial_font_size(context);
+                            % if not property.style_struct.inherited:
+                                debug_assert!(false, "Should be handled in apply_properties");
                             % else:
                                 context.builder.reset_${property.ident}();
                             % endif
                         },
-                        % if data.current_style_struct.inherited:
+                        % if property.style_struct.inherited:
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Inherit => {
-                            % if not property.style_struct.inherited:
-                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                            % endif
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_inherit_font_size(context);
+                            % if property.style_struct.inherited:
+                                debug_assert!(false, "Should be handled in apply_properties");
                             % else:
+                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
                                 context.builder.inherit_${property.ident}();
                             % endif
                         }
+                        CSSWideKeyword::Revert => unreachable!("Should never get here"),
                     }
                     return;
                 }
@@ -389,15 +397,7 @@
                 % else:
                 let computed = specified_value.to_computed_value(context);
                 % endif
-                % if property.ident == "font_size":
-                    specified::FontSize::cascade_specified_font_size(
-                        context,
-                        &specified_value,
-                        computed,
-                    );
-                % else:
-                    context.builder.set_${property.ident}(computed)
-                % endif
+                context.builder.set_${property.ident}(computed)
             % endif
         }
 
@@ -432,8 +432,20 @@
 
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse,
-                     PartialEq, SpecifiedValueInfo, ToCss)]
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                Eq,
+                Hash,
+                MallocSizeOf,
+                Parse,
+                PartialEq,
+                SpecifiedValueInfo,
+                ToCss,
+                ToResolvedValue,
+                ToShmem,
+            )]
             pub enum T {
             % for value in keyword.values_for(product):
                 ${to_camel_case(value)},
@@ -444,7 +456,7 @@
         }
 
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             #[css(skip)]
@@ -595,8 +607,18 @@
         </%def>
         % if extra_specified:
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-                     SpecifiedValueInfo, ToCss)]
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                Eq,
+                MallocSizeOf,
+                Parse,
+                PartialEq,
+                SpecifiedValueInfo,
+                ToCss,
+                ToShmem,
+            )]
             pub enum SpecifiedValue {
                 ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
             }
@@ -605,9 +627,9 @@
         % endif
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
             % if not extra_specified:
-            #[derive(Parse, SpecifiedValueInfo, ToComputedValue)]
+            #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
             % endif
             pub enum T {
                 ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}
@@ -791,6 +813,58 @@
         ${caller.body()}
     }
     % endif
+</%def>
+
+// A shorthand of kind `<property-1> <property-2>?` where both properties have
+// the same type.
+<%def name="two_properties_shorthand(
+    name,
+    first_property,
+    second_property,
+    parser_function,
+    needs_context=True,
+    **kwargs
+)">
+<%call expr="self.shorthand(name, sub_properties=' '.join([first_property, second_property]), **kwargs)">
+    #[allow(unused_imports)]
+    use crate::parser::Parse;
+    use crate::values::specified;
+
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let parse_one = |_c: &ParserContext, input: &mut Parser<'i, 't>| {
+            % if needs_context:
+            ${parser_function}(_c, input)
+            % else:
+            ${parser_function}(input)
+            % endif
+        };
+
+        let first = parse_one(context, input)?;
+        let second =
+            input.try(|input| parse_one(context, input)).unwrap_or_else(|_| first.clone());
+        Ok(expanded! {
+            ${to_rust_ident(first_property)}: first,
+            ${to_rust_ident(second_property)}: second,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            let first = &self.${to_rust_ident(first_property)};
+            let second = &self.${to_rust_ident(second_property)};
+
+            first.to_css(dest)?;
+            if first != second {
+                dest.write_str(" ")?;
+                second.to_css(dest)?;
+            }
+            Ok(())
+        }
+    }
+</%call>
 </%def>
 
 <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function,

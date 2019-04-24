@@ -33,7 +33,7 @@ promise_test(async t => {
 function* pmiGenerator(howMany = 256) {
   for (i = 0; i < howMany; i++) {
     yield {
-      supportedMethods: `this-is-not-supported-${i}`,
+      supportedMethods: `this-is-not-supported`,
       data: { key: "value" },
     };
   }

@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test that Origin Policy report-to are deliverd to the declared reporting group</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <iframe id="frame" src="about:blank"></iframe>
+  <script>
+    // Navigate the frame to a URL that declares an (invalid) origin policy with
+    // a report-to directive.
+    document.getElementById("frame").src =
+        "https://{{hosts[alt][]}}:{{ports[https][0]}}/origin-policy/sec-origin-policy-subframe.html";
+  </script>
+  <script async defer src='/content-security-policy/support/checkReport.sub.js?reportField=policy&reportValue=nonexistingpolicy'>
+    // This re-uses CSP reporting test infrastructure, and contains the actual
+    // test. In addition to sanity checks, it will check whether the report body
+    // contains a key/value pair as indicated by reportField and reportValue.
+  </script>
+</body>
+</html>

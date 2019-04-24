@@ -1,2 +1,5 @@
-# Prevent accidentially touching CSS submodules
-/css/tools/ @plinss @kojiishi @jgraham @gsnedders
+# Prevent accidentially touching CSS subtree
+/css/tools/apiclient/ @plinss @jgraham @gsnedders
+
+# Prevent accidentally touching tools/third_party
+/tools/third_party/ @jgraham @gsnedders

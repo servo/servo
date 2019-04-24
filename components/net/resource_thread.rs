@@ -22,7 +22,7 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::request::{Destination, Request, RequestInit};
+use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::WebSocketNetworkEvent;
@@ -236,6 +236,14 @@ impl ResourceChannelManager {
                     http_state,
                 ),
             },
+            CoreResourceMsg::DeleteCookies(request) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .unwrap()
+                    .clear_storage(&request);
+                return true;
+            },
             CoreResourceMsg::FetchRedirect(req_init, res_init, sender, cancel_chan) => self
                 .resource_manager
                 .fetch(req_init, Some(res_init), sender, http_state, cancel_chan),
@@ -398,6 +406,7 @@ pub struct CoreResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
+    fetch_pool: rayon::ThreadPool,
 }
 
 impl CoreResourceManager {
@@ -407,11 +416,16 @@ impl CoreResourceManager {
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
     ) -> CoreResourceManager {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(16)
+            .build()
+            .unwrap();
         CoreResourceManager {
             user_agent: user_agent,
             devtools_chan: devtools_channel,
             swmanager_chan: None,
             filemanager: FileManager::new(embedder_proxy),
+            fetch_pool: pool,
         }
     }
 
@@ -430,7 +444,7 @@ impl CoreResourceManager {
 
     fn fetch(
         &self,
-        req_init: RequestInit,
+        request_builder: RequestBuilder,
         res_init_: Option<ResponseInit>,
         mut sender: IpcSender<FetchResponseMsg>,
         http_state: &Arc<HttpState>,
@@ -441,52 +455,47 @@ impl CoreResourceManager {
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
 
-        let timing_type = match req_init.destination {
+        let timing_type = match request_builder.destination {
             Destination::Document => ResourceTimingType::Navigation,
             _ => ResourceTimingType::Resource,
         };
 
-        thread::Builder::new()
-            .name(format!("fetch thread for {}", req_init.url))
-            .spawn(move || {
-                let mut request = Request::from_init(req_init);
-                // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
-                // todo load context / mimesniff in fetch
-                // todo referrer policy?
-                // todo service worker stuff
-                let context = FetchContext {
-                    state: http_state,
-                    user_agent: ua,
-                    devtools_chan: dc,
-                    filemanager: filemanager,
-                    cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(
-                        cancel_chan,
-                    ))),
-                    timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
-                };
+        self.fetch_pool.spawn(move || {
+            let mut request = request_builder.build();
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+            // todo load context / mimesniff in fetch
+            // todo referrer policy?
+            // todo service worker stuff
+            let context = FetchContext {
+                state: http_state,
+                user_agent: ua,
+                devtools_chan: dc,
+                filemanager: filemanager,
+                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
+            };
 
-                match res_init_ {
-                    Some(res_init) => {
-                        let response = Response::from_init(res_init, timing_type);
-                        http_redirect_fetch(
-                            &mut request,
-                            &mut CorsCache::new(),
-                            response,
-                            true,
-                            &mut sender,
-                            &mut None,
-                            &context,
-                        );
-                    },
-                    None => fetch(&mut request, &mut sender, &context),
-                };
-            })
-            .expect("Thread spawning failed");
+            match res_init_ {
+                Some(res_init) => {
+                    let response = Response::from_init(res_init, timing_type);
+                    http_redirect_fetch(
+                        &mut request,
+                        &mut CorsCache::new(),
+                        response,
+                        true,
+                        &mut sender,
+                        &mut None,
+                        &context,
+                    );
+                },
+                None => fetch(&mut request, &mut sender, &context),
+            };
+        });
     }
 
     fn websocket_connect(
         &self,
-        request: RequestInit,
+        request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+// These tests verify that detect()ed Detected{Barcode,Face}'s individual
+// fields are [SameObject].
+const imageDataTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        mockTestName: "FaceDetectionTest",
+        detectionResultTest: CheckDetectedFaceSameObjects,
+        name: "Face - detect(ImageData), [SameObject]"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        mockTestName: "BarcodeDetectionTest",
+        detectionResultTest: CheckDetectedBarcodesSameObjects,
+        name: "Barcode - detect(ImageData), [SameObject]"
+      }
+    ];
+
+for (let imageDataTest of imageDataTests) {
+  detection_test(imageDataTest.mockTestName, async t => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = "/images/green-16x16.png";
+    await imgWatcher.wait_for("load");
+    const canvas = document.createElement("canvas");
+    canvas.getContext("2d").drawImage(img, 0, 0);
+
+    const detector = imageDataTest.createDetector();
+    const detectionResult = await detector.detect(canvas.getContext("2d")
+        .getImageData(0, 0, canvas.width, canvas.height));
+    imageDataTest.detectionResultTest(detectionResult);
+  }, imageDataTest.name);
+}
+
+function CheckDetectedFaceSameObjects(detectedFaces) {
+  assert_greater_than(detectedFaces.length, 0, "Number of faces");
+  assert_equals(detectedFaces[0].boundingBox, detectedFaces[0].boundingBox);
+  assert_equals(detectedFaces[0].landmarks, detectedFaces[0].landmarks);
+}
+
+function CheckDetectedBarcodesSameObjects(detectedBarcodes) {
+  assert_greater_than(detectedBarcodes.length, 0, "Number of barcodes");
+  assert_equals(detectedBarcodes[0].rawValue, detectedBarcodes[0].rawValue);
+  assert_equals(detectedBarcodes[0].boundingBox, detectedBarcodes[0].boundingBox);
+  assert_equals(detectedBarcodes[0].format, detectedBarcodes[0].format);
+  assert_equals(detectedBarcodes[0].cornerPoints, detectedBarcodes[0].cornerPoints);
+}
+
+</script>

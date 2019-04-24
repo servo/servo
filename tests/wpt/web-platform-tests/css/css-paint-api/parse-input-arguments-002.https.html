@@ -25,7 +25,8 @@ try {
         }
     });
 } catch(ex) {
-    if (ex.name == "TypeError" && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': The provided value cannot be converted to a sequence.")
+    // 'inputArguments' property is a string, not a sequence.
+    if (ex.name == 'TypeError')
         testsPassed = true;
 }
 

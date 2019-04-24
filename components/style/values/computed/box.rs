@@ -14,8 +14,10 @@ use crate::values::specified::box_ as specified;
 pub use crate::values::specified::box_::{AnimationName, Appearance, BreakBetween, BreakWithin};
 pub use crate::values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
 pub use crate::values::specified::box_::{Contain, Display, Overflow};
-pub use crate::values::specified::box_::{OverflowAnchor, OverflowClipBox};
-pub use crate::values::specified::box_::{OverscrollBehavior, ScrollSnapType};
+pub use crate::values::specified::box_::{OverflowAnchor, OverflowClipBox, OverscrollBehavior};
+pub use crate::values::specified::box_::{
+    ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType,
+};
 pub use crate::values::specified::box_::{TouchAction, TransitionProperty, WillChange};
 
 /// A computed value for the `vertical-align` property.
@@ -38,7 +40,18 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToResolvedValue,
 )]
 #[repr(u8)]
 /// A computed value for the `float` property.
@@ -97,7 +110,18 @@ impl ToComputedValue for SpecifiedFloat {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToResolvedValue,
 )]
 /// A computed value for the `clear` property.
 pub enum Clear {
@@ -158,7 +182,7 @@ impl ToComputedValue for SpecifiedClear {
 /// A computed value for the `resize` property.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss, ToResolvedValue)]
 #[repr(u8)]
 pub enum Resize {
     None,

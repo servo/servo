@@ -20,8 +20,7 @@ use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacte
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use servo_config::opts;
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use servo_rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
@@ -65,7 +64,7 @@ pub trait BluetoothThreadFactory {
 impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
     fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let adapter = if Some(true) == PREFS.get("dom.bluetooth.enabled").as_boolean() {
+        let adapter = if pref!(dom.bluetooth.enabled) {
             BluetoothAdapter::init()
         } else {
             BluetoothAdapter::init_mock()
@@ -381,7 +380,7 @@ impl BluetoothManager {
         devices: Vec<BluetoothDevice>,
         adapter: &BluetoothAdapter,
     ) -> Option<String> {
-        if is_mock_adapter(adapter) || opts::get().headless {
+        if is_mock_adapter(adapter) {
             for device in &devices {
                 if let Ok(address) = device.get_address() {
                     return Some(address);
@@ -664,14 +663,13 @@ impl BluetoothManager {
                 }
                 let _ = d.connect();
                 for _ in 0..MAXIMUM_TRANSACTION_TIME {
-                    match d.is_connected().unwrap_or(false) {
-                        true => return Ok(BluetoothResponse::GATTServerConnect(true)),
-                        false => {
-                            if is_mock_adapter(&adapter) {
-                                break;
-                            }
-                            thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS));
-                        },
+                    if d.is_connected().unwrap_or(false) {
+                        return Ok(BluetoothResponse::GATTServerConnect(true));
+                    } else {
+                        if is_mock_adapter(&adapter) {
+                            break;
+                        }
+                        thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS));
                     }
                     // TODO: Step 5.1.4: Use the exchange MTU procedure.
                 }
@@ -693,9 +691,10 @@ impl BluetoothManager {
                 }
                 let _ = d.disconnect();
                 for _ in 0..MAXIMUM_TRANSACTION_TIME {
-                    match d.is_connected().unwrap_or(true) {
-                        true => thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS)),
-                        false => return Ok(()),
+                    if d.is_connected().unwrap_or(true) {
+                        thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS))
+                    } else {
+                        return Ok(());
                     }
                 }
                 return Err(BluetoothError::Network);
@@ -947,13 +946,13 @@ impl BluetoothManager {
         let mut adapter = self.get_adapter()?;
         match self.get_gatt_characteristic(&mut adapter, &id) {
             Some(c) => {
-                let result = match enable {
+                let result = if enable {
                     // (StartNotification) Step 8.
                     // TODO: Handle all the errors returned from the start_notify call.
-                    true => c.start_notify(),
-
+                    c.start_notify()
+                } else {
                     // (StopNotification) Step 4.
-                    false => c.stop_notify(),
+                    c.stop_notify()
                 };
                 match result {
                     // (StartNotification) Step 11.

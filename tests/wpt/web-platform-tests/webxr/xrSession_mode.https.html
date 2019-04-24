@@ -11,7 +11,7 @@
       return XRTest.simulateDeviceConnection({ supportsImmersive:true })
         .then( (controller) => new Promise((resolve) => {
           XRTest.simulateUserActivation( () => {
-            resolve(navigator.xr.requestSession({ mode: 'immersive-vr' }).then( (session) => {
+            resolve(navigator.xr.requestSession('immersive-vr').then( (session) => {
               assert_equals(session.mode, 'immersive-vr');
             }));
           });

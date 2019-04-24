@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <title>Absolute inside inline container location should be correct</title>
+  <link rel="author" href="mailto:atotic@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#def-cb">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<!-- There should be a green square below -->
+<body style="margin:0">
+  <span id="container" style="position:relative;">
+    <div style="width:100px; height:100px; background:red;"></div>
+    <div id="target" style="position:absolute; left:0; top:0; width:100px; height:100px; background:green;"></div>
+  </span>
+  <script>
+    test(_ => {
+      let bounds = document.querySelector("#target").getBoundingClientRect();
+      let container_bounds = document.querySelector("#container").getBoundingClientRect();
+      assert_equals(bounds.x, container_bounds.x);
+      assert_equals(bounds.y, container_bounds.y);
+    }, "absolute inside inline container location should be correct.");
+  </script>
+</body>
+</html>

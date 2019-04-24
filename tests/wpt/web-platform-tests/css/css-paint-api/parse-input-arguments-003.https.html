@@ -25,7 +25,8 @@ try {
         }
     });
 } catch(ex) {
-    if (ex.name == "TypeError" && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': Invalid argument types.")
+    // 'non-sense-type' is not a proper name of CSS properties.
+    if (ex.name == 'TypeError')
         testsPassed = true;
 }
 

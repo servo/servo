@@ -6,14 +6,16 @@
 
 use crate::parser::{Parse, ParserContext};
 use crate::values::generics::background::BackgroundSize as GenericBackgroundSize;
-use crate::values::specified::length::NonNegativeLengthPercentageOrAuto;
+use crate::values::specified::length::{
+    NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto,
+};
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A specified value for the `background-size` property.
-pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthPercentageOrAuto>;
+pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthPercentage>;
 
 impl Parse for BackgroundSize {
     fn parse<'i, 't>(
@@ -24,22 +26,12 @@ impl Parse for BackgroundSize {
             let height = input
                 .try(|i| NonNegativeLengthPercentageOrAuto::parse(context, i))
                 .unwrap_or(NonNegativeLengthPercentageOrAuto::auto());
-            return Ok(GenericBackgroundSize::Explicit { width, height });
+            return Ok(GenericBackgroundSize::ExplicitSize { width, height });
         }
         Ok(try_match_ident_ignore_ascii_case! { input,
             "cover" => GenericBackgroundSize::Cover,
             "contain" => GenericBackgroundSize::Contain,
         })
-    }
-}
-
-impl BackgroundSize {
-    /// Returns `auto auto`.
-    pub fn auto() -> Self {
-        GenericBackgroundSize::Explicit {
-            width: NonNegativeLengthPercentageOrAuto::auto(),
-            height: NonNegativeLengthPercentageOrAuto::auto(),
-        }
     }
 }
 
@@ -55,6 +47,8 @@ impl BackgroundSize {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[allow(missing_docs)]
 #[value_info(other_values = "repeat-x,repeat-y")]
@@ -70,7 +64,16 @@ pub enum BackgroundRepeatKeyword {
 /// axes.
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct BackgroundRepeat(pub BackgroundRepeatKeyword, pub BackgroundRepeatKeyword);
 
 impl BackgroundRepeat {

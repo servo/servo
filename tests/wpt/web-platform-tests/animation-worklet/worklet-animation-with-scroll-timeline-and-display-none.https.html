@@ -1,0 +1,77 @@
+<html class="reftest-wait">
+<title>Scroll timeline with WorkletAnimation and transition from display:none to display:block</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<meta name="assert" content="Scroll timeline should properly handle going from display:none to display:block">
+<link rel="match" href="worklet-animation-with-scroll-timeline-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="common.js"></script>
+
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+  }
+
+  .removed {
+    display: none;
+  }
+
+  #contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+<div id="scroller">
+  <div id="contents"></div>
+</div>
+
+<script>
+  registerPassthroughAnimator().then(()=>{
+    const box = document.getElementById('box');
+    const effect = new KeyframeEffect(box,
+      [
+      { transform: 'translateY(0)', opacity: 1 },
+      { transform: 'translateY(200px)', opacity: 0 }
+      ], {
+        duration: 1000,
+      }
+    );
+
+    const scroller = document.getElementById('scroller');
+    scroller.classList.add('removed');
+    const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+    const animation = new WorkletAnimation('passthrough', effect, timeline);
+    animation.play();
+
+    // Ensure that the WorkletAnimation will have been started on the compositor.
+    waitForAsyncAnimationFrames(1).then(_ => {
+      // Now return the scroller to the world, which will cause it to be composited
+      // and the animation should update on the compositor side.
+      scroller.classList.remove('removed');
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      scroller.scrollTop = 0.5 * maxScroll;
+
+      waitForAsyncAnimationFrames(1).then(_ => {
+        takeScreenshot();
+      });
+    });
+  });
+</script>

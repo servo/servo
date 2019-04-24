@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>n'ko, font-style</title>
+<style type="text/css">
+@font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoSansNko-regular-webfont.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    }
+.test, .ref { border: 1px solid #02D7F6;  margin: 20px;  padding: 10px; width: 3em; font-size: 120px; font-family: "csstest_noto"; }
+/* the CSS above is not part of the test */
+.styled { font-style:italic; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the three N'Ko characters join.</p>
+<div class="ref" lang="nqo" dir="rtl">ߞ&zwj;<span class="styled">&zwj;ߞ&zwj;</span>&zwj;ߞ</div>
+<div class="ref" lang="nqo" dir="rtl">ߞ&zwj;<span class="styled">&zwj;ߞ&zwj;</span>&zwj;ߞ</div>
+<!-- Notes:
+This test uses the Noto Sans N'Ko font to control variables related to font choice.
+-->
+</body>
+</html>

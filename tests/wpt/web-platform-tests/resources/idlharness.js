@@ -1674,7 +1674,122 @@ IdlInterface.prototype.test_self = function()
 
         }.bind(this), this.name + " interface: legacy window alias");
     }
-    // TODO: Test named constructors if I find any interfaces that have them.
+
+    if (this.has_extended_attribute("NamedConstructor")) {
+        var constructors = this.extAttrs
+            .filter(function(attr) { return attr.name == "NamedConstructor"; });
+        if (constructors.length !== 1) {
+            throw new IdlHarnessError("Internal error: missing support for multiple NamedConstructor extended attributes");
+        }
+        var constructor = constructors[0];
+        var min_length = minOverloadLength([constructor]);
+
+        subsetTestByKey(this.name, test, function()
+        {
+            // This function tests WebIDL as of 2019-01-14.
+
+            // "for every [NamedConstructor] extended attribute on an exposed
+            // interface, a corresponding property must exist on the ECMAScript
+            // global object. The name of the property is the
+            // [NamedConstructor]'s identifier, and its value is an object
+            // called a named constructor, ... . The property has the attributes
+            // { [[Writable]]: true, [[Enumerable]]: false,
+            // [[Configurable]]: true }."
+            var name = constructor.rhs.value;
+            assert_own_property(self, name);
+            var desc = Object.getOwnPropertyDescriptor(self, name);
+            assert_equals(desc.value, self[name], "wrong value in " + name + " property descriptor");
+            assert_true(desc.writable, name + " should be writable");
+            assert_false(desc.enumerable, name + " should not be enumerable");
+            assert_true(desc.configurable, name + " should be configurable");
+            assert_false("get" in desc, name + " should not have a getter");
+            assert_false("set" in desc, name + " should not have a setter");
+        }.bind(this), this.name + " interface: named constructor");
+
+        subsetTestByKey(this.name, test, function()
+        {
+            // This function tests WebIDL as of 2019-01-14.
+
+            // "2. Let F be ! CreateBuiltinFunction(realm, steps,
+            //     realm.[[Intrinsics]].[[%FunctionPrototype%]])."
+            var name = constructor.rhs.value;
+            var value = self[name];
+            assert_equals(typeof value, "function", "type of value in " + name + " property descriptor");
+            assert_not_equals(value, this.get_interface_object(), "wrong value in " + name + " property descriptor");
+            assert_equals(Object.getPrototypeOf(value), Function.prototype, "wrong value for " + name + "'s prototype");
+        }.bind(this), this.name + " interface: named constructor object");
+
+        subsetTestByKey(this.name, test, function()
+        {
+            // This function tests WebIDL as of 2019-01-14.
+
+            // "7. Let proto be the interface prototype object of interface I
+            //     in realm.
+            // "8. Perform ! DefinePropertyOrThrow(F, "prototype",
+            //     PropertyDescriptor{
+            //         [[Value]]: proto, [[Writable]]: false,
+            //         [[Enumerable]]: false, [[Configurable]]: false
+            //     })."
+            var name = constructor.rhs.value;
+            var expected = this.get_interface_object().prototype;
+            var desc = Object.getOwnPropertyDescriptor(self[name], "prototype");
+            assert_equals(desc.value, expected, "wrong value for " + name + ".prototype");
+            assert_false(desc.writable, "prototype should not be writable");
+            assert_false(desc.enumerable, "prototype should not be enumerable");
+            assert_false(desc.configurable, "prototype should not be configurable");
+            assert_false("get" in desc, "prototype should not have a getter");
+            assert_false("set" in desc, "prototype should not have a setter");
+        }.bind(this), this.name + " interface: named constructor prototype property");
+
+        subsetTestByKey(this.name, test, function()
+        {
+            // This function tests WebIDL as of 2019-01-14.
+
+            // "3. Perform ! SetFunctionName(F, id)."
+            var name = constructor.rhs.value;
+            var desc = Object.getOwnPropertyDescriptor(self[name], "name");
+            assert_equals(desc.value, name, "wrong value for " + name + ".name");
+            assert_false(desc.writable, "name should not be writable");
+            assert_false(desc.enumerable, "name should not be enumerable");
+            assert_true(desc.configurable, "name should be configurable");
+            assert_false("get" in desc, "name should not have a getter");
+            assert_false("set" in desc, "name should not have a setter");
+        }.bind(this), this.name + " interface: named constructor name");
+
+        subsetTestByKey(this.name, test, function()
+        {
+            // This function tests WebIDL as of 2019-01-14.
+
+            // "4. Initialize S to the effective overload set for constructors
+            //     with identifier id on interface I and with argument count 0.
+            // "5. Let length be the length of the shortest argument list of
+            //     the entries in S.
+            // "6. Perform ! SetFunctionLength(F, length)."
+            var name = constructor.rhs.value;
+            var desc = Object.getOwnPropertyDescriptor(self[name], "length");
+            assert_equals(desc.value, min_length, "wrong value for " + name + ".length");
+            assert_false(desc.writable, "length should not be writable");
+            assert_false(desc.enumerable, "length should not be enumerable");
+            assert_true(desc.configurable, "length should be configurable");
+            assert_false("get" in desc, "length should not have a getter");
+            assert_false("set" in desc, "length should not have a setter");
+        }.bind(this), this.name + " interface: named constructor length");
+
+        subsetTestByKey(this.name, test, function()
+        {
+            // This function tests WebIDL as of 2019-01-14.
+
+            // "1. Let steps be the following steps:
+            // "    1. If NewTarget is undefined, then throw a TypeError."
+            var name = constructor.rhs.value;
+            var args = constructor.arguments.map(function(arg) {
+                return create_suitable_object(arg.idlType);
+            });
+            assert_throws(new TypeError(), function() {
+                self[name](...args);
+            }.bind(this));
+        }.bind(this), this.name + " interface: named constructor without 'new'");
+    }
 
     subsetTestByKey(this.name, test, function()
     {
@@ -2309,7 +2424,7 @@ IdlInterface.prototype.do_member_operation_asserts = function(memberHolderObject
     }
 }
 
-IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, member) {
+IdlInterface.prototype.test_to_json_operation = function(desc, memberHolderObject, member) {
     var instanceName = memberHolderObject && memberHolderObject.constructor.name
         || member.name + " object";
     if (member.has_extended_attribute("Default")) {
@@ -2325,12 +2440,12 @@ IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, mem
                 this.array.assert_type_is(json[k], type);
                 delete json[k];
             }, this);
-        }.bind(this), "Test default toJSON operation of " + instanceName);
+        }.bind(this), this.name + " interface: default toJSON operation on " + desc);
     } else {
         subsetTestByKey(this.name, test, function() {
             assert_true(this.array.is_json_type(member.idlType), JSON.stringify(member.idlType) + " is not an appropriate return value for the toJSON operation of " + instanceName);
             this.array.assert_type_is(memberHolderObject.toJSON(), member.idlType);
-        }.bind(this), "Test toJSON operation of " + instanceName);
+        }.bind(this), this.name + " interface: toJSON operation on " + desc);
     }
 };
 
@@ -2722,7 +2837,7 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
         }
 
         if (member.is_to_json_regular_operation()) {
-            this.test_to_json_operation(obj, member);
+            this.test_to_json_operation(desc, obj, member);
         }
     }
 };

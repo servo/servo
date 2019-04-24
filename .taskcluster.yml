@@ -60,8 +60,8 @@ tasks:
                   $let:
                     treeherder_repo:
                       $if: "branch[:4] == 'try-'"
-                      then: "servo-${branch}"
-                      else: "servo-try"
+                      then: "servo-try"
+                      else: "servo-${branch}"
                   in:
                     - "tc-treeherder.v2._/${treeherder_repo}.${event.after}"
                     - "tc-treeherder-staging.v2._/${treeherder_repo}.${event.after}"

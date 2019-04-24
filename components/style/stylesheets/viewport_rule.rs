@@ -11,16 +11,17 @@ use crate::context::QuirksMode;
 use crate::error_reporting::ContextualParseError;
 use crate::font_metrics::get_metrics_provider_for_product;
 use crate::media_queries::Device;
-use crate::parser::ParserContext;
+use crate::parser::{Parse, ParserContext};
 use crate::properties::StyleBuilder;
 use crate::rule_cache::RuleCacheConditions;
 use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{Origin, StylesheetInDocument};
 use crate::values::computed::{Context, ToComputedValue};
-use crate::values::specified::{
-    self, LengthPercentageOrAuto, NoCalcLength, ViewportPercentageLength,
-};
+use crate::values::generics::length::LengthPercentageOrAuto;
+use crate::values::generics::NonNegative;
+use crate::values::specified::{self, NoCalcLength};
+use crate::values::specified::{NonNegativeLengthPercentageOrAuto, ViewportPercentageLength};
 use app_units::Au;
 use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
@@ -37,11 +38,8 @@ use style_traits::{CssWriter, ParseError, PinchZoomFactor, StyleParseErrorKind, 
 /// Whether parsing and processing of `@viewport` rules is enabled.
 #[cfg(feature = "servo")]
 pub fn enabled() -> bool {
-    use servo_config::prefs::PREFS;
-    PREFS
-        .get("layout.viewport.enabled")
-        .as_boolean()
-        .unwrap_or(false)
+    use servo_config::pref;
+    pref!(layout.viewport.enabled)
 }
 
 /// Whether parsing and processing of `@viewport` rules is enabled.
@@ -82,7 +80,7 @@ macro_rules! declare_viewport_descriptor_inner {
         [ ]
         $number_of_variants: expr
     ) => {
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, ToShmem)]
         #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
         #[allow(missing_docs)]
         pub enum ViewportDescriptor {
@@ -149,9 +147,9 @@ trait FromMeta: Sized {
 /// * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss, ToShmem)]
 pub enum ViewportLength {
-    Specified(LengthPercentageOrAuto),
+    Specified(NonNegativeLengthPercentageOrAuto),
     ExtendToZoom,
 }
 
@@ -159,9 +157,9 @@ impl FromMeta for ViewportLength {
     fn from_meta(value: &str) -> Option<ViewportLength> {
         macro_rules! specified {
             ($value:expr) => {
-                ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(
+                ViewportLength::Specified(LengthPercentageOrAuto::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length($value),
-                ))
+                )))
             };
         }
 
@@ -188,7 +186,7 @@ impl ViewportLength {
     ) -> Result<Self, ParseError<'i>> {
         // we explicitly do not accept 'extend-to-zoom', since it is a UA
         // internal value for <META> viewport translation
-        LengthPercentageOrAuto::parse_non_negative(context, input).map(ViewportLength::Specified)
+        NonNegativeLengthPercentageOrAuto::parse(context, input).map(ViewportLength::Specified)
     }
 }
 
@@ -227,7 +225,7 @@ struct ViewportRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToShmem)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
 pub struct ViewportDescriptorDeclaration {
@@ -337,7 +335,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
 }
 
 /// A `@viewport` rule.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToShmem)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct ViewportRule {
     /// The declarations contained in this @viewport rule.

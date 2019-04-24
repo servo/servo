@@ -1,5 +1,5 @@
 <html>
-<meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Device-Memory, rtt, downlink, ect">
+<meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Device-Memory, rtt, downlink, ect, lang">
 <title>Accept-CH http-equiv same-origin and cross-origin test</title>
 <body>
 <script src="/resources/testharness.js"></script>
@@ -38,6 +38,8 @@ promise_test(t => {
 
     assert_in_array(r.headers.get("ect-received"), ["slow-2g", "2g",
           "3g", "4g"], 'ect-received is unexpected');
+
+    assert_true(r.headers.has("lang-received"), "lang-received");
   });
 }, "Same origin Accept-CH http-equiv test");
 
@@ -52,6 +54,7 @@ promise_test(t => {
     assert_false(r.headers.has("rtt-received"), "rtt-received");
     assert_false(r.headers.has("downlink-received"), "downlink-received");
     assert_false(r.headers.has("ect-received"), "ect-received");
+    assert_false(r.headers.has("lang-received"), "lang-received");
   });
 }, "Cross-Origin Accept-CH http-equiv test");
 

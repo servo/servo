@@ -22,7 +22,7 @@
             xhr.addEventListener("loadend", function() {
                 test.step(function() {
                     // no progress events due to CORS failure
-                    assert_xhr_event_order_matches([1, "loadstart(0,0,false)", "upload.loadstart(0,12,true)", 2, 4, "upload.error(0,0,false)", "upload.loadend(0,0,false)", "error(0,0,false)", "loadend(0,0,false)"]);
+                    assert_xhr_event_order_matches([1, "loadstart(0,0,false)", "upload.loadstart(0,12,true)", 4, "upload.error(0,0,false)", "upload.loadend(0,0,false)", "error(0,0,false)", "loadend(0,0,false)"]);
                     test.done();
                 });
             });

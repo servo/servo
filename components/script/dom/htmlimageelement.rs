@@ -55,7 +55,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use num_traits::ToPrimitive;
@@ -324,12 +324,9 @@ impl HTMLImageElement {
             }),
         );
 
-        let request = RequestInit {
-            url: img_url.clone(),
-            origin: document.origin().immutable().clone(),
-            pipeline_id: Some(document.global().pipeline_id()),
-            ..RequestInit::default()
-        };
+        let request = RequestBuilder::new(img_url.clone())
+            .origin(document.origin().immutable().clone())
+            .pipeline_id(Some(document.global().pipeline_id()));
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.

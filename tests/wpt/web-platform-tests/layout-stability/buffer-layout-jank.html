@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Layout Jank: query jank via the performance timeline</title>
+<body>
+<style>
+#myDiv { position: relative; width: 300px; height: 100px; }
+</style>
+<div id='myDiv'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Delay onload by inserting a slow image.-->
+<img src="resources/slow-image.py">
+<script>
+  async_test(function (t) {
+    // Modify the position of the div.
+    document.getElementById('myDiv').style = "top: 60px";
+    function testBufferedEntry() {
+      if (performance.getEntriesByType('layoutJank').length === 0) {
+        t.step_timeout(testBufferedEntry, 0);
+        return;
+      }
+      assert_equals(performance.getEntriesByType('layoutJank').length, 1);
+      assert_equals(performance.getEntries().filter(
+        entry => entry.entryType === 'layoutJank').length, 1);
+      const entry = performance.getEntriesByType('layoutJank')[0];
+      assert_equals(entry.entryType, "layoutJank");
+      assert_equals(entry.name, "");
+      assert_equals(entry.startTime, 0.0);
+      assert_equals(entry.duration, 0.0);
+      // The layout jank fraction should be: 300 * (100 + 60) / viewport size.
+      assert_equals(entry.fraction, 300 * (100 + 60) /
+        (document.documentElement.clientWidth * document.documentElement.clientHeight));
+      t.done();
+    }
+    t.step(testBufferedEntry);
+  }, 'LayoutJank before onload is buffered into the performance timeline.');
+</script>
+
+</body>

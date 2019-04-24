@@ -135,7 +135,7 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
                 "Loading initial page %s failed. Ensure that the "
                 "there are no other programs bound to this port and "
                 "that your firewall rules or network setup does not "
-                "prevent access.\e%s" % (url, traceback.format_exc(e)))
+                r"prevent access.\e%s" % (url, traceback.format_exc(e)))
             raise
         self.runner_handle = self.marionette.current_window_handle
         format_map = {"title": threading.current_thread().name.replace("'", '"')}
@@ -212,7 +212,7 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
             if test_window is None:
                 handles = self.marionette.window_handles
                 if len(handles) == 2:
-                    test_window = next(iter(set(handles) - set([parent])))
+                    test_window = next(iter(set(handles) - {parent}))
                 elif handles[0] == parent and len(handles) > 2:
                     # Hope the first one here is the test window
                     test_window = handles[1]
@@ -417,7 +417,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
             return
 
         script = """
-            ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
             return PerTestCoverageUtils.enabled;
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -427,7 +427,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
             PerTestCoverageUtils.beforeTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -447,7 +447,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
             PerTestCoverageUtils.afterTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -511,12 +511,13 @@ class MarionetteProtocol(Protocol):
         pass
 
     def teardown(self):
-        try:
-            self.marionette._request_in_app_shutdown()
-            self.marionette.delete_session(send_request=False)
-        except Exception:
-            # This is typically because the session never started
-            pass
+        if self.marionette and self.marionette.session_id:
+            try:
+                self.marionette._request_in_app_shutdown()
+                self.marionette.delete_session(send_request=False)
+            except Exception:
+                # This is typically because the session never started
+                pass
         if self.marionette is not None:
             del self.marionette
         super(MarionetteProtocol, self).teardown()
@@ -769,14 +770,18 @@ class MarionetteRefTestExecutor(RefTestExecutor):
     def teardown(self):
         try:
             self.implementation.teardown()
-            handles = self.protocol.marionette.window_handles
-            if handles:
-                self.protocol.marionette.switch_to_window(handles[0])
+            if self.protocol.marionette and self.protocol.marionette.session_id:
+                handles = self.protocol.marionette.window_handles
+                if handles:
+                    self.protocol.marionette.switch_to_window(handles[0])
             super(self.__class__, self).teardown()
         except Exception as e:
             # Ignore errors during teardown
             self.logger.warning("Exception during reftest teardown:\n%s" %
                                 traceback.format_exc(e))
+
+    def reset(self):
+        self.implementation.reset(**self.implementation_kwargs)
 
     def is_alive(self):
         return self.protocol.is_alive
@@ -841,7 +846,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         return screenshot
 
 
-class InternalRefTestImplementation(object):
+class InternalRefTestImplementation(RefTestImplementation):
     def __init__(self, executor):
         self.timeout_multiplier = executor.timeout_multiplier
         self.executor = executor
@@ -859,26 +864,40 @@ class InternalRefTestImplementation(object):
         self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CHROME)
         self.executor.protocol.marionette._send_message("reftest:setup", data)
 
+    def reset(self, screenshot=None):
+        # this is obvious wrong; it shouldn't be a no-op
+        # see https://github.com/web-platform-tests/wpt/issues/15604
+        pass
+
     def run_test(self, test):
-        references = self.get_references(test)
+        references = self.get_references(test, test)
         timeout = (test.timeout * 1000) * self.timeout_multiplier
         rv = self.executor.protocol.marionette._send_message("reftest:run",
                                                              {"test": self.executor.test_url(test),
                                                               "references": references,
                                                               "expected": test.expected(),
-                                                              "timeout": timeout})["value"]
+                                                              "timeout": timeout,
+                                                              "width": 800,
+                                                              "height": 600})["value"]
         return rv
 
-    def get_references(self, node):
+    def get_references(self, root_test, node):
         rv = []
         for item, relation in node.references:
-            rv.append([self.executor.test_url(item), self.get_references(item), relation])
+            rv.append([self.executor.test_url(item), self.get_references(root_test, item), relation,
+                       {"fuzzy": self.get_fuzzy(root_test, [node, item], relation)}])
         return rv
 
     def teardown(self):
         try:
-            self.executor.protocol.marionette._send_message("reftest:teardown", {})
-            self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CONTENT)
+            if self.executor.protocol.marionette and self.executor.protocol.marionette.session_id:
+                self.executor.protocol.marionette._send_message("reftest:teardown", {})
+                self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CONTENT)
+                # the reftest runner opens/closes a window with focus, so as
+                # with after closing a window we need to give a new window
+                # focus
+                handles = self.executor.protocol.marionette.window_handles
+                self.executor.protocol.marionette.switch_to_window(handles[0])
         except Exception as e:
             # Ignore errors during teardown
             self.logger.warning(traceback.format_exc(e))

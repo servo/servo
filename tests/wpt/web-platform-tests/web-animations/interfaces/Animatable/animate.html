@@ -202,6 +202,39 @@ test(t => {
   assert_equals(anim.playState, 'running');
 }, 'Element.animate() calls play on the Animation');
 
+promise_test(async t => {
+  const div = createDiv(t);
+
+  let gotTransition = false;
+  div.addEventListener('transitionrun', () => {
+    gotTransition = true;
+  });
+
+  // Setup transition start point.
+  div.style.transition = 'opacity 100s';
+  getComputedStyle(div).opacity;
+
+  // Update specified style but don't flush style.
+  div.style.opacity = '0.5';
+
+  // Trigger a new animation at the same time.
+  const anim = div.animate({ opacity: [0, 1] }, 100 * MS_PER_SEC);
+
+  // If Element.animate() produces a style change event it will have triggered
+  // a transition.
+  //
+  // If it does NOT produce a style change event, the animation will override
+  // the before-change style and after-change style such that a transition is
+  // never triggered.
+
+  // Wait for the animation to start and then for one more animation
+  // frame to give the transitionrun event a chance to be dispatched.
+  await anim.ready;
+  await waitForAnimationFrames(1);
+
+  assert_false(gotTransition, 'A transition should NOT have been triggered');
+}, 'Element.animate() does NOT trigger a style change event');
+
 // Tests on CSSPseudoElement
 
 test(t => {

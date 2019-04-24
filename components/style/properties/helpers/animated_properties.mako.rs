@@ -452,14 +452,23 @@ impl AnimationValue {
                     % for prop in data.longhands:
                     % if prop.animatable:
                     LonghandId::${prop.camel_case} => {
+                        // FIXME(emilio, bug 1533327): I think
+                        // CSSWideKeyword::Revert handling is not fine here, but
+                        // what to do instead?
+                        //
+                        // Seems we'd need the computed value as if it was
+                        // revert, somehow. Treating it as `unset` seems fine
+                        // for now...
                         let style_struct = match declaration.keyword {
                             % if not prop.style_struct.inherited:
+                            CSSWideKeyword::Revert |
                             CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Initial => {
                                 initial.get_${prop.style_struct.name_lower}()
                             },
                             % if prop.style_struct.inherited:
+                            CSSWideKeyword::Revert |
                             CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Inherit => {
@@ -802,27 +811,27 @@ impl ToAnimatedZero for Visibility {
 impl Animate for ClipRect {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        use crate::values::computed::Length;
-        let animate_component = |this: &Option<Length>, other: &Option<Length>| {
-            match (this.animate(other, procedure)?, procedure) {
-                (None, Procedure::Interpolate { .. }) => Ok(None),
-                (None, _) => Err(()),
-                (result, _) => Ok(result),
+        use crate::values::computed::LengthOrAuto;
+        let animate_component = |this: &LengthOrAuto, other: &LengthOrAuto| {
+            let result = this.animate(other, procedure)?;
+            if let Procedure::Interpolate { .. } = procedure {
+                return Ok(result);
             }
+            if result.is_auto() {
+                // FIXME(emilio): Why? A couple SMIL tests fail without this,
+                // but it seems extremely fishy.
+                return Err(());
+            }
+            Ok(result)
         };
 
         Ok(ClipRect {
-            top:    animate_component(&self.top, &other.top)?,
-            right:  animate_component(&self.right, &other.right)?,
+            top: animate_component(&self.top, &other.top)?,
+            right: animate_component(&self.right, &other.right)?,
             bottom: animate_component(&self.bottom, &other.bottom)?,
-            left:   animate_component(&self.left, &other.left)?,
+            left: animate_component(&self.left, &other.left)?,
         })
     }
-}
-
-impl ToAnimatedZero for ClipRect {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 <%

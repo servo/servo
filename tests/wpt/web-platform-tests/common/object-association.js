@@ -41,9 +41,7 @@ window.testIsPerWindow = propertyName => {
     iframe.src = "/common/blank.html";
   }, `Navigating from the initial about:blank must not replace window.${propertyName}`);
 
-  // Note: document.open()'s spec doesn't match most browsers; see https://github.com/whatwg/html/issues/1698.
-  // However, as explained in https://github.com/whatwg/html/issues/1698#issuecomment-298748641, even an updated spec
-  // will probably still reset Window-associated properties.
+  // Per spec, document.open() should not change any of the Window state.
   async_test(t => {
     const iframe = document.createElement("iframe");
 
@@ -55,7 +53,7 @@ window.testIsPerWindow = propertyName => {
       frame.document.open();
 
       const after = frame[propertyName];
-      assert_not_equals(after, before);
+      assert_equals(after, before);
 
       frame.document.close();
     });

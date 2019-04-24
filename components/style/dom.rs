@@ -441,6 +441,11 @@ pub trait TElement:
         None
     }
 
+    /// The ::marker pseudo-element of this element, if it exists.
+    fn marker_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
     /// Execute `f` for each anonymous content child (apart from ::before and
     /// ::after) whose originating element is `self`.
     fn each_anonymous_content_child<F>(&self, _f: F)
@@ -637,15 +642,6 @@ pub trait TElement:
         self.unset_dirty_descendants();
     }
 
-    /// Clear all element flags related to dirtiness.
-    ///
-    /// In Gecko, this corresponds to the regular dirty descendants bit, the
-    /// animation-only dirty descendants bit, the lazy frame construction bit,
-    /// and the lazy frame construction descendants bit.
-    unsafe fn clear_dirty_bits(&self) {
-        self.unset_dirty_descendants();
-    }
-
     /// Returns true if this element is a visited link.
     ///
     /// Servo doesn't support visited styles yet.
@@ -820,11 +816,15 @@ pub trait TElement:
         Self: 'a,
         F: FnMut(&'a CascadeData, QuirksMode, Option<Self>),
     {
+        use rule_collector::containing_shadow_ignoring_svg_use;
+
         let mut doc_rules_apply = !self.each_xbl_cascade_data(|data, quirks_mode| {
             f(data, quirks_mode, None);
         });
 
-        if let Some(shadow) = self.containing_shadow() {
+        // Use the same rules to look for the containing host as we do for rule
+        // collection.
+        if let Some(shadow) = containing_shadow_ignoring_svg_use(*self) {
             doc_rules_apply = false;
             if let Some(data) = shadow.style_data() {
                 f(

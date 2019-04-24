@@ -9,12 +9,26 @@
 <script>
 const crossOriginImageUrl = "http://{{domains[www1]}}:{{ports[http][0]}}/images/red.png";
 
-function assert_origin_unclean(bitmap) {
+function assert_origin_unclean_getImageData(bitmap) {
   const context = document.createElement("canvas").getContext("2d");
   context.drawImage(bitmap, 0, 0);
   assert_throws("SecurityError", () => {
     context.getImageData(0, 0, 1, 1);
   });
+}
+
+function assert_origin_unclean_drawImage(bitmap) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0);
+  assert_throws('SecurityError', () => canvas.toDataURL());
+}
+
+function assert_origin_unclean_transferFromImageBitmap(bitmap) {
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('bitmaprenderer');
+  ctx.transferFromImageBitmap(bitmap);
+  assert_throws('SecurityError', () => canvas.toDataURL());
 }
 
 function makeImage() {
@@ -104,7 +118,13 @@ const arguments = [
 
 for (let { name, factory } of arguments) {
   promise_test(function() {
-    return factory().then(createImageBitmap).then(assert_origin_unclean);
-  }, name);
+    return factory().then(createImageBitmap).then(assert_origin_unclean_getImageData);
+  }, `${name}: origin unclear getImageData`);
+  promise_test(function() {
+    return factory().then(createImageBitmap).then(assert_origin_unclean_drawImage);
+  }, `${name}: origin unclear 2dContext.drawImage`);
+  promise_test(function() {
+    return factory().then(createImageBitmap).then(assert_origin_unclean_transferFromImageBitmap);
+  }, `${name}: origin unclear bitmaprenderer.transferFromImageBitmap`);
 }
 </script>

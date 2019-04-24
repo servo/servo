@@ -146,7 +146,7 @@ class FennecBrowser(FirefoxBrowser):
                                       "network.preload": True})
         if self.test_type == "reftest":
             self.logger.info("Setting android reftest preferences")
-            self.profile.set_preferences({"browser.viewport.desktopWidth": 600,
+            self.profile.set_preferences({"browser.viewport.desktopWidth": 800,
                                           # Disable high DPI
                                           "layout.css.devPixelsPerPx": "1.0",
                                           # Ensure that the full browser element

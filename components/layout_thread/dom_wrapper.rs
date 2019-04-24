@@ -40,7 +40,9 @@ use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script::layout_exports::NodeFlags;
 use script::layout_exports::PendingRestyle;
-use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use script::layout_exports::{
+    CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId, TextTypeId,
+};
 use script::layout_exports::{Document, Element, Node, Text};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
 use script::layout_exports::{
@@ -153,7 +155,8 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     }
 
     fn is_text_node(&self) -> bool {
-        self.script_type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
+        self.script_type_id() ==
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
     }
 }
 
@@ -765,7 +768,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             .dom_children()
             .all(|node| match node.script_type_id() {
                 NodeTypeId::Element(..) => false,
-                NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => unsafe {
                     node.node.downcast().unwrap().data_for_layout().is_empty()
                 },
                 _ => true,
@@ -814,9 +817,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                     _ => true,
                 }
             },
-            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => self
-                .get_attr_enum(&ns!(), &local_name!("type"))
-                .map_or(false, |attr| attr == expected_value),
             NonTSPseudoClass::ReadOnly => !self
                 .element
                 .get_state_for_layout()

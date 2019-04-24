@@ -29,19 +29,19 @@
 
     var i, obj;
     i = interfaceFrom("interface A { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(i, { foo: 123 }), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, { foo: 123 }), i.members[0]);
 
     // should fail (wrong type)
     i = interfaceFrom("interface B { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(i, { foo: "a value" }), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, { foo: "a value" }), i.members[0]);
 
     // should handle extraneous attributes (e.g. from an extension specification)
     i = interfaceFrom("interface C { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(i, { foo: 123, bar: 456 }), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, { foo: 123, bar: 456 }), i.members[0]);
 
     // should fail (missing property)
     i = interfaceFrom("interface D { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(i, { }), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, { }), i.members[0]);
 
     // should fail (should be writable)
     obj = Object.defineProperties({}, { foo: {
@@ -51,7 +51,7 @@
         value: 123
     }});
     i = interfaceFrom("interface F { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(i, obj), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, obj), i.members[0]);
 
     // should fail (should be enumerable)
     obj = Object.defineProperties({}, { foo: {
@@ -61,7 +61,7 @@
         value: 123
     }});
     i = interfaceFrom("interface G { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(i, obj), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, obj), i.members[0]);
 
     // should fail (should be configurable)
     obj = Object.defineProperties({}, { foo: {
@@ -71,27 +71,27 @@
         value: 123
     }});
     i = interfaceFrom("interface H { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(i, obj), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, obj), i.members[0]);
 
     var idl = new IdlArray();
     idl.add_idls("interface I : J { [Default] object toJSON(); attribute long foo; };");
     idl.add_idls("interface J { [Default] object toJSON(); attribute DOMString foo;};");
     var i = idl.members.I;
-    i.test_to_json_operation(wrap(i, { foo: 123 }), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, { foo: 123 }), i.members[0]);
 
     i = interfaceFrom("interface K { [Default] object toJSON(); };");
-    i.test_to_json_operation(wrap(i, {}), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, {}), i.members[0]);
 
     i = interfaceFrom("interface L { DOMString toJSON(); };");
-    i.test_to_json_operation(wrap(i, "a string"), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, "a string"), i.members[0]);
 
     // should fail (wrong output type)
     i = interfaceFrom("interface M { DOMString toJSON(); };");
-    i.test_to_json_operation(wrap(i, {}), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, {}), i.members[0]);
 
     // should fail (not an IDL type)
     i = interfaceFrom("interface N { DOMException toJSON(); };");
-    i.test_to_json_operation(wrap(i, {}), i.members[0]);
+    i.test_to_json_operation("object", wrap(i, {}), i.members[0]);
 </script>
 <script type="text/json" id="expected">
     {
@@ -102,73 +102,73 @@
         "summarized_tests": [
             {
                 "message": null,
-                "name": "Test default toJSON operation of A",
+                "name": "A interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "PASS"
             },
             {
                 "message": "assert_equals: expected \"number\" but got \"string\"",
-                "name": "Test default toJSON operation of B",
+                "name": "B interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "FAIL"
             },
             {
                 "message": null,
-                "name": "Test default toJSON operation of C",
+                "name": "C interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "PASS"
             },
             {
                 "message": "assert_true: property \"foo\" should be present in the output of D.prototype.toJSON() expected true got false",
-                "name": "Test default toJSON operation of D",
+                "name": "D interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "FAIL"
             },
             {
                 "message": "assert_true: property foo should be writable expected true got false",
-                "name": "Test default toJSON operation of F",
+                "name": "F interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "FAIL"
             },
             {
                 "message": "assert_true: property foo should be enumerable expected true got false",
-                "name": "Test default toJSON operation of G",
+                "name": "G interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "FAIL"
             },
             {
                 "message": "assert_true: property foo should be configurable expected true got false",
-                "name": "Test default toJSON operation of H",
+                "name": "H interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "FAIL"
             },
             {
                 "message": null,
-                "name": "Test default toJSON operation of I",
+                "name": "I interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "PASS"
             },
             {
                 "message": null,
-                "name": "Test default toJSON operation of K",
+                "name": "K interface: default toJSON operation on object",
                 "properties": {},
                 "status_string": "PASS"
             },
             {
                 "message": null,
-                "name": "Test toJSON operation of L",
+                "name": "L interface: toJSON operation on object",
                 "properties": {},
                 "status_string": "PASS"
             },
             {
                 "message": "assert_equals: expected \"string\" but got \"object\"",
-                "name": "Test toJSON operation of M",
+                "name": "M interface: toJSON operation on object",
                 "properties": {},
                 "status_string": "FAIL"
             },
             {
                 "message": "assert_true: {\"type\":\"return-type\",\"generic\":null,\"nullable\":false,\"union\":false,\"idlType\":\"DOMException\",\"extAttrs\":[]} is not an appropriate return value for the toJSON operation of N expected true got false",
-                "name": "Test toJSON operation of N",
+                "name": "N interface: toJSON operation on object",
                 "properties": {},
                 "status_string": "FAIL"
             }

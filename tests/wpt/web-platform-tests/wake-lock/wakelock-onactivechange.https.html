@@ -8,18 +8,21 @@
 <script>
 
 promise_test(async t => {
-  const wakeLock = await navigator.getWakeLock("screen");
+  const wakeLock = new WakeLock("screen");
   const eventWatcher = new EventWatcher(t, wakeLock, "activechange");
   assert_false(wakeLock.active, "the active is false before wake lock is acquired");
 
-  let request = wakeLock.createRequest();
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  await wakeLock.request({ signal });
   let evt1 = await eventWatcher.wait_for("activechange");
   assert_true(evt1.isTrusted && !evt1.bubbles && !evt1.cancelable && evt1 instanceof Event, "a simple event is fired");
   assert_equals(evt1.type, "activechange", "the event name is 'activechange'");
   assert_equals(evt1.target, wakeLock, "event.target is WakeLock.");
   assert_true(wakeLock.active, "the active is true when wake lock is acquired");
 
-  request.cancel();
+  controller.abort();
   let evt2 = await eventWatcher.wait_for("activechange");
   assert_true(evt2.isTrusted && !evt2.bubbles && !evt2.cancelable && evt2 instanceof Event, "a simple event is fired");
   assert_false(wakeLock.active, "the active is false when wake lock is released");

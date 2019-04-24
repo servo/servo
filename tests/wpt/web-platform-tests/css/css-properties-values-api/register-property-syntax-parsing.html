@@ -1,4 +1,5 @@
 <!DOCTYPE HTML>
+<meta charset="utf-8">
 <link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-css-registerproperty" />
 <link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#supported-syntax-strings" />
 <script src="/resources/testharness.js"></script>
@@ -29,9 +30,11 @@ assert_valid(" <number>", "5");
 assert_valid("<percentage> ", "10%");
 assert_valid("<color>+", "red");
 assert_valid(" <length>+ | <percentage>", "2px 8px");
+assert_valid(" <length>+ | <color>#", "red, blue");
 assert_valid("<length>|<percentage>|<length-percentage>", "2px"); // Valid but silly
 assert_valid("<color> | <image> | <url> | <integer> | <angle>", "red");
 assert_valid("<time> | <resolution> | <transform-list> | <custom-ident>", "red");
+assert_valid("\t<color>\n|   foo", "foo");
 
 assert_valid("*", ":> hello");
 assert_valid("*", "([ brackets ]) { yay (??)}");
@@ -86,6 +89,7 @@ assert_valid("banana", "banana");
 assert_valid("bAnAnA", "bAnAnA");
 assert_valid("ba-na-nya", "ba-na-nya");
 assert_valid("banana", "banan\\61");
+assert_valid("banan\\61", "banana");
 assert_valid("<custom-ident>", "banan\\61");
 assert_valid("big | bigger | BIGGER", "bigger");
 assert_valid("foo+|bar", "foo foo foo");
@@ -99,9 +103,14 @@ assert_valid(null, "null");
 assert_valid(undefined, "undefined");
 assert_valid(["array"], "array");
 
+assert_valid("\\1F914", "🤔");
+assert_valid("hmm\\1F914", "hmm🤔");
+assert_valid("\\1F914hmm", "🤔hmm");
+assert_valid("\\1F914 hmm", "🤔hmm");
+assert_valid("\\1F914\\1F914", "🤔🤔");
+
 // Invalid syntax
 assert_invalid("banana,nya", "banana");
-assert_invalid("banan\\61", "banana");
 assert_invalid("<\\6c ength>", "10px");
 assert_invalid("<banana>", "banana");
 assert_invalid("<Number>", "10");
@@ -110,11 +119,20 @@ assert_invalid("<LENGTH>", "10px");
 assert_invalid("< length>", "10px");
 assert_invalid("<length >", "10px");
 assert_invalid("<length> +", "10px");
+assert_invalid("<transform-list>+", "scale(2)");
+assert_invalid("<transform-list>#", "scale(2)");
 
 assert_invalid("<length>++", "10px");
+assert_invalid("<length>##", "10px");
+assert_invalid("<length>+#", "10px");
+assert_invalid("<length>#+", "10px");
 assert_invalid("<length> | *", "10px");
 assert_invalid("*|banana", "banana");
+assert_invalid("|banana", "banana");
 assert_invalid("*+", "banana");
+assert_invalid("|", "banana");
+assert_invalid(" |", "banana");
+assert_invalid("||", "banana");
 
 assert_invalid("initial", "initial");
 assert_invalid("inherit", "inherit");

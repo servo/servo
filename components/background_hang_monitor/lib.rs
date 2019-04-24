@@ -11,7 +11,10 @@ extern crate log;
 
 pub mod background_hang_monitor;
 mod sampler;
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(all(
+    target_os = "linux",
+    not(any(target_arch = "arm", target_arch = "aarch64"))
+))]
 mod sampler_linux;
 #[cfg(target_os = "macos")]
 mod sampler_mac;

@@ -15,6 +15,7 @@
 <span><a b='"'></a></span>
 <span><a b="<"></a></span>
 <span><a b=">"></a></span>
+<span><a href="javascript:&quot;&lt;>&quot;"></a></span>
 <span><svg xlink:href="a"></svg></span>
 <span><svg xmlns:svg="test"></svg></span>
 <span>a</span>
@@ -49,6 +50,7 @@ var expected = [
 ["<a b=\"&quot;\"></a>", "<span><a b=\"&quot;\"></a></span>"],
 ["<a b=\"<\"></a>", "<span><a b=\"<\"></a></span>"],
 ["<a b=\">\"></a>", "<span><a b=\">\"></a></span>"],
+["<a href=\"javascript:&quot;<>&quot;\"></a>", "<span><a href=\"javascript:&quot;<>&quot;\"></a></span>"],
 ["<svg xlink:href=\"a\"></svg>", "<span><svg xlink:href=\"a\"></svg></span>"],
 ["<svg xmlns:svg=\"test\"></svg>", "<span><svg xmlns:svg=\"test\"></svg></span>"],
 ["a", "<span>a</span>"],

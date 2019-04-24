@@ -6,26 +6,24 @@
 package org.mozilla.servoview;
 
 import android.app.Activity;
-import android.content.res.AssetManager;
 import android.content.Context;
 import android.util.Log;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
 import org.freedesktop.gstreamer.GStreamer;
+import org.mozilla.servoview.JNIServo.ServoCoordinates;
 import org.mozilla.servoview.JNIServo.ServoOptions;
 
 public class Servo {
     private static final String LOGTAG = "Servo";
-    private AssetManager mAssetMgr;
     private JNIServo mJNI = new JNIServo();
     private RunCallback mRunCallback;
     private boolean mShuttingDown;
     private boolean mShutdownComplete;
     private boolean mSuspended;
+    private Callbacks mServoCallbacks;
 
     public Servo(
             ServoOptions options,
@@ -36,12 +34,10 @@ public class Servo {
 
         mRunCallback = runCallback;
 
-        mAssetMgr = activity.getResources().getAssets();
-
-        Callbacks cbs = new Callbacks(client, gfxcb);
+        mServoCallbacks = new Callbacks(client, gfxcb);
 
         mRunCallback.inGLThread(() -> {
-            mJNI.init(activity, options, cbs);
+            mJNI.init(activity, options, mServoCallbacks);
         });
 
         try {
@@ -49,6 +45,10 @@ public class Servo {
         } catch (Exception e) {
           e.printStackTrace();
         }
+    }
+
+    public void resetGfxCallbacks(GfxCallbacks gfxcb) {
+      mServoCallbacks.resetGfxCallbacks(gfxcb);
     }
 
     public void shutdown() {
@@ -92,8 +92,8 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.setBatchMode(mode));
     }
 
-    public void resize(int width, int height) {
-        mRunCallback.inGLThread(() -> mJNI.resize(width, height));
+    public void resize(ServoCoordinates coords) {
+        mRunCallback.inGLThread(() -> mJNI.resize(coords));
     }
 
     public void refresh() {
@@ -198,12 +198,16 @@ public class Servo {
 
     private class Callbacks implements JNIServo.Callbacks, Client {
 
-        private final GfxCallbacks mGfxCb;
+        private GfxCallbacks mGfxCb;
         Client mClient;
 
         Callbacks(Client client, GfxCallbacks gfxcb) {
             mClient = client;
             mGfxCb = gfxcb;
+        }
+
+        private void resetGfxCallbacks(GfxCallbacks gfxcb) {
+          mGfxCb = gfxcb;
         }
 
         public void wakeup() {
@@ -252,19 +256,6 @@ public class Servo {
 
         public void onRedrawing(boolean redrawing) {
             mRunCallback.inUIThread(() -> mClient.onRedrawing(redrawing));
-        }
-
-        public byte[] readfile(String file) {
-            try {
-                InputStream stream = mAssetMgr.open(file);
-                byte[] bytes = new byte[stream.available()];
-                stream.read(bytes);
-                stream.close();
-                return bytes;
-            } catch (IOException e) {
-                Log.e(LOGTAG, "readfile error: " + e.getMessage());
-                return null;
-            }
         }
     }
 }

@@ -63,7 +63,15 @@
 	<div id="matrix" class="block"></div>
     <script type="text/javascript">
     function getTransformFor(id) {
-    	return window.getComputedStyle(document.getElementById(id)).getPropertyValue("transform");
+      let transform =
+        window.getComputedStyle(document.getElementById(id)).getPropertyValue("transform");
+      // Round matrix arguments to allow for small errors in numerical precision.
+      transform = transform.replace(/matrix\(([^\)]*)\)/g, function(match, arguments) {
+        let parts = arguments.split(",");
+        parts = parts.map(str => parseFloat(parseFloat(str).toFixed(6)));
+        return 'matrix(' + parts.join(", ") + ')';
+      });
+      return transform;
     }
     function clear(id) {
     	document.getElementById(id).style.display = 'none';

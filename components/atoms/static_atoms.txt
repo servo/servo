@@ -36,6 +36,9 @@ fullscreenerror
 gattserverdisconnected
 hashchange
 hidden
+icecandidate
+iceconnectionstatechange
+icegatheringstatechange
 image
 input
 invalid
@@ -54,6 +57,7 @@ message
 monospace
 month
 mouseover
+negotiationneeded
 none
 number
 onchange
@@ -93,6 +97,7 @@ seeked
 seeking
 select
 serif
+signalingstatechange
 srclang
 statechange
 storage

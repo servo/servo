@@ -46,7 +46,7 @@ def install_trusty_deps(force):
 
 
 def check_gstreamer_lib():
-    return subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
+    return subprocess.call(["pkg-config", "--atleast-version=1.14", "gstreamer-1.0"],
                            stdout=PIPE, stderr=PIPE) == 0
 
 
@@ -94,7 +94,7 @@ def install_salt_dependencies(context, force):
 def gstreamer(context, force=False):
     cur = os.curdir
     gstdir = os.path.join(cur, "support", "linux", "gstreamer")
-    if not os.path.isdir(os.path.join(gstdir, "gstreamer", "lib")):
+    if not os.path.isdir(os.path.join(gstdir, "gst", "lib")):
         subprocess.check_call(["bash", "gstreamer.sh"], cwd=gstdir)
         return True
     return False
@@ -111,9 +111,10 @@ def linux(context, force=False):
     pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
                 'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
                 'build-essential', 'cmake', 'python-pip',
-                'libbz2-dev', 'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
+                'libbz2-dev', 'liblzma-dev',
+                'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
                 'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev', 'libharfbuzz-dev',
-                'ccache', 'clang', 'autoconf2.13']
+                'ccache', 'clang', 'autoconf2.13', "libunwind-dev"]
     pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
                 'mesa-libGL-devel', 'mesa-libEGL-devel', 'glib2-devel', 'libX11-devel',
                 'libXrandr-devel', 'gperf', 'fontconfig-devel', 'cabextract', 'ttmkfdir',

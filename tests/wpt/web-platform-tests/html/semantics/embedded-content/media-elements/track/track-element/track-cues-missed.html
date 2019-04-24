@@ -45,7 +45,7 @@
             video.play();
         }
 
-        function cueEnteredOrExited() {
+        function cueEnteredOrExited(event) {
             var currentCue = event.target;
             assert_equals(testTrack.track.cues.getCueById(cueCount).text, currentCue.text);
             assert_equals(currentCue.id, cueCount.toString());

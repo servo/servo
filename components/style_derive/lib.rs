@@ -6,6 +6,7 @@
 
 #[macro_use]
 extern crate darling;
+extern crate derive_common;
 extern crate proc_macro;
 extern crate proc_macro2;
 #[macro_use]
@@ -17,7 +18,6 @@ extern crate synstructure;
 use proc_macro::TokenStream;
 
 mod animate;
-mod cg;
 mod compute_squared_distance;
 mod parse;
 mod specified_value_info;
@@ -25,6 +25,7 @@ mod to_animated_value;
 mod to_animated_zero;
 mod to_computed_value;
 mod to_css;
+mod to_resolved_value;
 
 #[proc_macro_derive(Animate, attributes(animate, animation))]
 pub fn derive_animate(stream: TokenStream) -> TokenStream {
@@ -60,6 +61,12 @@ pub fn derive_to_animated_zero(stream: TokenStream) -> TokenStream {
 pub fn derive_to_computed_value(stream: TokenStream) -> TokenStream {
     let input = syn::parse(stream).unwrap();
     to_computed_value::derive(input).into()
+}
+
+#[proc_macro_derive(ToResolvedValue, attributes(resolve))]
+pub fn derive_to_resolved_value(stream: TokenStream) -> TokenStream {
+    let input = syn::parse(stream).unwrap();
+    to_resolved_value::derive(input).into()
 }
 
 #[proc_macro_derive(ToCss, attributes(css))]

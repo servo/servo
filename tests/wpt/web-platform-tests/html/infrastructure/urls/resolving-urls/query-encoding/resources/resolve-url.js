@@ -26,6 +26,29 @@ onload = function() {
     return 'expected substring '+expected+' got '+got;
   }
 
+  function poll_for_stash(test_obj, uuid, expected) {
+    var start = new Date();
+    var poll = test_obj.step_func(function () {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', stash_take + uuid);
+      xhr.onload = test_obj.step_func(function(e) {
+        if (xhr.response == "") {
+          if (new Date() - start > 10000) {
+            // If we set the status to TIMEOUT here we avoid a race between the
+            // page and the test timing out
+            test_obj.force_timeout();
+          }
+          test_obj.step_timeout(poll, 200);
+        } else {
+          assert_equals(xhr.response, expected);
+          test_obj.done();
+        }
+      });
+      xhr.send();
+    })
+    test_obj.step_timeout(poll, 200);
+  }
+
   // loading html (or actually svg to support <embed>)
   function test_load_nested_browsing_context(tag, attr, spec_url) {
     async_test(function() {

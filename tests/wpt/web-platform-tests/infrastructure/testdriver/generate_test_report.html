@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver generate_test_report method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+async_test(t => {
+  test_driver
+    .generate_test_report("Test message.")
+    .then(() => t.done())
+    .catch(t.unreached_func("generate_test_report failed"));
+});
+</script>

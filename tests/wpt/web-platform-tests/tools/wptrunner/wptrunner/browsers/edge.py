@@ -1,3 +1,5 @@
+from __future__ import print_function
+import subprocess
 from .base import Browser, ExecutorBrowser, require_arg
 from ..webdriver_server import EdgeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
@@ -15,6 +17,7 @@ __wptrunner__ = {"product": "edge",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
+                 "run_info_extras": "run_info_extras",
                  "timeout_multiplier": "get_timeout_multiplier"}
 
 
@@ -76,7 +79,7 @@ class EdgeBrowser(Browser):
 
 
     def start(self, **kwargs):
-        print self.server.url
+        print(self.server.url)
         self.server.start()
 
     def stop(self, force=False):
@@ -96,3 +99,17 @@ class EdgeBrowser(Browser):
 
     def executor_browser(self):
         return ExecutorBrowser, {"webdriver_url": self.server.url}
+
+
+def run_info_extras(**kwargs):
+    osReleaseCommand = r"(Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').ReleaseId"
+    osBuildCommand = r"(Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').BuildLabEx"
+    try:
+        os_release = subprocess.check_output(["powershell.exe", osReleaseCommand]).strip()
+        os_build = subprocess.check_output(["powershell.exe", osBuildCommand]).strip()
+    except (subprocess.CalledProcessError, OSError):
+        return {}
+
+    rv = {"os_build": os_build,
+          "os_release": os_release}
+    return rv

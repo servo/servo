@@ -19,7 +19,13 @@
 == contain-paint-stacking-context-001b.html contain-paint-stacking-context-001-ref.html
 == contain-size-button-001.html contain-size-button-001-ref.html
 == contain-size-block-001.html contain-size-block-001-ref.html
+== contain-size-block-002.html contain-size-block-002-ref.html
+== contain-size-block-003.html contain-size-block-003-ref.html
+== contain-size-block-004.html contain-size-block-004-ref.html
 == contain-size-inline-block-001.html contain-size-inline-block-001-ref.html
+== contain-size-inline-block-002.html contain-size-inline-block-002-ref.html
+== contain-size-inline-block-003.html contain-size-inline-block-003-ref.html
+== contain-size-inline-block-004.html contain-size-inline-block-004-ref.html
 == contain-size-flex-001.html contain-size-flex-001-ref.html
 == contain-size-inline-flex-001.html contain-size-inline-flex-001-ref.html
 == contain-size-grid-001.html contain-size-grid-001-ref.html

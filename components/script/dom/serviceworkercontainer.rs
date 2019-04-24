@@ -54,9 +54,10 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     #[allow(unrooted_must_root)] // Job is unrooted
     /// https://w3c.github.io/ServiceWorker/#service-worker-container-register-method and - A
     /// https://w3c.github.io/ServiceWorker/#start-register-algorithm - B
+    #[allow(unsafe_code)]
     fn Register(&self, script_url: USVString, options: &RegistrationOptions) -> Rc<Promise> {
         // A: Step 1
-        let promise = Promise::new(&*self.global());
+        let promise = unsafe { Promise::new_in_current_compartment(&*self.global()) };
         let USVString(ref script_url) = script_url;
         let api_base_url = self.global().api_base_url();
         // A: Step 3-5

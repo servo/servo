@@ -1,26 +1,25 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -1239,12 +1239,6 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
-                                               alias,
-                                               [member.location, m.location]) 
+@@ -1362,12 +1362,6 @@ class IDLInterfaceOrNamespace(IDLObjectWithScope, IDLExposureMixins):
+                 for bindingAlias in member.bindingAliases:
+                     checkDuplicateNames(member, bindingAlias, "BindingAlias")
  
--        if (self.getExtendedAttribute("Pref") and
--            self._exposureGlobalNames != set([self.parentScope.primaryGlobalName])):
--            raise WebIDLError("[Pref] used on an interface that is not %s-only" %
--                              self.parentScope.primaryGlobalName,
+-
+-        if self.getExtendedAttribute("Pref") and self.isExposedOffMainThread():
+-            raise WebIDLError("[Pref] used on an interface that is not "
+-                              "main-thread-only",
 -                              [self.location])
 -
          # Conditional exposure makes no sense for interfaces with no
          # interface object, unless they're navigator properties.
          # And SecureContext makes sense for interfaces with no interface object,
-@@ -3459,12 +3453,6 @@ class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
+@@ -3619,11 +3613,6 @@ class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
          IDLExposureMixins.finish(self, scope)
  
      def validate(self):
--        if (self.getExtendedAttribute("Pref") and
--            self.exposureSet != set([self._globalScope.primaryGlobalName])):
+-        if self.getExtendedAttribute("Pref") and self.isExposedOffMainThread():
 -            raise WebIDLError("[Pref] used on an interface member that is not "
--                              "%s-only" % self._globalScope.primaryGlobalName,
+-                              "main-thread-only",
 -                              [self.location])
 -
          if self.isAttr() or self.isMethod():

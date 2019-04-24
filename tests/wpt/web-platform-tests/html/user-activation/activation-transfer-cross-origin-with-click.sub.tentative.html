@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+    https://github.com/whatwg/html/issues/4364
+
+-->
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <h1>User activation can be transferred to a cross-origin child frame
+    via a postMessage option.</h1>
+  <ol id="instructions">
+    <li>Click this instruction text.
+  </ol>
+  <iframe id="child" width="200" height="200"></iframe>
+  <script>
+    async_test(function(t) {
+      var child = document.getElementById("child");
+      assert_false(navigator.userActivation.isActive);
+      assert_false(navigator.userActivation.hasBeenActive);
+
+      window.addEventListener("message", t.step_func(event => {
+        var msg = JSON.parse(event.data);
+        if (msg.type == 'child-four-loaded') {
+          // state should be false after load
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+
+          // click in parent document
+          test_driver.click(document.getElementById('instructions'));
+        } else if (msg.type == 'child-four-report') {
+          assert_true(msg.isActive);
+          assert_true(msg.hasBeenActive);
+
+          // check sender's activation state again
+          assert_false(navigator.userActivation.isActive);
+          assert_false(navigator.userActivation.hasBeenActive);
+          t.done();
+        }
+      }));
+      window.addEventListener("click", t.step_func(event => {
+          assert_true(navigator.userActivation.isActive);
+          assert_true(navigator.userActivation.hasBeenActive);
+
+          // transfer user activation to the child frame
+          child.contentWindow.postMessage("transfer_user_activation",
+              {targetOrigin: "*", transferUserActivation: true});
+
+          // sender's activation state is updated synchronously
+          assert_false(navigator.userActivation.isActive);
+          assert_false(navigator.userActivation.hasBeenActive);
+      }));
+      child.src = "http://{{domains[www]}}:{{ports[http][0]}}/html/user-activation/resources/child-four.html";
+    }, "Cross-origin user activation transfer through postMessages");
+  </script>
+</body>
+</html>

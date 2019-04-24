@@ -1,6 +1,7 @@
+from __future__ import print_function
 import itertools
 import os
-import urlparse
+from six.moves.urllib.parse import urljoin
 from collections import namedtuple, defaultdict
 from math import ceil
 
@@ -89,7 +90,7 @@ class ExpectedManifest(ManifestItem):
     def append(self, child):
         ManifestItem.append(self, child)
         if child.id in self.child_map:
-            print "Warning: Duplicate heading %s" % child.id
+            print("Warning: Duplicate heading %s" % child.id)
         self.child_map[child.id] = child
 
     def _remove_child(self, child):
@@ -113,8 +114,8 @@ class ExpectedManifest(ManifestItem):
 
     @property
     def url(self):
-        return urlparse.urljoin(self.url_base,
-                                "/".join(self.test_path.split(os.path.sep)))
+        return urljoin(self.url_base,
+                       "/".join(self.test_path.split(os.path.sep)))
 
     def set_lsan(self, run_info, result):
         """Set the result of the test in a particular run
@@ -181,7 +182,7 @@ class TestNode(ManifestItem):
 
     @property
     def is_empty(self):
-        ignore_keys = set(["type"])
+        ignore_keys = {"type"}
         if set(self._data.keys()) - ignore_keys:
             return False
         return all(child.is_empty for child in self.children)
@@ -194,7 +195,7 @@ class TestNode(ManifestItem):
     @property
     def id(self):
         """The id of the test represented by this TestNode"""
-        return urlparse.urljoin(self.parent.url, self.name)
+        return urljoin(self.parent.url, self.name)
 
     def disabled(self, run_info):
         """Boolean indicating whether this test is disabled when run in an
@@ -662,7 +663,7 @@ def group_conditionals(values, property_order=None, boolean_properties=None):
         property_order = ["debug", "os", "version", "processor", "bits"]
 
     if boolean_properties is None:
-        boolean_properties = set(["debug"])
+        boolean_properties = {"debug"}
     else:
         boolean_properties = set(boolean_properties)
 
@@ -675,7 +676,7 @@ def group_conditionals(values, property_order=None, boolean_properties=None):
         if not by_property:
             raise ConditionError
 
-    properties = set(item[0] for item in by_property.iterkeys())
+    properties = {item[0] for item in by_property.iterkeys()}
     include_props = []
 
     for prop in property_order:

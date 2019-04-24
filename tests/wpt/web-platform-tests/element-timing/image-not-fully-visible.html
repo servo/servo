@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: intersectionRect when image overflows</title>
+<body>
+<style>
+body {
+  margin: 200px 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  async_test(function (t) {
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const index = window.location.href.lastIndexOf('/');
+        const pathname = window.location.href.substring(0, index) +
+            '/resources/square20.png';
+        checkElement(entry, pathname, 'not_fully_visible', '', beforeRender);
+        // Image will not be fully visible. It should start from the top left part
+        // of the document, excluding the margin, and then overflow.
+        checkRect(entry,
+          [100, document.documentElement.clientWidth, 200, document.documentElement.clientHeight]);
+        checkNaturalSize(entry, 20, 20);
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the image during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    window.onload = () => {
+      // Add an image setting width and height equal to viewport.
+      const img = document.createElement('img');
+      img.src = 'resources/square20.png';
+      img.setAttribute('elementtiming', 'not_fully_visible');
+      img.width = document.documentElement.clientWidth;
+      img.height = document.documentElement.clientHeight;
+      document.body.appendChild(img);
+      beforeRender = performance.now();
+    };
+  }, 'The intersectionRect of an img element overflowing is computed correctly');
+</script>
+
+</body>

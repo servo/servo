@@ -7,15 +7,20 @@
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use image;
 use keyboard_types::{Key, KeyboardEvent, KeyState};
+use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::{Cursor, EventLoopWaker};
 use servo::script_traits::TouchEventType;
-use servo::servo_config::opts;
+use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScrollLocation};
+use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation};
+use servo::webvr::VRServiceManager;
+use servo::webvr_traits::WebVRMainThreadHeartbeat;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -29,10 +34,12 @@ use std::time;
 use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
 use winapi;
-use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
+use glutin::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use glutin::Icon;
+use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
-use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
+use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
@@ -40,7 +47,7 @@ pub const LINE_HEIGHT: f32 = 38.0;
 const MULTISAMPLES: u16 = 16;
 
 #[cfg(target_os = "macos")]
-fn builder_with_platform_options(mut builder: winit::WindowBuilder) -> winit::WindowBuilder {
+fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
     if opts::get().headless || opts::get().output_file.is_some() {
         // Prevent the window from showing in Dock.app, stealing focus,
         // or appearing at all when running in headless mode or generating an
@@ -51,7 +58,7 @@ fn builder_with_platform_options(mut builder: winit::WindowBuilder) -> winit::Wi
 }
 
 #[cfg(not(target_os = "macos"))]
-fn builder_with_platform_options(builder: winit::WindowBuilder) -> winit::WindowBuilder {
+fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
     builder
 }
 
@@ -129,7 +136,7 @@ impl HeadlessContext {
 }
 
 enum WindowKind {
-    Window(GlWindow, RefCell<winit::EventsLoop>),
+    Window(GlWindow, RefCell<glutin::EventsLoop>),
     Headless(HeadlessContext),
 }
 
@@ -138,7 +145,7 @@ pub struct Window {
     kind: WindowKind,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
-    mouse_down_button: Cell<Option<winit::MouseButton>>,
+    mouse_down_button: Cell<Option<glutin::MouseButton>>,
     mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
@@ -184,21 +191,14 @@ impl Window {
             inner_size = TypedSize2D::new(width as u32, height as u32);
             WindowKind::Headless(HeadlessContext::new(width as u32, height as u32))
         } else {
-            let events_loop = winit::EventsLoop::new();
-            let mut window_builder = winit::WindowBuilder::new()
+            let events_loop = glutin::EventsLoop::new();
+            let mut window_builder = glutin::WindowBuilder::new()
                 .with_title("Servo".to_string())
                 .with_decorations(!opts::get().no_native_titlebar)
                 .with_transparency(opts::get().no_native_titlebar)
                 .with_dimensions(LogicalSize::new(width as f64, height as f64))
                 .with_visibility(visible)
                 .with_multitouch();
-
-            #[cfg(any(target_os = "linux", target_os = "windows"))]
-            {
-                let icon_bytes = include_bytes!("../../../resources/servo64.png");
-                let icon = Some(winit::Icon::from_bytes(icon_bytes).expect("Failed to open icon"));
-                window_builder = window_builder.with_window_icon(icon);
-            }
 
             window_builder = builder_with_platform_options(window_builder);
 
@@ -212,6 +212,12 @@ impl Window {
 
             let glutin_window = GlWindow::new(window_builder, context_builder, &events_loop)
                 .expect("Failed to create window.");
+
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            {
+                let icon_bytes = include_bytes!("../../../resources/servo64.png");
+                glutin_window.set_window_icon(Some(load_icon(icon_bytes)));
+            }
 
             unsafe {
                 glutin_window
@@ -323,12 +329,16 @@ impl Window {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
                 if self.fullscreen.get() != state {
-                    window.set_fullscreen(None);
+                    window.set_fullscreen(Some(window.get_primary_monitor()));
                 }
             },
             WindowKind::Headless(..) => {},
         }
         self.fullscreen.set(state);
+    }
+
+    pub fn get_fullscreen(&self) -> bool {
+        return self.fullscreen.get();
     }
 
     fn is_animating(&self) -> bool {
@@ -359,9 +369,9 @@ impl Window {
                                 }
                             }
                             if stop || self.is_animating() {
-                                winit::ControlFlow::Break
+                                glutin::ControlFlow::Break
                             } else {
-                                winit::ControlFlow::Continue
+                                glutin::ControlFlow::Continue
                             }
                         });
                     }
@@ -439,22 +449,29 @@ impl Window {
         }
     }
 
-    fn winit_event_to_servo_event(&self, event: winit::Event) {
+    fn winit_event_to_servo_event(&self, event: glutin::Event) {
+        if let WindowKind::Window(ref window, _) = self.kind {
+            if let Event::WindowEvent { window_id, .. } = event {
+                if window.id() != window_id {
+                     return;
+                }
+            }
+        }
         match event {
             Event::WindowEvent {
-                event: winit::WindowEvent::ReceivedCharacter(ch),
+                event: glutin::WindowEvent::ReceivedCharacter(ch),
                 ..
             } => self.handle_received_character(ch),
             Event::WindowEvent {
                 event:
-                    winit::WindowEvent::KeyboardInput {
+                    glutin::WindowEvent::KeyboardInput {
                         input,
                         ..
                     },
                 ..
             } => self.handle_keyboard_input(input),
             Event::WindowEvent {
-                event: winit::WindowEvent::MouseInput { state, button, .. },
+                event: glutin::WindowEvent::MouseInput { state, button, .. },
                 ..
             } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
@@ -462,7 +479,7 @@ impl Window {
                 }
             },
             Event::WindowEvent {
-                event: winit::WindowEvent::CursorMoved { position, .. },
+                event: glutin::WindowEvent::CursorMoved { position, .. },
                 ..
             } => {
                 let pos = position.to_physical(self.device_hidpi_factor().get() as f64);
@@ -475,7 +492,7 @@ impl Window {
                     )));
             },
             Event::WindowEvent {
-                event: winit::WindowEvent::MouseWheel { delta, phase, .. },
+                event: glutin::WindowEvent::MouseWheel { delta, phase, .. },
                 ..
             } => {
                 let (mut dx, mut dy) = match delta {
@@ -500,7 +517,7 @@ impl Window {
                 self.event_queue.borrow_mut().push(event);
             },
             Event::WindowEvent {
-                event: winit::WindowEvent::Touch(touch),
+                event: glutin::WindowEvent::Touch(touch),
                 ..
             } => {
                 use servo::script_traits::TouchId;
@@ -516,17 +533,17 @@ impl Window {
                     .push(WindowEvent::Touch(phase, id, point));
             },
             Event::WindowEvent {
-                event: winit::WindowEvent::Refresh,
+                event: glutin::WindowEvent::Refresh,
                 ..
             } => self.event_queue.borrow_mut().push(WindowEvent::Refresh),
             Event::WindowEvent {
-                event: winit::WindowEvent::CloseRequested,
+                event: glutin::WindowEvent::CloseRequested,
                 ..
             } => {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             },
             Event::WindowEvent {
-                event: winit::WindowEvent::Resized(size),
+                event: glutin::WindowEvent::Resized(size),
                 ..
             } => {
                 // size is DeviceIndependentPixel.
@@ -559,8 +576,8 @@ impl Window {
     /// Helper function to handle a click
     fn handle_mouse(
         &self,
-        button: winit::MouseButton,
-        action: winit::ElementState,
+        button: glutin::MouseButton,
+        action: glutin::ElementState,
         coords: TypedPoint2D<i32, DevicePixel>,
     ) {
         use servo::script_traits::MouseButton;
@@ -619,7 +636,7 @@ impl Window {
     pub fn set_cursor(&self, cursor: Cursor) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
-                use winit::MouseCursor;
+                use glutin::MouseCursor;
 
                 let winit_cursor = match cursor {
                     Cursor::Default => MouseCursor::Default,
@@ -689,12 +706,12 @@ impl WindowMethods for Window {
                     .get_inner_size()
                     .expect("Failed to get window inner size.");
                 let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-
                 let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
+                let framebuffer = FramebufferIntSize::from_untyped(&viewport.size.to_untyped());
 
                 EmbedderCoordinates {
-                    viewport: viewport,
-                    framebuffer: inner_size,
+                    viewport,
+                    framebuffer,
                     window: (win_size, win_origin),
                     screen: screen,
                     // FIXME: Glutin doesn't have API for available size. Fallback to screen size
@@ -706,9 +723,11 @@ impl WindowMethods for Window {
                 let dpr = self.servo_hidpi_factor();
                 let size =
                     (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_i32();
+                let viewport = DeviceIntRect::new(TypedPoint2D::zero(), size);
+                let framebuffer = FramebufferIntSize::from_untyped(&size.to_untyped());
                 EmbedderCoordinates {
-                    viewport: DeviceIntRect::new(TypedPoint2D::zero(), size),
-                    framebuffer: size,
+                    viewport,
+                    framebuffer,
                     window: (size, TypedPoint2D::zero()),
                     screen: size,
                     screen_avail: size,
@@ -731,7 +750,7 @@ impl WindowMethods for Window {
 
     fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
         struct GlutinEventLoopWaker {
-            proxy: Option<Arc<winit::EventsLoopProxy>>,
+            proxy: Option<Arc<glutin::EventsLoopProxy>>,
         }
         impl GlutinEventLoopWaker {
             fn new(window: &Window) -> GlutinEventLoopWaker {
@@ -775,6 +794,39 @@ impl WindowMethods for Window {
         };
         true
     }
+
+    fn register_vr_services(
+        &self,
+        services: &mut VRServiceManager,
+        heartbeats: &mut Vec<Box<WebVRMainThreadHeartbeat>>
+    ) {
+        if pref!(dom.webvr.test) {
+            warn!("Creating test VR display");
+            // TODO: support dom.webvr.test in headless environments
+            if let WindowKind::Window(_, ref events_loop) = self.kind {
+                // This is safe, because register_vr_services is called from the main thread.
+                let name = String::from("Test VR Display");
+                let size = self.inner_size.get().to_f64();
+                let size = LogicalSize::new(size.width, size.height);
+                let mut window_builder = glutin::WindowBuilder::new()
+                    .with_title(name.clone())
+                    .with_dimensions(size)
+                    .with_visibility(false)
+                    .with_multitouch();
+                window_builder = builder_with_platform_options(window_builder);
+                let context_builder = ContextBuilder::new()
+                    .with_gl(Window::gl_version())
+                    .with_vsync(false); // Assume the browser vsync is the same as the test VR window vsync
+                let gl_window = GlWindow::new(window_builder, context_builder, &*events_loop.borrow())
+                    .expect("Failed to create window.");
+                let gl = self.gl.clone();
+                let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
+
+                services.register(Box::new(service));
+                heartbeats.push(Box::new(heartbeat));
+            }
+        }
+    }
 }
 
 fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
@@ -784,4 +836,19 @@ fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
         TouchPhase::Ended => TouchEventType::Up,
         TouchPhase::Cancelled => TouchEventType::Cancel,
     }
+}
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+fn load_icon(icon_bytes: &[u8]) -> Icon {
+    let (icon_rgba, icon_width, icon_height) = {
+        use image::{GenericImageView, Pixel};
+        let image = image::load_from_memory(icon_bytes).expect("Failed to load icon");;
+        let (width, height) = image.dimensions();
+        let mut rgba = Vec::with_capacity((width * height) as usize * 4);
+        for (_, _, pixel) in image.pixels() {
+            rgba.extend_from_slice(&pixel.to_rgba().data);
+        }
+        (rgba, width, height)
+    };
+    Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to load icon")
 }

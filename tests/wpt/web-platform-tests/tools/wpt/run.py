@@ -106,7 +106,7 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 
 def check_environ(product):
-    if product not in ("firefox", "servo"):
+    if product not in ("chrome", "firefox", "servo"):
         config_builder = serve.build_config(os.path.join(wpt_root, "config.json"))
         # Override the ports to avoid looking for free ports
         config_builder.ssl = {"type": "none"}
@@ -121,7 +121,7 @@ def check_environ(product):
 
         missing_hosts = set(expected_hosts)
         if is_windows:
-            hosts_path = "%s\System32\drivers\etc\hosts" % os.environ.get("SystemRoot", "C:\Windows")
+            hosts_path = r"%s\System32\drivers\etc\hosts" % os.environ.get("SystemRoot", r"C:\Windows")
         else:
             hosts_path = "/etc/hosts"
 
@@ -266,7 +266,7 @@ class Chrome(BrowserSetup):
 
                 if install:
                     logger.info("Downloading chromedriver")
-                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path)
+                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path, browser_binary=kwargs["binary"])
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
@@ -277,14 +277,6 @@ class Chrome(BrowserSetup):
         if kwargs["browser_channel"] == "dev":
             logger.info("Automatically turning on experimental features for Chrome Dev")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
-            # TODO(foolip): remove after unified plan is enabled on Chrome stable
-            kwargs["binary_args"].append("--enable-features=RTCUnifiedPlanByDefault")
-
-        # Allow audio autoplay without a user gesture.
-        kwargs["binary_args"].append("--autoplay-policy=no-user-gesture-required")
-
-        # Allow WebRTC tests to call getUserMedia.
-        kwargs["binary_args"] += ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"]
 
 
 class ChromeAndroid(BrowserSetup):
@@ -567,8 +559,12 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     if not venv.skip_virtualenv_setup:
         venv.install_requirements(os.path.join(wptrunner_path, "requirements.txt"))
 
-    kwargs['browser_version'] = setup_cls.browser.version(binary=kwargs.get("binary"),
-                                                          webdriver_binary=kwargs.get("webdriver_binary"))
+    # Only update browser_version if it was not given as a command line
+    # argument, so that it can be overridden on the command line.
+    if not kwargs["browser_version"]:
+        kwargs["browser_version"] = setup_cls.browser.version(binary=kwargs.get("binary"),
+                                                              webdriver_binary=kwargs.get("webdriver_binary"))
+
     return kwargs
 
 

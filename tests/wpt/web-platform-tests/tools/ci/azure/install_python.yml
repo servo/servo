@@ -1,0 +1,15 @@
+steps:
+- powershell: |
+    Start-BitsTransfer -Source https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi -Destination python.msi
+    $hash = (Get-FileHash python.msi).Hash.ToLower()
+    $expectedHash = "5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7"
+    if ($hash.Equals($expectedHash)) {
+      Write-Host "python.msi hash verified"
+    } else {
+      Throw "python.msi hash mismatch, got $hash, expected $expectedHash"
+    }
+    msiexec /i python.msi TARGETDIR=C:\Python27 /q
+    Write-Host "##vso[task.prependpath]C:\Python27"
+    Write-Host "##vso[task.prependpath]C:\Python27\Scripts"
+  displayName: 'Install Python (Windows)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))

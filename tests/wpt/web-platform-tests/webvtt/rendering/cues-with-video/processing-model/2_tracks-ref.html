@@ -1,5 +1,7 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <title>Reference for WebVTT rendering, 2 tracks enabled at the same time</title>
+<script src="/common/reftest-wait.js"></script>
 <style>
 html { overflow:hidden }
 body { margin:0 }
@@ -15,12 +17,19 @@ body { margin:0 }
     bottom: 0;
     left: 0;
     right: 0;
-    text-align: center
+    text-align: center;
+    font-family: sans-serif;
 }
 .cue > span {
-    font-family: sans-serif;
     background: rgba(0,0,0,0.8);
     color: white;
 }
 </style>
-<div class="video"><span class="cue"><span>This is a <u>test subtitle</u><br>This is a test subtitle</span></span></div>
+<div class="video">
+  <video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+  </video>
+  <span class="cue"><span>This is a <u>test subtitle</u><br>This is a test subtitle</span></span>
+</div>
+</html>
