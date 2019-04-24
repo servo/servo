@@ -85,8 +85,8 @@ def test_click_element_center(session, test_actions_page, mouse_chain):
     assert ["mousemove", "mousedown", "mouseup", "click"] == event_types
     for e in events:
         if e["type"] != "mousemove":
-            assert pytest.approx(e["pageX"], center["x"])
-            assert pytest.approx(e["pageY"], center["y"])
+            assert e["pageX"] == pytest.approx(center["x"], abs = 1.0)
+            assert e["pageY"] == pytest.approx(center["y"], abs = 1.0)
             assert e["target"] == "outer"
 
 
@@ -135,8 +135,8 @@ def test_drag_and_drop(session,
     # mouseup that ends the drag is at the expected destination
     e = get_events(session)[1]
     assert e["type"] == "mouseup"
-    assert pytest.approx(e["pageX"], initial_center["x"] + dx)
-    assert pytest.approx(e["pageY"], initial_center["y"] + dy)
+    assert e["pageX"] == pytest.approx(initial_center["x"] + dx, abs = 1.0)
+    assert e["pageY"] == pytest.approx(initial_center["y"] + dy, abs = 1.0)
     # check resulting location of the dragged element
     final_rect = drag_target.rect
     assert initial_rect["x"] + dx == final_rect["x"]
