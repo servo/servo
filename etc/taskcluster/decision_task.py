@@ -321,8 +321,8 @@ def windows_x86():
             "rustup target add x86_64-pc-windows-msvc",
             "rustup target list",
             "rustup show",
-            "python mach build --dev --target i686-pc-windows-msvc --diagnostic || type target\\i686-pc-windows-msvc\\debug\\build\\azure-d7ca4234e99fdbb5\\out\\build\\CMakeFiles\\CMakeOutput.log target\\i686-pc-windows-msvc\\debug\\build\\azure-d7ca4234e99fdbb5\\out\\build\\CMakeFiles\\CMakeError.log",
-            #"python mach build --dev --target i686-pc-windows-msvc || type target\\i686-pc-windows-msvc\\debug\\build\\azure-a57453833e49b7f0\\out\\build\\CMakeFiles\\CMakeOutput.log target\\i686-pc-windows-msvc\\debug\\build\\azure-a57453833e49b7f0\\out\\build\\CMakeFiles\\CMakeError.log",
+            #"python mach build --dev --target i686-pc-windows-msvc --diagnostic || type target\\i686-pc-windows-msvc\\debug\\build\\azure-d7ca4234e99fdbb5\\out\\build\\CMakeFiles\\CMakeOutput.log target\\i686-pc-windows-msvc\\debug\\build\\azure-d7ca4234e99fdbb5\\out\\build\\CMakeFiles\\CMakeError.log",
+            "python mach build --dev --target i686-pc-windows-msvc || type target\\i686-pc-windows-msvc\\debug\\build\\azure-a57453833e49b7f0\\out\\build\\CMakeFiles\\CMakeOutput.log target\\i686-pc-windows-msvc\\debug\\build\\azure-a57453833e49b7f0\\out\\build\\CMakeFiles\\CMakeError.log",
         )
         .find_or_create("build.windows_x86_dev." + CONFIG.git_sha)
     )
