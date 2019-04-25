@@ -1,0 +1,209 @@
+ 0:01.34 INFO Using 12 client processes
+ 0:06.39 INFO Starting http server on 127.0.0.1:8001
+ 0:06.39 INFO Starting http server on 127.0.0.1:8000
+ 0:06.40 INFO Starting https server on 127.0.0.1:8443
+ 0:08.11 SUITE_START: web-platform-test - running 1 tests
+ 0:08.11 INFO Running reftest tests
+ 0:08.12 INFO No reftest tests to run
+ 0:08.12 INFO Running wdspec tests
+ 0:08.12 INFO No wdspec tests to run
+ 0:08.12 INFO Running testharness tests
+ 0:08.12 INFO No more tests
+ 0:08.12 INFO No more tests
+ 0:08.12 INFO No more tests
+ 0:08.12 INFO No more tests
+ 0:08.12 INFO No more tests
+ 0:08.13 INFO No more tests
+ 0:08.13 INFO Starting runner
+ 0:08.13 INFO No more tests
+ 0:08.13 INFO No more tests
+ 0:08.13 INFO No more tests
+ 0:08.13 INFO No more tests
+ 0:08.13 INFO No more tests
+ 0:08.14 TEST_START: /webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html
+ 0:08.14 WARNING Got command init_succeeded in state running
+ 0:08.42 pid:11064 Full command: /Users/akhilesh/Desktop/servo/target/debug/servo --hard-fail -u Servo/wptrunner -Z replace-surrogates http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html --user-stylesheet /Users/akhilesh/Desktop/servo/resources/ahem.css --certificate-path /Users/akhilesh/Desktop/servo/tests/wpt/web-platform-tests/tools/certs/cacert.pem
+pid:11064 alloc factor 0.010000 0.900000
+ 0:08.42 pid:11064 alloc factor 0.010000 0.900000
+ 0:09.53 pid:11064 [2019-04-25T03:17:03Z ERROR script::dom::bindings::error] Error at http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:143:17 context.createDelay is not a function
+ 0:14.69 pid:11064 58 threads are still running after shutdown (bad).
+ 0:14.73 INFO Pausing until the browser exits
+ 0:14.74 TEST_END: Test ERROR. Subtests passed 11/20. Unexpected 5
+FAIL < [setValueCurve] 4 out of 6 assertions were failed. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1207:9
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+FAIL X setValueCurveAtTime(curve, 0.00625, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+FAIL X setValueCurveAtTime(curve, 0.018750000000000003, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+FAIL X setValueCurveAtTime(curve, 0.03125, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+FAIL X setValueCurveAtTime(curve, 0.043750000000000004, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+
+ 0:14.74 INFO Pausing until the browser exits
+ 0:14.74 INFO No more tests
+ 0:14.75 INFO Closing logging queue
+ 0:14.75 INFO queue closed
+ 0:14.75 INFO Got 5 unexpected results
+ 0:14.75 SUITE_END
+
+web-platform-test
+~~~~~~~~~~~~~~~~~
+Ran 21 checks (20 subtests, 1 tests)
+Expected results: 16
+Unexpected results: 5
+  subtest: 5 (5 fail)
+
+Unexpected Results
+------------------
+/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html
+  FAIL < [setValueCurve] 4 out of 6 assertions were failed. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1207:9
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+  FAIL X setValueCurveAtTime(curve, 0.00625, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+  FAIL X setValueCurveAtTime(curve, 0.018750000000000003, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+  FAIL X setValueCurveAtTime(curve, 0.03125, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+  FAIL X setValueCurveAtTime(curve, 0.043750000000000004, 0.01) did not throw an exception. - assert_true: expected true got false
+_logFailed/<@http://web-platform.test:8000/webaudio/resources/audit.js:50:7
+Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1587:20
+test@http://web-platform.test:8000/resources/testharness.js:544:21
+_logFailed@http://web-platform.test:8000/webaudio/resources/audit.js:49:5
+_finalize@http://web-platform.test:8000/webaudio/resources/audit.js:215:9
+_assert@http://web-platform.test:8000/webaudio/resources/audit.js:228:7
+throw@http://web-platform.test:8000/webaudio/resources/audit.js:337:14
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:118:11
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+done@http://web-platform.test:8000/webaudio/resources/audit.js:1210:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:79:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1180:7
+_runNextTask@http://web-platform.test:8000/webaudio/resources/audit.js:1251:9
+run@http://web-platform.test:8000/webaudio/resources/audit.js:1321:7
+@http://web-platform.test:8000/webaudio/the-audio-api/the-audioparam-interface/audioparam-setValueCurve-exceptions.html:394:7
+ 0:14.77 INFO Closing logging queue
+ 0:14.77 INFO queue closed
