@@ -160,13 +160,14 @@ async_test(t => {
         assert_equals(iceTransport.state, 'connected',
           'Expect ICE transport to be in connected state when' +
           ' iceConnectionState is connected');
-
+        t.done();
       } else if(iceConnectionState === 'completed') {
         const iceTransport = pc1.sctp.transport.iceTransport;
 
         assert_equals(iceTransport.state, 'completed',
           'Expect ICE transport to be in connected state when' +
           ' iceConnectionState is completed');
+        t.done();
       }
     });
 

@@ -10,6 +10,9 @@ requirements:
  - tools/requirements_flake8.txt:
       update: all
       pin: True
+ - tools/requirements_mypy.txt:
+      update: all
+      pin: True
  - tools/wpt/requirements.txt:
       update: all
       pin: True

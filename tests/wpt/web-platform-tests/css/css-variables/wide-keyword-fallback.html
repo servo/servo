@@ -1,0 +1,21 @@
+<!doctype html>
+<title>CSS Test: Wide keyword can be used as a fallback variable value</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#substitute-a-var">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1544886">
+<link rel="match" href="wide-keyword-fallback-ref.html">
+<style>
+  /* Should see a 10px border of the initial color */
+  #outer {
+    color: transparent;
+    border: 10px solid;
+  }
+
+  #inner {
+    color: var(--unknown, initial);
+    border-width: 10px;
+    border-style: var(--unknown, inherit);
+  }
+</style>
+<div id="outer"><div id="inner"></div></div>

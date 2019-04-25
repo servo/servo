@@ -4,6 +4,7 @@ import abc
 import argparse
 import ast
 import json
+import logging
 import os
 import re
 import subprocess
@@ -19,12 +20,15 @@ from ..gitignore.gitignore import PathFilter
 from ..wpt import testfiles
 from ..manifest.vcs import walk
 
-from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars, get_any_variants, get_default_any_variants
-from six import binary_type, iteritems, itervalues
+from ..manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars, get_any_variants, get_default_any_variants
+from six import binary_type, iteritems, itervalues, with_metaclass
 from six.moves import range
 from six.moves.urllib.parse import urlsplit, urljoin
 
-import logging
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import Type
 
 logger = None
 
@@ -330,7 +334,7 @@ def filter_whitelist_errors(data, errors):
     return [item for i, item in enumerate(errors) if not whitelisted[i]]
 
 
-regexps = [item() for item in
+regexps = [item() for item in  # type: ignore
            [rules.TrailingWhitespaceRegexp,
             rules.TabsRegexp,
             rules.CRRegexp,
@@ -503,9 +507,11 @@ def check_parsed(repo_root, path, f):
 
     return errors
 
-class ASTCheck(object):
-    __metaclass__ = abc.ABCMeta
-    rule = None
+class ASTCheck(with_metaclass(abc.ABCMeta)):
+    @abc.abstractproperty
+    def rule(self):
+        # type: () -> Type[rules.Rule]
+        pass
 
     @abc.abstractmethod
     def check(self, root):

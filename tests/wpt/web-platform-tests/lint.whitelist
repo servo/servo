@@ -175,7 +175,7 @@ SET TIMEOUT: html/webappapis/scripting/events/event-handler-processing-algorithm
 SET TIMEOUT: html/webappapis/scripting/processing-model-2/*
 SET TIMEOUT: IndexedDB/*
 SET TIMEOUT: infrastructure/*
-SET TIMEOUT: intersection-observer/resources/v2-subframe.html
+SET TIMEOUT: intersection-observer/resources/*
 SET TIMEOUT: intersection-observer/target-in-different-window.html
 SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html
@@ -185,6 +185,7 @@ SET TIMEOUT: offscreen-canvas/the-offscreen-canvas/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
 SET TIMEOUT: payment-request/allowpaymentrequest/setting-allowpaymentrequest-timing.https.sub.html
+SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resources/nested-contexts.js

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Worklet animation can animate effects from different frames</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<div id="box"></div>
+
+<script id="simple_animate" type="text/worklet">
+  registerAnimator("test_animator", class {
+    animate(currentTime, effect) {
+      let effects = effect.getChildren();
+      effects[0].localTime = 500;
+      effects[1].localTime = 750;
+    }
+  });
+</script>
+
+<script>
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    const effect = new KeyframeEffect(box, [{ opacity: 0 }], { duration: 1000 });
+
+    let iframe = document.createElement('iframe');
+    iframe.src = 'resources/iframe.html';
+    document.body.appendChild(iframe);
+
+    await waitForAnimationFrameWithCondition(_ => {
+      return iframe.contentDocument.getElementById('iframe_box') != null;
+    });
+    let iframe_box = iframe.contentDocument.getElementById('iframe_box');
+    let iframe_effect = new KeyframeEffect(
+        iframe_box, [{ opacity: 0 }], { duration: 1000 }
+    );
+
+    const animation = new WorkletAnimation('test_animator', [effect, iframe_effect]);
+    animation.play();
+
+    await waitForNotNullLocalTime(animation);
+    assert_equals(getComputedStyle(box).opacity, '0.5');
+    assert_equals(getComputedStyle(iframe_box).opacity, '0.25');
+
+    iframe.remove();
+    animation.cancel();
+  }, "Effects from different documents can be animated within one worklet animation");
+</script>

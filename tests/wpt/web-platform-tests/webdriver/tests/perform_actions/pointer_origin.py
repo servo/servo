@@ -28,8 +28,8 @@ def test_viewport_inside(session, mouse_chain):
         .perform()
 
     click_coords = session.execute_script("return window.coords;")
-    assert pytest.approx(click_coords["x"], point["x"])
-    assert pytest.approx(click_coords["y"], point["y"])
+    assert click_coords["x"] == pytest.approx(point["x"], abs = 1.0)
+    assert click_coords["y"] == pytest.approx(point["y"], abs = 1.0)
 
 
 def test_viewport_outside(session, mouse_chain):
@@ -50,8 +50,8 @@ def test_pointer_inside(session, mouse_chain):
         .perform()
 
     click_coords = session.execute_script("return window.coords;")
-    assert pytest.approx(click_coords["x"], start_point["x"] + offset["x"])
-    assert pytest.approx(click_coords["y"], start_point["y"] + offset["y"])
+    assert click_coords["x"] == pytest.approx(start_point["x"] + offset["x"], abs = 1.0)
+    assert click_coords["y"] == pytest.approx(start_point["y"] + offset["y"], abs = 1.0)
 
 
 def test_pointer_outside(session, mouse_chain):
@@ -71,8 +71,8 @@ def test_element_center_point(session, mouse_chain):
         .perform()
 
     click_coords = get_click_coordinates(session)
-    assert pytest.approx(click_coords["x"], center["x"])
-    assert pytest.approx(click_coords["y"], center["y"])
+    assert click_coords["x"] == pytest.approx(center["x"], abs = 1.0)
+    assert click_coords["y"] == pytest.approx(center["y"], abs = 1.0)
 
 
 def test_element_center_point_with_offset(session, mouse_chain):
@@ -85,8 +85,8 @@ def test_element_center_point_with_offset(session, mouse_chain):
         .perform()
 
     click_coords = get_click_coordinates(session)
-    assert pytest.approx(click_coords["x"], center["x"] + 10)
-    assert pytest.approx(click_coords["y"], center["y"] + 15)
+    assert click_coords["x"] == pytest.approx(center["x"] + 10, abs = 1.0)
+    assert click_coords["y"] == pytest.approx(center["y"] + 15, abs = 1.0)
 
 
 def test_element_in_view_center_point_partly_visible(session, mouse_chain):
@@ -100,8 +100,8 @@ def test_element_in_view_center_point_partly_visible(session, mouse_chain):
         .perform()
 
     click_coords = get_click_coordinates(session)
-    assert pytest.approx(click_coords["x"], center["x"])
-    assert pytest.approx(click_coords["y"], center["y"])
+    assert click_coords["x"] == pytest.approx(center["x"], abs = 1.0)
+    assert click_coords["y"] == pytest.approx(center["y"], abs = 1.0)
 
 
 def test_element_larger_than_viewport(session, mouse_chain):
@@ -114,8 +114,8 @@ def test_element_larger_than_viewport(session, mouse_chain):
         .perform()
 
     click_coords = get_click_coordinates(session)
-    assert pytest.approx(click_coords["x"], center["x"])
-    assert pytest.approx(click_coords["y"], center["y"])
+    assert click_coords["x"] == pytest.approx(center["x"], abs = 1.0)
+    assert click_coords["y"] == pytest.approx(center["y"], abs = 1.0)
 
 
 def test_element_outside_of_view_port(session, mouse_chain):

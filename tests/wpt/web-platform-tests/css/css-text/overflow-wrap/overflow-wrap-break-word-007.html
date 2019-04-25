@@ -3,15 +3,16 @@
 <title>CSS Text Test: overflow-wrap: break-word</title>
 <link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-break-word">
-<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre-wrap">
 <meta name="flags" content="ahem">
 <link rel="match" href="reference/overflow-wrap-break-word-001-ref.html">
-<meta name="assert" content="A Single leading white-space constitutes a soft breaking opportunity, honoring the 'white-space: break-spaces' property, that must prevent the word to be broken.">
+<meta name="assert" content="A Single leading white-space constitutes a soft breaking opportunity, honoring the 'white-space: pre-wrap' property, that must prevent the word to be broken.">
 <style>
 div {
-   position: relative;
-   font-size: 20px;
-   font-family: Ahem;
+  position: relative;
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
 }
 .red {
   position: absolute;
@@ -24,7 +25,6 @@ div {
 }
 .test {
   color: green;
-  line-height: 1em;
   width: 5ch;
 
   white-space: pre-wrap;
