@@ -25,7 +25,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
         let s = Structure::new(&input);
         let mut append_error_clause = s.variants().len() > 1;
 
-        let mut match_body = s.variants().iter().fold(quote!(), |body, variant| {
+        let match_body = s.variants().iter().fold(quote!(), |body, variant| {
             let arm = match derive_variant_arm(variant, &mut where_clause) {
                 Ok(arm) => arm,
                 Err(()) => {
