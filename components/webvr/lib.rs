@@ -12,3 +12,4 @@ pub use crate::webvr_thread::{WebVRCompositorHandler, WebVRThread};
 pub use rust_webvr::api::VRExternalShmemPtr;
 pub use rust_webvr::VRMainThreadHeartbeat;
 pub use rust_webvr::VRServiceManager;
+pub use rust_webvr_api::VRService;

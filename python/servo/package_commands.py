@@ -58,6 +58,7 @@ PACKAGES = {
     ],
     'magicleap': [
         'target/magicleap/aarch64-linux-android/release/Servo2D.mpk',
+        'target/magicleap/aarch64-linux-android/release/Servo3D.mpk',
     ],
     'maven': [
         'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
@@ -230,22 +231,26 @@ class PackageCommands(CommandBase):
             if not env.get("MLCERT"):
                 raise Exception("Magic Leap builds need the MLCERT environment variable")
             mabu = path.join(env.get("MAGICLEAP_SDK"), "mabu")
-            package = "./support/magicleap/Servo2D/Servo2D.package"
+            packages = [
+                "./support/magicleap/Servo3D/Servo3D.package",
+                "./support/magicleap/Servo2D/Servo2D.package",
+            ]
             if dev:
                 build_type = "lumin_debug"
             else:
                 build_type = "lumin_release"
-            argv = [
-                mabu,
-                "-o", target_dir,
-                "-t", build_type,
-                package
-            ]
-            try:
-                subprocess.check_call(argv, env=env)
-            except subprocess.CalledProcessError as e:
-                print("Packaging Magic Leap exited with return value %d" % e.returncode)
-                return e.returncode
+            for package in packages:
+                argv = [
+                    mabu,
+                    "-o", target_dir,
+                    "-t", build_type,
+                    package
+                ]
+                try:
+                    subprocess.check_call(argv, env=env)
+                except subprocess.CalledProcessError as e:
+                    print("Packaging Magic Leap exited with return value %d" % e.returncode)
+                    return e.returncode
         elif android:
             android_target = self.config["android"]["target"]
             if "aarch64" in android_target:

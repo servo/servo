@@ -23,11 +23,9 @@ use servo::servo_config::opts;
 use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
-use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
 use std::cell::RefCell;
 use std::mem;
-use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -45,7 +43,7 @@ pub struct InitOptions {
     pub url: Option<String>,
     pub coordinates: Coordinates,
     pub density: f32,
-    pub vr_pointer: Option<*mut c_void>,
+    pub embedder_callbacks: Box<dyn EmbedderMethods>,
     pub enable_subpixel_text_antialiasing: bool,
 }
 
@@ -137,7 +135,6 @@ pub fn servo_version() -> String {
 pub fn init(
     mut init_opts: InitOptions,
     gl: Rc<dyn gl::Gl>,
-    waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReaderInstance::new()));
@@ -176,12 +173,7 @@ pub fn init(
         density: init_opts.density,
     });
 
-    let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
-        vr_pointer: init_opts.vr_pointer,
-        waker,
-    });
-
-    let servo = Servo::new(embedder_callbacks, window_callbacks.clone());
+    let servo = Servo::new(init_opts.embedder_callbacks, window_callbacks.clone());
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {
@@ -549,34 +541,11 @@ impl ServoGlue {
     }
 }
 
-struct ServoEmbedderCallbacks {
-    waker: Box<dyn EventLoopWaker>,
-    vr_pointer: Option<*mut c_void>,
-}
-
 struct ServoWindowCallbacks {
     gl: Rc<dyn gl::Gl>,
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     density: f32,
-}
-
-impl EmbedderMethods for ServoEmbedderCallbacks {
-    fn register_vr_services(
-        &self,
-        services: &mut VRServiceManager,
-        _: &mut Vec<Box<VRMainThreadHeartbeat>>,
-    ) {
-        debug!("EmbedderMethods::register_vrexternal");
-        if let Some(ptr) = self.vr_pointer {
-            services.register_vrexternal(VRExternalShmemPtr::new(ptr));
-        }
-    }
-
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
-        debug!("EmbedderMethods::create_event_loop_waker");
-        self.waker.clone()
-    }
 }
 
 impl WindowMethods for ServoWindowCallbacks {

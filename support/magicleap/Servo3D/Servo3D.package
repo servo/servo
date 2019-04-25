@@ -1,0 +1,8 @@
+REFS = Servo3D
+
+DATAS = \
+    fonts.xml : etc/fonts.xml
+
+# Servo SEGVs if we don't set the debuggable flag in the mpk's taildata
+# https://github.com/servo/servo/issues/22188
+OPTIONS=package/debuggable/on

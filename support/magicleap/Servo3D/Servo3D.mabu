@@ -1,0 +1,24 @@
+KIND = program
+
+SRCS = \
+    Servo3D.cpp
+
+USES = ml_sdk
+
+LIBPATHS.debug = \
+    ../../../target/magicleap/aarch64-linux-android/debug
+
+LIBPATHS.release = \
+    ../../../target/magicleap/aarch64-linux-android/release
+
+LIBPATHS.device = \
+    $(MLSDK)/lumin/stl/libc++-lumin/lib \
+
+STLIBS = \
+    mlservo
+
+SHLIBS = \
+    c++ \
+    ml_privileges \
+    log \
+    z
