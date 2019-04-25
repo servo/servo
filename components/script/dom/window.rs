@@ -1436,7 +1436,7 @@ impl Window {
 
         let complete = match join_port.try_recv() {
             Err(TryRecvError::Empty) => {
-                info!("script: waiting on layout");
+                debug!("script: waiting on layout");
                 join_port.recv().unwrap()
             },
             Ok(reflow_complete) => reflow_complete,

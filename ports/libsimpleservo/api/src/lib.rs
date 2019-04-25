@@ -23,7 +23,7 @@ use servo::servo_config::opts;
 use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
-use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRServiceManager};
+use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRService, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
 use std::cell::RefCell;
 use std::mem;
@@ -45,8 +45,14 @@ pub struct InitOptions {
     pub url: Option<String>,
     pub coordinates: Coordinates,
     pub density: f32,
-    pub vr_pointer: Option<*mut c_void>,
+    pub vr_init: VRInitOptions,
     pub enable_subpixel_text_antialiasing: bool,
+}
+
+pub enum VRInitOptions {
+    None,
+    VRExternal(*mut c_void),
+    VRService(Box<VRService>, Box<VRMainThreadHeartbeat>),
 }
 
 #[derive(Clone, Debug)]
@@ -177,7 +183,7 @@ pub fn init(
     });
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
-        vr_pointer: init_opts.vr_pointer,
+        vr_init: init_opts.vr_init,
         waker,
     });
 
@@ -551,7 +557,7 @@ impl ServoGlue {
 
 struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
-    vr_pointer: Option<*mut c_void>,
+    vr_init: VRInitOptions,
 }
 
 struct ServoWindowCallbacks {
@@ -563,17 +569,24 @@ struct ServoWindowCallbacks {
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
     fn register_vr_services(
-        &self,
+        &mut self,
         services: &mut VRServiceManager,
-        _: &mut Vec<Box<VRMainThreadHeartbeat>>,
+        heartbeats: &mut Vec<Box<VRMainThreadHeartbeat>>,
     ) {
         debug!("EmbedderMethods::register_vrexternal");
-        if let Some(ptr) = self.vr_pointer {
-            services.register_vrexternal(VRExternalShmemPtr::new(ptr));
+        match mem::replace(&mut self.vr_init, VRInitOptions::None) {
+            VRInitOptions::None => {},
+            VRInitOptions::VRExternal(ptr) => {
+                services.register_vrexternal(VRExternalShmemPtr::new(ptr));
+            },
+            VRInitOptions::VRService(service, heartbeat) => {
+                services.register(service);
+                heartbeats.push(heartbeat);
+            },
         }
     }
 
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
+    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
         debug!("EmbedderMethods::create_event_loop_waker");
         self.waker.clone()
     }

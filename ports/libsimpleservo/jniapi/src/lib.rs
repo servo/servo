@@ -13,9 +13,8 @@ use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
-use simpleservo::{
-    self, gl_glue, Coordinates, EventLoopWaker, HostTrait, InitOptions, ServoGlue, SERVO,
-};
+use simpleservo::{self, gl_glue, ServoGlue, SERVO};
+use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;
 use std::thread;
@@ -696,10 +695,10 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         coordinates,
         density,
         enable_subpixel_text_antialiasing,
-        vr_pointer: if vr_pointer.is_null() {
-            None
+        vr_init: if vr_pointer.is_null() {
+            VRInitOptions::None
         } else {
-            Some(vr_pointer)
+            VRInitOptions::VRExternal(vr_pointer)
         },
     };
     Ok((opts, log, log_str))
