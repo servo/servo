@@ -22,4 +22,14 @@
     });
     window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
   }, "Tests that trying to adopt the predecessor twice will throw an exception.");
+
+  async_test(function(t) {
+    var test = "adopt-after-event";
+    var bc = new BroadcastChannel(`test-${test}`);
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    window.open(`resources/portals-adopt-predecessor.html?test=${test}`);
+  }, "Tests that trying to adopt the predecessor after the PortalActivateEvent will throw an exception.");
 </script>

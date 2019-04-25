@@ -61,6 +61,36 @@ function CreateKeyframeEffect(element) {
 
   promise_test(async t => {
     await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+    let iframe = document.createElement('iframe');
+    iframe.src = 'resources/iframe.html';
+    document.body.appendChild(iframe);
+
+    await waitForAnimationFrameWithCondition(_ => {
+      return iframe.contentDocument.getElementById('iframe_box') != null;
+    });
+    let iframe_document = iframe.contentDocument;
+    let effect = CreateKeyframeEffect(iframe_document.getElementById('iframe_box'));
+
+    let animation_with_main_frame_timeline =
+        new WorkletAnimation('test-animator', effect, document.timeline);
+    assert_equals(animation_with_main_frame_timeline.timeline, document.timeline);
+
+    let animation_with_iframe_timeline =
+        new WorkletAnimation('test-animator', effect, iframe_document.timeline);
+    assert_equals(animation_with_iframe_timeline.timeline, iframe_document.timeline);
+
+    let animation_with_default_timeline = new WorkletAnimation('test-animator', effect);
+    // The spec says that the default timeline is taken from 'the Document that is
+    // associated with the window that is the current global object'. In this case
+    // that is the main document's timeline, not the iframe (despite the target
+    // being in the iframe).
+    assert_equals(animation_with_default_timeline.timeline, document.timeline);
+
+    iframe.remove();
+  }, 'WorkletAnimation creation should choose the correct timeline based on the current global object');
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
     let effect = CreateKeyframeEffect(document.querySelector('#element'));
     let options = { my_param: 'foo', my_other_param: true };
     let workletAnimation = new WorkletAnimation(
@@ -95,10 +125,10 @@ function CreateKeyframeEffect(element) {
     otherDoc.body.appendChild(otherElement);
     let otherEffect = CreateKeyframeEffect(otherElement);
 
-    let constructorFunc = function() { new WorkletAnimation(
-        'test-animator', [ effect, otherEffect ]); };
-    assert_throws('NotSupportedError', constructorFunc);
-  }, 'If the effects are from different documents, object construction should fail');
+    let workletAnimation = new WorkletAnimation(
+        'test-animator', [ effect, otherEffect ]);
+    assert_equals(workletAnimation.playState, 'idle');
+  }, 'Creating animation with effects from different documents is allowed');
 
   promise_test(async t => {
     await runInAnimationWorklet(document.getElementById('simple_animate').textContent);

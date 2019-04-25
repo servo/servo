@@ -1132,7 +1132,7 @@ policies and contribution forms [3].
             assert(Math.abs(actual[i] - expected[i]) <= epsilon,
                    "assert_array_approx_equals", description,
                    "property ${i}, expected ${expected} +/- ${epsilon}, expected ${expected} but got ${actual}",
-                   {i:i, expected:expected[i], actual:actual[i]});
+                   {i:i, expected:expected[i], actual:actual[i], epsilon:epsilon});
         }
     }
     expose(assert_array_approx_equals, "assert_array_approx_equals");

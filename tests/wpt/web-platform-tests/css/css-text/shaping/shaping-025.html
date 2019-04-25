@@ -6,6 +6,7 @@
 <meta name="assert" content="Shaping should not be broken across inline box boundaries for changes to text-decoration in Mongolian.">
 <link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
 <link rel="help" href="https://drafts.csswg.org/css-text/#boundary-shaping">
+<link rel="match" href="reference/shaping-025-ref.html">
 <style type="text/css">
 @font-face {
     font-family: 'csstest_noto';
@@ -19,12 +20,11 @@
 </style>
 </head>
 <body>
-<p class="instructions">Test passes if the three Mongolian characters join in the right-hand line.</p>
-<small>Skip the test if the line on the left isn't arranged vertically and joined up.</small>
-<div class="test" lang="mn" dir="rtl">ᠨᠨᠨ<br/>ᠨ<span class="styled">ᠨ</span>ᠨ</div>
+<p class="instructions">Test passes if the three Mongolian characters in each box join, making the two boxes identical.</p>
+<div class="test" lang="mn" dir="rtl">ᠨ<span class="styled">ᠨ</span>ᠨ</div>
+<div class="ref" lang="mn" dir="rtl">ᠨ&zwj;<span class="styled">&zwj;ᠨ&zwj;</span>&zwj;ᠨ</div>
 <!-- Notes:
 This test uses the Noto Sans Mongolian font to control variables related to font choice.
-The test is manual because Safari (and possibly other browsers) don't support joining for vertical Mongolian anyway, so ref tests wouldn't test the correct thing.
 -->
 </body>
 </html>
