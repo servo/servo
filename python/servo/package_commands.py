@@ -238,9 +238,6 @@ class PackageCommands(CommandBase):
                 mabu,
                 "-o", target_dir,
                 "-t", build_type,
-                # Servo SEGVs if we don't set the debuggable flag in the mpk's taildata
-                # https://github.com/servo/servo/issues/22188
-                "--add-tail-data-args=--debuggable",
                 package
             ]
             try:
