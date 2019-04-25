@@ -25,4 +25,4 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
-cmake = { git = "https://github.com/jdm/cmake-rs", branch = "msvc-cross" }
+#cmake = { git = "https://github.com/jdm/cmake-rs", branch = "msvc-cross" }

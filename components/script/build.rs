@@ -37,7 +37,7 @@ fn main() {
             );
         }
 
-        let vcvars = Command::new("vcvars.bat").output().unwrap();
+        /*let vcvars = Command::new("vcvars.bat").output().unwrap();
         assert!(vcvars.status.success());
         let output = str::from_utf8(&vcvars.stdout).unwrap();
         for line in output.lines() {
@@ -47,7 +47,7 @@ fn main() {
                     env::set_var(name, value);
                 }
             }
-        }
+        }*/
     }
 
     // This must use the Ninja generator -- it's the only one that
