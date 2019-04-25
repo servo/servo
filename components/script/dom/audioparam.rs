@@ -199,7 +199,11 @@ impl AudioParamMethods for AudioParam {
     ) -> DomRoot<AudioParam> {
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
-            UserAutomationEvent::SetValueCurveAtTime(values.into_iter().map(|v| *v).collect(), *start_time, *end_time),
+            UserAutomationEvent::SetValueCurveAtTime(
+                values.into_iter().map(|v| *v).collect(),
+                *start_time,
+                *end_time,
+            ),
         ));
         DomRoot::from_ref(self)
     }
