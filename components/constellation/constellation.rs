@@ -1469,7 +1469,6 @@ where
             FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
                 self.handle_pending_paint_metric(pipeline_id, epoch);
             },
-            FromLayoutMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
             FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },

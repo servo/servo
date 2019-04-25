@@ -14,7 +14,7 @@ use crate::WorkerGlobalScopeInit;
 use crate::WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{Cursor, EmbedderMsg};
+use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -58,8 +58,6 @@ pub enum LayoutMsg {
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
     PendingPaintMetric(PipelineId, Epoch),
-    /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
 }
@@ -71,7 +69,6 @@ impl fmt::Debug for LayoutMsg {
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",
-            SetCursor(..) => "SetCursor",
             ViewportConstrained(..) => "ViewportConstrained",
         };
         write!(formatter, "LayoutMsg::{}", variant)

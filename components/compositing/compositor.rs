@@ -191,6 +191,9 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The coordinates of the native window, its view and the screen.
     embedder_coordinates: EmbedderCoordinates,
+
+    /// Current mouse cursor.
+    cursor: Cursor,
 }
 
 #[derive(Clone, Copy)]
@@ -291,6 +294,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender_api: state.webrender_api,
             webvr_heartbeats: state.webvr_heartbeats,
             pending_paint_metrics: HashMap::new(),
+            cursor: Cursor::None,
         }
     }
 
@@ -709,9 +713,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             if let Some(cursor) = Cursor::from_u8(item.tag.1 as _) {
-                let msg = ConstellationMsg::SetCursor(cursor);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({:?}).", e);
+                if cursor != self.cursor {
+                    self.cursor = cursor;
+                    let msg = ConstellationMsg::SetCursor(cursor);
+                    if let Err(e) = self.constellation_chan.send(msg) {
+                        warn!("Sending event to constellation failed ({:?}).", e);
+                    }
                 }
             }
         }
