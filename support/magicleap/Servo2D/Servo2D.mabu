@@ -21,6 +21,10 @@ SHLIBS = \
     log \
     z
 
+# https://github.com/servo/servo/issues/23267
+CXXFLAGS = \
+    -Wno-deprecated
+
 USES = \
     lumin_runtime \
     code/srcsGen
