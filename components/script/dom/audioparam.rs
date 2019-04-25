@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
     AudioParamMethods, AutomationRate,
 };
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -142,12 +143,22 @@ impl AudioParamMethods for AudioParam {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvalueattime
-    fn SetValueAtTime(&self, value: Finite<f32>, start_time: Finite<f64>) -> DomRoot<AudioParam> {
+    fn SetValueAtTime(
+        &self,
+        value: Finite<f32>,
+        start_time: Finite<f64>,
+    ) -> Fallible<DomRoot<AudioParam>> {
+        if *start_time < 0. {
+            return Err(Error::Range(format!(
+                "start time {} should not be negative",
+                *start_time
+            )));
+        }
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
             UserAutomationEvent::SetValueAtTime(*value, *start_time),
         ));
-        DomRoot::from_ref(self)
+        Ok(DomRoot::from_ref(self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-linearramptovalueattime
@@ -155,12 +166,18 @@ impl AudioParamMethods for AudioParam {
         &self,
         value: Finite<f32>,
         end_time: Finite<f64>,
-    ) -> DomRoot<AudioParam> {
+    ) -> Fallible<DomRoot<AudioParam>> {
+        if *end_time < 0. {
+            return Err(Error::Range(format!(
+                "end time {} should not be negative",
+                *end_time
+            )));
+        }
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
             UserAutomationEvent::RampToValueAtTime(RampKind::Linear, *value, *end_time),
         ));
-        DomRoot::from_ref(self)
+        Ok(DomRoot::from_ref(self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-exponentialramptovalueattime
@@ -168,12 +185,24 @@ impl AudioParamMethods for AudioParam {
         &self,
         value: Finite<f32>,
         end_time: Finite<f64>,
-    ) -> DomRoot<AudioParam> {
+    ) -> Fallible<DomRoot<AudioParam>> {
+        if *end_time < 0. {
+            return Err(Error::Range(format!(
+                "end time {} should not be negative",
+                *end_time
+            )));
+        }
+        if *value == 0. {
+            return Err(Error::Range(format!(
+                "target value {} should not be 0",
+                *value
+            )));
+        }
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
             UserAutomationEvent::RampToValueAtTime(RampKind::Exponential, *value, *end_time),
         ));
-        DomRoot::from_ref(self)
+        Ok(DomRoot::from_ref(self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-settargetattime
@@ -182,30 +211,54 @@ impl AudioParamMethods for AudioParam {
         target: Finite<f32>,
         start_time: Finite<f64>,
         time_constant: Finite<f32>,
-    ) -> DomRoot<AudioParam> {
+    ) -> Fallible<DomRoot<AudioParam>> {
+        if *start_time < 0. {
+            return Err(Error::Range(format!(
+                "start time {} should not be negative",
+                *start_time
+            )));
+        }
+        if *time_constant < 0. {
+            return Err(Error::Range(format!(
+                "time constant {} should not be negative",
+                *time_constant
+            )));
+        }
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
             UserAutomationEvent::SetTargetAtTime(*target, *start_time, (*time_constant).into()),
         ));
-        DomRoot::from_ref(self)
+        Ok(DomRoot::from_ref(self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
-    fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
+    fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> Fallible<DomRoot<AudioParam>> {
+        if *cancel_time < 0. {
+            return Err(Error::Range(format!(
+                "cancel time {} should not be negative",
+                *cancel_time
+            )));
+        }
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
             UserAutomationEvent::CancelScheduledValues(*cancel_time),
         ));
-        DomRoot::from_ref(self)
+        Ok(DomRoot::from_ref(self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelandholdattime
-    fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
+    fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> Fallible<DomRoot<AudioParam>> {
+        if *cancel_time < 0. {
+            return Err(Error::Range(format!(
+                "cancel time {} should not be negative",
+                *cancel_time
+            )));
+        }
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
             UserAutomationEvent::CancelAndHoldAtTime(*cancel_time),
         ));
-        DomRoot::from_ref(self)
+        Ok(DomRoot::from_ref(self))
     }
 }
 

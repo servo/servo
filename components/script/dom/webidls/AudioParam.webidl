@@ -18,15 +18,15 @@ interface AudioParam {
     readonly attribute float defaultValue;
     readonly attribute float minValue;
     readonly attribute float maxValue;
-    AudioParam setValueAtTime(float value, double startTime);
-    AudioParam linearRampToValueAtTime(float value, double endTime);
-    AudioParam exponentialRampToValueAtTime(float value, double endTime);
-    AudioParam setTargetAtTime(float target,
+    [Throws] AudioParam setValueAtTime(float value, double startTime);
+    [Throws] AudioParam linearRampToValueAtTime(float value, double endTime);
+    [Throws] AudioParam exponentialRampToValueAtTime(float value, double endTime);
+    [Throws] AudioParam setTargetAtTime(float target,
                                double startTime,
                                float timeConstant);
 //    AudioParam setValueCurveAtTime(sequence<float> values,
 //                                   double startTime,
 //                                   double duration);
-    AudioParam cancelScheduledValues(double cancelTime);
-    AudioParam cancelAndHoldAtTime(double cancelTime);
+    [Throws] AudioParam cancelScheduledValues(double cancelTime);
+    [Throws] AudioParam cancelAndHoldAtTime(double cancelTime);
 };
