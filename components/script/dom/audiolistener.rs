@@ -8,7 +8,13 @@ use crate::dom::bindings::codegen::Bindings::AudioListenerBinding::{self, AudioL
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::num::Finite;
 use crate::dom::window::Window;
+use crate::dom::bindings::error::{Error};
+
+use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
+    AudioParamMethods,
+};
 use dom_struct::dom_struct;
 use servo_media::audio::param::{ParamDir, ParamType};
 use std::f32;
@@ -121,6 +127,8 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+
+	 
         AudioListener {
             reflector_: Reflector::new(),
             position_x: Dom::from_ref(&position_x),
@@ -132,6 +140,7 @@ impl AudioListener {
             up_x: Dom::from_ref(&up_x),
             up_y: Dom::from_ref(&up_y),
             up_z: Dom::from_ref(&up_z),
+	    
         }
     }
 
@@ -140,6 +149,7 @@ impl AudioListener {
         let node = AudioListener::new_inherited(window, context);
         reflect_dom_object(Box::new(node), window, AudioListenerBinding::Wrap)
     }
+    
 }
 
 impl AudioListenerMethods for AudioListener {
@@ -181,4 +191,26 @@ impl AudioListenerMethods for AudioListener {
     fn UpZ(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.up_z)
     }
+    //https://webaudio.github.io/web-audio-api/#AudioListener-methods
+    fn SetOrientation(&self, x: Finite<f32>, y: Finite<f32>, z: Finite<f32>, xUp: Finite<f32>, yUp: Finite<f32>, zUp: Finite<f32>)->() {
+    self.forward_x.SetValue(x);
+    self.forward_y.SetValue(y);
+    self.forward_z.SetValue(z);
+    self.up_x.SetValue(xUp);
+    self.up_y.SetValue(yUp);
+    self.up_z.SetValue(zUp);
+	return Err(Error::InvalidState);
+    }
+    fn SetPosition(&self,x: Finite<f32>,y: Finite<f32>,z: Finite<f32>)->() {
+	
+    self.position_x.SetValue(x);
+    self.position_y.SetValue(y);
+    self.position_z.SetValue(z);
+
+    }
+
+
+
+
+
 }
