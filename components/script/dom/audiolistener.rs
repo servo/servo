@@ -6,9 +6,13 @@ use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioListenerBinding::{self, AudioListenerMethods};
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+
+use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AudioParamMethods;
 use dom_struct::dom_struct;
 use servo_media::audio::param::{ParamDir, ParamType};
 use std::f32;
@@ -121,6 +125,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+
         AudioListener {
             reflector_: Reflector::new(),
             position_x: Dom::from_ref(&position_x),
@@ -180,5 +185,37 @@ impl AudioListenerMethods for AudioListener {
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-upz
     fn UpZ(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.up_z)
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiolistener-setorientation
+    fn SetOrientation(
+        &self,
+        x: Finite<f32>,
+        y: Finite<f32>,
+        z: Finite<f32>,
+        xUp: Finite<f32>,
+        yUp: Finite<f32>,
+        zUp: Finite<f32>,
+    ) -> Fallible<DomRoot<AudioListener>> {
+        self.forward_x.SetValue(x);
+        self.forward_y.SetValue(y);
+        self.forward_z.SetValue(z);
+        self.up_x.SetValue(xUp);
+        self.up_y.SetValue(yUp);
+        self.up_z.SetValue(zUp);
+        Ok(DomRoot::from_ref(self))
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiolistener-setposition
+    fn SetPosition(
+        &self,
+        x: Finite<f32>,
+        y: Finite<f32>,
+        z: Finite<f32>,
+    ) -> Fallible<DomRoot<AudioListener>> {
+        self.position_x.SetValue(x);
+        self.position_y.SetValue(y);
+        self.position_z.SetValue(z);
+        Ok(DomRoot::from_ref(self))
     }
 }

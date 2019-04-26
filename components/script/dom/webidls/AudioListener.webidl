@@ -17,6 +17,6 @@ interface AudioListener {
   readonly attribute AudioParam upX;
   readonly attribute AudioParam upY;
   readonly attribute AudioParam upZ;
-  // void setPosition (float x, float y, float z);
-  // void setOrientation (float x, float y, float z, float xUp, float yUp, float zUp);
+  [Throws] AudioListener setPosition (float x, float y, float z);
+  [Throws] AudioListener setOrientation (float x, float y, float z, float xUp, float yUp, float zUp);
 };
