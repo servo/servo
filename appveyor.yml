@@ -32,6 +32,8 @@ environment:
     C:\\Program Files\\AppVeyor\\BuildAgent;"
   CC: "clang-cl.exe"
   CXX: "clang-cl.exe"
+  LINKER: "lld-link.exe"
+  PYTHON3: "C:\\Python37-x64\\python.exe"
 
   matrix:
   - TARGET: nightly-x86_64-pc-windows-msvc
