@@ -639,6 +639,11 @@ macro_rules! impl_rare_data (
             self.rare_data.borrow()
         }
 
+        #[allow(dead_code)]
+        fn rare_data_mut(&self) -> RefMut<Option<Box<$type>>> {
+            self.rare_data.borrow_mut()
+        }
+
         fn ensure_rare_data(&self) -> RefMut<Box<$type>> {
             let mut rare_data = self.rare_data.borrow_mut();
             if rare_data.is_none() {

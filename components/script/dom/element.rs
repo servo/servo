@@ -347,10 +347,7 @@ impl Element {
     }
 
     pub fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
-        if let Some(rare_data) = self.rare_data().as_ref() {
-            return rare_data.custom_element_definition.clone();
-        }
-        None
+        self.rare_data().as_ref()?.custom_element_definition.clone()
     }
 
     pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
@@ -366,26 +363,30 @@ impl Element {
     }
 
     pub fn clear_reaction_queue(&self) {
-        self.ensure_rare_data()
-            .custom_element_reaction_queue
-            .clear();
+        if let Some(ref mut rare_data) = *self.rare_data_mut() {
+            rare_data.custom_element_reaction_queue.clear();
+        }
     }
 
     pub fn invoke_reactions(&self) {
-        if let Some(rare_data) = self.rare_data().as_ref() {
-            // TODO: This is not spec compliant, as this will allow some reactions to be processed
-            // after clear_reaction_queue has been called.
+        loop {
             rooted_vec!(let mut reactions);
-            while !rare_data.custom_element_reaction_queue.is_empty() {
-                mem::swap(
-                    &mut *reactions,
-                    &mut self.ensure_rare_data().custom_element_reaction_queue,
-                );
-                for reaction in reactions.iter() {
-                    reaction.invoke(self);
-                }
-                reactions.clear();
+            match *self.rare_data_mut() {
+                Some(ref mut data) => {
+                    mem::swap(&mut *reactions, &mut data.custom_element_reaction_queue)
+                },
+                None => break,
+            };
+
+            if reactions.is_empty() {
+                break;
             }
+
+            for reaction in reactions.iter() {
+                reaction.invoke(self);
+            }
+
+            reactions.clear();
         }
     }
 
@@ -442,11 +443,16 @@ impl Element {
         })
     }
 
+    fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+        self.rare_data()
+            .as_ref()?
+            .shadow_root
+            .as_ref()
+            .map(|sr| DomRoot::from_ref(&**sr))
+    }
+
     pub fn is_shadow_host(&self) -> bool {
-        if let Some(rare_data) = self.rare_data().as_ref() {
-            return rare_data.shadow_root.is_some();
-        }
-        false
+        self.shadow_root().is_some()
     }
 
     /// https://dom.spec.whatwg.org/#dom-element-attachshadow
@@ -1065,10 +1071,12 @@ impl LayoutElementHelpers for LayoutDom<Element> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
-        if let Some(rare_data) = (*self.unsafe_get()).rare_data_for_layout().as_ref() {
-            return rare_data.shadow_root.as_ref().map(|sr| sr.to_layout());
-        }
-        None
+        (*self.unsafe_get())
+            .rare_data_for_layout()
+            .as_ref()?
+            .shadow_root
+            .as_ref()
+            .map(|sr| sr.to_layout())
     }
 }
 
@@ -2742,21 +2750,21 @@ impl VirtualMethods for Element {
                         None
                     }
                 });
-                let owner_shadow_root = self.upcast::<Node>().owner_shadow_root();
+                let containing_shadow_root = self.upcast::<Node>().containing_shadow_root();
                 if node.is_connected() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
                         AttributeMutation::Set(old_value) => {
                             if let Some(old_value) = old_value {
                                 let old_value = old_value.as_atom().clone();
-                                if let Some(ref shadow_root) = owner_shadow_root {
+                                if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.unregister_named_element(self, old_value);
                                 } else {
                                     doc.unregister_named_element(self, old_value);
                                 }
                             }
                             if value != atom!("") {
-                                if let Some(ref shadow_root) = owner_shadow_root {
+                                if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.register_named_element(self, value);
                                 } else {
                                     doc.register_named_element(self, value);
@@ -2765,7 +2773,7 @@ impl VirtualMethods for Element {
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
-                                if let Some(ref shadow_root) = owner_shadow_root {
+                                if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.unregister_named_element(self, value);
                                 } else {
                                     doc.unregister_named_element(self, value);
@@ -2812,15 +2820,13 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(rare_data) = self.rare_data().as_ref() {
-            if let Some(ref shadow_root) = rare_data.shadow_root {
-                doc.register_shadow_root(&shadow_root);
-                let shadow_root = shadow_root.upcast::<Node>();
-                shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-                for node in shadow_root.children() {
-                    node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-                    node.bind_to_tree(context);
-                }
+        if let Some(ref shadow_root) = self.shadow_root() {
+            doc.register_shadow_root(&shadow_root);
+            let shadow_root = shadow_root.upcast::<Node>();
+            shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+            for node in shadow_root.children() {
+                node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+                node.bind_to_tree(context);
             }
         }
 
@@ -2829,7 +2835,7 @@ impl VirtualMethods for Element {
         }
 
         if let Some(ref value) = *self.id_attribute.borrow() {
-            if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
+            if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
                 shadow_root.register_named_element(self, value.clone());
             } else {
                 doc.register_named_element(self, value.clone());
@@ -2852,15 +2858,13 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(rare_data) = self.rare_data().as_ref() {
-            if let Some(ref shadow_root) = rare_data.shadow_root {
-                doc.unregister_shadow_root(&shadow_root);
-                let shadow_root = shadow_root.upcast::<Node>();
-                shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
-                for node in shadow_root.children() {
-                    node.set_flag(NodeFlags::IS_CONNECTED, false);
-                    node.unbind_from_tree(context);
-                }
+        if let Some(ref shadow_root) = self.shadow_root() {
+            doc.unregister_shadow_root(&shadow_root);
+            let shadow_root = shadow_root.upcast::<Node>();
+            shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
+            for node in shadow_root.children() {
+                node.set_flag(NodeFlags::IS_CONNECTED, false);
+                node.unbind_from_tree(context);
             }
         }
 
@@ -2931,7 +2935,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        if let Some(shadow_root) = self.upcast::<Node>().owner_shadow_root() {
+        if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
             Some(shadow_root.Host())
         } else {
             None
