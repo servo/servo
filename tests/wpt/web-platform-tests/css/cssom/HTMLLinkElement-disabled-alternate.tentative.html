@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: alternate stylesheets can be disabled by HTMLLinkElement.disabled if they have the disabled attribute already</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1281135">
+<link rel="help" href="https://github.com/whatwg/html/issues/3840">
+<link rel="match" href="HTMLLinkElement-disabled-alternate-ref.html">
+<link title="alt" rel="alternate stylesheet" href="data:text/css,html { background: green }" disabled onload="document.documentElement.className = ''">
+<script>
+  onload = function() {
+    const link = document.querySelector("link[rel='alternate stylesheet']");
+    link.disabled = false;
+  }
+</script>

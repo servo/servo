@@ -56,7 +56,6 @@ the following suites test behavior that is not covered in CSS3 Transitions (as o
 * `properties-value-003.html` - verify transitionable properties thus far not specified at all
 * `properties-value-implicit-001.html` - verify behavior for `em` based `<length>` properties when `font-size` is changed
 * `events-006.html` - expect `TransitionEnd` event to be triggered and `event.pseudoElement` to be set properly
-* `before-DOMContentLoaded-001.html` - expect transitions to be performed before DOM is ready
 * `before-load-001.html` - expect transitions to be performed before document is fully loaded
 * `hidden-container-001.html` - expect transitions to NOT be performed if they happen within hidden elements
 * `detached-container-001.html` - expect transitions to NOT be performed if they happen outside of the document

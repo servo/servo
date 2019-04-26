@@ -5,12 +5,12 @@
   <script src="resources/webxr_util.js"></script>
   <script>
     xr_promise_test(
-      "supportsSessionMode resolves when inline options supported",
+      "supportsSession resolves when inline options supported",
       (t) => {
       return XRTest.simulateDeviceConnection({ supportsImmersive:true })
         .then( (controller) => {
           // Inline sessions should be supported.
-          return navigator.xr.supportsSessionMode('inline');
+          return navigator.xr.supportsSession('inline');
         });
     });
   </script>

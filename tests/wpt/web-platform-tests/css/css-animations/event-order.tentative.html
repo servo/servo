@@ -6,10 +6,14 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/testcommon.js"></script>
 <style>
-  @keyframes anim {
-    from { margin-left: 0px; }
-    to { margin-left: 100px; }
-  }
+@keyframes anim {
+  from { margin-left: 0px; }
+  to { margin-left: 100px; }
+}
+@keyframes color-anim {
+  from { color: red; }
+  to { color: green; }
+}
 </style>
 <div id="log"></div>
 <script type='text/javascript'>
@@ -20,38 +24,69 @@
  * @param actualEvents   An array of the received AnimationEvent objects.
  * @param expectedEvents A series of array objects representing the expected
  *        events, each having the form:
- *          [ event type, target element, elapsed time ]
+ *          [ event type, target element, [pseudo type], elapsed time ]
  */
 const checkEvents = (actualEvents, ...expectedEvents) => {
-  assert_equals(actualEvents.length, expectedEvents.length,
-                `Number of actual events (${actualEvents.length}: \
-${actualEvents.map(event => event.type).join(', ')}) should match expected \
-events (${expectedEvents.map(event => event.type).join(', ')})`);
+  const actualTypeSummary = actualEvents.map(event => event.type).join(', ');
+  const expectedTypeSummary = expectedEvents.map(event => event[0]).join(', ');
 
-  actualEvents.forEach((actualEvent, i) => {
-    assert_equals(expectedEvents[i][0], actualEvent.type,
-                  'Event type should match');
-    assert_equals(expectedEvents[i][1], actualEvent.target,
-                  'Event target should match');
-    assert_equals(expectedEvents[i][2], actualEvent.elapsedTime,
-                  'Event\'s elapsed time should match');
-  });
+  assert_equals(
+    actualEvents.length,
+    expectedEvents.length,
+    `Number of events received (${actualEvents.length}) \
+should match expected number (${expectedEvents.length}) \
+(expected: ${expectedTypeSummary}, actual: ${actualTypeSummary})`
+  );
+
+  for (const [index, actualEvent] of actualEvents.entries()) {
+    const expectedEvent = expectedEvents[index];
+    const [type, target] = expectedEvent;
+    const pseudoElement = expectedEvent.length === 4 ? expectedEvent[2] : '';
+    const elapsedTime = expectedEvent[expectedEvent.length - 1];
+
+    assert_equals(
+      actualEvent.type,
+      type,
+      `Event #${index + 1} types should match \
+(expected: ${expectedTypeSummary}, actual: ${actualTypeSummary})`
+    );
+    assert_equals(
+      actualEvent.target,
+      target,
+      `Event #${index + 1} targets should match`
+    );
+    assert_equals(
+      actualEvent.pseudoElement,
+      pseudoElement,
+      `Event #${index + 1} pseudoElements should match`
+    );
+    assert_equals(
+      actualEvent.elapsedTime,
+      elapsedTime,
+      `Event #${index + 1} elapsedTimes should match`
+    );
+  }
 };
 
 const setupAnimation = (t, animationStyle, receiveEvents) => {
-  const div = addDiv(t, { style: "animation: " + animationStyle });
+  const div = addDiv(t, { style: 'animation: ' + animationStyle });
 
   for (const name of ['start', 'iteration', 'end']) {
     div['onanimation' + name] = evt => {
-    receiveEvents.push({ type:        evt.type,
-                         target:      evt.target,
-                         elapsedTime: evt.elapsedTime });
+      receiveEvents.push({
+        type: evt.type,
+        target: evt.target,
+        pseudoElement: evt.pseudoElement,
+        elapsedTime: evt.elapsedTime,
+      });
     };
   }
 
-  const watcher = new EventWatcher(t, div, [ 'animationstart',
-                                             'animationiteration',
-                                             'animationend' ]);
+  const watcher = new EventWatcher(t, div, [
+    'animationstart',
+    'animationiteration',
+    'animationend',
+  ]);
 
   const animation = div.getAnimations()[0];
 
@@ -92,7 +127,64 @@ promise_test(async t => {
 
   checkEvents(events, ['animationend', div1, 200],
                       ['animationend', div2, 200]);
-}, 'Test same events are ordered by elements.');
+}, 'Same events are ordered by elements');
+
+promise_test(async t => {
+  // Setup a hierarchy as follows:
+  //
+  //              parent
+  //                |
+  //  (::marker, ::before, ::after)
+  //                |
+  //              child
+  const parentDiv = addDiv(t, { style: 'animation: anim 100s' });
+
+  parentDiv.id = 'parent-div';
+  addStyle(t, {
+    '#parent-div::after': "content: ''; animation: anim 100s",
+    '#parent-div::before': "content: ''; animation: anim 100s",
+  });
+
+  if (CSS.supports('selector(::marker)')) {
+    parentDiv.style.display = 'list-item';
+    addStyle(t, {
+      '#parent-div::marker': "content: ''; animation: color-anim 100s",
+    });
+  }
+
+  const childDiv = addDiv(t, { style: 'animation: anim 100s' });
+  parentDiv.append(childDiv);
+
+  // Setup event handlers
+  let events = [];
+  for (const name of ['start', 'iteration', 'end', 'cancel']) {
+    parentDiv['onanimation' + name] = evt => {
+      events.push({
+        type: evt.type,
+        target: evt.target,
+        pseudoElement: evt.pseudoElement,
+        elapsedTime: evt.elapsedTime,
+      });
+    };
+  }
+
+  // Wait a couple of frames for the events to be dispatched
+  await waitForFrame();
+  await waitForFrame();
+
+  const expectedEvents = [
+    ['animationstart', parentDiv, 0],
+    ['animationstart', parentDiv, '::marker', 0],
+    ['animationstart', parentDiv, '::before', 0],
+    ['animationstart', parentDiv, '::after', 0],
+    ['animationstart', childDiv, 0],
+  ];
+  if (!CSS.supports('selector(::marker)')) {
+    expectedEvents.splice(1, 1);
+  }
+
+  checkEvents(events, ...expectedEvents);
+}, 'Same events on pseudo-elements follow the prescribed order');
 
 promise_test(async t => {
   let events = [];
@@ -113,7 +205,7 @@ promise_test(async t => {
 
   checkEvents(events, ['animationiteration', div2, 300],
                       ['animationstart',     div1, 0]);
-}, 'Test start and iteration events are ordered by time.');
+}, 'Start and iteration events are ordered by time');
 
 promise_test(async t => {
   let events = [];
@@ -135,7 +227,7 @@ promise_test(async t => {
 
   checkEvents(events, ['animationiteration', div2, 100],
                       ['animationend',       div1, 150]);
-}, 'Test iteration and end events are ordered by time.');
+}, 'Iteration and end events are ordered by time');
 
 promise_test(async t => {
   let events = [];
@@ -156,6 +248,6 @@ promise_test(async t => {
                       ['animationstart', div1, 0],
                       ['animationend',   div1, 100],
                       ['animationend',   div2, 200]);
-}, 'Test start and end events are sorted correctly when fired simultaneously');
+}, 'Start and end events are sorted correctly when fired simultaneously');
 
 </script>

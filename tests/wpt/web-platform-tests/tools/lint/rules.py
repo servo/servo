@@ -1,11 +1,29 @@
 from __future__ import unicode_literals
+
+import abc
 import os
 import re
 
-class Rule(object):
-    name = None
-    description = None
-    to_fix = None
+import six
+
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import List, Optional, Pattern, Text, Match
+
+
+class Rule(six.with_metaclass(abc.ABCMeta)):
+    @abc.abstractproperty
+    def name(self):
+        # type: () -> Text
+        pass
+
+    @abc.abstractproperty
+    def description(self):
+        # type: () -> Text
+        pass
+
+    to_fix = None  # type: Optional[Text]
 
     @classmethod
     def error(cls, path, context=(), line_no=None):
@@ -232,19 +250,30 @@ class BrokenMetadata(Rule):
     description = "Metadata comment is not formatted correctly"
 
 
-class Regexp(Rule):
-    pattern = None
-    file_extensions = None
-    _re = None
+class Regexp(six.with_metaclass(abc.ABCMeta)):
+    @abc.abstractproperty
+    def pattern(self):
+        # type: () -> bytes
+        pass
+
+    @abc.abstractproperty
+    def description(self):
+        # type: () -> Text
+        pass
+
+    file_extensions = None  # type: Optional[List[Text]]
 
     def __init__(self):
-        self._re = re.compile(self.pattern)
+        # type: () -> None
+        self._re = re.compile(self.pattern)  # type: Pattern
 
     def applies(self, path):
+        # type: (str) -> bool
         return (self.file_extensions is None or
                 os.path.splitext(path)[1] in self.file_extensions)
 
     def search(self, line):
+        # type: (bytes) -> Optional[Match[bytes]]
         return self._re.search(line)
 
 

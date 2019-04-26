@@ -244,11 +244,25 @@ test(t => {
 }, 'CSSPseudoElement.animate() creates an Animation object');
 
 test(t => {
+  const pseudoTarget = getPseudoElement(t, 'marker');
+  const anim = pseudoTarget.animate(null);
+  assert_class_string(anim, 'Animation', 'The returned object is an Animation for ::marker');
+}, 'CSSPseudoElement.animate() creates an Animation object for ::marker');
+
+test(t => {
   const pseudoTarget = getPseudoElement(t, 'before');
   const anim = pseudoTarget.animate(null);
   assert_equals(anim.effect.target, pseudoTarget,
                 'The returned Animation targets to the correct object');
 }, 'CSSPseudoElement.animate() creates an Animation object targeting ' +
    'to the correct CSSPseudoElement object');
+
+test(t => {
+  const pseudoTarget = getPseudoElement(t, 'marker');
+  const anim = pseudoTarget.animate(null);
+  assert_equals(anim.effect.target, pseudoTarget,
+                'The returned Animation targets to the correct object for ::marker');
+}, 'CSSPseudoElement.animate() creates an Animation object targeting ' +
+   'to the correct CSSPseudoElement object for ::marker');
 </script>
 </body>

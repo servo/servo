@@ -231,6 +231,7 @@ root.addStyle = (t, rules) => {
       extraStyle.remove();
     });
   }
+  return extraStyle;
 };
 
 /**

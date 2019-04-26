@@ -22,6 +22,17 @@ function getSubresourceOrigin(originType) {
   const wsPort = getNormalizedPort(parseInt("{{ports[ws][0]}}", 10));
   const wssPort = getNormalizedPort(parseInt("{{ports[wss][0]}}", 10));
 
+  /**
+    @typedef OriginType
+    @type {string}
+
+    Represents the origin of the subresource request URL.
+    The keys of `originMap` below are the valid values.
+
+    Note that there can be redirects from the specified origin
+    (see RedirectionType), and thus the origin of the subresource
+    response URL might be different from what is specified by OriginType.
+  */
   const originMap = {
     "same-https": httpsProtocol + "://" + sameOriginHost + httpsPort,
     "same-http": httpProtocol + "://" + sameOriginHost + httpPort,
@@ -63,7 +74,6 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
   const urls = getRequestURLs(scenario.subresource,
                               originTypeConversion[scenario.origin],
                               scenario.redirection);
-  const invoker = subresourceMap[scenario.subresource].invoker;
   const checkResult = _ => {
     // Send request to check if the key has been torn down.
     return xhrRequest(urls.assertUrl)
@@ -76,11 +86,18 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
   };
 
   function runTest() {
+    /** @type {Subresource} */
+    const subresource = {
+      subresourceType: scenario.subresource,
+      url: urls.testUrl,
+      policyDeliveries: []
+    };
+
     promise_test(() => {
       return xhrRequest(urls.announceUrl)
         // Send out the real resource request.
         // This should tear down the key if it's not blocked.
-        .then(_ => invoker(urls.testUrl))
+        .then(_ => invokeRequest(subresource, []))
         // We check the key state, regardless of whether the main request
         // succeeded or failed.
         .then(checkResult, checkResult);

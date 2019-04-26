@@ -7,6 +7,7 @@
     var scriptWithEndTagRan = false;
     var scriptWithoutEndTagRan = false;
     var scriptWithBogusEndTagInsideRan = false;
+    var scriptWithBreakout = false;
 </script>
 <svg>
     <script>scriptWithEndTagRan = true;</script>
@@ -17,6 +18,10 @@
 <svg>
     <script>scriptWithBogusEndTagInsideRan = true;</g></script>
 </svg>
+<svg>
+    <script>scriptWithBreakout = true;<s></script>
+</svg>
+</s>
 <script>
     test(function() {
         assert_true(scriptWithEndTagRan);
@@ -27,4 +32,7 @@
     test(function() {
         assert_true(scriptWithBogusEndTagInsideRan);
     }, "SVG scripts with bogus end tag inside should run");
+    test(function() {
+        assert_false(scriptWithBreakout);
+    }, "SVG scripts ended by HTML breakout should not run");
 </script>

@@ -2,6 +2,7 @@
 *.py[co]
 .cache/
 .coverage*
+.mypy_cache/
 .pytest_cache/
 .tox/
 .virtualenv/

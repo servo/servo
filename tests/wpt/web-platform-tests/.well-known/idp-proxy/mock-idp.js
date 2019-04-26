@@ -55,9 +55,7 @@ function parseQueryString(urlStr) {
     };
  */
 
-// In RTCIdentityProviderGlobalScope, global is self
-const global = self;
-const query = parseQueryString(global.location);
+const query = parseQueryString(location);
 
 // Generate a naive identity assertion. The result assertion
 // is a JSON string that report the various parameters
@@ -73,8 +71,8 @@ function generateAssertion(contents, origin, options) {
   };
 
   const env = {
-    origin: global.origin,
-    location: global.location
+    origin,
+    location
   };
 
   const assertion = {
@@ -82,11 +80,6 @@ function generateAssertion(contents, origin, options) {
     args,
     env,
     query
-  };
-
-  const idp = {
-    domain: global.location.host,
-    protocol: 'mock-idp.js'
   };
 
   const assertionStr = JSON.stringify(assertion);
@@ -100,7 +93,7 @@ function generateAssertion(contents, origin, options) {
 
   } else if(generatorAction === 'require-login') {
     const err = new RTCError('idp-need-login');
-    err.idpLoginUrl = `${self.origin}/login`;
+    err.idpLoginUrl = `${origin}/login`;
     err.idpErrorInfo = 'login required';
     throw err;
 
@@ -120,7 +113,10 @@ function generateAssertion(contents, origin, options) {
 
   } else {
     return {
-      idp,
+      idp: {
+        domain: location.host,
+        protocol: 'mock-idp.js'
+      },
       assertion: assertionStr
     };
   }
@@ -141,8 +137,8 @@ function generateAssertion(contents, origin, options) {
 function validateAssertion(assertionStr, origin) {
   const assertion = JSON.parse(assertionStr);
 
-  const { param, query } = assertion;
-  const { contents, options } = param;
+  const { args, query } = assertion;
+  const { contents, options } = args;
 
   const identity = options.usernameHint;
 
@@ -188,10 +184,10 @@ function validateAssertion(assertionStr, origin) {
     };
  */
 
-// if global.rtcIdentityProvider is defined, and the caller do not ask
+// if rtcIdentityProvider is defined, and the caller do not ask
 // to not register through query string, register our assertion callbacks.
-if(global.rtcIdentityProvider && query.action !== 'do-not-register') {
-  global.rtcIdentityProvider.register({
+if(rtcIdentityProvider && query.action !== 'do-not-register') {
+  rtcIdentityProvider.register({
     generateAssertion,
     validateAssertion
   });

@@ -8,7 +8,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-word-break-break-all">
 <link rel="match" href="reference/white-space-break-spaces-005-ref.html">
 <meta name="flags" content="ahem">
-<meta name="assert" content="White spaces are preserved, honoring the 'white-space: break-spaces', which may lead to overfow. However, we can break before the first white-space after the word honoring the 'break-all' value.">
+<meta name="assert" content="White spaces are preserved, honoring the 'white-space: break-spaces', which may lead to overfow. However, we can break before the las letter in the word honoring the 'break-all' value.">
 <style>
 div {
   font: 25px/1 Ahem;
@@ -29,6 +29,6 @@ span { color: green; }
 </style>
 <body>
   <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
-  <div class="fail">XXXX<br><span>X</span>XX<span>X</span><br><span>XXXX</span><br><span>XXXX</span></div>
+  <div class="fail">XXX<span>X</span><br>X<span>X</span>XX<br><span>XXXX</span><br><span>XXXX</span></div>
   <div class="test">XXXX XX</div>
 </body>

@@ -19,7 +19,7 @@
         var urlPath = '/common/security-features/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
         var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
                   urlPath;
-        return requestViaImageForReferrerPolicy(url, null, 'no-referrer')
+        return requestViaImage(url, null, 'no-referrer')
           .then(function(message) {
               assert_equals(message.referrer, document.location.origin + "/");
             });

@@ -18,12 +18,6 @@
 @keyframes animRight {
   to { right: 100px }
 }
-::before {
-  content: ''
-}
-::after {
-  content: ''
-}
 </style>
 <div id="log"></div>
 <script>
@@ -251,34 +245,77 @@ test(t => {
 }, 'CSS Animations canceled and restarted via the API are returned');
 
 test(t => {
-  addStyle(t, { '#parent::after': 'animation: animLeft 10s;',
-                '#parent::before': 'animation: animRight 10s;' });
-  // create two divs with these arrangement:
+  // Create two divs with the following arrangement:
+  //
   //       parent
+  //    (::marker,)
   //     ::before,
   //     ::after
   //        |
   //       child
-  const parent = addDiv(t, { 'id': 'parent' });
+
+  addStyle(t, {
+    '#parent::after': "content: ''; animation: animLeft 100s;",
+    '#parent::before': "content: ''; animation: animRight 100s;",
+  });
+
+  const supportsMarkerPseudos = CSS.supports('selector(::marker)');
+  if (supportsMarkerPseudos) {
+    addStyle(t, {
+      '#parent': 'display: list-item;',
+      '#parent::marker': "content: ''; animation: animLeft 100s;",
+    });
+  }
+
+  const parent = addDiv(t, { id: 'parent' });
   const child = addDiv(t);
   parent.appendChild(child);
   for (const div of [parent, child]) {
-    div.setAttribute('style', 'animation: animBottom 10s');
+    div.setAttribute('style', 'animation: animBottom 100s');
   }
 
-  const anims = document.getAnimations();
-  assert_equals(anims.length, 4,
-                'CSS animations on both pseudo-elements and elements ' +
-                'are returned');
-  assert_equals(anims[0].effect.target, parent,
-                'The animation targeting the parent element comes first');
-  assert_equals(anims[1].effect.target.type, '::before',
-                'The animation targeting the ::before element comes second');
-  assert_equals(anims[2].effect.target.type, '::after',
-                'The animation targeting the ::after element comes third');
-  assert_equals(anims[3].effect.target, child,
-                'The animation targeting the child element comes last');
-}, 'CSS Animations targetting (pseudo-)elements should have correct order ' +
-   'after sorting');
+  const expectedAnimations = [
+    [parent, undefined],
+    [parent, '::marker'],
+    [parent, '::before'],
+    [parent, '::after'],
+    [child, undefined],
+  ];
+  if (!supportsMarkerPseudos) {
+    expectedAnimations.splice(1, 1);
+  }
+
+  const animations = document.getAnimations();
+  assert_equals(
+    animations.length,
+    expectedAnimations.length,
+    'CSS animations on both pseudo-elements and elements are returned'
+  );
+
+  for (const [index, expected] of expectedAnimations.entries()) {
+    const [element, pseudo] = expected;
+    const actual = animations[index];
+
+    if (pseudo) {
+      assert_equals(
+        actual.effect.target.element,
+        element,
+        `Animation #${index + 1} has expected target`
+      );
+      assert_equals(
+        actual.effect.target.type,
+        pseudo,
+        `Animation #${index + 1} has expected pseudo type`
+      );
+    } else {
+      assert_equals(
+        actual.effect.target,
+        element,
+        `Animation #${index + 1} has expected target`
+      );
+    }
+  }
+}, 'CSS Animations targetting (pseudo-)elements should have correct order '
+   + 'after sorting');
 
 </script>

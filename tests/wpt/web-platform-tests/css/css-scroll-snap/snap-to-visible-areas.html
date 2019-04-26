@@ -40,12 +40,20 @@ div {
   top: 800px;
 }
 
+#right-bottom {
+  left: 1800px;
+  top: 1800px;
+  scroll-margin-top: 1000px;
+  scroll-margin-left: 1000px;
+}
+
 </style>
 <div id="scroller">
   <div id="space"></div>
   <div id="left-top" class="snap"></div>
   <div id="right-top" class="snap"></div>
   <div id="left-bottom" class="snap"></div>
+  <div id="right-bottom" class="snap"></div>
 </div>
 <script>
 var scroller = document.getElementById("scroller");
@@ -66,4 +74,13 @@ test(() => {
   assert_equals(scroller.scrollLeft, 0);
   assert_equals(scroller.scrollTop, 800);
 }, 'Only snap to visible area on Y axis, even when the non-visible ones are closer');
+
+test(() => {
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 0);
+  assert_equals(scroller.scrollTop, 0);
+  scroller.scrollTo(300, 300);
+  assert_equals(scroller.scrollLeft, 800);
+  assert_equals(scroller.scrollTop, 800);
+}, 'snap to snap area inflated by scroll-margin, even when the non-visible ones are closer');
 </script>

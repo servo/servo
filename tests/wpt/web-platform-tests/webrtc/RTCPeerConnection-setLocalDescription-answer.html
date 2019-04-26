@@ -153,9 +153,9 @@
 
     return pc.createOffer()
     .then(offer =>
-      promise_rejects(t, 'InvalidStateError',
+      promise_rejects(t, 'InvalidModificationError',
         pc.setLocalDescription({ type: 'answer', sdp: offer.sdp })));
-  }, 'Calling setLocalDescription(answer) from stable state should reject with InvalidStateError');
+  }, 'Calling setLocalDescription(answer) from stable state should reject with InvalidModificationError');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
@@ -167,9 +167,9 @@
       pc.setLocalDescription(offer)
       .then(() => generateAnswer(offer)))
     .then(answer =>
-      promise_rejects(t, 'InvalidStateError',
+      promise_rejects(t, 'InvalidModificationError',
         pc.setLocalDescription(answer)));
-  }, 'Calling setLocalDescription(answer) from have-local-offer state should reject with InvalidStateError');
+  }, 'Calling setLocalDescription(answer) from have-local-offer state should reject with InvalidModificationError');
 
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();

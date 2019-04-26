@@ -185,7 +185,7 @@ def load_manifest(manifest_path=None, manifest_update=True):
     # Delay import after localpaths sets up sys.path, because otherwise the
     # import path will be "..manifest" and Python will treat it as a different
     # manifest module.
-    from manifest import manifest
+    from manifest import manifest  # type: ignore
     if manifest_path is None:
         manifest_path = os.path.join(wpt_root, "MANIFEST.json")
     return manifest.load_and_update(wpt_root, manifest_path, "/",

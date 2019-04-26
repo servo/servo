@@ -1,0 +1,26 @@
+<!doctype html>
+<title>&lt;link disabled&gt;'s "explicitly enabled" state isn't magically set from the setter</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1281135">
+<link rel="help" href="https://github.com/whatwg/html/issues/3840">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function assert_applies(applies) {
+  (applies ? assert_equals : assert_not_equals)(getComputedStyle(document.documentElement).backgroundColor, "rgb(0, 128, 0)");
+}
+
+async_test(function(t) {
+  const link = document.createElement("link");
+  link.setAttribute("rel", "alternate stylesheet");
+  link.setAttribute("title", "alt");
+  link.href = "data:text/css,html { background: green }";
+  link.disabled = false; // This should do nothing, and is the point of this test.
+  link.onload = t.step_func_done(function() {
+    assert_applies(false); // Should not apply, since it's an alternate that hasn't been enabled.
+    assert_false(link.disabled);
+  });
+  document.head.appendChild(link);
+}, "HTMLLinkElement.disabled setter does nothing if the attribute isn't present already.");
+</script>

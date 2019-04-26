@@ -16,18 +16,24 @@ https://github.com/whatwg/fetch/pull/853
 <script>
 
   // Duplicating this resource to make service worker scoping simpler.
-  async function setupRegistration(t, scope) {
+  async function setupRegistrationAndWaitToBeControlled(t, scope) {
+    const controlled = new Promise((resolve) => {
+      navigator.serviceWorker.oncontrollerchange = () => { resolve(); };
+    });
     const reg = await navigator.serviceWorker.register('sw-intercept.js');
     await wait_for_state(t, reg.installing, 'activated');
+    await controlled;
     add_completion_callback(_ => reg.unregister());
     return reg;
   }
 
-  function wait25ms(test) {
+  // Using 250ms polling interval to provide enough 'network calmness' to give
+  // the background low priority revalidation request a chance to kick in.
+  function wait250ms(test) {
     return new Promise(resolve => {
       test.step_timeout(() => {
         resolve();
-      }, 25);
+      }, 250);
     });
   }
 
@@ -35,7 +41,7 @@ https://github.com/whatwg/fetch/pull/853
     var request_token = token();
     const uri = 'stale-script.py?token=' + request_token;
 
-    await setupRegistration(test, 'stale-script.py');
+    await setupRegistrationAndWaitToBeControlled(test, 'stale-script.py');
 
     var service_worker_count = 0;
     navigator.serviceWorker.addEventListener('message', function once(event) {
@@ -54,7 +60,7 @@ https://github.com/whatwg/fetch/pull/853
         assert_equals(service_worker_count, 2);
         break;
       }
-      await wait25ms(test);
+      await wait250ms(test);
     }
   }, 'Second fetch returns same response');
 

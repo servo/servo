@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#principal-flow"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html {
+  height: 3000px;
+  scroll-snap-type: inline mandatory;
+}
+#target {
+  position: absolute;
+  background-color: blue;
+  top: 1000px;
+  width: 100%;
+  height: 100px;
+}
+</style>
+<div id="target"></div>
+<script>
+const documentHeight = document.documentElement.clientHeight;
+test(() => {
+  target.style.scrollSnapAlign = "end start";
+
+  window.scrollTo(0, 1000);
+
+  // `target y (1000px)` + `target height (100px)` - document height.
+  assert_equals(document.scrollingElement.scrollTop, 1100 - documentHeight);
+
+  target.style.scrollSnapAlign = "";
+  window.scrollTo(0, 0);
+}, "The scroll-snap-type on the root element is applied");
+
+test(() => {
+  document.body.style.writingMode = "vertical-rl";
+  target.style.scrollSnapAlign = "start end";
+
+  window.scrollTo(0, 1000);
+  // `target y (1000px)` + `target height (100px)` - document height.
+  assert_equals(document.scrollingElement.scrollTop, 1100 - documentHeight);
+}, "The writing-mode on the body is used");
+</script>
