@@ -19,7 +19,7 @@ pub struct NodeRareData {
     /// The shadow root the node belongs to.
     /// This is None if the node is not in a shadow tree or
     /// if it is a ShadowRoot.
-    pub owner_shadow_root: Option<Dom<ShadowRoot>>,
+    pub containing_shadow_root: Option<Dom<ShadowRoot>>,
     /// Registered observers for this node.
     pub mutation_observers: Vec<RegisteredObserver>,
 }
@@ -28,6 +28,7 @@ pub struct NodeRareData {
 #[must_root]
 pub struct ElementRareData {
     /// https://dom.spec.whatwg.org/#dom-element-shadowroot
+    /// The ShadowRoot this element is host of.
     /// XXX This is currently not exposed to web content. Only for
     ///     internal use.
     pub shadow_root: Option<Dom<ShadowRoot>>,

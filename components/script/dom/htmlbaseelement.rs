@@ -64,7 +64,7 @@ impl HTMLBaseElement {
     /// Update the cached base element in response to binding or unbinding from
     /// a tree.
     pub fn bind_unbind(&self, tree_in_doc: bool) {
-        if !tree_in_doc || self.upcast::<Node>().owner_shadow_root().is_some() {
+        if !tree_in_doc || self.upcast::<Node>().containing_shadow_root().is_some() {
             return;
         }
 

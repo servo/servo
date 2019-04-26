@@ -711,7 +711,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         unsafe {
             self.element
                 .upcast()
-                .owner_shadow_root_for_layout()
+                .containing_shadow_root_for_layout()
                 .map(ServoShadowRoot::from_layout_js)
         }
     }

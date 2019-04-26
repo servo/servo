@@ -282,10 +282,10 @@ impl Node {
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
-                if let Some(shadow_root) = self.owner_shadow_root() {
-                    node.set_owner_shadow_root(&*shadow_root);
+                if let Some(shadow_root) = self.containing_shadow_root() {
+                    node.set_containing_shadow_root(&*shadow_root);
                 }
-                debug_assert!(node.owner_shadow_root().is_some());
+                debug_assert!(node.containing_shadow_root().is_some());
             }
             node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
@@ -946,21 +946,21 @@ impl Node {
         self.owner_doc.set(Some(document));
     }
 
-    pub fn owner_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+    pub fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+        // NodeRareData contains the shadow root the node belongs to,
+        // but this node may be a shadow root itself.
         if let Some(ref shadow_root) = self.downcast::<ShadowRoot>() {
             return Some(DomRoot::from_ref(shadow_root));
         }
-        if let Some(rare_data) = self.rare_data().as_ref() {
-            return rare_data
-                .owner_shadow_root
-                .as_ref()
-                .map(|sr| DomRoot::from_ref(&**sr));
-        }
-        None
+        self.rare_data()
+            .as_ref()?
+            .containing_shadow_root
+            .as_ref()
+            .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub fn set_owner_shadow_root(&self, shadow_root: &ShadowRoot) {
-        self.ensure_rare_data().owner_shadow_root = Some(Dom::from_ref(shadow_root));
+    pub fn set_containing_shadow_root(&self, shadow_root: &ShadowRoot) {
+        self.ensure_rare_data().containing_shadow_root = Some(Dom::from_ref(shadow_root));
     }
 
     pub fn is_in_html_doc(&self) -> bool {
@@ -1195,7 +1195,7 @@ pub trait LayoutNodeHelpers {
     unsafe fn next_sibling_ref(&self) -> Option<LayoutDom<Node>>;
 
     unsafe fn owner_doc_for_layout(&self) -> LayoutDom<Document>;
-    unsafe fn owner_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>>;
+    unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
@@ -1280,14 +1280,16 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn owner_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
-        if let Some(rare_data) = (*self.unsafe_get()).rare_data_for_layout().as_ref() {
-            return rare_data
-                .owner_shadow_root
-                .as_ref()
-                .map(|sr| sr.to_layout());
+    unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
+        if let Some(ref shadow_root) = self.downcast::<ShadowRoot>() {
+            return Some(*shadow_root);
         }
-        None
+        (*self.unsafe_get())
+            .rare_data_for_layout()
+            .as_ref()?
+            .containing_shadow_root
+            .as_ref()
+            .map(|sr| sr.to_layout())
     }
 
     #[inline]
@@ -2293,18 +2295,14 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-getrootnode
     fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
         if options.composed {
-            if let Some(rare_data) = self.rare_data().as_ref() {
-                if let Some(ref shadow_root) = rare_data.owner_shadow_root {
-                    // shadow-including root.
-                    return shadow_root.Host().upcast::<Node>().GetRootNode(options);
-                }
+            if let Some(shadow_root) = self.containing_shadow_root() {
+                // shadow-including root.
+                return shadow_root.Host().upcast::<Node>().GetRootNode(options);
             }
         }
 
-        if let Some(rare_data) = self.rare_data().as_ref() {
-            if let Some(ref shadow_root) = rare_data.owner_shadow_root {
-                return DomRoot::from_ref(shadow_root.upcast::<Node>());
-            }
+        if let Some(shadow_root) = self.containing_shadow_root() {
+            return DomRoot::from_ref(shadow_root.upcast::<Node>());
         }
 
         if self.is_in_doc() {
@@ -2837,7 +2835,7 @@ pub fn document_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomR
 pub fn containing_shadow_root<T: DerivedFrom<Node> + DomObject>(
     derived: &T,
 ) -> Option<DomRoot<ShadowRoot>> {
-    derived.upcast().owner_shadow_root()
+    derived.upcast().containing_shadow_root()
 }
 
 #[allow(unrooted_must_root)]
