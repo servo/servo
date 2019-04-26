@@ -199,14 +199,14 @@ impl AudioListenerMethods for AudioListener {
     self.up_x.SetValue(xUp);
     self.up_y.SetValue(yUp);
     self.up_z.SetValue(zUp);
-	return Err(Error::InvalidState);
+    return Err(Error::NotSupported);
     }
     fn SetPosition(&self,x: Finite<f32>,y: Finite<f32>,z: Finite<f32>)->() {
 	
     self.position_x.SetValue(x);
     self.position_y.SetValue(y);
     self.position_z.SetValue(z);
-
+    return Err(Error::NotSupported);
     }
 
 
