@@ -30,6 +30,7 @@ use euclid::TypedSize2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use net_traits::request::Referrer;
 use profile_traits::ipc as ProfiledIpc;
 use script_layout_interface::message::ReflowGoal;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -269,8 +270,8 @@ impl HTMLIFrameElement {
         let load_data = LoadData::new(
             url,
             creator_pipeline_id,
+            Some(Referrer::ReferrerUrl(document.url())),
             document.get_referrer_policy(),
-            Some(document.url()),
         );
 
         let pipeline_id = self.pipeline_id();
@@ -295,8 +296,8 @@ impl HTMLIFrameElement {
         let load_data = LoadData::new(
             url,
             pipeline_id,
+            Some(Referrer::ReferrerUrl(document.url().clone())),
             document.get_referrer_policy(),
-            Some(document.url().clone()),
         );
         let browsing_context_id = BrowsingContextId::new();
         let top_level_browsing_context_id = window.window_proxy().top_level_browsing_context_id();

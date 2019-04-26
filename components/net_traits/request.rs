@@ -162,7 +162,7 @@ pub struct RequestBuilder {
     pub use_url_credentials: bool,
     pub origin: ImmutableOrigin,
     // XXXManishearth these should be part of the client object
-    pub referrer_url: Option<ServoUrl>,
+    pub referrer: Option<Referrer>,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
@@ -188,7 +188,7 @@ impl RequestBuilder {
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
-            referrer_url: None,
+            referrer: None,
             referrer_policy: None,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
@@ -265,8 +265,8 @@ impl RequestBuilder {
         self
     }
 
-    pub fn referrer_url(mut self, referrer_url: Option<ServoUrl>) -> RequestBuilder {
-        self.referrer_url = referrer_url;
+    pub fn referrer(mut self, referrer: Option<Referrer>) -> RequestBuilder {
+        self.referrer = referrer;
         self
     }
 
@@ -313,11 +313,7 @@ impl RequestBuilder {
         request.credentials_mode = self.credentials_mode;
         request.use_url_credentials = self.use_url_credentials;
         request.cache_mode = self.cache_mode;
-        request.referrer = if let Some(url) = self.referrer_url {
-            Referrer::ReferrerUrl(url)
-        } else {
-            Referrer::NoReferrer
-        };
+        request.referrer = self.referrer.unwrap_or(Referrer::Client);
         request.referrer_policy = self.referrer_policy;
         request.redirect_mode = self.redirect_mode;
         let mut url_list = self.url_list;

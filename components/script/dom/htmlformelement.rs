@@ -55,6 +55,7 @@ use html5ever::{LocalName, Prefix};
 use hyper::Method;
 use mime::{self, Mime};
 use net_traits::http_percent_encode;
+use net_traits::request::Referrer;
 use script_traits::LoadData;
 use servo_rand::random;
 use std::borrow::ToOwned;
@@ -400,8 +401,8 @@ impl HTMLFormElement {
         let mut load_data = LoadData::new(
             action_components,
             None,
+            Some(Referrer::ReferrerUrl(target_document.url())),
             target_document.get_referrer_policy(),
-            Some(target_document.url()),
         );
 
         // Step 22

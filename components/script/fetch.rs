@@ -94,10 +94,6 @@ impl Drop for FetchCanceller {
     }
 }
 
-fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<ServoUrl> {
-    request.referrer.to_url().map(|url| url.clone())
-}
-
 fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
     RequestBuilder {
         method: request.method.clone(),
@@ -118,7 +114,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
             .origin()
             .immutable()
             .clone(),
-        referrer_url: from_referrer_to_referrer_url(&request),
+        referrer: Some(request.referrer.clone()),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
         redirect_mode: request.redirect_mode,

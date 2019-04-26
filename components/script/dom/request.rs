@@ -554,7 +554,7 @@ impl RequestMethods for Request {
     fn Referrer(&self) -> USVString {
         let r = self.request.borrow();
         USVString(match r.referrer {
-            NetTraitsRequestReferrer::NoReferrer => String::from("no-referrer"),
+            NetTraitsRequestReferrer::NoReferrer => String::from(""),
             NetTraitsRequestReferrer::Client => String::from("about:client"),
             NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();

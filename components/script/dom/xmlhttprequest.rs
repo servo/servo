@@ -59,7 +59,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
-use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestMode};
+use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
@@ -653,7 +653,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             .credentials_mode(credentials_mode)
             .use_url_credentials(use_url_credentials)
             .origin(self.global().origin().immutable().clone())
-            .referrer_url(self.referrer_url.clone())
+            .referrer(
+                self.referrer_url
+                    .clone()
+                    .map(|referrer_url| Referrer::ReferrerUrl(referrer_url)),
+            )
             .referrer_policy(self.referrer_policy.clone())
             .pipeline_id(Some(self.global().pipeline_id()));
 
