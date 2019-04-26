@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCRtpTransceiver</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -990,6 +991,9 @@
       ]);
 
     hasProps(pc2.getTransceivers(), [{currentDirection: "sendrecv"}]);
+
+    pc2.close();
+    hasProps(pc2.getTransceivers(), [{currentDirection: null}]);
   };
 
   const checkSendrecvWithNoSendTrack = async t => {
@@ -1277,8 +1281,10 @@
     pc1.close();
     pc2.close();
 
-    // Still shouldn't throw
-    stoppedTransceiver.stop();
+    // Spec says the closed check comes before the stopped check, so this
+    // should throw now.
+    checkThrows(() => stoppedTransceiver.stop(),
+                "InvalidStateError", "RTCRtpTransceiver.stop() with closed PC");
   };
 
   const checkStopAfterCreateOffer = async t => {
@@ -2182,6 +2188,36 @@
                   "No rejected m-line, because it was reused");
   };
 
+  const checkStopAfterCreateOfferWithReusedMsection = async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({audio: true, video: true});
+    t.add_cleanup(() => stopTracks(stream));
+    const audio = stream.getAudioTracks()[0];
+    const video = stream.getVideoTracks()[0];
+
+    pc1.addTrack(audio, stream);
+    pc1.addTrack(video, stream);
+
+    await offerAnswer(pc1, pc2);
+    pc1.getTransceivers()[1].stop();
+    await offerAnswer(pc1, pc2);
+
+    // Second (video) m-section has been negotiated disabled.
+    const transceiver = pc1.addTransceiver("video");
+    const offer = await pc1.createOffer();
+    transceiver.stop();
+    await pc1.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+  };
+
 const tests = [
   checkAddTransceiverNoTrack,
   checkAddTransceiverWithTrack,
@@ -2217,7 +2253,8 @@ const tests = [
   checkLocalRollback,
   checkRollbackAndSetRemoteOfferWithDifferentType,
   checkRemoteRollback,
-  checkMsectionReuse
+  checkMsectionReuse,
+  checkStopAfterCreateOfferWithReusedMsection
 ].forEach(test => promise_test(test, test.name));
 
 </script>

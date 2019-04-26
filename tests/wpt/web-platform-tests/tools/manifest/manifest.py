@@ -10,8 +10,15 @@ from .item import (ManualTest, WebDriverSpecTest, Stub, RefTestNode, RefTest,
 from .log import get_logger
 from .utils import from_os_path, to_os_path
 
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import Dict
+    from types import ModuleType
+
 try:
-    import ujson as fast_json
+    import ujson
+    fast_json = ujson  # type: ModuleType
 except ImportError:
     fast_json = json
 
@@ -418,7 +425,7 @@ def load(tests_root, manifest, types=None):
     return _load(logger, tests_root, manifest, types)
 
 
-__load_cache = {}
+__load_cache = {}  # type: Dict[str, Manifest]
 
 
 def _load(logger, tests_root, manifest, types=None, allow_cached=True):

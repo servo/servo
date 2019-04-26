@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<script>
+
+const CHANNEL_NAME = "new_window_same_site";
+
+async_test(t => {
+  let w = window.open(`${get_host_info().HTTP_REMOTE_ORIGIN}/html/cross-origin-opener/resources/window.sub.html?channel=${CHANNEL_NAME}`, "window_name", "height=200,width=250");
+
+  // w will be closed by its postback iframe. When out of process,
+  // window.close() does not work.
+  t.add_cleanup(() => w.close());
+
+  let bc = new BroadcastChannel(CHANNEL_NAME);
+  bc.onmessage = t.step_func_done((event) => {
+    let payload = event.data;
+    assert_equals(payload.name, "window_name");
+    assert_equals(payload.opener, true);
+  });
+}, "same-site policy works");
+
+</script>

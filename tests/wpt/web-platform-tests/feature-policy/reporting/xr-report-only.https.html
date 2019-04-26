@@ -23,9 +23,9 @@ promise_test(async t => {
                           {types: ['feature-policy-violation']}).observe();
   });
   try {
-    await navigator.xr.supportsSessionMode('inline');
+    await navigator.xr.supportsSession('inline');
   } catch (err) {
-    // If no XR devices are available, supportsSessionMode() will reject with a
+    // If no XR devices are available, supportsSession() will reject with a
     // NotSupportedError, but the report should be generated anyway.
     assert_equals(err.name, 'NotSupportedError');
   }

@@ -9,8 +9,6 @@ import socket
 from six.moves.urllib.parse import urljoin, urlsplit, urlunsplit
 from abc import ABCMeta, abstractmethod
 
-from PIL import Image, ImageChops, ImageStat
-
 from ..testrunner import Stop
 from .protocol import Protocol, BaseProtocolPart
 
@@ -316,6 +314,8 @@ class RefTestImplementation(object):
         return equal if relation == "==" else not equal
 
     def get_differences(self, screenshots):
+        from PIL import Image, ImageChops, ImageStat
+
         lhs = Image.open(io.BytesIO(base64.b64decode(screenshots[0]))).convert("RGB")
         rhs = Image.open(io.BytesIO(base64.b64decode(screenshots[1]))).convert("RGB")
         diff = ImageChops.difference(lhs, rhs)

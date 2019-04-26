@@ -1175,18 +1175,6 @@ const gCSSProperties = {
       { type: 'discrete', options: [ [ 'auto', 'smooth' ] ] }
     ]
   },
-  'scroll-snap-type-x': {
-    // https://developer.mozilla.org/en/docs/Web/CSS/scroll-snap-type-x
-    types: [
-      { type: 'discrete', options: [ [ 'mandatory', 'proximity' ] ] }
-    ]
-  },
-  'scroll-snap-type-y': {
-    // https://developer.mozilla.org/en/docs/Web/CSS/scroll-snap-type-y
-    types: [
-      { type: 'discrete', options: [ [ 'mandatory', 'proximity' ] ] }
-    ]
-  },
   'shape-outside': {
     // http://dev.w3.org/csswg/css-shapes/#propdef-shape-outside
     types: [

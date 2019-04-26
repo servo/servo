@@ -3,7 +3,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-body {
+html {
   margin: 0px;
   overflow: scroll;
   scroll-snap-type: both mandatory;
@@ -23,8 +23,8 @@ div {
 .space {
   left: 0px;
   top: 0px;
-  width: 2100px;
-  height: 2100px;
+  width: 4000px;
+  height: 4000px;
 }
 .target {
   width: 600px;
@@ -151,7 +151,7 @@ var viewport = document.scrollingElement;
     window.scrollTo(0, 0);
     assert_equals(window.scrollX, 0);
     assert_equals(window.scrollY, 0);
-    window.scrollTo(input);
+    window.scrollBy(input);
     assert_equals(window.scrollX, expectedX);
     assert_equals(window.scrollY, expectedY);
   }, `scrollBy(${format_dict(input)}) on window lands on (${expectedX}, ${expectedY})`);

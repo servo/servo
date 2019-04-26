@@ -5,10 +5,18 @@ from collections import deque
 from six import binary_type
 from six.moves.urllib.parse import urljoin
 from fnmatch import fnmatch
+
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from types import ModuleType
+
 try:
-    from xml.etree import cElementTree as ElementTree
+    from xml.etree import cElementTree
+    ElementTree = cElementTree  # type: ModuleType
 except ImportError:
-    from xml.etree import ElementTree
+    from xml.etree import ElementTree as _ElementTree
+    ElementTree = _ElementTree
 
 import html5lib
 

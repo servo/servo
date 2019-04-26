@@ -16,9 +16,9 @@
     assert_equals(el.selectionEnd, 0);
     el.defaultValue = "123";
     assert_equals(el.value.length, 3);
-    assert_equals(el.selectionStart, 3);
-    assert_equals(el.selectionEnd, 3);
-  }, "Setting defaultValue in a textarea should move the cursor to the end");
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Setting defaultValue in a textarea should NOT move the cursor to the end");
 
   test(function() {
     var el = document.createElement("textarea");
@@ -34,34 +34,34 @@
   test(function() {
     var el = document.createElement("textarea");
     el.appendChild(document.createTextNode("abcdef"));
-    assert_equals(el.selectionStart, 6);
-    assert_equals(el.selectionEnd, 6);
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
     el.textContent = "abcdef123456";
-    assert_equals(el.selectionStart, 12);
-    assert_equals(el.selectionEnd, 12);
-  }, "Setting textContent in a textarea should move selection{Start,End} to the end");
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Setting textContent in a textarea should NOT move selection{Start,End} to the end");
 
   test(function() {
     var el = document.createElement("textarea");
     el.appendChild(document.createTextNode("abcdef"));
-    assert_equals(el.selectionStart, 6);
-    assert_equals(el.selectionEnd, 6);
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
     el.appendChild(document.createTextNode("123456"));
-    assert_equals(el.selectionStart, 12);
-    assert_equals(el.selectionEnd, 12);
-  }, "Adding children to a textarea should move selection{Start,End} to the end");
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Adding children to a textarea should NOT move selection{Start,End} to the end");
 
   test(function() {
     var el = document.createElement("textarea");
     el.appendChild(document.createTextNode("abcdef"));
     el.appendChild(document.createTextNode("123"));
-    assert_equals(el.selectionStart, 9);
-    assert_equals(el.selectionEnd, 9);
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
 
     el.removeChild(el.firstChild);
-    assert_equals(el.selectionStart, 3);
-    assert_equals(el.selectionEnd, 3);
-  }, "Removing children from a textarea should update selection{Start,End}");
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Removing children from a textarea should NOT update selection{Start,End}");
 
   test(function() {
     var el = document.createElement("textarea");
@@ -104,8 +104,8 @@
     var el = document.createElement("textarea");
     el.defaultValue = "123";
     assert_equals(el.value.length, 3);
-    assert_equals(el.selectionStart, 3);
-    assert_equals(el.selectionEnd, 3);
+    el.selectionStart = 3;
+    el.selectionEnd = 3;
     el.value = "12";
     assert_equals(el.value.length, 2);
     assert_equals(el.selectionStart, 2);

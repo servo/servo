@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script src="/common/get-host-info.sub.js"></script>
+<div id="status"> </div>
+
+<script type="text/javascript">
+
+  let iframe = document.createElement("iframe");
+  iframe.onload = () => {
+    let payload = { name: self.name, opener: !!self.opener };
+    iframe.contentWindow.postMessage(payload, "*");
+  };
+  let channelName = new URL(location).searchParams.get("channel");
+  iframe.src = `${get_host_info().HTTP_ORIGIN}/html/cross-origin-opener/resources/postback.sub.html?channel=${channelName}`;
+  document.body.appendChild(iframe);
+
+</script>

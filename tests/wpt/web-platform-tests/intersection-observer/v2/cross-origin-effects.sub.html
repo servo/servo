@@ -51,7 +51,7 @@ async_test(function(t) {
 
   window.addEventListener("message", event => {
     if (steps.length) {
-      t.step_func(steps.shift(), event);
+      t.step(steps.shift(), t, event);
       waitForFrame(t, () => {
         iframe.contentWindow.postMessage("", "*")
       });

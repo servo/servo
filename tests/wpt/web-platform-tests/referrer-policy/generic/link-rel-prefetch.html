@@ -16,9 +16,8 @@
     <script>
       var img_url = "/common/security-features/subresource/image.py";
       promise_test((t) => timeoutPromise(t, 1000)
-        .then(() => loadImageInWindow(img_url, null, window))
-        .then(function (img) {
-            var message = decodeImageData(extractImageData(img));
+        .then(() => requestViaImage(img_url, null))
+        .then(message => {
             assert_equals(message.headers.referer, document.location.origin + "/");
           }),
         "Prefetched image.");

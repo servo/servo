@@ -107,3 +107,94 @@ function addCrossOriginRedirectYellowImage()
         get_host_info().HTTP_REMOTE_ORIGIN + "/images/yellow.png";
     document.body.appendChild(img);
 }
+
+function forEachCanvasSource(crossOriginUrl, sameOriginUrl, callback) {
+  function makeImage() {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = crossOriginUrl + "/images/red.png";
+    });
+  }
+
+  const arguments = [
+    {
+      name: "cross-origin HTMLImageElement",
+      factory: makeImage,
+    },
+
+    {
+      name: "cross-origin SVGImageElement",
+      factory: () => {
+        return new Promise((resolve, reject) => {
+          const image = document.createElementNS(NAMESPACES.svg, "image");
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.setAttribute("externalResourcesRequired", "true");
+          image.setAttributeNS(NAMESPACES.xlink, 'xlink:href', crossOriginUrl + "/images/red.png");
+          document.body.appendChild(image);
+        });
+      },
+    },
+
+    {
+      name: "cross-origin HTMLVideoElement",
+      factory: () => {
+        return new Promise((resolve, reject) => {
+          const video = document.createElement("video");
+          video.oncanplaythrough = () => resolve(video);
+          video.onerror = reject;
+          video.src = getVideoURI(crossOriginUrl + "/media/movie_300");
+        });
+      },
+    },
+
+    {
+      name: "redirected to cross-origin HTMLVideoElement",
+      factory: () => {
+        return new Promise((resolve, reject) => {
+          const video = document.createElement("video");
+          video.oncanplaythrough = () => resolve(video);
+          video.onerror = reject;
+          video.src = "/common/redirect.py?location=" + getVideoURI(crossOriginUrl + "/media/movie_300");
+        });
+      },
+    },
+
+    {
+      name: "redirected to same-origin HTMLVideoElement",
+      factory: () => {
+        return new Promise((resolve, reject) => {
+          const video = document.createElement("video");
+          video.oncanplaythrough = () => resolve(video);
+          video.onerror = reject;
+          video.src = crossOriginUrl + "/common/redirect.py?location=" + getVideoURI(sameOriginUrl + "/media/movie_300");
+        });
+      },
+    },
+
+    {
+      name: "unclean HTMLCanvasElement",
+      factory: () => {
+        return makeImage().then(image => {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          context.drawImage(image, 0, 0);
+          return canvas;
+        });
+      },
+    },
+
+    {
+      name: "unclean ImageBitmap",
+      factory: () => {
+        return makeImage().then(createImageBitmap);
+      },
+    },
+  ];
+
+  for (let { name, factory } of arguments) {
+    callback(name, factory);
+  }
+}

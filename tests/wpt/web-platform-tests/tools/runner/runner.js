@@ -153,13 +153,22 @@ ManifestIterator.prototype = {
     },
 
     matches: function(manifest_item) {
-        return this.match_location(manifest_item.url) !== null;
+        var url_base = this.manifest.data.url_base;
+        if (url_base.charAt(url_base.length - 1) !== "/") {
+            url_base = url_base + "/";
+        }
+        var url = url_base + manifest_item.url;
+        return this.match_location(url) !== null;
     },
 
     to_test: function(manifest_item) {
+        var url_base = this.manifest.data.url_base;
+        if (url_base.charAt(url_base.length - 1) !== "/") {
+            url_base = url_base + "/";
+        }
         var test = {
             type: this.test_types[this.test_types_index],
-            url: manifest_item.url
+            url: url_base + manifest_item.url
         };
         if (manifest_item.hasOwnProperty("references")) {
             test.ref_length = manifest_item.references.length;
@@ -638,8 +647,9 @@ Results.prototype = {
     },
 
     to_json: function() {
+        var test_results = this.test_results || [];
         var data = {
-            "results": this.test_results.map(function(result) {
+            "results": test_results.map(function(result) {
                 var rv = {"test":(result.test.hasOwnProperty("ref_url") ?
                                   [result.test.url, result.test.ref_type, result.test.ref_url] :
                                   result.test.url),

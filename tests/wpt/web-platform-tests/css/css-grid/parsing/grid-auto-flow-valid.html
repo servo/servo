@@ -14,11 +14,11 @@
 <script>
 test_valid_value("grid-auto-flow", "row");
 test_valid_value("grid-auto-flow", "column");
-test_valid_value("grid-auto-flow", "row dense");
+test_valid_value("grid-auto-flow", "row dense", "dense");
+test_valid_value("grid-auto-flow", "dense row", "dense");
+test_valid_value("grid-auto-flow", "dense");
+test_valid_value("grid-auto-flow", "column dense");
 test_valid_value("grid-auto-flow", "dense column", "column dense");
-
-// Blink/WebKit "dense", Edge/Firefox "row dense"
-test_valid_value("grid-auto-flow", "dense", ["dense", "row dense"]);
 </script>
 </body>
 </html>

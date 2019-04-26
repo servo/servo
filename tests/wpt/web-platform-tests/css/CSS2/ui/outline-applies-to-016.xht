@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline applied to replaced element with display table-column-group</title>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <link rel="match" href="outline-applies-to-016-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'outline' property applies to replaced elements with a display of table-column-group." />
+        <style type="text/css">
+            #test
+            {
+                display: table-column-group;
+                outline: solid blue 10px;
+                height: 1in;
+                width: 1in;
+            }
+            #table
+            {
+                display: table;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue box below.</p>
+        <div id="table">
+            <img id="test"></img>
+        </div>
+    </body>
+</html>

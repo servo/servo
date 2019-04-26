@@ -52,8 +52,8 @@ def test_get_named_cookie(session, url):
 
     # same formatting as Date.toUTCString() in javascript
     utc_string_format = "%a, %d %b %Y %H:%M:%S"
-    a_year_from_now = (datetime.utcnow() + timedelta(days=365)).strftime(utc_string_format)
-    session.execute_script("document.cookie = 'foo=bar;expires=%s'" % a_year_from_now)
+    a_day_from_now = (datetime.utcnow() + timedelta(days=1)).strftime(utc_string_format)
+    session.execute_script("document.cookie = 'foo=bar;expires=%s'" % a_day_from_now)
 
     result = get_named_cookie(session, "foo")
     cookie = assert_success(result)
@@ -70,7 +70,7 @@ def test_get_named_cookie(session, url):
     assert cookie["value"] == "bar"
     # convert from seconds since epoch
     assert datetime.utcfromtimestamp(
-        cookie["expiry"]).strftime(utc_string_format) == a_year_from_now
+        cookie["expiry"]).strftime(utc_string_format) == a_day_from_now
 
 
 def test_duplicated_cookie(session, url, server_config):

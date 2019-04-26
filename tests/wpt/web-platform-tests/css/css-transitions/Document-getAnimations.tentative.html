@@ -36,47 +36,88 @@ test(t => {
 }, 'getAnimations for CSS Transitions');
 
 test(t => {
-  addStyle(t, { '.init::after': 'content: ""; width: 0px; ' +
-                                'transition: all 100s;',
-                '.init::before': 'content: ""; width: 0px; ' +
-                                 'transition: all 10s;',
-                '.change::after': 'width: 100px;',
-                '.change::before': 'width: 100px;' });
-  // create two divs with these arrangement:
+  // Create two divs with the following arrangement:
+  //
   //       parent
+  //    (::marker,)
   //     ::before,
   //     ::after
   //        |
   //       child
-  const parent = addDiv(t);
+
+  addStyle(t, {
+    '.init::after': 'content: ""; width: 0px; transition: all 100s;',
+    '.init::before': 'content: ""; width: 0px; transition: all 100s;',
+    '.change::after': 'width: 100px;',
+    '.change::before': 'width: 100px;',
+  });
+
+  const supportsMarkerPseudos = CSS.supports('selector(::marker)');
+  if (supportsMarkerPseudos) {
+    addStyle(t, {
+      '.init::marker': 'content: ""; color: red; transition: all 100s;',
+      '.change::marker': 'color: green;',
+    });
+  }
+
+  const parent = addDiv(t, { 'style': 'display: list-item' });
   const child = addDiv(t);
   parent.appendChild(child);
 
   parent.style.left = '0px';
-  parent.style.transition = 'left 10s';
+  parent.style.transition = 'left 100s';
   parent.classList.add('init');
   child.style.left = '0px';
-  child.style.transition = 'left 10s';
+  child.style.transition = 'left 100s';
   getComputedStyle(parent).left;
 
   parent.style.left = '100px';
   parent.classList.add('change');
   child.style.left = '100px';
 
-  const anims = document.getAnimations();
-  assert_equals(anims.length, 4,
-                'CSS transition on both pseudo-elements and elements ' +
-                'are returned');
-  assert_equals(anims[0].effect.target, parent,
-                'The animation targeting the parent element comes first');
-  assert_equals(anims[1].effect.target.type, '::before',
-                'The animation targeting the ::before element comes second');
-  assert_equals(anims[2].effect.target.type, '::after',
-                'The animation targeting the ::after element comes third');
-  assert_equals(anims[3].effect.target, child,
-                'The animation targeting the child element comes last');
-}, 'CSS Transitions targetting (pseudo-)elements should have correct order ' +
-   'after sorting');
+  const expectedTransitions = [
+    [parent, undefined],
+    [parent, '::marker'],
+    [parent, '::before'],
+    [parent, '::after'],
+    [child, undefined],
+  ];
+  if (!supportsMarkerPseudos) {
+    expectedTransitions.splice(1, 1);
+  }
+
+  const transitions = document.getAnimations();
+  assert_equals(
+    transitions.length,
+    expectedTransitions.length,
+    'CSS transition on both pseudo-elements and elements are returned'
+  );
+
+  for (const [index, expected] of expectedTransitions.entries()) {
+    const [element, pseudo] = expected;
+    const actual = transitions[index];
+
+    if (pseudo) {
+      assert_equals(
+        actual.effect.target.element,
+        element,
+        `Transition #${index + 1} has expected target`
+      );
+      assert_equals(
+        actual.effect.target.type,
+        pseudo,
+        `Transition #${index + 1} has expected pseudo type`
+      );
+    } else {
+      assert_equals(
+        actual.effect.target,
+        element,
+        `Transition #${index + 1} has expected target`
+      );
+    }
+  }
+}, 'CSS Transitions targetting (pseudo-)elements should have correct order '
+   + 'after sorting');
 
 promise_test(async t => {
   const div = addDiv(t, { style: 'left: 0px; transition: all 50ms' });

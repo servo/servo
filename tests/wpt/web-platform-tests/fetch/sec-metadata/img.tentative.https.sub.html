@@ -8,12 +8,10 @@
   // These tests reuse the `referrer-policy` infrastructure to load images that
   // encode their request headers in their pixels. Fun stuff!
   promise_test(() =>
-    loadImageInWindow(
-      "https://{{host}}:{{ports[https][0]}}/common/security-features/subresource/image.py",
-      [],
-      window)
-    .then(img => {
-        headers = decodeImageData(extractImageData(img)).headers;
+    requestViaImage(
+      "https://{{host}}:{{ports[https][0]}}/common/security-features/subresource/image.py")
+    .then(result => {
+        headers = result.headers;
         got = {
           "dest": headers["sec-fetch-dest"],
           "mode": headers["sec-fetch-mode"],
@@ -32,12 +30,10 @@
     "Same-origin image");
 
   promise_test(() =>
-    loadImageInWindow(
-      "https://{{hosts[][www]}}:{{ports[https][0]}}/common/security-features/subresource/image.py",
-      [],
-      window)
-    .then(img => {
-        headers = decodeImageData(extractImageData(img)).headers;
+    requestViaImage(
+      "https://{{hosts[][www]}}:{{ports[https][0]}}/common/security-features/subresource/image.py")
+    .then(result => {
+        headers = result.headers;
         got = {
           "dest": headers["sec-fetch-dest"],
           "mode": headers["sec-fetch-mode"],
@@ -56,12 +52,10 @@
     "Same-site image");
 
   promise_test(() =>
-    loadImageInWindow(
-      "https://{{hosts[alt][www]}}:{{ports[https][0]}}/common/security-features/subresource/image.py",
-      [],
-      window)
-    .then(img => {
-        headers = decodeImageData(extractImageData(img)).headers;
+    requestViaImage(
+      "https://{{hosts[alt][www]}}:{{ports[https][0]}}/common/security-features/subresource/image.py")
+    .then(result => {
+        headers = result.headers;
         got = {
           "dest": headers["sec-fetch-dest"],
           "mode": headers["sec-fetch-mode"],

@@ -3,6 +3,11 @@ from six import iteritems
 from six.moves.urllib.parse import urljoin, urlparse
 from abc import ABCMeta, abstractproperty
 
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import Optional
+
 item_types = {}
 
 
@@ -24,7 +29,7 @@ class ManifestItem(object):
 
     __slots__ = ("_tests_root", "path")
 
-    item_type = None
+    item_type = None  # type: Optional[str]
 
     def __init__(self, tests_root=None, path=None):
         self._tests_root = tests_root

@@ -2,7 +2,7 @@
 import argparse
 import os
 
-import manifest
+from . import manifest
 from . import vcs
 from .log import get_logger
 from .download import download_from_github

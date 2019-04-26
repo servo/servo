@@ -21,7 +21,7 @@
         var urlPath = '/common/security-features/subresource/image.py';
         var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
                   urlPath + "?cache_destroyer=" + (new Date()).getTime();
-        return requestViaImageForReferrerPolicy(url, undefined, "always")
+        return requestViaImage(url, undefined, "always")
           .then(function(message) {
             var pre = document.getElementById('received_message')
             var headers = message.headers;
