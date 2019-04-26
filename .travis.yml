@@ -64,6 +64,7 @@ matrix:
           packages:
             - autoconf2.13
             - cmake
+            - gcc-6
             - g++-6
             - gperf
             - libosmesa6-dev
