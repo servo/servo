@@ -9,10 +9,46 @@ use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::process::Command;
+use std::str;
 use std::time::Instant;
 
 fn main() {
     let start = Instant::now();
+
+    let target = env::var("TARGET").unwrap();
+    let host = env::var("HOST").unwrap();
+    if target.contains("windows") && host != target {
+        assert_eq!(
+            host, "x86_64-pc-windows-msvc",
+            "Only cross-compiling from x64 is supported"
+        );
+        assert_eq!(
+            target, "i686-pc-windows-msvc",
+            "Only cross-compiling to x86 is supported"
+        );
+        assert!(env::var("VSINSTALLDIR").is_err());
+        // When cross-compiling on Windows, we need to ensure that the PATH is
+        // set up appropriately for the target before invoking make.
+        if env::var("VCVARSALL_PATH").is_err() {
+            panic!(
+                "Need to provide VCVARSALL_PATH value with path to \
+                 vcvarsall.bat from Visual Studio installation"
+            );
+        }
+
+        let vcvars = Command::new("vcvars.bat").output().unwrap();
+        assert!(vcvars.status.success());
+        let output = str::from_utf8(&vcvars.stdout).unwrap();
+        for line in output.lines() {
+            let mut parts = line.splitn(2, '=');
+            if let Some(name) = parts.next() {
+                if let Some(value) = parts.next() {
+                    env::set_var(name, value);
+                }
+            }
+        }
+    }
 
     // This must use the Ninja generator -- it's the only one that
     // parallelizes cmake's output properly.  (Cmake generates
