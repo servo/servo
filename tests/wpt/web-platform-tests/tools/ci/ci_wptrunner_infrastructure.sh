@@ -25,7 +25,7 @@ main() {
     for PRODUCT in "${PRODUCTS[@]}"; do
         if [[ "$PRODUCT" == "chrome" ]]; then
             add_wpt_hosts
-            test_infrastructure "--binary=$(which google-chrome-unstable)"
+            test_infrastructure "--binary=$(which google-chrome-unstable) --channel dev"
         else
             test_infrastructure
         fi

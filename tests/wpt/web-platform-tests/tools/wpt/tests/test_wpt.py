@@ -102,7 +102,8 @@ def test_list_tests(manifest_dir):
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--metadata", manifest_dir, "--list-tests",
-                       "--yes", "chrome", "/dom/nodes/Element-tagName.html"])
+                       "--channel", "dev", "--yes", "chrome",
+                       "/dom/nodes/Element-tagName.html"])
     assert excinfo.value.code == 0
 
 
@@ -173,12 +174,13 @@ def test_run_zero_tests():
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "chrome", "/non-existent-dir/non-existent-file.html"])
+                       "--channel", "dev", "chrome",
+                       "/non-existent-dir/non-existent-file.html"])
     assert excinfo.value.code != 0
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "--no-fail-on-unexpected",
+                       "--no-fail-on-unexpected", "--channel", "dev",
                        "chrome", "/non-existent-dir/non-existent-file.html"])
     assert excinfo.value.code != 0
 
@@ -197,12 +199,12 @@ def test_run_failing_test():
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "chrome", failing_test])
+                       "--channel", "dev", "chrome", failing_test])
     assert excinfo.value.code != 0
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "--no-fail-on-unexpected",
+                       "--no-fail-on-unexpected", "--channel", "dev",
                        "chrome", failing_test])
     assert excinfo.value.code == 0
 
@@ -228,14 +230,14 @@ def test_run_verify_unstable(temp_test):
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--verify", "--binary-arg", "headless",
-                       "chrome", unstable_test])
+                       "--channel", "dev", "chrome", unstable_test])
     assert excinfo.value.code != 0
 
     stable_test = temp_test("test(function() {}, 'my test');")
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--verify", "--binary-arg", "headless",
-                       "chrome", stable_test])
+                       "--channel", "dev", "chrome", stable_test])
     assert excinfo.value.code == 0
 
 

@@ -425,7 +425,8 @@ function requestViaIframe(url, additionalAttributes) {
       false);
   return bindEvents2(window, "message", iframe, "error", window, "error")
       .then(event => {
-          assert_equals(event.source, iframe.contentWindow);
+          if (event.source !== iframe.contentWindow)
+            return Promise.reject(new Error('Unexpected event.source'));
           return event.data;
         });
 }
@@ -570,8 +571,7 @@ function get_worklet(type) {
   if (type == 'audio')
     return new OfflineAudioContext(2,44100*40,44100).audioWorklet;
 
-  assert_unreached('unknown worklet type is passed.');
-  return undefined;
+  throw new Error('unknown worklet type is passed.');
 }
 
 function requestViaWorklet(type, url) {
@@ -599,7 +599,8 @@ function requestViaNavigable(navigableElement, url) {
   const promise =
     bindEvents2(window, "message", iframe, "error", window, "error")
       .then(event => {
-          assert_equals(event.source, iframe.contentWindow, "event.source");
+          if (event.source !== iframe.contentWindow)
+            return Promise.reject(new Error('Unexpected event.source'));
           return event.data;
         });
   navigableElement.click();

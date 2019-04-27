@@ -1,5 +1,6 @@
 // META: title=Blob Stream
 // META: script=../support/Blob.js
+// META: script=../../streams/resources/test-utils.js
 'use strict';
 
 // Takes in a ReadableStream and reads from it until it is done, returning
@@ -25,7 +26,7 @@ async function read_all_chunks(stream) {
 
 promise_test(async () => {
   const blob = new Blob(["PASS"]);
-  const stream = await blob.stream()
+  const stream = blob.stream();
   const chunks = await read_all_chunks(stream);
   for (let [index, value] of chunks.entries()) {
     assert_equals(value, "PASS".charCodeAt(index));
@@ -34,9 +35,8 @@ promise_test(async () => {
 
 promise_test(async () => {
   const blob = new Blob();
-  const stream = await blob.stream()
+  const stream = blob.stream();
   const chunks = await read_all_chunks(stream);
-
   assert_array_equals(chunks, []);
 }, "Blob.stream() empty Blob")
 
@@ -44,7 +44,19 @@ promise_test(async () => {
   const input_arr = [8, 241, 48, 123, 151];
   const typed_arr = new Uint8Array(input_arr);
   const blob = new Blob([typed_arr]);
-  const stream = await blob.stream()
+  const stream = blob.stream();
   const chunks = await read_all_chunks(stream);
-  assert_array_equals(chunks, input_arr)
+  assert_array_equals(chunks, input_arr);
 }, "Blob.stream() non-unicode input")
+
+promise_test(async() => {
+  const input_arr = [8, 241, 48, 123, 151];
+  const typed_arr = new Uint8Array(input_arr);
+  let blob = new Blob([typed_arr]);
+  const stream = blob.stream();
+  blob = null;
+  garbageCollect();
+  const chunks = await read_all_chunks(stream);
+  assert_array_equals(chunks, input_arr);
+}, "Blob.stream() garbage collection of blob shouldn't break stream" +
+      "consumption")

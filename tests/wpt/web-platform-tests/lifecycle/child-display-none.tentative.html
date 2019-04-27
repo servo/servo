@@ -26,6 +26,7 @@ async_test((t) => {
     }
   }));
 
+  child.allow = "execution-while-not-rendered 'none'";
   child.src = "resources/subframe.html";
   document.body.appendChild(child);
   child.style = "display: none";

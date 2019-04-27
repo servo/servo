@@ -50,3 +50,15 @@ promise_test(async () => {
   assert_equals(text, "\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd" +
       "\ufffd\ufffd\ufffd\ufffd");
 }, "Blob.text() invalid utf-8 input")
+
+promise_test(async () => {
+  const input_arr = new Uint8Array([192, 193, 245, 246, 247, 248, 249, 250, 251,
+      252, 253, 254, 255]);
+  const blob = new Blob([input_arr]);
+  const text_results = await Promise.all([blob.text(), blob.text(),
+      blob.text()]);
+  for (let text of text_results) {
+    assert_equals(text, "\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd" +
+        "\ufffd\ufffd\ufffd\ufffd");
+  }
+}, "Blob.text() concurrent reads")
