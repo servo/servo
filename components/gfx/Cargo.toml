@@ -23,7 +23,7 @@ euclid = "0.19"
 fnv = "1.0"
 fontsan = {git = "https://github.com/servo/fontsan"}
 gfx_traits = {path = "../gfx_traits"}
-harfbuzz-sys = "0.2"
+harfbuzz-sys = "0.3"
 ipc-channel = "0.11"
 lazy_static = "1"
 libc = "0.2"
@@ -41,7 +41,7 @@ smallvec = { version = "0.6", features = ["std", "union"] }
 style = {path = "../style", features = ["servo"]}
 time = "0.1.12"
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
-unicode-script = {version = "0.2", features = ["harfbuzz"]}
+unicode-script = {version = "0.3", features = ["harfbuzz"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 xi-unicode = "0.1.0"
 ucd = "0.1.1"

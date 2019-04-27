@@ -1444,7 +1444,7 @@ dependencies = [
  "fontsan 0.4.0 (git+https://github.com/servo/fontsan)",
  "freetype 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
- "harfbuzz-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "harfbuzz-sys 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.44 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1466,7 +1466,7 @@ dependencies = [
  "truetype 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ucd 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-script 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-script 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "xml5ever 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1866,10 +1866,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "harfbuzz-sys"
-version = "0.2.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 13.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2311,7 +2314,7 @@ dependencies = [
  "style 0.0.1",
  "style_traits 0.0.1",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-script 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-script 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
  "xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -4829,10 +4832,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unicode-script"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "harfbuzz-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "harfbuzz-sys 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -5516,7 +5519,7 @@ dependencies = [
 "checksum gvr-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b1334b94d8ce67319ddc44663daef53d8c1538629a11562530c981dbd9085b9a"
 "checksum h2 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "a27e7ed946e8335bdf9a191bc1b9b14a03ba822d013d2f58437f4fabcbd7fc2c"
 "checksum half 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "63d68db75012a85555434ee079e7e6337931f87a087ab2988becbadf64673a7f"
-"checksum harfbuzz-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "87a29ce223fee4727c0c4810a1419a3412f65b29146339fb6a47ee39456c34ea"
+"checksum harfbuzz-sys 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e1042ab0b3e7bc1ff64f7f5935778b644ff2194a1cae5ec52167127d3fd23961"
 "checksum hashbrown 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "64b7d419d0622ae02fe5da6b9a5e1964b610a65bb37923b976aeebb6dbb8f86e"
 "checksum headers-core 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7794c3bca3a5fb812a06d43f715cf857f7b037d52d6d8e054231d439dd839073"
 "checksum headers-derive 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93b8509be5e3893b8c9c37805a05aa57e4561cf1f1a2aab30cec4931127f36ca"
@@ -5738,7 +5741,7 @@ dependencies = [
 "checksum unicase 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "284b6d3db520d67fbe88fd778c21510d1b0ba4a551e5d0fbb023d33405f6de8a"
 "checksum unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a6a2c4e3710edd365cd7e78383153ed739fa31af19f9172f72d3575060f5a43a"
 "checksum unicode-normalization 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "51ccda9ef9efa3f7ef5d91e8f9b83bbe6955f9bf86aec89d5cce2c874625920f"
-"checksum unicode-script 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e8bd7bbf020b2885113e6304f68bcc33881c5552657c58d4e9699cd1b6606e81"
+"checksum unicode-script 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "09f03ad95feb4fde244d79985bfd79eb34ff2702fedb441d2ba3f4ff813efd19"
 "checksum unicode-segmentation 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a8083c594e02b8ae1654ae26f0ade5158b119bd88ad0e8227a5d8fcd72407946"
 "checksum unicode-width 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "bf3a113775714a22dcb774d8ea3655c53a32debae63a063acc00a91cc586245f"
 "checksum unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc72304796d0818e357ead4e000d19c9c174ab23dc11093ac919054d20a6a7fc"

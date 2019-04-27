@@ -24,7 +24,6 @@ use harfbuzz_sys::hb_feature_t;
 use harfbuzz_sys::hb_font_create;
 use harfbuzz_sys::hb_font_funcs_create;
 use harfbuzz_sys::hb_font_funcs_set_glyph_h_advance_func;
-use harfbuzz_sys::hb_font_funcs_set_glyph_h_kerning_func;
 use harfbuzz_sys::hb_font_funcs_set_nominal_glyph_func;
 use harfbuzz_sys::hb_font_set_funcs;
 use harfbuzz_sys::hb_font_set_ppem;
@@ -459,12 +458,6 @@ lazy_static! {
             ptr::null_mut(),
             None,
         );
-        hb_font_funcs_set_glyph_h_kerning_func(
-            hb_funcs,
-            Some(glyph_h_kerning_func),
-            ptr::null_mut(),
-            None,
-        );
 
         FontFuncs(hb_funcs)
     };
@@ -517,22 +510,6 @@ fn glyph_space_advance(font: *const Font) -> (hb_codepoint_t, f64) {
     }
     let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
     (space_glyph, space_advance)
-}
-
-extern "C" fn glyph_h_kerning_func(
-    _: *mut hb_font_t,
-    font_data: *mut c_void,
-    first_glyph: hb_codepoint_t,
-    second_glyph: hb_codepoint_t,
-    _: *mut c_void,
-) -> hb_position_t {
-    let font: *mut Font = font_data as *mut Font;
-    assert!(!font.is_null());
-
-    unsafe {
-        let advance = (*font).glyph_h_kerning(first_glyph as GlyphId, second_glyph as GlyphId);
-        Shaper::float_to_fixed(advance)
-    }
 }
 
 // Callback to get a font table out of a font.
