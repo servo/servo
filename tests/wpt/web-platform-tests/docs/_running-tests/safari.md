@@ -3,7 +3,7 @@ layout: page
 title: Safari
 ---
 To run Safari on macOS, some manual setup is required. Some steps are different
-for Safari and Safari Technology Preview, in which case only step is needed.
+for Safari and Safari Technology Preview.
 
   * Allow Safari to be controlled by SafariDriver:
     * `safaridriver --enable` or

@@ -132,21 +132,6 @@ function CreateKeyframeEffect(element) {
 
   promise_test(async t => {
     await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
-    // TODO(crbug.com/781816): Allow KeyframeEffects with no target in AnimationWorklet.
-    let effect = CreateKeyframeEffect(null);
-    let effect2 = CreateKeyframeEffect(document.querySelector('#element'));
-
-    let constructorFunc = function() { new WorkletAnimation(
-        'test-animator', [ effect, effect2 ]); };
-    assert_throws('NotSupportedError', constructorFunc);
-
-    let constructorFunc2 = function() { new WorkletAnimation(
-        'test-animator', [ effect2, effect ]); };
-    assert_throws('NotSupportedError', constructorFunc2);
-  }, 'If an effect has no target, object construction should fail');
-
-  promise_test(async t => {
-    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
     let effect = CreateKeyframeEffect(document.querySelector('#element'));
     let constructorFunc = function() {
         new WorkletAnimation('unregistered-animator', effect);

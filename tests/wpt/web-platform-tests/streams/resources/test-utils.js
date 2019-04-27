@@ -50,6 +50,7 @@ self.constructorThrowsForAll = (constructor, firstArgs) => {
 self.garbageCollect = () => {
   if (self.gc) {
     // Use --expose_gc for V8 (and Node.js)
+    // to pass this flag at chrome launch use: --js-flags="--expose-gc"
     // Exposed in SpiderMonkey shell as well
     self.gc();
   } else if (self.GCController) {

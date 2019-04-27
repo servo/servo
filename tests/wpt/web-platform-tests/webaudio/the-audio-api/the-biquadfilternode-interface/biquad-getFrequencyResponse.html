@@ -36,12 +36,6 @@
       let filterQ = 1;
       let filterGain = 5;  // Decibels.
 
-      // The maximum allowed error in the magnitude response.
-      let maxAllowedMagError = 1.09931e-6;
-
-      // The maximum allowed error in the phase response.
-      let maxAllowedPhaseError = 6.4724e-8;
-
       // The magnitudes and phases of the reference frequency response.
       let expectedMagnitudes;
       let expectedPhases;
@@ -148,6 +142,10 @@
         }
       }
 
+      function decibelsToLinear(x) {
+        return Math.pow(10, x/20);
+      }
+
       // Look through the array and find any NaN or infinity. Returns the index
       // of the first occurence or -1 if none.
       function findBadNumber(signal) {
@@ -171,8 +169,17 @@
       }
 
       // Compare the frequency response with our expected response.
+      //
+      //   should - The |should| method provided by audit.define
+      //   filter - The filter node used in the test
+      //   frequencies - array of frequencies provided to |getFrequencyResponse|
+      //   magResponse - mag response from |getFrequencyResponse|
+      //   phaseResponse - phase response from |getFrequencyResponse|
+      //   maxAllowedMagError - error threshold for mag response, in dB
+      //   maxAllowedPhaseError - error threshold for phase response, in rad.
       function compareResponses(
-          should, filter, frequencies, magResponse, phaseResponse) {
+          should, filter, frequencies, magResponse, phaseResponse,
+          maxAllowedMagError, maxAllowedPhaseError) {
         let expectedResponse = frequencyResponseReference(filter, frequencies);
 
         expectedMagnitudes = expectedResponse.magnitudes;
@@ -188,16 +195,19 @@
         let hasBadNumber;
 
         hasBadNumber = findBadNumber(magResponse);
-        badResponse = !should(
-                           hasBadNumber >= 0 ? 1 : 0,
-                           'Number of non-finite values in magnitude response')
-                           .beEqualTo(0);
+        badResponse =
+            !should(
+                 hasBadNumber >= 0 ? 1 : 0,
+                 filter.type +
+                     ': Number of non-finite values in magnitude response')
+                 .beEqualTo(0);
 
         hasBadNumber = findBadNumber(phaseResponse);
-        badResponse = !should(
-                           hasBadNumber >= 0 ? 1 : 0,
-                           'Number of non-finte values in phase response')
-                           .beEqualTo(0);
+        badResponse =
+            !should(
+                 hasBadNumber >= 0 ? 1 : 0,
+                 filter.type + ': Number of non-finte values in phase response')
+                 .beEqualTo(0);
 
         // These aren't testing the implementation itself.  Instead, these are
         // sanity checks on the reference.  Failure here does not imply an error
@@ -206,14 +216,16 @@
         badResponse =
             !should(
                  hasBadNumber >= 0 ? 1 : 0,
-                 'Number of non-finite values in the expected magnitude response')
+                 filter.type +
+                     ': Number of non-finite values in the expected magnitude response')
                  .beEqualTo(0);
 
         hasBadNumber = findBadNumber(expectedPhases);
         badResponse =
             !should(
                  hasBadNumber >= 0 ? 1 : 0,
-                 'Number of non-finite values in expected phase response')
+                 filter.type +
+                     ': Number of non-finite values in expected phase response')
                  .beEqualTo(0);
 
         // If we found a NaN or infinity, the following tests aren't very
@@ -221,7 +233,8 @@
         // warning message.
         should(
             !badResponse,
-            'Actual and expected results contained only finite values')
+            filter.type +
+                ': Actual and expected results contained only finite values')
             .beTrue();
 
         for (k = 0; k < n; ++k) {
@@ -236,7 +249,7 @@
 
         should(
             linearToDecibels(maxMagError),
-            'Max error (' + linearToDecibels(maxMagError) +
+            filter.type + ': Max error (' + linearToDecibels(maxMagError) +
                 ' dB) of magnitude response at frequency ' +
                 frequencies[maxMagErrorIndex] + ' Hz')
             .beLessThanOrEqualTo(linearToDecibels(maxAllowedMagError));
@@ -254,7 +267,7 @@
 
         should(
             radToDegree(maxPhaseError),
-            'Max error (' + radToDegree(maxPhaseError) +
+            filter.type + ': Max error (' + radToDegree(maxPhaseError) +
                 ' deg) in phase response at frequency ' +
                 frequencies[maxPhaseErrorIndex] + ' Hz')
             .beLessThanOrEqualTo(radToDegree(maxAllowedPhaseError));
@@ -265,32 +278,78 @@
         return rad * 180 / Math.PI;
       }
 
-      audit.define(
-          {label: 'test', description: 'Biquad frequency response'},
-          function(task, should) {
-            context = new AudioContext();
+      // Test the getFrequencyResponse for each of filter types.  Each entry in
+      // this array is a dictionary with these elements:
+      //
+      //   type:  filter type to be tested
+      //   maxErrorInMagnitude:  Allowed error in computed magnitude response
+      //   maxErrorInPhase:      Allowed error in computed magnitude phase
+      [{
+        type: 'lowpass',
+        maxErrorInMagnitude: decibelsToLinear(-73.0178),
+        maxErrorInPhase: 8.04360e-6
+      },
+       {
+         type: 'highpass',
+         maxErrorInMagnitude: decibelsToLinear(-117.5461),
+         maxErrorInPhase: 6.9691e-6
+       },
+       {
+         type: 'bandpass',
+         maxErrorInMagnitude: decibelsToLinear(-79.0139),
+         maxErrorInPhase: 4.9371e-6
+       },
+       {
+         type: 'lowshelf',
+         maxErrorInMagnitude: decibelsToLinear(-120.4038),
+         maxErrorInPhase: 4.0724e-6
+       },
+       {
+         type: 'highshelf',
+         maxErrorInMagnitude: decibelsToLinear(-120, 1303),
+         maxErrorInPhase: 4.0724e-6
+       },
+       {
+         type: 'peaking',
+         maxErrorInMagnitude: decibelsToLinear(-119.1176),
+         maxErrorInPhase: 6.4724e-8
+       },
+       {
+         type: 'notch',
+         maxErrorInMagnitude: decibelsToLinear(-87.0808),
+         maxErrorInPhase: 6.6300e-6
+       },
+       {
+         type: 'allpass',
+         maxErrorInMagnitude: decibelsToLinear(-265.3517),
+         maxErrorInPhase: 1.3260e-5
+       }].forEach(test => {
+        audit.define(
+            {label: test.type, description: 'Frequency response'},
+            (task, should) => {
+              let context = new AudioContext();
 
-            filter = context.createBiquadFilter();
+              let filter = new BiquadFilterNode(context, {
+                type: test.type,
+                frequency: filterCutoff,
+                Q: filterQ,
+                gain: filterGain
+              });
 
-            // Arbitrarily test a peaking filter, but any kind of filter can be
-            // tested.
-            filter.type = 'peaking';
-            filter.frequency.value = filterCutoff;
-            filter.Q.value = filterQ;
-            filter.gain.value = filterGain;
+              let frequencies =
+                  createFrequencies(numberOfFrequencies, context.sampleRate);
+              magResponse = new Float32Array(numberOfFrequencies);
+              phaseResponse = new Float32Array(numberOfFrequencies);
 
-            let frequencies =
-                createFrequencies(numberOfFrequencies, context.sampleRate);
-            magResponse = new Float32Array(numberOfFrequencies);
-            phaseResponse = new Float32Array(numberOfFrequencies);
+              filter.getFrequencyResponse(
+                  frequencies, magResponse, phaseResponse);
+              compareResponses(
+                  should, filter, frequencies, magResponse, phaseResponse,
+                  test.maxErrorInMagnitude, test.maxErrorInPhase);
 
-            filter.getFrequencyResponse(
-                frequencies, magResponse, phaseResponse);
-            compareResponses(
-                should, filter, frequencies, magResponse, phaseResponse);
-
-            task.done();
-          });
+              task.done();
+            });
+      });
 
       audit.define(
           {

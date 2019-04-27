@@ -32,3 +32,14 @@ promise_test(async () => {
   const array_buffer = await blob.arrayBuffer();
   assert_equals_typed_array(new Uint8Array(array_buffer), typed_arr);
 }, "Blob.arrayBuffer() non-unicode input")
+
+promise_test(async () => {
+  const input_arr = new TextEncoder().encode("PASS");
+  const blob = new Blob([input_arr]);
+  const array_buffer_results = await Promise.all([blob.arrayBuffer(),
+      blob.arrayBuffer(), blob.arrayBuffer()]);
+  for (let array_buffer of array_buffer_results) {
+    assert_true(array_buffer instanceof ArrayBuffer);
+    assert_equals_typed_array(new Uint8Array(array_buffer), input_arr);
+  }
+}, "Blob.arrayBuffer() concurrent reads")

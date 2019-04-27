@@ -44,7 +44,7 @@ function setup_refresh_test() {
 }
 
 function setup_back_navigation(pushed_url) {
-    function verify_document_navigate_not_observable() {
+    function verify_document_navigate_not_observable(navigated_back) {
         let entries = performance.getEntriesByType("resource");
         let found_first_document = false;
         for (entry of entries) {
@@ -57,16 +57,18 @@ function setup_back_navigation(pushed_url) {
             }
         }
         if (!found_first_document) {
-            opener.postMessage("FAIL - first document not exposed", "*");
+            opener.postMessage("FAIL - first document not exposed. navigated_back is " + navigated_back, "*");
             return;
         }
-        opener.postMessage("PASS", "*");
+        if (navigated_back) {
+            opener.postMessage("PASS", "*");
+        }
     }
     window.addEventListener("message", e=>{
         if (e.data == "navigated") {
+            verify_document_navigate_not_observable(sessionStorage.navigated);
             if (sessionStorage.navigated) {
                 delete sessionStorage.navigated;
-                verify_document_navigate_not_observable();
             } else {
                 sessionStorage.navigated = true;
                 setTimeout(() => {

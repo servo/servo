@@ -211,6 +211,31 @@
                 .then(() => task.done());
           });
 
+      audit.define(
+          {
+            label: 'Multiple linear ramps at the same time',
+            description: 'Verify output'
+          },
+          (task, should) => {
+            testMultipleSameEvents(should, {
+              method: 'linearRampToValueAtTime',
+              prefix: 'Multiple linear ramps: ',
+              threshold: 0
+            }).then(() => task.done());
+          });
+
+      audit.define(
+          {
+            label: 'Multiple exponential ramps at the same time',
+            description: 'Verify output'
+          },
+          (task, should) => {
+            testMultipleSameEvents(should, {
+              method: 'exponentialRampToValueAtTime',
+              prefix: 'Multiple exponential ramps: ',
+              threshold: 5.3924e-7
+            }).then(() => task.done());
+          });
 
       audit.run();
 
@@ -295,6 +320,71 @@
                                                }) and later, output`)
               .beConstantValueOf(testCases[testCases.length - 1].value);
         };
+      }
+
+      // Test output when two events of the same time are scheduled at the same
+      // time.
+      function testMultipleSameEvents(should, options) {
+        let {method, prefix, threshold} = options;
+
+        // Context for testing.
+        let context =
+            new OfflineAudioContext({length: 16384, sampleRate: sampleRate});
+
+        let src = new ConstantSourceNode(context);
+        src.connect(context.destination);
+
+        let initialValue = 1;
+
+        // Informative print
+        should(() => {
+          src.offset.setValueAtTime(initialValue, 0);
+        }, prefix + `setValueAtTime(${initialValue}, 0)`).notThrow();
+
+        let frame = 64;
+        let time = frame / context.sampleRate;
+        let values = [2, 7, 10];
+
+        // Schedule two events of the same type at the same time, but with
+        // different values.
+
+        values.forEach(value => {
+          // Informative prints to show what we're doing in this test.
+          should(
+              () => {
+                src.offset[method](value, time);
+              },
+              prefix +
+                  eventToString(
+                      method,
+                      value,
+                      time,
+                      ))
+              .notThrow();
+        })
+
+        src.start();
+
+        return context.startRendering().then(audioBuffer => {
+          let actual = audioBuffer.getChannelData(0);
+
+          // The output should be a ramp from time 0 to the event time.  But we
+          // only verify the value just before the event time, which should be
+          // fairly close to values[0].  (But compute the actual expected value
+          // to be sure.)
+          let expected = methodMap[method](
+              (frame - 1) / context.sampleRate, initialValue, 0, values[0],
+              time);
+          should(actual[frame - 1], prefix + `Output at frame ${frame - 1}`)
+              .beCloseTo(expected, {threshold: threshold, precision: 3});
+
+          // Any other values shouldn't show up in the output.  Only the value
+          // from last event should appear.  We only check the value at the
+          // event time.
+          should(
+              actual[frame], prefix + `Output at frame ${frame} (${time} sec)`)
+              .beEqualTo(values[values.length - 1]);
+        });
       }
 
       // Convert an automation method to a string for printing.
