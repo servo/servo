@@ -43,7 +43,7 @@ interface BaseAudioContext : EventTarget {
   //                               sequence<double> feedback);
   // WaveShaperNode createWaveShaper();
   [Throws] PannerNode createPanner();
-  // StereoPannerNode createStereoPanner();
+  [Throws] StereoPannerNode createStereoPanner();
   // ConvolverNode createConvolver();
   [Throws] ChannelSplitterNode createChannelSplitter(optional unsigned long numberOfOutputs = 6);
   [Throws] ChannelMergerNode createChannelMerger(optional unsigned long numberOfInputs = 6);
