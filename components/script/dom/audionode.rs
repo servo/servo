@@ -236,6 +236,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::NotSupported);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::StereoPannerNode) => {
+                if value > 2 {
+                    return Err(Error::NotSupported);
+                }
+            },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
                 return Err(Error::InvalidState);
             },
@@ -276,6 +281,11 @@ impl AudioNodeMethods for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
+                if value == ChannelCountMode::Max {
+                    return Err(Error::NotSupported);
+                }
+            },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::StereoPannerNode) => {
                 if value == ChannelCountMode::Max {
                     return Err(Error::NotSupported);
                 }

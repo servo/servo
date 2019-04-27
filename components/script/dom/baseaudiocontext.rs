@@ -22,6 +22,7 @@ use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioC
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
+use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
 use crate::dom::bindings::codegen::Bindings::ChannelSplitterNodeBinding::ChannelSplitterOptions;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
@@ -36,6 +37,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::biquadfilternode::BiquadFilterNode;
 use crate::dom::channelmergernode::ChannelMergerNode;
 use crate::dom::channelsplitternode::ChannelSplitterNode;
+use crate::dom::stereopannernode::StereoPannerNode;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gainnode::GainNode;
@@ -358,6 +360,16 @@ impl BaseAudioContextMethods for BaseAudioContext {
             &self.global().as_window(),
             &self,
             &BiquadFilterOptions::empty(),
+        )
+    }
+
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createstereopanner
+    fn CreateStereoPanner(&self) -> Fallible<DomRoot<StereoPannerNode>> {
+        StereoPannerNode::new(
+            &self.global().as_window(),
+            &self,
+            &StereoPannerOptions::empty(),
         )
     }
 
