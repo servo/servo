@@ -200,6 +200,8 @@ where
     Window: WindowMethods + 'static + ?Sized,
 {
     pub fn new(embedder: Box<EmbedderMethods>, window: Rc<Window>) -> Servo<Window> {
+        color_backtrace::install();
+
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -748,6 +750,8 @@ pub fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
 
 /// Content process entry point.
 pub fn run_content_process(token: String) {
+    color_backtrace::install();
+
     let (unprivileged_content_sender, unprivileged_content_receiver) =
         ipc::channel::<UnprivilegedPipelineContent>().unwrap();
     let connection_bootstrap: IpcSender<IpcSender<UnprivilegedPipelineContent>> =
