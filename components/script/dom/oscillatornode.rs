@@ -113,6 +113,19 @@ impl OscillatorNodeMethods for OscillatorNode {
     fn Detune(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.detune)
     }
+
+    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
+    fn Type(&self) -> OscillatorType {
+        self.oscillator_type.get()
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
+    fn SetType(&self, oscillator: OscillatorType) {
+        self.oscillator_type.set(oscillator);
+        self.node.message(AudioNodeMessage::OscillatorNode(
+            OscillatorNodeMessage::SetOscillatorType(oscillator.into()),
+        ));
+    }
 }
 
 impl<'a> From<&'a OscillatorOptions> for ServoMediaOscillatorOptions {
