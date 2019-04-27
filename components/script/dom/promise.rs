@@ -82,7 +82,7 @@ impl Drop for Promise {
 impl Promise {
     pub fn new(global: &GlobalScope) -> Rc<Promise> {
         let compartment =
-            JSAutoCompartment::new(global.get_cx(), global.reflector().get_jsobject().get());
+            JSAutoRealm::new(global.get_cx(), global.reflector().get_jsobject().get());
         let comp = InCompartment::Entered(&compartment);
         Promise::new_in_current_compartment(global, comp)
     }

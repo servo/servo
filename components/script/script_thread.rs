@@ -1971,7 +1971,7 @@ impl ScriptThread {
     fn handle_exit_fullscreen(&self, id: PipelineId) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            let _ac = JSAutoCompartment::new(
+            let _ac = JSAutoRealm::new(
                 document.global().get_cx(),
                 document.reflector().get_jsobject().get(),
             );
