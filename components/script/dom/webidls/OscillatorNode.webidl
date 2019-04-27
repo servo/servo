@@ -25,7 +25,7 @@ dictionary OscillatorOptions : AudioNodeOptions {
  Constructor (BaseAudioContext context, optional OscillatorOptions options)]
 interface OscillatorNode : AudioScheduledSourceNode {
 //  [SetterThrows]
-//  attribute OscillatorType type;
+  attribute OscillatorType type;
 
   readonly attribute AudioParam frequency;
   readonly attribute AudioParam detune;
