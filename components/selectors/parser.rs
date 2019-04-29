@@ -736,7 +736,8 @@ impl<'a, Impl: 'a + SelectorImpl> SelectorIter<'a, Impl> {
     /// combinators to the left.
     #[inline]
     pub(crate) fn is_featureless_host_selector(&mut self) -> bool {
-        self.all(|component| matches!(*component, Component::Host(..))) &&
+        self.selector_length() > 0 &&
+            self.all(|component| matches!(*component, Component::Host(..))) &&
             self.next_sequence().is_none()
     }
 
