@@ -14,18 +14,17 @@ pub fn deinit() {
         ptr::read_volatile(&INFO_PLIST[0]);
     }
 
-    let thread_count = unsafe {
-        macos_count_running_threads()
-    };
+    let thread_count = unsafe { macos_count_running_threads() };
 
     if thread_count != 1 {
-        println!("{} threads are still running after shutdown (bad).", thread_count);
+        println!(
+            "{} threads are still running after shutdown (bad).",
+            thread_count
+        );
         if opts::get().clean_shutdown {
             println!("Waiting until all threads have shutdown");
             loop {
-                let thread_count = unsafe {
-                    macos_count_running_threads()
-                };
+                let thread_count = unsafe { macos_count_running_threads() };
                 if thread_count == 1 {
                     break;
                 }
@@ -43,6 +42,6 @@ pub fn deinit() {
 pub static INFO_PLIST: [u8; 619] = *include_bytes!("Info.plist");
 
 #[link(name = "count_threads")]
-extern {
+extern "C" {
     fn macos_count_running_threads() -> i32;
 }
