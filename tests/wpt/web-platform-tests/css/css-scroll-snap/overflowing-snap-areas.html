@@ -63,6 +63,7 @@ div {
     <div class="target small" style="top: 200px"></div>
     <div class="target small" style="top: 600px"></div>
     <div class="target small" style="top: 1200px"></div>
+    <div class="target large-y" style="top: 2000px"></div>
   </div>
 </div>
 
@@ -142,6 +143,20 @@ test(() => {
   assert_equals(scroller_y.scrollTop, 1500);
 }, "Snap to current scroll position which is a valid snap position, as the " +
    "snap area covers snapport on y and there is no subsequent snap positions.");
+
+test(() => {
+  const maxScrollTop = scroller_y.scrollHeight - scroller_y.clientHeight;
+
+  // Scroll to the bottom edge which is a valid snap position that a large
+  // target element covers the snapport.
+  scroller_y.scrollTo(0, maxScrollTop);
+  assert_equals(scroller_y.scrollTop, maxScrollTop);
+
+  // Scroll to `the bottom edge + 1`.
+  scroller_y.scrollTo(0, maxScrollTop + 1);
+  assert_equals(scroller_y.scrollTop, maxScrollTop);
+}, "Don't snap back even if scrollTo tries to scroll to positions which are " +
+   "outside of the scroll range and if a snap target element covers the snaport");
 
 test(() => {
   two_axes_scroller.scrollTo(10, 100);
