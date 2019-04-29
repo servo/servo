@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
@@ -414,21 +415,28 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
-    #[allow(unsafe_code)]
     fn WhenDefined(&self, name: DOMString) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
         let name = LocalName::from(&*name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            let promise = unsafe { Promise::new_in_current_compartment(global_scope) };
-            promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
+            let in_compartment_proof = AlreadyInCompartment::assert(&global_scope);
+            let promise = Promise::new_in_current_compartment(
+                &global_scope,
+                InCompartment::Already(&in_compartment_proof),
+            );
+            promise.reject_native(&DOMException::new(&global_scope, DOMErrorName::SyntaxError));
             return promise;
         }
 
         // Step 2
         if self.definitions.borrow().contains_key(&name) {
-            let promise = unsafe { Promise::new_in_current_compartment(global_scope) };
+            let in_compartment_proof = AlreadyInCompartment::assert(&global_scope);
+            let promise = Promise::new_in_current_compartment(
+                &global_scope,
+                InCompartment::Already(&in_compartment_proof),
+            );
             promise.resolve_native(&UndefinedValue());
             return promise;
         }
@@ -438,7 +446,11 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Steps 4, 5
         let promise = map.get(&name).cloned().unwrap_or_else(|| {
-            let promise = unsafe { Promise::new_in_current_compartment(global_scope) };
+            let in_compartment_proof = AlreadyInCompartment::assert(&global_scope);
+            let promise = Promise::new_in_current_compartment(
+                &global_scope,
+                InCompartment::Already(&in_compartment_proof),
+            );
             map.insert(name, promise.clone());
             promise
         });

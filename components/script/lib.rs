@@ -57,6 +57,7 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 mod dom;
+mod compartments;
 pub mod fetch;
 mod image_listener;
 mod layout_image;

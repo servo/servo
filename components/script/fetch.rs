@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
@@ -125,7 +126,6 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
-#[allow(unsafe_code)]
 pub fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
@@ -134,7 +134,8 @@ pub fn Fetch(
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = unsafe { Promise::new_in_current_compartment(global) };
+    let aic = AlreadyInCompartment::assert(global);
+    let promise = Promise::new_in_current_compartment(global, InCompartment::Already(&aic));
     let response = Response::new(global);
 
     // Step 2
