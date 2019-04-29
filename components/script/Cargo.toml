@@ -79,7 +79,7 @@ mime_guess = "2.0.0-alpha.6"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.2"
-parking_lot = "0.6"
+parking_lot = "0.7"
 phf = "0.7.18"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}

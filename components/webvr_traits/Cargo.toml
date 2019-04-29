@@ -13,5 +13,5 @@ path = "lib.rs"
 [dependencies]
 ipc-channel = "0.11"
 msg = {path = "../msg"}
-rust-webvr-api = {version = "0.10.3", features = ["ipc"]}
+rust-webvr-api = {version = "0.11", features = ["ipc"]}
 serde = "1.0"

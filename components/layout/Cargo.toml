@@ -33,7 +33,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.2"
 ordered-float = "1.0"
-parking_lot = "0.6"
+parking_lot = "0.7"
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rayon = "1"
