@@ -38,7 +38,6 @@ interface MediaStreamTrack : EventTarget {
     MediaTrackConstraints getConstraints();
     MediaTrackSettings getSettings();
     Promise<void> applyConstraints(optional MediaTrackConstraints constraints);
-                    attribute EventHandler onoverconstrained;
 };
 
 enum MediaStreamTrackState {
@@ -147,16 +146,6 @@ interface MediaStreamTrackEvent : Event {
 
 dictionary MediaStreamTrackEventInit : EventInit {
     required MediaStreamTrack track;
-};
-
-[Exposed=Window,
- Constructor(DOMString type, OverconstrainedErrorEventInit eventInitDict)]
-interface OverconstrainedErrorEvent : Event {
-    readonly        attribute OverconstrainedError? error;
-};
-
-dictionary OverconstrainedErrorEventInit : EventInit {
-             OverconstrainedError? error = null;
 };
 
 partial interface Navigator {

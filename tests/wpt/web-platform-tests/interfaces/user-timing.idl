@@ -4,12 +4,12 @@
 // Source: User Timing Level 3 (https://w3c.github.io/user-timing/)
 
 dictionary PerformanceMarkOptions {
-    any detail = null;
+    any detail;
     DOMHighResTimeStamp startTime;
 };
 
 dictionary PerformanceMeasureOptions {
-    any detail = null;
+    any detail;
     (DOMString or DOMHighResTimeStamp) start;
     DOMHighResTimeStamp duration;
     (DOMString or DOMHighResTimeStamp) end;
@@ -18,7 +18,7 @@ dictionary PerformanceMeasureOptions {
 partial interface Performance {
     PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions);
     void clearMarks(optional DOMString markName);
-    PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions)? startOrMeasureOptions, optional DOMString endMark);
+    PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions, optional DOMString endMark);
     void clearMeasures(optional DOMString measureName);
 };
 
