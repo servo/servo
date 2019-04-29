@@ -1548,16 +1548,10 @@ enum PlaybackDirection {
 // XXX Placeholder implementations for:
 //
 // - https://github.com/servo/servo/issues/22293
-// - https://github.com/servo/servo/issues/22321
 impl HTMLMediaElement {
     // https://github.com/servo/servo/issues/22293
     fn direction_of_playback(&self) -> PlaybackDirection {
         PlaybackDirection::Forwards
-    }
-
-    // https://github.com/servo/servo/pull/22321
-    fn Loop(&self) -> bool {
-        false
     }
 }
 
@@ -1586,6 +1580,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_bool_getter!(Autoplay, "autoplay");
     // https://html.spec.whatwg.org/multipage/#dom-media-autoplay
     make_bool_setter!(SetAutoplay, "autoplay");
+
+    // https://html.spec.whatwg.org/multipage/#attr-media-loop
+    make_bool_getter!(Loop, "loop");
+    // https://html.spec.whatwg.org/multipage/#attr-media-loop
+    make_bool_setter!(SetLoop, "loop");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
     make_bool_getter!(DefaultMuted, "muted");
