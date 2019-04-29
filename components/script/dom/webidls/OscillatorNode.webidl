@@ -24,7 +24,7 @@ dictionary OscillatorOptions : AudioNodeOptions {
 [Exposed=Window,
  Constructor (BaseAudioContext context, optional OscillatorOptions options)]
 interface OscillatorNode : AudioScheduledSourceNode {
-//  [SetterThrows]
+  [SetterThrows]
   attribute OscillatorType type;
 
   readonly attribute AudioParam frequency;
