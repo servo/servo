@@ -40,7 +40,9 @@ packages = [
   "crossbeam-utils",
   "digest",
   "generic-array",
+  "nix", # https://github.com/servo/servo/issues/23189#issuecomment-487512605
   "rand",
+  "rand_core",
   "unicase",
   "winapi",
 ]
