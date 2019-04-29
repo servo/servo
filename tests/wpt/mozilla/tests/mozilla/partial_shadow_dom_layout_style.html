@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <meta charset="utf-8">
+  <title>Partial Shadow DOM support - layout & style</title>
+  <link rel="match" href="partial_shadow_dom_layout_style_ref.html">
+  <style>
+    h1 { color: red; }
+  </style>
+  <h1>Not in the shadows</h1>
+  <div id="host">
+  </div>
+  <script>
+    var host = document.getElementById('host');
+    var shadowRoot = host.attachShadow({ mode: 'closed' });
+    var shadowChild = document.createElement('h1');
+    shadowChild.textContent = 'In the shadows';
+    shadowRoot.appendChild(shadowChild);
+    var shadowStyles = document.createElement('style');
+    shadowStyles.textContent = 'h1 { color: blue; }';
+    shadowRoot.appendChild(shadowStyles);
+  </script>
+</html>

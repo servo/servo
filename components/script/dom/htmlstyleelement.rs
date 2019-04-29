@@ -13,7 +13,8 @@ use crate::dom::document::Document;
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
-    document_from_node, window_from_node, ChildrenMutation, Node, UnbindContext,
+    document_from_node, stylesheets_owner_from_node, window_from_node, BindContext,
+    ChildrenMutation, Node, UnbindContext,
 };
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -81,7 +82,7 @@ impl HTMLStyleElement {
     pub fn parse_own_css(&self) {
         let node = self.upcast::<Node>();
         let element = self.upcast::<Element>();
-        assert!(node.is_in_doc());
+        assert!(node.is_connected());
 
         let window = window_from_node(node);
         let doc = document_from_node(self);
@@ -137,14 +138,15 @@ impl HTMLStyleElement {
     }
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
+    #[allow(unrooted_must_root)]
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        let doc = document_from_node(self);
+        let stylesheets_owner = stylesheets_owner_from_node(self);
         if let Some(ref s) = *self.stylesheet.borrow() {
-            doc.remove_stylesheet(self.upcast(), s)
+            stylesheets_owner.remove_stylesheet(self.upcast(), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
         self.cssom_stylesheet.set(None);
-        doc.add_stylesheet(self.upcast(), s);
+        stylesheets_owner.add_stylesheet(self.upcast(), s);
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -185,14 +187,14 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        self.super_type().unwrap().bind_to_tree(tree_in_doc);
+    fn bind_to_tree(&self, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(context);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // Handles the case when:
         // "The element is not on the stack of open elements of an HTML parser or XML parser,
         // and it becomes connected or disconnected."
-        if tree_in_doc && !self.in_stack_of_open_elements.get() {
+        if context.tree_connected && !self.in_stack_of_open_elements.get() {
             self.parse_own_css();
         }
     }
@@ -214,9 +216,9 @@ impl VirtualMethods for HTMLStyleElement {
             s.unbind_from_tree(context);
         }
 
-        if context.tree_in_doc {
+        if context.tree_connected {
             if let Some(s) = self.stylesheet.borrow_mut().take() {
-                document_from_node(self).remove_stylesheet(self.upcast(), &s)
+                stylesheets_owner_from_node(self).remove_stylesheet(self.upcast(), &s)
             }
         }
     }

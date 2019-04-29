@@ -32,7 +32,10 @@ use crate::dom::htmlmapelement::HTMLMapElement;
 use crate::dom::htmlpictureelement::HTMLPictureElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
+use crate::dom::node::UnbindContext;
+use crate::dom::node::{
+    document_from_node, window_from_node, BindContext, Node, NodeDamage, ShadowIncluding,
+};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
@@ -1259,7 +1262,7 @@ impl HTMLImageElement {
 
         let useMapElements = document_from_node(self)
             .upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLMapElement>)
             .find(|n| {
                 n.upcast::<Element>()
@@ -1645,12 +1648,12 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(context);
         }
         let document = document_from_node(self);
-        if tree_in_doc {
+        if context.tree_connected {
             document.register_responsive_image(self);
         }
 

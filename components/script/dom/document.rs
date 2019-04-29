@@ -43,6 +43,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::CustomElementCreationMode;
@@ -67,16 +68,14 @@ use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::VecPreOrderInsertionHelper;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -86,8 +85,9 @@ use crate::dom::progressevent::ProgressEvent;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::servoparser::ServoParser;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storageevent::StorageEvent;
-use crate::dom::stylesheetlist::StyleSheetList;
+use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::text::Text;
 use crate::dom::touch::Touch;
 use crate::dom::touchevent::TouchEvent;
@@ -101,6 +101,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
+use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
@@ -113,7 +114,6 @@ use euclid::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use keyboard_types::{Key, KeyState, Modifiers};
 use metrics::{
@@ -132,7 +132,7 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
-use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
+use script_layout_interface::message::{Msg, ReflowGoal};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
@@ -144,7 +144,6 @@ use std::cell::{Cell, Ref, RefMut};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
-use std::fmt;
 use std::mem;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -152,12 +151,12 @@ use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::{Device, MediaList, MediaType};
+use style::media_queries::{Device, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
-use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
+use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::percent_encoding::percent_decode;
 use url::Host;
 
@@ -220,52 +219,11 @@ impl PendingRestyle {
     }
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-#[must_root]
-struct StyleSheetInDocument {
-    #[ignore_malloc_size_of = "Arc"]
-    sheet: Arc<Stylesheet>,
-    owner: Dom<Element>,
-}
-
-impl fmt::Debug for StyleSheetInDocument {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        self.sheet.fmt(formatter)
-    }
-}
-
-impl PartialEq for StyleSheetInDocument {
-    fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.sheet, &other.sheet)
-    }
-}
-
-impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.sheet.origin(guard)
-    }
-
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.sheet.quirks_mode(guard)
-    }
-
-    fn enabled(&self) -> bool {
-        self.sheet.enabled()
-    }
-
-    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        self.sheet.media(guard)
-    }
-
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.sheet.rules(guard)
-    }
-}
-
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
 pub struct Document {
     node: Node,
+    document_or_shadow_root: DocumentOrShadowRoot,
     window: Dom<Window>,
     implementation: MutNullableDom<DOMImplementation>,
     #[ignore_malloc_size_of = "type from external crate"]
@@ -419,6 +377,10 @@ pub struct Document {
     delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
     /// https://html.spec.whatwg.org/multipage/#completely-loaded
     completely_loaded: Cell<bool>,
+    /// Set of shadow roots connected to the document tree.
+    shadow_roots: DomRefCell<HashSet<Dom<ShadowRoot>>>,
+    /// Whether any of the shadow roots need the stylesheets flushed.
+    shadow_roots_styles_changed: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -634,7 +596,7 @@ impl Document {
     pub fn refresh_base_element(&self) {
         let base = self
             .upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLBaseElement>)
             .find(|element| {
                 element
@@ -684,7 +646,7 @@ impl Document {
     }
 
     pub fn content_and_heritage_changed(&self, node: &Node) {
-        if node.is_in_doc() {
+        if node.is_connected() {
             node.note_dirty_descendants();
         }
 
@@ -720,55 +682,23 @@ impl Document {
 
     /// Remove any existing association between the provided id and any elements in this document.
     pub fn unregister_named_element(&self, to_unregister: &Element, id: Atom) {
-        debug!(
-            "Removing named element from document {:p}: {:p} id={}",
-            self, to_unregister, id
-        );
-        // Limit the scope of the borrow because id_map might be borrowed again by
-        // GetElementById through the following sequence of calls
-        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
-        {
-            let mut id_map = self.id_map.borrow_mut();
-            let is_empty = match id_map.get_mut(&id) {
-                None => false,
-                Some(elements) => {
-                    let position = elements
-                        .iter()
-                        .position(|element| &**element == to_unregister)
-                        .expect("This element should be in registered.");
-                    elements.remove(position);
-                    elements.is_empty()
-                },
-            };
-            if is_empty {
-                id_map.remove(&id);
-            }
-        }
+        self.document_or_shadow_root
+            .unregister_named_element(&self.id_map, to_unregister, &id);
         self.reset_form_owner_for_listeners(&id);
     }
 
     /// Associate an element present in this document with the provided id.
     pub fn register_named_element(&self, element: &Element, id: Atom) {
-        debug!(
-            "Adding named element to document {:p}: {:p} id={}",
-            self, element, id
-        );
-        assert!(element.upcast::<Node>().is_in_doc());
-        assert!(!id.is_empty());
-
         let root = self.GetDocumentElement().expect(
             "The element is in the document, so there must be a document \
              element.",
         );
-
-        // Limit the scope of the borrow because id_map might be borrowed again by
-        // GetElementById through the following sequence of calls
-        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
-        {
-            let mut id_map = self.id_map.borrow_mut();
-            let elements = id_map.entry(id.clone()).or_insert(Vec::new());
-            elements.insert_pre_order(element, root.upcast::<Node>());
-        }
+        self.document_or_shadow_root.register_named_element(
+            &self.id_map,
+            element,
+            &id,
+            DomRoot::from_ref(root.upcast::<Node>()),
+        );
         self.reset_form_owner_for_listeners(&id);
     }
 
@@ -872,7 +802,7 @@ impl Document {
         };
         let doc_node = self.upcast::<Node>();
         doc_node
-            .traverse_preorder()
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast)
             .find(|node| check_anchor(&node))
             .map(DomRoot::upcast)
@@ -981,7 +911,7 @@ impl Document {
 
     pub fn dirty_all_nodes(&self) {
         let root = self.upcast::<Node>();
-        for node in root.traverse_preorder() {
+        for node in root.traverse_preorder(ShadowIncluding::Yes) {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
@@ -1005,7 +935,7 @@ impl Document {
 
         let el = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
-            node.inclusive_ancestors()
+            node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });
@@ -1189,7 +1119,7 @@ impl Document {
 
         let maybe_new_target = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
-            node.inclusive_ancestors()
+            node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });
@@ -1225,7 +1155,7 @@ impl Document {
             if !old_target_is_ancestor_of_new_target {
                 for element in old_target
                     .upcast::<Node>()
-                    .inclusive_ancestors()
+                    .inclusive_ancestors(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast::<Element>)
                 {
                     element.set_hover_state(false);
@@ -1243,7 +1173,7 @@ impl Document {
         if let Some(ref new_target) = maybe_new_target {
             for element in new_target
                 .upcast::<Node>()
-                .inclusive_ancestors()
+                .inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 if element.hover_state() {
@@ -1285,7 +1215,7 @@ impl Document {
 
         let el = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
-            node.inclusive_ancestors()
+            node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });
@@ -2276,7 +2206,7 @@ impl Document {
     /// Iterate over all iframes in the document.
     pub fn iter_iframes(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> {
         self.upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<HTMLIFrameElement>)
     }
 
@@ -2395,21 +2325,6 @@ impl Document {
         !self.has_browsing_context || !url_has_network_scheme(&self.url())
     }
 
-    pub fn nodes_from_point(
-        &self,
-        client_point: &Point2D<f32>,
-        reflow_goal: NodesFromPointQueryType,
-    ) -> Vec<UntrustedNodeAddress> {
-        if !self
-            .window
-            .layout_reflow(QueryMsg::NodesFromPointQuery(*client_point, reflow_goal))
-        {
-            return vec![];
-        };
-
-        self.window.layout().nodes_from_point_response()
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub fn lookup_custom_element_definition(
         &self,
@@ -2485,6 +2400,9 @@ pub trait LayoutDocumentHelpers {
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
+    unsafe fn shadow_roots(&self) -> Vec<LayoutDom<ShadowRoot>>;
+    unsafe fn shadow_roots_styles_changed(&self) -> bool;
+    unsafe fn flush_shadow_roots_stylesheets(&self);
 }
 
 #[allow(unsafe_code)]
@@ -2500,12 +2418,12 @@ impl LayoutDocumentHelpers for LayoutDom<Document> {
         let mut elements = (*self.unsafe_get())
             .pending_restyles
             .borrow_mut_for_layout();
-        // Elements were in a document when they were adding to this list, but that
+        // Elements were in a document when they were added to this list, but that
         // may no longer be true when the next layout occurs.
         let result = elements
             .drain()
             .map(|(k, v)| (k.to_layout(), v))
-            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_IN_DOC))
+            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED))
             .collect();
         result
     }
@@ -2528,6 +2446,26 @@ impl LayoutDocumentHelpers for LayoutDom<Document> {
     #[inline]
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock {
         (*self.unsafe_get()).style_shared_lock()
+    }
+
+    #[inline]
+    unsafe fn shadow_roots(&self) -> Vec<LayoutDom<ShadowRoot>> {
+        (*self.unsafe_get())
+            .shadow_roots
+            .borrow_for_layout()
+            .iter()
+            .map(|sr| sr.to_layout())
+            .collect()
+    }
+
+    #[inline]
+    unsafe fn shadow_roots_styles_changed(&self) -> bool {
+        (*self.unsafe_get()).shadow_roots_styles_changed()
+    }
+
+    #[inline]
+    unsafe fn flush_shadow_roots_stylesheets(&self) {
+        (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 }
 
@@ -2637,21 +2575,23 @@ impl Document {
             .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
             .unwrap_or(UTF_8);
 
+        let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         Document {
             node: Node::new_document_node(),
+            document_or_shadow_root: DocumentOrShadowRoot::new(window),
             window: Dom::from_ref(window),
-            has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
+            has_browsing_context,
             implementation: Default::default(),
             content_type,
             last_modified: last_modified,
             url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
+            id_map: DomRefCell::new(HashMap::new()),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
-            id_map: DomRefCell::new(HashMap::new()),
             tag_map: DomRefCell::new(HashMap::new()),
             tagns_map: DomRefCell::new(HashMap::new()),
             classes_map: DomRefCell::new(HashMap::new()),
@@ -2689,7 +2629,7 @@ impl Document {
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),
-            scripting_enabled: has_browsing_context == HasBrowsingContext::Yes,
+            scripting_enabled: has_browsing_context,
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DomRefCell::new(vec![]),
             running_animation_callbacks: Cell::new(false),
@@ -2735,6 +2675,8 @@ impl Document {
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
+            shadow_roots: DomRefCell::new(HashSet::new()),
+            shadow_roots_styles_changed: Cell::new(false),
         }
     }
 
@@ -2853,7 +2795,7 @@ impl Document {
         let maybe_node = doc.deref().map(Castable::upcast::<Node>);
         let iter = maybe_node
             .iter()
-            .flat_map(|node| node.traverse_preorder())
+            .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
             .filter(|node| callback(&node));
         NodeList::new_simple_list(&self.window, iter)
     }
@@ -2893,91 +2835,8 @@ impl Document {
         Device::new(MediaType::screen(), viewport_size, device_pixel_ratio)
     }
 
-    /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.window()
-            .layout_chan()
-            .send(Msg::RemoveStylesheet(s.clone()))
-            .unwrap();
-
-        let guard = s.shared_lock.read();
-
-        // FIXME(emilio): Would be nice to remove the clone, etc.
-        self.stylesheets.borrow_mut().remove_stylesheet(
-            None,
-            StyleSheetInDocument {
-                sheet: s.clone(),
-                owner: Dom::from_ref(owner),
-            },
-            &guard,
-        );
-    }
-
-    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
-    /// correct tree position.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
-        // FIXME(emilio): It'd be nice to unify more code between the elements
-        // that own stylesheets, but StylesheetOwner is more about loading
-        // them...
-        debug_assert!(
-            owner.as_stylesheet_owner().is_some() || owner.is::<HTMLMetaElement>(),
-            "Wat"
-        );
-
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets
-            .iter()
-            .map(|(sheet, _origin)| sheet)
-            .find(|sheet_in_doc| {
-                owner
-                    .upcast::<Node>()
-                    .is_before(sheet_in_doc.owner.upcast())
-            })
-            .cloned();
-
-        self.window()
-            .layout_chan()
-            .send(Msg::AddStylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-            ))
-            .unwrap();
-
-        let sheet = StyleSheetInDocument {
-            sheet,
-            owner: Dom::from_ref(owner),
-        };
-
-        let lock = self.style_shared_lock();
-        let guard = lock.read();
-
-        match insertion_point {
-            Some(ip) => {
-                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
-            },
-            None => {
-                stylesheets.append_stylesheet(None, sheet, &guard);
-            },
-        }
-    }
-
-    /// Returns the number of document stylesheets.
-    pub fn stylesheet_count(&self) -> usize {
-        self.stylesheets.borrow().len()
-    }
-
     pub fn salvageable(&self) -> bool {
         self.salvageable.get()
-    }
-
-    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
-        let stylesheets = self.stylesheets.borrow();
-
-        stylesheets
-            .get(Origin::Author, index)
-            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
@@ -3270,6 +3129,92 @@ impl Document {
             }
         }
     }
+
+    pub fn register_shadow_root(&self, shadow_root: &ShadowRoot) {
+        self.shadow_roots
+            .borrow_mut()
+            .insert(Dom::from_ref(shadow_root));
+        self.invalidate_shadow_roots_stylesheets();
+    }
+
+    pub fn unregister_shadow_root(&self, shadow_root: &ShadowRoot) {
+        let mut shadow_roots = self.shadow_roots.borrow_mut();
+        shadow_roots.remove(&Dom::from_ref(shadow_root));
+    }
+
+    pub fn invalidate_shadow_roots_stylesheets(&self) {
+        self.shadow_roots_styles_changed.set(true);
+    }
+
+    pub fn shadow_roots_styles_changed(&self) -> bool {
+        self.shadow_roots_styles_changed.get()
+    }
+
+    pub fn flush_shadow_roots_stylesheets(&self) {
+        if !self.shadow_roots_styles_changed.get() {
+            return;
+        }
+        self.shadow_roots_styles_changed.set(false);
+    }
+
+    pub fn stylesheet_count(&self) -> usize {
+        self.stylesheets.borrow().len()
+    }
+
+    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+        let stylesheets = self.stylesheets.borrow();
+
+        stylesheets
+            .get(Origin::Author, index)
+            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        let stylesheets = &mut *self.stylesheets.borrow_mut();
+        let insertion_point = stylesheets
+            .iter()
+            .map(|(sheet, _origin)| sheet)
+            .find(|sheet_in_doc| {
+                owner
+                    .upcast::<Node>()
+                    .is_before(sheet_in_doc.owner.upcast())
+            })
+            .cloned();
+
+        self.window
+            .layout_chan()
+            .send(Msg::AddStylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+            ))
+            .unwrap();
+
+        DocumentOrShadowRoot::add_stylesheet(
+            owner,
+            StylesheetSetRef::Document(stylesheets),
+            sheet,
+            insertion_point,
+            self.style_shared_lock(),
+        );
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of document sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.window
+            .layout_chan()
+            .send(Msg::RemoveStylesheet(s.clone()))
+            .unwrap();
+
+        DocumentOrShadowRoot::remove_stylesheet(
+            owner,
+            s,
+            StylesheetSetRef::Document(&mut *self.stylesheets.borrow_mut()),
+        )
+    }
 }
 
 impl Element {
@@ -3301,8 +3246,12 @@ impl ProfilerMetadataFactory for Document {
 impl DocumentMethods for Document {
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
-        self.stylesheet_list
-            .or_init(|| StyleSheetList::new(&self.window, Dom::from_ref(&self)))
+        self.stylesheet_list.or_init(|| {
+            StyleSheetList::new(
+                &self.window,
+                StyleSheetListOwner::Document(Dom::from_ref(self)),
+            )
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
@@ -3317,16 +3266,11 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
-        // TODO: Step 2.
-
-        match self.get_focused_element() {
-            Some(element) => Some(element), // Step 3. and 4.
-            None => match self.GetBody() {
-                // Step 5.
-                Some(body) => Some(DomRoot::upcast(body)),
-                None => self.GetDocumentElement(),
-            },
-        }
+        self.document_or_shadow_root.get_active_element(
+            self.get_focused_element(),
+            self.GetBody(),
+            self.GetDocumentElement(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
@@ -3643,7 +3587,7 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-importnode
     fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<DomRoot<Node>> {
         // Step 1.
-        if node.is::<Document>() {
+        if node.is::<Document>() || node.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
         }
 
@@ -3665,9 +3609,14 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        Node::adopt(node, self);
+        if node.is::<ShadowRoot>() {
+            return Err(Error::HierarchyRequest);
+        }
 
         // Step 3.
+        Node::adopt(node, self);
+
+        // Step 4.
         Ok(DomRoot::from_ref(node))
     }
 
@@ -3805,7 +3754,7 @@ impl DocumentMethods for Document {
             } else {
                 // Step 2.
                 root.upcast::<Node>()
-                    .traverse_preorder()
+                    .traverse_preorder(ShadowIncluding::No)
                     .find(|node| node.is::<HTMLTitleElement>())
             }
         });
@@ -3852,7 +3801,7 @@ impl DocumentMethods for Document {
         } else if root.namespace() == &ns!(html) {
             let elem = root
                 .upcast::<Node>()
-                .traverse_preorder()
+                .traverse_preorder(ShadowIncluding::No)
                 .find(|node| node.is::<HTMLTitleElement>());
             match elem {
                 Some(elem) => elem,
@@ -4219,7 +4168,7 @@ impl DocumentMethods for Document {
         {
             // Step 1.
             let mut elements = root
-                .traverse_preorder()
+                .traverse_preorder(ShadowIncluding::No)
                 .filter(|node| filter_by_name(&name, &node))
                 .peekable();
             if let Some(first) = elements.next() {
@@ -4273,82 +4222,24 @@ impl DocumentMethods for Document {
         SetOnreadystatechange
     );
 
-    #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
     fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
-        let x = *x as f32;
-        let y = *y as f32;
-        let point = &Point2D::new(x, y);
-        let window = window_from_node(self);
-        let viewport = window.window_size().initial_viewport;
-
-        if self.browsing_context().is_none() {
-            return None;
-        }
-
-        if x < 0.0 || y < 0.0 || x > viewport.width || y > viewport.height {
-            return None;
-        }
-
-        match self
-            .nodes_from_point(point, NodesFromPointQueryType::Topmost)
-            .first()
-        {
-            Some(address) => {
-                let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
-                let node = unsafe { node::from_untrusted_node_address(js_runtime, *address) };
-                let parent_node = node.GetParentNode().unwrap();
-                let element_ref = node
-                    .downcast::<Element>()
-                    .unwrap_or_else(|| parent_node.downcast::<Element>().unwrap());
-
-                Some(DomRoot::from_ref(element_ref))
-            },
-            None => self.GetDocumentElement(),
-        }
+        self.document_or_shadow_root.element_from_point(
+            x,
+            y,
+            self.GetDocumentElement(),
+            self.has_browsing_context,
+        )
     }
 
-    #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
     fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
-        let x = *x as f32;
-        let y = *y as f32;
-        let point = &Point2D::new(x, y);
-        let window = window_from_node(self);
-        let viewport = window.window_size().initial_viewport;
-
-        if self.browsing_context().is_none() {
-            return vec![];
-        }
-
-        // Step 2
-        if x < 0.0 || y < 0.0 || x > viewport.width || y > viewport.height {
-            return vec![];
-        }
-
-        let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
-
-        // Step 1 and Step 3
-        let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);
-        let mut elements: Vec<DomRoot<Element>> = nodes
-            .iter()
-            .flat_map(|&untrusted_node_address| {
-                let node = unsafe {
-                    node::from_untrusted_node_address(js_runtime, untrusted_node_address)
-                };
-                DomRoot::downcast::<Element>(node)
-            })
-            .collect();
-
-        // Step 4
-        if let Some(root_element) = self.GetDocumentElement() {
-            if elements.last() != Some(&root_element) {
-                elements.push(root_element);
-            }
-        }
-
-        // Step 5
-        elements
+        self.document_or_shadow_root.elements_from_point(
+            x,
+            y,
+            self.GetDocumentElement(),
+            self.has_browsing_context,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
@@ -4403,7 +4294,10 @@ impl DocumentMethods for Document {
         }
 
         // Step 8
-        for node in self.upcast::<Node>().traverse_preorder() {
+        for node in self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::Yes)
+        {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 

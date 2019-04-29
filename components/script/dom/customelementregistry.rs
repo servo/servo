@@ -23,10 +23,10 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
-use crate::dom::element::{CustomElementState, Element};
+use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, Node};
+use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
@@ -46,6 +46,21 @@ use std::mem;
 use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
+
+/// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
+pub enum CustomElementState {
+    Undefined,
+    Failed,
+    Uncustomized,
+    Custom,
+}
+
+impl Default for CustomElementState {
+    fn default() -> CustomElementState {
+        CustomElementState::Uncustomized
+    }
+}
 
 /// <https://html.spec.whatwg.org/multipage/#customelementregistry>
 #[dom_struct]
@@ -364,7 +379,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Steps 14-15
         for candidate in document
             .upcast::<Node>()
-            .traverse_preorder()
+            .traverse_preorder(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
         {
             let is = candidate.get_is();

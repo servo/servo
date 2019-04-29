@@ -23,7 +23,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::Element;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::node::{Node, UnbindContext};
+use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -102,10 +102,10 @@ impl Range {
     // https://dom.spec.whatwg.org/#partially-contained
     fn partially_contains(&self, node: &Node) -> bool {
         self.StartContainer()
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .any(|n| &*n == node) !=
             self.EndContainer()
-                .inclusive_ancestors()
+                .inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| &*n == node)
     }
 
@@ -193,8 +193,14 @@ impl Range {
     // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
     fn compare_point(&self, node: &Node, offset: u32) -> Fallible<Ordering> {
         let start_node = self.StartContainer();
-        let start_node_root = start_node.inclusive_ancestors().last().unwrap();
-        let node_root = node.inclusive_ancestors().last().unwrap();
+        let start_node_root = start_node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
+        let node_root = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
         if start_node_root != node_root {
             // Step 1.
             return Err(Error::WrongDocument);
@@ -253,7 +259,10 @@ impl RangeMethods for Range {
     fn CommonAncestorContainer(&self) -> DomRoot<Node> {
         let end_container = self.EndContainer();
         // Step 1.
-        for container in self.StartContainer().inclusive_ancestors() {
+        for container in self
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+        {
             // Step 2.
             if container.is_inclusive_ancestor_of(&end_container) {
                 // Step 3.
@@ -368,8 +377,16 @@ impl RangeMethods for Range {
             // Step 1.
             return Err(Error::NotSupported);
         }
-        let this_root = self.StartContainer().inclusive_ancestors().last().unwrap();
-        let other_root = other.StartContainer().inclusive_ancestors().last().unwrap();
+        let this_root = self
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
+        let other_root = other
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
         if this_root != other_root {
             // Step 2.
             return Err(Error::WrongDocument);
@@ -429,8 +446,15 @@ impl RangeMethods for Range {
     // https://dom.spec.whatwg.org/#dom-range-intersectsnode
     fn IntersectsNode(&self, node: &Node) -> bool {
         let start_node = self.StartContainer();
-        let start_node_root = self.StartContainer().inclusive_ancestors().last().unwrap();
-        let node_root = node.inclusive_ancestors().last().unwrap();
+        let start_node_root = self
+            .StartContainer()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
+        let node_root = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .last()
+            .unwrap();
         if start_node_root != node_root {
             // Step 1.
             return false;
@@ -499,7 +523,7 @@ impl RangeMethods for Range {
                 fragment.upcast::<Node>().AppendChild(&clone)?;
             } else {
                 // Step 14.1.
-                let clone = child.CloneNode(false);
+                let clone = child.CloneNode(/* deep */ false)?;
                 // Step 14.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 14.3.
@@ -520,7 +544,7 @@ impl RangeMethods for Range {
         // Step 15.
         for child in contained_children {
             // Step 15.1.
-            let clone = child.CloneNode(true);
+            let clone = child.CloneNode(/* deep */ true)?;
             // Step 15.2.
             fragment.upcast::<Node>().AppendChild(&clone)?;
         }
@@ -536,7 +560,7 @@ impl RangeMethods for Range {
                 fragment.upcast::<Node>().AppendChild(&clone)?;
             } else {
                 // Step 17.1.
-                let clone = child.CloneNode(false);
+                let clone = child.CloneNode(/* deep */ false)?;
                 // Step 17.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 17.3.
@@ -572,7 +596,7 @@ impl RangeMethods for Range {
         if end_node == start_node {
             if let Some(end_data) = end_node.downcast::<CharacterData>() {
                 // Step 4.1.
-                let clone = end_node.CloneNode(true);
+                let clone = end_node.CloneNode(/* deep */ true)?;
                 // Step 4.2.
                 let text = end_data.SubstringData(start_offset, end_offset - start_offset);
                 clone
@@ -613,7 +637,7 @@ impl RangeMethods for Range {
             if let Some(start_data) = child.downcast::<CharacterData>() {
                 assert!(child == start_node);
                 // Step 15.1.
-                let clone = start_node.CloneNode(true);
+                let clone = start_node.CloneNode(/* deep */ true)?;
                 // Step 15.2.
                 let text = start_data.SubstringData(start_offset, start_node.len() - start_offset);
                 clone
@@ -630,7 +654,7 @@ impl RangeMethods for Range {
                 )?;
             } else {
                 // Step 16.1.
-                let clone = child.CloneNode(false);
+                let clone = child.CloneNode(/* deep */ false)?;
                 // Step 16.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 16.3.
@@ -657,7 +681,7 @@ impl RangeMethods for Range {
             if let Some(end_data) = child.downcast::<CharacterData>() {
                 assert!(child == end_node);
                 // Step 18.1.
-                let clone = end_node.CloneNode(true);
+                let clone = end_node.CloneNode(/* deep */ true)?;
                 // Step 18.2.
                 let text = end_data.SubstringData(0, end_offset);
                 clone
@@ -670,7 +694,7 @@ impl RangeMethods for Range {
                 end_data.ReplaceData(0, end_offset, DOMString::new())?;
             } else {
                 // Step 19.1.
-                let clone = child.CloneNode(false);
+                let clone = child.CloneNode(/* deep */ false)?;
                 // Step 19.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 19.3.
@@ -763,7 +787,7 @@ impl RangeMethods for Range {
 
         // Step 11
         let new_offset = new_offset +
-            if node.type_id() == NodeTypeId::DocumentFragment {
+            if let NodeTypeId::DocumentFragment(_) = node.type_id() {
                 node.len()
             } else {
                 1
@@ -868,9 +892,9 @@ impl RangeMethods for Range {
         let end = self.EndContainer();
 
         if start
-            .inclusive_ancestors()
+            .inclusive_ancestors(ShadowIncluding::No)
             .any(|n| !n.is_inclusive_ancestor_of(&end) && !n.is::<Text>()) ||
-            end.inclusive_ancestors()
+            end.inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| !n.is_inclusive_ancestor_of(&start) && !n.is::<Text>())
         {
             return Err(Error::InvalidState);
@@ -878,7 +902,9 @@ impl RangeMethods for Range {
 
         // Step 2.
         match new_parent.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => {
+            NodeTypeId::Document(_) |
+            NodeTypeId::DocumentType |
+            NodeTypeId::DocumentFragment(_) => {
                 return Err(Error::InvalidNodeType);
             },
             _ => (),
@@ -954,7 +980,7 @@ impl RangeMethods for Range {
         let node = self.StartContainer();
         let owner_doc = node.owner_doc();
         let element = match node.type_id() {
-            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) => None,
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
@@ -969,7 +995,10 @@ impl RangeMethods for Range {
         let fragment_node = element.parse_fragment(fragment)?;
 
         // Step 4.
-        for node in fragment_node.upcast::<Node>().traverse_preorder() {
+        for node in fragment_node
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+        {
             if let Some(script) = node.downcast::<HTMLScriptElement>() {
                 script.set_already_started(false);
                 script.set_parser_inserted(false);
@@ -1046,7 +1075,7 @@ fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Op
         }
     } else if position & NodeConstants::DOCUMENT_POSITION_CONTAINS != 0 {
         // Step 3-1, 3-2.
-        let mut b_ancestors = b_node.inclusive_ancestors();
+        let mut b_ancestors = b_node.inclusive_ancestors(ShadowIncluding::No);
         let child = b_ancestors
             .find(|child| &*child.GetParentNode().unwrap() == a_node)
             .unwrap();

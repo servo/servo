@@ -40,13 +40,16 @@ use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script::layout_exports::NodeFlags;
 use script::layout_exports::PendingRestyle;
+use script::layout_exports::ShadowRoot;
 use script::layout_exports::{
-    CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId, TextTypeId,
+    CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
+    TextTypeId,
 };
 use script::layout_exports::{Document, Element, Node, Text};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
 use script::layout_exports::{
-    LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers,
+    LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, LayoutShadowRootHelpers,
+    RawLayoutElementHelpers,
 };
 use script_layout_interface::wrapper_traits::{
     DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode,
@@ -80,10 +83,13 @@ use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
 use style::dom::{TDocument, TElement, TNode, TShadowRoot};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
+use style::media_queries::Device;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{extended_filtering, PseudoElement, SelectorImpl};
 use style::selector_parser::{AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass};
-use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
+use style::shared_lock::{
+    Locked as StyleLocked, SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard,
+};
 use style::str::is_whitespace;
 use style::stylist::CascadeData;
 use style::CaseSensitivityExt;
@@ -161,39 +167,72 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-enum Impossible {}
+pub struct ServoShadowRoot<'a> {
+    /// The wrapped shadow root.
+    shadow_root: LayoutDom<ShadowRoot>,
 
-#[derive(Clone, Copy, PartialEq)]
-pub struct ShadowRoot<'lr>(Impossible, PhantomData<&'lr ()>);
+    /// Being chained to a PhantomData prevents `ShadowRoot`s from escaping.
+    chain: PhantomData<&'a ()>,
+}
 
-impl<'lr> TShadowRoot for ShadowRoot<'lr> {
+impl<'lr> Debug for ServoShadowRoot<'lr> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.as_node().fmt(f)
+    }
+}
+
+impl<'lr> TShadowRoot for ServoShadowRoot<'lr> {
     type ConcreteNode = ServoLayoutNode<'lr>;
 
     fn as_node(&self) -> Self::ConcreteNode {
-        match self.0 {}
+        ServoLayoutNode::from_layout_js(self.shadow_root.upcast())
     }
 
     fn host(&self) -> ServoLayoutElement<'lr> {
-        match self.0 {}
+        ServoLayoutElement::from_layout_js(unsafe { self.shadow_root.get_host_for_layout() })
     }
 
     fn style_data<'a>(&self) -> Option<&'a CascadeData>
     where
         Self: 'a,
     {
-        match self.0 {}
+        Some(unsafe {
+            &self
+                .shadow_root
+                .get_style_data_for_layout::<ServoLayoutElement>()
+                .data
+        })
+    }
+}
+
+impl<'lr> ServoShadowRoot<'lr> {
+    fn from_layout_js(shadow_root: LayoutDom<ShadowRoot>) -> ServoShadowRoot<'lr> {
+        ServoShadowRoot {
+            shadow_root,
+            chain: PhantomData,
+        }
+    }
+
+    pub unsafe fn flush_stylesheets(
+        &self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        self.shadow_root
+            .flush_stylesheets::<ServoLayoutElement>(device, quirks_mode, guard)
     }
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteElement = ServoLayoutElement<'ln>;
-    type ConcreteShadowRoot = ShadowRoot<'ln>;
+    type ConcreteShadowRoot = ServoShadowRoot<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
         unsafe {
             self.node
-                .parent_node_ref()
+                .composed_parent_node_ref()
                 .map(|node| self.new_with_this_lifetime(&node))
         }
     }
@@ -235,7 +274,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'ln>> {
-        self.parent_element()
+        let parent = self.parent_node()?;
+        if let Some(shadow) = parent.as_shadow_root() {
+            return Some(shadow.host());
+        };
+        parent.as_element()
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -256,8 +299,8 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
             .map(ServoLayoutDocument::from_layout_js)
     }
 
-    fn as_shadow_root(&self) -> Option<ShadowRoot<'ln>> {
-        None
+    fn as_shadow_root(&self) -> Option<ServoShadowRoot<'ln>> {
+        self.node.downcast().map(ServoShadowRoot::from_layout_js)
     }
 
     fn is_in_document(&self) -> bool {
@@ -292,6 +335,10 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
     unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData {
         self.get_jsmanaged().take_style_and_layout_data()
+    }
+
+    fn is_connected(&self) -> bool {
+        unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
     }
 }
 
@@ -378,6 +425,36 @@ impl<'ld> ServoLayoutDocument<'ld> {
         unsafe { self.document.style_shared_lock() }
     }
 
+    pub fn shadow_roots(&self) -> Vec<ServoShadowRoot> {
+        unsafe {
+            self.document
+                .shadow_roots()
+                .iter()
+                .map(|sr| {
+                    debug_assert!(sr.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED));
+                    ServoShadowRoot::from_layout_js(*sr)
+                })
+                .collect()
+        }
+    }
+
+    pub fn flush_shadow_roots_stylesheets(
+        &self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        unsafe {
+            if !self.document.shadow_roots_styles_changed() {
+                return;
+            }
+            self.document.flush_shadow_roots_stylesheets();
+            for shadow_root in self.shadow_roots() {
+                shadow_root.flush_stylesheets(device, quirks_mode, guard);
+            }
+        }
+    }
+
     pub fn from_layout_js(doc: LayoutDom<Document>) -> ServoLayoutDocument<'ld> {
         ServoLayoutDocument {
             document: doc,
@@ -414,7 +491,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator> {
-        LayoutIterator(self.as_node().dom_children())
+        LayoutIterator(if let Some(shadow) = self.shadow_root() {
+            shadow.as_node().dom_children()
+        } else {
+            self.as_node().dom_children()
+        })
     }
 
     fn is_html_element(&self) -> bool {
@@ -488,7 +569,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     unsafe fn set_dirty_descendants(&self) {
-        debug_assert!(self.as_node().is_in_document());
+        debug_assert!(self.as_node().is_connected());
         self.as_node()
             .node
             .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
@@ -616,12 +697,23 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
-    fn shadow_root(&self) -> Option<ShadowRoot<'le>> {
-        None
+    /// The shadow root this element is a host of.
+    fn shadow_root(&self) -> Option<ServoShadowRoot<'le>> {
+        unsafe {
+            self.element
+                .get_shadow_root_for_layout()
+                .map(ServoShadowRoot::from_layout_js)
+        }
     }
 
-    fn containing_shadow(&self) -> Option<ShadowRoot<'le>> {
-        None
+    /// The shadow root which roots the subtree this element is contained in.
+    fn containing_shadow(&self) -> Option<ServoShadowRoot<'le>> {
+        unsafe {
+            self.element
+                .upcast()
+                .containing_shadow_root_for_layout()
+                .map(ServoShadowRoot::from_layout_js)
+        }
     }
 }
 
@@ -702,15 +794,26 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
-        unsafe { self.element.upcast().parent_node_ref().and_then(as_element) }
+        unsafe {
+            self.element
+                .upcast()
+                .composed_parent_node_ref()
+                .and_then(as_element)
+        }
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
-        false
+        match self.as_node().parent_node() {
+            None => false,
+            Some(node) => {
+                node.script_type_id() ==
+                    NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
+            },
+        }
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        None
+        self.containing_shadow().map(|s| s.host())
     }
 
     fn prev_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
@@ -985,6 +1088,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn children(&self) -> LayoutIterator<Self::ChildrenIterator> {
+        if let Some(shadow) = self.node.as_element().and_then(|e| e.shadow_root()) {
+            return LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(
+                shadow.as_node().to_threadsafe(),
+            ));
+        }
         LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(*self))
     }
 

@@ -22,7 +22,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
+use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -372,7 +372,7 @@ impl HTMLScriptElement {
         }
 
         // Step 5.
-        if !self.upcast::<Node>().is_in_doc() {
+        if !self.upcast::<Node>().is_connected() {
             return;
         }
 
@@ -760,7 +760,7 @@ impl VirtualMethods for HTMLScriptElement {
         match *attr.local_name() {
             local_name!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
+                    if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
                         self.prepare();
                     }
                 }
@@ -773,17 +773,17 @@ impl VirtualMethods for HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
+        if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
             self.prepare();
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(context);
         }
 
-        if tree_in_doc && !self.parser_inserted.get() {
+        if context.tree_connected && !self.parser_inserted.get() {
             let script = Trusted::new(self);
             document_from_node(self).add_delayed_task(task!(ScriptDelayedInitialize: move || {
                 script.root().prepare();

@@ -118,6 +118,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
+use style::author_styles::AuthorStyles;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::element_state::*;
@@ -125,10 +126,11 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
-use style::stylesheet_set::DocumentStylesheetSet;
+use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use style::stylesheets::keyframes_rule::Keyframe;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
 use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule, ViewportRule};
+use style::stylist::CascadeData;
 use style::values::specified::Length;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
@@ -497,6 +499,7 @@ unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
 unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>, RigidTransform3D<f64>);
+unsafe_no_jsmanaged_fields!(CascadeData);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -712,6 +715,26 @@ where
         for (s, _origin) in self.iter() {
             s.trace(tracer)
         }
+    }
+}
+
+unsafe impl<S> JSTraceable for AuthorStylesheetSet<S>
+where
+    S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
+{
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        for s in self.iter() {
+            s.trace(tracer)
+        }
+    }
+}
+
+unsafe impl<S> JSTraceable for AuthorStyles<S>
+where
+    S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
+{
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        self.stylesheets.trace(tracer)
     }
 }
 

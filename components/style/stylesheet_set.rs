@@ -585,6 +585,16 @@ where
         self.collection.len() == 0
     }
 
+    /// Returns the `index`th stylesheet in the collection of author styles if present.
+    pub fn get(&self, index: usize) -> Option<&S> {
+        self.collection.get(index)
+    }
+
+    /// Returns the number of author stylesheets.
+    pub fn len(&self) -> usize {
+        self.collection.len()
+    }
+
     fn collection_for(
         &mut self,
         _sheet: &S,

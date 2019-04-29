@@ -103,7 +103,7 @@ use std::time::Duration;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
-use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
+use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
@@ -1345,6 +1345,18 @@ impl LayoutThread {
                 LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
             }
         }
+
+        debug!(
+            "Shadow roots in document {:?}",
+            document.shadow_roots().len()
+        );
+
+        // Flush shadow roots stylesheets if dirty.
+        document.flush_shadow_roots_stylesheets(
+            &self.stylist.device(),
+            document.quirks_mode(),
+            guards.author.clone(),
+        );
 
         let restyles = document.drain_pending_restyles();
         debug!("Draining restyles: {}", restyles.len());

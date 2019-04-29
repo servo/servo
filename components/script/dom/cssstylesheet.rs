@@ -4,13 +4,14 @@
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::element::Element;
+use crate::dom::node::{stylesheets_owner_from_node, Node};
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -64,6 +65,10 @@ impl CSSStyleSheet {
         )
     }
 
+    pub fn owner(&self) -> DomRoot<Element> {
+        DomRoot::from_ref(&*self.owner)
+    }
+
     fn rulelist(&self) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let rules = self.style_stylesheet.contents.rules.clone();
@@ -81,10 +86,7 @@ impl CSSStyleSheet {
 
     pub fn set_disabled(&self, disabled: bool) {
         if self.style_stylesheet.set_disabled(disabled) {
-            self.global()
-                .as_window()
-                .Document()
-                .invalidate_stylesheets();
+            stylesheets_owner_from_node(self.owner().upcast::<Node>()).invalidate_stylesheets();
         }
     }
 

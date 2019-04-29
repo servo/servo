@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -11,6 +10,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::node::{stylesheets_owner_from_node, Node};
 use crate::dom::window::Window;
 use cssparser::ToCss;
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput};
@@ -118,11 +118,7 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             let mut guard = self.cssrule.shared_lock().write();
             let stylerule = self.stylerule.write_with(&mut guard);
             mem::swap(&mut stylerule.selectors, &mut s);
-            // It seems like we will want to avoid having to invalidate all
-            // stylesheets eventually!
-            self.global()
-                .as_window()
-                .Document()
+            stylesheets_owner_from_node(self.cssrule.parent_stylesheet().owner().upcast::<Node>())
                 .invalidate_stylesheets();
         }
     }

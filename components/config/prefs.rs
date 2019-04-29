@@ -222,6 +222,9 @@ mod gen {
                         enabled: bool,
                     }
                 },
+                shadowdom: {
+                    enabled: bool,
+                },
                 svg: {
                     enabled: bool,
                 },

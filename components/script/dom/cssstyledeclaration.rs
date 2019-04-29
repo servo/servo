@@ -13,7 +13,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
-use crate::dom::node::{document_from_node, window_from_node, Node};
+use crate::dom::node::{document_from_node, stylesheets_owner_from_node, window_from_node, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
@@ -115,9 +115,7 @@ impl CSSStyleOwner {
                 if changed {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
-                    rule.global()
-                        .as_window()
-                        .Document()
+                    stylesheets_owner_from_node(rule.parent_stylesheet().owner().upcast::<Node>())
                         .invalidate_stylesheets();
                 }
                 result
@@ -246,7 +244,7 @@ impl CSSStyleDeclaration {
             },
             CSSStyleOwner::Element(ref el) => {
                 let node = el.upcast::<Node>();
-                if !node.is_in_doc() {
+                if !node.is_connected() {
                     // TODO: Node should be matched against the style rules of this window.
                     // Firefox is currently the only browser to implement this.
                     return DOMString::new();
