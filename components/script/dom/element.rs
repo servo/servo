@@ -497,6 +497,9 @@ impl Element {
         // Steps 4, 5 and 6.
         let shadow_root = ShadowRoot::new(self, &*self.node.owner_doc());
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
+        shadow_root
+            .upcast::<Node>()
+            .set_containing_shadow_root(&shadow_root);
 
         if self.is_connected() {
             self.node.owner_doc().register_shadow_root(&*shadow_root);

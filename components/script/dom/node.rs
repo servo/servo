@@ -947,11 +947,6 @@ impl Node {
     }
 
     pub fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
-        // NodeRareData contains the shadow root the node belongs to,
-        // but this node may be a shadow root itself.
-        if let Some(ref shadow_root) = self.downcast::<ShadowRoot>() {
-            return Some(DomRoot::from_ref(shadow_root));
-        }
         self.rare_data()
             .as_ref()?
             .containing_shadow_root
@@ -1281,9 +1276,6 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
-        if let Some(ref shadow_root) = self.downcast::<ShadowRoot>() {
-            return Some(*shadow_root);
-        }
         (*self.unsafe_get())
             .rare_data_for_layout()
             .as_ref()?
