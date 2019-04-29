@@ -23,14 +23,15 @@ use servo_media::audio::oscillator_node::OscillatorNodeMessage;
 use servo_media::audio::oscillator_node::OscillatorNodeOptions as ServoMediaOscillatorOptions;
 use servo_media::audio::oscillator_node::OscillatorType as ServoMediaOscillatorType;
 use servo_media::audio::param::ParamType;
+use std::cell::Cell;
 use std::f32;
 
 #[dom_struct]
 pub struct OscillatorNode {
     source_node: AudioScheduledSourceNode,
-    oscillator_type: OscillatorType,
-    frequency: Dom<AudioParam>,
     detune: Dom<AudioParam>,
+    frequency: Dom<AudioParam>,
+    oscillator_type: Cell<OscillatorType>,
 }
 
 impl OscillatorNode {
@@ -72,7 +73,7 @@ impl OscillatorNode {
             -440. / 2.,
             440. / 2.,
         );
-
+        let oscillator_type = Cell::new(options.type_);
         Ok(OscillatorNode {
             source_node,
             oscillator_type: options.type_,
