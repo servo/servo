@@ -865,10 +865,11 @@ impl<'le> GeckoElement<'le> {
         if !self.as_node().is_in_shadow_tree() {
             return false;
         }
-        match self.containing_shadow_host() {
-            Some(e) => e.is_svg_element() && e.local_name() == &*local_name!("use"),
-            None => false,
+        if !self.parent_node_is_shadow_root() {
+            return false;
         }
+        let host = self.containing_shadow_host().unwrap();
+        host.is_svg_element() && host.local_name() == &*local_name!("use")
     }
 
     fn css_transitions_info(&self) -> FxHashMap<LonghandId, Arc<AnimationValue>> {
