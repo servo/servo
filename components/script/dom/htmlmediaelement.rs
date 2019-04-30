@@ -70,6 +70,7 @@ use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseLis
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_config::pref;
+use servo_media::player::context::{GlContext, NativeDisplay, PlayerGLContext};
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, StreamType};
 use servo_media::ServoMedia;
@@ -157,6 +158,16 @@ impl FrameRenderer for MediaFrameRenderer {
             },
         }
         self.api.update_resources(txn.resource_updates);
+    }
+}
+
+struct PlayerContextDummy();
+impl PlayerGLContext for PlayerContextDummy {
+    fn get_gl_context(&self) -> GlContext {
+        return GlContext::Unknown;
+    }
+    fn get_native_display(&self) -> NativeDisplay {
+        return NativeDisplay::Unknown;
     }
 }
 
@@ -1201,7 +1212,9 @@ impl HTMLMediaElement {
             _ => StreamType::Seekable,
         };
 
-        let player = ServoMedia::get().unwrap().create_player(stream_type);
+        let player = ServoMedia::get()
+            .unwrap()
+            .create_player(stream_type, Box::new(PlayerContextDummy()));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         player.register_event_handler(action_sender);
