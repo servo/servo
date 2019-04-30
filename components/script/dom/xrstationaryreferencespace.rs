@@ -55,7 +55,7 @@ impl XRStationaryReferenceSpace {
     ///
     /// Does not apply originOffset, use get_viewer_pose on XRReferenceSpace instead
     pub fn get_unoffset_viewer_pose(&self, viewer_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
-        let viewer_pose = XRSpace::viewer_pose_from_frame_data(viewer_pose);
+        let viewer_pose = XRSpace::pose_to_transform(&viewer_pose.pose);
         // all math is in column-vector notation
         // we use the following equation to verify correctness here:
         // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
@@ -113,7 +113,7 @@ impl XRStationaryReferenceSpace {
             },
             XRStationaryReferenceSpaceSubtype::Position_disabled => {
                 // This space follows the user around, but does not mirror the user's orientation
-                let viewer_pose = XRSpace::viewer_pose_from_frame_data(viewer_pose);
+                let viewer_pose = XRSpace::pose_to_transform(&viewer_pose.pose);
                 viewer_pose.translation.into()
             },
         }
