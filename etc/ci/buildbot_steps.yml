@@ -117,7 +117,7 @@ linux-rel-wpt:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
     CC: clang-4.0
-    CXX: clang++4.0
+    CXX: clang++-4.0
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
