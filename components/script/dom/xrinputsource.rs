@@ -47,4 +47,8 @@ impl XRInputSource {
             XRInputSourceBinding::Wrap,
         )
     }
+
+    pub fn update_state(&self, state: WebVRGamepadState) {
+        *self.state.borrow_mut() = state;
+    }
 }

@@ -121,6 +121,8 @@ struct VRRAFUpdate {
     /// Number uniquely identifying the WebGL context
     /// so that we may setup/tear down VR compositors as things change
     context_id: usize,
+    /// Do we need input data?
+    needs_inputs: bool,
 }
 
 type VRRAFUpdateSender = Sender<Result<VRRAFUpdate, ()>>;
@@ -635,6 +637,7 @@ impl VRDisplay {
             depth_far: self.depth_far.get(),
             api_sender: self.api_sender(),
             context_id: self.context_id(),
+            needs_inputs: self.initialized_inputs.get(),
         }
     }
 
@@ -698,6 +701,7 @@ impl VRDisplay {
         let (raf_sender, raf_receiver) = unbounded();
         let (wakeup_sender, wakeup_receiver) = unbounded();
         *self.raf_wakeup_sender.borrow_mut() = Some(wakeup_sender);
+        let mut needs_inputs = false;
 
         // The render loop at native headset frame rate is implemented using a dedicated thread.
         // Every loop iteration syncs pose data with the HMD, submits the pixels to the display and waits for Vsync.
@@ -738,7 +742,7 @@ impl VRDisplay {
                             display_id,
                             near,
                             far,
-                            false,
+                            needs_inputs,
                             sync_sender.clone(),
                         );
                         api_sender.send_vr(msg).unwrap();
@@ -765,6 +769,7 @@ impl VRDisplay {
                     if let Ok(update) = raf_receiver.recv().unwrap() {
                         near = update.depth_near;
                         far = update.depth_far;
+                        needs_inputs = update.needs_inputs;
                         if update.context_id != context_id {
                             if let Some(ref api_sender) = update.api_sender {
                                 api_sender
@@ -823,6 +828,14 @@ impl VRDisplay {
             match receiver.recv().unwrap() {
                 Ok(pose) => {
                     *self.frame_data.borrow_mut() = pose.frame.block();
+                    if self.initialized_inputs.get() {
+                        let inputs = self.input_sources.borrow();
+                        for (id, state) in pose.gamepads {
+                            if let Some(input) = inputs.get(&id) {
+                                input.update_state(state);
+                            }
+                        }
+                    }
                     VRFrameDataStatus::Synced
                 },
                 Err(()) => VRFrameDataStatus::Exit,
@@ -944,7 +957,12 @@ impl VRDisplay {
                     .expect("initialize_inputs called on a VR session");
                 let roots: Vec<_> = gamepads
                     .into_iter()
-                    .map(|g| (g.1.gamepad_id, XRInputSource::new(&global, &session, g.0, g.1)))
+                    .map(|g| {
+                        (
+                            g.1.gamepad_id,
+                            XRInputSource::new(&global, &session, g.0, g.1),
+                        )
+                    })
                     .collect();
 
                 let mut inputs = self.input_sources.borrow_mut();
