@@ -7,12 +7,13 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
+use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
+use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState, WebVRPose};
 
 #[dom_struct]
 pub struct XRInputSource {
@@ -22,6 +23,7 @@ pub struct XRInputSource {
     data: WebVRGamepadData,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     state: DomRefCell<WebVRGamepadState>,
+    target_ray_space: MutNullableDom<XRSpace>,
 }
 
 impl XRInputSource {
@@ -35,6 +37,7 @@ impl XRInputSource {
             session: Dom::from_ref(session),
             data,
             state: DomRefCell::new(state),
+            target_ray_space: Default::default(),
         }
     }
 
@@ -54,6 +57,10 @@ impl XRInputSource {
     pub fn update_state(&self, state: WebVRGamepadState) {
         *self.state.borrow_mut() = state;
     }
+
+    pub fn pose(&self) -> WebVRPose {
+        self.state.borrow().pose
+    }
 }
 
 impl XRInputSourceMethods for XRInputSource {
@@ -64,5 +71,13 @@ impl XRInputSourceMethods for XRInputSource {
             WebVRGamepadHand::Left => XRHandedness::Left,
             WebVRGamepadHand::Right => XRHandedness::Right,
         }
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-targetrayspace
+    fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
+        self.target_ray_space.or_init(|| {
+            let global = self.global();
+            XRSpace::new_inputspace(&global, &self.session, &self)
+        })
     }
 }

@@ -110,7 +110,7 @@ impl XRReferenceSpace {
             // non-subclassed XRReferenceSpaces exist, obtained via the "identity"
             // type. These are equivalent to the viewer pose and follow the headset
             // around
-            XRSpace::viewer_pose_from_frame_data(base_pose)
+            XRSpace::pose_to_transform(&base_pose.pose)
         }
     }
 }
