@@ -4,12 +4,15 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding;
+use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
+    XRHandedness, XRInputSourceMethods,
+};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
-use webvr_traits::{WebVRGamepadData, WebVRGamepadState};
+use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 
 #[dom_struct]
 pub struct XRInputSource {
@@ -50,5 +53,16 @@ impl XRInputSource {
 
     pub fn update_state(&self, state: WebVRGamepadState) {
         *self.state.borrow_mut() = state;
+    }
+}
+
+impl XRInputSourceMethods for XRInputSource {
+    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-handedness
+    fn Handedness(&self) -> XRHandedness {
+        match self.data.hand {
+            WebVRGamepadHand::Unknown => XRHandedness::None,
+            WebVRGamepadHand::Left => XRHandedness::Left,
+            WebVRGamepadHand::Right => XRHandedness::Right,
+        }
     }
 }

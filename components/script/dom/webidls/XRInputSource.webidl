@@ -18,7 +18,7 @@ enum XRTargetRayMode {
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRInputSource {
-  // [SameObject] readonly attribute XRHandedness handedness;
+  readonly attribute XRHandedness handedness;
   // [SameObject] readonly attribute XRTargetRayMode targetRayMode;
   // [SameObject] readonly attribute XRSpace targetRaySpace;
   // [SameObject] readonly attribute XRSpace? gripSpace;
