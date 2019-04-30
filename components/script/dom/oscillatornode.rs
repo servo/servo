@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNo
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::{
     self, OscillatorOptions, OscillatorType,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
@@ -126,9 +126,11 @@ impl OscillatorNodeMethods for OscillatorNode {
         if type_ == "custom" {
             return Err(Error::InvalidState);
         }
-        self.source_node.node().message(AudioNodeMessage::OscillatorNode(
-            OscillatorNodeMessage::SetOscillatorType(type_.into()),
-        ));
+        self.source_node
+            .node()
+            .message(AudioNodeMessage::OscillatorNode(
+                OscillatorNodeMessage::SetOscillatorType(type_.into()),
+            ));
     }
 }
 
