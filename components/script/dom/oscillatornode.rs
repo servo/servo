@@ -123,7 +123,7 @@ impl OscillatorNodeMethods for OscillatorNode {
     // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
     fn SetType(&self, type_: OscillatorType) -> ErrorResult {
         self.oscillator_type.set(type_);
-        if type_ == "custom" {
+        if type_ == OscillatorType::Custom {
             return Err(Error::InvalidState);
         }
         self.source_node
@@ -131,6 +131,7 @@ impl OscillatorNodeMethods for OscillatorNode {
             .message(AudioNodeMessage::OscillatorNode(
                 OscillatorNodeMessage::SetOscillatorType(type_.into()),
             ));
+        return Ok(());
     }
 }
 
