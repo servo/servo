@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait" style="overflow-x:hidden;">
+<title>fixed position, z-index, and mix-blend-mode</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visuren.html#fixed-positioning">
+<link rel="help" href="https://www.w3.org/TR/CSS2/visuren.html#propdef-z-index">
+<link rel="help" href="https://www.w3.org/TR/compositing-1/#mix-blend-mode">
+<meta name="assert" content="Tests fixed, z-index, and mix-blend-mode.
+Passes if there is a green box when the page is scrolled to the bottom.">
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="match" href="fixed-z-index-blend-ref.html">
+
+<div class="blend"></div>
+<div class="background"></div>
+<div class="text">
+  <div style="width: 100px; height:4000px;"></div>
+  <div style="background: green; width: 100px; height:100px;"></div>
+</div>
+
+<style>
+.blend {
+  display: block;
+  position: fixed;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  mix-blend-mode: overlay;
+}
+
+.background {
+  pointer-events: none;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  opacity: 1;
+}
+
+.text {
+  position: relative;
+  z-index: 3;
+  overflow: hidden;
+  width: 100vw;
+  min-height: 100vh;
+  font-size: 50px;
+  line-height: 2;
+}
+</style>
+
+<script src="/common/reftest-wait.js"></script>
+<script>
+requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>{
+    window.scrollBy(0, 3000);
+    takeScreenshot();
+  });
+});
+</script>
+</html>

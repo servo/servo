@@ -105,6 +105,8 @@ class URLManifestItem(ManifestItem):
 
 
 class TestharnessTest(URLManifestItem):
+    __slots__ = ()
+
     item_type = "testharness"
 
     @property
@@ -162,10 +164,15 @@ class RefTestBase(URLManifestItem):
 
     @property
     def fuzzy(self):
-        rv = self._extras.get("fuzzy", [])
-        if isinstance(rv, list):
-            return {tuple(item[0]): item[1]
-                    for item in self._extras.get("fuzzy", [])}
+        fuzzy = self._extras.get("fuzzy", {})
+        if not isinstance(fuzzy, list):
+            return fuzzy
+
+        rv = {}
+        for k, v in fuzzy:
+            if k is not None:
+                k = tuple(k)
+            rv[k] = v
         return rv
 
     def to_json(self):
@@ -207,30 +214,44 @@ class RefTestBase(URLManifestItem):
 
 
 class RefTestNode(RefTestBase):
+    __slots__ = ()
+
     item_type = "reftest_node"
 
 
 class RefTest(RefTestBase):
+    __slots__ = ()
+
     item_type = "reftest"
 
 
 class ManualTest(URLManifestItem):
+    __slots__ = ()
+
     item_type = "manual"
 
 
 class ConformanceCheckerTest(URLManifestItem):
+    __slots__ = ()
+
     item_type = "conformancechecker"
 
 
 class VisualTest(URLManifestItem):
+    __slots__ = ()
+
     item_type = "visual"
 
 
 class Stub(URLManifestItem):
+    __slots__ = ()
+
     item_type = "stub"
 
 
 class WebDriverSpecTest(URLManifestItem):
+    __slots__ = ()
+
     item_type = "wdspec"
 
     @property
@@ -245,6 +266,8 @@ class WebDriverSpecTest(URLManifestItem):
 
 
 class SupportFile(ManifestItem):
+    __slots__ = ()
+
     item_type = "support"
 
     @property

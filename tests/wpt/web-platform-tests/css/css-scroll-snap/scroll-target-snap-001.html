@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<title>#target and snap position with snapping on (y-axis)</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-scroll-snap-1/#choosing'>
+<link rel='match' href='scroll-target-001-ref.html'>
+<meta name='assert'
+      content="Test passes if scroll snapping is honored
+               when navigating to an element with the target fragment ID.">
+
+<style type='text/css'>
+  iframe {
+    border: solid blue 4px;
+    height: 80px;
+    width: calc(100% - 8px);
+  }
+</style>
+
+<div id='instructions'>Test passes if there is a green stripe across the second quarter of the box below and no red.</div>
+
+<iframe class="container" src="support/scroll-target-snap-001-iframe.html#target">This UA doesn't support iframes; please request a custom version of this test!</iframe>

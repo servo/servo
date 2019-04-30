@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Baseline of inferred mrows</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mrow">
+<meta name="assert" content="Baseline for mrow-like elements is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+  function runTests()
+  {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded"].forEach((tag) => {
+          var x = document.getElementById("above" + tag).getBoundingClientRect();
+          var y = document.getElementById("below" + tag).getBoundingClientRect();
+          test(function() {
+              assert_equals(x.bottom, y.top);
+          }, "baseline alignment inside " + tag);
+      });
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <p>
+    <math><mrow><mspace id="aboveMrow" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowMrow" width="10px" depth="30px" style="background: blue"></mspace></mrow></math>
+    <math><msqrt><mspace id="aboveSqrt" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowSqrt" width="10px" depth="30px" style="background: blue"></mspace></msqrt></math>
+    <math><mstyle><mspace id="aboveStyle" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowStyle" width="10px" depth="30px" style="background: blue"></mspace></mstyle></math>
+    <math><merror><mspace id="aboveError" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowError" width="10px" depth="30px" style="background: blue"></mspace></merror></math>
+    <math><mphantom><mspace style="visibility: visible;" id="abovePhantom" width="10px" height="30px" style="background: purple"></mspace><mspace style="visibility: visible;" id="belowPhantom" width="10px" depth="30px" style="background: blue"></mspace></mphantom></math>
+    <math><mspace id="aboveMath" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowMath" width="10px" depth="30px" style="background: blue"></mspace></math>
+    <math><menclose notation="box"><mspace id="aboveMenclose" width="10px" height="30px" style="background: purple"
+></mspace><mspace id="belowMenclose" width="10px" depth="30px" style="background: blue"></mspace></menclose></math>
+    <math><mpadded notation="box"><mspace id="aboveMpadded" width="10px" height="30px" style="background: purple"
+></mspace><mspace id="belowMpadded" width="10px" depth="30px" style="background: blue"></mspace></mpadded></math>
+  </p>
+</body>
+</html>

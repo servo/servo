@@ -1,0 +1,24 @@
+%(import)s
+
+// Receive a message from the parent and start the test.
+function onMessageFromParent(event) {
+  // Because this window might receive messages from child context during
+  // tests, we first remove the listener here before staring the test.
+  self.removeEventListener('message', onMessageFromParent);
+
+  const configurationError = "%(error)s";
+  if (configurationError.length > 0) {
+    postMessage({error: configurationError});
+    return;
+  }
+
+  invokeRequest(event.data.subresource,
+                event.data.sourceContextList)
+    .then(result => postMessage(result))
+    .catch(e => {
+        const message = (e.error && e.error.stack) || e.message || "Error";
+        postMessage({error: message});
+      });
+}
+
+self.addEventListener('message', onMessageFromParent);

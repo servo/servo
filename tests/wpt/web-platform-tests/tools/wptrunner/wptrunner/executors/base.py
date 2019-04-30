@@ -309,8 +309,10 @@ class RefTestImplementation(object):
             self.logger.info("Allowed %s pixels different, maximum difference per channel %s" %
                              ("-".join(str(item) for item in allowed_different),
                               "-".join(str(item) for item in allowed_per_channel)))
-            equal = (allowed_per_channel[0] <= max_per_channel <= allowed_per_channel[1] and
-                     allowed_different[0] <= pixels_different <= allowed_different[1])
+            equal = ((pixels_different == 0 and allowed_different[0] == 0) or
+                     (max_per_channel == 0 and allowed_per_channel[0] == 0) or
+                     (allowed_per_channel[0] <= max_per_channel <= allowed_per_channel[1] and
+                      allowed_different[0] <= pixels_different <= allowed_different[1]))
         return equal if relation == "==" else not equal
 
     def get_differences(self, screenshots):

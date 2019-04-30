@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Stretchy in inferred mrows</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mrow">
+<meta name="assert" content="Baseline for mrow-like elements is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  mo {
+    font-size: 10px;
+    font-family: axisheight5000-verticalarrow14000;
+  }
+  @font-face {
+    font-family: axisheight5000-verticalarrow14000;
+    src: url("/fonts/math/axisheight5000-verticalarrow14000.woff");
+  }
+</style>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+  window.addEventListener("load", function() {
+    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
+    requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
+  });
+  function runTests()
+  {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded"].forEach((tag) => {
+          var mo = document.getElementById("mo" + tag);
+          test(function() {
+              assert_greater_than_equal(mo.getBoundingClientRect().height, 100);
+          }, "operator stretching inside " + tag);
+      });
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <p>
+    <math><mrow><mo id="moMrow">&#x21A8;</mo><mspace width="1px" height="100px" style="background: blue"></mspace></mrow></math>
+    <math><msqrt><mo id="moSqrt">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></msqrt></math>
+    <math><mstyle><mo id="moStyle">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mstyle></math>
+    <math><merror><mo id="moError">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></merror></math>
+    <math><mphantom><mo style="visibilty: visible;" id="moPhantom">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mphantom></math>
+    <math><mo id="moMath">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></math>
+    <math><menclose notation="box"><mo id="moMenclose">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></menclose></math>
+    <math><mpadded notation="box"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mpadded></math>
+  </p>
+</body>
+</html>
