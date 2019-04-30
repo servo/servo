@@ -540,6 +540,7 @@ pub mod xmlhttprequestupload;
 pub mod xmlserializer;
 pub mod xr;
 pub mod xrframe;
+pub mod xrinputsource;
 pub mod xrlayer;
 pub mod xrpose;
 pub mod xrreferencespace;
