@@ -10,17 +10,15 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerNodeMethods;
-use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::{
-    self, StereoPannerOptions,
-};
+use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::{self, StereoPannerOptions};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
+use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
 use std::f32;
 
 #[dom_struct]
@@ -36,10 +34,11 @@ impl StereoPannerNode {
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
     ) -> Fallible<StereoPannerNode> {
-        let node_options =
-            options
-                .parent
-                .unwrap_or(2, ChannelCountMode::Clamped_max, ChannelInterpretation::Speakers);
+        let node_options = options.parent.unwrap_or(
+            2,
+            ChannelCountMode::Clamped_max,
+            ChannelInterpretation::Speakers,
+        );
         if node_options.mode == ChannelCountMode::Max {
             return Err(Error::NotSupported);
         }
@@ -102,8 +101,6 @@ impl StereoPannerNodeMethods for StereoPannerNode {
 
 impl<'a> From<&'a StereoPannerOptions> for ServoMediaStereoPannerOptions {
     fn from(options: &'a StereoPannerOptions) -> Self {
-        Self {
-            pan: *options.pan,
-        }
+        Self { pan: *options.pan }
     }
 }
