@@ -19,6 +19,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
+use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
@@ -152,5 +153,10 @@ impl XRSessionMethods for XRSession {
         }
 
         p
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-getinputsources
+    fn GetInputSources(&self) -> Vec<DomRoot<XRInputSource>> {
+        self.display.get_input_sources()
     }
 }
