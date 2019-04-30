@@ -13,12 +13,12 @@ use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPann
 use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::{
     self, StereoPannerOptions,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::stereo_panner_node::StereoPannerOptions as ServoMediaStereoPannerOptions;
+use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
 use std::f32;
@@ -103,7 +103,7 @@ impl StereoPannerNodeMethods for StereoPannerNode {
 impl<'a> From<&'a StereoPannerOptions> for ServoMediaStereoPannerOptions {
     fn from(options: &'a StereoPannerOptions) -> Self {
         Self {
-            offset: *options.offset,
+            pan: *options.pan,
         }
     }
 }
