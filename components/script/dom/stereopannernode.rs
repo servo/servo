@@ -24,7 +24,7 @@ use std::f32;
 #[dom_struct]
 pub struct StereoPannerNode {
     source_node: AudioScheduledSourceNode,
-    offset: Dom<AudioParam>,
+    pan: Dom<AudioParam>,
 }
 
 impl StereoPannerNode {
@@ -53,11 +53,11 @@ impl StereoPannerNode {
             1, /* outputs */
         )?;
         let node_id = source_node.node().node_id();
-        let offset = AudioParam::new(
+        let pan = AudioParam::new(
             window,
             context,
             node_id,
-            ParamType::Offset,
+            ParamType::Pan,
             AutomationRate::A_rate,
             1.,
             f32::MIN,
@@ -66,7 +66,7 @@ impl StereoPannerNode {
 
         Ok(StereoPannerNode {
             source_node,
-            offset: Dom::from_ref(&offset),
+            pan: Dom::from_ref(&pan),
         })
     }
 
@@ -94,8 +94,9 @@ impl StereoPannerNode {
 }
 
 impl StereoPannerNodeMethods for StereoPannerNode {
-    fn Offset(&self) -> DomRoot<AudioParam> {
-        DomRoot::from_ref(&self.offset)
+    // https://webaudio.github.io/web-audio-api/#dom-stereopannernode-pan
+    fn Pan(&self) -> DomRoot<AudioParam> {
+        DomRoot::from_ref(&self.pan)
     }
 }
 
