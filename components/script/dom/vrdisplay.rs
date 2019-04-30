@@ -22,7 +22,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -36,6 +36,7 @@ use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::xrframe::XRFrame;
+use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::script_runtime::CommonScriptMsg;
@@ -47,6 +48,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -92,6 +94,10 @@ pub struct VRDisplay {
     stopped_on_pause: Cell<bool>,
     /// Whether or not this is XR mode, and the session
     xr_session: MutNullableDom<XRSession>,
+    /// Have inputs been initialized? (i.e, has getInputSources() been called?)
+    /// XR only
+    initialized_inputs: Cell<bool>,
+    input_sources: DomRefCell<HashMap<u32, Dom<XRInputSource>>>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayData);
@@ -164,6 +170,8 @@ impl VRDisplay {
             // When the VR Resume event is received and the flag is set, VR presentation automatically restarts.
             stopped_on_pause: Cell::new(false),
             xr_session: MutNullableDom::default(),
+            initialized_inputs: Cell::new(false),
+            input_sources: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -912,6 +920,36 @@ impl VRDisplay {
         let mut list = self.xr_raf_callback_list.borrow_mut();
         if let Some(pair) = list.iter_mut().find(|pair| pair.0 == handle as u32) {
             pair.1 = None;
+        }
+    }
+
+    /// Initialize XRInputSources
+    fn initialize_inputs(&self) {
+        if self.initialized_inputs.get() {
+            return
+        }
+        self.initialized_inputs.set(true);
+
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let display = self.display.borrow().display_id;
+        self.webvr_thread()
+            .send(WebVRMsg::GetGamepadsForDisplay(display, sender))
+            .unwrap();
+        match receiver.recv().unwrap() {
+            Ok(gamepads) => {
+                let global = self.global();
+                let session = self
+                    .xr_session
+                    .get()
+                    .expect("initialize_inputs called on a VR session");
+                let mut inputs = self.input_sources.borrow_mut();
+                for g in gamepads {
+                    let id = g.1.gamepad_id;
+                    let source = XRInputSource::new(&global, &session, g.0, g.1);
+                    inputs.insert(id, Dom::from_ref(&source));
+                }
+            },
+            Err(_) => {},
         }
     }
 }
