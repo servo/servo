@@ -39,7 +39,7 @@ impl StereoPannerNode {
         let node_options =
             options
                 .parent
-                .unwrap_or(2, ChannelCountMode::ClampedMax, ChannelInterpretation::Speakers);
+                .unwrap_or(2, ChannelCountMode::Clamped_max, ChannelInterpretation::Speakers);
         if node_options.mode == ChannelCountMode::Max {
             return Err(Error::NotSupported);
         }

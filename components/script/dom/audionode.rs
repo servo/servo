@@ -336,7 +336,7 @@ impl From<ChannelCountMode> for ServoMediaChannelCountMode {
     fn from(mode: ChannelCountMode) -> Self {
         match mode {
             ChannelCountMode::Max => ServoMediaChannelCountMode::Max,
-            ChannelCountMode::ClampedMax => ServoMediaChannelCountMode::ClampedMax,
+            ChannelCountMode::Clamped_max => ServoMediaChannelCountMode::ClampedMax,
             ChannelCountMode::Explicit => ServoMediaChannelCountMode::Explicit,
         }
     }
