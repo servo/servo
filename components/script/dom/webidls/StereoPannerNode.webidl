@@ -13,5 +13,5 @@ dictionary StereoPannerOptions: AudioNodeOptions {
 [Exposed=Window,
  Constructor (BaseAudioContext context, optional StereoPannerOptions options)]
 interface StereoPannerNode : AudioScheduledSourceNode {
-  readonly attribute AudioParam offset;
+  readonly attribute AudioParam pan;
 };
