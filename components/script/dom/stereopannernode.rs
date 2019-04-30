@@ -19,7 +19,6 @@ use dom_struct::dom_struct;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
 use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
-use std::f32;
 
 #[dom_struct]
 pub struct StereoPannerNode {
