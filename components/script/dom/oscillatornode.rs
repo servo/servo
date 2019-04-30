@@ -73,10 +73,9 @@ impl OscillatorNode {
             -440. / 2.,
             440. / 2.,
         );
-        let oscillator_type = Cell::new(options.type_);
         Ok(OscillatorNode {
             source_node,
-            oscillator_type: options.type_,
+            oscillator_type: Cell::new(options.type_),
             frequency: Dom::from_ref(&frequency),
             detune: Dom::from_ref(&detune),
         })
@@ -122,10 +121,13 @@ impl OscillatorNodeMethods for OscillatorNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
-    fn SetType(&self, oscillator: OscillatorType) {
-        self.oscillator_type.set(oscillator);
-        self.node.message(AudioNodeMessage::OscillatorNode(
-            OscillatorNodeMessage::SetOscillatorType(oscillator.into()),
+    fn SetType(&self, type_: OscillatorType) -> ErrorResult {
+        self.oscillator_type.set(type_);
+        if type_ == "custom" {
+            return Err(Error::InvalidState);
+        }
+        self.source_node.node().message(AudioNodeMessage::OscillatorNode(
+            OscillatorNodeMessage::SetOscillatorType(type_.into()),
         ));
     }
 }
