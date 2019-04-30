@@ -49,7 +49,7 @@ impl StereoPannerNode {
             AudioNodeInit::StereoPannerNode(options.into()),
             context,
             node_options,
-            0, /* inputs */
+            1, /* inputs */
             1, /* outputs */
         )?;
         let node_id = source_node.node().node_id();
