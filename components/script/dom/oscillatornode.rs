@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNo
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::{
     self, OscillatorOptions, OscillatorType,
 };
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
