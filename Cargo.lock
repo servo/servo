@@ -2812,7 +2812,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.62.0"
-source = "git+https://github.com/servo/mozjs?branch=smup66#414de51d8dd9dff9437d97a266ba255cf28c56ab"
+source = "git+https://github.com/servo/mozjs?branch=smup66#8ea94b2a4b06dde46c9819d8aa4073bbf7321d17"
 dependencies = [
  "bindgen 0.49.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
