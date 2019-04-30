@@ -34,6 +34,7 @@ pub struct XRSession {
     display: Dom<VRDisplay>,
     base_layer: MutNullableDom<XRLayer>,
     blend_mode: XREnvironmentBlendMode,
+    viewer_space: MutNullableDom<XRSpace>,
 }
 
 impl XRSession {
@@ -44,6 +45,7 @@ impl XRSession {
             base_layer: Default::default(),
             // we don't yet support any AR devices
             blend_mode: XREnvironmentBlendMode::Opaque,
+            viewer_space: Default::default(),
         }
     }
 
@@ -87,7 +89,8 @@ impl XRSessionMethods for XRSession {
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-viewerspace
     fn ViewerSpace(&self) -> DomRoot<XRSpace> {
-        XRSpace::new_viewerspace(&self.global(), &self)
+        self.viewer_space
+            .or_init(|| XRSpace::new_viewerspace(&self.global(), &self))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
