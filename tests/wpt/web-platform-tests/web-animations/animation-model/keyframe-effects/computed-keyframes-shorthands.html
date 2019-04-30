@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Calculating computed keyframes: Shorthand properties</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#calculating-computed-keyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  div.style.opacity = '0';
+
+  const animation = div.animate({ all: 'initial' }, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+
+  assert_approx_equals(
+    parseFloat(getComputedStyle(div).opacity),
+    0.5,
+    0.0001,
+    'Should be half way through an opacity animation'
+  );
+}, 'It should be possible to animate the all shorthand');
+
+</script>
+</body>

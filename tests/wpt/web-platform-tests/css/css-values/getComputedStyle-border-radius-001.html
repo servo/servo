@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values Test: mixed units in calc() and computed border-radius longhand and shorthand values (complex)</title>
+
+  <!--
+
+  Original test is:
+
+https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793f5b9668cc/third_party/WebKit/LayoutTests/css3/calc/getComputedStyle-border-radius.html
+
+
+  Bug 137688: getPropertyValue on computed style does not do shorthand properties
+  https://bugzilla.mozilla.org/show_bug.cgi?id=137688
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-serialize">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-border-radius">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  div#target
+    {
+      border: solid 2px;
+      border-top-left-radius: calc(10px + 25%) calc(20px + 25%);
+      border-top-right-radius: calc(1em + 25%);
+      border-bottom-right-radius: calc(25%);
+      border-bottom-left-radius: calc(25px);
+      font-size: 16px;  /* was 10px in original test */
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifyComputedStyle(property_name, expected_value, description)
+    {
+
+    test(function()
+      {
+
+      assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
+
+      }, description);
+    }
+
+ /* verifyComputedStyle(property_name, expected_value, description) */
+
+    verifyComputedStyle("border-top-left-radius", "calc(25% + 10px) calc(25% + 20px)", "testing border-top-left-radius: calc(10px + 25%) calc(20px + 25%)");
+
+    verifyComputedStyle("border-top-right-radius", "calc(25% + 16px)", "testing border-top-right-radius: calc(1em + 25%)");
+
+    verifyComputedStyle("border-bottom-right-radius", "25%", "testing border-bottom-right-radius: calc(25%)");
+
+    verifyComputedStyle("border-bottom-left-radius", "25px", "testing border-bottom-left-radius: calc(25px);");
+
+    verifyComputedStyle("border-radius", "calc(25% + 10px) calc(25% + 16px) 25% 25px / calc(25% + 20px) calc(25% + 16px) 25% 25px", "testing border-radius shorthand");
+
+  /*
+
+  The first value is the horizontal radius, the second the vertical radius.
+
+               horizontal radius                /                 vertical radius
+  |__________________________________________|     |__________________________________________|
+
+
+  The four values for each radii are given in the order top-left, top-right, bottom-right, bottom-left:
+
+
+  top-left top-right bottom-right bottom-left   /  top-left top-right bottom-right bottom-left
+
+  |__________________________________________|     |__________________________________________|
+
+               horizontal radius                /                 vertical radius
+
+  */
+
+  }
+
+  startTesting();
+
+  </script>

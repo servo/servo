@@ -98,6 +98,19 @@ let testFunction =
     assert_transform_approx_equals(transform, inverse_transform.inverse);
   });
 
+  // Inverse should always return the same object, and calling inverse on that
+  // object should return the original object.
+  transform = new XRRigidTransform(
+      { x: 1.0, y: -2.0, z: 3.0 },
+      { x: 0.0, y: 0.0, z: 1.0, w: 1.0 });
+  inverse_transform = transform.inverse;
+  t.step(() => {
+    assert_true(transform.inverse === inverse_transform);
+    assert_true(inverse_transform.inverse === transform);
+    assert_true(transform.inverse.inverse === transform);
+    assert_true(transform.inverse.inverse.inverse === inverse_transform);
+  });
+
   resolve();
 });
 

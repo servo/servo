@@ -18,7 +18,8 @@
         {conditions: {pattern: "[A-Z]+", value: ""}, expected: false, name: "[target] The value attibute is empty string"},
         {conditions: {pattern: "[A-Z]{1}", value: "A"}, expected: false, name: "[target] The value attribute matches the pattern attribute"},
         {conditions: {pattern: "[A-Z]+", value: "\u0041\u0042\u0043"}, expected: false, name: "[target] The value(ABC) in unicode attribute matches the pattern attribute"},
-        {conditions: {pattern: "[a-z]{3,}", value: "ABCD"}, expected: true, name: "[target] The value attribute mismatches the pattern attribute"}
+        {conditions: {pattern: "[a-z]{3,}", value: "ABCD"}, expected: true, name: "[target] The value attribute mismatches the pattern attribute"},
+        {conditions: {pattern: "[A-Z]+", value: "ABC123"}, expected: true, name: "[target] The value attribute mismatches the pattern attribute even when a subset matches"}
       ]
     }
   ];

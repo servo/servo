@@ -13,7 +13,7 @@
 let iframe;
 const redirect_url = 'common/redirect.py';
 const url_prefix = redirect_url + '?location=/resource-timing/resources/';
-const https_url_prefix = redirect_url + '?location=https://{{hosts[][www]}}:{{ports[https][0]}}/resource-timing/resources/';
+const https_url_prefix = redirect_url + '?location=https://{{hosts[alt][]}}:{{ports[https][0]}}/resource-timing/resources/';
 function setup_iframe() {
     const iframe_content =
         '<link rel="stylesheet" href="/' + url_prefix + 'resource_timing_test0.css"></link>' +

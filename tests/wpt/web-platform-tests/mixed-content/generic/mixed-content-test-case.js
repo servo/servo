@@ -61,6 +61,21 @@ function getSubresourceOrigin(originType) {
  */
 function MixedContentTestCase(scenario, description, sanityChecker) {
   sanityChecker.checkScenario(scenario, subresourceMap);
+
+  let sourceContextList = [];
+  let subresourceType = scenario.subresource;
+  if (subresourceType === 'classic-data-worker-fetch') {
+    // Currently 'classic-data-worker-fetch' (fetch API from inside classic
+    // data: worker) is handled as a kind of subresource request
+    // on the genarator side, but should be processed using the combination of
+    // SourceContext list (classic data: worker) + Subresource (fetch API)
+    // on the JavaScript side.
+    // We bridge this inconsistency here, and will later pass these information
+    // directly from the generated tests and remove this conversion here.
+    subresourceType = 'fetch-request';
+    sourceContextList = [{sourceContextType: 'classic-data-worker'}];
+  }
+
   const originTypeConversion = {
     "same-host-https": "same-https",
     "same-host-http": "same-http",
@@ -71,7 +86,8 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "cross-origin-wss": "cross-wss",
     "cross-origin-ws": "cross-ws",
   };
-  const urls = getRequestURLs(scenario.subresource,
+
+  const urls = getRequestURLs(subresourceType,
                               originTypeConversion[scenario.origin],
                               scenario.redirection);
   const checkResult = _ => {
@@ -88,7 +104,7 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
   function runTest() {
     /** @type {Subresource} */
     const subresource = {
-      subresourceType: scenario.subresource,
+      subresourceType: subresourceType,
       url: urls.testUrl,
       policyDeliveries: []
     };
@@ -97,7 +113,7 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
       return xhrRequest(urls.announceUrl)
         // Send out the real resource request.
         // This should tear down the key if it's not blocked.
-        .then(_ => invokeRequest(subresource, []))
+        .then(_ => invokeRequest(subresource, sourceContextList))
         // We check the key state, regardless of whether the main request
         // succeeded or failed.
         .then(checkResult, checkResult);

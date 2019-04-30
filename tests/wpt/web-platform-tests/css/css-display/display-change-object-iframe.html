@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-display-3/">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#replaced-elements">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <object id="victim" data="support/red-square.html" style="width:100px; height:100px;"></object>
+  <script>
+    var loaded_once = false;
+    victim.onload = function() {
+        // The child document should only load once. It should not be reloaded
+        // by changing the display type of the OBJECT.
+        if (loaded_once)
+            return;
+        loaded_once = true;
+        var childDoc = victim.contentWindow.document;
+        // Change the red background to green. This will revert back to red if
+        // the document gets reloaded (which shouldn't happen) when re-attaching
+        // #victim.
+        childDoc.getElementById("square").style.background = "green";
+        document.offsetTop;
+        victim.style.display = "block";
+        document.documentElement.className = "";
+    }
+  </script>
+</html>
