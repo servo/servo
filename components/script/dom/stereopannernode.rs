@@ -59,8 +59,7 @@ impl StereoPannerNode {
             node_id,
             ParamType::Pan,
             AutomationRate::A_rate,
-            *options.pan, // default value
-            1.,
+            *options.pan,
             f32::MIN,
             f32::MAX,
         );
