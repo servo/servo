@@ -60,8 +60,8 @@ impl StereoPannerNode {
             ParamType::Pan,
             AutomationRate::A_rate,
             *options.pan,
-            f32::MIN,
-            f32::MAX,
+            -1.,
+            1.,
         );
 
         Ok(StereoPannerNode {
