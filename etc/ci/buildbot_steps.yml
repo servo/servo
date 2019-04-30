@@ -6,6 +6,10 @@ env:
   GST_DEBUG: '3'
 
 mac-rel-wpt2:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -13,6 +17,10 @@ mac-rel-wpt2:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt3:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -20,6 +28,10 @@ mac-rel-wpt3:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt4:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -29,6 +41,10 @@ mac-rel-wpt4:
   - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-css1:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -37,6 +53,10 @@ mac-rel-css1:
   - bash ./etc/ci/lockfile_changed.sh
 
 mac-rel-css2:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -44,6 +64,10 @@ mac-rel-css2:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-nightly:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -79,6 +103,10 @@ linux-rel-nogate:
   - ./etc/ci/clean_build_artifacts.sh
 
 mac-rel-intermittent:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -135,6 +163,9 @@ linux-nightly:
   - ./etc/ci/clean_build_artifacts.sh
 
 android-mac:
+ env:
+   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
+   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
