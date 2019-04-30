@@ -484,24 +484,24 @@ impl Gradient {
                     if reverse_stops {
                         p.reverse();
                     }
-                    Ok(generic::GradientItem::ColorStop(generic::ColorStop {
-                        color: color,
-                        position: Some(p.into()),
-                    }))
+                    Ok(generic::GradientItem::ComplexColorStop {
+                        color,
+                        position: p.into(),
+                    })
                 })
             })
             .unwrap_or(vec![]);
 
         if items.is_empty() {
             items = vec![
-                generic::GradientItem::ColorStop(generic::ColorStop {
+                generic::GradientItem::ComplexColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage::zero().into()),
-                }),
-                generic::GradientItem::ColorStop(generic::ColorStop {
+                    position: Percentage::zero().into(),
+                },
+                generic::GradientItem::ComplexColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage::hundred().into()),
-                }),
+                    position: Percentage::hundred().into(),
+                },
             ];
         } else if items.len() == 1 {
             let first = items[0].clone();
@@ -510,12 +510,12 @@ impl Gradient {
             items.sort_by(|a, b| {
                 match (a, b) {
                     (
-                        &generic::GradientItem::ColorStop(ref a),
-                        &generic::GradientItem::ColorStop(ref b),
-                    ) => match (&a.position, &b.position) {
+                        &generic::GradientItem::ComplexColorStop { position: ref a_position, .. },
+                        &generic::GradientItem::ComplexColorStop { position: ref b_position, .. },
+                    ) => match (a_position, b_position) {
                         (
-                            &Some(LengthPercentage::Percentage(a)),
-                            &Some(LengthPercentage::Percentage(b)),
+                            &LengthPercentage::Percentage(a),
+                            &LengthPercentage::Percentage(b),
                         ) => {
                             return a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal);
                         },
@@ -960,13 +960,13 @@ impl GradientItem {
 
                 if let Ok(multi_position) = input.try(|i| LengthPercentage::parse(context, i)) {
                     let stop_color = stop.color.clone();
-                    items.push(generic::GradientItem::ColorStop(stop));
-                    items.push(generic::GradientItem::ColorStop(ColorStop {
+                    items.push(stop.into_item());
+                    items.push(ColorStop {
                         color: stop_color,
                         position: Some(multi_position),
-                    }));
+                    }.into_item());
                 } else {
-                    items.push(generic::GradientItem::ColorStop(stop));
+                    items.push(stop.into_item());
                 }
 
                 seen_stop = true;
