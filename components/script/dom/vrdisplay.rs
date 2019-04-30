@@ -926,7 +926,7 @@ impl VRDisplay {
     /// Initialize XRInputSources
     fn initialize_inputs(&self) {
         if self.initialized_inputs.get() {
-            return
+            return;
         }
         self.initialized_inputs.set(true);
 
@@ -954,6 +954,15 @@ impl VRDisplay {
             },
             Err(_) => {},
         }
+    }
+
+    pub fn get_input_sources(&self) -> Vec<DomRoot<XRInputSource>> {
+        self.initialize_inputs();
+        self.input_sources
+            .borrow()
+            .iter()
+            .map(|(_, x)| DomRoot::from_ref(&**x))
+            .collect()
     }
 }
 

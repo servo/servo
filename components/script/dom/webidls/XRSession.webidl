@@ -25,7 +25,10 @@ interface XRSession : EventTarget {
   // // Methods
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceOptions options);
 
+  // workaround until we have FrozenArray
+  // see https://github.com/servo/servo/issues/10427#issuecomment-449593626
   // FrozenArray<XRInputSource> getInputSources();
+  sequence<XRInputSource> getInputSources();
 
   Promise<void> updateRenderState(optional XRRenderStateInit state);
   long requestAnimationFrame(XRFrameRequestCallback callback);
