@@ -128,6 +128,9 @@ impl WebVRThread {
                 WebVRMsg::GetGamepads(synced_ids, sender) => {
                     self.handle_get_gamepads(synced_ids, sender);
                 },
+                WebVRMsg::GetGamepadsForDisplay(display_id, sender) => {
+                    self.handle_get_gamepads_for_display(display_id, sender);
+                },
                 WebVRMsg::Exit => break,
             }
         }
@@ -249,6 +252,28 @@ impl WebVRThread {
             .get_display(display_id)
             .map(|d| WebVRCompositor(d.as_ptr()));
         self.vr_compositor_chan.send(compositor).unwrap();
+    }
+
+    fn handle_get_gamepads_for_display(
+        &mut self,
+        display_id: u32,
+        sender: IpcSender<WebVRResult<Vec<(VRGamepadData, VRGamepadState)>>>,
+    ) {
+        match self.service.get_display(display_id) {
+            Some(display) => {
+                let gamepads = display.borrow_mut().fetch_gamepads();
+                let result = gamepads.map(|gp| {
+                    gp.iter()
+                        .map(|g| {
+                            let g = g.borrow();
+                            (g.data(), g.state())
+                        })
+                        .collect()
+                });
+                sender.send(result).unwrap();
+            },
+            None => sender.send(Err("Device not found".into())).unwrap(),
+        }
     }
 
     fn handle_get_gamepads(
