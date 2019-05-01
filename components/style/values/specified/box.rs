@@ -10,7 +10,7 @@ use crate::properties::{LonghandId, PropertyDeclarationId, PropertyFlags};
 use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
-use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
+use crate::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
 use crate::values::specified::{AllowQuirks, Number};
 use crate::values::{CustomIdent, KeyframesName};
@@ -280,20 +280,7 @@ impl Parse for VerticalAlign {
             return Ok(GenericVerticalAlign::Length(lp));
         }
 
-        try_match_ident_ignore_ascii_case! { input,
-            "baseline" => Ok(GenericVerticalAlign::Baseline),
-            "sub" => Ok(GenericVerticalAlign::Sub),
-            "super" => Ok(GenericVerticalAlign::Super),
-            "top" => Ok(GenericVerticalAlign::Top),
-            "text-top" => Ok(GenericVerticalAlign::TextTop),
-            "middle" => Ok(GenericVerticalAlign::Middle),
-            "bottom" => Ok(GenericVerticalAlign::Bottom),
-            "text-bottom" => Ok(GenericVerticalAlign::TextBottom),
-            #[cfg(feature = "gecko")]
-            "-moz-middle-with-baseline" => {
-                Ok(GenericVerticalAlign::MozMiddleWithBaseline)
-            },
-        }
+        Ok(GenericVerticalAlign::Keyword(VerticalAlignKeyword::parse(input)?))
     }
 }
 
