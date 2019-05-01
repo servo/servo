@@ -222,7 +222,7 @@ magicleap-nightly:
 arm64:
  env:
   AR: /usr/bin/aarch64-linux-gnu-ar
-  AS: /usr/bin/aarch64-linux-gnu-as
+  AS: yasm
   CC: /usr/bin/clang-4.0
   CFLAGS: --target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -fuse-ld=/home/servo/buildbot/slave/arm64/build/support/arm64/fake-ld.sh -Wno-error=unused-command-line-argument
   CPP: /usr/bin/clang-4.0 -E
