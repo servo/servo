@@ -169,7 +169,6 @@ impl Device {
             self.document()
                 .mPresShell
                 .as_ref()?
-                ._base
                 .mPresContext
                 .mRawPtr
                 .as_ref()
