@@ -10,7 +10,9 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
-use crate::dom::bindings::codegen::InheritTypes::{AudioNodeTypeId, EventTargetTypeId};
+use crate::dom::bindings::codegen::InheritTypes::{
+    AudioNodeTypeId, AudioScheduledSourceNodeTypeId, EventTargetTypeId,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -236,6 +238,13 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::NotSupported);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioScheduledSourceNode(
+                AudioScheduledSourceNodeTypeId::StereoPannerNode,
+            )) => {
+                if value > 2 {
+                    return Err(Error::NotSupported);
+                }
+            },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
                 return Err(Error::InvalidState);
             },
@@ -276,6 +285,13 @@ impl AudioNodeMethods for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
+                if value == ChannelCountMode::Max {
+                    return Err(Error::NotSupported);
+                }
+            },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioScheduledSourceNode(
+                AudioScheduledSourceNodeTypeId::StereoPannerNode,
+            )) => {
                 if value == ChannelCountMode::Max {
                     return Err(Error::NotSupported);
                 }
