@@ -15,7 +15,22 @@ import subprocess
 import sys
 
 symbol_regex = re.compile(b"D  \*UND\*\t(.*) (.*)$")
-allowed_symbols = frozenset([b'unshare', b'malloc_usable_size', b'__cxa_type_match', b'signal'])
+allowed_symbols = frozenset([
+    b'unshare',
+    b'malloc_usable_size',
+    b'__cxa_type_match',
+    b'signal',
+    b'tcgetattr',
+    b'tcsetattr',
+    b'__strncpy_chk2',
+    b'rand',
+    b'__read_chk',
+    b'fesetenv',
+    b'srand',
+    b'abs',
+    b'fegetenv',
+    b'sigemptyset',
+])
 actual_symbols = set()
 
 objdump_output = subprocess.check_output([
