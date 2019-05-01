@@ -316,7 +316,7 @@ class MachCommands(CommandBase):
 
         host = host_triple()
         if 'apple-darwin' in host and (not target or target == host):
-            if not 'CXXFLAGS' in env:
+            if 'CXXFLAGS' not in env:
                 env['CXXFLAGS'] = ''
             env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
 
