@@ -164,8 +164,8 @@ linux-nightly:
 
 android-mac:
  env:
-   CC: /usr/local/opt/llvm/bin/clang
-   CXX: /usr/local/opt/llvm/bin/clang++
+   HOST_CC: /usr/local/opt/llvm/bin/clang
+   HOST_CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
