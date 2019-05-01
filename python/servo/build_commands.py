@@ -314,6 +314,9 @@ class MachCommands(CommandBase):
             env["CC"] = "clang-cl.exe"
             env["CXX"] = "clang-cl.exe"
 
+        if 'apple-darwin' in target:
+            env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
+
         if android:
             if "ANDROID_NDK" not in env:
                 print("Please set the ANDROID_NDK environment variable.")
