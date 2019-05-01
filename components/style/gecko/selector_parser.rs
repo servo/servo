@@ -289,6 +289,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;
+    type PartName = Atom;
     type LocalName = Atom;
     type NamespacePrefix = Atom;
     type NamespaceUrl = Namespace;

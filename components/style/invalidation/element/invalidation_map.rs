@@ -98,6 +98,7 @@ impl Dependency {
             // an eager pseudo, and return only Descendants here if not.
             Some(Combinator::PseudoElement) => DependencyInvalidationKind::ElementAndDescendants,
             Some(Combinator::SlotAssignment) => DependencyInvalidationKind::SlottedElements,
+            Some(Combinator::Part) => unimplemented!("Need to add invalidation for shadow parts"),
         }
     }
 }

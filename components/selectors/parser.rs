@@ -68,24 +68,30 @@ bitflags! {
         /// Whether we're inside a negation. If we're inside a negation, we're
         /// not allowed to add another negation or such, for example.
         const INSIDE_NEGATION = 1 << 0;
-        /// Whether we've parsed an ::slotted() pseudo-element already.
+        /// Whether we've parsed a ::slotted() pseudo-element already.
         ///
         /// If so, then we can only parse a subset of pseudo-elements, and
         /// whatever comes after them if so.
         const AFTER_SLOTTED = 1 << 1;
+        /// Whether we've parsed a ::part() pseudo-element already.
+        ///
+        /// If so, then we can only parse a subset of pseudo-elements, and
+        /// whatever comes after them if so.
+        const AFTER_PART = 1 << 2;
         /// Whether we've parsed a pseudo-element (as in, an
-        /// `Impl::PseudoElement` thus not accounting for `::slotted`) already.
+        /// `Impl::PseudoElement` thus not accounting for `::slotted` or
+        /// `::part`) already.
         ///
         /// If so, then other pseudo-elements and most other selectors are
         /// disallowed.
-        const AFTER_PSEUDO_ELEMENT = 1 << 2;
+        const AFTER_PSEUDO_ELEMENT = 1 << 3;
         /// Whether we've parsed a non-stateful pseudo-element (again, as-in
         /// `Impl::PseudoElement`) already. If so, then other pseudo-classes are
         /// disallowed. If this flag is set, `AFTER_PSEUDO_ELEMENT` must be set
         /// as well.
-        const AFTER_NON_STATEFUL_PSEUDO_ELEMENT = 1 << 3;
+        const AFTER_NON_STATEFUL_PSEUDO_ELEMENT = 1 << 4;
         /// Whether we are after any of the pseudo-like things.
-        const AFTER_PSEUDO = Self::AFTER_SLOTTED.bits | Self::AFTER_PSEUDO_ELEMENT.bits;
+        const AFTER_PSEUDO = Self::AFTER_PART.bits | Self::AFTER_SLOTTED.bits | Self::AFTER_PSEUDO_ELEMENT.bits;
     }
 }
 
@@ -97,6 +103,14 @@ impl SelectorParsingState {
 
     #[inline]
     fn allows_slotted(self) -> bool {
+        !self.intersects(SelectorParsingState::AFTER_PSEUDO)
+    }
+
+    // TODO(emilio): Should we allow other ::part()s after ::part()?
+    //
+    // See https://github.com/w3c/csswg-drafts/issues/3841
+    #[inline]
+    fn allows_part(self) -> bool {
         !self.intersects(SelectorParsingState::AFTER_PSEUDO)
     }
 
@@ -156,6 +170,7 @@ macro_rules! with_all_bounds {
             type AttrValue: $($InSelector)*;
             type Identifier: $($InSelector)*;
             type ClassName: $($InSelector)*;
+            type PartName: $($InSelector)*;
             type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName>;
             type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl>;
             type NamespacePrefix: $($InSelector)* + Default;
@@ -193,6 +208,11 @@ pub trait Parser<'i> {
 
     /// Whether to parse the `::slotted()` pseudo-element.
     fn parse_slotted(&self) -> bool {
+        false
+    }
+
+    /// Whether to parse the `::part()` pseudo-element.
+    fn parse_part(&self) -> bool {
         false
     }
 
@@ -841,6 +861,9 @@ pub enum Combinator {
     /// Another combinator used for ::slotted(), which represent the jump from
     /// a node to its assigned slot.
     SlotAssignment,
+    /// Another combinator used for `::part()`, which represents the jump from
+    /// the part to the containing shadow host.
+    Part,
 }
 
 impl Combinator {
@@ -934,8 +957,7 @@ pub enum Component<Impl: SelectorImpl> {
     LastOfType,
     OnlyOfType,
     NonTSPseudoClass(#[shmem(field_bound)] Impl::NonTSPseudoClass),
-    /// The ::slotted() pseudo-element (which isn't actually a pseudo-element,
-    /// and probably should be a pseudo-class):
+    /// The ::slotted() pseudo-element:
     ///
     /// https://drafts.csswg.org/css-scoping/#slotted-pseudo
     ///
@@ -947,6 +969,9 @@ pub enum Component<Impl: SelectorImpl> {
     ///
     /// See https://github.com/w3c/csswg-drafts/issues/2158
     Slotted(Selector<Impl>),
+    /// The `::part` pseudo-element.
+    ///   https://drafts.csswg.org/css-shadow-parts/#part
+    Part(#[shmem(field_bound)] Impl::PartName),
     /// The `:host` pseudo-class:
     ///
     /// https://drafts.csswg.org/css-scoping/#host-selector
@@ -1196,7 +1221,8 @@ impl ToCss for Combinator {
             Combinator::Descendant => dest.write_str(" "),
             Combinator::NextSibling => dest.write_str(" + "),
             Combinator::LaterSibling => dest.write_str(" ~ "),
-            Combinator::PseudoElement => Ok(()),
+            Combinator::PseudoElement |
+            Combinator::Part |
             Combinator::SlotAssignment => Ok(()),
         }
     }
@@ -1234,6 +1260,11 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             Slotted(ref selector) => {
                 dest.write_str("::slotted(")?;
                 selector.to_css(dest)?;
+                dest.write_char(')')
+            },
+            Part(ref part_name) => {
+                dest.write_str("::part(")?;
+                display_to_css_identifier(part_name, dest)?;
                 dest.write_char(')')
             },
             PseudoElement(ref p) => p.to_css(dest),
@@ -1407,15 +1438,12 @@ where
 {
     let mut builder = SelectorBuilder::default();
 
-    let mut has_pseudo_element;
-    let mut slotted;
+    let mut has_pseudo_element = false;
+    let mut slotted = false;
     'outer_loop: loop {
         // Parse a sequence of simple selectors.
-        match parse_compound_selector(parser, input, &mut builder)? {
-            Some(state) => {
-                has_pseudo_element = state.intersects(SelectorParsingState::AFTER_PSEUDO_ELEMENT);
-                slotted = state.intersects(SelectorParsingState::AFTER_SLOTTED);
-            },
+        let state = match parse_compound_selector(parser, input, &mut builder)? {
+            Some(state) => state,
             None => {
                 return Err(input.new_custom_error(if builder.has_combinators() {
                     SelectorParseErrorKind::DanglingCombinator
@@ -1425,7 +1453,11 @@ where
             },
         };
 
-        if has_pseudo_element || slotted {
+        if state.intersects(SelectorParsingState::AFTER_PSEUDO) {
+            has_pseudo_element = state.intersects(SelectorParsingState::AFTER_PSEUDO_ELEMENT);
+            slotted = state.intersects(SelectorParsingState::AFTER_SLOTTED);
+            let part = state.intersects(SelectorParsingState::AFTER_PART);
+            debug_assert!(has_pseudo_element || slotted || part);
             break;
         }
 
@@ -1463,6 +1495,8 @@ where
         builder.push_combinator(combinator);
     }
 
+    // TODO(emilio): We'll have to flag part() somehow as well, but we need more
+    // bits!
     Ok(Selector(builder.build(has_pseudo_element, slotted)))
 }
 
@@ -1553,6 +1587,7 @@ enum SimpleSelectorParseResult<Impl: SelectorImpl> {
     SimpleSelector(Component<Impl>),
     PseudoElement(Impl::PseudoElement),
     SlottedPseudo(Selector<Impl>),
+    PartPseudo(Impl::PartName),
 }
 
 #[derive(Debug)]
@@ -1899,6 +1934,7 @@ where
                 return Err(input.new_custom_error(SelectorParseErrorKind::EmptyNegation));
             },
             Some(SimpleSelectorParseResult::PseudoElement(_)) |
+            Some(SimpleSelectorParseResult::PartPseudo(_)) |
             Some(SimpleSelectorParseResult::SlottedPseudo(_)) => {
                 let e = SelectorParseErrorKind::NonSimpleSelectorInNegation;
                 return Err(input.new_custom_error(e));
@@ -1954,6 +1990,11 @@ where
         match parse_result {
             SimpleSelectorParseResult::SimpleSelector(s) => {
                 builder.push_simple_selector(s);
+            },
+            SimpleSelectorParseResult::PartPseudo(part_name) => {
+                state.insert(SelectorParsingState::AFTER_PART);
+                builder.push_combinator(Combinator::Part);
+                builder.push_simple_selector(Component::Part(part_name));
             },
             SimpleSelectorParseResult::SlottedPseudo(selector) => {
                 state.insert(SelectorParsingState::AFTER_SLOTTED);
@@ -2115,6 +2156,15 @@ where
                     return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
                 }
                 let pseudo_element = if is_functional {
+                    if P::parse_part(parser) && name.eq_ignore_ascii_case("part") {
+                        if !state.allows_part() {
+                            return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+                        }
+                        let name = input.parse_nested_block(|input| {
+                            Ok(input.expect_ident()?.as_ref().into())
+                        })?;
+                        return Ok(Some(SimpleSelectorParseResult::PartPseudo(name)));
+                    }
                     if P::parse_slotted(parser) && name.eq_ignore_ascii_case("slotted") {
                         if !state.allows_slotted() {
                             return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
@@ -2298,6 +2348,7 @@ pub mod tests {
         type AttrValue = DummyAtom;
         type Identifier = DummyAtom;
         type ClassName = DummyAtom;
+        type PartName = DummyAtom;
         type LocalName = DummyAtom;
         type NamespaceUrl = DummyAtom;
         type NamespacePrefix = DummyAtom;
@@ -2333,6 +2384,10 @@ pub mod tests {
         type Error = SelectorParseErrorKind<'i>;
 
         fn parse_slotted(&self) -> bool {
+            true
+        }
+
+        fn parse_part(&self) -> bool {
             true
         }
 
@@ -2910,6 +2965,14 @@ pub mod tests {
         assert!(parse("::slotted(div).foo").is_err());
         assert!(parse("::slotted(div + bar)").is_err());
         assert!(parse("::slotted(div) + foo").is_err());
+
+        assert!(parse("::part()").is_err());
+        assert!(parse("::part(42)").is_err());
+        // Though note https://github.com/w3c/csswg-drafts/issues/3502
+        assert!(parse("::part(foo bar)").is_err());
+        assert!(parse("::part(foo):hover").is_ok());
+        assert!(parse("::part(foo) + bar").is_err());
+
         assert!(parse("div ::slotted(div)").is_ok());
         assert!(parse("div + slot::slotted(div)").is_ok());
         assert!(parse("div + slot::slotted(div.foo)").is_ok());

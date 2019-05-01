@@ -270,6 +270,7 @@ where
             Component::Combinator(..) => {
                 unreachable!("Found combinator in simple selectors vector?");
             },
+            Component::Part(..) |
             Component::PseudoElement(..) | Component::LocalName(..) => {
                 specificity.element_selectors += 1
             },

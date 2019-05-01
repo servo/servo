@@ -340,6 +340,10 @@ where
         }
     }
 
+    fn is_part(&self, _name: &Atom) -> bool {
+        unimplemented!();
+    }
+
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => snapshot.has_class(name, case_sensitivity),
