@@ -314,7 +314,10 @@ class MachCommands(CommandBase):
             env["CC"] = "clang-cl.exe"
             env["CXX"] = "clang-cl.exe"
 
-        if 'apple-darwin' in host_triple and (not target or target == host_triple):
+        host = host_triple()
+        if 'apple-darwin' in host and (not target or target == host):
+            if not 'CXXFLAGS' in env:
+                env['CXXFLAGS'] = ''
             env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
 
         if android:
