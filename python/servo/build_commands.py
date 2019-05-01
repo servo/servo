@@ -568,8 +568,8 @@ class MachCommands(CommandBase):
             # Undo all of that when compiling build tools for the host
             env.setdefault("HOST_CFLAGS", "")
             env.setdefault("HOST_CXXFLAGS", "")
-            env.setdefault("HOST_CC", "gcc")
-            env.setdefault("HOST_CXX", "g++")
+            env.setdefault("HOST_CC", "/usr/local/opt/llvm/bin/clang")
+            env.setdefault("HOST_CXX", "/usr/local/opt/llvm/bin/clang++")
             env.setdefault("HOST_LD", "ld")
 
             # Some random build configurations

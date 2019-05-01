@@ -7,8 +7,8 @@ env:
 
 mac-rel-wpt2:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -18,8 +18,8 @@ mac-rel-wpt2:
 
 mac-rel-wpt3:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -29,8 +29,8 @@ mac-rel-wpt3:
 
 mac-rel-wpt4:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -42,8 +42,8 @@ mac-rel-wpt4:
 
 mac-rel-css1:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -54,8 +54,8 @@ mac-rel-css1:
 
 mac-rel-css2:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -65,8 +65,8 @@ mac-rel-css2:
 
 mac-nightly:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -104,8 +104,8 @@ linux-rel-nogate:
 
 mac-rel-intermittent:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -164,8 +164,8 @@ linux-nightly:
 
 android-mac:
  env:
-   CC: /usr/local/Cellar/llvm/6.0.1/bin/clang
-   CXX: /usr/local/Cellar/llvm/6.0.1/bin/clang++
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
