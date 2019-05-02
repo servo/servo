@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib
 
 from mach.decorators import (
     CommandArgument,
@@ -538,8 +539,24 @@ class PackageCommands(CommandBase):
     @CommandArgument('platform',
                      choices=PACKAGES.keys(),
                      help='Package platform type to upload')
-    def upload_nightly(self, platform):
+    @CommandArgument('--secret-from-taskcluster',
+                     action='store_true',
+                     help='Retrieve the appropriate secrets from taskcluster.')
+    def upload_nightly(self, platform, secret_from_taskcluster):
         import boto3
+
+        def get_taskcluster_secret(name):
+            url = "http://taskcluster/secrets/v1/secret/project/servo/" + name
+            return json.load(urllib.urlopen(url))["secret"]
+
+        def get_s3_secret():
+            aws_access_key = None
+            aws_secret_access_key = None
+            if secret_from_taskcluster:
+                secret = get_taskcluster_secret("s3-upload-credentials")
+                aws_access_key = secret["aws_access_key_id"]
+                aws_secret_access_key = secret["aws_secret_access_key"]
+            return (aws_access_key, aws_secret_access_key)
 
         def nightly_filename(package, timestamp):
             return '{}-{}'.format(
@@ -548,7 +565,12 @@ class PackageCommands(CommandBase):
             )
 
         def upload_to_s3(platform, package, timestamp):
-            s3 = boto3.client('s3')
+            (aws_access_key, aws_secret_access_key) = get_s3_secret()
+            s3 = boto3.client(
+                's3',
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_access_key
+            )
             BUCKET = 'servo-builds'
 
             nightly_dir = 'nightly/{}'.format(platform)
@@ -565,7 +587,12 @@ class PackageCommands(CommandBase):
             s3.copy(copy_source, BUCKET, latest_upload_key)
 
         def update_maven(directory):
-            s3 = boto3.client('s3')
+            (aws_access_key, aws_secret_access_key) = get_s3_secret()
+            s3 = boto3.client(
+                's3',
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_access_key
+            )
             BUCKET = 'servo-builds'
 
             nightly_dir = 'nightly/maven'
@@ -626,13 +653,18 @@ class PackageCommands(CommandBase):
                     '--message=Version Bump: {}'.format(brew_version),
                 ])
 
+                if secret_from_taskcluster:
+                    token = get_taskcluster_secret('github-homebrew-token')["token"]
+                else:
+                    token = os.environ['GITHUB_HOMEBREW_TOKEN']
+
                 push_url = 'https://{}@github.com/servo/homebrew-servo.git'
                 # TODO(aneeshusa): Use subprocess.DEVNULL with Python 3.3+
                 with open(os.devnull, 'wb') as DEVNULL:
                     call_git([
                         'push',
                         '-qf',
-                        push_url.format(os.environ['GITHUB_HOMEBREW_TOKEN']),
+                        push_url.format(token),
                         'master',
                     ], stdout=DEVNULL, stderr=DEVNULL)
 

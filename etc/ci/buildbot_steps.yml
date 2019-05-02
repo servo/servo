@@ -43,16 +43,6 @@ mac-rel-css2:
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
-mac-nightly:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach package --release
-  - ./mach upload-nightly mac
-  - ./etc/ci/update-wpt-checkout fetch-and-update-expectations
-  - ./etc/ci/update-wpt-checkout open-pr
-  - ./etc/ci/update-wpt-checkout cleanup
-
 linux-rel-intermittent:
  env:
    CC: gcc-5
@@ -144,23 +134,6 @@ android-mac:
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
-android-nightly:
- env:
-   HOST_CC: gcc-5
-   HOST_CXX: g++-5
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - ./mach bootstrap-android --accept-all-licences --build
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --release
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --release --maven
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target=i686-linux-android --release
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --target=i686-linux-android --release --maven
-  - ./mach upload-nightly android
-  - ./mach upload-nightly maven
-  - ./etc/ci/clean_build_artifacts.sh
-
 magicleap:
  env:
   MAGICLEAP_SDK: /Users/servo/magicleap/v0.17.0
@@ -248,16 +221,6 @@ arm64:
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
-windows-msvc-nightly:
-  env:
-    CARGO_HOME: C:\buildbot\.cargo
-  commands:
-  - mach.bat clean-cargo-cache --keep 3 --force
-  - mach.bat clean-nightlies --keep 3 --force
-  - mach.bat build --release
-  - mach.bat package --release
-  - mach.bat upload-nightly windows-msvc
-
 # Moved to Taskcluster
 linux-dev: []
 mac-dev-unit: []
@@ -265,3 +228,6 @@ windows-msvc-dev: []
 android: []
 android-x86: []
 mac-rel-wpt1: []
+android-nightly: []
+windows-msvc-nightly: []
+mac-nightly: []
