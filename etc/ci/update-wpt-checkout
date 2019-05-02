@@ -85,7 +85,6 @@ function unsafe_update_metadata() {
 # against servo/servo.
 function unsafe_open_pull_request() {
     WPT_SYNC_USER=servo-wpt-sync
-    WPT_SYNC_TOKEN=`cat .wpt-token`
 
     # If the branch doesn't exist, we'll silently exit. This deals with the
     # case where an earlier step either failed or discovered that syncing
@@ -93,6 +92,11 @@ function unsafe_open_pull_request() {
     git checkout "${BRANCH_NAME}" || return 0
 
     if [[ -z "${WPT_SYNC_TOKEN+set}" ]]; then
+        SECRET_RESPONSE=$(curl $TASKCLUSTER_PROXY_URL/api/secrets/v1/secret/project/servo/wpt-sync)
+        WPT_SYNC_TOKEN=`echo "${OPEN_PR_RESPONSE}" | jq '.token'`
+    fi
+
+    if [[ -z "${WPT_SYNC_TOKEN}" ]]; then
         echo "Github auth token missing from .wpt-token file."
         return 1
     fi

@@ -459,18 +459,11 @@ def macos_nightly():
             "./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
-        .with_env(PY2="""if 1:
-            import urllib, json
-            url = "http://taskcluster/secrets/v1/secret/project/servo/wpt-sync"
-            token = json.load(urllib.urlopen(url))["secret"]["token"]
-            open(".wpt-token", "w").write(token)
-        """)
-        .with_script("""
-            python -c "$PY2"
-            ./etc/ci/update-wpt-checkout fetch-and-update-expectations
-            ./etc/ci/update-wpt-checkout open-pr
-            ./etc/ci/update-wpt-checkout cleanup
-        """)
+        .with_script(
+            "./etc/ci/update-wpt-checkout fetch-and-update-expectations",
+            "./etc/ci/update-wpt-checkout open-pr",
+            "./etc/ci/update-wpt-checkout cleanup",
+        )
         .find_or_create("build.mac_x64_nightly." + CONFIG.git_sha)
     )
 
