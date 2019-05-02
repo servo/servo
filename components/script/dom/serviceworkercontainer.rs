@@ -53,7 +53,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     }
 
     #[allow(unrooted_must_root)] // Job is unrooted
-    /// https://w3c.github.io/ServiceWorker/#service-worker-container-register-method and - A
+    /// https://w3c.github.io/ServiceWorker/#navigator-service-worker-register and - A
     /// https://w3c.github.io/ServiceWorker/#start-register-algorithm - B
     fn Register(&self, script_url: USVString, options: &RegistrationOptions) -> Rc<Promise> {
         // A: Step 1
@@ -127,6 +127,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             scope,
             script_url,
             promise.clone(),
+            options.type_,
             &*self.client,
         );
         // Job is unrooted here, do not do anything other than immediately scheduling

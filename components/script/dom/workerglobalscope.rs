@@ -5,6 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use crate::dom::bindings::error::{report_pending_exception, Error, ErrorResult, Fallible};
@@ -79,6 +80,9 @@ pub fn prepare_workerscope_init(
 pub struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
+    worker_name: DOMString,
+    worker_type: WorkerType,
+
     worker_id: WorkerId,
     worker_url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "Arc"]
@@ -105,6 +109,8 @@ pub struct WorkerGlobalScope {
 impl WorkerGlobalScope {
     pub fn new_inherited(
         init: WorkerGlobalScopeInit,
+        worker_name: DOMString,
+        worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
@@ -125,6 +131,8 @@ impl WorkerGlobalScope {
                 Default::default(),
             ),
             worker_id: init.worker_id,
+            worker_name,
+            worker_type,
             worker_url: DomRefCell::new(worker_url),
             closing,
             runtime,

@@ -8,6 +8,7 @@
 //! by multiple service worker clients in a Vec.
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
@@ -45,6 +46,7 @@ pub struct Job {
     pub script_url: ServoUrl,
     pub promise: Rc<Promise>,
     pub equivalent_jobs: Vec<Job>,
+    pub worker_type: WorkerType,
     // client can be a window client, worker client so `Client` will be an enum in future
     pub client: Dom<Client>,
     pub referrer: ServoUrl,
@@ -58,6 +60,7 @@ impl Job {
         scope_url: ServoUrl,
         script_url: ServoUrl,
         promise: Rc<Promise>,
+        worker_type: WorkerType,
         client: &Client,
     ) -> Job {
         Job {
@@ -66,6 +69,7 @@ impl Job {
             script_url: script_url,
             promise: promise,
             equivalent_jobs: vec![],
+            worker_type,
             client: Dom::from_ref(client),
             referrer: client.creation_url(),
         }
