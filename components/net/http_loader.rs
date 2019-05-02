@@ -378,6 +378,12 @@ fn obtain_response(
         },
     }
 
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::DomainLookupStart);
+
     // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
     // fetch passes the timing allow check
     let connect_start = precise_time_ms();
