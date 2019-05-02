@@ -675,6 +675,12 @@ pub fn http_redirect_fetch(
         .unwrap()
         .set_attribute(ResourceAttribute::FetchStart);
 
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::DomainLookupStart);
+
     // Step 5
     if request.redirect_count >= 20 {
         return Response::network_error(NetworkError::Internal("Too many redirects".into()));
