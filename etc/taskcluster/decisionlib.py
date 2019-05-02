@@ -286,6 +286,7 @@ class GenericWorkerTask(Task):
         super().__init__(*args, **kwargs)
         self.max_run_time_minutes = 30
         self.env = {}
+        self.features = {}
         self.mounts = []
         self.artifacts = []
 
@@ -314,6 +315,7 @@ class GenericWorkerTask(Task):
             worker_payload,
             env=self.env,
             mounts=self.mounts,
+            features=self.features,
             artifacts=[
                 {
                     "type": type_,
@@ -335,6 +337,15 @@ class GenericWorkerTask(Task):
         Paths are relative to the task’s home directory.
         """
         self.artifacts.extend((type, path) for path in paths)
+        return self
+
+    def with_features(self, *names):
+        """
+        Enable the given `generic-worker` features.
+
+        <https://github.com/taskcluster/generic-worker/blob/master/native_windows.yml>
+        """
+        self.features.update({name: True for name in names})
         return self
 
     def _mount_content(self, url_or_artifact_name, task_id, sha256):
@@ -693,9 +704,9 @@ class DockerWorkerTask(UnixTaskMixin, Task):
 
     def with_features(self, *names):
         """
-        Enable the give `docker-worker` features.
+        Enable the given `docker-worker` features.
 
-        <https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features>
+        <https://github.com/taskcluster/docker-worker/blob/master/docs/features.md>
         """
         self.features.update({name: True for name in names})
         return self
