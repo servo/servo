@@ -178,15 +178,15 @@ class Task:
             self
             .with_scopes("secrets:get:project/servo/s3-upload")
             .with_env(PY=r"""if 1:
-                import urllib, json
+                import urllib, json, os
+                from os.path import expanduser, join
                 url = "http://taskcluster/secrets/v1/secret/project/servo/s3-upload"
                 secret = json.load(urllib.urlopen(url))["secret"]
-                open("/root/.aws/credentials", "w").write(secret["credentials_file"])
+                aws_dir = expanduser("~/.aws")
+                os.mkdir(aws_dir)
+                open(join(aws_dir, "credentials"), "w").write(secret["credentials_file"])
             """)
-            .with_script("""
-                mkdir /root/.aws
-                python -c "$PY"
-            """)
+            .with_script('python -c "$PY"')
         )
 
     def build_worker_payload(self):  # pragma: no cover

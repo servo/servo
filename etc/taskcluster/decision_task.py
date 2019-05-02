@@ -92,6 +92,8 @@ def main(task_for):
         linux_nightly()
         android_arm32_nightly()
         android_x86_nightly()
+        windows_nightly()
+        macos_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -399,6 +401,20 @@ def windows_release():
     )
 
 
+def windows_nightly():
+    return (
+        windows_build_task("Release build")
+        .with_treeherder("Windows x64", "Nightly")
+        .with_script("mach build --release",
+                     "mach package --release")
+        .with_s3_upload_secret()
+        .with_script("mach upload-nightly windows-msvc")
+        .with_artifacts("repo/target/release/msi/Servo.exe",
+                        "repo/target/release/msi/Servo.zip")
+        .find_or_create("build.windows_x64_nightly." + CONFIG.git_sha)
+    )
+
+
 def linux_nightly():
     return (
         linux_build_task("Nightly build and upload")
@@ -437,6 +453,35 @@ def linux_wpt():
         return linux_task(name).with_dockerfile(dockerfile_path("run"))
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
                total_chunks=2, processes=24)
+
+
+def macos_nightly():
+    return (
+        macos_build_task("Release build")
+        .with_treeherder("macOS x64", "Nightly")
+        .with_features("taskclusterProxy")
+        .with_script("""
+            ./mach build --release
+            ./mach package --release
+        """)
+        .with_s3_upload_secret()
+        .with_script("./mach upload-nightly mac")
+        .with_artifacts("repo/target/release/servo-tech-demo.dmg")
+        .with_scopes("secrets:get:project/servo/wpt-sync")
+        .with_env(PY2="""if 1:
+            import urllib, json
+            url = "http://taskcluster/secrets/v1/secret/project/servo/wpt-sync"
+            token = json.load(urllib.urlopen(url))["secret"]["token"]
+            open(".wpt-token", "w").write(token)
+        """)
+        .with_script("""
+            python -c "$PY2"
+            ./etc/ci/update-wpt-checkout fetch-and-update-expectations
+            ./etc/ci/update-wpt-checkout open-pr
+            ./etc/ci/update-wpt-checkout cleanup
+        """)
+        .find_or_create("build.mac_x64_nightly." + CONFIG.git_sha)
+    )
 
 
 def macos_wpt():
