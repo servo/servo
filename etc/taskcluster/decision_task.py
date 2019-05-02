@@ -90,6 +90,8 @@ def main(task_for):
         daily_tasks_setup()
         with_rust_nightly()
         linux_nightly()
+        android_nightly("arm")
+        android_nightly("x86")
 
 
 # These are disabled in a "real" decision task,
@@ -260,6 +262,41 @@ def android_arm32_dev():
     )
 
 
+def android_nightly(job):
+    details = {
+        "arm": {
+            "mach_flag": "--android",
+            "name": "ARMv7",
+            "target": "armv7-linux-androideabi",
+        },
+        "x86": {
+            "mach_flag": "--target i686-linux-android",
+            "name": "x86",
+            "target": "i686-linux-android",
+        }
+    }
+
+    return (
+        android_build_task("Release build")
+        .with_treeherder("Android " + details[job]["name"], "Nightly")
+        .with_features("taskclusterProxy")
+        .with_script("""
+            ./mach build {flag} --release
+            ./mach package {flag} --release --maven
+        """.format(flag=details[job]["mach_flag"])
+        .with_s3_upload_secret()
+        .with_script("""
+            ./mach upload-nightly android
+            ./mach upload-nightly maven
+        """)
+        .with_artifacts(
+            "/repo/target/android/%s/release/servoapp.apk" % details[job]["target"],
+            "/repo/target/android/%s/release/servoview.aar" % details[job]["target"],
+        )
+        .find_or_create(("build.android_%s_nightly." + CONFIG.git_sha) % details[job]["name"].lower())
+    )
+
+
 def android_arm32_release():
     return (
         android_build_task("Release build")
@@ -359,19 +396,13 @@ def linux_nightly():
         linux_build_task("Nightly build and upload")
         .with_treeherder("Linux x64", "Nightly")
         .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/s3-upload")
-        .with_env(PY=r"""if 1:
-            import urllib, json
-            url = "http://taskcluster/secrets/v1/secret/project/servo/s3-upload"
-            secret = json.load(urllib.urlopen(url))["secret"]
-            open("/root/.aws/credentials", "w").write(secret["credentials_file"])
-        """)
         # Not reusing the build made for WPT because it has debug assertions
         .with_script("""
             ./mach build --release
             ./mach package --release
-            mkdir /root/.aws
-            python -c "$PY"
+        """)
+        .with_s3_upload_secret()
+        .with_script("""
             ./mach upload-nightly linux
         """)
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
