@@ -43,16 +43,6 @@ mac-rel-css2:
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
-mac-nightly:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach package --release
-  - ./mach upload-nightly mac
-  - ./etc/ci/update-wpt-checkout fetch-and-update-expectations
-  - ./etc/ci/update-wpt-checkout open-pr
-  - ./etc/ci/update-wpt-checkout cleanup
-
 linux-rel-intermittent:
  env:
    CC: gcc-5
@@ -231,16 +221,6 @@ arm64:
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
-windows-msvc-nightly:
-  env:
-    CARGO_HOME: C:\buildbot\.cargo
-  commands:
-  - mach.bat clean-cargo-cache --keep 3 --force
-  - mach.bat clean-nightlies --keep 3 --force
-  - mach.bat build --release
-  - mach.bat package --release
-  - mach.bat upload-nightly windows-msvc
-
 # Moved to Taskcluster
 linux-dev: []
 mac-dev-unit: []
@@ -249,3 +229,5 @@ android: []
 android-x86: []
 mac-rel-wpt1: []
 android-nightly: []
+windows-msvc-nightly: []
+mac-nightly: []
