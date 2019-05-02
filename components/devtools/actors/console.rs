@@ -19,6 +19,7 @@ use msg::constellation_msg::PipelineId;
 use serde_json::{self, Map, Number, Value};
 use std::cell::RefCell;
 use std::net::TcpStream;
+use uuid::Uuid;
 
 trait EncodableConsoleMessage {
     fn encode(&self) -> serde_json::Result<String>;
@@ -83,7 +84,7 @@ struct EvaluateJSEvent {
     input: String,
     result: Value,
     timestamp: u64,
-    resultID: u64,
+    resultID: String,
     exception: Value,
     exceptionMessage: Value,
     helperResult: Value,
@@ -92,7 +93,7 @@ struct EvaluateJSEvent {
 #[derive(Serialize)]
 struct EvaluateJSAsyncReply {
     from: String,
-    resultID: u64,
+    resultID: String,
 }
 
 #[derive(Serialize)]
@@ -297,7 +298,7 @@ impl Actor for ConsoleActor {
 
             "evaluateJSAsync" => {
                 //TODO: use a timestamp for resultID
-                let resultID = 0;
+                let resultID = Uuid::new_v4().to_string();
                 let early_reply = EvaluateJSAsyncReply {
                     from: self.name(),
                     resultID: resultID,
