@@ -173,22 +173,6 @@ class Task:
         self.treeherder_required = False  # Taken care of
         return self
 
-    def with_s3_upload_secret(self):
-        return (
-            self
-            .with_scopes("secrets:get:project/servo/s3-upload")
-            .with_env(PY=r"""if 1:
-                import urllib, json, os
-                from os.path import expanduser, join
-                url = "http://taskcluster/secrets/v1/secret/project/servo/s3-upload"
-                secret = json.load(urllib.urlopen(url))["secret"]
-                aws_dir = expanduser("~/.aws")
-                os.mkdir(aws_dir)
-                open(join(aws_dir, "credentials"), "w").write(secret["credentials_file"])
-            """)
-            .with_script('python -c "$PY"')
-        )
-
     def build_worker_payload(self):  # pragma: no cover
         """
         Overridden by sub-classes to return a dictionary in a worker-specific format,

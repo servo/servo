@@ -282,15 +282,13 @@ def android_nightly(job):
         android_build_task("Release build")
         .with_treeherder("Android " + details[job]["name"], "Nightly")
         .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload")
         .with_script("""
             ./mach build {flag} --release
             ./mach package {flag} --release --maven
-        """.format(flag=details[job]["mach_flag"])
-        .with_s3_upload_secret()
-        .with_script("""
-            ./mach upload-nightly android
-            ./mach upload-nightly maven
-        """)
+            ./mach upload-nightly android --secret-from-taskcluster
+            ./mach upload-nightly maven --secret-from-taskcluster
+        """.format(flag=details[job]["mach_flag"]))
         .with_artifacts(
             "/repo/target/android/%s/release/servoapp.apk" % details[job]["target"],
             "/repo/target/android/%s/release/servoview.aar" % details[job]["target"],
@@ -397,10 +395,10 @@ def windows_nightly():
     return (
         windows_build_task("Release build")
         .with_treeherder("Windows x64", "Nightly")
+        .with_scopes("secrets:get:project/servo/s3-upload")
         .with_script("mach build --release",
-                     "mach package --release")
-        .with_s3_upload_secret()
-        .with_script("mach upload-nightly windows-msvc")
+                     "mach package --release",
+                     "mach upload-nightly windows-msvc --secret-from-taskcluster")
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
         .find_or_create("build.windows_x64_nightly." + CONFIG.git_sha)
@@ -412,15 +410,13 @@ def linux_nightly():
         linux_build_task("Nightly build and upload")
         .with_treeherder("Linux x64", "Nightly")
         .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload")
         # Not reusing the build made for WPT because it has debug assertions
-        .with_script("""
-            ./mach build --release
-            ./mach package --release
-        """)
-        .with_s3_upload_secret()
-        .with_script("""
-            ./mach upload-nightly linux
-        """)
+        .with_script(
+            "./mach build --release",
+            "./mach package --release",
+            "./mach upload-nightly linux --secret-from-taskcluster",
+        )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
         .find_or_create("build.linux_x64_nightly" + CONFIG.git_sha)
     )
@@ -452,14 +448,17 @@ def macos_nightly():
         macos_build_task("Release build")
         .with_treeherder("macOS x64", "Nightly")
         .with_features("taskclusterProxy")
-        .with_script("""
-            ./mach build --release
-            ./mach package --release
-        """)
-        .with_s3_upload_secret()
-        .with_script("./mach upload-nightly mac")
+        .with_scopes(
+            "secrets:get:project/servo/s3-upload",
+            "secrets:get:project/servo/github-homebrew-token",
+            "secrets:get:project/servo/wpt-sync",
+        )
+        .with_script(
+            "./mach build --release",
+            "./mach package --release",
+            "./mach upload-nightly mac --secret-from-taskcluster",
+        )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
-        .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_env(PY2="""if 1:
             import urllib, json
             url = "http://taskcluster/secrets/v1/secret/project/servo/wpt-sync"
