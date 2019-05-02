@@ -443,6 +443,7 @@ pub struct ResourceCorsData {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceFetchTiming {
+    pub domain_lookup_start: u64,
     pub timing_type: ResourceTimingType,
     /// Number of redirects until final resource (currently limited to 20)
     pub redirect_count: u16,
@@ -464,6 +465,7 @@ pub enum RedirectStartValue {
 
 pub enum ResourceAttribute {
     RedirectCount(u16),
+    DomainLookupStart,
     RequestStart,
     ResponseStart,
     RedirectStart(RedirectStartValue),
@@ -484,6 +486,7 @@ impl ResourceFetchTiming {
     pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
         ResourceFetchTiming {
             timing_type: timing_type,
+            domain_lookup_start: 0,
             redirect_count: 0,
             request_start: 0,
             response_start: 0,
@@ -498,6 +501,7 @@ impl ResourceFetchTiming {
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
         match attribute {
+            ResourceAttribute::DomainLookupStart => self.domain_lookup_start = precise_time_ns(),
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
             ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
             ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
