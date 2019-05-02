@@ -194,6 +194,9 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Current mouse cursor.
     cursor: Cursor,
+
+    /// Current cursor position.
+    cursor_pos: DevicePoint,
 }
 
 #[derive(Clone, Copy)]
@@ -295,6 +298,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webvr_heartbeats: state.webvr_heartbeats,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
+            cursor_pos: DevicePoint::new(0.0, 0.0),
         }
     }
 
@@ -434,6 +438,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (Msg::NewScrollFrameReady(recomposite_needed), ShutdownState::NotShuttingDown) => {
                 self.waiting_for_results_of_scroll = false;
+                self.dispatch_mouse_window_move_event_class(self.cursor_pos);
+
                 if recomposite_needed {
                     self.composition_request = CompositionRequest::CompositeNow(
                         CompositingReason::NewWebRenderScrollFrame,
@@ -690,6 +696,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             return;
         }
 
+        self.cursor_pos = cursor;
         self.dispatch_mouse_window_move_event_class(cursor);
     }
 
@@ -1304,6 +1311,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         self.process_animations();
         self.waiting_for_results_of_scroll = false;
+        self.dispatch_mouse_window_move_event_class(self.cursor_pos);
 
         Ok(rv)
     }
