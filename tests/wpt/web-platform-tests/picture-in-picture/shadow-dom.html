@@ -18,10 +18,10 @@
   </template>
   <div id='host2'>
     <template data-mode='open' id='root2'>
-    <style>
-      #host3 { color: rgb(0, 0, 127); }
-      #host3:picture-in-picture { color: rgb(0, 0, 128); }
-    </style>
+      <style>
+        #host3 { color: rgb(0, 0, 127); }
+        #host3:picture-in-picture { color: rgb(0, 0, 128); }
+      </style>
       <div id='host3'>
         <template data-mode='open' id='root3'>
           <style>
@@ -75,8 +75,8 @@ promise_test(async t => {
     assert_equals(ids.root5.pictureInPictureElement, null);
 
     assert_equals(getComputedStyle(ids.video).color, 'rgb(0, 255, 0)');
-    assert_equals(getComputedStyle(ids.host3).color, 'rgb(0, 0, 128)');
-    assert_equals(getComputedStyle(ids.host2).color, 'rgb(0, 0, 255)');
+    assert_equals(getComputedStyle(ids.host3).color, 'rgb(0, 0, 127)');
+    assert_equals(getComputedStyle(ids.host2).color, 'rgb(0, 0, 254)');
   })
   .then(() => document.exitPictureInPicture())
   .then(() => {

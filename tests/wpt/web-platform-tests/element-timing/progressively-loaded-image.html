@@ -8,6 +8,7 @@
 <body>
 <script>
   let beforeRender;
+  let img;
   // Number of characters to be read on the initial read, before sleeping.
   // Should be sufficient to do at least a first scan.
   let numInitial = 75;
@@ -24,13 +25,13 @@
             img_src;
         // Since the image is only fully loaded after the sleep, the render timestamp
         // must be greater than |beforeRender| + |sleep|.
-        checkElement(entry, pathname, 'my_image', '', beforeRender + sleep);
+        checkElement(entry, pathname, 'my_image', '', beforeRender + sleep, img);
         checkNaturalSize(entry, 20, 20);
       })
     );
     observer.observe({entryTypes: ['element']});
 
-    const img = document.createElement('img');
+    img = document.createElement('img');
     img.src = img_src;
     img.setAttribute('elementtiming', 'my_image');
     document.body.appendChild(img);

@@ -58,27 +58,32 @@ the filesystem, and is preferred for larger specifications.
 
 ## Test Types
 
-The testsuite has a few types of tests, outlined below:
+Tests in this project use a few different approaches to verify expected
+behavior. The tests can be classified based on the way they express
+expectations:
 
-* [testharness.js][] tests, which are run
-  through a JS harness and report their result back with JS.
+* Rendering tests ensure that the browser graphically displays pages as
+  expected. There are a few different ways this is done:
 
-* [Reftests][], which render two (or more) web
-  pages and combine them with equality assertions about their
-  rendering (e.g., `A.html` and `B.html` must render identically), run
-  either by the user switching between tabs/windows and trying to
-  observe differences or through automated scripts.
+  * [Reftests][] render two (or more) web pages and combine them with equality
+    assertions about their rendering (e.g., `A.html` and `B.html` must render
+    identically), run either by the user switching between tabs/windows and
+    trying to observe differences or through [automated
+    scripts][running-from-local-system].
 
-* [Visual tests][visual] which display a page where the
-  result is determined either by a human looking at it or by comparing
-  it with a saved screenshot for that user agent on that platform.
+  * [Visual tests][visual] display a page where the result is determined either
+    by a human looking at it or by comparing it with a saved screenshot for
+    that user agent on that platform.
 
-* [Manual tests][manual], which rely on a human to run
-  them and determine their result.
+* [testharness.js][] tests verify that JavaScript interfaces behave as
+  expected. They get their name from the JavaScript harness that's used to
+  execute them.
 
-* WebDriver tests, which are used for testing the WebDriver protocol
-  itself.
+* [wdspec]() tests are written in Python and test [the WebDriver browser
+  automation protocol](https://w3c.github.io/webdriver/)
 
+* [Manual tests][manual] rely on a human to run them and determine their
+  result.
 
 ## GitHub
 
@@ -108,3 +113,5 @@ free to add yourself to the META.yml file!
 [visual]: {{ site.baseurl }}{% link _writing-tests/visual.md %}
 [manual]: {{ site.baseurl }}{% link _writing-tests/manual.md %}
 [github-intro]: {{ site.baseurl }}{% link _appendix/github-intro.md %}
+[running-from-local-system]: {{ site.baseurl}}{% link _running-tests/from-local-system.md %}
+[wdspec]: {{ site.baseurl }}{% link _writing-tests/wdspec.md %}

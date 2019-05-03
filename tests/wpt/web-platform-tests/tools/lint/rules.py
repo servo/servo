@@ -327,10 +327,10 @@ class PrintRegexp(Regexp):
     description = "Print function used"
 
 class LayoutTestsRegexp(Regexp):
-    pattern = br"eventSender|testRunner|window\.internals"
+    pattern = br"(eventSender|testRunner|internals)\."
     name = "LAYOUTTESTS APIS"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
-    description = "eventSender/testRunner/window.internals used; these are LayoutTests-specific APIs (WebKit/Blink)"
+    description = "eventSender/testRunner/internals used; these are LayoutTests-specific APIs (WebKit/Blink)"
 
 class SpecialPowersRegexp(Regexp):
     pattern = b"SpecialPowers"

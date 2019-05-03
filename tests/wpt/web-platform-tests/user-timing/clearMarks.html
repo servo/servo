@@ -17,7 +17,9 @@ function onload_test()
 {
     const entrylist_checker = new performance_entrylist_checker('mark');
     const string_mark_names = mark_names.map(function (x) { return String(x)});
-    mark_names.forEach(performance.mark, performance);
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
 
     for (let i = 0; i < mark_names.length; ++i)
     {
@@ -30,13 +32,19 @@ function onload_test()
             'First loop: marks that we cleared for "' + mark_names[i] + '" should not exist anymore.');
     }
 
-    mark_names.forEach(performance.mark, performance);
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
     performance.clearMarks();
     test_equals(performance.getEntriesByType('mark').length, 0, 'No marks should exist after we clear all.');
 
     // Following cases test clear existed mark name that is tied for two times.
-    mark_names.forEach(performance.mark, performance);
-    mark_names.forEach(performance.mark, performance);
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
 
     for (let i = 0; i < mark_names.length; ++i)
     {
@@ -50,8 +58,12 @@ function onload_test()
     }
 
     // Following cases test clear functionality when mark names are tied for two times.
-    mark_names.forEach(performance.mark, performance);
-    mark_names.forEach(performance.mark, performance);
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
     var entry_number_before_useless_clear = performance.getEntriesByType('Mark').length;
     performance.clearMarks('NonExist');
     var entry_number_after_useless_clear = performance.getEntriesByType('Mark').length;

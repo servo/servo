@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script>
+  var bc = new BroadcastChannel("portal");
+  bc.postMessage("loaded");
+  bc.close();
+
+  var ph = window.portalHost;
+
+  window.onportalactivate = e => {
+    var exception_name = ""
+    try {
+      ph.postMessage("message", "*");
+    }
+    catch (error) {
+      exception_name = error.name;
+    }
+    bc = new BroadcastChannel("portal-host-post-message-after-activate");
+    bc.postMessage(exception_name, "*");
+    bc.close();
+  };
+</script>

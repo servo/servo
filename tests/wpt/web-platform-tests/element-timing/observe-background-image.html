@@ -25,7 +25,8 @@ body {
         const index = window.location.href.lastIndexOf('/');
         const pathname = window.location.href.substring(0, index - 14) +
             'images/black-rectangle.png';
-        checkElement(entry, pathname, 'my_div', 'target', beforeRender);
+        checkElement(entry, pathname, 'my_div', 'target', beforeRender,
+            document.getElementById('target'));
         checkRect(entry, [0, 100, 0, 50]);
         checkNaturalSize(entry, 100, 50);
       })

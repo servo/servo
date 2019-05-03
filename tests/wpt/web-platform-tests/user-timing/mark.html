@@ -19,7 +19,9 @@ function onload_test()
     const string_mark_names = mark_names.map(function (x) { return String(x)});
 
     test_equals(performance.getEntriesByType("mark").length, 0, 'There should be ' + 0 + ' marks');
-    mark_names.forEach(performance.mark, performance);
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
     let mark_entrylist = performance.getEntriesByType('mark');
 
     entrylist_checker.entrylist_check(mark_entrylist, mark_names.length, string_mark_names, 'Checking all entries.');
@@ -31,7 +33,9 @@ function onload_test()
             'First loop: checking entry of name "' + mark_entrylist[i].name + '".');
     }
 
-    mark_names.forEach(performance.mark, performance);
+    mark_names.forEach(function(name) {
+        performance.mark(name);
+    });
     mark_entrylist = performance.getEntriesByType('mark');
     entrylist_checker.entrylist_check(mark_entrylist, mark_names.length * 2, string_mark_names, 'Checking all doubly marked entries.');
 

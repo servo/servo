@@ -216,7 +216,8 @@ class PathFilter(object):
                     for rule_dir in [None, dirpath]:
                         if name in literals.get(rule_dir, empty):
                             exclude = literals[rule_dir][name]
-                            if not any(rule.match(path) for rule in exclude):
+                            if not any(rule.match(name if name_only else path)
+                                       for name_only, rule in exclude):
                                 # Skip this item
                                 self.cache[path] = True
                                 break

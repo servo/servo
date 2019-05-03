@@ -28,16 +28,16 @@ README.md: index.html
 	    | $(EXPAND) $(EXPANDFLAGS) > $@
 
 messages.json: .FORCE
-	$(CURL) $(CURLFLAGS) -O \
-	  https://sideshowbarker.net/nightlies/jar/vnu.jar
+	$(CURL) $(CURLFLAGS) -O -L \
+	  https://github.com/validator/validator/releases/download/jar/vnu.jar
 	$(JAVA) $(JAVAFLAGS) -cp vnu.jar nu.validator.client.TestRunner \
 	  --ignore=html-its --write-messages $@
 	$(PYTHON) $(PYTHONFLAGS) -mjson.tool $@ > $@.tmp
 	mv $@.tmp $@
 
 test: .FORCE
-	$(CURL) $(CURLFLAGS) -O \
-	  https://sideshowbarker.net/nightlies/jar/vnu.jar
+	$(CURL) $(CURLFLAGS) -O -L \
+	  https://github.com/validator/validator/releases/download/jar/vnu.jar
 	$(JAVA) $(JAVAFLAGS) -cp vnu.jar nu.validator.client.TestRunner \
 	  --ignore=html-its messages.json
 

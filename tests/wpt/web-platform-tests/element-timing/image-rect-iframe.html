@@ -23,6 +23,7 @@ body {
       assert_equals(e.data.naturalWidth, 100);
       assert_equals(e.data.naturalHeight, 100);
       assert_equals(e.data.id, 'iframe_img_id');
+      assert_equals(e.data.elementId, 'iframe_img_id');
       t.done();
     });
   }, 'Element Timing entry in iframe has coordinates relative to the iframe.');

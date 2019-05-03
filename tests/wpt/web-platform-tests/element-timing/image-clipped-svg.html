@@ -14,7 +14,8 @@ async_test(function (t) {
       const index = window.location.href.lastIndexOf('/');
       const pathname = window.location.href.substring(0, index) +
           '/resources/circle.svg';
-      checkElement(entry, pathname, 'my_svg', 'SVG', beforeRender);
+      checkElement(entry, pathname, 'my_svg', 'SVG', beforeRender,
+          document.getElementById('SVG'));
       // Image size is 200x200 but SVG size is 100x100 so it is clipped.
       checkRect(entry, [0, 100, 0, 100]);
       checkNaturalSize(entry, 200, 200);
