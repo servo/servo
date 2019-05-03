@@ -685,11 +685,11 @@ unsafe fn set_gc_zeal_options(cx: *mut JSContext) {
     use js::jsapi::{JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 
     let level = match pref!(js.mem.gc.zeal.level) {
-        Some(level @ 0...14) => level as u8,
+        level @ 0...14 => level as u8,
         _ => return,
     };
     let frequency = match pref!(js.mem.gc.zeal.frequency) {
-        Some(frequency) if frequency >= 0 => frequency as u32,
+        frequency if frequency >= 0 => frequency as u32,
         _ => JS_DEFAULT_ZEAL_FREQ,
     };
     JS_SetGCZeal(cx, level, frequency);
