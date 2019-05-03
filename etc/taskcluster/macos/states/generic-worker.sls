@@ -9,8 +9,8 @@ GMT:
 {{ bin }}/generic-worker:
   file.managed:
     - name:
-    - source: https://github.com/taskcluster/generic-worker/releases/download/v11.0.1/generic-worker-darwin-amd64
-    - source_hash: sha256=059331865670d3722a710f0b6f4dae97d347811cc347d1810c6dfc1b413c4b48
+    - source: https://github.com/taskcluster/generic-worker/releases/download/v14.1.0/generic-worker-nativeEngine-darwin-amd64
+    - source_hash: sha256=be9496acc40553c925571f344f84ea79fb5370cd68f11a637b9922843d216cae
     - mode: 755
     - makedirs: True
 
@@ -49,36 +49,25 @@ GMT:
         workerId: {{ grains["id"] }}
         tasksDir: {{ home }}/tasks
         publicIP: {{ salt.network.ip_addrs()[0] }}
-        signingKeyLocation: {{ home }}/key
+        ed25519SigningKeyLocation: {{ home }}/keypair
         clientId: {{ pillar["client_id"] }}
         accessToken: {{ pillar["access_token"] }}
         livelogExecutable: {{ bin }}/livelog
-        livelogCertificate: {{ etc }}/livelog.crt
-        livelogKey: {{ etc }}/livelog.key
-        livelogSecret: {{ pillar["livelog_secret"] }}
+        wstAudience: taskcluster-net
+        wstServerURL: https://websocktunnel.tasks.build
+        rootURL: https://taskcluster.net
     - watch_in:
       - service: net.generic.worker
 
-{{ etc }}/livelog.crt:
-  file.managed:
-    - contents_pillar: livelog_cert
-    - group: {{ user }}
-    - mode: 640
-
-{{ etc }}/livelog.key:
-  file.managed:
-    - contents_pillar: livelog_key
-    - group: {{ user }}
-    - mode: 640
-
-{{ bin }}/generic-worker new-openpgp-keypair --file {{ home }}/key:
+{{ bin }}/generic-worker new-ed25519-keypair --file {{ home }}/keypair:
   cmd.run:
-    - creates: {{ home }}/key
+    - creates: {{ home }}/keypair
     - runas: {{ user }}
 
 /Library/LaunchAgents/net.generic.worker.plist:
   file.managed:
-    - mode: 644
+    - mode: 600
+    - user: root
     - template: jinja
     - source: salt://generic-worker.plist.jinja
     - context:
