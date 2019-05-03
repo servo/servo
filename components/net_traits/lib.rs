@@ -452,7 +452,7 @@ pub struct ResourceFetchTiming {
     pub response_end: u64,
     pub redirect_start: u64,
     // pub redirect_end: u64,
-    // pub connect_start: u64,
+    pub connect_start: u64,
     pub connect_end: u64,
 }
 
@@ -468,6 +468,7 @@ pub enum ResourceAttribute {
     ResponseStart,
     RedirectStart(RedirectStartValue),
     FetchStart,
+    ConnectStart(u64),
     ConnectEnd(u64),
     ResponseEnd,
 }
@@ -489,6 +490,7 @@ impl ResourceFetchTiming {
             response_start: 0,
             fetch_start: 0,
             redirect_start: 0,
+            connect_start: 0,
             connect_end: 0,
             response_end: 0,
         }
@@ -510,6 +512,7 @@ impl ResourceFetchTiming {
                 },
             },
             ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
+            ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
         }
