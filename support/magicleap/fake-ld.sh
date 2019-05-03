@@ -11,7 +11,7 @@ set -o pipefail
 MAGICLEAP_TOOLCHAIN=${MAGICLEAP_TOOLCHAIN:-"${MAGICLEAP_SDK}/tools/toolchains"}
 TARGET=${TARGET:-"aarch64-linux-android"}
 LD=${LD:-"${MAGICLEAP_TOOLCHAIN}/bin/${TARGET}-ld"}
-LDFLAGS=${LDFLAGS:-"-L${MAGICLEAP_SDK}/lumin/stl/libc++/lib -L${MAGICLEAP_SDK}/lumin/usr/lib -L${MAGICLEAP_TOOLCHAIN}/lib/gcc/${TARGET}/4.9.x ${MAGICLEAP_SDK}/lumin/usr/lib/crtbegin_so.o"}
+LDFLAGS=${LDFLAGS:-"-L${MAGICLEAP_SDK}/lumin/stl/libc++/lib -L${MAGICLEAP_SDK}/lumin/usr/lib -L${MAGICLEAP_TOOLCHAIN}/lib/gcc/${TARGET}/4.9.x"}
 
 # Remove the -landroid flag, grr
 ARGS=("$@")
