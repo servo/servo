@@ -279,10 +279,10 @@ def android_nightly(job):
     }
 
     return (
-        android_build_task("Release build")
+        android_build_task("Nightly build and upload")
         .with_treeherder("Android " + details[job]["name"], "Nightly")
         .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/s3-upload")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("""
             ./mach build {flag} --release
             ./mach package {flag} --release --maven
@@ -393,9 +393,9 @@ def windows_release():
 
 def windows_nightly():
     return (
-        windows_build_task("Release build")
+        windows_build_task("Nightly build and upload")
         .with_treeherder("Windows x64", "Nightly")
-        .with_scopes("secrets:get:project/servo/s3-upload")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("mach build --release",
                      "mach package --release",
                      "mach upload-nightly windows-msvc --secret-from-taskcluster")
@@ -410,7 +410,7 @@ def linux_nightly():
         linux_build_task("Nightly build and upload")
         .with_treeherder("Linux x64", "Nightly")
         .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/s3-upload")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         # Not reusing the build made for WPT because it has debug assertions
         .with_script(
             "./mach build --release",
@@ -445,11 +445,11 @@ def linux_wpt():
 
 def macos_nightly():
     return (
-        macos_build_task("Release build")
+        macos_build_task("Nightly build and upload")
         .with_treeherder("macOS x64", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes(
-            "secrets:get:project/servo/s3-upload",
+            "secrets:get:project/servo/s3-upload-credentials",
             "secrets:get:project/servo/github-homebrew-token",
             "secrets:get:project/servo/wpt-sync",
         )
