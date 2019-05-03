@@ -21,6 +21,13 @@ GMT:
     - mode: 755
     - makedirs: True
 
+{{ bin }}/taskcluster-proxy:
+  file.managed:
+    - source: https://github.com/taskcluster/taskcluster-proxy/releases/download/v5.1.0/taskcluster-proxy-darwin-amd64
+    - source_hash: sha256=3faf524b9c6b9611339510797bf1013d4274e9f03e7c4bd47e9ab5ec8813d3ae
+    - mode: 755
+    - makedirs: True
+
 {{ user }} group:
   group.present:
     - name: {{ user }}
@@ -52,6 +59,8 @@ GMT:
         ed25519SigningKeyLocation: {{ home }}/keypair
         clientId: {{ pillar["client_id"] }}
         accessToken: {{ pillar["access_token"] }}
+        taskclusterProxyExecutable: {{ bin }}/taskcluster-proxy
+        taskclusterProxyPort: 8080
         livelogExecutable: {{ bin }}/livelog
         wstAudience: taskcluster-net
         wstServerURL: https://websocktunnel.tasks.build
