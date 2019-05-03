@@ -546,7 +546,7 @@ class PackageCommands(CommandBase):
         import boto3
 
         def get_taskcluster_secret(name):
-            url = os.environ["TASKCLUSTER_PROXY_URL"] "/secrets/v1/secret/project/servo/" + name
+            url = os.environ["TASKCLUSTER_PROXY_URL"] + "/secrets/v1/secret/project/servo/" + name
             return json.load(urllib.urlopen(url))["secret"]
 
         def get_s3_secret():
