@@ -212,11 +212,6 @@ class MachCommands(CommandBase):
             print("Please specify either --target or --android.")
             sys.exit(1)
 
-        # https://github.com/servo/servo/issues/22069
-        if debug_mozjs and magicleap:
-            print("Please specify either --debug-mozjs or --magicleap.")
-            sys.exit(1)
-
         if android:
             target = self.config["android"]["target"]
 
@@ -576,6 +571,7 @@ class MachCommands(CommandBase):
             env.setdefault("HARFBUZZ_SYS_NO_PKG_CONFIG", "1")
             env.setdefault("PKG_CONFIG_ALLOW_CROSS", "1")
             env.setdefault("CMAKE_TOOLCHAIN_FILE", path.join(ml_support, "toolchain.cmake"))
+            env.setdefault("_LIBCPP_INLINE_VISIBILITY", "__attribute__((__always_inline__))")
 
             # The Open SSL configuration
             env.setdefault("OPENSSL_DIR", path.join(target_path, target, "native", "openssl"))
