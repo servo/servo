@@ -6,25 +6,25 @@
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
 <meta name="flags" content="">
 <link rel="match" href="reference/white-space-intrinsic-size-004-ref.html">
-<meta name="assert" content="Preserved spaces at the end of the line do not affect the intrinsic max-content size when white-space is pre-wrap. The value of overflow-wrap makes no difference.">
+<meta name="assert" content="Preserved spaces at the end of the line do affect the intrinsic max-content size when white-space is pre-wrap, as hanging does not prevent contributing to the max-content size. The value of overflow-wrap makes no difference.">
 <style>
 aside {
   float: left;
   white-space: pre-wrap;
-  background: blue;
-  margin-bottom: 1em;
+  background: green;
 }
 aside:last-of-type { overflow-wrap: break-word; }
 div {
+  background: red;
   color: transparent;
   font-family: Ahem;
   font-size: 50px;
-  width: 3ch; /* enough room for both floats if their max-content size does not include the preserved spaces,
-		 but not enough if they do, causing a line break in that case. */
+  width: 3ch;
+  height: 2em;
 }
 </style>
 
-<p>Test passes if there is a single blue rectangle below.
+<p>Test passes if there is a single green rectangle below and no red.
 <div>
   <aside>X  </aside>
   <aside>X  </aside>

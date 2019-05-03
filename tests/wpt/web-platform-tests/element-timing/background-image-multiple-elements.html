@@ -36,14 +36,16 @@ body {
           numObservedElements++;
           if (entry.id == 'div1') {
             observedDiv1 = true;
-            checkElement(entry, pathname, 'et1', 'div1', beforeRender);
+            checkElement(entry, pathname, 'et1', 'div1', beforeRender,
+                document.getElementById('div1'));
             // Div is in the top left corner.
             checkRect(entry, [0, 100, 0, 100]);
             checkNaturalSize(entry, 100, 100);
           }
           else if (entry.id == 'div2') {
             observedDiv2 = true;
-            checkElement(entry, pathname, 'et2', 'div2', beforeRender);
+            checkElement(entry, pathname, 'et2', 'div2', beforeRender,
+                document.getElementById('div2'));
             // Div is below div1, on the left.
             checkRect(entry, [0, 200, 100, 200]);
             checkNaturalSize(entry, 100, 100);

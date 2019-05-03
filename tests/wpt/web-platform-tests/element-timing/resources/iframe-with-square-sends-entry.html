@@ -15,6 +15,8 @@ body {
       'naturalWidth' : entryList.getEntries()[0].naturalWidth,
       'naturalHeight' : entryList.getEntries()[0].naturalHeight,
       'id': entryList.getEntries()[0].id,
+      // Elements cannot be cloned, so just send the element ID.
+      'elementId' : entryList.getEntries()[0].element.id,
     }, '*');
   });
   observer.observe({entryTypes: ['element']});

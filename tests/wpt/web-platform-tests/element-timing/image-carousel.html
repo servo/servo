@@ -37,13 +37,15 @@ body {
     const observer = new PerformanceObserver(list => {
       list.getEntries().forEach(entry => {
         if (entry_count % 2 == 0) {
-          checkElement(entry, pathname0, 'image0', 'image0', beforeRenderTimes[entry_count]);
+          checkElement(entry, pathname0, 'image0', 'image0', beforeRenderTimes[entry_count],
+              document.getElementById('image0'));
           checkRect(entry, [0, 200, 0, 200]);
           checkNaturalSize(entry, 200, 200);
           entry_count_per_element[0]++;
         }
         else {
-          checkElement(entry, pathname1, 'image1', 'image1', beforeRenderTimes[entry_count]);
+          checkElement(entry, pathname1, 'image1', 'image1', beforeRenderTimes[entry_count],
+              document.getElementById('image1'));
           checkRect(entry, [0, 100, 0, 100]);
           checkNaturalSize(entry, 100, 100);
           entry_count_per_element[1]++;

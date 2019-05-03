@@ -7,7 +7,6 @@
 
 <script>
   promise_test(function(test) {
-    internals.runtimeFlags.backgroundFetchEnabled = true;
     return navigator.permissions.query({name:'background-fetch'}).then(function(result) {
       assert_true(result instanceof PermissionStatus);
     });

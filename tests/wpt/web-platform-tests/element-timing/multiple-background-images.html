@@ -23,19 +23,20 @@ body {
     let observedSquare = false;
     const index = window.location.href.lastIndexOf('/');
     const pathname = window.location.href.substring(0, index) + '/resources/';
+    let div = document.getElementById('target');
     const observer = new PerformanceObserver(
       t.step_func(entryList => {
         entryList.getEntries().forEach(entry => {
           numObservedElements++;
           if (entry.name.endsWith('square100.png')) {
             observedSquare = true;
-            checkElement(entry, pathname + 'square100.png', 'multi', 'target', beforeRender);
+            checkElement(entry, pathname + 'square100.png', 'multi', 'target', beforeRender, div);
             checkRect(entry, [0, 200, 0, 200]);
             checkNaturalSize(entry, 100, 100);
           }
           else if (entry.name.endsWith('circle.svg')) {
             observedCircle = true;
-            checkElement(entry, pathname + 'circle.svg', 'multi', 'target', beforeRender);
+            checkElement(entry, pathname + 'circle.svg', 'multi', 'target', beforeRender, div);
             checkRect(entry, [0, 200, 0, 200]);
             checkNaturalSize(entry, 200, 200);
           }

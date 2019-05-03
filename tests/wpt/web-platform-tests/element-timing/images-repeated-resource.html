@@ -15,6 +15,8 @@ body {
   let numEntries = 0;
   let responseEnd1;
   let responseEnd2;
+  let img;
+  let img2;
   const index = window.location.href.lastIndexOf('/');
   const pathname = window.location.href.substring(0, index) +
       '/resources/square100.png';
@@ -22,15 +24,18 @@ body {
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         entryList.getEntries().forEach(entry => {
-          checkElement(entry, pathname, entry.identifier, 'image_id', beforeRender);
+          // Easier to check the |element| attribute here since element ID is the same for both images.
+          checkElement(entry, pathname, entry.identifier, 'image_id', beforeRender, null);
           checkNaturalSize(entry, 100, 100);
           if (entry.identifier === 'my_image') {
             ++numEntries;
             responseEnd1 = entry.responseEnd;
+            assert_equals(entry.element, img);
           }
           else if (entry.identifier === 'my_image2') {
             ++numEntries;
             responseEnd2 = entry.responseEnd;
+            assert_equals(entry.element, img2);
           }
         });
         if (numEntries == 2) {
@@ -44,13 +49,13 @@ body {
     // in time for it to observe the element timing.
     window.onload = () => {
       // Add image of width and height equal to 100.
-      const img = document.createElement('img');
+      img = document.createElement('img');
       img.src = 'resources/square100.png';
       img.setAttribute('elementtiming', 'my_image');
       img.setAttribute('id', 'image_id');
       document.body.appendChild(img);
 
-      const img2 = document.createElement('img');
+      img2 = document.createElement('img');
       img2.src = 'resources/square100.png';
       img2.setAttribute('elementtiming', 'my_image2');
       img2.setAttribute('id', 'image_id');

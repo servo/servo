@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+    <head>
+        <title>touch-action: parent > child: pan-x > child: pan-x</title>
+        <meta name="assert" content="TA15.6 - when a user touches an element, the effect of that touch is determined by the value of the touch-action property and the default touch behaviors on the element and its ancestors. Scrollable-Parent, Child: `pan-x`, Grand-Child: `pan-x`">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            .scroller > div {
+            touch-action: pan-x;
+            }
+            .scroller > div div {
+            touch-action: pan-x;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events touch-action attribute support</h1>
+        <h4 id="desc">Test Description: Try to scroll element DOWN then RIGHT inside blue rectangle. Tap Complete button under the rectangle when done. Expected: only pans in x direction.</h4>
+        <p>Note: this test is for touch-devices only</p>
+        <div class="scroller" id="target0">
+            <div>
+                <div id="scrollTarget">
+                    <p>
+                        Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                        nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                        Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                        lobortis nisl ut aliquip ex ea commodo consequat.
+                    </p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>
+                        Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                        nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                        Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                        lobortis nisl ut aliquip ex ea commodo consequat.
+                    </p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>
+                        Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                        nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                        Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                        lobortis nisl ut aliquip ex ea commodo consequat.
+                    </p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>
+                        Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                        nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                        Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                        lobortis nisl ut aliquip ex ea commodo consequat.
+                    </p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                    <p>Lorem ipsum dolor sit amet...</p>
+                </div>
+            </div>
+        </div>
+        <input type="button" id="btnComplete" value="Complete test">
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+            var test_touchaction = async_test("touch-action attribute test");
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var btnComplete = document.getElementById("btnComplete");
+                var clickIsReceived = false;
+
+                // Check if touch-action attribute works properly for embedded divs
+                //
+                // TA: 15.6
+                on_event(btnComplete, 'click', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    test_touchaction.step(function() {
+                        assert_not_equals(target0.scrollLeft, 0, "scroll x offset should not be 0 in the end of the test");
+                        assert_equals(target0.scrollTop, 0, "scroll y offset should be 0 in the end of the test");
+                    });
+                    clickIsReceived = true;
+                    updateDescriptionComplete();
+                });
+
+                // Inject touch inputs.
+                touchScrollInTarget(scrollTarget, 'down').then(function() {
+                    return touchScrollInTarget(scrollTarget, 'right');
+                }).then(function() {
+                    return touchTapInTarget(btnComplete);
+                }).then(function() {
+                    test_touchaction.step(function () {
+                        assert_true(clickIsReceived, "click should be received before the test finishes");
+                    }, "click should be received before the test finishes");
+                    test_touchaction.done();
+                });
+            }
+        </script>
+        <h1>behaviour: pan-x</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

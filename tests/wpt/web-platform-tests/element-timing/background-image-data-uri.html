@@ -25,7 +25,7 @@ body {
         // Only the first characters of the data URI are included in the entry.
         const uriPrefix = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKAQMAAAC3/F3+AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAA';
         checkElementWithoutResourceTiming(entry, uriPrefix, 'my_div', 'target',
-            beforeRender);
+            beforeRender, document.getElementById('target'));
         // The background image is a red square of length 10.
         checkRect(entry, [0, 100, 0, 50]);
         checkNaturalSize(entry, 10, 10);
