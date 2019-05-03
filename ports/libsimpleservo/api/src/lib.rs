@@ -41,7 +41,7 @@ thread_local! {
 pub use servo::embedder_traits::EventLoopWaker;
 
 pub struct InitOptions {
-    pub args: Option<String>,
+    pub args: Vec<String>,
     pub url: Option<String>,
     pub coordinates: Coordinates,
     pub density: f32,
@@ -135,16 +135,15 @@ pub fn servo_version() -> String {
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
-    init_opts: InitOptions,
+    mut init_opts: InitOptions,
     gl: Rc<dyn gl::Gl>,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReaderInstance::new()));
 
-    if let Some(args) = init_opts.args {
-        let mut args: Vec<String> = serde_json::from_str(&args)
-            .map_err(|_| "Invalid arguments. Servo arguments must be formatted as a JSON array")?;
+    let mut args = mem::replace(&mut init_opts.args, vec![]);
+    if !args.is_empty() {
         // opts::from_cmdline_args expects the first argument to be the binary name.
         args.insert(0, "servo".to_string());
 

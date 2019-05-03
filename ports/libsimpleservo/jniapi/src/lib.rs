@@ -683,8 +683,15 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
     .l()
     .map_err(|_| "coordinates is not an object")?;
     let coordinates = jni_coords_to_rust_coords(&env, coordinates)?;
+
+    let args = match args {
+        Some(args) => serde_json::from_str(&args)
+            .map_err(|_| "Invalid arguments. Servo arguments must be formatted as a JSON array")?,
+        None => None,
+    };
+
     let opts = InitOptions {
-        args,
+        args: args.unwrap_or(vec![]),
         url,
         coordinates,
         density,
