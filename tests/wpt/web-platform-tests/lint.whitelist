@@ -801,7 +801,10 @@ MISSING-LINK: css/filter-effects/*.any.js
 
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
+LAYOUTTESTS APIS: import-maps/resolving.tentative.html
+LAYOUTTESTS APIS: permissions/test-background-fetch-permission.html
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
+LAYOUTTESTS APIS: resources/chromium/webxr-test.js
 
 # Gecko additons to remove
 CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-fieldset-001-ref.html

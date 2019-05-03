@@ -23,32 +23,27 @@ on it from the completed transitions.">
 
 <script>
 promise_test(async t => {
-  // Create element but do not attach it to the document
+  // Create element and remove it from the document
   const div = addDiv(t, {
     style: 'transition: background-color 100s; background-color: red',
   });
+  div.remove();
+
+  // Attach event listeners
+  div.addEventListener('transitionrun', t.step_func(() => {
+    assert_unreached('transitionrun event should not be fired');
+  }));
 
   // Resolve before-change style
   getComputedStyle(div).backgroundColor;
 
-  // Set up after-change style
+  // Set up and resolve after-change style
   div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
 
-  assert_equals(
-    getComputedStyle(div).backgroundColor,
-    'rgb(255, 0, 0)',
-    'No transition should run'
-  );
-
-  // Wait a frame just to be sure the UA does not start the transition on the
-  // next frame.
+  // There should be no events received for the triggered transition.
   await waitForFrame();
-
-  assert_equals(
-    getComputedStyle(div).backgroundColor,
-    'rgb(255, 0, 0)',
-    'No transition should run even after waiting a frame'
-  );
+  await waitForFrame();
 }, 'Transitions do not run on an element not in the document');
 
 test(t => {
@@ -56,6 +51,7 @@ test(t => {
   const div = addDiv(t, {
     style: 'transition: background-color 100s; background-color: red',
   });
+  div.remove();
 
   // Resolve before-change style
   getComputedStyle(div).backgroundColor;
@@ -63,9 +59,12 @@ test(t => {
   // Add to document
   document.documentElement.append(div);
 
-  // Set up after-change style
+  // Set up and resolve after-change style
   div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
 
+  // We should have jumped immediately to the after-change style rather than
+  // transitioning to it.
   assert_equals(
     getComputedStyle(div).backgroundColor,
     'rgb(0, 128, 0)',
@@ -78,7 +77,6 @@ promise_test(async t => {
   const div = addDiv(t, {
     style: 'transition: background-color 100s; background-color: red',
   });
-  document.documentElement.append(div);
 
   // Attach event listeners
   div.addEventListener('transitionrun', t.step_func(() => {
@@ -95,9 +93,6 @@ promise_test(async t => {
   div.remove();
 
   // There should be no events received for the triggered transition.
-  //
-  // (We can't verify the presence/absence of transitions by querying
-  // getComputedStyle for this case because it will return an empty string.)
   await waitForFrame();
   await waitForFrame();
 }, 'Transitions do not run for an element newly removed from the document');
@@ -107,7 +102,6 @@ promise_test(async t => {
   const div = addDiv(t, {
     style: 'transition: background-color 100s; background-color: red',
   });
-  document.documentElement.append(div);
 
   // Attach event listeners
   const eventWatcher = new EventWatcher(t, div, [
@@ -131,13 +125,11 @@ promise_test(async t => {
 promise_test(async t => {
   // Create a container element. We'll need this later.
   const container = addDiv(t);
-  document.documentElement.append(container);
 
   // Create element and attach it to the document
   const div = addDiv(t, {
     style: 'transition: background-color 100s; background-color: red',
   });
-  document.documentElement.append(div);
 
   // Attach event listeners
   const eventWatcher = new EventWatcher(t, div, [
@@ -164,15 +156,10 @@ promise_test(async t => {
 }, 'Transitions are canceled when an element is re-parented');
 
 promise_test(async t => {
-  // Create a container element. We'll need this later.
-  const container = addDiv(t);
-  document.documentElement.append(container);
-
   // Create element and attach it to the document
   const div = addDiv(t, {
     style: 'transition: background-color 100s; background-color: red',
   });
-  document.documentElement.append(div);
 
   // Attach event listeners
   const eventWatcher = new EventWatcher(t, div, [
@@ -187,7 +174,7 @@ promise_test(async t => {
 
   await eventWatcher.wait_for('transitionrun');
 
-  // Re-parent element to same container
+  // Re-parent element to same parent
   document.documentElement.append(div);
 
   await eventWatcher.wait_for('transitioncancel');

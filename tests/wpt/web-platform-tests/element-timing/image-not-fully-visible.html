@@ -12,6 +12,7 @@ body {
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   let beforeRender;
+  let img;
   async_test(function (t) {
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
@@ -20,7 +21,7 @@ body {
         const index = window.location.href.lastIndexOf('/');
         const pathname = window.location.href.substring(0, index) +
             '/resources/square20.png';
-        checkElement(entry, pathname, 'not_fully_visible', '', beforeRender);
+        checkElement(entry, pathname, 'not_fully_visible', '', beforeRender, img);
         // Image will not be fully visible. It should start from the top left part
         // of the document, excluding the margin, and then overflow.
         checkRect(entry,
@@ -33,7 +34,7 @@ body {
     // in time for it to observe the element timing.
     window.onload = () => {
       // Add an image setting width and height equal to viewport.
-      const img = document.createElement('img');
+      img = document.createElement('img');
       img.src = 'resources/square20.png';
       img.setAttribute('elementtiming', 'not_fully_visible');
       img.width = document.documentElement.clientWidth;

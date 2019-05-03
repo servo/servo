@@ -12,6 +12,7 @@ body {
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   let beforeRender;
+  let img;
   async_test(function (t) {
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
@@ -20,7 +21,7 @@ body {
         const index = window.location.href.lastIndexOf('/');
         const pathname = window.location.href.substring(0, index) +
             '/resources/square100.png';
-        checkElement(entry, pathname, 'my_image', 'my_id', beforeRender);
+        checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, img);
         // Assume viewport has size at least 100, so the element is fully visible.
         checkRect(entry, [0, 100, 0, 100]);
         checkNaturalSize(entry, 100, 100);
@@ -31,7 +32,7 @@ body {
     // in time for it to observe the element timing.
     window.onload = () => {
       // Add image of width equal to 100 and height equal to 100.
-      const img = document.createElement('img');
+      img = document.createElement('img');
       img.src = 'resources/square100.png';
       img.setAttribute('elementtiming', 'my_image');
       img.setAttribute('id', 'my_id');

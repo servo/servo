@@ -22,7 +22,6 @@ stylesheet.textContent = `
     padding: 1px 2px;
     border-width: 2px 4px;
     margin: 4px 8px;
-    overflow: hidden;
   }
   #container-for-abspos {
     /* Padding area: 200px tall, 400px wide */
@@ -48,7 +47,7 @@ stylesheet.textContent = `
     border-style: solid;
   }
 `;
-document.head.appendChild(stylesheet);
+document.head.prepend(stylesheet);
 
 function runTestsWithWM(data, testWM, cbWM) {
   const {
@@ -149,10 +148,10 @@ function runTestsWithWM(data, testWM, cbWM) {
       bottom: "50%",
       right: "75%",
     }, {
-      top: .1 * cbHeight + "px",
-      left: .25 * cbWidth + "px",
-      bottom: .5 * cbHeight + "px",
-      right: .75 * cbWidth + "px",
+      top: cbHeight * 10 / 100 + "px",
+      left: cbWidth * 25 / 100 + "px",
+      bottom: cbHeight * 50 / 100 + "px",
+      right: cbWidth * 75 / 100 + "px",
     }, "Percentages are absolutized into pixels");
 
     checkStyle({
@@ -161,10 +160,10 @@ function runTestsWithWM(data, testWM, cbWM) {
       bottom: "calc(50% - 3px)",
       right: "calc(75% - 4px)",
     }, {
-      top: .1 * cbHeight - 1 + "px",
-      left: .25 * cbWidth - 2 + "px",
-      bottom: .5 * cbHeight - 3 + "px",
-      right: .75 * cbWidth - 4 + "px",
+      top: cbHeight * 10 / 100 - 1 + "px",
+      left: cbWidth * 25 / 100 - 2 + "px",
+      bottom: cbHeight * 50 / 100 - 3 + "px",
+      right: cbWidth * 75 / 100 - 4 + "px",
     }, "calc() is absolutized into pixels");
   }
 

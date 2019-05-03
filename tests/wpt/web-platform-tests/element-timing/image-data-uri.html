@@ -23,7 +23,7 @@ body {
         // Only the first characters of the data URI are included in the entry.
         const uriPrefix = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKAQMAAAC3/F3+AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAA';
         checkElementWithoutResourceTiming(entry, uriPrefix, 'my_img', 'inline_wee',
-            beforeRender);
+            beforeRender, document.getElementById('inline_wee'));
         // The image is a red square of length 10.
         checkRect(entry, [0, 10, 0, 10]);
         checkNaturalSize(entry, 10, 10);

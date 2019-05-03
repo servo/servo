@@ -35,7 +35,8 @@ body {
             const pathname1 = window.location.href.substring(0, index) +
                 '/resources/square100.png';
             // The images do not contain ID, so expect an empty ID.
-            checkElement(entry, pathname1, 'image1', 'img1', beforeRender);
+            checkElement(entry, pathname1, 'image1', 'img1', beforeRender,
+                document.getElementById('img1'));
             // This image is horizontally centered.
             // Using abs and comparing to 1 because the viewport sizes could be odd.
             // If a size is odd, then image cannot be in the pure center, but left
@@ -59,7 +60,8 @@ body {
             image2Observed = 1;
             const pathname2 = window.location.href.substring(0, index) +
                 '/resources/square20.png';
-            checkElement(entry, pathname2, 'image2', 'img2', beforeRender);
+            checkElement(entry, pathname2, 'image2', 'img2', beforeRender,
+                document.getElementById('img2'));
             // This image should be below image 1, and should respect the margin.
             checkRect(entry, [50, 250, 250, 450], "of image2");
             checkNaturalSize(entry, 20, 20);
@@ -72,7 +74,8 @@ body {
             image3Observed = 1;
             const pathname3 = window.location.href.substring(0, index) +
                 '/resources/circle.svg';
-            checkElement(entry, pathname3, 'image3', 'img3', beforeRender);
+            checkElement(entry, pathname3, 'image3', 'img3', beforeRender,
+                document.getElementById('img3'));
             // This image is just to the right of image2.
             checkRect(entry, [250, 450, 250, 450], "of image3");
             checkNaturalSize(entry, 200, 200);

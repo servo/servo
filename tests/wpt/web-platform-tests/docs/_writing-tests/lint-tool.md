@@ -52,7 +52,7 @@ below to fix all errors reported.
   the `<meta name="timeout"...>` element to precede the `script` element.
 
 * **LAYOUTTESTS APIS**: Test file uses `eventSender`, `testRunner`, or
-  `window.internals` which are LayoutTests-specific APIs used in WebKit/Blink.
+  `internals` which are LayoutTests-specific APIs used in WebKit/Blink.
 
 * **MALFORMED-VARIANT**: Test file with a `<meta name='variant'...>`
   element whose `content` attribute has a malformed value; **fix**: ensure

@@ -21,7 +21,9 @@ function onload_test()
 
     test_equals(context.getEntriesByType('measure').length, 0, 'There should be ' + 0 + ' entries returned.');
 
-    mark_names.forEach(context.mark, context);
+    mark_names.forEach(function(name) {
+        context.mark(name);
+    });
     measures.forEach(context.initialMeasures, context);
 
     let measure_entrylist = context.getEntriesByType('measure');
@@ -36,7 +38,9 @@ function onload_test()
     }
 
     // Following cases test for scenarios that measure names are tied for two times
-    mark_names.forEach(context.mark, context);
+    mark_names.forEach(function(name) {
+        context.mark(name);
+    });
     measures.forEach(context.initialMeasures, context);
 
     measure_entrylist = context.getEntriesByType('measure');

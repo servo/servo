@@ -43,6 +43,31 @@
   });
 </script>
 
+<script id="stateless_animator_preserves_effect_local_time" type="text/worklet">
+  registerAnimator("stateless_animator_preserves_effect_local_time", class {
+    animate(currentTime, effect) {
+      // The local time will be carried over to the new global scope.
+      effect.localTime = effect.localTime ? effect.localTime + 1 : 1;
+    }
+  });
+</script>
+
+<script id="stateless_animator_does_not_copy_effect_object" type="text/worklet">
+  registerAnimator("stateless_animator_does_not_copy_effect_object", class {
+    animate(currentTime, effect) {
+      effect.localTime = effect.localTime ? effect.localTime + 1 : 1;
+      effect.foo = effect.foo ? effect.foo + 1 : 1;
+      // This condition becomes true once we switch global scope and only preserve local time
+      // otherwise these values keep increasing in lock step.
+      if (effect.localTime > effect.foo) {
+        // This works as long as we switch global scope before 10000 frames.
+        // which is a safe assumption.
+        effect.localTime = 10000;
+      }
+    }
+  });
+</script>
+
 <script id="state_function_returns_empty" type="text/worklet">
   registerAnimator("state_function_returns_empty", class {
     constructor(options, state = { test_local_time: 0 }) {
@@ -70,6 +95,7 @@
 </script>
 
 <script>
+  const EXPECTED_FRAMES_TO_A_SCOPE_SWITCH = 15;
   async function localTimeDoesNotUpdate(animation) {
     // The local time stops increasing after the animator instance being dropped.
     // e.g. 0, 1, 2, .., n, n, n, n, .. where n is the frame that the global
@@ -109,7 +135,6 @@
 
     // effect.localTime should be correctly increased upon global scope
     // switches for stateful animators.
-    const EXPECTED_FRAMES_TO_A_SCOPE_SWITCH = 15;
     await waitForAnimationFrameWithCondition(_ => {
       return animation.effect.getComputedTiming().localTime ==
           EXPECTED_FRAMES_TO_A_SCOPE_SWITCH;
@@ -131,6 +156,34 @@
 
     animation.cancel();
   }, "Stateless animator gets reecreated with 'undefined' state.");
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('stateless_animator_preserves_effect_local_time').textContent);
+    const target = document.getElementById('target');
+    const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
+    const animation = new WorkletAnimation('stateless_animator_preserves_effect_local_time', effect);
+    animation.play();
+
+    await waitForAnimationFrameWithCondition(_ => {
+        return animation.effect.getComputedTiming().localTime == EXPECTED_FRAMES_TO_A_SCOPE_SWITCH;
+    });
+
+    animation.cancel();
+  }, "Stateless animator should preserve the local time of its effect.");
+
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('stateless_animator_does_not_copy_effect_object').textContent);
+    const target = document.getElementById('target');
+    const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
+    const animation = new WorkletAnimation('stateless_animator_does_not_copy_effect_object', effect);
+    animation.play();
+
+    await waitForAnimationFrameWithCondition(_ => {
+        return animation.effect.getComputedTiming().localTime == 10000;
+    });
+
+    animation.cancel();
+  }, "Stateless animator should not copy the effect object.");
 
   promise_test(async t => {
     await runInAnimationWorklet(document.getElementById('state_function_returns_empty').textContent);

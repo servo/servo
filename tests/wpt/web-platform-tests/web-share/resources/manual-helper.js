@@ -28,7 +28,7 @@ function setupManualShareTestCommon() {
 // Sets up the page for running manual tests. Automatically creates the
 // instructions (based on the parameters) and the share button.
 function setupManualShareTest(expected_share_data) {
-  const {title, text, url} = expected_share_data;
+  const {title, text, url, files} = expected_share_data;
   let [instruction, list] = setupManualShareTestCommon();
   let item = document.createElement('li');
   list.appendChild(item);
@@ -50,6 +50,27 @@ function setupManualShareTest(expected_share_data) {
   item = document.createElement('li');
   list.appendChild(item);
   item.innerText = `url = "${url}"`;
+  if (files) {
+    item = document.createElement('li');
+    list.appendChild(item);
+    item.innerText = `files = ${files.length} file(s)`;
+    for (let file of files) {
+      const div = document.createElement('div');
+      if (file.type.startsWith('text/')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          div.textContent = reader.result;
+        };
+        reader.readAsText(file);
+      } else if (file.type.startsWith('image/')) {
+        const image = document.createElement('img');
+        image.src = URL.createObjectURL(file);
+        image.alt = file.name;
+        div.appendChild(image);
+      }
+      item.appendChild(div);
+    }
+  }
 }
 
 function setupManualShareTestRequiringCancellation() {

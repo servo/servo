@@ -19,7 +19,9 @@ function onload_test()
     const entrylist_checker = new performance_entrylist_checker('measure');
     const measure_names = measures.map(function(x) {return x[0];});
 
-    mark_names.forEach(context.mark, context);
+    mark_names.forEach(function(name) {
+        context.mark(name);
+    });
     measures.forEach(context.initialMeasures, context);
     for (let i = 0; i < measures.length; ++i)
     {
@@ -38,7 +40,9 @@ function onload_test()
 
     // Following cases test clear existed measure name that is tied twice.
     measures.forEach(context.initialMeasures, context);
-    mark_names.forEach(context.mark, context);
+    mark_names.forEach(function(name) {
+        context.mark(name);
+    });
     measures.forEach(context.initialMeasures, context);
     for (let i = 0; i < measures.length; ++i)
     {

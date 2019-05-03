@@ -14,7 +14,8 @@ async_test(function (t) {
       const index = window.location.href.lastIndexOf('/');
       const pathname = window.location.href.substring(0, index) +
           '/resources/circle.svg';
-      checkElement(entry, pathname, 'my_poster', 'the_poster', beforeRender);
+      checkElement(entry, pathname, 'my_poster', 'the_poster', beforeRender,
+          document.getElementById('the_poster'));
       // Assume viewport has size at least 200, so the element is fully visible.
       checkRect(entry, [0, 200, 0, 200]);
       checkNaturalSize(entry, 200, 200);

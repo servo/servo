@@ -54,7 +54,6 @@ promise_test(async () => {
     MediaDevices: ['navigator.mediaDevices'],
     MediaStreamTrack: [track],
     MediaStreamTrackEvent: [trackEvent],
-    OverconstrainedErrorEvent: ['new OverconstrainedErrorEvent("type", {})'],
   });
   idl_array.test();
 }, 'mediacapture-streams interfaces.');
