@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::enter_realm;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
@@ -28,7 +29,6 @@ use base64;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
-use js::jsapi::JSAutoRealm;
 use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsval::{self, JSVal};
@@ -262,7 +262,7 @@ impl FileReader {
                 FileReader::perform_readastext(&fr.result, data, &blob_contents)
             },
             FileReaderFunction::ReadAsArrayBuffer => {
-                let _ac = JSAutoRealm::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
+                let _ac = enter_realm(&*fr);
                 FileReader::perform_readasarraybuffer(
                     &fr.result,
                     fr.global().get_cx(),
