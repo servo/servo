@@ -10,7 +10,9 @@ use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTi
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
-use net_traits::{Action, FetchResponseListener, FetchResponseMsg, ResourceTimingType};
+use net_traits::{
+    Action, FetchResponseListener, FetchResponseMsg, ResourceFetchTiming, ResourceTimingType,
+};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 
@@ -42,14 +44,22 @@ pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener
         return;
     }
 
-    let global = listener.resource_timing_global();
-    let performance_entry = PerformanceResourceTiming::new(
-        &global,
+    submit_timing_data(
+        &listener.resource_timing_global(),
         url,
         initiator_type,
-        None,
-        &listener.resource_timing(),
+        listener.resource_timing(),
     );
+}
+
+pub fn submit_timing_data(
+    global: &GlobalScope,
+    url: ServoUrl,
+    initiator_type: InitiatorType,
+    resource_timing: &ResourceFetchTiming,
+) {
+    let performance_entry =
+        PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing);
     global
         .performance()
         .queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);

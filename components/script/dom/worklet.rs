@@ -33,6 +33,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::dom::workletglobalscope::WorkletTask;
+use crate::fetch::load_whole_resource;
 use crate::script_runtime::new_rt_and_cx;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::Runtime;
@@ -47,7 +48,6 @@ use js::jsapi::JSTracer;
 use js::jsapi::JS_GetGCParameter;
 use js::jsapi::JS_GC;
 use msg::constellation_msg::PipelineId;
-use net_traits::load_whole_resource;
 use net_traits::request::Destination;
 use net_traits::request::RequestBuilder;
 use net_traits::request::RequestMode;
@@ -631,9 +631,13 @@ impl WorkletThread {
             .credentials_mode(credentials.into())
             .origin(origin);
 
-        let script = load_whole_resource(request, &resource_fetcher)
-            .ok()
-            .and_then(|(_, bytes)| String::from_utf8(bytes).ok());
+        let script = load_whole_resource(
+            request,
+            &resource_fetcher,
+            &global_scope.upcast::<GlobalScope>(),
+        )
+        .ok()
+        .and_then(|(_, bytes)| String::from_utf8(bytes).ok());
 
         // Step 4.
         // NOTE: the spec parses and executes the script in separate steps,
