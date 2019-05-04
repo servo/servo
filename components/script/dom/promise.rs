@@ -11,7 +11,7 @@
 //! native Promise values that refer to the same JS value yet are distinct native objects
 //! (ie. address equality for the native objects is meaningless).
 
-use crate::compartments::InCompartment;
+use crate::compartments::{enter_realm, InCompartment};
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
@@ -81,8 +81,7 @@ impl Drop for Promise {
 
 impl Promise {
     pub fn new(global: &GlobalScope) -> Rc<Promise> {
-        let compartment =
-            JSAutoRealm::new(global.get_cx(), global.reflector().get_jsobject().get());
+        let compartment = enter_realm(&*global);
         let comp = InCompartment::Entered(&compartment);
         Promise::new_in_current_compartment(global, comp)
     }
@@ -166,7 +165,7 @@ impl Promise {
         T: ToJSValConvertible,
     {
         let cx = self.global().get_cx();
-        let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
+        let _ac = enter_realm(&*self);
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
@@ -187,7 +186,7 @@ impl Promise {
         T: ToJSValConvertible,
     {
         let cx = self.global().get_cx();
-        let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
+        let _ac = enter_realm(&*self);
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
@@ -198,7 +197,7 @@ impl Promise {
     #[allow(unsafe_code)]
     pub fn reject_error(&self, error: Error) {
         let cx = self.global().get_cx();
-        let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
+        let _ac = enter_realm(&*self);
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             error.to_jsval(cx, &self.global(), v.handle_mut());

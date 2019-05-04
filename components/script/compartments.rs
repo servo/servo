@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::globalscope::GlobalScope;
 use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
 
@@ -31,4 +32,11 @@ impl<'a> InCompartment<'a> {
     pub fn entered(token: &JSAutoRealm) -> InCompartment {
         InCompartment::Entered(token)
     }
+}
+
+pub fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
+    JSAutoRealm::new(
+        object.global().get_cx(),
+        object.reflector().get_jsobject().get(),
+    )
 }

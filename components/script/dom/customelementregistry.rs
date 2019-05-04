@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
+use crate::compartments::{enter_realm, AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
@@ -324,7 +324,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Steps 10.1 - 10.2
         rooted!(in(cx) let mut prototype = UndefinedValue());
         {
-            let _ac = JSAutoRealm::new(cx, constructor.get());
+            let _ac = enter_realm(&*self);
             if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
                 self.element_definition_is_running.set(false);
                 return Err(error);

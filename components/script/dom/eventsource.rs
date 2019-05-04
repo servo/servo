@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::enter_realm;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
     EventSourceInit, EventSourceMethods, Wrap,
@@ -28,7 +29,6 @@ use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
@@ -222,10 +222,7 @@ impl EventSourceContext {
         };
         // Steps 4-5
         let event = {
-            let _ac = JSAutoRealm::new(
-                event_source.global().get_cx(),
-                event_source.reflector().get_jsobject().get(),
-            );
+            let _ac = enter_realm(&*event_source);
             rooted!(in(event_source.global().get_cx()) let mut data = UndefinedValue());
             unsafe {
                 self.data
