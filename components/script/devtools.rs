@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -9,7 +10,6 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::AnimationFrameCallback;
@@ -23,7 +23,6 @@ use devtools_traits::{AutoMargins, CachedConsoleMessage, CachedConsoleMessageTyp
 use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::ObjectClassName;
 use msg::constellation_msg::PipelineId;
@@ -36,8 +35,7 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = global.get_cx();
-        let globalhandle = global.reflector().get_jsobject();
-        let _ac = JSAutoRealm::new(cx, globalhandle.get());
+        let _ac = enter_realm(global);
         rooted!(in(cx) let mut rval = UndefinedValue());
         global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 

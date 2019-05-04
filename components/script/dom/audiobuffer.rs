@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::enter_realm;
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
@@ -14,7 +15,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::JS_GetArrayBufferViewBuffer;
-use js::jsapi::{Heap, JSAutoRealm, JSContext, JSObject};
+use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
@@ -126,8 +127,7 @@ impl AudioBuffer {
 
     #[allow(unsafe_code)]
     unsafe fn restore_js_channel_data(&self, cx: *mut JSContext) -> bool {
-        let global = self.global();
-        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
+        let _ac = enter_realm(&*self);
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             if !channel.get().is_null() {
                 // Already have data in JS array.

@@ -17,6 +17,7 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+use crate::compartments::enter_realm;
 use crate::devtools;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
@@ -98,7 +99,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSAutoRealm, JSContext, JS_SetWrapObjectCallbacks};
+use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
@@ -2054,10 +2055,7 @@ impl ScriptThread {
     fn handle_exit_fullscreen(&self, id: PipelineId) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            let _ac = JSAutoRealm::new(
-                document.global().get_cx(),
-                document.reflector().get_jsobject().get(),
-            );
+            let _ac = enter_realm(&*document);
             document.exit_fullscreen();
             return;
         }
@@ -3397,10 +3395,7 @@ impl ScriptThread {
         let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
         // Script source is ready to be evaluated (11.)
-        let _ac = JSAutoRealm::new(
-            global_scope.get_cx(),
-            global_scope.reflector().get_jsobject().get(),
-        );
+        let _ac = enter_realm(global_scope);
         rooted!(in(global_scope.get_cx()) let mut jsval = UndefinedValue());
         global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
 

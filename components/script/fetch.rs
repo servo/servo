@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
+use crate::compartments::{enter_realm, InCompartment};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
@@ -26,7 +26,6 @@ use crate::network_listener::{
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoRealm;
 use net_traits::request::RequestBuilder;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
@@ -211,10 +210,7 @@ impl FetchResponseListener for FetchContext {
             .expect("fetch promise is missing")
             .root();
 
-        // JSAutoRealm needs to be manually made.
-        // Otherwise, Servo will crash.
-        let promise_cx = promise.global().get_cx();
-        let _ac = JSAutoRealm::new(promise_cx, promise.reflector().get_jsobject().get());
+        let _ac = enter_realm(&*promise);
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
@@ -262,9 +258,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
         let response = self.response_object.root();
-        let global = response.global();
-        let cx = global.get_cx();
-        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
+        let _ac = enter_realm(&*response);
         response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.
