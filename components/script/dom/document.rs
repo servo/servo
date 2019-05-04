@@ -1232,11 +1232,11 @@ impl Document {
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             Some(&self.window),
-            1,
+            0i32,
             Finite::wrap(delta.x),
             Finite::wrap(delta.y),
             Finite::wrap(delta.z),
-            delta.mode,
+            delta.mode as u32,
         );
 
         let event = event.upcast::<Event>();
@@ -1244,9 +1244,6 @@ impl Document {
 
         let target = node.upcast();
         event.fire(target);
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::WheelEvent);
     }
 
     #[allow(unsafe_code)]

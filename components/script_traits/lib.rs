@@ -462,6 +462,17 @@ pub enum MouseEventType {
     MouseUp,
 }
 
+/// Mode to measure WheelDelta floats in
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+pub enum WheelMode {
+    /// Delta values are specified in pixels
+    DeltaPixel = 0x00,
+    /// Delta values are specified in lines
+    DeltaLine = 0x01,
+    /// Delta values are specified in pages
+    DeltaPage = 0x02,
+}
+
 /// The Wheel event deltas in every direction
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WheelDelta {
@@ -472,7 +483,7 @@ pub struct WheelDelta {
     /// Delta in the direction going into/out of the screen
     pub z: f64,
     /// Mode to measure the floats in
-    pub mode: u32,
+    pub mode: WheelMode,
 }
 
 /// Events from the compositor that the script thread needs to know about
