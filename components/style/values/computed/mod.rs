@@ -86,8 +86,8 @@ pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
 pub use self::ui::{Cursor, MozForceBrokenImageIcon, UserSelect};
-pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use super::specified::TextTransform;
+pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use super::{Auto, Either, None_};
 pub use app_units::Au;
 

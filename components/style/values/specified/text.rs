@@ -361,7 +361,8 @@ impl TextDecorationLine {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem)]
+    ToShmem,
+)]
 #[repr(C)]
 /// Specified value of the text-transform property, stored in two parts:
 /// the case-related transforms (mutually exclusive, only one may be in effect), and others (non-exclusive).
@@ -468,7 +469,8 @@ impl ToCss for TextTransform {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem)]
+    ToShmem,
+)]
 #[repr(C)]
 /// Specified keyword values for case transforms in the text-transform property. (These are exclusive.)
 pub enum TextTransformCase {
@@ -563,7 +565,9 @@ pub enum TextAlignKeyword {
 }
 
 /// Specified value of text-align property.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+)]
 pub enum TextAlign {
     /// Keyword value of text-align property.
     Keyword(TextAlignKeyword),

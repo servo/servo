@@ -280,7 +280,9 @@ impl Parse for VerticalAlign {
             return Ok(GenericVerticalAlign::Length(lp));
         }
 
-        Ok(GenericVerticalAlign::Keyword(VerticalAlignKeyword::parse(input)?))
+        Ok(GenericVerticalAlign::Keyword(VerticalAlignKeyword::parse(
+            input,
+        )?))
     }
 }
 

@@ -510,13 +510,16 @@ impl Gradient {
             items.sort_by(|a, b| {
                 match (a, b) {
                     (
-                        &generic::GradientItem::ComplexColorStop { position: ref a_position, .. },
-                        &generic::GradientItem::ComplexColorStop { position: ref b_position, .. },
+                        &generic::GradientItem::ComplexColorStop {
+                            position: ref a_position,
+                            ..
+                        },
+                        &generic::GradientItem::ComplexColorStop {
+                            position: ref b_position,
+                            ..
+                        },
                     ) => match (a_position, b_position) {
-                        (
-                            &LengthPercentage::Percentage(a),
-                            &LengthPercentage::Percentage(b),
-                        ) => {
+                        (&LengthPercentage::Percentage(a), &LengthPercentage::Percentage(b)) => {
                             return a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal);
                         },
                         _ => {},
@@ -786,7 +789,7 @@ impl LineDirection {
             #[cfg(feature = "gecko")]
             {
                 // `-moz-` prefixed linear gradient can be both Angle and Position.
-                if *compat_mode == CompatMode::Moz && !simple_moz_gradient(){
+                if *compat_mode == CompatMode::Moz && !simple_moz_gradient() {
                     let position = i.try(|i| LegacyPosition::parse(context, i)).ok();
                     if _angle.is_none() {
                         _angle = i.try(|i| Angle::parse(context, i)).ok();
@@ -961,10 +964,13 @@ impl GradientItem {
                 if let Ok(multi_position) = input.try(|i| LengthPercentage::parse(context, i)) {
                     let stop_color = stop.color.clone();
                     items.push(stop.into_item());
-                    items.push(ColorStop {
-                        color: stop_color,
-                        position: Some(multi_position),
-                    }.into_item());
+                    items.push(
+                        ColorStop {
+                            color: stop_color,
+                            position: Some(multi_position),
+                        }
+                        .into_item(),
+                    );
                 } else {
                     items.push(stop.into_item());
                 }

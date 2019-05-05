@@ -110,10 +110,7 @@ pub trait Element: Sized + Clone + Debug {
         case_sensitivity: CaseSensitivity,
     ) -> bool;
 
-    fn is_part(
-        &self,
-        name: &<Self::Impl as SelectorImpl>::PartName,
-    ) -> bool;
+    fn is_part(&self, name: &<Self::Impl as SelectorImpl>::PartName) -> bool;
 
     /// Returns whether this element matches `:empty`.
     ///
