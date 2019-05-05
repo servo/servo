@@ -391,7 +391,7 @@ def get_linux_distribution():
         else:
             raise Exception('unsupported version of %s: %s' % (distro, version))
         distro, version = 'Ubuntu', base_version
-    #fixme: we should allow checked/supported versions only
+    # Fixme: we should allow checked/supported versions only
     elif distro.lower() not in [
         'centos',
         'centos linux',
