@@ -1212,7 +1212,7 @@ impl Document {
 
         let el = node_Address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
-            node.inclusive_ancestors()
+            node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });

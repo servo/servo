@@ -463,7 +463,7 @@ pub enum MouseEventType {
 }
 
 /// Mode to measure WheelDelta floats in
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum WheelMode {
     /// Delta values are specified in pixels
     DeltaPixel = 0x00,

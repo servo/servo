@@ -22,7 +22,7 @@ use keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
-use servo::script_traits::TouchEventType;
+use servo::script_traits::{TouchEventType, WheelMode, WheelDelta};
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
@@ -394,7 +394,7 @@ impl WindowPortsMethods for Window {
             },
             glutin::WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => (dx as f64, (dy * LINE_HEIGHT) as f64, 
+                    MouseScrollDelta::LineDelta(dx, dy) => (dx as f64, (dy * LINE_HEIGHT) as f64,
                                                             WheelMode::DeltaLine),
                     MouseScrollDelta::PixelDelta(position) => {
                         let position =
