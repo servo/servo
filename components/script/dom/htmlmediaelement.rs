@@ -1725,9 +1725,7 @@ impl HTMLMediaElement {
     }
 
     fn render_controls(&self) {
-        println!("render_controls");
         // XXX cannot render controls while parsing.
-        // XXX render controls as a top layer.
         // XXX check that controls are not already rendered.
         let element = self.htmlelement.upcast::<Element>();
         if let Ok(shadow_root) = element.attach_shadow(IsUserAgentWidget::Yes) {
