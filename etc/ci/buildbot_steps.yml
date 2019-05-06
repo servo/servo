@@ -6,6 +6,10 @@ env:
   GST_DEBUG: '3'
 
 mac-rel-wpt2:
+ env:
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -13,6 +17,10 @@ mac-rel-wpt2:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt3:
+ env:
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -20,6 +28,10 @@ mac-rel-wpt3:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt4:
+ env:
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -29,6 +41,10 @@ mac-rel-wpt4:
   - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-css1:
+ env:
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -37,6 +53,10 @@ mac-rel-css1:
   - bash ./etc/ci/lockfile_changed.sh
 
 mac-rel-css2:
+ env:
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -45,8 +65,8 @@ mac-rel-css2:
 
 linux-rel-intermittent:
  env:
-   CC: gcc-5
-   CXX: g++-5
+   CC: clang-4.0
+   CXX: clang++-4.0
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -57,8 +77,8 @@ linux-rel-intermittent:
 
 linux-rel-nogate:
  env:
-   CC: gcc-5
-   CXX: g++-5
+   CC: clang-4.0
+   CXX: clang++-4.0
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -69,6 +89,10 @@ linux-rel-nogate:
   - ./etc/ci/clean_build_artifacts.sh
 
 mac-rel-intermittent:
+ env:
+   CC: /usr/local/opt/llvm/bin/clang
+   CXX: /usr/local/opt/llvm/bin/clang++
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
@@ -78,8 +102,8 @@ linux-rel-wpt:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
-    CC: gcc-5
-    CXX: g++-5
+    CC: clang-4.0
+    CXX: clang++-4.0
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -97,8 +121,8 @@ linux-rel-css:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
-    CC: gcc-5
-    CXX: g++-5
+    CC: clang-4.0
+    CXX: clang++-4.0
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -111,8 +135,8 @@ linux-rel-css:
 
 linux-nightly:
  env:
-  CC: gcc-5
-  CXX: g++-5
+  CC: clang-4.0
+  CXX: clang++-4.0
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -125,6 +149,9 @@ linux-nightly:
   - ./etc/ci/clean_build_artifacts.sh
 
 android-mac:
+ env:
+   HOST_CC: /usr/local/opt/llvm/bin/clang
+   HOST_CXX: /usr/local/opt/llvm/bin/clang++
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -164,7 +191,7 @@ magicleap-nightly:
 arm64:
  env:
   AR: /usr/bin/aarch64-linux-gnu-ar
-  AS: /usr/bin/aarch64-linux-gnu-as
+  AS: /usr/bin/aarch64-linux-gnu-gcc
   CC: /usr/bin/clang-4.0
   CFLAGS: --target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -fuse-ld=/home/servo/buildbot/slave/arm64/build/support/arm64/fake-ld.sh -Wno-error=unused-command-line-argument
   CPP: /usr/bin/clang-4.0 -E
@@ -172,10 +199,10 @@ arm64:
   CXX: /usr/bin/clang++-4.0
   CXXFLAGS: --target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -I/usr/aarch64-linux-gnu/include/c++/4.8.4/aarch64-linux-gnu -fuse-ld=/home/servo/buildbot/slave/arm64/build/support/arm64/fake-ld.sh -Wno-error=unused-command-line-argument
   EXPAT_LIB_DIR: /usr/lib/aarch64-linux-gnu
-  HOST_CC: gcc-5
+  HOST_CC: clang-4.0
   # test-tidy doesn't like empty strings
   HOST_CFLAGS: --target=x86_64-unknown-linux-gnu
-  HOST_CXX: g++-5
+  HOST_CXX: clang++-4.0
   # test-tidy doesn't like empty strings
   HOST_CXXFLAGS: --target=x86_64-unknown-linux-gnu
   LD: /usr/bin/aarch64-linux-gnu-ld
