@@ -133,6 +133,10 @@ windows_build_env = {
         "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
     },
+    "all": {
+        "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
+        "LINKER": "lld-link.exe",
+    },
 }
 
 windows_sparse_checkout = [
@@ -256,6 +260,8 @@ def android_arm32_dev_from_macos():
         macos_build_task("Dev build (macOS)")
         .with_treeherder("Android ARMv7")
         .with_script("""
+            export HOST_CC="$(brew --prefix llvm)/bin/clang"
+            export HOST_CXX="$(brew --prefix llvm)/bin/clang++"
             ./mach bootstrap-android --accept-all-licences --build
             ./mach build --android --dev
         """)
@@ -685,9 +691,18 @@ def windows_build_task(name, package=True, arch="x86_64"):
     task = (
         windows_task(name)
         .with_max_run_time_minutes(60)
-        .with_env(**build_env, **windows_build_env[arch])
+        .with_env(
+            **build_env,
+            **windows_build_env[arch],
+            **windows_build_env["all"]
+        )
         .with_repo(sparse_checkout=windows_sparse_checkout)
         .with_python2()
+        .with_directory_mount(
+            "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
+            sha256="6de14c9223226cf0cd8c965ecb08c51d62c770171a256991b4fddc25188cfa8e",
+            path="python3",
+        )
         .with_rustup()
         .with_repacked_msi(
             url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +

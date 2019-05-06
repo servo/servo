@@ -309,6 +309,12 @@ class MachCommands(CommandBase):
             env["CC"] = "clang-cl.exe"
             env["CXX"] = "clang-cl.exe"
 
+        host = host_triple()
+        if 'apple-darwin' in host and (not target or target == host):
+            if 'CXXFLAGS' not in env:
+                env['CXXFLAGS'] = ''
+            env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
+
         if android:
             if "ANDROID_NDK" not in env:
                 print("Please set the ANDROID_NDK environment variable.")
@@ -550,7 +556,7 @@ class MachCommands(CommandBase):
 
             # The toolchain commands
             env.setdefault("AR", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-ar"))
-            env.setdefault("AS", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-as"))
+            env.setdefault("AS", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-gcc"))
             env.setdefault("CC", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang"))
             env.setdefault("CPP", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang -E"))
             env.setdefault("CXX", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang++"))
@@ -563,8 +569,8 @@ class MachCommands(CommandBase):
             # Undo all of that when compiling build tools for the host
             env.setdefault("HOST_CFLAGS", "")
             env.setdefault("HOST_CXXFLAGS", "")
-            env.setdefault("HOST_CC", "gcc")
-            env.setdefault("HOST_CXX", "g++")
+            env.setdefault("HOST_CC", "/usr/local/opt/llvm/bin/clang")
+            env.setdefault("HOST_CXX", "/usr/local/opt/llvm/bin/clang++")
             env.setdefault("HOST_LD", "ld")
 
             # Some random build configurations
