@@ -396,6 +396,7 @@ def windows_nightly():
     return (
         windows_build_task("Nightly build and upload")
         .with_treeherder("Windows x64", "Nightly")
+        .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("mach build --release",
                      "mach package --release",
