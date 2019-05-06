@@ -337,11 +337,11 @@ ${helpers.predefined_type(
     "Position",
     "computed::Position::zero()",
     vector=True,
+    allow_empty=True,
     products="gecko",
     gecko_pref="layout.css.scroll-snap.enabled",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
     animation_value_type="discrete",
-    allow_empty="NotInitial",
 )}
 
 <% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
