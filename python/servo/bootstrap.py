@@ -124,7 +124,7 @@ def linux(context, force=False):
                 'ccache', 'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
                 'gstreamer1-plugins-base-devel', 'gstreamer1-plugins-bad-free-devel', 'autoconf213']
     if context.distro == "Ubuntu":
-        if context.distro_version == "17.04" or context.distro_version == "19.04":
+        if context.distro_version in ["17.04", "19.04"]:
             pkgs_apt += ["libssl-dev"]
         elif int(context.distro_version.split(".")[0]) < 17:
             pkgs_apt += ["libssl-dev"]
@@ -386,11 +386,8 @@ def get_linux_distribution():
             raise Exception('unsupported version of %s: %s' % (distro, version))
         distro, version = 'Ubuntu', base_version
     elif distro.lower() == 'ubuntu':
-        if version == '19.04':
-            base_version = '19.04'
-        else:
+        if version > '19.04':
             raise Exception('unsupported version of %s: %s' % (distro, version))
-        distro, version = 'Ubuntu', base_version
     # Fixme: we should allow checked/supported versions only
     elif distro.lower() not in [
         'centos',
