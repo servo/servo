@@ -12,7 +12,7 @@ use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::computed::{Angle, GradientItem, LengthPercentage, Percentage, Position};
 use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
-use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
+use style::values::generics::image::{Circle, ColorStop, Ellipse, ShapeExtent};
 use style::values::specified::position::{X, Y};
 use webrender_api::{ExtendMode, Gradient, GradientBuilder, GradientStop, RadialGradient};
 
@@ -92,7 +92,14 @@ fn convert_gradient_stops(
     let mut stop_items = gradient_items
         .iter()
         .filter_map(|item| match *item {
-            GenericGradientItem::ColorStop(ref stop) => Some(*stop),
+            GenericGradientItem::SimpleColorStop(color) => Some(ColorStop {
+                color,
+                position: None,
+            }),
+            GenericGradientItem::ComplexColorStop { color, position } => Some(ColorStop {
+                color,
+                position: Some(position),
+            }),
             _ => None,
         })
         .collect::<Vec<_>>();

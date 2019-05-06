@@ -23,7 +23,7 @@ use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMo
 use style::properties::ComputedValues;
 use style::values::computed::length::Size;
 use style::values::computed::Color;
-use style::values::generics::box_::VerticalAlign;
+use style::values::generics::box_::{VerticalAlign, VerticalAlignKeyword};
 use style::values::specified::BorderStyle;
 
 #[allow(unsafe_code)]
@@ -138,11 +138,11 @@ impl TableCellFlow {
             self.block_flow.fragment.border_padding.block_start_end();
         let kids_self_gap = self_size - kids_size;
 
-        // This offset should also account for VerticalAlign::Baseline.
+        // This offset should also account for VerticalAlign::baseline.
         // Need max cell ascent from the first row of this cell.
         let offset = match self.block_flow.fragment.style().get_box().vertical_align {
-            VerticalAlign::Middle => kids_self_gap / 2,
-            VerticalAlign::Bottom => kids_self_gap,
+            VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => kids_self_gap / 2,
+            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => kids_self_gap,
             _ => Au(0),
         };
         if offset == Au(0) {
