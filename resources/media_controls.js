@@ -6,14 +6,16 @@
   "use strict";
 
   const MARKUP = `
-    <button id="play-pause-button"></button>
-    <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
-    <span id="position-duration-box" class="hidden">
-      #1
-      <span id="duration"> / #2</span>
-    </span>
-    <button id="volume-switch"></button>
-    <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
+    <div class="controls">
+      <button id="play-pause-button"></button>
+      <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
+      <span id="position-duration-box" class="hidden">
+        #1
+        <span id="duration"> / #2</span>
+      </span>
+      <button id="volume-switch"></button>
+      <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
+    </div>
   `;
 
   // States.
@@ -84,10 +86,10 @@
       this.media = this.controls.host;
 
       // Create root element and load markup.
-      const root = document.createElement("div");
-      root.classList.add("controls");
-      root.innerHTML = MARKUP;
-      this.controls.appendChild(root);
+      this.root = document.createElement("div");
+      this.root.classList.add("root");
+      this.root.innerHTML = MARKUP;
+      this.controls.appendChild(this.root);
 
       // Import elements.
       this.elements = {};
@@ -210,6 +212,9 @@
     }
 
     render(from = this.state) {
+      // XXX This should use clientHeight.
+      this.root.style.height = this.media.videoHeight;
+
       // Error
       if (this.state == ERRORED) {
         //XXX render errored state
@@ -302,6 +307,7 @@
           break;
         case "volumechange":
         case "timeupdate":
+        case "resize":
           this.render();
           break;
         case "loadedmetadata":
