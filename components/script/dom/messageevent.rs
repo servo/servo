@@ -25,6 +25,7 @@ use std::ptr::NonNull;
 #[dom_struct]
 pub struct MessageEvent {
     event: Event,
+    #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
     origin: DOMString,
     source: Option<Dom<WindowProxy>>,

@@ -17,11 +17,17 @@ use webvr_traits::webvr;
 #[dom_struct]
 pub struct VRPose {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "mozjs"]
     position: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     orientation: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     linear_vel: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     angular_vel: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     linear_acc: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     angular_acc: Heap<*mut JSObject>,
 }
 

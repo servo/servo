@@ -40,6 +40,7 @@ enum PushOrReplace {
 pub struct History {
     reflector_: Reflector,
     window: Dom<Window>,
+    #[ignore_malloc_size_of = "mozjs"]
     state: Heap<JSVal>,
     state_id: Cell<Option<HistoryStateId>>,
 }

@@ -21,7 +21,9 @@ pub struct XRView {
     reflector_: Reflector,
     session: Dom<XRSession>,
     eye: XREye,
+    #[ignore_malloc_size_of = "mozjs"]
     proj: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     view: Heap<*mut JSObject>,
     transform: Dom<XRRigidTransform>,
 }

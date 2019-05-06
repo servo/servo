@@ -27,6 +27,7 @@ pub struct XRRigidTransform {
     #[ignore_malloc_size_of = "defined in euclid"]
     transform: RigidTransform3D<f64>,
     inverse: MutNullableDom<XRRigidTransform>,
+    #[ignore_malloc_size_of = "defined in mozjs"]
     matrix: Heap<*mut JSObject>,
 }
 

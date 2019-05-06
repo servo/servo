@@ -76,6 +76,7 @@ pub struct PaintWorkletGlobalScope {
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-definitions>
     paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition>>>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-class-instances>
+    #[ignore_malloc_size_of = "mozjs"]
     paint_class_instances: DomRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
     /// The most recent name the worklet was called with
     cached_name: DomRefCell<Atom>,
@@ -473,7 +474,9 @@ pub enum PaintWorkletTask {
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PaintDefinition {
+    #[ignore_malloc_size_of = "mozjs"]
     class_constructor: Heap<JSVal>,
+    #[ignore_malloc_size_of = "mozjs"]
     paint_function: Heap<JSVal>,
     constructor_valid_flag: Cell<bool>,
     context_alpha_flag: bool,

@@ -145,6 +145,7 @@ pub struct GlobalScope {
     /// they're consumed before it'd be reported.
     ///
     /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
+    #[ignore_malloc_size_of = "mozjs"]
     uncaught_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 
     /// Promises in this list have previously been reported as rejected
@@ -152,6 +153,7 @@ pub struct GlobalScope {
     /// in the last turn of the event loop.
     ///
     /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
+    #[ignore_malloc_size_of = "mozjs"]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 }
 

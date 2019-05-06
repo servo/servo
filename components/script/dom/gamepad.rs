@@ -32,6 +32,7 @@ pub struct Gamepad {
     connected: Cell<bool>,
     timestamp: Cell<f64>,
     mapping_type: String,
+    #[ignore_malloc_size_of = "mozjs"]
     axes: Heap<*mut JSObject>,
     buttons: Dom<GamepadButtonList>,
     pose: Option<Dom<VRPose>>,

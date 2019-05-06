@@ -24,6 +24,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct ExtendableMessageEvent {
     event: ExtendableEvent,
+    #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,

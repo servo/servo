@@ -22,9 +22,13 @@ use webvr_traits::WebVRFrameData;
 #[dom_struct]
 pub struct VRFrameData {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "mozjs"]
     left_proj: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     left_view: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     right_proj: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "mozjs"]
     right_view: Heap<*mut JSObject>,
     pose: Dom<VRPose>,
     timestamp: Cell<f64>,
