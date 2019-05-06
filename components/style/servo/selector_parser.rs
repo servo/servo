@@ -66,10 +66,6 @@ pub const PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
 
 impl ::selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
-
-    fn supports_pseudo_class(&self, _: &NonTSPseudoClass) -> bool {
-        false
-    }
 }
 
 impl ToCss for PseudoElement {
@@ -293,6 +289,14 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
     fn is_active_or_hover(&self) -> bool {
         matches!(*self, NonTSPseudoClass::Active | NonTSPseudoClass::Hover)
     }
+
+    #[inline]
+    fn is_user_action_state(&self) -> bool {
+        matches!(
+            *self,
+            NonTSPseudoClass::Active | NonTSPseudoClass::Hover | NonTSPseudoClass::Focus
+        )
+    }
 }
 
 impl ToCss for NonTSPseudoClass {
@@ -393,6 +397,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type AttrValue = String;
     type Identifier = Atom;
     type ClassName = Atom;
+    type PartName = Atom;
     type LocalName = LocalName;
     type NamespacePrefix = Prefix;
     type NamespaceUrl = Namespace;
@@ -677,6 +682,10 @@ impl ElementSnapshot for ServoElementSnapshot {
     fn id_attr(&self) -> Option<&Atom> {
         self.get_attr(&ns!(), &local_name!("id"))
             .map(|v| v.as_atom())
+    }
+
+    fn is_part(&self, _name: &Atom) -> bool {
+        false
     }
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
