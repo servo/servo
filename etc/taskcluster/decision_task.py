@@ -90,8 +90,7 @@ def main(task_for):
         daily_tasks_setup()
         with_rust_nightly()
         linux_nightly()
-        android_nightly("arm")
-        android_nightly("x86")
+        android_nightly()
         windows_nightly()
         macos_nightly()
         update_wpt()
@@ -265,36 +264,27 @@ def android_arm32_dev():
     )
 
 
-def android_nightly(job):
-    details = {
-        "arm": {
-            "mach_flag": "--android",
-            "name": "ARMv7",
-            "target": "armv7-linux-androideabi",
-        },
-        "x86": {
-            "mach_flag": "--target i686-linux-android",
-            "name": "x86",
-            "target": "i686-linux-android",
-        }
-    }
-
+def android_nightly():
     return (
         android_build_task("Nightly build and upload")
-        .with_treeherder("Android " + details[job]["name"], "Nightly")
+        .with_treeherder("Android Nightlies")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("""
-            ./mach build {flag} --release
-            ./mach package {flag} --release --maven
+            ./mach build --release --android
+            ./mach package --release --android --maven
+            ./mach build --release --target i686-linux-android
+            ./mach package --release --target i686-linux-android --maven
             ./mach upload-nightly android --secret-from-taskcluster
             ./mach upload-nightly maven --secret-from-taskcluster
-        """.format(flag=details[job]["mach_flag"]))
+        """)
         .with_artifacts(
-            "/repo/target/android/%s/release/servoapp.apk" % details[job]["target"],
-            "/repo/target/android/%s/release/servoview.aar" % details[job]["target"],
+            "/repo/target/android/armv7-linux-androideabi/release/servoapp.apk",
+            "/repo/target/android/armv7-linux-androideabi/release/servoview.aar",
+            "/repo/target/android/i686-linux-android/release/servoapp.apk",
+            "/repo/target/android/i686-linux-android/release/servoview.aar",
         )
-        .find_or_create(("build.android_%s_nightly." + CONFIG.git_sha) % details[job]["name"].lower())
+        .find_or_create("build.android_nightlies." + CONFIG.git_sha)
     )
 
 
