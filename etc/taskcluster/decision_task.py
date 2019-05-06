@@ -444,14 +444,13 @@ def linux_wpt():
 
 
 def macos_nightly():
-    return (
+    build_task = (
         macos_build_task("Nightly build and upload")
         .with_treeherder("macOS x64", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes(
             "secrets:get:project/servo/s3-upload-credentials",
             "secrets:get:project/servo/github-homebrew-token",
-            "secrets:get:project/servo/wpt-sync",
         )
         .with_script(
             "./mach build --release",
@@ -459,13 +458,46 @@ def macos_nightly():
             "./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
+    )
+    build_task = (
+        package_macos_build_for_tests(build_task)
+        .find_or_create("build.mac_x64_nightly." + CONFIG.git_sha)
+    )
+
+    return (
+        macos_run_task("Nightly WPT sync")
+        .with_treeherder("macOS x64", "WPT")
+        .with_repo()
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/wpt-sync")
+        .with_curl_artifact_script(build_task, "target.tar.gz")
+        .with_script("tar -xzf target.tar.gz")
+        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+        .with_max_run_time_minutes(240)
         .with_script(
             "./etc/ci/update-wpt-checkout fetch-and-update-expectations",
             "./etc/ci/update-wpt-checkout open-pr",
             "./etc/ci/update-wpt-checkout cleanup",
         )
-        .find_or_create("build.mac_x64_nightly." + CONFIG.git_sha)
+        .find_or_create("wpt_sync.mac_x64_nightly." + CONFIG.git_sha)
     )
+
+
+def package_macos_build_for_tests(task):
+    return (
+        task.with_script("""
+            tar -czf target.tar.gz \
+                target/release/servo \
+                target/release/build/osmesa-src-*/output \
+                target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
+                target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
+        """)
+        .with_artifacts("repo/target.tar.gz")
+    )
+
+
+def macos_run_task(name):
+        return macos_task(name).with_python2()
 
 
 def macos_wpt():
@@ -475,17 +507,12 @@ def macos_wpt():
         .with_script("""
             ./mach build --release
             ./etc/ci/lockfile_changed.sh
-            tar -czf target.tar.gz \
-                target/release/servo \
-                target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
-                target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
         """)
-        .with_artifacts("repo/target.tar.gz")
+    )
+    build_task = (
+        package_macos_build_for_tests(build_task)
         .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
     )
-    def macos_run_task(name):
-        return macos_task(name).with_python2()
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
                total_chunks=6, processes=4, chunks=[1])
 
