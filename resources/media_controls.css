@@ -5,11 +5,17 @@ button {
   border: none;
 }
 
-.controls {
+.root {
   display: block;
-  position: fixed;
+  position: relative;
   width: 100%;
-  padding: 0 9px;
+}
+
+.controls {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 40px;
 }
 
 .hidden {
