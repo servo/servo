@@ -22,7 +22,7 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};
 use js::jsapi::{Heap, JS_ClearPendingException};
-use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetFunctionObject};
+use js::jsapi::{JSAutoRealm, JSContext, JSObject, JS_GetFunctionObject};
 use js::jsapi::{JS_NewFunction, NewFunctionWithReserved, PromiseState};
 use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
 use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
@@ -82,7 +82,7 @@ impl Drop for Promise {
 impl Promise {
     pub fn new(global: &GlobalScope) -> Rc<Promise> {
         let compartment =
-            JSAutoCompartment::new(global.get_cx(), global.reflector().get_jsobject().get());
+            JSAutoRealm::new(global.get_cx(), global.reflector().get_jsobject().get());
         let comp = InCompartment::Entered(&compartment);
         Promise::new_in_current_compartment(global, comp)
     }
@@ -142,7 +142,7 @@ impl Promise {
         cx: *mut JSContext,
         value: HandleValue,
     ) -> Fallible<Rc<Promise>> {
-        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = CallOriginalPromiseResolve(cx, value));
         assert!(!p.handle().is_null());
         Ok(Promise::new_with_js_promise(p.handle(), cx))
@@ -154,7 +154,7 @@ impl Promise {
         cx: *mut JSContext,
         value: HandleValue,
     ) -> Fallible<Rc<Promise>> {
-        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = CallOriginalPromiseReject(cx, value));
         assert!(!p.handle().is_null());
         Ok(Promise::new_with_js_promise(p.handle(), cx))
@@ -166,7 +166,7 @@ impl Promise {
         T: ToJSValConvertible,
     {
         let cx = self.global().get_cx();
-        let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
@@ -187,7 +187,7 @@ impl Promise {
         T: ToJSValConvertible,
     {
         let cx = self.global().get_cx();
-        let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
@@ -198,7 +198,7 @@ impl Promise {
     #[allow(unsafe_code)]
     pub fn reject_error(&self, error: Error) {
         let cx = self.global().get_cx();
-        let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             error.to_jsval(cx, &self.global(), v.handle_mut());

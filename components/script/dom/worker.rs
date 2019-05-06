@@ -25,7 +25,7 @@ use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSAutoCompartment, JSContext, JS_RequestInterruptCallback};
+use js::jsapi::{JSAutoRealm, JSContext, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use script_traits::WorkerScriptLoadOrigin;
@@ -137,7 +137,7 @@ impl Worker {
 
         let global = worker.global();
         let target = worker.upcast();
-        let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(global.get_cx(), target.reflector().get_jsobject().get());
         rooted!(in(global.get_cx()) let mut message = UndefinedValue());
         data.read(&global, message.handle_mut());
         MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None);

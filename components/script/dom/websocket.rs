@@ -27,7 +27,7 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use js::jsapi::{JSAutoCompartment, JSObject};
+use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
@@ -570,7 +570,7 @@ impl TaskOnce for MessageReceivedTask {
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
             let cx = global.get_cx();
-            let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
+            let _ac = JSAutoRealm::new(cx, ws.reflector().get_jsobject().get());
             rooted!(in(cx) let mut message = UndefinedValue());
             match self.message {
                 MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),

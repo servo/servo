@@ -82,7 +82,7 @@ use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 use crate::script_thread::ScriptThread;
 use html5ever::{LocalName, Prefix, QualName};
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use servo_config::pref;
 
 fn create_svg_element(
@@ -156,10 +156,8 @@ fn create_html_element(
 
                             // Step 6.1.1
                             unsafe {
-                                let _ac = JSAutoCompartment::new(
-                                    cx,
-                                    global.reflector().get_jsobject().get(),
-                                );
+                                let _ac =
+                                    JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
                                 throw_dom_exception(cx, &global, error);
                                 report_pending_exception(cx, true);
                             }

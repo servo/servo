@@ -22,7 +22,7 @@ use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::StructuredCloneScope;
 use js::jsapi::TransferableOwnership;
 use js::jsapi::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsapi::{JSObject, JS_ClearPendingException};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
@@ -220,6 +220,14 @@ unsafe extern "C" fn free_transfer_callback(
 ) {
 }
 
+unsafe extern "C" fn can_transfer_callback(
+    _cx: *mut JSContext,
+    _obj: RawHandleObject,
+    _closure: *mut raw::c_void,
+) -> bool {
+    false
+}
+
 unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {}
 
 static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
@@ -229,6 +237,7 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     readTransfer: Some(read_transfer_callback),
     writeTransfer: Some(write_transfer_callback),
     freeTransfer: Some(free_transfer_callback),
+    canTransfer: Some(can_transfer_callback),
 };
 
 struct StructuredCloneHolder {
@@ -299,7 +308,7 @@ impl StructuredCloneData {
     fn read_clone(global: &GlobalScope, data: *mut u64, nbytes: size_t, rval: MutableHandleValue) {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+        let _ac = JSAutoRealm::new(cx, globalhandle.get());
         let mut sc_holder = StructuredCloneHolder { blob: None };
         let sc_holder_ptr = &mut sc_holder as *mut _;
         unsafe {

@@ -16,11 +16,9 @@ use js::error::throw_type_error;
 use js::glue::{UncheckedUnwrapObject, RUST_SYMBOL_TO_JSID};
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsapi::{Class, ClassOps, CompartmentOptions};
-use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol};
-use js::jsapi::{
-    JSAutoCompartment, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR,
-};
+use js::jsapi::{Class, ClassOps, RealmOptions};
+use js::jsapi::{GetNonCCWObjectGlobal, GetWellKnownSymbol};
+use js::jsapi::{JSAutoRealm, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
 use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
 use js::jsapi::{JS_NewObject, JS_NewPlainObject};
@@ -29,8 +27,8 @@ use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsval::{JSVal, PrivateValue};
-use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty2};
-use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefinePropertyById4};
+use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty5};
+use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefinePropertyById5};
 use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetPrototype};
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
 use js::rust::{define_methods, define_properties, get_object_class};
@@ -138,7 +136,7 @@ pub unsafe fn create_global_object(
 ) {
     assert!(rval.is_null());
 
-    let mut options = CompartmentOptions::default();
+    let mut options = RealmOptions::default();
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = true;
 
@@ -160,7 +158,7 @@ pub unsafe fn create_global_object(
     let val = PrivateValue(Box::into_raw(proto_array) as *const libc::c_void);
     JS_SetReservedSlot(rval.get(), DOM_PROTOTYPE_SLOT, &val);
 
-    let _ac = JSAutoCompartment::new(cx, rval.get());
+    let _ac = JSAutoRealm::new(cx, rval.get());
     JS_FireOnNewGlobalObject(cx, rval.handle());
 }
 
@@ -209,7 +207,7 @@ pub unsafe fn create_interface_prototype_object(
         assert!(!unscopable_symbol.is_null());
 
         rooted!(in(cx) let unscopable_id = RUST_SYMBOL_TO_JSID(unscopable_symbol));
-        assert!(JS_DefinePropertyById4(
+        assert!(JS_DefinePropertyById5(
             cx,
             rval.handle(),
             unscopable_id.handle(),
@@ -275,7 +273,7 @@ pub unsafe fn create_named_constructors(
         constructor.set(JS_GetFunctionObject(fun));
         assert!(!constructor.is_null());
 
-        assert!(JS_DefineProperty2(
+        assert!(JS_DefineProperty3(
             cx,
             constructor.handle(),
             b"prototype\0".as_ptr() as *const libc::c_char,
@@ -360,7 +358,7 @@ pub unsafe fn define_on_global_object(
     obj: HandleObject,
 ) {
     assert_eq!(*name.last().unwrap(), b'\0');
-    assert!(JS_DefineProperty2(
+    assert!(JS_DefineProperty3(
         cx,
         global,
         name.as_ptr() as *const libc::c_char,
@@ -442,7 +440,7 @@ unsafe fn has_instance(
     }
 
     // Step 2.
-    let global = GetGlobalForObjectCrossCompartment(interface_object.get());
+    let global = GetNonCCWObjectGlobal(interface_object.get());
     assert!(!global.is_null());
     let proto_or_iface_array = get_proto_or_iface_array(global);
     rooted!(in(cx) let prototype = (*proto_or_iface_array)[object_class.proto_id as usize]);
@@ -488,7 +486,7 @@ unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
     assert_eq!(*name.last().unwrap(), b'\0');
     rooted!(in(cx) let name = JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
     assert!(!name.is_null());
-    assert!(JS_DefineProperty3(
+    assert!(JS_DefineProperty4(
         cx,
         obj,
         b"name\0".as_ptr() as *const libc::c_char,
@@ -498,7 +496,7 @@ unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
 }
 
 unsafe fn define_length(cx: *mut JSContext, obj: HandleObject, length: i32) {
-    assert!(JS_DefineProperty4(
+    assert!(JS_DefineProperty5(
         cx,
         obj,
         b"length\0".as_ptr() as *const libc::c_char,

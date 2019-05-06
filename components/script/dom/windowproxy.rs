@@ -31,7 +31,7 @@ use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsapi::{JSAutoCompartment, JSContext, JSErrNum, JSFreeOp, JSObject};
+use js::jsapi::{JSAutoRealm, JSContext, JSErrNum, JSFreeOp, JSObject};
 use js::jsapi::{JSTracer, JS_DefinePropertyById, JSPROP_ENUMERATE, JSPROP_READONLY};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_IsExceptionPending};
@@ -148,7 +148,7 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
+            let _ac = JSAutoRealm::new(cx, window_jsobject.get());
 
             // Create a new window proxy.
             rooted!(in(cx) let js_proxy = NewWindowProxy(cx, window_jsobject, handler));
@@ -219,7 +219,7 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
+            let _ac = JSAutoRealm::new(cx, window_jsobject.get());
 
             // Create a new window proxy.
             rooted!(in(cx) let js_proxy = NewWindowProxy(cx, window_jsobject, handler));
@@ -548,7 +548,7 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
+            let _ac = JSAutoRealm::new(cx, window_jsobject.get());
 
             // The old window proxy no longer owns this browsing context.
             SetProxyReservedSlot(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
