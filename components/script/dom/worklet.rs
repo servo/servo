@@ -45,7 +45,7 @@ use dom_struct::dom_struct;
 use js::jsapi::JSGCParamKey;
 use js::jsapi::JSTracer;
 use js::jsapi::JS_GetGCParameter;
-use js::jsapi::JS_GC;
+use js::jsapi::{GCReason, JS_GC};
 use msg::constellation_msg::PipelineId;
 use net_traits::load_whole_resource;
 use net_traits::request::Destination;
@@ -568,7 +568,7 @@ impl WorkletThread {
             self.current_memory_usage(),
             self.gc_threshold
         );
-        unsafe { JS_GC(self.runtime.cx()) };
+        unsafe { JS_GC(self.runtime.cx(), GCReason::API) };
         self.gc_threshold = max(MIN_GC_THRESHOLD, self.current_memory_usage() * 2);
         debug!(
             "END GC (usage = {}, threshold = {}).",

@@ -34,10 +34,10 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JSAutoCompartment, JSFunction, JS_GetFunctionObject};
+use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject, SourceText};
 use js::rust::wrappers::CompileFunction;
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
-use libc::{c_char, size_t};
+use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -45,6 +45,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
@@ -505,7 +506,7 @@ impl EventTarget {
 
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
-        let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
+        let _ac = JSAutoRealm::new(cx, window.reflector().get_jsobject().get());
         rooted!(in(cx) let mut handler = ptr::null_mut::<JSFunction>());
         let rv = unsafe {
             CompileFunction(
@@ -515,15 +516,19 @@ impl EventTarget {
                 name.as_ptr(),
                 args.len() as u32,
                 args.as_ptr(),
-                body.as_ptr(),
-                body.len() as size_t,
+                &mut SourceText {
+                    units_: body.as_ptr() as *const _,
+                    length_: body.len() as u32,
+                    ownsUnits_: false,
+                    _phantom_0: PhantomData,
+                },
                 handler.handle_mut().into(),
             )
         };
         if !rv || handler.get().is_null() {
             // Step 1.8.2
             unsafe {
-                let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
+                let _ac = JSAutoRealm::new(cx, self.reflector().get_jsobject().get());
                 // FIXME(#13152): dispatch error event.
                 report_pending_exception(cx, false);
             }

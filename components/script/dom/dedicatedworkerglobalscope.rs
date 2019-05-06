@@ -32,7 +32,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_AddInterruptCallback;
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
@@ -428,8 +428,7 @@ impl DedicatedWorkerGlobalScope {
             WorkerScriptMsg::DOMMessage(data) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac =
-                    JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
+                let _ac = JSAutoRealm::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), None, None);

@@ -36,7 +36,7 @@ use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
@@ -394,7 +394,7 @@ impl WorkerGlobalScope {
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
                     unsafe {
-                        let _ac = JSAutoCompartment::new(
+                        let _ac = JSAutoRealm::new(
                             self.runtime.cx(),
                             self.reflector().get_jsobject().get(),
                         );

@@ -37,7 +37,9 @@ use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
-use js::jsapi::{SetBuildIdOp, SetEnqueuePromiseJobCallback, SetPromiseRejectionTrackerCallback};
+use js::jsapi::{
+    SetEnqueuePromiseJobCallback, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback,
+};
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;
@@ -137,15 +139,15 @@ pub trait ScriptPort {
 #[allow(unsafe_code)]
 unsafe extern "C" fn enqueue_job(
     cx: *mut JSContext,
+    _promise: HandleObject,
     job: HandleObject,
     _allocation_site: HandleObject,
-    _incumbent_global: HandleObject,
+    incumbent_global: HandleObject,
     _data: *mut c_void,
 ) -> bool {
     wrap_panic(
         AssertUnwindSafe(|| {
-            //XXXjdm - use a different global now?
-            let global = GlobalScope::from_object(job.get());
+            let global = GlobalScope::from_object(incumbent_global.get());
             let pipeline = global.pipeline_id();
             global.enqueue_microtask(Microtask::Promise(EnqueuedPromiseCallback {
                 callback: PromiseJobCallback::new(cx, job.get()),
@@ -360,7 +362,7 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
         SetGCSliceCallback(cx, Some(gc_slice_callback));
     }
 
-    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool {
+    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: HandleObject) -> bool {
         true
     }
     SetDOMCallbacks(cx, &DOM_CALLBACKS);
@@ -384,7 +386,7 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
         // If WASM is enabled without setting the buildIdOp,
         // initializing a module will report an out of memory error.
         // https://dxr.mozilla.org/mozilla-central/source/js/src/wasm/WasmTypes.cpp#458
-        SetBuildIdOp(cx, Some(servo_build_id));
+        SetProcessBuildIdOp(Some(servo_build_id));
     }
     cx_opts.set_wasmBaseline_(pref!(js.wasm.baseline.enabled));
     cx_opts.set_wasmIon_(pref!(js.wasm.ion.enabled));
