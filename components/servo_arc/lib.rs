@@ -21,7 +21,7 @@
 //!
 //! [1]: https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
 
-// The semantics of `Arc` are alread documented in the Rust docs, so we don't
+// The semantics of `Arc` are already documented in the Rust docs, so we don't
 // duplicate those here.
 #![allow(missing_docs)]
 
@@ -767,7 +767,7 @@ type HeaderSliceWithLength<H, T> = HeaderSlice<HeaderWithLength<H>, T>;
 /// via `HeaderSliceWithLength`.
 #[repr(C)]
 pub struct ThinArc<H, T> {
-    ptr: *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>,
+    ptr: ptr::NonNull<ArcInner<HeaderSliceWithLength<H, [T; 1]>>>,
 }
 
 unsafe impl<H: Sync + Send, T: Sync + Send> Send for ThinArc<H, T> {}
@@ -796,7 +796,7 @@ impl<H, T> ThinArc<H, T> {
         // Synthesize transient Arc, which never touches the refcount of the ArcInner.
         let transient = unsafe {
             NoDrop::new(Arc {
-                p: ptr::NonNull::new_unchecked(thin_to_thick(self.ptr)),
+                p: ptr::NonNull::new_unchecked(thin_to_thick(self.ptr.as_ptr())),
             })
         };
 
@@ -851,7 +851,7 @@ impl<H, T> ThinArc<H, T> {
         if is_static {
             ptr::null()
         } else {
-            self.ptr as *const ArcInner<T> as *const c_void
+            self.ptr.as_ptr() as *const ArcInner<T> as *const c_void
         }
     }
 }
@@ -861,7 +861,7 @@ impl<H, T> Deref for ThinArc<H, T> {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        unsafe { &(*thin_to_thick(self.ptr)).data }
+        unsafe { &(*thin_to_thick(self.ptr.as_ptr())).data }
     }
 }
 
@@ -893,7 +893,9 @@ impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
         mem::forget(a);
         let thin_ptr = fat_ptr as *mut [usize] as *mut usize;
         ThinArc {
-            ptr: thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>,
+            ptr: unsafe {
+                ptr::NonNull::new_unchecked(thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>)
+            },
         }
     }
 
@@ -901,7 +903,7 @@ impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
     /// is not modified.
     #[inline]
     pub fn from_thin(a: ThinArc<H, T>) -> Self {
-        let ptr = thin_to_thick(a.ptr);
+        let ptr = thin_to_thick(a.ptr.as_ptr());
         mem::forget(a);
         unsafe {
             Arc {
