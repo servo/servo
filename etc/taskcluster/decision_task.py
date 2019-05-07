@@ -443,7 +443,6 @@ def macos_nightly():
         .with_scopes(
             "secrets:get:project/servo/s3-upload-credentials",
             "secrets:get:project/servo/github-homebrew-token",
-            "secrets:get:project/servo/wpt-sync",
         )
         .with_script(
             "./mach build --release",
@@ -458,7 +457,7 @@ def macos_nightly():
 def update_wpt():
     # Reuse the release build that was made for landing the PR
     build_task = decisionlib.Task.find("build.macos_x64_release." + CONFIG.git_sha)
-    return (
+    update_task = (
         macos_task("WPT update")
         .with_python2()
         .with_treeherder("macOS x64", "WPT update")
@@ -466,6 +465,9 @@ def update_wpt():
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(5 * 60)
+    )
+    return (
+        with_homebrew(update_task, "etc/taskcluster/macos/Brewfile-wpt")
         .with_repo()
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
@@ -701,8 +703,19 @@ def windows_build_task(name, package=True, arch="x86_64"):
     return task
 
 
+def with_homebrew(task, brewfile):
+        return task.with_script("""
+            mkdir -p "$HOME/homebrew"
+            export PATH="$HOME/homebrew/bin:$PATH"
+            which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
+                | tar xz --strip 1 -C "$HOME/homebrew"
+
+            time brew bundle install --no-upgrade --file={brewfile}
+        """.format(brewfile=brewfile))
+
+
 def macos_build_task(name):
-    return (
+    build_task = (
         macos_task(name)
         # Allow long runtime in case the cache expired for all those Homebrew dependencies
         .with_max_run_time_minutes(60 * 2)
@@ -710,13 +723,10 @@ def macos_build_task(name):
         .with_repo()
         .with_python2()
         .with_rustup()
+    )
+    return (
+        with_homebrew(build_task, "etc/taskcluster/macos/Brewfile")
         .with_script("""
-            mkdir -p "$HOME/homebrew"
-            export PATH="$HOME/homebrew/bin:$PATH"
-            which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
-                | tar xz --strip 1 -C "$HOME/homebrew"
-
-            time brew bundle install --no-upgrade --file=etc/taskcluster/macos/Brewfile
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
             export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
         """)
