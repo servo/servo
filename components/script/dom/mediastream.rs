@@ -6,6 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::{self, MediaStreamMethods};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
@@ -72,5 +73,14 @@ impl MediaStreamMethods for MediaStream {
             .filter(|x| x.ty() == MediaStreamType::Video)
             .map(|x| DomRoot::from_ref(&**x))
             .collect()
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-gettrackbyid
+    fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<MediaStreamTrack>> {
+        self.tracks
+            .borrow()
+            .iter()
+            .find(|x| x.id().id().to_string() == &*id)
+            .map(|x| DomRoot::from_ref(&**x))
     }
 }

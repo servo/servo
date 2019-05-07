@@ -14,7 +14,7 @@ interface MediaStream : EventTarget {
     sequence<MediaStreamTrack> getAudioTracks();
     sequence<MediaStreamTrack> getVideoTracks();
     sequence<MediaStreamTrack> getTracks();
-    // MediaStreamTrack? getTrackById(DOMString trackId);
+    MediaStreamTrack? getTrackById(DOMString trackId);
     // void addTrack(MediaStreamTrack track);
     // void removeTrack(MediaStreamTrack track);
     // MediaStream clone();
