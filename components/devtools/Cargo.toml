@@ -24,3 +24,4 @@ msg = {path = "../msg"}
 serde = "1.0"
 serde_json = "1.0"
 time = "0.1"
+uuid = {version = "0.7", features = ["v4"]}

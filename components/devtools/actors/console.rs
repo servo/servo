@@ -297,11 +297,10 @@ impl Actor for ConsoleActor {
             },
 
             "evaluateJSAsync" => {
-                //TODO: use a timestamp for resultID
                 let resultID = Uuid::new_v4().to_string();
                 let early_reply = EvaluateJSAsyncReply {
                     from: self.name(),
-                    resultID: resultID,
+                    resultID: resultID.clone(),
                 };
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
