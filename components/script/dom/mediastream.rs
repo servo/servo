@@ -4,12 +4,14 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::{self, MediaStreamMethods};
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::streams::MediaStreamType;
 use std::cell::Ref;
@@ -34,6 +36,27 @@ impl MediaStream {
             global,
             MediaStreamBinding::Wrap,
         )
+    }
+
+    pub fn Constructor(global: &Window) -> Fallible<DomRoot<MediaStream>> {
+        Ok(MediaStream::new(&global.global()))
+    }
+
+    pub fn Constructor_(_: &Window, stream: &MediaStream) -> Fallible<DomRoot<MediaStream>> {
+        Ok(stream.Clone())
+    }
+
+    pub fn Constructor__(
+        global: &Window,
+        tracks: Vec<DomRoot<MediaStreamTrack>>,
+    ) -> Fallible<DomRoot<MediaStream>> {
+        let new = MediaStream::new(&global.global());
+        for track in tracks {
+            // this is quadratic, but shouldn't matter much
+            // if this becomes a problem we can use a hash map
+            new.AddTrack(&track)
+        }
+        Ok(new)
     }
 
     pub fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {

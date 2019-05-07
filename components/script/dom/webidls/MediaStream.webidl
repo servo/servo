@@ -4,11 +4,11 @@
 
 // https://w3c.github.io/mediacapture-main/#dom-mediastream
 
-// [Exposed=Window,
-//  Constructor,
-//  Constructor(MediaStream stream),
-//  Constructor(sequence<MediaStreamTrack> tracks)]
-[Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window,
+ Constructor,
+ Constructor(MediaStream stream),
+ Constructor(sequence<MediaStreamTrack> tracks),
+Pref="dom.webrtc.enabled"]
 interface MediaStream : EventTarget {
     // readonly        attribute DOMString id;
     sequence<MediaStreamTrack> getAudioTracks();
