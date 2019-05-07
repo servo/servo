@@ -212,8 +212,9 @@
     }
 
     render(from = this.state) {
-      // XXX This should use clientHeight.
+      // XXX This should use clientHeight/clientWidth
       this.root.style.height = this.media.videoHeight;
+      this.root.style.width = this.media.videoWidth;
 
       // Error
       if (this.state == ERRORED) {
