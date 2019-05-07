@@ -219,6 +219,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             let (url, source) = match fetch::load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
+                &global_scope,
             ) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),

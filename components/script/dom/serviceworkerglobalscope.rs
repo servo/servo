@@ -291,16 +291,19 @@ impl ServiceWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
-                let (url, source) =
-                    match load_whole_resource(request, &init.resource_threads.sender()) {
-                        Err(_) => {
-                            println!("error loading script {}", serialized_worker_url);
-                            return;
-                        },
-                        Ok((metadata, bytes)) => {
-                            (metadata.final_url, String::from_utf8(bytes).unwrap())
-                        },
-                    };
+                let (url, source) = match load_whole_resource(
+                    request,
+                    &init.resource_threads.sender(),
+                    &GlobalScope::current().expect("No current global object"),
+                ) {
+                    Err(_) => {
+                        println!("error loading script {}", serialized_worker_url);
+                        return;
+                    },
+                    Ok((metadata, bytes)) => {
+                        (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    },
+                };
 
                 let runtime = new_rt_and_cx();
 

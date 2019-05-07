@@ -626,9 +626,13 @@ impl WorkletThread {
             .credentials_mode(credentials.into())
             .origin(origin);
 
-        let script = load_whole_resource(request, &resource_fetcher)
-            .ok()
-            .and_then(|(_, bytes)| String::from_utf8(bytes).ok());
+        let script = load_whole_resource(
+            request,
+            &resource_fetcher,
+            &global_scope.upcast::<GlobalScope>(),
+        )
+        .ok()
+        .and_then(|(_, bytes)| String::from_utf8(bytes).ok());
 
         // Step 4.
         // NOTE: the spec parses and executes the script in separate steps,

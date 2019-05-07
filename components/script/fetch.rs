@@ -19,7 +19,9 @@ use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{
+    self, submit_timing_data, NetworkListener, PreInvoke, ResourceTimingListener,
+};
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -310,8 +312,10 @@ fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata) {
 pub fn load_whole_resource(
     request: RequestBuilder,
     core_resource_thread: &CoreResourceThread,
+    global: &GlobalScope,
 ) -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let url = request.url.clone();
     core_resource_thread
         .send(CoreResourceMsg::Fetch(
             request,
@@ -331,7 +335,13 @@ pub fn load_whole_resource(
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
-            FetchResponseMsg::ProcessResponseEOF(Ok(_)) => return Ok((metadata.unwrap(), buf)),
+            FetchResponseMsg::ProcessResponseEOF(Ok(_)) => {
+                let metadata = metadata.unwrap();
+                if let Some(timing) = &metadata.timing {
+                    submit_timing_data(global, url, InitiatorType::Other, &timing);
+                }
+                return Ok((metadata, buf));
+            },
             FetchResponseMsg::ProcessResponse(Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
         }

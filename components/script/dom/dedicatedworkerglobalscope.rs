@@ -315,25 +315,6 @@ impl DedicatedWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
-                let (metadata, bytes) =
-                    match load_whole_resource(request, &init.resource_threads.sender()) {
-                        Err(_) => {
-                            println!("error loading script {}", serialized_worker_url);
-                            parent_sender
-                                .send(CommonScriptMsg::Task(
-                                    WorkerEvent,
-                                    Box::new(SimpleWorkerErrorHandler::new(worker)),
-                                    pipeline_id,
-                                    TaskSourceName::DOMManipulation,
-                                ))
-                                .unwrap();
-                            return;
-                        },
-                        Ok((metadata, bytes)) => (metadata, bytes),
-                    };
-                let url = metadata.final_url;
-                let source = String::from_utf8_lossy(&bytes);
-
                 let runtime = unsafe { new_child_runtime(parent) };
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
@@ -355,7 +336,7 @@ impl DedicatedWorkerGlobalScope {
 
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
-                    url,
+                    worker_url,
                     devtools_mpsc_port,
                     runtime,
                     parent_sender.clone(),
@@ -368,6 +349,31 @@ impl DedicatedWorkerGlobalScope {
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.
                 let scope = global.upcast::<WorkerGlobalScope>();
+                let global_scope = global.upcast::<GlobalScope>();
+
+                let (metadata, bytes) = match load_whole_resource(
+                    request,
+                    &global_scope.resource_threads().sender(),
+                    &global_scope,
+                ) {
+                    Err(_) => {
+                        println!("error loading script {}", serialized_worker_url);
+                        parent_sender
+                            .send(CommonScriptMsg::Task(
+                                WorkerEvent,
+                                Box::new(SimpleWorkerErrorHandler::new(worker)),
+                                pipeline_id,
+                                TaskSourceName::DOMManipulation,
+                            ))
+                            .unwrap();
+                        return;
+                    },
+                    Ok((metadata, bytes)) => (metadata, bytes),
+                };
+                // TODO(pylbrecht)
+                // update url in DedicatedWorkerGlobalScope
+                let url = metadata.final_url;
+                let source = String::from_utf8_lossy(&bytes);
 
                 unsafe {
                     // Handle interrupt requests
