@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::{self, MediaStreamMethods};
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -97,5 +97,14 @@ impl MediaStreamMethods for MediaStream {
     /// https://w3c.github.io/mediacapture-main/#dom-mediastream-addtrack
     fn RemoveTrack(&self, track: &MediaStreamTrack) {
         self.tracks.borrow_mut().retain(|x| *x != track);
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-clone
+    fn Clone(&self) -> DomRoot<MediaStream> {
+        let new = MediaStream::new(&self.global());
+        for track in &*self.tracks.borrow_mut() {
+            new.add_track(&track)
+        }
+        new
     }
 }
