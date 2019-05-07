@@ -399,6 +399,7 @@ pub mod medialist;
 pub mod mediaquerylist;
 pub mod mediaquerylistevent;
 pub mod mediastream;
+pub mod mediastreamtrack;
 pub mod messageevent;
 pub mod mimetype;
 pub mod mimetypearray;
