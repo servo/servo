@@ -3,38 +3,53 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::MediaStreamBinding;
+use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::{self, MediaStreamMethods};
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::mediastreamtrack::MediaStreamTrack;
 use dom_struct::dom_struct;
-use servo_media::streams::registry::MediaStreamId;
+use std::cell::Ref;
 
 #[dom_struct]
 pub struct MediaStream {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "defined in servo-media"]
-    tracks: DomRefCell<Vec<MediaStreamId>>,
+    tracks: DomRefCell<Vec<Dom<MediaStreamTrack>>>,
 }
 
 impl MediaStream {
-    pub fn new_inherited(tracks: Vec<MediaStreamId>) -> MediaStream {
+    pub fn new_inherited() -> MediaStream {
         MediaStream {
             eventtarget: EventTarget::new_inherited(),
-            tracks: DomRefCell::new(tracks),
+            tracks: DomRefCell::new(vec![]),
         }
     }
 
-    pub fn new(global: &GlobalScope, tracks: Vec<MediaStreamId>) -> DomRoot<MediaStream> {
+    pub fn new(global: &GlobalScope) -> DomRoot<MediaStream> {
         reflect_dom_object(
-            Box::new(MediaStream::new_inherited(tracks)),
+            Box::new(MediaStream::new_inherited()),
             global,
             MediaStreamBinding::Wrap,
         )
     }
 
-    pub fn get_tracks(&self) -> Vec<MediaStreamId> {
-        self.tracks.borrow_mut().clone()
+    pub fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
+        Ref::map(self.tracks.borrow(), |tracks| &**tracks)
+    }
+
+    pub fn add_track(&self, track: &MediaStreamTrack) {
+        self.tracks.borrow_mut().push(Dom::from_ref(track))
+    }
+}
+
+impl MediaStreamMethods for MediaStream {
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-gettracks
+    fn GetTracks(&self) -> Vec<DomRoot<MediaStreamTrack>> {
+        self.tracks
+            .borrow()
+            .iter()
+            .map(|x| DomRoot::from_ref(&**x))
+            .collect()
     }
 }

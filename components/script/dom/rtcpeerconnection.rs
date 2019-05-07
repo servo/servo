@@ -585,10 +585,12 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
     // https://w3c.github.io/webrtc-pc/#legacy-interface-extensions
     fn AddStream(&self, stream: &MediaStream) {
-        let mut tracks = stream.get_tracks();
-
-        for ref track in tracks.drain(..) {
-            self.controller.borrow().as_ref().unwrap().add_stream(track);
+        for track in &*stream.get_tracks() {
+            self.controller
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .add_stream(&track.id());
         }
     }
 
