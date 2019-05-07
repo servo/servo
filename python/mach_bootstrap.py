@@ -293,6 +293,10 @@ def bootstrap(topdir):
         mach.define_category(category, meta['short'], meta['long'], meta['priority'])
 
     for path in MACH_MODULES:
-        mach.load_commands_from_file(os.path.join(topdir, path))
+        # explicitly provide a module name
+        # workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1549636
+        file = os.path.basename(path)
+        module_name = os.path.splitext(file)[0]
+        mach.load_commands_from_file(os.path.join(topdir, path), module_name)
 
     return mach
