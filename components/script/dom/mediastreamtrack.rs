@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::MediaStreamTrackBinding::{
     self, MediaStreamTrackMethods,
 };
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -65,5 +65,10 @@ impl MediaStreamTrackMethods for MediaStreamTrack {
     /// https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-id
     fn Id(&self) -> DOMString {
         self.id.id().to_string().into()
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-clone
+    fn Clone(&self) -> DomRoot<MediaStreamTrack> {
+        MediaStreamTrack::new(&self.global(), self.id, self.ty)
     }
 }
