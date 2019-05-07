@@ -32,4 +32,8 @@ impl MediaStreamTrack {
             MediaStreamTrackBinding::Wrap,
         )
     }
+
+    pub fn id(&self) -> MediaStreamId {
+        self.id
+    }
 }
