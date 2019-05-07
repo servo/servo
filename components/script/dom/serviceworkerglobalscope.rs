@@ -19,6 +19,7 @@ use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::fetch::load_whole_resource;
 use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
@@ -31,7 +32,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
-use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
+use net_traits::{CustomResponseMediator, IpcSend};
 use script_traits::{
     ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };

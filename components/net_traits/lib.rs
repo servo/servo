@@ -597,38 +597,6 @@ pub enum CookieSource {
     NonHTTP,
 }
 
-/// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(
-    request: RequestBuilder,
-    core_resource_thread: &CoreResourceThread,
-) -> Result<(Metadata, Vec<u8>), NetworkError> {
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
-    core_resource_thread
-        .send(CoreResourceMsg::Fetch(
-            request,
-            FetchChannels::ResponseMsg(action_sender, None),
-        ))
-        .unwrap();
-
-    let mut buf = vec![];
-    let mut metadata = None;
-    loop {
-        match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody | FetchResponseMsg::ProcessRequestEOF => (),
-            FetchResponseMsg::ProcessResponse(Ok(m)) => {
-                metadata = Some(match m {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-                })
-            },
-            FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
-            FetchResponseMsg::ProcessResponseEOF(Ok(_)) => return Ok((metadata.unwrap(), buf)),
-            FetchResponseMsg::ProcessResponse(Err(e)) |
-            FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
-        }
-    }
-}
-
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum NetworkError {

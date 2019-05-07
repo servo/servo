@@ -42,7 +42,7 @@ use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder as NetRequestInit};
-use net_traits::{load_whole_resource, IpcSend};
+use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use script_traits::{TimerEvent, TimerEventId};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -216,13 +216,13 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 .referrer_url(None)
                 .referrer_policy(None);
 ;
-            let (url, source) =
-                match load_whole_resource(request, &global_scope.resource_threads().sender()) {
-                    Err(_) => return Err(Error::Network),
-                    Ok((metadata, bytes)) => {
-                        (metadata.final_url, String::from_utf8(bytes).unwrap())
-                    },
-                };
+            let (url, source) = match fetch::load_whole_resource(
+                request,
+                &global_scope.resource_threads().sender(),
+            ) {
+                Err(_) => return Err(Error::Network),
+                Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),
+            };
 
             let result = self.runtime.evaluate_script(
                 self.reflector().get_jsobject(),

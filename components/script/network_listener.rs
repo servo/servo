@@ -53,7 +53,7 @@ pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener
 }
 
 pub fn submit_timing_data(
-    global: &DomRoot<GlobalScope>,
+    global: &GlobalScope,
     url: ServoUrl,
     initiator_type: InitiatorType,
     resource_timing: &ResourceFetchTiming,
