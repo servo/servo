@@ -11,8 +11,8 @@
 [Exposed=Window, Pref="dom.webrtc.enabled"]
 interface MediaStream : EventTarget {
     // readonly        attribute DOMString id;
-    // sequence<MediaStreamTrack> getAudioTracks();
-    // sequence<MediaStreamTrack> getVideoTracks();
+    sequence<MediaStreamTrack> getAudioTracks();
+    sequence<MediaStreamTrack> getVideoTracks();
     sequence<MediaStreamTrack> getTracks();
     // MediaStreamTrack? getTrackById(DOMString trackId);
     // void addTrack(MediaStreamTrack track);
