@@ -451,6 +451,7 @@ pub mod rtcicecandidate;
 pub mod rtcpeerconnection;
 pub mod rtcpeerconnectioniceevent;
 pub mod rtcsessiondescription;
+pub mod rtctrackevent;
 pub mod screen;
 pub mod serviceworker;
 pub mod serviceworkercontainer;
