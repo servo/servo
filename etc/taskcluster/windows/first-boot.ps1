@@ -39,6 +39,8 @@ $client.DownloadFile("https://github.com/taskcluster/generic-worker/releases/dow
     "/v14.1.0/generic-worker-nativeEngine-windows-amd64.exe", "C:\generic-worker\generic-worker.exe")
 $client.DownloadFile("https://github.com/taskcluster/livelog/releases/download" +
     "/v1.1.0/livelog-windows-amd64.exe", "C:\generic-worker\livelog.exe")
+$client.DownloadFile("https://github.com/taskcluster/taskcluster-proxy/releases/download" +
+    "/v5.1.0/taskcluster-proxy-windows-amd64.exe", "C:\generic-worker\taskcluster-proxy.exe")
 Expand-ZIPFile -File "C:\nssm-2.24.zip" -Destination "C:\" `
     -Url "https://www.nssm.cc/release/nssm-2.24.zip"
 Start-Process C:\generic-worker\generic-worker.exe -ArgumentList `
