@@ -443,7 +443,6 @@ def macos_nightly():
         .with_scopes(
             "secrets:get:project/servo/s3-upload-credentials",
             "secrets:get:project/servo/github-homebrew-token",
-            "secrets:get:project/servo/wpt-sync",
         )
         .with_script(
             "./mach build --release",
