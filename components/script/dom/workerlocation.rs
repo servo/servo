@@ -34,6 +34,11 @@ impl WorkerLocation {
             WorkerLocationBinding::Wrap,
         )
     }
+
+    // https://html.spec.whatwg.org/multipage/workers.html#dom-workerlocation-origin
+    pub fn origin(&self) -> &MutableOrigin {
+        &self.url.origin()
+    }
 }
 
 impl WorkerLocationMethods for WorkerLocation {
