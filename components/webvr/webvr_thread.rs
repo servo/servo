@@ -16,7 +16,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::{thread, time};
 use webvr_traits::webvr::*;
-use webvr_traits::{WebVRMsg, WebVRResult};
+use webvr_traits::{WebVRMsg, WebVRPoseInformation, WebVRResult};
 
 /// WebVRThread owns native VRDisplays, handles their life cycle inside Servo and
 /// acts a doorman for untrusted VR requests from DOM Objects. These are the key components
@@ -127,6 +127,9 @@ impl WebVRThread {
                 },
                 WebVRMsg::GetGamepads(synced_ids, sender) => {
                     self.handle_get_gamepads(synced_ids, sender);
+                },
+                WebVRMsg::GetGamepadsForDisplay(display_id, sender) => {
+                    self.handle_get_gamepads_for_display(display_id, sender);
                 },
                 WebVRMsg::Exit => break,
             }
@@ -249,6 +252,32 @@ impl WebVRThread {
             .get_display(display_id)
             .map(|d| WebVRCompositor(d.as_ptr()));
         self.vr_compositor_chan.send(compositor).unwrap();
+    }
+
+    fn handle_get_gamepads_for_display(
+        &mut self,
+        display_id: u32,
+        sender: IpcSender<WebVRResult<Vec<(VRGamepadData, VRGamepadState)>>>,
+    ) {
+        match self.service.get_display(display_id) {
+            Some(display) => {
+                let gamepads = display.borrow_mut().fetch_gamepads();
+                match gamepads {
+                    Ok(gamepads) => {
+                        let data = gamepads
+                            .iter()
+                            .map(|g| {
+                                let g = g.borrow();
+                                (g.data(), g.state())
+                            })
+                            .collect();
+                        sender.send(Ok(data)).unwrap();
+                    },
+                    Err(e) => sender.send(Err(e)).unwrap(),
+                }
+            },
+            None => sender.send(Err("Device not found".into())).unwrap(),
+        }
     }
 
     fn handle_get_gamepads(
@@ -386,10 +415,23 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                     unsafe { (*compositor.0).start_present(None) };
                 }
             },
-            webgl::WebVRCommand::SyncPoses(compositor_id, near, far, sender) => {
+            webgl::WebVRCommand::SyncPoses(compositor_id, near, far, get_gamepads, sender) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
                     let pose = unsafe { (*compositor.0).future_frame_data(near, far) };
-                    let _ = sender.send(Ok(pose));
+                    let mut pose_information = WebVRPoseInformation {
+                        frame: pose,
+                        gamepads: vec![],
+                    };
+                    if get_gamepads {
+                        let gamepads = unsafe { (*compositor.0).fetch_gamepads() };
+                        if let Ok(gamepads) = gamepads {
+                            for gamepad in gamepads {
+                                let g = gamepad.borrow();
+                                pose_information.gamepads.push((g.id(), g.state()));
+                            }
+                        }
+                    }
+                    let _ = sender.send(Ok(pose_information));
                 } else {
                     let _ = sender.send(Err(()));
                 }

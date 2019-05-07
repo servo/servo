@@ -30,5 +30,9 @@ pub enum WebVRMsg {
         Vec<u32>,
         IpcSender<WebVRResult<Vec<(Option<VRGamepadData>, VRGamepadState)>>>,
     ),
+    GetGamepadsForDisplay(
+        u32,
+        IpcSender<WebVRResult<Vec<(VRGamepadData, VRGamepadState)>>>,
+    ),
     Exit,
 }

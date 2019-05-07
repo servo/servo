@@ -19,6 +19,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
+use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
@@ -33,6 +34,7 @@ pub struct XRSession {
     display: Dom<VRDisplay>,
     base_layer: MutNullableDom<XRLayer>,
     blend_mode: XREnvironmentBlendMode,
+    viewer_space: MutNullableDom<XRSpace>,
 }
 
 impl XRSession {
@@ -43,6 +45,7 @@ impl XRSession {
             base_layer: Default::default(),
             // we don't yet support any AR devices
             blend_mode: XREnvironmentBlendMode::Opaque,
+            viewer_space: Default::default(),
         }
     }
 
@@ -86,7 +89,8 @@ impl XRSessionMethods for XRSession {
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-viewerspace
     fn ViewerSpace(&self) -> DomRoot<XRSpace> {
-        XRSpace::new_viewerspace(&self.global(), &self)
+        self.viewer_space
+            .or_init(|| XRSpace::new_viewerspace(&self.global(), &self))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
@@ -152,5 +156,10 @@ impl XRSessionMethods for XRSession {
         }
 
         p
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrsession-getinputsources
+    fn GetInputSources(&self) -> Vec<DomRoot<XRInputSource>> {
+        self.display.get_input_sources()
     }
 }

@@ -138,7 +138,7 @@ use tendril::{StrTendril, TendrilSink};
 use time::{Duration, Timespec};
 use uuid::Uuid;
 use webrender_api::{DocumentId, ImageKey, RenderApiSender};
-use webvr_traits::WebVRGamepadHand;
+use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {
@@ -478,7 +478,7 @@ unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(WebGLVersion);
 unsafe_no_jsmanaged_fields!(WebGLSLVersion);
 unsafe_no_jsmanaged_fields!(MediaList);
-unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
+unsafe_no_jsmanaged_fields!(WebVRGamepadData, WebVRGamepadState, WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);

@@ -94,7 +94,7 @@ impl XRRigidTransformMethods for XRRigidTransform {
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation
     fn Orientation(&self) -> DomRoot<DOMPointReadOnly> {
-        self.position.or_init(|| {
+        self.orientation.or_init(|| {
             let r = &self.transform.rotation;
             DOMPointReadOnly::new(&self.global(), r.i, r.j, r.k, r.r)
         })
