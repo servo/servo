@@ -6,8 +6,8 @@
 
 [Exposed=Window, Pref="dom.webrtc.enabled"]
 interface MediaStreamTrack : EventTarget {
-    // readonly        attribute DOMString kind;
-    // readonly        attribute DOMString id;
+    readonly        attribute DOMString kind;
+    readonly        attribute DOMString id;
     // readonly        attribute DOMString label;
     //                 attribute boolean enabled;
     // readonly        attribute boolean muted;
