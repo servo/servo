@@ -18,6 +18,7 @@ use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
+use servo_media::streams::MediaStreamType;
 use servo_media::ServoMedia;
 use std::rc::Rc;
 
@@ -55,13 +56,13 @@ impl MediaDevicesMethods for MediaDevices {
         let stream = MediaStream::new(&self.global());
         if let Some(constraints) = convert_constraints(&constraints.audio) {
             if let Some(audio) = media.create_audioinput_stream(constraints) {
-                let track = MediaStreamTrack::new(&self.global(), audio);
+                let track = MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio);
                 stream.add_track(&track);
             }
         }
         if let Some(constraints) = convert_constraints(&constraints.video) {
             if let Some(video) = media.create_videoinput_stream(constraints) {
-                let track = MediaStreamTrack::new(&self.global(), video);
+                let track = MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video);
                 stream.add_track(&track);
             }
         }
