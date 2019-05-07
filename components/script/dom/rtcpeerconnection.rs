@@ -36,6 +36,7 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 
+use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::webrtc::{
     BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
@@ -128,7 +129,7 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
-    fn on_add_stream(&self, _: &MediaStreamId) {}
+    fn on_add_stream(&self, _: &MediaStreamId, _: MediaStreamType) {}
 
     fn close(&self) {
         // do nothing
