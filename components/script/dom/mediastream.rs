@@ -10,6 +10,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use dom_struct::dom_struct;
+use servo_media::streams::MediaStreamType;
 use std::cell::Ref;
 
 #[dom_struct]
@@ -49,6 +50,26 @@ impl MediaStreamMethods for MediaStream {
         self.tracks
             .borrow()
             .iter()
+            .map(|x| DomRoot::from_ref(&**x))
+            .collect()
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-getaudiotracks
+    fn GetAudioTracks(&self) -> Vec<DomRoot<MediaStreamTrack>> {
+        self.tracks
+            .borrow()
+            .iter()
+            .filter(|x| x.ty() == MediaStreamType::Audio)
+            .map(|x| DomRoot::from_ref(&**x))
+            .collect()
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-getvideotracks
+    fn GetVideoTracks(&self) -> Vec<DomRoot<MediaStreamTrack>> {
+        self.tracks
+            .borrow()
+            .iter()
+            .filter(|x| x.ty() == MediaStreamType::Video)
             .map(|x| DomRoot::from_ref(&**x))
             .collect()
     }
