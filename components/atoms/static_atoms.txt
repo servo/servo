@@ -108,6 +108,7 @@ text
 time
 timeupdate
 toggle
+track
 transitionend
 unhandledrejection
 unload
