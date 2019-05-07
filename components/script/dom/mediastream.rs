@@ -83,4 +83,19 @@ impl MediaStreamMethods for MediaStream {
             .find(|x| x.id().id().to_string() == &*id)
             .map(|x| DomRoot::from_ref(&**x))
     }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-addtrack
+    fn AddTrack(&self, track: &MediaStreamTrack) {
+        let existing = self.tracks.borrow().iter().find(|x| *x == &track).is_some();
+
+        if existing {
+            return;
+        }
+        self.add_track(track)
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-addtrack
+    fn RemoveTrack(&self, track: &MediaStreamTrack) {
+        self.tracks.borrow_mut().retain(|x| *x != track);
+    }
 }
