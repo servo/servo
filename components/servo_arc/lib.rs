@@ -86,10 +86,14 @@ const STATIC_REFCOUNT: usize = usize::MAX;
 /// See the documentation for [`Arc`] in the standard library. Unlike the
 /// standard library `Arc`, this `Arc` does not support weak reference counting.
 ///
+/// See the discussion in https://github.com/rust-lang/rust/pull/60594 for the
+/// usage of PhantomData.
+///
 /// [`Arc`]: https://doc.rust-lang.org/stable/std/sync/struct.Arc.html
 #[repr(C)]
 pub struct Arc<T: ?Sized> {
     p: ptr::NonNull<ArcInner<T>>,
+    phantom: PhantomData<T>,
 }
 
 /// An `Arc` that is known to be uniquely owned
@@ -169,6 +173,7 @@ impl<T> Arc<T> {
         unsafe {
             Arc {
                 p: ptr::NonNull::new_unchecked(Box::into_raw(x)),
+                phantom: PhantomData,
             }
         }
     }
@@ -198,6 +203,7 @@ impl<T> Arc<T> {
         let ptr = (ptr as *const u8).offset(-offset_of!(ArcInner<T>, data));
         Arc {
             p: ptr::NonNull::new_unchecked(ptr as *mut ArcInner<T>),
+            phantom: PhantomData,
         }
     }
 
@@ -224,6 +230,7 @@ impl<T> Arc<T> {
 
         Arc {
             p: ptr::NonNull::new_unchecked(ptr),
+            phantom: PhantomData,
         }
     }
 
@@ -334,6 +341,7 @@ impl<T: ?Sized> Clone for Arc<T> {
         unsafe {
             Arc {
                 p: ptr::NonNull::new_unchecked(self.ptr()),
+                phantom: PhantomData,
             }
         }
     }
@@ -687,6 +695,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         unsafe {
             Arc {
                 p: ptr::NonNull::new_unchecked(ptr),
+                phantom: PhantomData,
             }
         }
     }
@@ -768,6 +777,7 @@ type HeaderSliceWithLength<H, T> = HeaderSlice<HeaderWithLength<H>, T>;
 #[repr(C)]
 pub struct ThinArc<H, T> {
     ptr: ptr::NonNull<ArcInner<HeaderSliceWithLength<H, [T; 1]>>>,
+    phantom: PhantomData<(H, T)>,
 }
 
 unsafe impl<H: Sync + Send, T: Sync + Send> Send for ThinArc<H, T> {}
@@ -797,6 +807,7 @@ impl<H, T> ThinArc<H, T> {
         let transient = unsafe {
             NoDrop::new(Arc {
                 p: ptr::NonNull::new_unchecked(thin_to_thick(self.ptr.as_ptr())),
+                phantom: PhantomData,
             })
         };
 
@@ -875,7 +886,7 @@ impl<H, T> Clone for ThinArc<H, T> {
 impl<H, T> Drop for ThinArc<H, T> {
     #[inline]
     fn drop(&mut self) {
-        let _ = Arc::from_thin(ThinArc { ptr: self.ptr });
+        let _ = Arc::from_thin(ThinArc { ptr: self.ptr, phantom: PhantomData, });
     }
 }
 
@@ -896,6 +907,7 @@ impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
             ptr: unsafe {
                 ptr::NonNull::new_unchecked(thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>)
             },
+            phantom: PhantomData,
         }
     }
 
@@ -908,6 +920,7 @@ impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
         unsafe {
             Arc {
                 p: ptr::NonNull::new_unchecked(ptr),
+                phantom: PhantomData,
             }
         }
     }
