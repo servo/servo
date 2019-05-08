@@ -158,7 +158,10 @@ impl<'a> Invalidation<'a> {
         // We should be able to do better here!
         match self.selector.combinator_at_parse_order(self.offset - 1) {
             Combinator::Descendant | Combinator::LaterSibling | Combinator::PseudoElement => true,
-            Combinator::SlotAssignment | Combinator::NextSibling | Combinator::Child => false,
+            Combinator::Part |
+            Combinator::SlotAssignment |
+            Combinator::NextSibling |
+            Combinator::Child => false,
         }
     }
 
@@ -170,6 +173,9 @@ impl<'a> Invalidation<'a> {
         match self.selector.combinator_at_parse_order(self.offset - 1) {
             Combinator::Child | Combinator::Descendant | Combinator::PseudoElement => {
                 InvalidationKind::Descendant(DescendantInvalidationKind::Dom)
+            },
+            Combinator::Part => {
+                unimplemented!("Need to add invalidation for shadow parts");
             },
             Combinator::SlotAssignment => {
                 InvalidationKind::Descendant(DescendantInvalidationKind::Slotted)

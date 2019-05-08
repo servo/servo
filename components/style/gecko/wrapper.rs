@@ -172,15 +172,7 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
         Self: 'a,
     {
         let author_styles = unsafe { self.0.mServoStyles.mPtr.as_ref()? };
-
         let author_styles = AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
-
-        debug_assert!(
-            author_styles.quirks_mode == self.as_node().owner_doc().quirks_mode() ||
-                author_styles.stylesheets.is_empty() ||
-                author_styles.stylesheets.dirty()
-        );
-
         Some(&author_styles.data)
     }
 
@@ -536,11 +528,6 @@ impl<'lb> GeckoXBLBinding<'lb> {
         self.0.mContent.raw::<nsIContent>()
     }
 
-    #[inline]
-    fn inherits_style(&self) -> bool {
-        unsafe { bindings::Gecko_XBLBinding_InheritsStyle(self.0) }
-    }
-
     // This duplicates the logic in Gecko's
     // nsBindingManager::GetBindingWithContent.
     fn binding_with_content(&self) -> Option<Self> {
@@ -550,22 +537,6 @@ impl<'lb> GeckoXBLBinding<'lb> {
                 return Some(binding);
             }
             binding = binding.base_binding()?;
-        }
-    }
-
-    fn each_xbl_cascade_data<F>(&self, f: &mut F)
-    where
-        F: FnMut(&'lb CascadeData, QuirksMode),
-    {
-        if let Some(base) = self.base_binding() {
-            base.each_xbl_cascade_data(f);
-        }
-
-        let data = unsafe { bindings::Gecko_XBLBinding_GetRawServoStyles(self.0).as_ref() };
-
-        if let Some(data) = data {
-            let data: &'lb _ = AuthorStyles::<GeckoStyleSheet>::from_ffi(data);
-            f(&data.data, data.quirks_mode)
         }
     }
 }
@@ -600,6 +571,11 @@ impl<'le> GeckoElement<'le> {
 
             attrs.mBuffer.as_slice(attrs.mAttrCount as usize)
         }
+    }
+
+    #[inline(always)]
+    fn get_part_attr(&self) -> Option<&structs::nsAttrValue> {
+        snapshot_helpers::find_attr(self.attrs(), &atom!("part"))
     }
 
     #[inline(always)]
@@ -894,10 +870,11 @@ impl<'le> GeckoElement<'le> {
         if !self.as_node().is_in_shadow_tree() {
             return false;
         }
-        match self.containing_shadow_host() {
-            Some(e) => e.is_svg_element() && e.local_name() == &*local_name!("use"),
-            None => false,
+        if !self.parent_node_is_shadow_root() {
+            return false;
         }
+        let host = self.containing_shadow_host().unwrap();
+        host.is_svg_element() && host.local_name() == &*local_name!("use")
     }
 
     fn css_transitions_info(&self) -> FxHashMap<LonghandId, Arc<AnimationValue>> {
@@ -1250,14 +1227,6 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn has_same_xbl_proto_binding_as(&self, other: Self) -> bool {
-        match (self.xbl_binding(), other.xbl_binding()) {
-            (None, None) => true,
-            (Some(a), Some(b)) => a.0.mPrototypeBinding == b.0.mPrototypeBinding,
-            _ => false,
-        }
-    }
-
     fn each_anonymous_content_child<F>(&self, mut f: F)
     where
         F: FnMut(Self),
@@ -1436,7 +1405,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn matches_user_and_author_rules(&self) -> bool {
-        !self.is_in_native_anonymous_subtree()
+        !self.rule_hash_target().is_in_native_anonymous_subtree()
     }
 
     #[inline]
@@ -1597,43 +1566,6 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn has_css_transitions(&self) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
-    }
-
-    fn each_xbl_cascade_data<'a, F>(&self, mut f: F) -> bool
-    where
-        'le: 'a,
-        F: FnMut(&'a CascadeData, QuirksMode),
-    {
-        // Walk the binding scope chain, starting with the binding attached to
-        // our content, up till we run out of scopes or we get cut off.
-        //
-        // If we are a NAC pseudo-element, we want to get rules from our
-        // rule_hash_target, that is, our originating element.
-        let mut current = Some(self.rule_hash_target());
-        while let Some(element) = current {
-            if let Some(binding) = element.xbl_binding() {
-                binding.each_xbl_cascade_data(&mut f);
-
-                // If we're not looking at our original element, allow the
-                // binding to cut off style inheritance.
-                if element != *self && !binding.inherits_style() {
-                    // Go no further; we're not inheriting style from
-                    // anything above here.
-                    break;
-                }
-            }
-
-            if element.is_root_of_native_anonymous_subtree() {
-                // Deliberately cut off style inheritance here.
-                break;
-            }
-
-            current = element.xbl_binding_parent();
-        }
-
-        // If current has something, this means we cut off inheritance at some
-        // point in the loop.
-        current.is_some()
     }
 
     fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
@@ -2332,6 +2264,16 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         case_sensitivity.eq_atom(element_id, id)
     }
 
+    #[inline]
+    fn is_part(&self, name: &Atom) -> bool {
+        let attr = match self.get_part_attr() {
+            Some(c) => c,
+            None => return false,
+        };
+
+        snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
+    }
+
     #[inline(always)]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         let attr = match self.get_class_attr() {
@@ -2339,7 +2281,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             None => return false,
         };
 
-        snapshot_helpers::has_class(name, case_sensitivity, attr)
+        snapshot_helpers::has_class_or_part(name, case_sensitivity, attr)
     }
 
     #[inline]

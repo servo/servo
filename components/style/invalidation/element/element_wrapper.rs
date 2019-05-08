@@ -58,6 +58,10 @@ pub trait ElementSnapshot: Sized {
     /// if `has_attrs()` returns true.
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
 
+    /// Whether this snapshot represents the part named `name`. Should only be
+    /// called if `has_attrs()` returns true.
+    fn is_part(&self, name: &Atom) -> bool;
+
     /// A callback that should be called for each class of the snapshot. Should
     /// only be called if `has_attrs()` returns true.
     fn each_class<F>(&self, _: F)
@@ -337,6 +341,13 @@ where
                 .id_attr()
                 .map_or(false, |atom| case_sensitivity.eq_atom(&atom, id)),
             _ => self.element.has_id(id, case_sensitivity),
+        }
+    }
+
+    fn is_part(&self, name: &Atom) -> bool {
+        match self.snapshot() {
+            Some(snapshot) if snapshot.has_attrs() => snapshot.is_part(name),
+            _ => self.element.is_part(name),
         }
     }
 

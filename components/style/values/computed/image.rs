@@ -55,7 +55,7 @@ pub enum LineDirection {
 pub type EndingShape = generic::EndingShape<Length, LengthPercentage>;
 
 /// A computed gradient item.
-pub type GradientItem = generic::GradientItem<Color, LengthPercentage>;
+pub type GradientItem = generic::GenericGradientItem<Color, LengthPercentage>;
 
 /// A computed color stop.
 pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;

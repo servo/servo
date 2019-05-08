@@ -8,6 +8,8 @@
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
 use crate::custom_properties::SpecifiedValue;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::structs;
 use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use crate::values::computed::{Context, Position as ComputedPosition, ToComputedValue};
@@ -266,16 +268,6 @@ impl Parse for Gradient {
             },
         };
 
-        #[cfg(feature = "gecko")]
-        {
-            use crate::gecko_bindings::structs;
-            if compat_mode == CompatMode::Moz &&
-                !unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_gradients }
-            {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func)));
-            }
-        }
-
         let (kind, items) = input.parse_nested_block(|i| {
             let shape = match shape {
                 Shape::Linear => GradientKind::parse_linear(context, i, &mut compat_mode)?,
@@ -492,24 +484,24 @@ impl Gradient {
                     if reverse_stops {
                         p.reverse();
                     }
-                    Ok(generic::GradientItem::ColorStop(generic::ColorStop {
-                        color: color,
-                        position: Some(p.into()),
-                    }))
+                    Ok(generic::GradientItem::ComplexColorStop {
+                        color,
+                        position: p.into(),
+                    })
                 })
             })
             .unwrap_or(vec![]);
 
         if items.is_empty() {
             items = vec![
-                generic::GradientItem::ColorStop(generic::ColorStop {
+                generic::GradientItem::ComplexColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage::zero().into()),
-                }),
-                generic::GradientItem::ColorStop(generic::ColorStop {
+                    position: Percentage::zero().into(),
+                },
+                generic::GradientItem::ComplexColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage::hundred().into()),
-                }),
+                    position: Percentage::hundred().into(),
+                },
             ];
         } else if items.len() == 1 {
             let first = items[0].clone();
@@ -518,13 +510,16 @@ impl Gradient {
             items.sort_by(|a, b| {
                 match (a, b) {
                     (
-                        &generic::GradientItem::ColorStop(ref a),
-                        &generic::GradientItem::ColorStop(ref b),
-                    ) => match (&a.position, &b.position) {
-                        (
-                            &Some(LengthPercentage::Percentage(a)),
-                            &Some(LengthPercentage::Percentage(b)),
-                        ) => {
+                        &generic::GradientItem::ComplexColorStop {
+                            position: ref a_position,
+                            ..
+                        },
+                        &generic::GradientItem::ComplexColorStop {
+                            position: ref b_position,
+                            ..
+                        },
+                    ) => match (a_position, b_position) {
+                        (&LengthPercentage::Percentage(a), &LengthPercentage::Percentage(b)) => {
                             return a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal);
                         },
                         _ => {},
@@ -546,6 +541,16 @@ impl Gradient {
             compat_mode: CompatMode::Modern,
         })
     }
+}
+
+#[inline]
+fn simple_moz_gradient() -> bool {
+    #[cfg(feature = "gecko")]
+    unsafe {
+        return structs::StaticPrefs_sVarCache_layout_css_simple_moz_gradient_enabled;
+    }
+    #[cfg(not(feature = "gecko"))]
+    return false;
 }
 
 impl GradientKind {
@@ -583,16 +588,6 @@ impl GradientKind {
                 });
                 (shape, position.ok(), None, None)
             },
-            CompatMode::WebKit => {
-                let position = input.try(|i| Position::parse(context, i));
-                let shape = input.try(|i| {
-                    if position.is_ok() {
-                        i.expect_comma()?;
-                    }
-                    EndingShape::parse(context, i, *compat_mode)
-                });
-                (shape, position.ok(), None, None)
-            },
             // The syntax of `-moz-` prefixed radial gradient is:
             // -moz-radial-gradient(
             //   [ [ <position> || <angle> ]?  [ ellipse | [ <length> | <percentage> ]{2} ] , |
@@ -603,7 +598,7 @@ impl GradientKind {
             // where <extent-keyword> = closest-corner | closest-side | farthest-corner | farthest-side |
             //                          cover | contain
             // and <color-stop>     = <color> [ <percentage> | <length> ]?
-            CompatMode::Moz => {
+            CompatMode::Moz if !simple_moz_gradient() => {
                 let mut position = input.try(|i| LegacyPosition::parse(context, i));
                 let angle = input.try(|i| Angle::parse(context, i)).ok();
                 if position.is_err() {
@@ -619,6 +614,16 @@ impl GradientKind {
 
                 (shape, None, angle, position.ok())
             },
+            _ => {
+                let position = input.try(|i| Position::parse(context, i));
+                let shape = input.try(|i| {
+                    if position.is_ok() {
+                        i.expect_comma()?;
+                    }
+                    EndingShape::parse(context, i, *compat_mode)
+                });
+                (shape, position.ok(), None, None)
+            },
         };
 
         if shape.is_ok() || position.is_some() || angle.is_some() || moz_position.is_some() {
@@ -631,7 +636,7 @@ impl GradientKind {
 
         #[cfg(feature = "gecko")]
         {
-            if *compat_mode == CompatMode::Moz {
+            if *compat_mode == CompatMode::Moz && !simple_moz_gradient() {
                 // If this form can be represented in Modern mode, then convert the compat_mode to Modern.
                 if angle.is_none() {
                     *compat_mode = CompatMode::Modern;
@@ -751,7 +756,7 @@ impl LineDirection {
         input: &mut Parser<'i, 't>,
         compat_mode: &mut CompatMode,
     ) -> Result<Self, ParseError<'i>> {
-        let mut _angle = if *compat_mode == CompatMode::Moz {
+        let mut _angle = if *compat_mode == CompatMode::Moz && !simple_moz_gradient() {
             input.try(|i| Angle::parse(context, i)).ok()
         } else {
             // Gradients allow unitless zero angles as an exception, see:
@@ -784,7 +789,7 @@ impl LineDirection {
             #[cfg(feature = "gecko")]
             {
                 // `-moz-` prefixed linear gradient can be both Angle and Position.
-                if *compat_mode == CompatMode::Moz {
+                if *compat_mode == CompatMode::Moz && !simple_moz_gradient() {
                     let position = i.try(|i| LegacyPosition::parse(context, i)).ok();
                     if _angle.is_none() {
                         _angle = i.try(|i| Angle::parse(context, i)).ok();
@@ -874,7 +879,7 @@ impl EndingShape {
         }
         // -moz- prefixed radial gradient doesn't allow EndingShape's Length or LengthPercentage
         // to come before shape keyword. Otherwise it conflicts with <position>.
-        if compat_mode != CompatMode::Moz {
+        if compat_mode != CompatMode::Moz || simple_moz_gradient() {
             if let Ok(length) = input.try(|i| Length::parse(context, i)) {
                 if let Ok(y) = input.try(|i| LengthPercentage::parse(context, i)) {
                     if compat_mode == CompatMode::Modern {
@@ -958,13 +963,16 @@ impl GradientItem {
 
                 if let Ok(multi_position) = input.try(|i| LengthPercentage::parse(context, i)) {
                     let stop_color = stop.color.clone();
-                    items.push(generic::GradientItem::ColorStop(stop));
-                    items.push(generic::GradientItem::ColorStop(ColorStop {
-                        color: stop_color,
-                        position: Some(multi_position),
-                    }));
+                    items.push(stop.into_item());
+                    items.push(
+                        ColorStop {
+                            color: stop_color,
+                            position: Some(multi_position),
+                        }
+                        .into_item(),
+                    );
                 } else {
-                    items.push(generic::GradientItem::ColorStop(stop));
+                    items.push(stop.into_item());
                 }
 
                 seen_stop = true;

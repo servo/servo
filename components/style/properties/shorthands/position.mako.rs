@@ -254,7 +254,7 @@
     use crate::parser::Parse;
     use servo_arc::Arc;
     use crate::values::{Either, None_};
-    use crate::values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
+    use crate::values::generics::grid::{TrackSize, TrackList, TrackListType};
     use crate::values::generics::grid::{TrackListValue, concat_serialize_idents};
     use crate::values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use crate::values::specified::grid::parse_line_names;
@@ -265,12 +265,11 @@
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<(GridTemplateComponent, GridTemplateComponent, Either<TemplateAreasArc, None_>), ParseError<'i>> {
-        // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
-        // shorthand should know after these keywords there is nothing to parse. Otherwise it
-        // gets confused and rejects the sub properties that contains `none` or `subgrid`.
+        // Other shorthand sub properties also parse the `none` keyword and this shorthand
+        // should know after this keyword there is nothing to parse. Otherwise it gets
+        // confused and rejects the sub properties that contains `none`.
         <% keywords = {
             "none": "GenericGridTemplateComponent::None",
-            "subgrid": "GenericGridTemplateComponent::Subgrid(LineNameList::default())"
         }
         %>
         % for keyword, rust_type in keywords.items():

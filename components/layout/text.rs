@@ -21,13 +21,13 @@ use std::collections::LinkedList;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
-use style::computed_values::text_transform::T as TextTransform;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::properties::ComputedValues;
 use style::values::generics::text::LineHeight;
+use style::values::specified::text::{TextTransform, TextTransformCase};
 use unicode_bidi as bidi;
 use unicode_script::{get_script, Script};
 use xi_unicode::LineBreakLeafIter;
@@ -738,23 +738,23 @@ fn apply_style_transform_if_necessary(
     last_whitespace: bool,
     is_first_run: bool,
 ) {
-    match text_transform {
-        TextTransform::None => {},
-        TextTransform::Uppercase => {
+    match text_transform.case_ {
+        TextTransformCase::None => {},
+        TextTransformCase::Uppercase => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
             for ch in original.chars().flat_map(|ch| ch.to_uppercase()) {
                 string.push(ch);
             }
         },
-        TextTransform::Lowercase => {
+        TextTransformCase::Lowercase => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
             for ch in original.chars().flat_map(|ch| ch.to_lowercase()) {
                 string.push(ch);
             }
         },
-        TextTransform::Capitalize => {
+        TextTransformCase::Capitalize => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
 

@@ -973,6 +973,11 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
+    fn is_part(&self, _name: &Atom) -> bool {
+        false
+    }
+
+    #[inline]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         unsafe { self.element.has_class_for_layout(name, case_sensitivity) }
     }
@@ -1481,6 +1486,12 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
     fn has_id(&self, _id: &Atom, _case_sensitivity: CaseSensitivity) -> bool {
         debug!("ServoThreadSafeLayoutElement::has_id called");
+        false
+    }
+
+    #[inline]
+    fn is_part(&self, _name: &Atom) -> bool {
+        debug!("ServoThreadSafeLayoutElement::is_part called");
         false
     }
 

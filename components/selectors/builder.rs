@@ -270,7 +270,7 @@ where
             Component::Combinator(..) => {
                 unreachable!("Found combinator in simple selectors vector?");
             },
-            Component::PseudoElement(..) | Component::LocalName(..) => {
+            Component::Part(..) | Component::PseudoElement(..) | Component::LocalName(..) => {
                 specificity.element_selectors += 1
             },
             Component::Slotted(ref selector) => {

@@ -98,7 +98,7 @@ where
         flags_setter: &'a mut F,
     ) -> Self {
         let rule_hash_target = element.rule_hash_target();
-        let matches_user_and_author_rules = rule_hash_target.matches_user_and_author_rules();
+        let matches_user_and_author_rules = element.matches_user_and_author_rules();
 
         // Gecko definitely has pseudo-elements with style attributes, like
         // ::-moz-color-swatch.
@@ -198,7 +198,7 @@ where
         let rules = &mut self.rules;
         let flags_setter = &mut self.flags_setter;
         let shadow_cascade_order = self.shadow_cascade_order;
-        self.context.with_shadow_host(Some(shadow_host), |context| {
+        self.context.with_shadow_host(shadow_host, |context| {
             map.get_all_matching_rules(
                 element,
                 rule_hash_target,
@@ -303,42 +303,6 @@ where
         self.collect_stylist_rules(Origin::Author);
     }
 
-    fn collect_xbl_rules(&mut self) {
-        let element = self.element;
-        let cut_xbl_binding_inheritance =
-            element.each_xbl_cascade_data(|cascade_data, quirks_mode| {
-                let map = match cascade_data.normal_rules(self.pseudo_element) {
-                    Some(m) => m,
-                    None => return,
-                };
-
-                // NOTE(emilio): This is needed because the XBL stylist may
-                // think it has a different quirks mode than the document.
-                let mut matching_context = MatchingContext::new(
-                    self.context.matching_mode(),
-                    self.context.bloom_filter,
-                    self.context.nth_index_cache.as_mut().map(|s| &mut **s),
-                    quirks_mode,
-                );
-                matching_context.pseudo_element_matching_fn =
-                    self.context.pseudo_element_matching_fn;
-
-                // SameTreeAuthorNormal instead of InnerShadowNormal to
-                // preserve behavior, though that's kinda fishy...
-                map.get_all_matching_rules(
-                    self.element,
-                    self.rule_hash_target,
-                    self.rules,
-                    &mut matching_context,
-                    self.flags_setter,
-                    CascadeLevel::SameTreeAuthorNormal,
-                    self.shadow_cascade_order,
-                );
-            });
-
-        self.matches_document_author_rules &= !cut_xbl_binding_inheritance;
-    }
-
     fn collect_style_attribute_and_animation_rules(&mut self) {
         if let Some(sa) = self.style_attribute {
             self.rules
@@ -396,7 +360,6 @@ where
         self.collect_host_rules();
         self.collect_slotted_rules();
         self.collect_normal_rules_from_containing_shadow_tree();
-        self.collect_xbl_rules();
         self.collect_document_author_rules();
         self.collect_style_attribute_and_animation_rules();
     }

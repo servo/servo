@@ -145,11 +145,6 @@ impl PerDocumentStyleData {
     /// Create a `PerDocumentStyleData`.
     pub fn new(document: *const structs::Document) -> Self {
         let device = Device::new(document);
-
-        // FIXME(emilio, tlin): How is this supposed to work with XBL? This is
-        // right now not always honored, see bug 1405543...
-        //
-        // Should we just force XBL Stylists to be NoQuirks?
         let quirks_mode = device.document().mCompatMode;
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {

@@ -13,18 +13,17 @@
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Components};
-use crate::gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
+use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
-use crate::stylesheets::{Origin, RulesMutateError};
+use crate::stylesheets::RulesMutateError;
 use crate::values::computed::image::LineDirection;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, Gradient, Image};
 use crate::values::computed::{Integer, LengthPercentage};
 use crate::values::computed::{Length, Percentage, TextAlign};
-use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
-use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
+use crate::values::generics::image::{CompatMode, Image as GenericImage};
 use crate::values::generics::rect::Rect;
 use crate::Zero;
 use app_units::Au;
@@ -154,7 +153,6 @@ impl nsStyleImage {
 
     // FIXME(emilio): This is really complex, we should use cbindgen for this.
     fn set_gradient(&mut self, gradient: Gradient) {
-        use self::structs::nsStyleCoord;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
@@ -329,26 +327,9 @@ impl nsStyleImage {
             },
         };
 
-        for (index, item) in gradient.items.iter().enumerate() {
-            // NB: stops are guaranteed to be none in the gecko side by
-            // default.
-
+        for (index, item) in gradient.items.into_iter().enumerate() {
             let gecko_stop = unsafe { &mut (*gecko_gradient).mStops[index] };
-            let mut coord = nsStyleCoord::null();
-
-            match *item {
-                GradientItem::ColorStop(ref stop) => {
-                    gecko_stop.mColor = stop.color.into();
-                    gecko_stop.mIsInterpolationHint = false;
-                    coord.set(stop.position);
-                },
-                GradientItem::InterpolationHint(hint) => {
-                    gecko_stop.mIsInterpolationHint = true;
-                    coord.set(Some(hint));
-                },
-            }
-
-            gecko_stop.mLocation.move_from(coord);
+            *gecko_stop = item;
         }
 
         unsafe {
@@ -419,7 +400,7 @@ impl nsStyleImage {
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
         use crate::values::computed::position::Position;
-        use crate::values::generics::image::{Circle, ColorStop, Ellipse};
+        use crate::values::generics::image::{Circle, Ellipse};
         use crate::values::generics::image::{EndingShape, GradientKind, ShapeExtent};
 
         let gecko_gradient = bindings::Gecko_GetGradientImageValue(self)
@@ -531,24 +512,7 @@ impl nsStyleImage {
             },
         };
 
-        let items = gecko_gradient
-            .mStops
-            .iter()
-            .map(|ref stop| {
-                if stop.mIsInterpolationHint {
-                    GradientItem::InterpolationHint(
-                        LengthPercentage::from_gecko_style_coord(&stop.mLocation)
-                            .expect("mLocation could not convert to LengthPercentage"),
-                    )
-                } else {
-                    GradientItem::ColorStop(ColorStop {
-                        color: stop.mColor.into(),
-                        position: LengthPercentage::from_gecko_style_coord(&stop.mLocation),
-                    })
-                }
-            })
-            .collect();
-
+        let items = gecko_gradient.mStops.iter().cloned().collect();
         let compat_mode = if gecko_gradient.mMozLegacySyntax {
             CompatMode::Moz
         } else if gecko_gradient.mLegacySyntax {
@@ -818,16 +782,6 @@ impl From<RulesMutateError> for nsresult {
     }
 }
 
-impl From<Origin> for SheetType {
-    fn from(other: Origin) -> Self {
-        match other {
-            Origin::UserAgent => SheetType::Agent,
-            Origin::Author => SheetType::Doc,
-            Origin::User => SheetType::User,
-        }
-    }
-}
-
 impl TrackSize<LengthPercentage> {
     /// Return TrackSize from given two nsStyleCoord
     pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
@@ -917,26 +871,6 @@ where
             T::from_gecko_style_coord(&sides.data_at(2)).expect("coord[2] cound not convert"),
             T::from_gecko_style_coord(&sides.data_at(3)).expect("coord[3] cound not convert"),
         ))
-    }
-}
-
-impl<L> VerticalAlign<L> {
-    /// Converts an enumerated value coming from Gecko to a `VerticalAlign<L>`.
-    pub fn from_gecko_keyword(value: u32) -> Self {
-        match value {
-            structs::NS_STYLE_VERTICAL_ALIGN_BASELINE => VerticalAlign::Baseline,
-            structs::NS_STYLE_VERTICAL_ALIGN_SUB => VerticalAlign::Sub,
-            structs::NS_STYLE_VERTICAL_ALIGN_SUPER => VerticalAlign::Super,
-            structs::NS_STYLE_VERTICAL_ALIGN_TOP => VerticalAlign::Top,
-            structs::NS_STYLE_VERTICAL_ALIGN_TEXT_TOP => VerticalAlign::TextTop,
-            structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE => VerticalAlign::Middle,
-            structs::NS_STYLE_VERTICAL_ALIGN_BOTTOM => VerticalAlign::Bottom,
-            structs::NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM => VerticalAlign::TextBottom,
-            structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE => {
-                VerticalAlign::MozMiddleWithBaseline
-            },
-            _ => panic!("unexpected enumerated value for vertical-align"),
-        }
     }
 }
 

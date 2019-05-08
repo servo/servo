@@ -450,6 +450,7 @@ where
 
             element.containing_shadow_host()
         },
+        Combinator::Part => element.containing_shadow_host(),
         Combinator::SlotAssignment => {
             debug_assert!(
                 context.current_host.is_some(),
@@ -517,6 +518,7 @@ where
         Combinator::Child |
         Combinator::Descendant |
         Combinator::SlotAssignment |
+        Combinator::Part |
         Combinator::PseudoElement => SelectorMatchingResult::NotMatchedGlobally,
     };
 
@@ -671,6 +673,7 @@ where
 
     match *selector {
         Component::Combinator(_) => unreachable!(),
+        Component::Part(ref part) => element.is_part(part),
         Component::Slotted(ref selector) => {
             // <slots> are never flattened tree slottables.
             !element.is_html_slot_element() &&

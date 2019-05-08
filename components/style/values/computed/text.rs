@@ -19,6 +19,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::TextAlignKeyword as TextAlign;
+pub use crate::values::specified::TextTransform;
 pub use crate::values::specified::{OverflowWrap, WordBreak};
 pub use crate::values::specified::{TextDecorationLine, TextEmphasisPosition};
 

@@ -135,12 +135,22 @@ pub enum ShapeExtent {
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
-pub enum GradientItem<Color, LengthPercentage> {
-    /// A color stop.
-    ColorStop(ColorStop<Color, LengthPercentage>),
+#[repr(C, u8)]
+pub enum GenericGradientItem<Color, LengthPercentage> {
+    /// A simple color stop, without position.
+    SimpleColorStop(Color),
+    /// A complex color stop, with a position.
+    ComplexColorStop {
+        /// The color for the stop.
+        color: Color,
+        /// The position for the stop.
+        position: LengthPercentage,
+    },
     /// An interpolation hint.
     InterpolationHint(LengthPercentage),
 }
+
+pub use self::GenericGradientItem as GradientItem;
 
 /// A color stop.
 /// <https://drafts.csswg.org/css-images/#typedef-color-stop-list>
@@ -152,6 +162,20 @@ pub struct ColorStop<Color, LengthPercentage> {
     pub color: Color,
     /// The position of this stop.
     pub position: Option<LengthPercentage>,
+}
+
+impl<Color, LengthPercentage> ColorStop<Color, LengthPercentage> {
+    /// Convert the color stop into an appropriate `GradientItem`.
+    #[inline]
+    pub fn into_item(self) -> GradientItem<Color, LengthPercentage> {
+        match self.position {
+            Some(position) => GradientItem::ComplexColorStop {
+                color: self.color,
+                position,
+            },
+            None => GradientItem::SimpleColorStop(self.color),
+        }
+    }
 }
 
 /// Specified values for a paint worklet.

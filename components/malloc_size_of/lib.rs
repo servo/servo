@@ -747,6 +747,7 @@ where
             Component::ExplicitUniversalType |
             Component::LocalName(..) |
             Component::ID(..) |
+            Component::Part(..) |
             Component::Class(..) |
             Component::AttributeInNoNamespaceExists { .. } |
             Component::AttributeInNoNamespace { .. } |
@@ -771,12 +772,6 @@ where
 impl<Impl: selectors::parser::SelectorImpl> MallocSizeOf
     for selectors::attr::AttrSelectorWithOptionalNamespace<Impl>
 {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
-    }
-}
-
-impl MallocSizeOf for selectors::context::QuirksMode {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
     }

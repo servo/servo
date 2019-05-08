@@ -110,6 +110,8 @@ pub trait Element: Sized + Clone + Debug {
         case_sensitivity: CaseSensitivity,
     ) -> bool;
 
+    fn is_part(&self, name: &<Self::Impl as SelectorImpl>::PartName) -> bool;
+
     /// Returns whether this element matches `:empty`.
     ///
     /// That is, whether it does not contain any child element or any non-zero-length text node.

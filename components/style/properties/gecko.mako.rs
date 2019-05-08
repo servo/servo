@@ -38,7 +38,7 @@ use crate::gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom}
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
-use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
+use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko::values::round_border_to_device_pixels;
@@ -1103,9 +1103,6 @@ impl ${style_struct.gecko_struct_name} {
             );
         }
         result
-    }
-    pub fn get_gecko(&self) -> &${style_struct.gecko_ffi_name} {
-        &self.gecko
     }
 }
 impl Drop for ${style_struct.gecko_struct_name} {
@@ -2508,7 +2505,7 @@ fn static_assert() {
     }
 </%def>
 
-<% skip_box_longhands= """display vertical-align
+<% skip_box_longhands= """display
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
@@ -2563,47 +2560,6 @@ fn static_assert() {
         gecko_inexhaustive=True,
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
-
-    pub fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
-        use crate::values::generics::box_::VerticalAlign;
-        let value = match v {
-            VerticalAlign::Baseline => structs::NS_STYLE_VERTICAL_ALIGN_BASELINE,
-            VerticalAlign::Sub => structs::NS_STYLE_VERTICAL_ALIGN_SUB,
-            VerticalAlign::Super => structs::NS_STYLE_VERTICAL_ALIGN_SUPER,
-            VerticalAlign::Top => structs::NS_STYLE_VERTICAL_ALIGN_TOP,
-            VerticalAlign::TextTop => structs::NS_STYLE_VERTICAL_ALIGN_TEXT_TOP,
-            VerticalAlign::Middle => structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE,
-            VerticalAlign::Bottom => structs::NS_STYLE_VERTICAL_ALIGN_BOTTOM,
-            VerticalAlign::TextBottom => structs::NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM,
-            VerticalAlign::MozMiddleWithBaseline => {
-                structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE
-            },
-            VerticalAlign::Length(length) => {
-                self.gecko.mVerticalAlign.set(length);
-                return;
-            },
-        };
-        self.gecko.mVerticalAlign.set_value(CoordDataValue::Enumerated(value));
-    }
-
-    pub fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
-        use crate::values::computed::LengthPercentage;
-        use crate::values::generics::box_::VerticalAlign;
-
-        let gecko = &self.gecko.mVerticalAlign;
-        match gecko.as_value() {
-            CoordDataValue::Enumerated(value) => VerticalAlign::from_gecko_keyword(value),
-            _ => {
-                VerticalAlign::Length(
-                    LengthPercentage::from_gecko_style_coord(gecko).expect(
-                        "expected <length-percentage> for vertical-align",
-                    ),
-                )
-            },
-        }
-    }
-
-    <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
 
     ${impl_style_coord("scroll_snap_points_x", "mScrollSnapPointsX")}
     ${impl_style_coord("scroll_snap_points_y", "mScrollSnapPointsY")}
@@ -4455,7 +4411,7 @@ clip-path
         fn set_counter_function(
             data: &mut nsStyleContentData,
             content_type: StyleContentType,
-            name: &CustomIdent,
+            name: CustomIdent,
             sep: &str,
             style: CounterStyleOrNone,
         ) {
@@ -4464,7 +4420,9 @@ clip-path
             let counter_func = unsafe {
                 bindings::Gecko_SetCounterFunction(data, content_type).as_mut().unwrap()
             };
-            counter_func.mIdent.assign(name.0.as_slice());
+            counter_func.mIdent.set_move(unsafe {
+                RefPtr::from_addrefed(name.0.into_addrefed())
+            });
             if content_type == StyleContentType::Counters {
                 counter_func.mSeparator.assign_str(sep);
             }
@@ -4493,14 +4451,14 @@ clip-path
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko,
                                                       items.len() as u32);
                 }
-                for (i, item) in items.into_iter().enumerate() {
+                for (i, item) in items.into_vec().into_iter().enumerate() {
                     // NB: Gecko compares the mString value if type is not image
                     // or URI independently of whatever gets there. In the quote
                     // cases, they set it to null, so do the same here.
                     unsafe {
                         *self.gecko.mContents[i].mContent.mString.as_mut() = ptr::null_mut();
                     }
-                    match *item {
+                    match item {
                         ContentItem::String(ref value) => {
                             self.gecko.mContents[i].mType = StyleContentType::String;
                             unsafe {
@@ -4536,22 +4494,22 @@ clip-path
                             => self.gecko.mContents[i].mType = StyleContentType::NoOpenQuote,
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = StyleContentType::NoCloseQuote,
-                        ContentItem::Counter(ref name, ref style) => {
+                        ContentItem::Counter(name, style) => {
                             set_counter_function(
                                 &mut self.gecko.mContents[i],
                                 StyleContentType::Counter,
-                                &name,
+                                name,
                                 "",
-                                style.clone(),
+                                style,
                             );
                         }
-                        ContentItem::Counters(ref name, ref sep, ref style) => {
+                        ContentItem::Counters(name, sep, style) => {
                             set_counter_function(
                                 &mut self.gecko.mContents[i],
                                 StyleContentType::Counters,
-                                &name,
+                                name,
                                 &sep,
-                                style.clone(),
+                                style,
                             );
                         }
                         ContentItem::Url(ref url) => {
@@ -4627,7 +4585,9 @@ clip-path
                     StyleContentType::Counter | StyleContentType::Counters => {
                         let gecko_function =
                             unsafe { &**gecko_content.mContent.mCounters.as_ref() };
-                        let ident = CustomIdent(Atom::from(&*gecko_function.mIdent));
+                        let ident = CustomIdent(unsafe {
+                            Atom::from_raw(gecko_function.mIdent.mRawPtr)
+                        });
                         let style =
                             CounterStyleOrNone::from_gecko_value(&gecko_function.mCounterStyle);
                         let style = match style {
@@ -4664,8 +4624,10 @@ clip-path
         ) {
             unsafe {
                 bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko, v.len() as u32);
-                for (i, ref pair) in v.iter().enumerate() {
-                    self.gecko.m${counter_property}s[i].mCounter.assign(pair.name.0.as_slice());
+                for (i, pair) in v.0.into_vec().into_iter().enumerate() {
+                    self.gecko.m${counter_property}s[i].mCounter.set_move(
+                        RefPtr::from_addrefed(pair.name.0.into_addrefed())
+                    );
                     self.gecko.m${counter_property}s[i].mValue = pair.value;
                 }
             }
@@ -4690,7 +4652,9 @@ clip-path
             longhands::counter_${counter_property.lower()}::computed_value::T::new(
                 self.gecko.m${counter_property}s.iter().map(|ref gecko_counter| {
                     CounterPair {
-                        name: CustomIdent(Atom::from(gecko_counter.mCounter.to_string())),
+                        name: CustomIdent(unsafe {
+                            Atom::from_raw(gecko_counter.mCounter.mRawPtr)
+                        }),
                         value: gecko_counter.mValue,
                     }
                 }).collect()

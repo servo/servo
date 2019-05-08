@@ -9,7 +9,7 @@
 ${helpers.single_keyword(
     "border-collapse",
     "separate collapse",
-    gecko_constant_prefix="NS_STYLE_BORDER",
+    gecko_enum_prefix="StyleBorderCollapse",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-tables/#propdef-border-collapse",
     servo_restyle_damage = "reflow",

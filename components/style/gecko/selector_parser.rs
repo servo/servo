@@ -184,16 +184,6 @@ impl NonTSPseudoClass {
         }
     }
 
-    /// <https://drafts.csswg.org/selectors-4/#useraction-pseudos>
-    ///
-    /// We intentionally skip the link-related ones.
-    pub fn is_safe_user_action_state(&self) -> bool {
-        matches!(
-            *self,
-            NonTSPseudoClass::Hover | NonTSPseudoClass::Active | NonTSPseudoClass::Focus
-        )
-    }
-
     /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
         macro_rules! flag {
@@ -279,6 +269,15 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
     fn is_active_or_hover(&self) -> bool {
         matches!(*self, NonTSPseudoClass::Active | NonTSPseudoClass::Hover)
     }
+
+    /// We intentionally skip the link-related ones.
+    #[inline]
+    fn is_user_action_state(&self) -> bool {
+        matches!(
+            *self,
+            NonTSPseudoClass::Hover | NonTSPseudoClass::Active | NonTSPseudoClass::Focus
+        )
+    }
 }
 
 /// The dummy struct we use to implement our selector parsing.
@@ -290,6 +289,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;
+    type PartName = Atom;
     type LocalName = Atom;
     type NamespacePrefix = Atom;
     type NamespaceUrl = Namespace;
@@ -350,11 +350,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn parse_host(&self) -> bool {
         self.parse_slotted()
-    }
-
-    fn pseudo_element_allows_single_colon(name: &str) -> bool {
-        // FIXME: -moz-tree check should probably be ascii-case-insensitive.
-        ::selectors::parser::is_css2_pseudo_element(name) || name.starts_with("-moz-tree-")
     }
 
     fn parse_non_ts_pseudo_class(

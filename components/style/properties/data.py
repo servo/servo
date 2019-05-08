@@ -347,6 +347,7 @@ class Longhand(object):
                 "TextAlign",
                 "TextDecorationLine",
                 "TextEmphasisPosition",
+                "TextTransform",
                 "TouchAction",
                 "TransformStyle",
                 "UserSelect",
@@ -399,8 +400,6 @@ class Shorthand(object):
             and allowed_in_keyframe_block != "False"
 
     def get_animatable(self):
-        if self.ident == "all":
-            return False
         for sub in self.sub_properties:
             if sub.animatable:
                 return True

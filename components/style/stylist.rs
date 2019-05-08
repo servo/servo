@@ -48,8 +48,9 @@ use selectors::visitor::SelectorVisitor;
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use smallbitvec::SmallBitVec;
-use std::ops;
+use smallvec::SmallVec;
 use std::sync::Mutex;
+use std::{mem, ops};
 use style_traits::viewport::ViewportConstraints;
 
 /// The type of the stylesheets that the stylist contains.
@@ -128,15 +129,28 @@ impl UserAgentCascadeDataCache {
         Ok(new_data)
     }
 
-    fn expire_unused(&mut self) {
-        // is_unique() returns false for static references, but we never have
-        // static references to UserAgentCascadeDatas.  If we did, it may not
-        // make sense to put them in the cache in the first place.
-        self.entries.retain(|e| !e.is_unique())
+    /// Returns all the cascade datas that are not being used (that is, that are
+    /// held alive just by this cache).
+    ///
+    /// We return them instead of dropping in place because some of them may
+    /// keep alive some other documents (like the SVG documents kept alive by
+    /// URL references), and thus we don't want to drop them while locking the
+    /// cache to not deadlock.
+    fn take_unused(&mut self) -> SmallVec<[Arc<UserAgentCascadeData>; 3]> {
+        let mut unused = SmallVec::new();
+        for i in (0..self.entries.len()).rev() {
+            // is_unique() returns false for static references, but we never
+            // have static references to UserAgentCascadeDatas.  If we did, it
+            // may not make sense to put them in the cache in the first place.
+            if self.entries[i].is_unique() {
+                unused.push(self.entries.remove(i));
+            }
+        }
+        unused
     }
 
-    fn clear(&mut self) {
-        self.entries.clear();
+    fn take_all(&mut self) -> Vec<Arc<UserAgentCascadeData>> {
+        mem::replace(&mut self.entries, Vec::new())
     }
 
     #[cfg(feature = "gecko")]
@@ -254,13 +268,14 @@ impl DocumentCascadeData {
         // First do UA sheets.
         {
             if flusher.flush_origin(Origin::UserAgent).dirty() {
-                let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
                 let origin_sheets = flusher.origin_sheets(Origin::UserAgent);
-                let ua_cascade_data =
-                    ua_cache.lookup(origin_sheets, device, quirks_mode, guards.ua_or_user)?;
-                ua_cache.expire_unused();
-                debug!("User agent data cache size {:?}", ua_cache.len());
-                self.user_agent = ua_cascade_data;
+                let _unused_cascade_datas = {
+                    let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
+                    self.user_agent =
+                        ua_cache.lookup(origin_sheets, device, quirks_mode, guards.ua_or_user)?;
+                    debug!("User agent data cache size {:?}", ua_cache.len());
+                    ua_cache.take_unused()
+                };
             }
         }
 
@@ -591,6 +606,18 @@ impl Stylist {
             .remove_stylesheet(Some(&self.device), sheet, guard)
     }
 
+    /// Appends a new stylesheet to the current set.
+    #[inline]
+    pub fn sheet_count(&self, origin: Origin) -> usize {
+        self.stylesheets.sheet_count(origin)
+    }
+
+    /// Appends a new stylesheet to the current set.
+    #[inline]
+    pub fn sheet_at(&self, origin: Origin, index: usize) -> Option<&StylistSheet> {
+        self.stylesheets.get(origin, index)
+    }
+
     /// Returns whether for any of the applicable style rule data a given
     /// condition is true.
     pub fn any_applicable_rule_data<E, F>(&self, element: E, mut f: F) -> bool
@@ -605,7 +632,7 @@ impl Stylist {
         let mut maybe = false;
 
         let doc_author_rules_apply =
-            element.each_applicable_non_document_style_rule_data(|data, _, _| {
+            element.each_applicable_non_document_style_rule_data(|data, _| {
                 maybe = maybe || f(&*data);
             });
 
@@ -1041,12 +1068,6 @@ impl Stylist {
     /// Returns whether, given a media feature change, any previously-applicable
     /// style has become non-applicable, or vice-versa for each origin, using
     /// `device`.
-    ///
-    /// Passing `device` is needed because this is used for XBL in Gecko, which
-    /// can be stale in various ways, so we need to pass the device of the
-    /// document itself, which is what is kept up-to-date.
-    ///
-    /// Arguably XBL should use something more lightweight than a Stylist.
     pub fn media_features_change_changed_style(
         &self,
         guards: &StylesheetGuards,
@@ -1230,11 +1251,11 @@ impl Stylist {
         let mut results = SmallBitVec::new();
 
         let matches_document_rules =
-            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
+            element.each_applicable_non_document_style_rule_data(|data, host| {
                 matching_context.with_shadow_host(host, |matching_context| {
                     data.selectors_for_cache_revalidation.lookup(
                         element,
-                        quirks_mode,
+                        self.quirks_mode,
                         |selector_and_hashes| {
                             results.push(matches_selector(
                                 &selector_and_hashes.selector,
@@ -1356,7 +1377,7 @@ impl Stylist {
 
     /// Shutdown the static data that this module stores.
     pub fn shutdown() {
-        UA_CASCADE_DATA_CACHE.lock().unwrap().clear()
+        let _entries = UA_CASCADE_DATA_CACHE.lock().unwrap().take_all();
     }
 }
 

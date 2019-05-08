@@ -3075,6 +3075,10 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             .map_or(false, |atom| case_sensitivity.eq_atom(id, atom))
     }
 
+    fn is_part(&self, _name: &Atom) -> bool {
+        false
+    }
+
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         Element::has_class(&**self, name, case_sensitivity)
     }
