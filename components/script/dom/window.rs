@@ -2170,7 +2170,6 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowReason::FirstLoad => "\tFirstLoad",
         ReflowReason::KeyEvent => "\tKeyEvent",
         ReflowReason::MouseEvent => "\tMouseEvent",
-        ReflowReason::WheelEvent => "\tWheelEvent",
         ReflowReason::Query => "\tQuery",
         ReflowReason::Timer => "\tTimer",
         ReflowReason::Viewport => "\tViewport",
