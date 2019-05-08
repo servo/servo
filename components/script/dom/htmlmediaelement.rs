@@ -120,7 +120,7 @@ impl FrameRenderer for MediaFrameRenderer {
 
         let mut txn = Transaction::new();
 
-        let image_data = ImageData::Raw(frame.get_data().clone());
+        let image_data = ImageData::Raw(frame.get_data());
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
             txn.delete_image(old_image_key);
