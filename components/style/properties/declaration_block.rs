@@ -1269,7 +1269,7 @@ pub fn parse_one_declaration_into(
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
     declarations: &'a mut SourcePropertyDeclaration,
-    /// The last parsed property id if non-custom, and if any.
+    /// The last parsed property id if any.
     last_parsed_property_id: Option<PropertyId>,
 }
 
@@ -1300,6 +1300,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
         let id = match PropertyId::parse(&name, self.context) {
             Ok(id) => id,
             Err(..) => {
+                self.last_parsed_property_id = None;
                 return Err(input.new_custom_error(if is_non_mozilla_vendor_identifier(&name) {
                     StyleParseErrorKind::UnknownVendorProperty
                 } else {
@@ -1328,13 +1329,28 @@ type SmallParseErrorVec<'i> = SmallVec<[(ParseError<'i>, &'i str, Option<Propert
 #[cold]
 fn report_one_css_error<'i>(
     context: &ParserContext,
-    _block: Option<&PropertyDeclarationBlock>,
+    block: Option<&PropertyDeclarationBlock>,
     selectors: Option<&SelectorList<SelectorImpl>>,
     mut error: ParseError<'i>,
     slice: &str,
     property: Option<PropertyId>,
 ) {
     debug_assert!(context.error_reporting_enabled());
+
+    fn all_properties_in_block(block: &PropertyDeclarationBlock, property: &PropertyId) -> bool {
+        match *property {
+            PropertyId::LonghandAlias(id, _) |
+            PropertyId::Longhand(id) => block.contains(id),
+            PropertyId::ShorthandAlias(id, _) |
+            PropertyId::Shorthand(id) => {
+                id.longhands().all(|longhand| block.contains(longhand))
+            },
+            // NOTE(emilio): We could do this, but it seems of limited utility,
+            // and it's linear on the size of the declaration block, so let's
+            // not.
+            PropertyId::Custom(..) => false,
+        }
+    }
 
     // If the unrecognized property looks like a vendor-specific property,
     // silently ignore it instead of polluting the error output.
@@ -1343,6 +1359,11 @@ fn report_one_css_error<'i>(
     }
 
     if let Some(ref property) = property {
+        if let Some(block) = block {
+            if all_properties_in_block(block, property) {
+                return;
+            }
+        }
         error = match *property {
             PropertyId::Custom(ref c) => StyleParseErrorKind::new_invalid(format!("--{}", c), error),
             _ => StyleParseErrorKind::new_invalid(property.non_custom_id().unwrap().name(), error),
