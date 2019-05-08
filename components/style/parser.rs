@@ -136,6 +136,12 @@ impl<'a> ParserContext<'a> {
             .expect("Rule type expected, but none was found.")
     }
 
+    /// Returns whether CSS error reporting is enabled.
+    #[inline]
+    pub fn error_reporting_enabled(&self) -> bool {
+        self.error_reporter.is_some()
+    }
+
     /// Record a CSS parse error with this context’s error reporting.
     pub fn log_css_error(&self, location: SourceLocation, error: ContextualParseError) {
         let error_reporter = match self.error_reporter {
