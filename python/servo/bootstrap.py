@@ -124,7 +124,7 @@ def linux(context, force=False):
                 'ccache', 'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
                 'gstreamer1-plugins-base-devel', 'gstreamer1-plugins-bad-free-devel', 'autoconf213']
     if context.distro == "Ubuntu":
-        if context.distro_version == "17.04":
+        if context.distro_version in ["17.04", "19.04"]:
             pkgs_apt += ["libssl-dev"]
         elif int(context.distro_version.split(".")[0]) < 17:
             pkgs_apt += ["libssl-dev"]
@@ -384,14 +384,16 @@ def get_linux_distribution():
             base_version = '10.10'
         else:
             raise Exception('unsupported version of %s: %s' % (distro, version))
-
         distro, version = 'Ubuntu', base_version
+    elif distro.lower() == 'ubuntu':
+        if version > '19.04':
+            raise Exception('unsupported version of %s: %s' % (distro, version))
+    # Fixme: we should allow checked/supported versions only
     elif distro.lower() not in [
         'centos',
         'centos linux',
         'debian',
         'fedora',
-        'ubuntu',
     ]:
         raise Exception('mach bootstrap does not support %s, please file a bug' % distro)
 
