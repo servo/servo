@@ -168,7 +168,7 @@ impl<T> Arc<T> {
     pub fn new(data: T) -> Self {
         let x = Box::new(ArcInner {
             count: atomic::AtomicUsize::new(1),
-            data: data,
+            data,
         });
         unsafe {
             Arc {
@@ -610,7 +610,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         let size = {
             // First, determine the alignment of a hypothetical pointer to a
             // HeaderSlice.
-            let fake_slice_ptr_align: usize = mem::align_of::<ArcInner<HeaderSlice<H, [T; 1]>>>();
+            let fake_slice_ptr_align: usize = mem::align_of::<ArcInner<HeaderSlice<H, [T; 0]>>>();
 
             // Next, synthesize a totally garbage (but properly aligned) pointer
             // to a sequence of T.
@@ -667,23 +667,24 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             };
             ptr::write(&mut ((*ptr).count), count);
             ptr::write(&mut ((*ptr).data.header), header);
-            let mut current: *mut T = &mut (*ptr).data.slice[0];
-            for _ in 0..num_items {
-                ptr::write(
-                    current,
-                    items
-                        .next()
-                        .expect("ExactSizeIterator over-reported length"),
-                );
-                current = current.offset(1);
+            if num_items != 0 {
+                let mut current: *mut T = &mut (*ptr).data.slice[0];
+                for _ in 0..num_items {
+                    ptr::write(
+                        current,
+                        items
+                            .next()
+                            .expect("ExactSizeIterator over-reported length"),
+                    );
+                    current = current.offset(1);
+                }
+                // We should have consumed the buffer exactly.
+                debug_assert_eq!(current as *mut u8, buffer.offset(size as isize));
             }
             assert!(
                 items.next().is_none(),
                 "ExactSizeIterator under-reported length"
             );
-
-            // We should have consumed the buffer exactly.
-            debug_assert_eq!(current as *mut u8, buffer.offset(size as isize));
         }
 
         // Return the fat Arc.
@@ -772,11 +773,13 @@ type HeaderSliceWithLength<H, T> = HeaderSlice<HeaderWithLength<H>, T>;
 /// have a thin pointer instead, perhaps for FFI compatibility
 /// or space efficiency.
 ///
+/// Note that we use `[T; 0]` in order to have the right alignment for `T`.
+///
 /// `ThinArc` solves this by storing the length in the allocation itself,
 /// via `HeaderSliceWithLength`.
 #[repr(C)]
 pub struct ThinArc<H, T> {
-    ptr: ptr::NonNull<ArcInner<HeaderSliceWithLength<H, [T; 1]>>>,
+    ptr: ptr::NonNull<ArcInner<HeaderSliceWithLength<H, [T; 0]>>>,
     phantom: PhantomData<(H, T)>,
 }
 
@@ -787,7 +790,7 @@ unsafe impl<H: Sync + Send, T: Sync + Send> Sync for ThinArc<H, T> {}
 //
 // See the comment around the analogous operation in from_header_and_iter.
 fn thin_to_thick<H, T>(
-    thin: *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>,
+    thin: *mut ArcInner<HeaderSliceWithLength<H, [T; 0]>>,
 ) -> *mut ArcInner<HeaderSliceWithLength<H, [T]>> {
     let len = unsafe { (*thin).data.header.length };
     let fake_slice: *mut [T] = unsafe { slice::from_raw_parts_mut(thin as *mut T, len) };
@@ -905,7 +908,7 @@ impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
         let thin_ptr = fat_ptr as *mut [usize] as *mut usize;
         ThinArc {
             ptr: unsafe {
-                ptr::NonNull::new_unchecked(thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>)
+                ptr::NonNull::new_unchecked(thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 0]>>)
             },
             phantom: PhantomData,
         }
@@ -1318,6 +1321,17 @@ mod tests {
                 (*self.0).fetch_add(1, SeqCst);
             }
         }
+    }
+
+    #[test]
+    fn empty_thin() {
+        let header = HeaderWithLength::new(100u32, 0);
+        let x = Arc::from_header_and_iter(header, std::iter::empty::<i32>());
+        let y = Arc::into_thin(x.clone());
+        assert_eq!(y.header.header, 100);
+        assert!(y.slice.is_empty());
+        assert_eq!(x.header.header, 100);
+        assert!(x.slice.is_empty());
     }
 
     #[test]
