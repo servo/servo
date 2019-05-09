@@ -14,9 +14,11 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastream::MediaStream;
+use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
+use servo_media::streams::MediaStreamType;
 use servo_media::ServoMedia;
 use std::rc::Rc;
 
@@ -51,18 +53,20 @@ impl MediaDevicesMethods for MediaDevices {
             InCompartment::Already(&in_compartment_proof),
         );
         let media = ServoMedia::get().unwrap();
-        let mut tracks = vec![];
+        let stream = MediaStream::new(&self.global());
         if let Some(constraints) = convert_constraints(&constraints.audio) {
             if let Some(audio) = media.create_audioinput_stream(constraints) {
-                tracks.push(audio)
+                let track = MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio);
+                stream.add_track(&track);
             }
         }
         if let Some(constraints) = convert_constraints(&constraints.video) {
             if let Some(video) = media.create_videoinput_stream(constraints) {
-                tracks.push(video)
+                let track = MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video);
+                stream.add_track(&track);
             }
         }
-        let stream = MediaStream::new(&self.global(), tracks);
+
         p.resolve_native(&stream);
         p
     }

@@ -26,10 +26,12 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastream::MediaStream;
+use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
+use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -37,6 +39,7 @@ use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 
 use servo_media::streams::registry::MediaStreamId;
+use servo_media::streams::MediaStreamType;
 use servo_media::webrtc::{
     BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
     SignalingState, WebRtcController, WebRtcSignaller,
@@ -128,7 +131,17 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
-    fn on_add_stream(&self, _: &MediaStreamId) {}
+    fn on_add_stream(&self, id: &MediaStreamId, ty: MediaStreamType) {
+        let this = self.trusted.clone();
+        let id = *id;
+        let _ = self.task_source.queue_with_canceller(
+            task!(on_add_stream: move || {
+                let this = this.root();
+                this.on_add_stream(id, ty);
+            }),
+            &self.canceller,
+        );
+    }
 
     fn close(&self) {
         // do nothing
@@ -235,6 +248,15 @@ impl RTCPeerConnection {
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
         );
+        event.upcast::<Event>().fire(self.upcast());
+    }
+
+    fn on_add_stream(&self, id: MediaStreamId, ty: MediaStreamType) {
+        if self.closed.get() {
+            return;
+        }
+        let track = MediaStreamTrack::new(&self.global(), id, ty);
+        let event = RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track);
         event.upcast::<Event>().fire(self.upcast());
     }
 
@@ -398,6 +420,9 @@ impl RTCPeerConnection {
 impl RTCPeerConnectionMethods for RTCPeerConnection {
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
+
+    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ontrack
+    event_handler!(track, GetOntrack, SetOntrack);
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-iceconnectionstatechange
     event_handler!(
@@ -584,10 +609,12 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
     // https://w3c.github.io/webrtc-pc/#legacy-interface-extensions
     fn AddStream(&self, stream: &MediaStream) {
-        let mut tracks = stream.get_tracks();
-
-        for ref track in tracks.drain(..) {
-            self.controller.borrow().as_ref().unwrap().add_stream(track);
+        for track in &*stream.get_tracks() {
+            self.controller
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .add_stream(&track.id());
         }
     }
 

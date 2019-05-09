@@ -114,3 +114,15 @@ enum RTCSignalingState {
     "have-remote-pranswer",
     "closed"
 };
+
+partial interface RTCPeerConnection {
+    // sequence<RTCRtpSender>      getSenders();
+    // sequence<RTCRtpReceiver>    getReceivers();
+    // sequence<RTCRtpTransceiver> getTransceivers();
+    // RTCRtpSender                addTrack(MediaStreamTrack track,
+    //                                      MediaStream... streams);
+    // void                        removeTrack(RTCRtpSender sender);
+    // RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+    //                                            optional RTCRtpTransceiverInit init);
+    attribute EventHandler ontrack;
+};

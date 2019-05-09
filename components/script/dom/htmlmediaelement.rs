@@ -839,9 +839,13 @@ impl HTMLMediaElement {
                             self.fetch_request(None);
                         },
                         SrcObject::MediaStream(ref stream) => {
-                            for stream in stream.get_tracks() {
-                                if let Err(_) =
-                                    self.player.borrow().as_ref().unwrap().set_stream(&stream)
+                            for stream in &*stream.get_tracks() {
+                                if let Err(_) = self
+                                    .player
+                                    .borrow()
+                                    .as_ref()
+                                    .unwrap()
+                                    .set_stream(&stream.id())
                                 {
                                     self.queue_dedicated_media_source_failure_steps();
                                 }
