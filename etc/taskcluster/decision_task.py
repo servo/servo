@@ -517,7 +517,7 @@ def macos_wpt():
     def macos_run_task(name):
         return macos_task(name).with_python2()
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
-               total_chunks=6, processes=4, chunks=[1])
+               total_chunks=6, processes=4, chunks=[1,2,3])
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
