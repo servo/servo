@@ -7,8 +7,8 @@
 //! Different kind of helpers to interact with Gecko values.
 
 use crate::counter_style::{Symbol, Symbols};
-use crate::gecko_bindings::structs::{nsStyleCoord, CounterStylePtr};
 use crate::gecko_bindings::structs::StyleGridTrackBreadth;
+use crate::gecko_bindings::structs::{nsStyleCoord, CounterStylePtr};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::values::computed::{Angle, Length, LengthPercentage};
 use crate::values::computed::{Number, NumberOrPercentage, Percentage};

@@ -352,12 +352,14 @@ impl Polygon {
             })
             .unwrap_or_default();
 
-        let coordinates = input.parse_comma_separated(|i| {
-            Ok(PolygonCoord(
-                LengthPercentage::parse(context, i)?,
-                LengthPercentage::parse(context, i)?,
-            ))
-        })?.into();
+        let coordinates = input
+            .parse_comma_separated(|i| {
+                Ok(PolygonCoord(
+                    LengthPercentage::parse(context, i)?,
+                    LengthPercentage::parse(context, i)?,
+                ))
+            })?
+            .into();
 
         Ok(Polygon { fill, coordinates })
     }

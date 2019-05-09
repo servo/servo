@@ -680,5 +680,6 @@ ${helpers.predefined_type(
     "Either::Second(None_)",
     gecko_pref="layout.css.webkit-line-clamp.enabled",
     animation_value_type="Integer",
+    products="gecko",
     spec="https://drafts.csswg.org/css-overflow-3/#line-clamp",
 )}

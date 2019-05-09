@@ -298,7 +298,6 @@ where
     }
 }
 
-
 impl<T> ToAnimatedValue for Box<[T]>
 where
     T: ToAnimatedValue,
@@ -307,8 +306,7 @@ where
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
-        self
-            .into_vec()
+        self.into_vec()
             .into_iter()
             .map(T::to_animated_value)
             .collect::<Vec<_>>()

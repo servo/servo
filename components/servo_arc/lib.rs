@@ -687,7 +687,10 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
                 }
                 // We should have consumed the buffer exactly, maybe accounting
                 // for some padding from the alignment.
-                debug_assert!((buffer.offset(size as isize) as usize - current as *mut u8 as usize) < align_of::<Self>());
+                debug_assert!(
+                    (buffer.offset(size as isize) as usize - current as *mut u8 as usize) <
+                        align_of::<Self>()
+                );
             }
             assert!(
                 items.next().is_none(),
@@ -791,7 +794,6 @@ pub struct ThinArc<H, T> {
     ptr: ptr::NonNull<ArcInner<HeaderSliceWithLength<H, [T; 0]>>>,
     phantom: PhantomData<(H, T)>,
 }
-
 
 impl<H: fmt::Debug, T: fmt::Debug> fmt::Debug for ThinArc<H, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -909,7 +911,10 @@ impl<H, T> Clone for ThinArc<H, T> {
 impl<H, T> Drop for ThinArc<H, T> {
     #[inline]
     fn drop(&mut self) {
-        let _ = Arc::from_thin(ThinArc { ptr: self.ptr, phantom: PhantomData, });
+        let _ = Arc::from_thin(ThinArc {
+            ptr: self.ptr,
+            phantom: PhantomData,
+        });
     }
 }
 
@@ -928,7 +933,9 @@ impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
         let thin_ptr = fat_ptr as *mut [usize] as *mut usize;
         ThinArc {
             ptr: unsafe {
-                ptr::NonNull::new_unchecked(thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 0]>>)
+                ptr::NonNull::new_unchecked(
+                    thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 0]>>,
+                )
             },
             phantom: PhantomData,
         }

@@ -536,12 +536,10 @@ pub mod basic_shape {
         StyleGeometryBox, StyleShapeSource, StyleShapeSourceType,
     };
     use crate::gecko_bindings::sugar::refptr::RefPtr;
-    use crate::values::computed::basic_shape::{
-        BasicShape, ClippingShape, FloatAreaShape,
-    };
+    use crate::values::computed::basic_shape::{BasicShape, ClippingShape, FloatAreaShape};
     use crate::values::computed::motion::OffsetPath;
     use crate::values::computed::url::ComputedUrl;
-    use crate::values::generics::basic_shape::{Path, GeometryBox, ShapeBox, ShapeSource};
+    use crate::values::generics::basic_shape::{GeometryBox, Path, ShapeBox, ShapeSource};
     use crate::values::specified::SVGPathData;
 
     impl StyleShapeSource {
