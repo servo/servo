@@ -255,7 +255,7 @@ def android_arm32_dev_from_macos():
         macos_build_task("Dev build (macOS)")
         .with_treeherder("Android ARMv7")
         .with_script("""
-            ./mach bootstrap-android --accept-all-licenses --build
+            ./mach bootstrap-android --accept-all-licences --build
             ./mach build --android --dev
         """)
         .find_or_create("android_arm32_dev.macos." + CONFIG.git_sha)
