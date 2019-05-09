@@ -63,7 +63,7 @@ def main(task_for):
             "try-arm": [linux_arm32_dev, linux_arm64_dev],
             "try-wpt": [linux_wpt],
             "try-wpt-mac": [macos_wpt],
-            "try-wpt-android": [android_x86_wpt],
+            "try-wpt-android": [android_x86_wpt, linux_nightly],
             "try-android": [
                 android_arm32_dev,
                 android_arm32_dev_from_macos,
@@ -414,8 +414,8 @@ def linux_nightly():
         # Not reusing the build made for WPT because it has debug assertions
         .with_script(
             "./mach build --release",
-            "./mach package --release",
-            "./mach upload-nightly linux --secret-from-taskcluster",
+            #"./mach package --release",
+            #"./mach upload-nightly linux --secret-from-taskcluster",
         )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
     )
