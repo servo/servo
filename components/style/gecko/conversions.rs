@@ -532,28 +532,17 @@ impl nsStyleImage {
 
 pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
-
-    use crate::gecko::values::GeckoStyleCoordConvertible;
-    use crate::gecko_bindings::structs::nsStyleCoord;
-    use crate::gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use crate::gecko_bindings::structs::{
         StyleGeometryBox, StyleShapeSource, StyleShapeSourceType,
     };
     use crate::gecko_bindings::sugar::refptr::RefPtr;
     use crate::values::computed::basic_shape::{
-        BasicShape, ClippingShape, FloatAreaShape, ShapeRadius,
+        BasicShape, ClippingShape, FloatAreaShape,
     };
-    use crate::values::computed::length::LengthPercentage;
     use crate::values::computed::motion::OffsetPath;
     use crate::values::computed::url::ComputedUrl;
-    use crate::values::generics::basic_shape::{
-        BasicShape as GenericBasicShape, InsetRect, Polygon,
-    };
-    use crate::values::generics::basic_shape::{Circle, Ellipse, Path, PolygonCoord};
-    use crate::values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
-    use crate::values::generics::rect::Rect;
+    use crate::values::generics::basic_shape::{Path, GeometryBox, ShapeBox, ShapeSource};
     use crate::values::specified::SVGPathData;
-    use std::borrow::Borrow;
 
     impl StyleShapeSource {
         /// Convert StyleShapeSource to ShapeSource except URL and Image
@@ -569,7 +558,7 @@ pub mod basic_shape {
                 StyleShapeSourceType::Box => Some(ShapeSource::Box(self.mReferenceBox.into())),
                 StyleShapeSourceType::Shape => {
                     let other_shape = unsafe { &*self.__bindgen_anon_1.mBasicShape.as_ref().mPtr };
-                    let shape = other_shape.into();
+                    let shape = Box::new(other_shape.clone());
                     let reference_box = if self.mReferenceBox == StyleGeometryBox::NoBox {
                         None
                     } else {
@@ -650,67 +639,6 @@ pub mod basic_shape {
                 StyleShapeSourceType::URL |
                 StyleShapeSourceType::Image => unreachable!("Unsupported offset-path type"),
             }
-        }
-    }
-
-    impl<'a> From<&'a StyleBasicShape> for BasicShape {
-        fn from(other: &'a StyleBasicShape) -> Self {
-            match other.mType {
-                StyleBasicShapeType::Inset => {
-                    let t = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[0]);
-                    let r = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[1]);
-                    let b = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
-                    let l = LengthPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
-                    let round = other.mRadius;
-                    let rect = Rect::new(
-                        t.expect("inset() offset should be a length, percentage, or calc value"),
-                        r.expect("inset() offset should be a length, percentage, or calc value"),
-                        b.expect("inset() offset should be a length, percentage, or calc value"),
-                        l.expect("inset() offset should be a length, percentage, or calc value"),
-                    );
-                    GenericBasicShape::Inset(InsetRect { rect, round })
-                },
-                StyleBasicShapeType::Circle => GenericBasicShape::Circle(Circle {
-                    radius: (&other.mCoordinates[0]).into(),
-                    position: other.mPosition,
-                }),
-                StyleBasicShapeType::Ellipse => GenericBasicShape::Ellipse(Ellipse {
-                    semiaxis_x: (&other.mCoordinates[0]).into(),
-                    semiaxis_y: (&other.mCoordinates[1]).into(),
-                    position: other.mPosition,
-                }),
-                StyleBasicShapeType::Polygon => {
-                    let mut coords = Vec::with_capacity(other.mCoordinates.len() / 2);
-                    for i in 0..(other.mCoordinates.len() / 2) {
-                        let x = 2 * i;
-                        let y = x + 1;
-                        coords.push(PolygonCoord(
-                            LengthPercentage::from_gecko_style_coord(&other.mCoordinates[x])
-                                .expect(
-                                    "polygon() coordinate should be a length, percentage, \
-                                     or calc value",
-                                ),
-                            LengthPercentage::from_gecko_style_coord(&other.mCoordinates[y])
-                                .expect(
-                                    "polygon() coordinate should be a length, percentage, \
-                                     or calc value",
-                                ),
-                        ))
-                    }
-                    GenericBasicShape::Polygon(Polygon {
-                        fill: other.mFillRule,
-                        coordinates: coords,
-                    })
-                },
-            }
-        }
-    }
-
-    impl<'a> From<&'a nsStyleCoord> for ShapeRadius {
-        fn from(other: &'a nsStyleCoord) -> Self {
-            let other = other.borrow();
-            ShapeRadius::from_gecko_style_coord(other)
-                .expect("<shape-radius> should be a length, percentage, calc, or keyword value")
         }
     }
 

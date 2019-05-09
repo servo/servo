@@ -20,6 +20,9 @@ use to_shmem::{SharedMemoryBuilder, ToShmem};
 ///
 /// But handling fat pointers with cbindgen both in structs and argument
 /// positions more generally is a bit tricky.
+///
+/// cbindgen:derive-eq=false
+/// cbindgen:derive-neq=false
 #[repr(C)]
 pub struct OwnedSlice<T: Sized> {
     ptr: NonNull<T>,
