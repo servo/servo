@@ -132,9 +132,7 @@ pub struct CanvasState {
 }
 
 impl CanvasState {
-    pub fn new(
-        global: &GlobalScope,
-    ) -> CanvasState {
+    pub fn new(global: &GlobalScope) -> CanvasState {
         let (sender, receiver) =
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
@@ -247,8 +245,13 @@ impl CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
     pub fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
         self.reset_to_initial_state();
-        self.canvas_state.borrow().ipc_renderer
-            .send(CanvasMsg::Recreate(size, self.canvas_state.borrow().get_canvas_id()))
+        self.canvas_state
+            .borrow()
+            .ipc_renderer
+            .send(CanvasMsg::Recreate(
+                size,
+                self.canvas_state.borrow().get_canvas_id(),
+            ))
             .unwrap();
     }
 
@@ -656,7 +659,11 @@ pub trait LayoutCanvasRenderingContext2DHelpers {
 impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<CanvasRenderingContext2D> {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        (*self.unsafe_get()).canvas_state.borrow().ipc_renderer.clone()
+        (*self.unsafe_get())
+            .canvas_state
+            .borrow()
+            .ipc_renderer
+            .clone()
     }
 
     #[allow(unsafe_code)]
@@ -1523,7 +1530,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 impl Drop for CanvasRenderingContext2D {
     fn drop(&mut self) {
         if let Err(err) = self
-            .canvas_state.borrow().ipc_renderer
+            .canvas_state
+            .borrow()
+            .ipc_renderer
             .send(CanvasMsg::Close(self.canvas_state.borrow().get_canvas_id()))
         {
             warn!("Could not close canvas: {}", err)
