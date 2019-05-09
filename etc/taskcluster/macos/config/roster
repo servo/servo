@@ -2,3 +2,5 @@ mac1:
     host: servo-tc-mac1.servo.org
 mac2:
     host: servo-tc-mac2.servo.org
+mac3:
+    host: servo-tc-mac3.servo.org
