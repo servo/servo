@@ -256,7 +256,7 @@ def android_arm32_dev_from_macos():
         .with_treeherder("Android ARMv7")
         .with_script("""
             brew tap caskroom/versions
-            brew cask install --no-upgrade java8
+            brew cask install java8
             ./mach bootstrap-android --accept-all-licenses --build
             ./mach build --android --dev
         """)
