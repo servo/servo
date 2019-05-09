@@ -784,6 +784,13 @@ pub struct ThinArc<H, T> {
     phantom: PhantomData<(H, T)>,
 }
 
+
+impl<H: fmt::Debug, T: fmt::Debug> fmt::Debug for ThinArc<H, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self.deref(), f)
+    }
+}
+
 unsafe impl<H: Sync + Send, T: Sync + Send> Send for ThinArc<H, T> {}
 unsafe impl<H: Sync + Send, T: Sync + Send> Sync for ThinArc<H, T> {}
 
@@ -856,8 +863,12 @@ impl<H, T> ThinArc<H, T> {
     }
 
     /// Returns the address on the heap of the ThinArc itself -- not the T
-    /// within it -- for memory reporting.
-    ///
+    /// within it -- for memory reporting, and bindings.
+    #[inline]
+    pub fn ptr(&self) -> *const c_void {
+        self.ptr.as_ptr() as *const ArcInner<T> as *const c_void
+    }
+
     /// If this is a static ThinArc, this returns null.
     #[inline]
     pub fn heap_ptr(&self) -> *const c_void {
@@ -866,7 +877,7 @@ impl<H, T> ThinArc<H, T> {
         if is_static {
             ptr::null()
         } else {
-            self.ptr.as_ptr() as *const ArcInner<T> as *const c_void
+            self.ptr()
         }
     }
 }
