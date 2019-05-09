@@ -308,6 +308,9 @@ impl<T: ?Sized> Arc<T> {
 impl<T: ?Sized> Clone for Arc<T> {
     #[inline]
     fn clone(&self) -> Self {
+        // NOTE(emilio): If you change anything here, make sure that the
+        // implementation in layout/style/ServoStyleConstsInlines.h matches!
+        //
         // Using a relaxed ordering to check for STATIC_REFCOUNT is safe, since
         // `count` never changes between STATIC_REFCOUNT and other values.
         if self.inner().count.load(Relaxed) != STATIC_REFCOUNT {
@@ -416,6 +419,9 @@ impl<T: ?Sized> Arc<T> {
 impl<T: ?Sized> Drop for Arc<T> {
     #[inline]
     fn drop(&mut self) {
+        // NOTE(emilio): If you change anything here, make sure that the
+        // implementation in layout/style/ServoStyleConstsInlines.h matches!
+        //
         // Using a relaxed ordering to check for STATIC_REFCOUNT is safe, since
         // `count` never changes between STATIC_REFCOUNT and other values.
         if self.inner().count.load(Relaxed) == STATIC_REFCOUNT {
@@ -571,6 +577,7 @@ impl<T: Serialize> Serialize for Arc<T> {
 /// Structure to allow Arc-managing some fixed-sized data and a variably-sized
 /// slice in a single allocation.
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
+#[repr(C)]
 pub struct HeaderSlice<H, T: ?Sized> {
     /// The fixed-sized data.
     pub header: H,
@@ -743,6 +750,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
 /// Header data with an inline length. Consumers that use HeaderWithLength as the
 /// Header type in HeaderSlice can take advantage of ThinArc.
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
+#[repr(C)]
 pub struct HeaderWithLength<H> {
     /// The fixed-sized data.
     pub header: H,

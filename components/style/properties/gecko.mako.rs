@@ -2901,7 +2901,7 @@ fn static_assert() {
         match v {
             OffsetPath::None => motion.mOffsetPath.mType = StyleShapeSourceType::None,
             OffsetPath::Path(p) => {
-                set_style_svg_path(&mut motion.mOffsetPath, &p, FillRule::Nonzero)
+                set_style_svg_path(&mut motion.mOffsetPath, p, FillRule::Nonzero)
             },
         }
         unsafe { Gecko_SetStyleMotion(&mut self.gecko.mMotion, motion) };
@@ -4023,25 +4023,17 @@ fn static_assert() {
 // Set SVGPathData to StyleShapeSource.
 fn set_style_svg_path(
     shape_source: &mut structs::mozilla::StyleShapeSource,
-    servo_path: &values::specified::svg_path::SVGPathData,
+    servo_path: values::specified::svg_path::SVGPathData,
     fill: values::generics::basic_shape::FillRule,
 ) {
-    use crate::gecko_bindings::bindings::Gecko_NewStyleSVGPath;
-    use crate::gecko_bindings::structs::StyleShapeSourceType;
-
-    // Setup type.
-    shape_source.mType = StyleShapeSourceType::Path;
-
     // Setup path.
-    let gecko_path = unsafe {
-        Gecko_NewStyleSVGPath(shape_source);
-        &mut shape_source.__bindgen_anon_1.mSVGPath.as_mut().mPtr.as_mut().unwrap()
-    };
-
-    gecko_path.mPath.assign_from_iter_pod(servo_path.commands().iter().cloned());
-
-    // Setup fill-rule.
-    gecko_path.mFillRule = fill;
+    unsafe {
+        bindings::Gecko_SetToSVGPath(
+            shape_source,
+            servo_path.0.forget(),
+            fill,
+        );
+    }
 }
 
 <%def name="impl_shape_source(ident, gecko_ffi_name)">
@@ -4081,7 +4073,7 @@ fn set_style_svg_path(
                 ${ident}.mReferenceBox = reference.into();
                 ${ident}.mType = StyleShapeSourceType::Box;
             }
-            ShapeSource::Path(p) => set_style_svg_path(${ident}, &p.path, p.fill),
+            ShapeSource::Path(p) => set_style_svg_path(${ident}, p.path, p.fill),
             ShapeSource::Shape(servo_shape, maybe_box) => {
                 unsafe {
                     ${ident}.__bindgen_anon_1.mBasicShape.as_mut().mPtr =
