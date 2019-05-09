@@ -12,7 +12,7 @@ use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as Generic
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
 use super::generics::transform::IsParallelTo;
 use super::generics::{self, GreaterThanOrEqualToOne, NonNegative};
-use super::{Auto, CSSFloat, CSSInteger, Either};
+use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::serialize_atom_identifier;
@@ -592,6 +592,9 @@ impl Parse for PositiveInteger {
         Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne)
     }
 }
+
+/// A specified positive `<integer>` value or `none`.
+pub type PositiveIntegerOrNone = Either<PositiveInteger, None_>;
 
 /// The specified value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthPercentage>;

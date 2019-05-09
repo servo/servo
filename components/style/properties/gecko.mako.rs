@@ -2515,7 +2515,7 @@ fn static_assert() {
                           rotate scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-coordinate -moz-binding will-change
                           offset-path shape-outside
-                          translate scale""" %>
+                          translate scale -webkit-line-clamp""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn generate_combined_transform(&mut self) {
@@ -2922,6 +2922,27 @@ fn static_assert() {
 
     pub fn reset_offset_path(&mut self, other: &Self) {
         self.copy_offset_path_from(other);
+    }
+
+    #[allow(non_snake_case)]
+    pub fn set__webkit_line_clamp(&mut self, v: longhands::_webkit_line_clamp::computed_value::T) {
+        self.gecko.mLineClamp = match v {
+            Either::First(n) => n.0 as u32,
+            Either::Second(None_) => 0,
+        };
+    }
+
+    ${impl_simple_copy('_webkit_line_clamp', 'mLineClamp')}
+
+    #[allow(non_snake_case)]
+    pub fn clone__webkit_line_clamp(&self) -> longhands::_webkit_line_clamp::computed_value::T {
+        match self.gecko.mLineClamp {
+            0 => Either::Second(None_),
+            n => {
+                debug_assert!(n <= std::i32::MAX as u32);
+                Either::First((n as i32).into())
+            }
+        }
     }
 
 </%self:impl_trait>
