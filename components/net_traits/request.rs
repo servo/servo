@@ -134,6 +134,14 @@ pub enum CorsSettings {
     UseCredentials,
 }
 
+/// [Parser Metadata](https://fetch.spec.whatwg.org/#concept-request-parser-metadata)
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum ParserMetadata {
+    Default,
+    ParserInserted,
+    NotParserInserted,
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBuilder {
     #[serde(
@@ -169,6 +177,7 @@ pub struct RequestBuilder {
     pub integrity_metadata: String,
     // to keep track of redirects
     pub url_list: Vec<ServoUrl>,
+    pub parser_metadata: ParserMetadata,
 }
 
 impl RequestBuilder {
@@ -194,6 +203,7 @@ impl RequestBuilder {
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
             url_list: vec![],
+            parser_metadata: ParserMetadata::Default,
         }
     }
 
@@ -295,6 +305,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn parser_metadata(mut self, parser_metadata: ParserMetadata) -> RequestBuilder {
+        self.parser_metadata = parser_metadata;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.url.clone(),
@@ -323,6 +338,7 @@ impl RequestBuilder {
         request.redirect_count = url_list.len() as u32 - 1;
         request.url_list = url_list;
         request.integrity_metadata = self.integrity_metadata;
+        request.parser_metadata = self.parser_metadata;
         request
     }
 }
@@ -388,6 +404,8 @@ pub struct Request {
     pub redirect_count: u32,
     /// <https://fetch.spec.whatwg.org/#concept-request-response-tainting>
     pub response_tainting: ResponseTainting,
+    /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
+    pub parser_metadata: ParserMetadata,
 }
 
 impl Request {
@@ -417,6 +435,7 @@ impl Request {
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: String::new(),
             url_list: vec![url],
+            parser_metadata: ParserMetadata::Default,
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
         }

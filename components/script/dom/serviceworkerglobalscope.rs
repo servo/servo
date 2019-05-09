@@ -31,7 +31,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder};
+use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
 use net_traits::{CustomResponseMediator, IpcSend};
 use script_traits::{
     ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
@@ -287,6 +287,7 @@ impl ServiceWorkerGlobalScope {
                 let request = RequestBuilder::new(script_url.clone())
                     .destination(Destination::ServiceWorker)
                     .credentials_mode(CredentialsMode::Include)
+                    .parser_metadata(ParserMetadata::NotParserInserted)
                     .use_url_credentials(true)
                     .pipeline_id(pipeline_id)
                     .referrer(referrer)

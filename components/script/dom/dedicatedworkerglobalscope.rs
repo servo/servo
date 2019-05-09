@@ -37,7 +37,8 @@ use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
-use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
+use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
+use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
@@ -312,6 +313,7 @@ impl DedicatedWorkerGlobalScope {
                     .destination(Destination::Worker)
                     .mode(RequestMode::SameOrigin)
                     .credentials_mode(CredentialsMode::CredentialsSameOrigin)
+                    .parser_metadata(ParserMetadata::NotParserInserted)
                     .use_url_credentials(true)
                     .pipeline_id(pipeline_id)
                     .referrer(referrer)

@@ -124,6 +124,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         redirect_mode: request.redirect_mode,
         integrity_metadata: "".to_owned(),
         url_list: vec![],
+        parser_metadata: request.parser_metadata,
     }
 }
 
