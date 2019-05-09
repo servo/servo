@@ -93,7 +93,7 @@ function unsafe_open_pull_request() {
 
     if [[ -z "${WPT_SYNC_TOKEN+set}" ]]; then
         SECRET_RESPONSE=$(curl ${TASKCLUSTER_PROXY_URL}/secrets/v1/secret/project/servo/wpt-sync)
-        WPT_SYNC_TOKEN=`echo "${SECRET_RESPONSE}" | jq '.secret.token'`
+        WPT_SYNC_TOKEN=`echo "${SECRET_RESPONSE}" | jq --raw-output '.secret.token'`
     fi
 
     if [[ -z "${WPT_SYNC_TOKEN}" ]]; then
