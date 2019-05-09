@@ -42,16 +42,24 @@ This issue is tracked at
 
 * Log in through VNC, and run `xcode-select --install`
 
+* Still in VNC, install the jdk8 package from http://adoptopenjdk.net
+
+* Install an ssh key into /Users/administrator/.ssh/authorized_keys and
+/var/root/.ssh/authorized_keys.
 
 ## Taskcluster secrets
 
 This SaltStack configuration has a custom module that uses Taskcluster’s
 [secrets service](https://tools.taskcluster.net/secrets/).
-These secrets include an [authentication token](
+These secrets include an authentication token.
 You’ll need to authenticate with a Taskcluster client ID
 that has scope `secrets:get:project/servo/*`.
 This should be the case if you’re a Servo project administrator (the `project-admin:servo` role).
 
+To authenticate, install [taskcluster-cli](https://github.com/taskcluster/taskcluster-cli)
+and run `eval \`taskcluster signin\``. This will set up the TASKCLUSTER_CLIENT_ID and
+TASKCLUSTER_ACCESS_TOKEN variables to allow retrieving secrets appropriately in the current
+terminal session.
 
 ## Worker’s client ID
 
