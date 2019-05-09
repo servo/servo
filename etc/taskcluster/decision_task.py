@@ -406,7 +406,7 @@ def windows_nightly():
 
 
 def linux_nightly():
-    return (
+    build_task = (
         linux_build_task("Nightly build and upload")
         .with_treeherder("Linux x64", "Nightly")
         .with_features("taskclusterProxy")
@@ -418,7 +418,39 @@ def linux_nightly():
             "./mach upload-nightly linux --secret-from-taskcluster",
         )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
+    )
+    build_task = (
+        with_linux_test_artifact(build_task)
         .find_or_create("build.linux_x64_nightly" + CONFIG.git_sha)
+    )
+    return (
+        linux_task("Performance test")
+        .with_dockerfile(dockerfile_path("run"))
+        .with_treeherder("Linux x64", "Perf")
+        .with_repo()
+        .with_curl_artifact_script(build_task, "target.tar.gz")
+        .with_script("tar -xzf target.tar.gz")
+        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+        .with_max_run_time_minutes(90)
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        .with_script("""
+            ./mach test-perf
+            python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
+            aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
+        """)
+    )
+
+
+def with_linux_test_artifact(task):
+    return (
+        task
+        .with_script("""
+            tar -czf /target.tar.gz \
+                target/release/servo \
+                target/release/build/osmesa-src-*/output \
+                target/release/build/osmesa-src-*/out/lib/gallium
+        """)
+        .with_artifacts("/target.tar.gz")
     )
 
 
@@ -429,12 +461,10 @@ def linux_wpt():
         .with_script("""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
-            tar -czf /target.tar.gz \
-                target/release/servo \
-                target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/lib/gallium
         """)
-        .with_artifacts("/target.tar.gz")
+    )
+    release_build_task = (
+        with_linux_test_artifact(release_build_task)
         .find_or_create("build.linux_x64_release~assertions" + CONFIG.git_sha)
     )
     def linux_run_task(name):

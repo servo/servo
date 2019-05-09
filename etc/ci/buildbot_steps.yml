@@ -109,21 +109,6 @@ linux-rel-css:
     - bash ./etc/ci/lockfile_changed.sh
     - ./etc/ci/clean_build_artifacts.sh
 
-linux-nightly:
- env:
-  CC: gcc-5
-  CXX: g++-5
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - ./mach build --release -p servo
-  - ./mach test-perf
-  - python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
-  - aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
-  - rm -rf ./python/_virtualenv
-  - ./etc/ci/clean_build_artifacts.sh
-
 android-mac:
  commands:
   - ./mach clean-nightlies --keep 3 --force
@@ -231,3 +216,4 @@ mac-rel-wpt1: []
 android-nightly: []
 windows-msvc-nightly: []
 mac-nightly: []
+linux-nightly: []
