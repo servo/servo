@@ -143,7 +143,6 @@ pub mod logical_geometry;
 pub mod matching;
 #[macro_use]
 pub mod media_queries;
-pub mod owned_slice;
 pub mod parallel;
 pub mod parser;
 pub mod rule_cache;
@@ -189,7 +188,7 @@ pub use html5ever::Prefix;
 #[cfg(feature = "servo")]
 pub use servo_atoms::Atom;
 
-pub use owned_slice::OwnedSlice;
+pub use style_traits::owned_slice::OwnedSlice;
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs

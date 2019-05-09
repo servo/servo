@@ -89,6 +89,7 @@ pub mod specified_value_info;
 pub mod values;
 #[macro_use]
 pub mod viewport;
+pub mod owned_slice;
 
 pub use crate::specified_value_info::{CssType, KeywordsCollectFn, SpecifiedValueInfo};
 pub use crate::values::{
