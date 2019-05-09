@@ -18,8 +18,7 @@ def main(task_for):
 
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
-        magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
-            android_arm32_dev_from_macos = lambda: None
+        magicleap_dev = linux_arm32_dev = linux_arm64_dev = lambda: None
 
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
@@ -248,6 +247,20 @@ def with_rust_nightly():
             ./mach test-unit
         """)
         .create()
+    )
+
+
+def android_arm32_dev_from_macos():
+    return (
+        macos_build_task("Dev build (macOS)")
+        .with_treeherder("Android ARMv7")
+        .with_script("""
+            brew tap caskroom/versions
+            brew cask install --no-upgrade java8
+            ./mach bootstrap-android --accept-all-licenses --build
+            ./mach build --android --dev
+        """)
+        .find_or_create("android_arm32_dev.macos." + CONFIG.git_sha)
     )
 
 
