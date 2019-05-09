@@ -193,3 +193,20 @@ where
         Vec::from_resolved_value(Vec::from(resolved)).into_boxed_slice()
     }
 }
+
+impl<T> ToResolvedValue for crate::OwnedSlice<T>
+where
+    T: ToResolvedValue,
+{
+    type ResolvedValue = crate::OwnedSlice<<T as ToResolvedValue>::ResolvedValue>;
+
+    #[inline]
+    fn to_resolved_value(self, context: &Context) -> Self::ResolvedValue {
+        self.into_box().to_resolved_value(context).into()
+    }
+
+    #[inline]
+    fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
+        Self::from(Box::from_resolved_value(resolved.into_box()))
+    }
+}
