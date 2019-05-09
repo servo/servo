@@ -255,7 +255,6 @@ def android_arm32_dev_from_macos():
         macos_build_task("Dev build (macOS)")
         .with_treeherder("Android ARMv7")
         .with_script("""
-            brew cask install homebrew/cask-versions/adoptopenjdk8
             ./mach bootstrap-android --accept-all-licenses --build
             ./mach build --android --dev
         """)
