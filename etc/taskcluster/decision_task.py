@@ -94,6 +94,7 @@ def main(task_for):
         windows_nightly()
         macos_nightly()
         update_wpt()
+        magicleap_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -796,10 +797,10 @@ def macos_build_task(name):
     )
 
 
-def magicleap_dev():
+def magicleap_build_task(name, build_type):
     return (
-        macos_build_task("Dev build")
-        .with_treeherder("MagicLeap aarch64", "Release")
+        macos_build_task(name)
+        .with_treeherder("MagicLeap aarch64", build_type)
         .with_curl_script(
             "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.17.0.tar.gz",
             "$HOME/magicleap_sdk.tar.gz"
@@ -816,9 +817,31 @@ def magicleap_dev():
         .with_script("""
             export OPENSSL_INCLUDE_DIR=
             export OPENSSL_LIB_DIR=
+        """)
+    )
+
+
+def magicleap_dev():
+    return (
+        magicleap_build_task("Dev build", "Debug")
+        .with_script("""
             ./mach build --magicleap --dev
             ./mach package --magicleap --dev
         """)
+    )
+
+
+def magicleap_nightly():
+    return (
+        magicleap_build_task("Nightly build and upload", "Release")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        .with_script("""
+            ./mach build --magicleap --release
+            ./mach package --magicleap --release
+            "./mach upload-nightly magicleap --secret-from-taskcluster",
+        """)
+    )
 
 
 CONFIG.task_name_template = "Servo: %s"
