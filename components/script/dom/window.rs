@@ -288,6 +288,7 @@ pub struct Window {
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
+
     /// Webrender API Sender
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_api_sender: RenderApiSender,
