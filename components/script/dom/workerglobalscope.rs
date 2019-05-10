@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -42,10 +43,11 @@ use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder as NetRequestInit};
-use net_traits::{load_whole_resource, IpcSend};
+use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use script_traits::{TimerEvent, TimerEventId};
 use servo_url::{MutableOrigin, ServoUrl};
+use std::cell::Ref;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -78,7 +80,7 @@ pub struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
     worker_id: WorkerId,
-    worker_url: ServoUrl,
+    worker_url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "Arc"]
     closing: Option<Arc<AtomicBool>>,
     #[ignore_malloc_size_of = "Defined in js"]
@@ -123,7 +125,7 @@ impl WorkerGlobalScope {
                 Default::default(),
             ),
             worker_id: init.worker_id,
-            worker_url,
+            worker_url: DomRefCell::new(worker_url),
             closing,
             runtime,
             location: Default::default(),
@@ -159,8 +161,12 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn get_url(&self) -> &ServoUrl {
-        &self.worker_url
+    pub fn get_url(&self) -> Ref<ServoUrl> {
+        self.worker_url.borrow()
+    }
+
+    pub fn set_url(&self, url: ServoUrl) {
+        *self.worker_url.borrow_mut() = url;
     }
 
     pub fn get_worker_id(&self) -> WorkerId {
@@ -187,7 +193,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
     fn Location(&self) -> DomRoot<WorkerLocation> {
         self.location
-            .or_init(|| WorkerLocation::new(self, self.worker_url.clone()))
+            .or_init(|| WorkerLocation::new(self, self.worker_url.borrow().clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
@@ -197,7 +203,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings {
-            let url = self.worker_url.join(&url);
+            let url = self.worker_url.borrow().join(&url);
             match url {
                 Ok(url) => urls.push(url),
                 Err(_) => return Err(Error::Syntax),
@@ -215,13 +221,14 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()))
                 .referrer_policy(None);
 
-            let (url, source) =
-                match load_whole_resource(request, &global_scope.resource_threads().sender()) {
-                    Err(_) => return Err(Error::Network),
-                    Ok((metadata, bytes)) => {
-                        (metadata.final_url, String::from_utf8(bytes).unwrap())
-                    },
-                };
+            let (url, source) = match fetch::load_whole_resource(
+                request,
+                &global_scope.resource_threads().sender(),
+                &global_scope,
+            ) {
+                Err(_) => return Err(Error::Network),
+                Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),
+            };
 
             let result = self.runtime.evaluate_script(
                 self.reflector().get_jsobject(),
@@ -381,7 +388,7 @@ impl WorkerGlobalScope {
         match self.runtime.evaluate_script(
             self.reflector().get_jsobject(),
             &source,
-            self.worker_url.as_str(),
+            self.worker_url.borrow().as_str(),
             1,
             rval.handle_mut(),
         ) {

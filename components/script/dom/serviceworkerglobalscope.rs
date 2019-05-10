@@ -19,6 +19,7 @@ use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::fetch::load_whole_resource;
 use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
@@ -31,7 +32,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder};
-use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
+use net_traits::{CustomResponseMediator, IpcSend};
 use script_traits::{
     ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
@@ -292,16 +293,19 @@ impl ServiceWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
-                let (url, source) =
-                    match load_whole_resource(request, &init.resource_threads.sender()) {
-                        Err(_) => {
-                            println!("error loading script {}", serialized_worker_url);
-                            return;
-                        },
-                        Ok((metadata, bytes)) => {
-                            (metadata.final_url, String::from_utf8(bytes).unwrap())
-                        },
-                    };
+                let (url, source) = match load_whole_resource(
+                    request,
+                    &init.resource_threads.sender(),
+                    &GlobalScope::current().expect("No current global object"),
+                ) {
+                    Err(_) => {
+                        println!("error loading script {}", serialized_worker_url);
+                        return;
+                    },
+                    Ok((metadata, bytes)) => {
+                        (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    },
+                };
 
                 let runtime = new_rt_and_cx();
 
