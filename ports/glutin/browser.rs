@@ -491,7 +491,7 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
         .ok()
         .or_else(|| {
             if request.contains('/') || is_reg_domain(request) {
-                ServoUrl::parse(&format!("http://{}", request)).ok()
+                ServoUrl::parse(&format!("https://{}", request)).ok()
             } else {
                 None
             }
