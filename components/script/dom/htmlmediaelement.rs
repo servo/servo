@@ -1583,12 +1583,12 @@ impl HTMLMediaElement {
     }
 
     fn render_controls(&self) {
-        if self.ready_state.get() < ReadyState::HaveMetadata {
+        let element = self.htmlelement.upcast::<Element>();
+        if self.ready_state.get() < ReadyState::HaveMetadata || element.is_shadow_host() {
+            // Bail out if we have no metadata yet or
+            // if we are already showing the controls.
             return;
         }
-        // XXX cannot render controls while parsing.
-        // XXX check that controls are not already rendered.
-        let element = self.htmlelement.upcast::<Element>();
         if let Ok(shadow_root) = element.attach_shadow(IsUserAgentWidget::Yes) {
             let document = document_from_node(self);
             let script = HTMLScriptElement::new(
