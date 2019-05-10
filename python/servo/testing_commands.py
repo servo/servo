@@ -971,3 +971,13 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
+
+    @Command('smoketest',
+             description='Load a simple page in Servo and ensure that it closes properly',
+             category='testing')
+    @CommandArgument('params', nargs='...',
+                     help="Command-line arguments to be passed through to Servo")
+    def smoketest(self, params):
+        params = params + ['tests/html/close-on-load.html']
+        return self.context.commands.dispatch(
+            'run', self.context, params=params)
