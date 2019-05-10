@@ -126,33 +126,6 @@ linux-nightly:
   - rm -rf ./python/_virtualenv
   - ./etc/ci/clean_build_artifacts.sh
 
-magicleap:
- env:
-  MAGICLEAP_SDK: /Users/servo/magicleap/v0.17.0
-  MLCERT: /Users/servo/magicleap/certs/TempSharedCert.cert
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - env -u OPENSSL_INCLUDE_DIR -u OPENSSL_LIB_DIR ./mach build --magicleap --dev
-  - ./mach package --magicleap --dev
-  - bash ./etc/ci/lockfile_changed.sh
-  - ./etc/ci/clean_build_artifacts.sh
-
-magicleap-nightly:
- env:
-  MAGICLEAP_SDK: /Users/servo/magicleap/v0.17.0
-  MLCERT: /Users/servo/magicleap/certs/TempSharedCert.cert
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - env -u OPENSSL_INCLUDE_DIR -u OPENSSL_LIB_DIR ./mach build --magicleap --release
-  - ./mach package --magicleap --release
-  - ./mach upload-nightly magicleap
-  - bash ./etc/ci/lockfile_changed.sh
-  - ./etc/ci/clean_build_artifacts.sh
-
 arm64:
  env:
   AR: /usr/bin/aarch64-linux-gnu-ar
@@ -196,6 +169,8 @@ mac-rel-wpt3: []
 android-nightly: []
 windows-msvc-nightly: []
 mac-nightly: []
+magicleap-nightly: []
+magicleap: []
 
 # No longer maintained
 arm32: []
