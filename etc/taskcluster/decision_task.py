@@ -411,7 +411,7 @@ def linux_nightly():
         linux_build_task("Nightly build and upload")
         .with_treeherder("Linux x64", "Nightly")
         .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        #.with_scopes("secrets:get:project/servo/s3-upload-credentials")
         # Not reusing the build made for WPT because it has debug assertions
         .with_script(
             "./mach build --release",
@@ -433,12 +433,12 @@ def linux_nightly():
         .with_script("tar -xzf target.tar.gz")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(90)
-        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        #.with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("""
             ./mach test-perf
             python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
-            aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
         """)
+        # aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
         .find_or_create("perf.linux_x64_nightly" + CONFIG.git_sha)
     )
 
