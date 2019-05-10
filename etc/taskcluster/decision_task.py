@@ -223,6 +223,7 @@ def macos_unit():
         macos_build_task("Dev build + unit tests")
         .with_treeherder("macOS x64", "Unit")
         .with_script("""
+            export DYLD_LIBRARY_PATH="$(brew --prefix openssl@1.1)/lib:$DYLD_LIBRARY_PATH"
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
