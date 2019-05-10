@@ -29,7 +29,7 @@ impl OffscreenCanvasRenderingContext2D {
         OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
-            canvas_state: DomRefCell::new(CanvasState::new(_global)),
+            canvas_state: DomRefCell::new(CanvasState::new(_global,_size)),
         }
     }
 

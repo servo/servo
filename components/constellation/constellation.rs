@@ -3067,7 +3067,7 @@ where
 
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
-        size: Size2D<u32>,
+        size: Size2D<u64>,
         response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
     ) {
         let webrender_api = self.webrender_api_sender.clone();

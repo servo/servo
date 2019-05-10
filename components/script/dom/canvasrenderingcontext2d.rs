@@ -132,17 +132,38 @@ pub struct CanvasState {
 }
 
 impl CanvasState {
-    pub fn new(global: &GlobalScope) -> CanvasState {
+    pub fn new(
+        global: &GlobalScope,
+        size: Size2D<u64>,
+    ) -> CanvasState {
+        debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        debug!("Asking constellation to create new canvas thread.");
+        script_to_constellation_chan
+            .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
+            .unwrap();
         let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
         debug!("Done.");
         CanvasState {
-            //reflector_: Reflector::new(),
             ipc_renderer: ipc_renderer,
             canvas_id: canvas_id,
+            
         }
     }
+    /*pub fn new(
+        global: &GlobalScope,
+        size: Size2D<u32>,
+    ) -> CanvasState {
+        
+        /*let boxed = Box::new(CanvasState::new_inherited(
+            global,
+            size,
+        ));
+
+        reflect_dom_object(boxed, global, CanvasState)*/
+    }*/
 
     pub fn get_canvas_id(&self) -> CanvasId {
         self.canvas_id.clone()
@@ -199,7 +220,7 @@ impl CanvasRenderingContext2D {
         base_url: ServoUrl,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {
-        debug!("Creating new canvas rendering context.");
+        /*debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let script_to_constellation_chan = global.script_to_constellation_chan();
@@ -208,7 +229,7 @@ impl CanvasRenderingContext2D {
             .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
             .unwrap();
         //let (canvas_state.ipc_renderer, canvas_id) = receiver.recv().unwrap();
-        debug!("Done.");
+        debug!("Done.");*/
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
@@ -220,7 +241,7 @@ impl CanvasRenderingContext2D {
             saved_states: DomRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
             //canvas_id: canvas_id,
-            canvas_state: DomRefCell::new(CanvasState::new(global)),
+            canvas_state: DomRefCell::new(CanvasState::new(global,Size2D::new(size.width as u64, size.height as u64))),
         }
     }
 
