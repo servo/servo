@@ -18,7 +18,7 @@ def main(task_for):
 
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
-        magicleap_dev = linux_arm32_dev = linux_arm64_dev = lambda: None
+        linux_arm32_dev = linux_arm64_dev = lambda: None
 
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
@@ -794,6 +794,31 @@ def macos_build_task(name):
             export DYLD_LIBRARY_PATH="$HOME/homebrew/opt/openssl@1.1/lib"
         """)
     )
+
+
+def magicleap_dev():
+    return (
+        macos_build_task("Dev build")
+        .with_treeherder("MagicLeap aarch64", "Release")
+        .with_curl_script(
+            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.17.0.tar.gz",
+            "$HOME/magicleap_sdk.tar.gz"
+        )
+        .with_curl_script(
+            "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
+            "$HOME/certs.zip"
+        )
+        .with_script("""
+            mkdir -p $HOME/magicleap
+            tar xf $HOME/magicleap_sdk.tar.gz -C "$HOME/magicleap"
+            unzip -d $HOME/magicleap/certs -u "$HOME/certs.zip"
+        """)
+        .with_script("""
+            export OPENSSL_INCLUDE_DIR=
+            export OPENSSL_LIB_DIR=
+            ./mach build --magicleap --dev
+            ./mach package --magicleap --dev
+        """)
 
 
 CONFIG.task_name_template = "Servo: %s"
