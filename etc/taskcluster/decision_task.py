@@ -438,6 +438,7 @@ def linux_nightly():
             python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
             aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
         """)
+        .find_or_create("perf.linux_x64_nightly" + CONFIG.git_sha)
     )
 
 
