@@ -803,16 +803,16 @@ def magicleap_build_task(name, build_type):
         .with_treeherder("MagicLeap aarch64", build_type)
         .with_curl_script(
             "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.17.0.tar.gz",
-            "$HOME/magicleap_sdk.tar.gz"
+            "magicleap_sdk.tar.gz"
         )
         .with_curl_script(
             "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
-            "$HOME/certs.zip"
+            "certs.zip"
         )
         .with_script("""
-            mkdir -p $HOME/magicleap
-            tar xf $HOME/magicleap_sdk.tar.gz -C "$HOME/magicleap"
-            unzip -d $HOME/magicleap/certs -u "$HOME/certs.zip"
+            mkdir -p magicleap
+            tar xf magicleap_sdk.tar.gz -C magicleap
+            unzip -d magicleap/certs -u certs.zip
         """)
         .with_script("""
             export OPENSSL_INCLUDE_DIR=
@@ -823,7 +823,7 @@ def magicleap_build_task(name, build_type):
 
 def magicleap_dev():
     return (
-        magicleap_build_task("Dev build", "Debug")
+        magicleap_build_task("Dev build", "Dev")
         .with_script("""
             ./mach build --magicleap --dev
             ./mach package --magicleap --dev
@@ -842,6 +842,7 @@ def magicleap_nightly():
             ./mach package --magicleap --release
             "./mach upload-nightly magicleap --secret-from-taskcluster",
         """)
+        .find_or_create("build.magicleap_nightly." + CONFIG.git_sha)
     )
 
 
