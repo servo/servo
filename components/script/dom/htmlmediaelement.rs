@@ -1856,6 +1856,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
     make_bool_setter!(SetDefaultMuted, "muted");
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-controls
+    make_bool_getter!(Controls, "controls");
+    // https://html.spec.whatwg.org/multipage/#dom-media-controls
+    make_bool_setter!(SetControls, "controls");
+
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_getter!(Src, "src");
 
