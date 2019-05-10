@@ -709,7 +709,7 @@ def macos_build_task(name):
             time brew bundle install --no-upgrade --file=etc/taskcluster/macos/Brewfile
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
             export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
-            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/:$PKG_CONFIG_PATH"
         """)
 
         .with_directory_mount(
@@ -726,7 +726,7 @@ def macos_build_task(name):
         # "Late" script in order to run after Homebrew is installed.
         .with_script("""
             time brew install openssl@1.1
-            export DYLD_LIBRARY_PATH="$HOME/homebrew/opt/openssl@1.1/lib"
+            export DYLD_LIBRARY_PATH="$(brew --prefix openssl@1.1)/lib:$DYLD_LIBRARY_PATH"
         """)
     )
 
