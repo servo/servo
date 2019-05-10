@@ -63,7 +63,8 @@ def main(task_for):
             "try-arm": [linux_arm32_dev, linux_arm64_dev],
             "try-wpt": [linux_wpt],
             "try-wpt-mac": [macos_wpt],
-            "try-wpt-android": [android_x86_wpt, linux_nightly],
+            "try-wpt-android": [#android_x86_wpt,
+                linux_nightly],
             "try-android": [
                 android_arm32_dev,
                 android_arm32_dev_from_macos,
