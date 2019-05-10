@@ -828,6 +828,7 @@ def magicleap_dev():
             ./mach build --magicleap --dev
             ./mach package --magicleap --dev
         """)
+        .find_or_create("build.magicleap_dev." + CONFIG.git_sha)
     )
 
 
