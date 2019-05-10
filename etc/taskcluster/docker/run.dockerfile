@@ -6,5 +6,7 @@ RUN apt-get install -qy --no-install-recommends \
     libssl1.0.0 \
     libdbus-1-3 \
     libgstreamer-plugins-bad1.0-0 \
-    gstreamer1.0-plugins-good
+    gstreamer1.0-plugins-good \
+    wget \
+    unzip
 
