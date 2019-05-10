@@ -801,22 +801,21 @@ def magicleap_build_task(name, build_type):
     return (
         macos_build_task(name)
         .with_treeherder("MagicLeap aarch64", build_type)
-        .with_curl_script(
+        .with_directory_mount(
             "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.17.0.tar.gz",
-            "magicleap_sdk.tar.gz"
+            sha256="e81de47ad963891ac68768d93ab5a36ed3af3a3efebb4dbc4db2e65647d57655",
+            path="magicleap"
         )
-        .with_curl_script(
+        .with_directory_mount(
             "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
-            "certs.zip"
+            sha256="cdc2d26bc87ecf1cd8133df4e72c4eca5df7ddd815d0adf3045460253c1fe123",
+            path="magicleap"
         )
-        .with_script("""
-            mkdir -p magicleap
-            tar xf magicleap_sdk.tar.gz -C magicleap
-            unzip -d magicleap/certs -u certs.zip
-        """)
         .with_script("""
             export OPENSSL_INCLUDE_DIR=
             export OPENSSL_LIB_DIR=
+            export MAGICLEAP_SDK="$HOME/magicleap/v0.17.0"
+            export MLCERT="$HOME/magicleap/certs/TempSharedCert.cert"
         """)
     )
 
