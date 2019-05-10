@@ -1500,6 +1500,12 @@ impl HTMLMediaElement {
                 //            https://github.com/servo/media/issues/156
 
                 // Step 12 & 13 are already handled by the earlier media track processing.
+
+                // We wait until we have metadata to render the controls, so we render them
+                // with the appropriate size.
+                if self.Controls() {
+                    self.render_controls();
+                }
             },
             PlayerEvent::NeedData => {
                 // The player needs more data.
@@ -1577,6 +1583,9 @@ impl HTMLMediaElement {
     }
 
     fn render_controls(&self) {
+        if self.ready_state.get() < ReadyState::HaveMetadata {
+            return;
+        }
         // XXX cannot render controls while parsing.
         // XXX check that controls are not already rendered.
         let element = self.htmlelement.upcast::<Element>();
