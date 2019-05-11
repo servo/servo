@@ -47,5 +47,5 @@ partial interface Performance {
 // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
 [Exposed=(Window)]
 partial interface Performance {
-  PerformanceNavigationTiming timing();
+  readonly attribute PerformanceNavigationTiming timing;
 };
