@@ -55,7 +55,7 @@ pub type Ellipse =
 pub type ShapeRadius = generic::ShapeRadius<NonNegativeLengthPercentage>;
 
 /// The specified value of `Polygon`
-pub type Polygon = generic::Polygon<LengthPercentage>;
+pub type Polygon = generic::GenericPolygon<LengthPercentage>;
 
 #[cfg(feature = "gecko")]
 fn is_clip_path_path_enabled(context: &ParserContext) -> bool {
@@ -138,11 +138,11 @@ where
         }
 
         if let Some(shp) = shape {
-            return Ok(ShapeSource::Shape(shp, ref_box));
+            return Ok(ShapeSource::Shape(Box::new(shp), ref_box));
         }
 
         ref_box
-            .map(|v| ShapeSource::Box(v))
+            .map(ShapeSource::Box)
             .ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
@@ -152,7 +152,7 @@ impl Parse for GeometryBox {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(shape_box) = input.try(|i| ShapeBox::parse(i)) {
+        if let Ok(shape_box) = input.try(ShapeBox::parse) {
             return Ok(GeometryBox::ShapeBox(shape_box));
         }
 
@@ -352,17 +352,16 @@ impl Polygon {
             })
             .unwrap_or_default();
 
-        let buf = input.parse_comma_separated(|i| {
-            Ok(PolygonCoord(
-                LengthPercentage::parse(context, i)?,
-                LengthPercentage::parse(context, i)?,
-            ))
-        })?;
+        let coordinates = input
+            .parse_comma_separated(|i| {
+                Ok(PolygonCoord(
+                    LengthPercentage::parse(context, i)?,
+                    LengthPercentage::parse(context, i)?,
+                ))
+            })?
+            .into();
 
-        Ok(Polygon {
-            fill: fill,
-            coordinates: buf,
-        })
+        Ok(Polygon { fill, coordinates })
     }
 }
 

@@ -84,11 +84,13 @@ pub enum CSSPixel {}
 //   / hidpi_ratio => DeviceIndependentPixel
 //     / desktop_zoom => CSSPixel
 
+pub mod arc_slice;
 pub mod specified_value_info;
 #[macro_use]
 pub mod values;
 #[macro_use]
 pub mod viewport;
+pub mod owned_slice;
 
 pub use crate::specified_value_info::{CssType, KeywordsCollectFn, SpecifiedValueInfo};
 pub use crate::values::{

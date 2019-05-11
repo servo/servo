@@ -337,6 +337,7 @@ class Longhand(object):
                 "OverflowWrap",
                 "OverscrollBehavior",
                 "Percentage",
+                "PositiveIntegerOrNone",
                 "Resize",
                 "SVGOpacity",
                 "SVGPaintOrder",

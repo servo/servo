@@ -4,6 +4,7 @@
 
 //! Value information for devtools.
 
+use crate::arc_slice::ArcSlice;
 use servo_arc::Arc;
 use std::ops::Range;
 use std::sync::Arc as StdArc;
@@ -116,6 +117,7 @@ impl_generic_specified_value_info!(Option<T>);
 impl_generic_specified_value_info!(Vec<T>);
 impl_generic_specified_value_info!(Arc<T>);
 impl_generic_specified_value_info!(StdArc<T>);
+impl_generic_specified_value_info!(ArcSlice<T>);
 impl_generic_specified_value_info!(Range<Idx>);
 
 impl<T1, T2> SpecifiedValueInfo for (T1, T2)

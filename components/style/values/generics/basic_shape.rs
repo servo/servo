@@ -7,8 +7,8 @@
 
 use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::border::BorderRadius;
-use crate::values::generics::position::Position;
+use crate::values::generics::border::GenericBorderRadius;
+use crate::values::generics::position::GenericPosition;
 use crate::values::generics::rect::Rect;
 use crate::values::specified::SVGPathData;
 use crate::Zero;
@@ -89,7 +89,7 @@ pub enum ShapeBox {
 pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     #[animation(error)]
     ImageOrUrl(ImageOrUrl),
-    Shape(BasicShape, Option<ReferenceBox>),
+    Shape(Box<BasicShape>, Option<ReferenceBox>),
     #[animation(error)]
     Box(ReferenceBox),
     #[css(function)]
@@ -113,7 +113,8 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
+#[repr(C, u8)]
+pub enum GenericBasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
     Inset(
         #[css(field_bound)]
         #[shmem(field_bound)]
@@ -129,8 +130,10 @@ pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
         #[shmem(field_bound)]
         Ellipse<H, V, NonNegativeLengthPercentage>,
     ),
-    Polygon(Polygon<LengthPercentage>),
+    Polygon(GenericPolygon<LengthPercentage>),
 }
+
+pub use self::GenericBasicShape as BasicShape;
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-inset>
 #[allow(missing_docs)]
@@ -148,10 +151,11 @@ pub enum BasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     pub rect: Rect<LengthPercentage>,
     #[shmem(field_bound)]
-    pub round: BorderRadius<NonNegativeLengthPercentage>,
+    pub round: GenericBorderRadius<NonNegativeLengthPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
@@ -171,9 +175,10 @@ pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct Circle<H, V, NonNegativeLengthPercentage> {
-    pub position: Position<H, V>,
-    pub radius: ShapeRadius<NonNegativeLengthPercentage>,
+    pub position: GenericPosition<H, V>,
+    pub radius: GenericShapeRadius<NonNegativeLengthPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-ellipse>
@@ -193,10 +198,11 @@ pub struct Circle<H, V, NonNegativeLengthPercentage> {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
-    pub position: Position<H, V>,
-    pub semiaxis_x: ShapeRadius<NonNegativeLengthPercentage>,
-    pub semiaxis_y: ShapeRadius<NonNegativeLengthPercentage>,
+    pub position: GenericPosition<H, V>,
+    pub semiaxis_x: GenericShapeRadius<NonNegativeLengthPercentage>,
+    pub semiaxis_y: GenericShapeRadius<NonNegativeLengthPercentage>,
 }
 
 /// <https://drafts.csswg.org/css-shapes/#typedef-shape-radius>
@@ -216,7 +222,8 @@ pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum ShapeRadius<NonNegativeLengthPercentage> {
+#[repr(C, u8)]
+pub enum GenericShapeRadius<NonNegativeLengthPercentage> {
     Length(NonNegativeLengthPercentage),
     #[animation(error)]
     ClosestSide,
@@ -224,10 +231,12 @@ pub enum ShapeRadius<NonNegativeLengthPercentage> {
     FarthestSide,
 }
 
+pub use self::GenericShapeRadius as ShapeRadius;
+
 /// A generic type for representing the `polygon()` function
 ///
 /// <https://drafts.csswg.org/css-shapes/#funcdef-polygon>
-#[css(comma, function)]
+#[css(comma, function = "polygon")]
 #[derive(
     Clone,
     Debug,
@@ -240,14 +249,17 @@ pub enum ShapeRadius<NonNegativeLengthPercentage> {
     ToResolvedValue,
     ToShmem,
 )]
-pub struct Polygon<LengthPercentage> {
+#[repr(C)]
+pub struct GenericPolygon<LengthPercentage> {
     /// The filling rule for a polygon.
     #[css(skip_if = "fill_is_default")]
     pub fill: FillRule,
     /// A collection of (x, y) coordinates to draw the polygon.
     #[css(iterable)]
-    pub coordinates: Vec<PolygonCoord<LengthPercentage>>,
+    pub coordinates: crate::OwnedSlice<PolygonCoord<LengthPercentage>>,
 }
+
+pub use self::GenericPolygon as Polygon;
 
 /// Coordinates for Polygon.
 #[derive(
@@ -262,6 +274,7 @@ pub struct Polygon<LengthPercentage> {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercentage);
 
 // https://drafts.csswg.org/css-shapes/#typedef-fill-rule
@@ -393,7 +406,8 @@ where
                     this.1.animate(&other.1, procedure)?,
                 ))
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?
+            .into();
         Ok(Polygon {
             fill: self.fill,
             coordinates,

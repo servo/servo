@@ -2209,13 +2209,9 @@ impl PropertyDeclaration {
                 // This probably affects some test results.
                 let value = match input.try(CSSWideKeyword::parse) {
                     Ok(keyword) => CustomDeclarationValue::CSSWideKeyword(keyword),
-                    Err(()) => match crate::custom_properties::SpecifiedValue::parse(input) {
-                        Ok(value) => CustomDeclarationValue::Value(value),
-                        Err(e) => return Err(StyleParseErrorKind::new_invalid(
-                            format!("--{}", property_name),
-                            e,
-                        )),
-                    }
+                    Err(()) => CustomDeclarationValue::Value(
+                        crate::custom_properties::SpecifiedValue::parse(input)?
+                    ),
                 };
                 declarations.push(PropertyDeclaration::Custom(CustomDeclaration {
                     name: property_name,
@@ -2236,19 +2232,11 @@ impl PropertyDeclaration {
                     .or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if !input.seen_var_or_env_functions() {
-                            return Err(StyleParseErrorKind::new_invalid(
-                                non_custom_id.unwrap().name(),
-                                err,
-                            ));
+                            return Err(err);
                         }
                         input.reset(&start);
                         let (first_token_type, css) =
-                            crate::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                StyleParseErrorKind::new_invalid(
-                                    non_custom_id.unwrap().name(),
-                                    e,
-                                )
-                            })?;
+                            crate::custom_properties::parse_non_custom_with_var(input)?;
                         Ok(PropertyDeclaration::WithVariables(VariableDeclaration {
                             id,
                             value: Arc::new(UnparsedValue {
@@ -2287,20 +2275,12 @@ impl PropertyDeclaration {
                     id.parse_into(declarations, context, input).or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if !input.seen_var_or_env_functions() {
-                            return Err(StyleParseErrorKind::new_invalid(
-                                non_custom_id.unwrap().name(),
-                                err,
-                            ));
+                            return Err(err);
                         }
 
                         input.reset(&start);
                         let (first_token_type, css) =
-                            crate::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                StyleParseErrorKind::new_invalid(
-                                    non_custom_id.unwrap().name(),
-                                    e,
-                                )
-                            })?;
+                            crate::custom_properties::parse_non_custom_with_var(input)?;
                         let unparsed = Arc::new(UnparsedValue {
                             css: css.into_owned(),
                             first_token_type: first_token_type,

@@ -444,6 +444,30 @@ where
     }
 }
 
+impl<T> ToComputedValue for crate::OwnedSlice<T>
+where
+    T: ToComputedValue,
+{
+    type ComputedValue = crate::OwnedSlice<<T as ToComputedValue>::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        self.iter()
+            .map(|item| item.to_computed_value(context))
+            .collect::<Vec<_>>()
+            .into()
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        computed
+            .iter()
+            .map(T::from_computed_value)
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
 trivial_to_computed_value!(());
 trivial_to_computed_value!(bool);
 trivial_to_computed_value!(f32);
@@ -639,6 +663,9 @@ impl From<CSSInteger> for PositiveInteger {
         GreaterThanOrEqualToOne::<CSSInteger>(int)
     }
 }
+
+/// A computed positive `<integer>` value or `none`.
+pub type PositiveIntegerOrNone = Either<PositiveInteger, None_>;
 
 /// rect(...)
 pub type ClipRect = generics::ClipRect<LengthOrAuto>;

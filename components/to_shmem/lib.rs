@@ -311,7 +311,7 @@ where
 
 /// Writes all the items in `src` into a slice in the shared memory buffer and
 /// returns a pointer to the slice.
-unsafe fn to_shmem_slice<'a, T, I>(src: I, builder: &mut SharedMemoryBuilder) -> *mut [T]
+pub unsafe fn to_shmem_slice<'a, T, I>(src: I, builder: &mut SharedMemoryBuilder) -> *mut [T]
 where
     T: 'a + ToShmem,
     I: ExactSizeIterator<Item = &'a T>,
