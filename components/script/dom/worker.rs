@@ -5,13 +5,13 @@
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding;
-use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
@@ -72,7 +72,11 @@ impl Worker {
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
     #[allow(unsafe_code)]
-    pub fn Constructor(global: &GlobalScope, script_url: DOMString) -> Fallible<DomRoot<Worker>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        script_url: USVString,
+        worker_options: &WorkerOptions,
+    ) -> Fallible<DomRoot<Worker>> {
         // Step 2-4.
         let worker_url = match global.api_base_url().join(&script_url) {
             Ok(url) => url,
@@ -118,6 +122,8 @@ impl Worker {
             sender,
             receiver,
             worker_load_origin,
+            String::from(&*worker_options.name),
+            worker_options.type_,
             closing,
         );
 
@@ -183,6 +189,9 @@ impl WorkerMethods for Worker {
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
+
+    // https://html.spec.whatwg.org/multipage/#handler-worker-onmessageerror
+    event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 
     // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
     event_handler!(error, GetOnerror, SetOnerror);

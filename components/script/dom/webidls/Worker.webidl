@@ -9,12 +9,22 @@ interface AbstractWorker {
 };
 
 // https://html.spec.whatwg.org/multipage/#worker
-[Constructor(DOMString scriptURL), Exposed=(Window,Worker)]
+[Constructor(USVString scriptURL, optional WorkerOptions options), Exposed=(Window,Worker)]
 interface Worker : EventTarget {
   void terminate();
 
-[Throws]
-void postMessage(any message/*, optional sequence<Transferable> transfer*/);
-           attribute EventHandler onmessage;
+  [Throws] void postMessage(any message/*, sequence<object> transfer*/);
+  // void postMessage(any message, optional PostMessageOptions options);
+  attribute EventHandler onmessage;
+  attribute EventHandler onmessageerror;
 };
+
+dictionary WorkerOptions {
+  WorkerType type = "classic";
+  RequestCredentials credentials = "same-origin"; // credentials is only used if type is "module"
+  DOMString name = "";
+};
+
+enum WorkerType { "classic", "module" };
+
 Worker implements AbstractWorker;

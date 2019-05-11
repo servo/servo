@@ -7,6 +7,7 @@ use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
@@ -203,6 +204,8 @@ impl ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 init,
+                DOMString::new(),
+                WorkerType::Classic, // FIXME(cybai): Should be provided from `Run Service Worker`
                 worker_url,
                 runtime,
                 from_devtools_receiver,
