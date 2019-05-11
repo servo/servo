@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::globalscope::GlobalScope;
-use js::jsapi::{GetCurrentRealmOrNull, JSAutoCompartment};
+use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
 
 pub struct AlreadyInCompartment(());
 
@@ -20,7 +20,7 @@ impl AlreadyInCompartment {
 #[derive(Clone, Copy)]
 pub enum InCompartment<'a> {
     Already(&'a AlreadyInCompartment),
-    Entered(&'a JSAutoCompartment),
+    Entered(&'a JSAutoRealm),
 }
 
 impl<'a> InCompartment<'a> {
@@ -28,7 +28,7 @@ impl<'a> InCompartment<'a> {
         InCompartment::Already(token)
     }
 
-    pub fn entered(token: &JSAutoCompartment) -> InCompartment {
+    pub fn entered(token: &JSAutoRealm) -> InCompartment {
         InCompartment::Entered(token)
     }
 }

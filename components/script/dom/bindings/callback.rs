@@ -14,9 +14,9 @@ use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use js::jsapi::Heap;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use js::jsapi::{AddRawValueRoot, IsCallable, JSContext, JSObject};
-use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
+use js::jsapi::{EnterRealm, LeaveRealm, Realm, RemoveRawValueRoot};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{MutableHandleObject, Runtime};
@@ -229,7 +229,7 @@ pub struct CallSetup {
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The compartment we were in before the call.
-    old_compartment: *mut JSCompartment,
+    old_realm: *mut Realm,
     /// The exception handling used for the call.
     handling: ExceptionHandling,
     /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
@@ -255,7 +255,7 @@ impl CallSetup {
         CallSetup {
             exception_global: global,
             cx: cx,
-            old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
+            old_realm: unsafe { EnterRealm(cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
             incumbent_script: ais,
@@ -271,9 +271,9 @@ impl CallSetup {
 impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe {
-            JS_LeaveCompartment(self.cx, self.old_compartment);
+            LeaveRealm(self.cx, self.old_realm);
             if self.handling == ExceptionHandling::Report {
-                let _ac = JSAutoCompartment::new(
+                let _ac = JSAutoRealm::new(
                     self.cx,
                     self.exception_global.reflector().get_jsobject().get(),
                 );

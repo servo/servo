@@ -28,7 +28,7 @@ use base64;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsval::{self, JSVal};
@@ -262,8 +262,7 @@ impl FileReader {
                 FileReader::perform_readastext(&fr.result, data, &blob_contents)
             },
             FileReaderFunction::ReadAsArrayBuffer => {
-                let _ac =
-                    JSAutoCompartment::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
+                let _ac = JSAutoRealm::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
                 FileReader::perform_readasarraybuffer(
                     &fr.result,
                     fr.global().get_cx(),

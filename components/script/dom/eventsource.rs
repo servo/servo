@@ -28,7 +28,7 @@ use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
@@ -222,7 +222,7 @@ impl EventSourceContext {
         };
         // Steps 4-5
         let event = {
-            let _ac = JSAutoCompartment::new(
+            let _ac = JSAutoRealm::new(
                 event_source.global().get_cx(),
                 event_source.reflector().get_jsobject().get(),
             );
