@@ -215,8 +215,6 @@ impl Pipeline {
             device_pixel_ratio: state.device_pixel_ratio,
         };
 
-        let url = state.load_data.url.clone();
-
         let (script_chan, sampler_chan) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
@@ -336,7 +334,6 @@ impl Pipeline {
             script_chan,
             pipeline_chan,
             state.compositor_proxy,
-            url,
             state.prev_visibility,
             state.load_data,
         );
@@ -356,7 +353,6 @@ impl Pipeline {
         event_loop: Rc<EventLoop>,
         layout_chan: IpcSender<LayoutControlMsg>,
         compositor_proxy: CompositorProxy,
-        url: ServoUrl,
         is_visible: bool,
         load_data: LoadData,
     ) -> Pipeline {
@@ -368,7 +364,7 @@ impl Pipeline {
             event_loop: event_loop,
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
-            url: url,
+            url: load_data.url.clone(),
             children: vec![],
             running_animations: false,
             load_data: load_data,
