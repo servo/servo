@@ -145,11 +145,11 @@ use script_traits::{
 use script_traits::{
     ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext,
 };
-use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
+use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData, LoadOrigin};
+use script_traits::{HistoryEntryReplacement, IFrameSizeMsg, WindowSizeData, WindowSizeType};
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
-use script_traits::{IFrameSizeMsg, WindowSizeData, WindowSizeType};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
@@ -171,7 +171,7 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
-type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, bool)>;
+type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
 /// store browser specific data for bookkeeping.
@@ -1320,7 +1320,7 @@ where
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
             FromCompositorMsg::LoadUrl(top_level_browsing_context_id, url) => {
-                let load_data = LoadData::new(url, None, None, None);
+                let load_data = LoadData::new(LoadOrigin::TopLevel, url, None, None, None);
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,
@@ -1333,7 +1333,12 @@ where
                 };
                 // Since this is a top-level load, initiated by the embedder, go straight to load_url,
                 // bypassing schedule_navigation.
-                self.load_url(top_level_browsing_context_id, pipeline_id, load_data, false);
+                self.load_url(
+                    top_level_browsing_context_id,
+                    pipeline_id,
+                    load_data,
+                    HistoryEntryReplacement::Disabled,
+                );
             },
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
@@ -1916,7 +1921,7 @@ where
         warn!("creating replacement pipeline for about:failure");
 
         let new_pipeline_id = PipelineId::new();
-        let load_data = LoadData::new(failure_url, None, None, None);
+        let load_data = LoadData::new(LoadOrigin::TopLevel, failure_url, None, None, None);
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
         self.new_pipeline(
@@ -2035,7 +2040,7 @@ where
         );
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let load_data = LoadData::new(url, None, None, None);
+        let load_data = LoadData::new(LoadOrigin::TopLevel, url, None, None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
         let is_visible = true;
@@ -2179,6 +2184,7 @@ where
     // the result of a page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
         let IFrameLoadInfo {
+            load_origin,
             parent_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
@@ -2196,7 +2202,9 @@ where
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
         debug!("checking old pipeline? {:?}", load_info.old_pipeline_id);
         if let Some(old_pipeline) = old_pipeline {
-            replace |= !old_pipeline.completely_loaded;
+            if !old_pipeline.completely_loaded {
+                replace = HistoryEntryReplacement::Enabled;
+            }
             debug!(
                 "old pipeline is {}completely loaded",
                 if old_pipeline.completely_loaded {
@@ -2214,7 +2222,7 @@ where
             };
 
             // TODO - loaddata here should have referrer info (not None, None)
-            LoadData::new(url, Some(parent_pipeline_id), None, None)
+            LoadData::new(load_origin, url, Some(parent_pipeline_id), None, None)
         });
 
         let is_parent_private = {
@@ -2250,10 +2258,11 @@ where
             },
         };
 
-        let replace = if replace {
-            Some(NeedsToReload::No(browsing_context.pipeline_id))
-        } else {
-            None
+        let replace = match replace {
+            HistoryEntryReplacement::Enabled => {
+                Some(NeedsToReload::No(browsing_context.pipeline_id))
+            },
+            HistoryEntryReplacement::Disabled => None,
         };
 
         // https://github.com/rust-lang/rust/issues/59159
@@ -2289,6 +2298,7 @@ where
         layout_sender: IpcSender<LayoutControlMsg>,
     ) {
         let IFrameLoadInfo {
+            load_origin,
             parent_pipeline_id,
             new_pipeline_id,
             browsing_context_id,
@@ -2300,7 +2310,13 @@ where
         let url = ServoUrl::parse("about:blank").expect("infallible");
 
         // TODO: Referrer?
-        let load_data = LoadData::new(url.clone(), Some(parent_pipeline_id), None, None);
+        let load_data = LoadData::new(
+            load_origin,
+            url.clone(),
+            Some(parent_pipeline_id),
+            None,
+            None,
+        );
 
         let (script_sender, parent_browsing_context_id) =
             match self.pipelines.get(&parent_pipeline_id) {
@@ -2353,6 +2369,7 @@ where
         layout_sender: IpcSender<LayoutControlMsg>,
     ) {
         let AuxiliaryBrowsingContextLoadInfo {
+            load_origin,
             opener_pipeline_id,
             new_top_level_browsing_context_id,
             new_browsing_context_id,
@@ -2362,7 +2379,7 @@ where
         let url = ServoUrl::parse("about:blank").expect("infallible");
 
         // TODO: Referrer?
-        let load_data = LoadData::new(url.clone(), None, None, None);
+        let load_data = LoadData::new(load_origin, url.clone(), None, None, None);
 
         let (script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
@@ -2496,7 +2513,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         source_id: PipelineId,
         load_data: LoadData,
-        replace: bool,
+        replace: HistoryEntryReplacement,
     ) {
         match self.pending_approval_navigations.entry(source_id) {
             Entry::Occupied(_) => {
@@ -2522,13 +2539,15 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         source_id: PipelineId,
         load_data: LoadData,
-        replace: bool,
+        replace: HistoryEntryReplacement,
     ) -> Option<PipelineId> {
+        let replace_debug = match replace {
+            HistoryEntryReplacement::Enabled => "",
+            HistoryEntryReplacement::Disabled => "not",
+        };
         debug!(
             "Loading {} in pipeline {}, {}replacing.",
-            load_data.url,
-            source_id,
-            if replace { "" } else { "not " }
+            load_data.url, source_id, replace_debug
         );
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated
@@ -2569,7 +2588,7 @@ where
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
-                let msg = ConstellationControlMsg::Navigate(
+                let msg = ConstellationControlMsg::NavigateIframe(
                     parent_pipeline_id,
                     browsing_context_id,
                     load_data,
@@ -2612,10 +2631,9 @@ where
 
                 // Create the new pipeline
 
-                let replace = if replace {
-                    Some(NeedsToReload::No(pipeline_id))
-                } else {
-                    None
+                let replace = match replace {
+                    HistoryEntryReplacement::Enabled => Some(NeedsToReload::No(pipeline_id)),
+                    HistoryEntryReplacement::Disabled => None,
                 };
 
                 let new_pipeline_id = PipelineId::new();
@@ -2730,7 +2748,7 @@ where
         &mut self,
         pipeline_id: PipelineId,
         new_url: ServoUrl,
-        replacement_enabled: bool,
+        replacement_enabled: HistoryEntryReplacement,
     ) {
         let (top_level_browsing_context_id, old_url) = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
@@ -2745,15 +2763,18 @@ where
             },
         };
 
-        if !replacement_enabled {
-            let diff = SessionHistoryDiff::HashDiff {
-                pipeline_reloader: NeedsToReload::No(pipeline_id),
-                new_url,
-                old_url,
-            };
-            self.get_joint_session_history(top_level_browsing_context_id)
-                .push_diff(diff);
-            self.notify_history_changed(top_level_browsing_context_id);
+        match replacement_enabled {
+            HistoryEntryReplacement::Disabled => {
+                let diff = SessionHistoryDiff::HashDiff {
+                    pipeline_reloader: NeedsToReload::No(pipeline_id),
+                    new_url,
+                    old_url,
+                };
+                self.get_joint_session_history(top_level_browsing_context_id)
+                    .push_diff(diff);
+                self.notify_history_changed(top_level_browsing_context_id);
+            },
+            HistoryEntryReplacement::Enabled => {},
         }
     }
 
@@ -3395,7 +3416,12 @@ where
                 ));
             },
             WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, reply) => {
-                self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, false);
+                self.load_url_for_webdriver(
+                    top_level_browsing_context_id,
+                    load_data,
+                    reply,
+                    HistoryEntryReplacement::Disabled,
+                );
             },
             WebDriverCommandMsg::Refresh(top_level_browsing_context_id, reply) => {
                 let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -3412,7 +3438,12 @@ where
                     Some(pipeline) => pipeline.load_data.clone(),
                     None => return warn!("Pipeline {} refresh after closure.", pipeline_id),
                 };
-                self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, true);
+                self.load_url_for_webdriver(
+                    top_level_browsing_context_id,
+                    load_data,
+                    reply,
+                    HistoryEntryReplacement::Enabled,
+                );
             },
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -3595,7 +3626,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         load_data: LoadData,
         reply: IpcSender<webdriver_msg::LoadStatus>,
-        replace: bool,
+        replace: HistoryEntryReplacement,
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {

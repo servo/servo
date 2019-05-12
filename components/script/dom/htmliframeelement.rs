@@ -37,8 +37,8 @@ use profile_traits::ipc as ProfiledIpc;
 use script_layout_interface::message::ReflowGoal;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
-    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason,
-    WindowSizeData,
+    HistoryEntryReplacement, IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData,
+    LoadOrigin, UpdatePipelineIdReason, WindowSizeData,
 };
 use script_traits::{NewLayoutInfo, ScriptMsg};
 use servo_url::ServoUrl;
@@ -111,7 +111,7 @@ impl HTMLIFrameElement {
         &self,
         mut load_data: Option<LoadData>,
         nav_type: NavigationType,
-        replace: bool,
+        replace: HistoryEntryReplacement,
     ) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
@@ -141,7 +141,14 @@ impl HTMLIFrameElement {
             if is_javascript {
                 let window_proxy = self.GetContentWindow();
                 if let Some(window_proxy) = window_proxy {
-                    ScriptThread::eval_js_url(&window_proxy.global(), load_data);
+                    // Important re security. See https://github.com/servo/servo/issues/23373
+                    // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+                    if ScriptThread::check_load_origin(
+                        &load_data.load_origin,
+                        &document.url().origin(),
+                    ) {
+                        ScriptThread::eval_js_url(&window_proxy.global(), load_data);
+                    }
                 }
             }
         }
@@ -168,6 +175,7 @@ impl HTMLIFrameElement {
 
         let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
+            load_origin: LoadOrigin::Script(document.origin().immutable().clone()),
             parent_pipeline_id: global_scope.pipeline_id(),
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
@@ -270,6 +278,7 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         let load_data = LoadData::new(
+            LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             creator_pipeline_id,
             Some(Referrer::ReferrerUrl(document.url())),
@@ -281,7 +290,11 @@ impl HTMLIFrameElement {
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
-        let replace = is_about_blank;
+        let replace = if is_about_blank {
+            HistoryEntryReplacement::Enabled
+        } else {
+            HistoryEntryReplacement::Disabled
+        };
         self.navigate_or_reload_child_browsing_context(
             Some(load_data),
             NavigationType::Regular,
@@ -296,6 +309,7 @@ impl HTMLIFrameElement {
         let window = window_from_node(self);
         let pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
         let load_data = LoadData::new(
+            LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             pipeline_id,
             Some(Referrer::ReferrerUrl(document.url().clone())),
@@ -311,7 +325,7 @@ impl HTMLIFrameElement {
         self.navigate_or_reload_child_browsing_context(
             Some(load_data),
             NavigationType::InitialAboutBlank,
-            false,
+            HistoryEntryReplacement::Disabled,
         );
     }
 

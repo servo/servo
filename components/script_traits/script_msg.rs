@@ -97,6 +97,15 @@ pub enum LogEntry {
     Warn(String),
 }
 
+/// https://html.spec.whatwg.org/multipage/#replacement-enabled
+#[derive(Debug, Deserialize, Serialize)]
+pub enum HistoryEntryReplacement {
+    /// Traverse the history with replacement enabled.
+    Enabled,
+    /// Traverse the history with replacement disabled.
+    Disabled,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
@@ -145,7 +154,7 @@ pub enum ScriptMsg {
     LoadComplete,
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
-    LoadUrl(LoadData, bool),
+    LoadUrl(LoadData, HistoryEntryReplacement),
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
@@ -160,7 +169,7 @@ pub enum ScriptMsg {
         data: Vec<u8>,
     },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
-    NavigatedToFragment(ServoUrl, bool),
+    NavigatedToFragment(ServoUrl, HistoryEntryReplacement),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
     /// Inform the constellation of a pushed history state.
