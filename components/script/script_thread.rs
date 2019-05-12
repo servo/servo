@@ -69,7 +69,9 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::script_runtime::{get_reports, new_rt_and_cx, Runtime, ScriptPort};
-use crate::script_runtime::{CommonScriptMsg, LocalScriptChan, ScriptChan, ScriptThreadEventCategory};
+use crate::script_runtime::{
+    CommonScriptMsg, LocalScriptChan, ScriptChan, ScriptThreadEventCategory,
+};
 use crate::serviceworkerjob::{Job, JobQueue};
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -434,9 +436,9 @@ pub struct ThreadLocalScriptChan(pub Rc<DomRefCell<VecDeque<MainThreadScriptMsg>
 impl LocalScriptChan for ThreadLocalScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.0
-			.borrow_mut()
+            .borrow_mut()
             .push_back(MainThreadScriptMsg::Common(msg));
-			Ok(())
+        Ok(())
     }
 
     fn clone(&self) -> Box<dyn LocalScriptChan> {
@@ -1418,6 +1420,8 @@ impl ScriptThread {
                 window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
             }
         }
+
+        self.task_queue.ensure_wake_up();
 
         true
     }
@@ -2442,7 +2446,10 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
     ) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(Box::new(ThreadLocalScriptChan(self.task_queue.local_port())), pipeline_id)
+        DOMManipulationTaskSource(
+            Box::new(ThreadLocalScriptChan(self.task_queue.local_port())),
+            pipeline_id,
+        )
     }
 
     pub fn media_element_task_source(&self, pipeline_id: PipelineId) -> MediaElementTaskSource {

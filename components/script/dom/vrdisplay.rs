@@ -534,7 +534,7 @@ impl VRDisplay {
         let ctx = ctx.map(|c| Trusted::new(c));
         let global = self.global();
         let window = global.as_window();
-		// FIXME: use a dedicated VR task-source.
+        // FIXME: use a dedicated VR task-source.
         let (task_source, canceller) = window
             .task_manager()
             .media_element_task_source_with_canceller();

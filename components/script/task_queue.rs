@@ -39,8 +39,8 @@ pub trait QueuedTaskConversion {
 pub struct TaskQueue<T> {
     /// The original port on which the task-sources send tasks as messages.
     port: Receiver<T>,
-	/// A thread-local version of port.
-	local_port: Rc<DomRefCell<VecDeque<T>>>,
+    /// A thread-local version of port.
+    local_port: Rc<DomRefCell<VecDeque<T>>>,
     /// A sender to ensure the port doesn't block on select while there are throttled tasks.
     wake_up_sender: Sender<T>,
     /// A queue from which the event-loop can drain tasks.
@@ -57,7 +57,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     pub fn new(port: Receiver<T>, wake_up_sender: Sender<T>) -> TaskQueue<T> {
         TaskQueue {
             port,
-			local_port: Rc::new(DomRefCell::new(VecDeque::new())),
+            local_port: Rc::new(DomRefCell::new(VecDeque::new())),
             wake_up_sender,
             msg_queue: DomRefCell::new(VecDeque::new()),
             taken_task_counter: Default::default(),
@@ -66,9 +66,9 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         }
     }
 
-	pub fn local_port(&self) -> Rc<DomRefCell<VecDeque<T>>> {
-		self.local_port.clone()
-	}
+    pub fn local_port(&self) -> Rc<DomRefCell<VecDeque<T>>> {
+        self.local_port.clone()
+    }
 
     /// Release previously held-back tasks for documents that are now fully-active.
     /// https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
@@ -124,6 +124,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 incoming.push(msg);
             }
         }
+        let mut locally_enqueued_tasks: Vec<T> = self.local_port.borrow_mut().drain(0..).collect();
+        incoming.append(&mut locally_enqueued_tasks);
 
         // 4. Filter tasks from non-priority task-sources.
         let to_be_throttled: Vec<T> = incoming
@@ -179,6 +181,20 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         // We want to be notified when the script-port is ready to receive.
         // Hence that's the one we need to include in the select.
         &self.port
+    }
+
+    /// Ensure the event-loop wakes-up,
+    /// in the case we only have tasks available from the local queue.
+    pub fn ensure_wake_up(&self) {
+        if !self.port.is_empty() {
+            // The channel is not empty, so the event-loop will wake-up.
+            return;
+        }
+        if self.local_port.borrow().len() > 0 {
+            // We have locally enqueued tasks, yet the channel is empty.
+            // Schedule a wake-up of the event-loop.
+            let _ = self.wake_up_sender.send(T::wake_up_msg());
+        }
     }
 
     /// Take a message from the front of the queue, without waiting if empty.

@@ -11,11 +11,11 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::{CommonScriptMsg, LocalScriptChan, ScriptChan, ScriptPort};
-use std::collections::VecDeque;
-use std::rc::Rc;
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 use crossbeam_channel::{Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
+use std::collections::VecDeque;
+use std::rc::Rc;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
@@ -82,7 +82,7 @@ impl LocalScriptChan for ThreadLocalWorkerChan {
             WorkerScriptMsg::Common(msg),
         );
         self.sender.borrow_mut().push_back(msg);
-		Ok(())
+        Ok(())
     }
 
     fn clone(&self) -> Box<dyn LocalScriptChan> {
@@ -184,4 +184,5 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
             .upcast::<GlobalScope>()
             .perform_a_microtask_checkpoint();
     }
+    task_queue.ensure_wake_up();
 }

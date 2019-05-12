@@ -149,11 +149,11 @@ pub struct ServiceWorkerLocalChan {
 impl LocalScriptChan for ServiceWorkerLocalChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.sender
-			.borrow_mut()
+            .borrow_mut()
             .push_back(ServiceWorkerScriptMsg::CommonWorker(
                 WorkerScriptMsg::Common(msg),
             ));
-		Ok(())
+        Ok(())
     }
 
     fn clone(&self) -> Box<dyn LocalScriptChan> {
