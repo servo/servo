@@ -289,7 +289,7 @@ pub enum ConstellationControlMsg {
     NotifyVisibilityChange(PipelineId, BrowsingContextId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
-    Navigate(PipelineId, BrowsingContextId, LoadData, bool),
+    NavigateIframe(PipelineId, BrowsingContextId, LoadData, bool),
     /// Post a message to a given window.
     PostMessage {
         /// The target of the message.
@@ -376,7 +376,7 @@ impl fmt::Debug for ConstellationControlMsg {
             SetDocumentActivity(..) => "SetDocumentActivity",
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
-            Navigate(..) => "Navigate",
+            NavigateIframe(..) => "NavigateIframe",
             PostMessage { .. } => "PostMessage",
             UpdatePipelineId(..) => "UpdatePipelineId",
             UpdateHistoryState(..) => "UpdateHistoryState",

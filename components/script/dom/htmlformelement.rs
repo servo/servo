@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -12,6 +13,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
@@ -46,7 +48,6 @@ use crate::dom::node::{UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::script_thread::MainThreadScriptMsg;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -530,7 +531,7 @@ impl HTMLFormElement {
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, load_data: LoadData, target: &Window) {
+    fn plan_to_navigate(&self, mut load_data: LoadData, target: &Window) {
         // Step 1
         // Each planned navigation task is tagged with a generation ID, and
         // before the task is handled, it first checks whether the HTMLFormElement's
@@ -538,19 +539,35 @@ impl HTMLFormElement {
         let generation_id = GenerationId(self.generation_id.get().0 + 1);
         self.generation_id.set(generation_id);
 
-        // Step 2.
+        // Step 2
+        let elem = self.upcast::<Element>();
+        let referrer = match elem.get_attribute(&ns!(), &local_name!("rel")) {
+            Some(ref link_types) if link_types.Value().contains("noreferrer") => {
+                Referrer::NoReferrer
+            },
+            _ => Referrer::Client,
+        };
+
+        let referrer_policy = target.Document().get_referrer_policy();
         let pipeline_id = target.upcast::<GlobalScope>().pipeline_id();
-        let script_chan = target.main_thread_script_chan().clone();
+        load_data.creator_pipeline_id = Some(pipeline_id);
+        load_data.referrer = Some(referrer);
+        load_data.referrer_policy = referrer_policy;
+
+        // Step 4.
         let this = Trusted::new(self);
+        let window = Trusted::new(target);
         let task = task!(navigate_to_form_planned_navigation: move || {
             if generation_id != this.root().generation_id.get() {
                 return;
             }
-            script_chan.send(MainThreadScriptMsg::Navigate(
-                pipeline_id,
-                load_data,
-                false,
-            )).unwrap();
+            window
+                .root()
+                .load_url(
+                    false,
+                    false,
+                    load_data,
+                );
         });
 
         // Step 3.

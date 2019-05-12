@@ -436,13 +436,10 @@ impl WindowProxy {
                 Referrer::Client
             };
             // Step 14.5
-            target_window.load_url(
-                url,
-                new,
-                false,
-                referrer,
-                target_document.get_referrer_policy(),
-            );
+            let referrer_policy = target_document.get_referrer_policy();
+            let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
+            let load_data = LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy);
+            target_window.load_url(new, false, load_data);
         }
         if noopener {
             // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).

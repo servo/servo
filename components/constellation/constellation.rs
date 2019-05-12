@@ -2322,7 +2322,7 @@ where
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
-                let msg = ConstellationControlMsg::Navigate(
+                let msg = ConstellationControlMsg::NavigateIframe(
                     parent_pipeline_id,
                     browsing_context_id,
                     load_data,
