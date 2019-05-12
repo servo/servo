@@ -147,7 +147,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         let window = global.as_window();
         let (task_source, canceller) = window
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .media_element_task_source_with_canceller();
         Builder::new()
             .name("OfflineAudioContextResolver".to_owned())
             .spawn(move || {

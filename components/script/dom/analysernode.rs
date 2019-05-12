@@ -99,7 +99,7 @@ impl AnalyserNode {
         let object = reflect_dom_object(Box::new(node), window, AnalyserNodeBinding::Wrap);
         let (source, canceller) = window
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .media_element_task_source_with_canceller();
         let this = Trusted::new(&*object);
 
         ROUTER.add_route(

@@ -460,10 +460,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let this_ = this.clone();
             let (task_source, canceller) = window
                 .task_manager()
-                .dom_manipulation_task_source_with_canceller();
+                .media_element_task_source_with_canceller();
             let (task_source_, canceller_) = window
                 .task_manager()
-                .dom_manipulation_task_source_with_canceller();
+                .media_element_task_source_with_canceller();
             let callbacks = AudioDecoderCallbacks::new()
                 .ready(move |channel_count| {
                     decoded_audio

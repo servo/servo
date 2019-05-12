@@ -1229,7 +1229,7 @@ impl HTMLMediaElement {
         let window = window_from_node(self);
         let (task_source, canceller) = window
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .media_element_task_source_with_canceller();
         ROUTER.add_route(
             action_receiver.to_opaque(),
             Box::new(move |message| {

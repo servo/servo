@@ -534,9 +534,10 @@ impl VRDisplay {
         let ctx = ctx.map(|c| Trusted::new(c));
         let global = self.global();
         let window = global.as_window();
+		// FIXME: use a dedicated VR task-source.
         let (task_source, canceller) = window
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .media_element_task_source_with_canceller();
         thread::spawn(move || {
             let recv = receiver.recv().unwrap();
             let _ = task_source.queue_with_canceller(
