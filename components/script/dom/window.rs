@@ -88,9 +88,8 @@ use js::rust::HandleValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
-use net_traits::request::Referrer;
 use net_traits::storage_thread::StorageType;
-use net_traits::{ReferrerPolicy, ResourceThreads};
+use net_traits::ResourceThreads;
 use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -102,7 +101,7 @@ use script_layout_interface::rpc::{
 };
 use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
+use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
@@ -1729,27 +1728,31 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
+    ///
+    /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
     pub fn load_url(
         &self,
-        url: ServoUrl,
-        replace: bool,
+        replace: HistoryEntryReplacement,
         force_reload: bool,
-        referrer: Referrer,
-        referrer_policy: Option<ReferrerPolicy>,
+        load_data: LoadData,
     ) {
         let doc = self.Document();
-        let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
-        // https://html.spec.whatwg.org/multipage/#navigating-across-documents
+        // TODO: Important re security. See https://github.com/servo/servo/issues/23373
+        // Step 3: check that the source browsing-context is "allowed to navigate" this window.
         if !force_reload &&
-            url.as_url()[..Position::AfterQuery] == doc.url().as_url()[..Position::AfterQuery]
+            load_data.url.as_url()[..Position::AfterQuery] ==
+                doc.url().as_url()[..Position::AfterQuery]
         {
             // Step 6
-            if let Some(fragment) = url.fragment() {
-                self.send_to_constellation(ScriptMsg::NavigatedToFragment(url.clone(), replace));
+            if let Some(fragment) = load_data.url.fragment() {
+                self.send_to_constellation(ScriptMsg::NavigatedToFragment(
+                    load_data.url.clone(),
+                    replace,
+                ));
                 doc.check_and_scroll_fragment(fragment);
                 let this = Trusted::new(self);
                 let old_url = doc.url().into_string();
-                let new_url = url.clone().into_string();
+                let new_url = load_data.url.clone().into_string();
                 let task = task!(hashchange_event: move || {
                     let this = this.root();
                     let event = HashChangeEvent::new(
@@ -1772,7 +1775,7 @@ impl Window {
                     self.pipeline_id(),
                     TaskSourceName::DOMManipulation,
                 ));
-                doc.set_url(url.clone());
+                doc.set_url(load_data.url.clone());
                 return;
             }
         }
@@ -1797,13 +1800,9 @@ impl Window {
                 // then put it in the delaying load events mode.
                 self.window_proxy().start_delaying_load_events_mode();
             }
-            self.main_thread_script_chan()
-                .send(MainThreadScriptMsg::Navigate(
-                    pipeline_id,
-                    LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy),
-                    replace,
-                ))
-                .unwrap();
+            // TODO: step 11, navigationType.
+            // Step 12, 13
+            ScriptThread::navigate(pipeline_id, load_data, replace);
         };
     }
 
