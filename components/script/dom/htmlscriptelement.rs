@@ -126,6 +126,11 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
+pub enum ScriptType {
+    Classic,
+    Module,
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct ClassicScript {
     text: DOMString,
@@ -376,10 +381,12 @@ impl HTMLScriptElement {
             return;
         }
 
-        // Step 7.
-        if !self.is_javascript() {
+        let _script_type = if let Some(ty) = self.get_script_type() {
+            ty
+        } else {
+            // Step 7.
             return;
-        }
+        };
 
         // Step 8.
         if was_parser_inserted {
@@ -696,45 +703,62 @@ impl HTMLScriptElement {
         );
     }
 
-    pub fn is_javascript(&self) -> bool {
+    // https://html.spec.whatwg.org/multipage/#prepare-a-script Step 7.
+    pub fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
+
         let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
-        let is_js = match type_attr.as_ref().map(|s| s.value()) {
-            Some(ref s) if s.is_empty() => {
-                // type attr exists, but empty means js
+        let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
+
+        let script_type = match (
+            type_attr.as_ref().map(|t| t.value()),
+            language_attr.as_ref().map(|l| l.value()),
+        ) {
+            (Some(ref ty), _) if ty.is_empty() => {
                 debug!("script type empty, inferring js");
-                true
+                Some(ScriptType::Classic)
             },
-            Some(s) => {
-                debug!("script type={}", &**s);
-                SCRIPT_JS_MIMES
-                    .contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
+            (None, Some(ref lang)) if lang.is_empty() => {
+                debug!("script type empty, inferring js");
+                Some(ScriptType::Classic)
             },
-            None => {
-                debug!("no script type");
-                let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
-                let is_js = match language_attr.as_ref().map(|s| s.value()) {
-                    Some(ref s) if s.is_empty() => {
-                        debug!("script language empty, inferring js");
-                        true
-                    },
-                    Some(s) => {
-                        debug!("script language={}", &**s);
-                        let mut language = format!("text/{}", &**s);
-                        language.make_ascii_lowercase();
-                        SCRIPT_JS_MIMES.contains(&&*language)
-                    },
-                    None => {
-                        debug!("no script type or language, inferring js");
-                        true
-                    },
-                };
-                // https://github.com/rust-lang/rust/issues/21114
-                is_js
+            (None, None) => {
+                debug!("script type empty, inferring js");
+                Some(ScriptType::Classic)
+            },
+            (None, Some(ref lang)) => {
+                debug!("script language={}", &***lang);
+                let language = format!("text/{}", &***lang);
+
+                if SCRIPT_JS_MIMES.contains(
+                    &language
+                        .to_ascii_lowercase()
+                        .trim_matches(HTML_SPACE_CHARACTERS),
+                ) {
+                    Some(ScriptType::Classic)
+                } else {
+                    None
+                }
+            },
+            (Some(ref ty), _) => {
+                debug!("script type={}", &***ty);
+
+                if &***ty == String::from("module") {
+                    return Some(ScriptType::Module);
+                }
+
+                if SCRIPT_JS_MIMES
+                    .contains(&ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
+                {
+                    Some(ScriptType::Classic)
+                } else {
+                    None
+                }
             },
         };
+
         // https://github.com/rust-lang/rust/issues/21114
-        is_js
+        script_type
     }
 
     pub fn set_parser_inserted(&self, parser_inserted: bool) {
