@@ -32,6 +32,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
@@ -82,6 +83,7 @@ use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_source::TaskSource;
 use crate::task_source::TaskSourceName;
 use crate::webdriver_handlers;
 use bluetooth_traits::BluetoothRequest;
@@ -262,10 +264,6 @@ enum MixedMessage {
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
-    /// Begins a content-initiated load on the specified pipeline (only
-    /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
-    /// the current entry will be replaced instead of a new entry being added.
-    Navigate(PipelineId, LoadData, bool),
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
@@ -865,6 +863,47 @@ impl ScriptThread {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.microtask_queue.enqueue(task);
+            }
+        });
+    }
+
+    /// Step 13 of https://html.spec.whatwg.org/multipage/#navigate
+    pub fn navigate(parent_pipeline_id: PipelineId, mut load_data: LoadData, replace: bool) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = match root.get() {
+                None => return,
+                Some(script) => script,
+            };
+            let script_thread = unsafe { &*script_thread };
+            let is_javascript = load_data.url.scheme() == "javascript";
+            // If resource is a request whose url's scheme is "javascript"
+            if is_javascript {
+                let window = match script_thread
+                    .documents
+                    .borrow()
+                    .find_window(parent_pipeline_id)
+                {
+                    None => return,
+                    Some(window) => window,
+                };
+                let global = window.upcast::<GlobalScope>();
+                let trusted_global = Trusted::new(global);
+                let sender = script_thread.script_sender.clone();
+                let task = task!(navigate_javascript: move || {
+                    ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
+                    sender
+                        .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                        .unwrap();
+                });
+                global
+                    .dom_manipulation_task_source()
+                    .queue(task, global.upcast())
+                    .expect("Enqueing navigate js task on the DOM manipulation task source failed");
+            } else {
+                script_thread
+                    .script_sender
+                    .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                    .expect("Sending a LoadUrl message to the constellation failed");
             }
         });
     }
@@ -1488,7 +1527,7 @@ impl ScriptThread {
                     SetDocumentActivity(id, ..) => Some(id),
                     ChangeFrameVisibilityStatus(id, ..) => Some(id),
                     NotifyVisibilityChange(id, ..) => Some(id),
-                    Navigate(id, ..) => Some(id),
+                    NavigateIframe(id, ..) => Some(id),
                     PostMessage { target: id, .. } => Some(id),
                     UpdatePipelineId(_, _, _, id, _) => Some(id),
                     UpdateHistoryState(id, ..) => Some(id),
@@ -1518,7 +1557,6 @@ impl ScriptThread {
                     pipeline_id
                 },
                 MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
-                MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                 MainThreadScriptMsg::DispatchJobQueue { .. } => None,
@@ -1628,14 +1666,14 @@ impl ScriptThread {
                     _ => unreachable!(),
                 };
             },
-            ConstellationControlMsg::Navigate(
+            ConstellationControlMsg::NavigateIframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
                 replace,
-            ) => self.handle_navigate(
+            ) => self.handle_navigate_iframe(
                 parent_pipeline_id,
-                Some(browsing_context_id),
+                browsing_context_id,
                 load_data,
                 replace,
             ),
@@ -1750,9 +1788,6 @@ impl ScriptThread {
 
     fn handle_msg_from_script(&self, msg: MainThreadScriptMsg) {
         match msg {
-            MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
-                self.handle_navigate(parent_pipeline_id, None, load_data, replace)
-            },
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _, _)) => task.run_box(),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
@@ -3224,43 +3259,24 @@ impl ScriptThread {
         )
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
-    /// The entry point for content to notify that a new load has been requested
-    /// for the given pipeline (specifically the "navigate" algorithm).
-    fn handle_navigate(
+    /// Handle a "navigate an iframe" message from the constellation.
+    fn handle_navigate_iframe(
         &self,
         parent_pipeline_id: PipelineId,
-        browsing_context_id: Option<BrowsingContextId>,
-        mut load_data: LoadData,
+        browsing_context_id: BrowsingContextId,
+        load_data: LoadData,
         replace: bool,
     ) {
-        let is_javascript = load_data.url.scheme() == "javascript";
-        if is_javascript {
-            let window = self.documents.borrow().find_window(parent_pipeline_id);
-            if let Some(window) = window {
-                ScriptThread::eval_js_url(window.upcast::<GlobalScope>(), &mut load_data);
-            }
-        }
-
-        match browsing_context_id {
-            Some(browsing_context_id) => {
-                let iframe = self
-                    .documents
-                    .borrow()
-                    .find_iframe(parent_pipeline_id, browsing_context_id);
-                if let Some(iframe) = iframe {
-                    iframe.navigate_or_reload_child_browsing_context(
-                        Some(load_data),
-                        NavigationType::Regular,
-                        replace,
-                    );
-                }
-            },
-            None => {
-                self.script_sender
-                    .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
-                    .unwrap();
-            },
+        let iframe = self
+            .documents
+            .borrow()
+            .find_iframe(parent_pipeline_id, browsing_context_id);
+        if let Some(iframe) = iframe {
+            iframe.navigate_or_reload_child_browsing_context(
+                Some(load_data),
+                NavigationType::Regular,
+                replace,
+            );
         }
     }
 

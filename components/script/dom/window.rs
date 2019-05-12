@@ -1722,6 +1722,7 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
+    /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
     pub fn load_url(
         &self,
         url: ServoUrl,
@@ -1732,7 +1733,6 @@ impl Window {
     ) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
-        // https://html.spec.whatwg.org/multipage/#navigating-across-documents
         if !force_reload &&
             url.as_url()[..Position::AfterQuery] == doc.url().as_url()[..Position::AfterQuery]
         {
@@ -1790,13 +1790,13 @@ impl Window {
                 // then put it in the delaying load events mode.
                 self.window_proxy().start_delaying_load_events_mode();
             }
-            self.main_thread_script_chan()
-                .send(MainThreadScriptMsg::Navigate(
-                    pipeline_id,
-                    LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy),
-                    replace,
-                ))
-                .unwrap();
+            // TODO: step 11, navigationType.
+            // Step 12, 13
+            ScriptThread::navigate(
+                pipeline_id,
+                LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy),
+                replace,
+            );
         };
     }
 

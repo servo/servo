@@ -11,6 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAncho
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::determine_policy_for_token;
@@ -25,6 +26,7 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::request::Referrer;
@@ -667,7 +669,15 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         };
 
         // Step 14
-        debug!("following hyperlink to {}", url);
-        target_window.load_url(url, replace, false, referrer, referrer_policy);
+        let target = Trusted::new(target_window);
+        let task = task!(navigate_follow_hyperlink: move || {
+            debug!("following hyperlink to {}", url);
+            target.root().load_url(url, replace, false, referrer, referrer_policy);
+        });
+        target_window
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task, target_window.upcast())
+            .unwrap();
     };
 }
