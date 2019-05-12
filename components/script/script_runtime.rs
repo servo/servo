@@ -97,6 +97,14 @@ pub trait ScriptChan: JSTraceable {
     fn clone(&self) -> Box<dyn ScriptChan + Send>;
 }
 
+/// A cloneable interface for communicating with an event loop, from the event-loop itself.
+pub trait LocalScriptChan: JSTraceable {
+    /// Send a message to the associated event loop.
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
+    /// Clone this handle.
+    fn clone(&self) -> Box<dyn LocalScriptChan>;
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
 pub enum ScriptThreadEventCategory {
     AttachLayout,

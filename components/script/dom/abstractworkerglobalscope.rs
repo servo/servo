@@ -3,13 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::dedicatedworkerglobalscope::{AutoWorkerReset, DedicatedWorkerScriptMsg};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use crate::script_runtime::{CommonScriptMsg, LocalScriptChan, ScriptChan, ScriptPort};
+use std::collections::VecDeque;
+use std::rc::Rc;
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 use crossbeam_channel::{Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
@@ -65,6 +68,32 @@ impl ScriptChan for WorkerThreadWorkerChan {
         })
     }
 }
+
+#[derive(Clone, JSTraceable)]
+pub struct ThreadLocalWorkerChan {
+    pub sender: Rc<DomRefCell<VecDeque<DedicatedWorkerScriptMsg>>>,
+    pub worker: TrustedWorkerAddress,
+}
+
+impl LocalScriptChan for ThreadLocalWorkerChan {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let msg = DedicatedWorkerScriptMsg::CommonWorker(
+            self.worker.clone(),
+            WorkerScriptMsg::Common(msg),
+        );
+        self.sender.borrow_mut().push_back(msg);
+		Ok(())
+    }
+
+    fn clone(&self) -> Box<dyn LocalScriptChan> {
+        Box::new(ThreadLocalWorkerChan {
+            sender: self.sender.clone(),
+            worker: self.worker.clone(),
+        })
+    }
+}
+
+unsafe_no_jsmanaged_fields!(DomRefCell<VecDeque<DedicatedWorkerScriptMsg>>);
 
 impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {

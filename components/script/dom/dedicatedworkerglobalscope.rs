@@ -5,7 +5,7 @@
 use crate::devtools;
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
-use crate::dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
+use crate::dom::abstractworkerglobalscope::{SendableWorkerScriptChan, ThreadLocalWorkerChan, WorkerThreadWorkerChan};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -25,7 +25,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{new_child_runtime, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{new_child_runtime, CommonScriptMsg, LocalScriptChan, Runtime, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -428,6 +428,13 @@ impl DedicatedWorkerGlobalScope {
     pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
+            worker: self.worker.borrow().as_ref().unwrap().clone(),
+        })
+    }
+
+    pub fn local_script_chan(&self) -> Box<dyn LocalScriptChan> {
+        Box::new(ThreadLocalWorkerChan {
+            sender: self.task_queue.local_port(),
             worker: self.worker.borrow().as_ref().unwrap().clone(),
         })
     }

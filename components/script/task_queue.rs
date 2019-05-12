@@ -15,6 +15,7 @@ use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
+use std::rc::Rc;
 
 pub type QueuedTask = (
     Option<TrustedWorkerAddress>,
@@ -38,6 +39,8 @@ pub trait QueuedTaskConversion {
 pub struct TaskQueue<T> {
     /// The original port on which the task-sources send tasks as messages.
     port: Receiver<T>,
+	/// A thread-local version of port.
+	local_port: Rc<DomRefCell<VecDeque<T>>>,
     /// A sender to ensure the port doesn't block on select while there are throttled tasks.
     wake_up_sender: Sender<T>,
     /// A queue from which the event-loop can drain tasks.
@@ -54,6 +57,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     pub fn new(port: Receiver<T>, wake_up_sender: Sender<T>) -> TaskQueue<T> {
         TaskQueue {
             port,
+			local_port: Rc::new(DomRefCell::new(VecDeque::new())),
             wake_up_sender,
             msg_queue: DomRefCell::new(VecDeque::new()),
             taken_task_counter: Default::default(),
@@ -61,6 +65,10 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             inactive: Default::default(),
         }
     }
+
+	pub fn local_port(&self) -> Rc<DomRefCell<VecDeque<T>>> {
+		self.local_port.clone()
+	}
 
     /// Release previously held-back tasks for documents that are now fully-active.
     /// https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active

@@ -25,7 +25,7 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
-use crate::script_runtime::{get_reports, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{get_reports, CommonScriptMsg, LocalScriptChan, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -432,8 +432,20 @@ impl WorkerGlobalScope {
         }
     }
 
+    fn local_script_chan(&self) -> Box<dyn LocalScriptChan> {
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.local_script_chan();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.local_script_chan();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
+        }
+    }
+
     pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.script_chan(), self.pipeline_id())
+        DOMManipulationTaskSource(self.local_script_chan(), self.pipeline_id())
     }
 
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {

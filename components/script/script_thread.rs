@@ -69,7 +69,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::script_runtime::{get_reports, new_rt_and_cx, Runtime, ScriptPort};
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use crate::script_runtime::{CommonScriptMsg, LocalScriptChan, ScriptChan, ScriptThreadEventCategory};
 use crate::serviceworkerjob::{Job, JobQueue};
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -139,7 +139,7 @@ use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::cell::RefCell;
-use std::collections::{hash_map, HashMap, HashSet};
+use std::collections::{hash_map, HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::ops::Deref;
 use std::option::Option;
@@ -427,6 +427,23 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
     }
 }
 
+/// Encapsulates internal communication of main thread messages within the script thread.
+#[derive(JSTraceable)]
+pub struct ThreadLocalScriptChan(pub Rc<DomRefCell<VecDeque<MainThreadScriptMsg>>>);
+
+impl LocalScriptChan for ThreadLocalScriptChan {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        self.0
+			.borrow_mut()
+            .push_back(MainThreadScriptMsg::Common(msg));
+			Ok(())
+    }
+
+    fn clone(&self) -> Box<dyn LocalScriptChan> {
+        Box::new(ThreadLocalScriptChan((&self.0).clone()))
+    }
+}
+
 /// The set of all documents managed by this script thread.
 #[derive(JSTraceable)]
 #[must_root]
@@ -514,6 +531,7 @@ impl<'a> Iterator for DocumentsIter<'a> {
 type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
 unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
 
+unsafe_no_jsmanaged_fields!(DomRefCell<VecDeque<MainThreadScriptMsg>>);
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
 unsafe_no_jsmanaged_fields!(BackgroundHangMonitorRegister);
@@ -555,8 +573,6 @@ pub struct ScriptThread {
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
-
-    dom_manipulation_task_sender: Box<dyn ScriptChan>,
 
     media_element_task_sender: Sender<MainThreadScriptMsg>,
 
@@ -1118,7 +1134,6 @@ impl ScriptThread {
             background_hang_monitor,
 
             chan: MainThreadScriptChan(chan.clone()),
-            dom_manipulation_task_sender: boxed_script_sender.clone(),
             media_element_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
@@ -2427,7 +2442,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
     ) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
+        DOMManipulationTaskSource(Box::new(ThreadLocalScriptChan(self.task_queue.local_port())), pipeline_id)
     }
 
     pub fn media_element_task_source(&self, pipeline_id: PipelineId) -> MediaElementTaskSource {

@@ -5,6 +5,7 @@
 use crate::devtools;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
@@ -21,7 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
-use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan};
+use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, LocalScriptChan, Runtime, ScriptChan};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -40,6 +41,8 @@ use script_traits::{
 use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
+use std::collections::VecDeque;
+use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
@@ -137,6 +140,30 @@ impl ScriptChan for ServiceWorkerChan {
         })
     }
 }
+
+#[derive(Clone, JSTraceable)]
+pub struct ServiceWorkerLocalChan {
+    pub sender: Rc<DomRefCell<VecDeque<ServiceWorkerScriptMsg>>>,
+}
+
+impl LocalScriptChan for ServiceWorkerLocalChan {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        self.sender
+			.borrow_mut()
+            .push_back(ServiceWorkerScriptMsg::CommonWorker(
+                WorkerScriptMsg::Common(msg),
+            ));
+		Ok(())
+    }
+
+    fn clone(&self) -> Box<dyn LocalScriptChan> {
+        Box::new(ServiceWorkerLocalChan {
+            sender: self.sender.clone(),
+        })
+    }
+}
+
+unsafe_no_jsmanaged_fields!(DomRefCell<VecDeque<ServiceWorkerScriptMsg>>);
 
 unsafe_no_jsmanaged_fields!(TaskQueue<ServiceWorkerScriptMsg>);
 
@@ -431,6 +458,12 @@ impl ServiceWorkerGlobalScope {
     pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(ServiceWorkerChan {
             sender: self.own_sender.clone(),
+        })
+    }
+
+    pub fn local_script_chan(&self) -> Box<dyn LocalScriptChan> {
+        Box::new(ServiceWorkerLocalChan {
+            sender: self.task_queue.local_port(),
         })
     }
 
