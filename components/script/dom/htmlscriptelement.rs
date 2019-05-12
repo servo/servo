@@ -365,47 +365,47 @@ impl HTMLScriptElement {
             self.non_blocking.set(true);
         }
 
-        // Step 4.
+        // Step 4-5.
         let text = self.Text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
 
-        // Step 5.
+        // Step 6.
         if !self.upcast::<Node>().is_connected() {
             return;
         }
 
-        // Step 6.
+        // Step 7.
         if !self.is_javascript() {
             return;
         }
 
-        // Step 7.
+        // Step 8.
         if was_parser_inserted {
             self.parser_inserted.set(true);
             self.non_blocking.set(false);
         }
 
-        // Step 8.
+        // Step 9.
         self.already_started.set(true);
 
-        // Step 9.
+        // Step 10.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*self.parser_document != &*doc {
             return;
         }
 
-        // Step 10.
+        // Step 11.
         if !doc.is_scripting_enabled() {
             return;
         }
 
-        // TODO: Step 11: nomodule content attribute
+        // TODO: Step 12: nomodule content attribute
 
-        // TODO(#4577): Step 12: CSP.
+        // TODO(#4577): Step 13: CSP.
 
-        // Step 13.
+        // Step 14.
         let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
         let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
         match (for_attribute, event_attribute) {
@@ -425,20 +425,20 @@ impl HTMLScriptElement {
             (_, _) => (),
         }
 
-        // Step 14.
+        // Step 15.
         let encoding = element
             .get_attribute(&ns!(), &local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
             .unwrap_or_else(|| doc.encoding());
 
-        // Step 15.
+        // Step 16.
         let cors_setting = cors_setting_for_element(element);
 
-        // TODO: Step 16: Module script credentials mode.
+        // TODO: Step 17: Module script credentials mode.
 
-        // TODO: Step 17: Nonce.
+        // TODO: Step 18: Nonce.
 
-        // Step 18: Integrity metadata.
+        // Step 19: Integrity metadata.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
@@ -446,26 +446,30 @@ impl HTMLScriptElement {
             None => "",
         };
 
-        // TODO: Step 19: parser state.
+        // TODO: Step 20: referrer policy
 
-        // TODO: Step 20: environment settings object.
+        // TODO: Step 21: parser state.
+
+        // TODO: Step 22: Fetch options
+
+        // TODO: Step 23: environment settings object.
 
         let base_url = doc.base_url();
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
-            // Step 21.
+            // Step 24.
 
-            // Step 21.1.
+            // Step 24.1.
             let src = src.value();
 
-            // Step 21.2.
+            // Step 24.2.
             if src.is_empty() {
                 self.queue_error_event();
                 return;
             }
 
-            // Step 21.3: The "from an external file"" flag is stored in ClassicScript.
+            // Step 24.3: The "from an external file"" flag is stored in ClassicScript.
 
-            // Step 21.4-21.5.
+            // Step 24.4-24.5.
             let url = match base_url.join(&src) {
                 Ok(url) => url,
                 Err(_) => {
@@ -475,25 +479,25 @@ impl HTMLScriptElement {
                 },
             };
 
-            // Preparation for step 23.
+            // Preparation for step 26.
             let kind = if element.has_attribute(&local_name!("defer")) &&
                 was_parser_inserted &&
                 !r#async
             {
-                // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
+                // Step 26.a: classic, has src, has defer, was parser-inserted, is not async.
                 ExternalScriptKind::Deferred
             } else if was_parser_inserted && !r#async {
-                // Step 23.c: classic, has src, was parser-inserted, is not async.
+                // Step 26.c: classic, has src, was parser-inserted, is not async.
                 ExternalScriptKind::ParsingBlocking
             } else if !r#async && !self.non_blocking.get() {
-                // Step 23.d: classic, has src, is not async, is not non-blocking.
+                // Step 26.d: classic, has src, is not async, is not non-blocking.
                 ExternalScriptKind::AsapInOrder
             } else {
-                // Step 23.f: classic, has src.
+                // Step 26.f: classic, has src.
                 ExternalScriptKind::Asap
             };
 
-            // Step 21.6.
+            // Step 24.6.
             fetch_a_classic_script(
                 self,
                 kind,
@@ -513,20 +517,23 @@ impl HTMLScriptElement {
                 ExternalScriptKind::Asap => doc.add_asap_script(self),
             }
         } else {
-            // Step 22.
+            // Step 25.
             assert!(!text.is_empty());
+            // Step 25-1.
             let result = Ok(ClassicScript::internal(text, base_url));
 
-            // Step 23.
+            // TODO: Step 25-2.
+
+            // Step 26.
             if was_parser_inserted &&
                 doc.get_current_parser()
                     .map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                 doc.get_script_blocking_stylesheets_count() > 0
             {
-                // Step 23.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
+                // Step 26.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
                 doc.set_pending_parsing_blocking_script(self, Some(result));
             } else {
-                // Step 23.i: otherwise.
+                // Step 26.i: otherwise.
                 self.execute(result);
             }
         }
