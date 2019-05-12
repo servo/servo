@@ -132,10 +132,7 @@ pub struct CanvasState {
 }
 
 impl CanvasState {
-    pub fn new(
-        global: &GlobalScope,
-        size: Size2D<u64>,
-    ) -> CanvasState {
+    pub fn new(global: &GlobalScope, size: Size2D<u64>) -> CanvasState {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -149,14 +146,13 @@ impl CanvasState {
         CanvasState {
             ipc_renderer: ipc_renderer,
             canvas_id: canvas_id,
-            
         }
     }
     /*pub fn new(
         global: &GlobalScope,
         size: Size2D<u32>,
     ) -> CanvasState {
-        
+
         /*let boxed = Box::new(CanvasState::new_inherited(
             global,
             size,
@@ -241,7 +237,10 @@ impl CanvasRenderingContext2D {
             saved_states: DomRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
             //canvas_id: canvas_id,
-            canvas_state: DomRefCell::new(CanvasState::new(global,Size2D::new(size.width as u64, size.height as u64))),
+            canvas_state: DomRefCell::new(CanvasState::new(
+                global,
+                Size2D::new(size.width as u64, size.height as u64),
+            )),
         }
     }
 
