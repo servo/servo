@@ -1640,8 +1640,10 @@ impl HTMLMediaElement {
         }
     }
 
-    fn hide_controls(&self) {
-        println!("hide_controls");
+    fn remove_controls(&self) {
+        if let Some(ref id) = *self.media_controls_id.borrow() {
+            document_from_node(self).unregister_media_controls(id);
+        }
     }
 }
 
@@ -1670,9 +1672,7 @@ impl Drop for HTMLMediaElement {
                 warn!("Error shutting down player {:?}", err);
             }
         }
-        if let Some(ref id) = *self.media_controls_id.borrow() {
-            document_from_node(self).unregister_media_controls(id);
-        }
+        self.remove_controls();
     }
 }
 
@@ -2115,7 +2115,7 @@ impl VirtualMethods for HTMLMediaElement {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls();
                 } else {
-                    self.hide_controls();
+                    self.remove_controls();
                 }
             },
             _ => (),
