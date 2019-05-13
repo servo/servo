@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack
 
-[Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window]
 interface MediaStreamTrack : EventTarget {
     readonly        attribute DOMString kind;
     readonly        attribute DOMString id;

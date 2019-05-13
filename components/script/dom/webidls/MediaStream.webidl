@@ -7,8 +7,7 @@
 [Exposed=Window,
  Constructor,
  Constructor(MediaStream stream),
- Constructor(sequence<MediaStreamTrack> tracks),
-Pref="dom.webrtc.enabled"]
+ Constructor(sequence<MediaStreamTrack> tracks)]
 interface MediaStream : EventTarget {
     // readonly        attribute DOMString id;
     sequence<MediaStreamTrack> getAudioTracks();
