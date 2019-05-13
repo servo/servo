@@ -32,6 +32,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
@@ -886,9 +887,10 @@ impl ScriptThread {
                     Some(window) => window,
                 };
                 let global = window.upcast::<GlobalScope>();
-                ScriptThread::eval_js_url(&global, &mut load_data);
+                let trusted_global = Trusted::new(global);
                 let sender = script_thread.script_sender.clone();
                 let task = task!(navigate_javascript: move || {
+                    ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
                     sender
                         .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
                         .unwrap();
