@@ -601,7 +601,12 @@ def macos_wpt():
     build_task = macos_release_build()
     def macos_run_task(name):
         task = macos_task(name).with_python2()
-        return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
+        return (
+            with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
+            .with_env(
+                RUST_LOG="gfx::font_cache_thread,gfx::font,gfx::font_context,gfx::platform::macos"
+            )
+        )
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
                total_chunks=6, processes=4)
 

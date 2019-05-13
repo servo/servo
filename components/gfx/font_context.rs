@@ -124,7 +124,7 @@ impl<S: FontSource> FontContext<S> {
             .get(&cache_key)
             .map(|v| v.clone())
             .unwrap_or_else(|| {
-                debug!(
+                info!(
                     "FontContext::font cache miss for font_descriptor={:?} family_descriptor={:?}",
                     font_descriptor, family_descriptor
                 );
@@ -153,7 +153,7 @@ impl<S: FontSource> FontContext<S> {
         };
 
         self.font_template_cache.get(&cache_key).map(|v| v.clone()).unwrap_or_else(|| {
-            debug!(
+            info!(
                 "FontContext::font_template cache miss for template_descriptor={:?} family_descriptor={:?}",
                 template_descriptor,
                 family_descriptor

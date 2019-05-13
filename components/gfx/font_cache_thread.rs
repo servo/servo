@@ -243,7 +243,7 @@ impl FontCache {
                 let channel_to_self = self.channel_to_self.clone();
                 let bytes = Mutex::new(Vec::new());
                 let response_valid = Mutex::new(false);
-                debug!("Loading @font-face {} from {}", family_name, url);
+                info!("Loading @font-face {} from {}", family_name, url);
                 fetch_async(request, &self.core_resource_thread, move |response| {
                     match response {
                         FetchResponseMsg::ProcessRequestBody |
@@ -279,7 +279,7 @@ impl FontCache {
                                 Ok(san) => san,
                                 Err(_) => {
                                     // FIXME(servo/fontsan#1): get an error message
-                                    debug!(
+                                    info!(
                                         "Sanitiser rejected web font: \
                                          family={} url={:?}",
                                         family_name, url
@@ -346,11 +346,12 @@ impl FontCache {
         family_name: &FontFamilyName,
     ) -> Option<Arc<FontTemplateData>> {
         let family_name = self.transform_family(family_name);
+        info!("Looking for local font family {:?}", family_name);
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
         if self.local_families.contains_key(&family_name) {
-            debug!("FontList: Found font family with name={}", &*family_name);
+            info!("FontList: Found font family with name={}", &*family_name);
             let s = self.local_families.get_mut(&family_name).unwrap();
 
             if s.templates.is_empty() {
@@ -364,7 +365,7 @@ impl FontCache {
 
             s.find_font_for_style(template_descriptor, &self.font_context)
         } else {
-            debug!(
+            info!(
                 "FontList: Couldn't find font family with name={}",
                 &*family_name
             );
