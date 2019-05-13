@@ -22,30 +22,30 @@ pub struct OffscreenCanvasRenderingContext2D {
 
 impl OffscreenCanvasRenderingContext2D {
     pub fn new_inherited(
-        _global: &GlobalScope,
+        global: &GlobalScope,
         canvas: Option<&OffscreenCanvas>,
-        _size: Size2D<u64>,
+        size: Size2D<u64>,
     ) -> OffscreenCanvasRenderingContext2D {
         OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
-            canvas_state: DomRefCell::new(CanvasState::new(_global, _size)),
+            canvas_state: DomRefCell::new(CanvasState::new(global, size)),
         }
     }
 
     pub fn new(
-        _global: &GlobalScope,
+        global: &GlobalScope,
         canvas: &OffscreenCanvas,
-        _size: Size2D<u64>,
+        size: Size2D<u64>,
     ) -> DomRoot<OffscreenCanvasRenderingContext2D> {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
-            _global,
+            global,
             Some(canvas),
-            _size,
+            size,
         ));
         reflect_dom_object(
             boxed,
-            _global,
+            global,
             OffscreenCanvasRenderingContext2DBinding::Wrap,
         )
     }
@@ -60,18 +60,15 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
     fn FillRect(&self, x: f64, y: f64, width: f64, height: f64) {
         self.canvas_state.borrow().FillRect(x, y, width, height);
-        //self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
     fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64) {
         self.canvas_state.borrow().ClearRect(x, y, width, height);
-        //self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokerect
     fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64) {
         self.canvas_state.borrow().StrokeRect(x, y, width, height);
-        //self.mark_as_dirty();
     }
 }

@@ -62,8 +62,6 @@ enum CanvasFillOrStrokeStyle {
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
-    //#[ignore_malloc_size_of = "Defined in ipc-channel"]
-    //ipc_renderer: IpcSender<CanvasMsg>,
     /// For rendering contexts created by an HTML canvas element, this is Some,
     /// for ones created by a paint worklet, this is None.
     canvas: Option<Dom<HTMLCanvasElement>>,
@@ -77,7 +75,6 @@ pub struct CanvasRenderingContext2D {
     state: DomRefCell<CanvasContextState>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
     origin_clean: Cell<bool>,
-    //canvas_id: CanvasId,
     canvas_state: DomRefCell<CanvasState>,
 }
 
@@ -122,10 +119,8 @@ impl CanvasContextState {
     }
 }
 
-#[must_root]
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct CanvasState {
-    //reflector_: Reflector,
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas_id: CanvasId,
@@ -148,18 +143,6 @@ impl CanvasState {
             canvas_id: canvas_id,
         }
     }
-    /*pub fn new(
-        global: &GlobalScope,
-        size: Size2D<u32>,
-    ) -> CanvasState {
-
-        /*let boxed = Box::new(CanvasState::new_inherited(
-            global,
-            size,
-        ));
-
-        reflect_dom_object(boxed, global, CanvasState)*/
-    }*/
 
     pub fn get_canvas_id(&self) -> CanvasId {
         self.canvas_id.clone()
@@ -216,27 +199,15 @@ impl CanvasRenderingContext2D {
         base_url: ServoUrl,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {
-        /*debug!("Creating new canvas rendering context.");
-        let (sender, receiver) =
-            profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        let script_to_constellation_chan = global.script_to_constellation_chan();
-        debug!("Asking constellation to create new canvas thread.");
-        script_to_constellation_chan
-            .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
-            .unwrap();
-        //let (canvas_state.ipc_renderer, canvas_id) = receiver.recv().unwrap();
-        debug!("Done.");*/
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
-            //ipc_renderer: ipc_renderer,
             image_cache: image_cache,
             missing_image_urls: DomRefCell::new(Vec::new()),
             base_url: base_url,
             state: DomRefCell::new(CanvasContextState::new()),
             saved_states: DomRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
-            //canvas_id: canvas_id,
             canvas_state: DomRefCell::new(CanvasState::new(
                 global,
                 Size2D::new(size.width as u64, size.height as u64),
@@ -570,21 +541,6 @@ impl CanvasRenderingContext2D {
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
         mem::replace(&mut self.missing_image_urls.borrow_mut(), vec![])
     }
-
-    /*fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
-        if !([x, y, w, h].iter().all(|val| val.is_finite())) {
-            return None;
-        }
-
-        if w == 0.0 && h == 0.0 {
-            return None;
-        }
-
-        Some(Rect::new(
-            Point2D::new(x as f32, y as f32),
-            Size2D::new(w as f32, h as f32),
-        ))
-    }*/
 
     fn parse_color(&self, string: &str) -> Result<RGBA, ()> {
         let mut input = ParserInput::new(string);
