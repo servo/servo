@@ -98,6 +98,7 @@ struct XHRContext {
     gen_id: GenerationId,
     sync_status: DomRefCell<Option<ErrorResult>>,
     resource_timing: ResourceFetchTiming,
+    url: ServoUrl,
 }
 
 #[derive(Clone)]
@@ -284,10 +285,7 @@ impl XMLHttpRequest {
 
         impl ResourceTimingListener for XHRContext {
             fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-                (
-                    InitiatorType::XMLHttpRequest,
-                    self.resource_timing_global().get_url().clone(),
-                )
+                (InitiatorType::XMLHttpRequest, self.url.clone())
             }
 
             fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
@@ -1466,6 +1464,7 @@ impl XMLHttpRequest {
             gen_id: self.generation_id.get(),
             sync_status: DomRefCell::new(None),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            url: init.url.clone(),
         }));
 
         let (task_source, script_port) = if self.sync.get() {
