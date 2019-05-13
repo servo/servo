@@ -24,7 +24,6 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
-use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
@@ -112,26 +111,10 @@ impl HTMLStyleElement {
         let mq =
             Arc::new(shared_lock.wrap(MediaList::parse(&context, &mut CssParser::new(&mut input))));
         let loader = StylesheetLoader::for_element(self.upcast());
-        let (url, origin) = if let Some(shadow_root) = self
-            .upcast::<Node>()
-            .containing_shadow_root() {
-            if shadow_root.is_user_agent_widget() {
-                (
-                    ServoUrl::parse(&format!("chrome://{:?}", window.get_url().to_string()))
-                        .unwrap(),
-                    Origin::UserAgent,
-                )
-            } else {
-                (window.get_url(), Origin::Author)
-            }
-        } else {
-            (window.get_url(), Origin::Author)
-        };
-
         let sheet = Stylesheet::from_str(
             &data,
-            url,
-            origin,
+            window.get_url(),
+            Origin::Author,
             mq,
             shared_lock,
             Some(&loader),
