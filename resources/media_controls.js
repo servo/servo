@@ -202,7 +202,7 @@
       }
 
       // Set initial state.
-      this.state = PAUSED;
+      this.state = this.media.paused ? PAUSED : PLAYING;
       this.onStateChange(null);
     }
 
