@@ -1373,6 +1373,10 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
             .expect("Unstyled layout node?")
             .borrow()
     }
+
+    fn is_shadow_host(&self) -> bool {
+        self.element.shadow_root().is_some()
+    }
 }
 
 /// This implementation of `::selectors::Element` is used for implementing lazy

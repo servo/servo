@@ -490,4 +490,6 @@ pub trait ThreadSafeLayoutElement:
                 .clone(),
         }
     }
+
+    fn is_shadow_host(&self) -> bool;
 }
