@@ -212,9 +212,14 @@
     }
 
     render(from = this.state) {
-      // XXX This should use clientHeight/clientWidth
-      this.root.style.height = this.media.videoHeight;
-      this.root.style.width = this.media.videoWidth;
+      const isAudioOnly = this.media.localName == "audio";
+      if (!isAudioOnly) {
+        // XXX This should ideally use clientHeight/clientWidth,
+        //     but for some reason I couldn't figure out yet,
+        //     using it breaks layout.
+        this.root.style.height = this.media.videoHeight;
+        this.root.style.width = this.media.videoWidth;
+      }
 
       // Error
       if (this.state == ERRORED) {
