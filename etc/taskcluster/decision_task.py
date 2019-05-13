@@ -541,6 +541,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
                 PROCESSES=str(processes),
+                GST_DEBUG="3",
             )
         )
         if this_chunk == chunks[-1]:
