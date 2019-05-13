@@ -681,14 +681,17 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<CanvasRenderingContext2
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get())
             .canvas_state
-            .borrow()
+            .borrow_for_layout()
             .ipc_renderer
             .clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn get_canvas_id(&self) -> CanvasId {
-        (*self.unsafe_get()).canvas_state.borrow().get_canvas_id()
+        (*self.unsafe_get())
+            .canvas_state
+            .borrow_for_layout()
+            .get_canvas_id()
     }
 }
 
