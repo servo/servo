@@ -632,7 +632,12 @@ def macos_wpt():
     def macos_run_task(name):
         task = macos_task(name).with_python2() \
             .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
-        return with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
+        return (
+            with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
+            .with_env(
+                RUST_LOG="gfx::font_cache_thread,gfx::font,gfx::font_context,gfx::platform::macos"
+            )
+        )
     wpt_chunks(
         "macOS x64",
         macos_run_task,
