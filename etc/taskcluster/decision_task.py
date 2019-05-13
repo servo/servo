@@ -192,12 +192,12 @@ def linux_tidy_unit_docs():
             git bundle create docs.bundle HEAD
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
-        .find_or_create("docs." + CONFIG.git_sha)
+        .find_or_create("docs." + CONFIG.task_id)
     )
 
 
 def upload_docs():
-    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.git_sha)
+    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.task_id)
     return (
         linux_task("Upload docs to GitHub Pages")
         .with_treeherder("Linux x64", "DocUpload")
@@ -232,7 +232,7 @@ def macos_unit():
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
         """)
-        .find_or_create("macos_unit." + CONFIG.git_sha)
+        .find_or_create("macos_unit." + CONFIG.task_id)
     )
 
 
@@ -265,7 +265,7 @@ def android_arm32_dev_from_macos():
             ./mach bootstrap-android --accept-all-licences --build
             ./mach build --android --dev
         """)
-        .find_or_create("android_arm32_dev.macos." + CONFIG.git_sha)
+        .find_or_create("android_arm32_dev.macos." + CONFIG.task_id)
     )
 
 
@@ -278,7 +278,7 @@ def android_arm32_dev():
             ./etc/ci/lockfile_changed.sh
             python ./etc/ci/check_dynamic_symbols.py
         """)
-        .find_or_create("android_arm32_dev." + CONFIG.git_sha)
+        .find_or_create("android_arm32_dev." + CONFIG.task_id)
     )
 
 
@@ -302,7 +302,7 @@ def android_nightly():
             "/repo/target/android/i686-linux-android/release/servoapp.apk",
             "/repo/target/android/i686-linux-android/release/servoview.aar",
         )
-        .find_or_create("build.android_nightlies." + CONFIG.git_sha)
+        .find_or_create("build.android_nightlies." + CONFIG.task_id)
     )
 
 
@@ -315,7 +315,7 @@ def android_arm32_release():
             "/repo/target/android/armv7-linux-androideabi/release/servoapp.apk",
             "/repo/target/android/armv7-linux-androideabi/release/servoview.aar",
         )
-        .find_or_create("build.android_armv7_release." + CONFIG.git_sha)
+        .find_or_create("build.android_armv7_release." + CONFIG.task_id)
     )
 
 
@@ -328,7 +328,7 @@ def android_x86_release():
             "/repo/target/android/i686-linux-android/release/servoapp.apk",
             "/repo/target/android/i686-linux-android/release/servoview.aar",
         )
-        .find_or_create("build.android_x86_release." + CONFIG.git_sha)
+        .find_or_create("build.android_x86_release." + CONFIG.task_id)
     )
 
 
@@ -351,7 +351,7 @@ def android_x86_wpt():
                 /_mozilla/mozilla/DOMParser.html \
                 /_mozilla/mozilla/webgl/context_creation_error.html
         """)
-        .find_or_create("android_x86_release." + CONFIG.git_sha)
+        .find_or_create("android_x86_release." + CONFIG.task_id)
     )
 
 
@@ -365,7 +365,7 @@ def windows_x86():
         .with_script(
             "python mach build --dev --target i686-pc-windows-msvc",
         )
-        .find_or_create("build.windows_x86_dev." + CONFIG.git_sha)
+        .find_or_create("build.windows_x86_dev." + CONFIG.task_id)
     )
 
 
@@ -384,7 +384,7 @@ def windows_unit():
         )
         .with_artifacts("repo/target/debug/msi/Servo.exe",
                         "repo/target/debug/msi/Servo.zip")
-        .find_or_create("build.windows_x64_dev." + CONFIG.git_sha)
+        .find_or_create("build.windows_x64_dev." + CONFIG.task_id)
     )
 
 
@@ -396,7 +396,7 @@ def windows_release():
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
-        .find_or_create("build.windows_x64_release." + CONFIG.git_sha)
+        .find_or_create("build.windows_x64_release." + CONFIG.task_id)
     )
 
 
@@ -411,7 +411,7 @@ def windows_nightly():
                      "mach upload-nightly windows-msvc --secret-from-taskcluster")
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
-        .find_or_create("build.windows_x64_nightly." + CONFIG.git_sha)
+        .find_or_create("build.windows_x64_nightly." + CONFIG.task_id)
     )
 
 
@@ -428,7 +428,7 @@ def linux_nightly():
             "./mach upload-nightly linux --secret-from-taskcluster",
         )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
-        .find_or_create("build.linux_x64_nightly" + CONFIG.git_sha)
+        .find_or_create("build.linux_x64_nightly" + CONFIG.task_id)
     )
 
 
@@ -445,7 +445,7 @@ def linux_wpt():
                 target/release/build/osmesa-src-*/out/lib/gallium
         """)
         .with_artifacts("/target.tar.gz")
-        .find_or_create("build.linux_x64_release~assertions" + CONFIG.git_sha)
+        .find_or_create("build.linux_x64_release~assertions" + CONFIG.task_id)
     )
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run"))
@@ -468,13 +468,13 @@ def macos_nightly():
             "./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
-        .find_or_create("build.mac_x64_nightly." + CONFIG.git_sha)
+        .find_or_create("build.mac_x64_nightly." + CONFIG.task_id)
     )
 
 
 def update_wpt():
     # Reuse the release build that was made for landing the PR
-    build_task = decisionlib.Task.find("build.macos_x64_release." + CONFIG.git_sha)
+    build_task = decisionlib.Task.find("build.macos_x64_release." + CONFIG.task_id)
     update_task = (
         macos_task("WPT update")
         .with_python2()
@@ -498,7 +498,7 @@ def update_wpt():
             ./etc/ci/update-wpt-checkout open-pr
             ./etc/ci/update-wpt-checkout cleanup
         """)
-        .find_or_create("wpt_update." + CONFIG.git_sha)
+        .find_or_create("wpt_update." + CONFIG.task_id)
     )
 
 
@@ -516,7 +516,7 @@ def macos_wpt():
                 target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
         """)
         .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
+        .find_or_create("build.macos_x64_release." + CONFIG.task_id)
     )
     def macos_run_task(name):
         task = macos_task(name).with_python2()
@@ -595,7 +595,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             if word.endswith(".log")
         ])
         platform_id = platform.replace(" ", "_").lower()
-        task.find_or_create("%s_wpt_%s.%s" % (platform_id, this_chunk, CONFIG.git_sha))
+        task.find_or_create("%s_wpt_%s.%s" % (platform_id, this_chunk, CONFIG.task_id))
 
 
 def daily_tasks_setup():
