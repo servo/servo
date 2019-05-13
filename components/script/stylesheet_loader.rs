@@ -141,16 +141,7 @@ impl FetchResponseListener for StylesheetContext {
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8;
             let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
-            let final_url = if let Some(ref shadow_root) = self.shadow_root {
-                if shadow_root.root().is_user_agent_widget() {
-                    ServoUrl::parse(&format!("chrome://{:?}", metadata.final_url.to_string()))
-                        .unwrap()
-                } else {
-                    metadata.final_url
-                }
-            } else {
-                metadata.final_url
-            };
+            let final_url = metadata.final_url;
 
             let win = window_from_node(&*elem);
 
