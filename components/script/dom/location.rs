@@ -46,7 +46,7 @@ impl Location {
         let mut url = self.window.get_url();
         let referrer = Referrer::ReferrerUrl(url.clone());
         setter(&mut url, value);
-        self.window.load_url(url, false, false, referrer, None);
+        self.window.load_url(url, false, false, referrer, None, None);
     }
 
     fn check_same_origin_domain(&self) -> ErrorResult {
@@ -66,7 +66,7 @@ impl Location {
     pub fn reload_without_origin_check(&self) {
         let url = self.get_url();
         let referrer = Referrer::ReferrerUrl(url.clone());
-        self.window.load_url(url, true, true, referrer, None);
+        self.window.load_url(url, true, true, referrer, None, None);
     }
 
     #[allow(dead_code)]
@@ -84,7 +84,7 @@ impl LocationMethods for Location {
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
             let referrer = Referrer::ReferrerUrl(base_url.clone());
-            self.window.load_url(url, false, false, referrer, None);
+            self.window.load_url(url, false, false, referrer, None, None);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -96,7 +96,7 @@ impl LocationMethods for Location {
         self.check_same_origin_domain()?;
         let url = self.get_url();
         let referrer = Referrer::ReferrerUrl(url.clone());
-        self.window.load_url(url, true, true, referrer, None);
+        self.window.load_url(url, true, true, referrer, None, None);
         Ok(())
     }
 
@@ -108,7 +108,7 @@ impl LocationMethods for Location {
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
             let referrer = Referrer::ReferrerUrl(base_url.clone());
-            self.window.load_url(url, true, false, referrer, None);
+            self.window.load_url(url, true, false, referrer, None, None);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -178,7 +178,7 @@ impl LocationMethods for Location {
             Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
         };
         let referrer = Referrer::ReferrerUrl(current_url.clone());
-        self.window.load_url(url, false, false, referrer, None);
+        self.window.load_url(url, false, false, referrer, None, None);
         Ok(())
     }
 

@@ -1730,6 +1730,7 @@ impl Window {
         force_reload: bool,
         referrer: Referrer,
         referrer_policy: Option<ReferrerPolicy>,
+        load_data: Option<LoadData>,
     ) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
@@ -1792,9 +1793,20 @@ impl Window {
             }
             // TODO: step 11, navigationType.
             // Step 12, 13
+            let load_data = if let Some(mut load_data) = load_data {
+                // Note: only the form element provides a Some(load_data),
+                // due to need to manipulate the data prior to navigation.
+                load_data.url = url;
+                load_data.creator_pipeline_id = Some(pipeline_id);
+                load_data.referrer = Some(referrer);
+                load_data.referrer_policy = referrer_policy;
+                load_data
+            } else {
+                LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy)
+            };
             ScriptThread::navigate(
                 pipeline_id,
-                LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy),
+                load_data,
                 replace,
             );
         };

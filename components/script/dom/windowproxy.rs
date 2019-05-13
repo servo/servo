@@ -442,6 +442,7 @@ impl WindowProxy {
                 false,
                 referrer,
                 target_document.get_referrer_policy(),
+                None,
             );
         }
         if noopener {

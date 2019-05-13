@@ -556,11 +556,12 @@ impl HTMLFormElement {
             window
                 .root()
                 .load_url(
-                    load_data.url,
+                    load_data.url.clone(),
                     false,
                     false,
                     referrer,
-                    load_data.referrer_policy,
+                    load_data.referrer_policy.clone(),
+                    Some(load_data),
                 );
         });
 

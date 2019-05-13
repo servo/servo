@@ -672,7 +672,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {
             debug!("following hyperlink to {}", url);
-            target.root().load_url(url, replace, false, referrer, referrer_policy);
+            target.root().load_url(url, replace, false, referrer, referrer_policy, None);
         });
         target_window
             .task_manager()
