@@ -46,7 +46,8 @@ impl Location {
         let mut url = self.window.get_url();
         let referrer = Referrer::ReferrerUrl(url.clone());
         setter(&mut url, value);
-        self.window.load_url(url, false, false, referrer, None, None);
+        self.window
+            .load_url(url, false, false, referrer, None, None);
     }
 
     fn check_same_origin_domain(&self) -> ErrorResult {
@@ -84,7 +85,8 @@ impl LocationMethods for Location {
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
             let referrer = Referrer::ReferrerUrl(base_url.clone());
-            self.window.load_url(url, false, false, referrer, None, None);
+            self.window
+                .load_url(url, false, false, referrer, None, None);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -178,7 +180,8 @@ impl LocationMethods for Location {
             Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
         };
         let referrer = Referrer::ReferrerUrl(current_url.clone());
-        self.window.load_url(url, false, false, referrer, None, None);
+        self.window
+            .load_url(url, false, false, referrer, None, None);
         Ok(())
     }
 

@@ -32,7 +32,6 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
@@ -83,7 +82,6 @@ use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSource;
 use crate::task_source::TaskSourceName;
 use crate::webdriver_handlers;
 use bluetooth_traits::BluetoothRequest;
@@ -887,24 +885,16 @@ impl ScriptThread {
                     Some(window) => window,
                 };
                 let global = window.upcast::<GlobalScope>();
-                let trusted_global = Trusted::new(global);
-                let sender = script_thread.script_sender.clone();
-                let task = task!(navigate_javascript: move || {
-                    ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
-                    sender
-                        .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
-                        .unwrap();
-                });
-                global
-                    .dom_manipulation_task_source()
-                    .queue(task, global.upcast())
-                    .expect("Enqueing navigate js task on the DOM manipulation task source failed");
-            } else {
-                script_thread
-                    .script_sender
-                    .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
-                    .expect("Sending a LoadUrl message to the constellation failed");
+                // FIXME: https://github.com/servo/servo/issues/23373
+                // The spec says to queue a task using the DOM manipulation task-source,
+                // to evaluate the JS url, and execute the request.
+                // The spec might require changes, due to security considerations and inconsistent impls.
+                ScriptThread::eval_js_url(&global, &mut load_data);
             }
+            script_thread
+                .script_sender
+                .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                .expect("Sending a LoadUrl message to the constellation failed");
         });
     }
 

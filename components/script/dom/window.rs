@@ -1795,7 +1795,7 @@ impl Window {
             // Step 12, 13
             let load_data = if let Some(mut load_data) = load_data {
                 // Note: only the form element provides a Some(load_data),
-                // due to need to manipulate the data prior to navigation.
+                // due to its need to manipulate the load_data in the context of the form.
                 load_data.url = url;
                 load_data.creator_pipeline_id = Some(pipeline_id);
                 load_data.referrer = Some(referrer);
@@ -1804,11 +1804,7 @@ impl Window {
             } else {
                 LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy)
             };
-            ScriptThread::navigate(
-                pipeline_id,
-                load_data,
-                replace,
-            );
+            ScriptThread::navigate(pipeline_id, load_data, replace);
         };
     }
 
