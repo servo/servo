@@ -20,6 +20,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFram
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
@@ -2402,6 +2403,14 @@ impl Document {
     }
 
     pub fn unregister_media_controls(&self, id: &str) {
+        if let Some(media_controls) = self.media_controls.borrow().get(id) {
+            media_controls.Host().detach_shadow();
+            media_controls
+                .upcast::<Node>()
+                .dirty(NodeDamage::OtherNodeDamage);
+        } else {
+            debug_assert!(false, "Trying to unregister unknown media controls");
+        }
         self.media_controls.borrow_mut().remove(id);
     }
 }
