@@ -519,7 +519,12 @@ def macos_wpt():
     )
     def macos_run_task(name):
         task = macos_task(name).with_python2()
-        return with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
+        return (
+            with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
+            .with_script("""
+                export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+            """)
+        )
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
                total_chunks=6, processes=4, chunks=[1,2,3])
 
