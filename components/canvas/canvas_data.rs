@@ -176,7 +176,7 @@ pub struct CanvasData<'a> {
 
 impl<'a> CanvasData<'a> {
     pub fn new(
-        size: Size2D<u32>,
+        size: Size2D<u64>,
         webrender_api_sender: webrender_api::RenderApiSender,
         antialias: AntialiasMode,
         canvas_id: CanvasId,
@@ -708,13 +708,13 @@ impl<'a> CanvasData<'a> {
             .set_composition_op(op.to_azure_style());
     }
 
-    pub fn create(size: Size2D<u32>) -> DrawTarget {
+    pub fn create(size: Size2D<u64>) -> DrawTarget {
         // FIXME(nox): Why is the size made of i32 values?
         DrawTarget::new(BackendType::Skia, size.to_i32(), SurfaceFormat::B8G8R8A8)
     }
 
     pub fn recreate(&mut self, size: Size2D<u32>) {
-        self.drawtarget = CanvasData::create(size);
+        self.drawtarget = CanvasData::create(Size2D::new(size.width as u64, size.height as u64));
         self.state = CanvasPaintState::new(self.state.draw_options.antialias);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.

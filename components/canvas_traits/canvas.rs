@@ -23,7 +23,7 @@ pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
     Create(
         IpcSender<CanvasId>,
-        Size2D<u32>,
+        Size2D<u64>,
         webrender_api::RenderApiSender,
         bool,
     ),
