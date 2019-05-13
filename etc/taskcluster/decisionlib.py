@@ -57,9 +57,21 @@ class Config:
         self.git_ref = os.environ.get("GIT_REF")
         self.git_sha = os.environ.get("GIT_SHA")
 
+    def init_task_id(self):
+        # If the head commit is a merge, we want to generate a unique task id which incorporates
+        # the merge parents rather that the actual sha of the merge commit. This ensures that tasks
+        # can be reused if the tree is in an identical state. Otherwise, if the head commit is
+        # not a merge, we can rely on the head commit sha for that purpose.
+        merge_parents_output = subprocess.check_output(["git", "show", "--format=%P", "HEAD"])
+        merge_parents = merge_parents_output.decode("utf8").strip().split(' ')
+        self.task_id = self.git_sha
+        if len(merge_parents) > 1:
+            self.task_id = '-'.join(merge_parents)
+
     def git_sha_is_current_head(self):
         output = subprocess.check_output(["git", "rev-parse", "HEAD"])
         self.git_sha = output.decode("utf8").strip()
+        self.init_task_id()
 
 
 class Shared:

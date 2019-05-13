@@ -30,10 +30,12 @@ tasks:
           - '--login'
           - '-e'
           - '-c'
+          # A depth of 25 is used to work around `git show` ignoring
+          # any provided format with a depth of 1.
           - >-
             git init repo &&
             cd repo &&
-            git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
+            git fetch --depth 25 "$GIT_URL" "$GIT_REF" &&
             git reset --hard "$GIT_SHA" &&
             python3 etc/taskcluster/decision_task.py
   in:
