@@ -230,4 +230,10 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
             .borrow()
             .SetImageSmoothingEnabled(value)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
+    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+        self.canvas_state.borrow().FillText(text,x,y,max_width)
+        self.mark_as_dirty();
+    }
 }

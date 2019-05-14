@@ -145,7 +145,7 @@ interface CanvasUserInterface {
   //void scrollPathIntoView(Path2D path);
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasText {
   // text (see also the CanvasPathDrawingStyles and CanvasTextDrawingStyles interfaces)
   [Pref="dom.canvas-text.enabled"]

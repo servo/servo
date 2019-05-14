@@ -18,7 +18,7 @@ OffscreenCanvasRenderingContext2D implements CanvasRect;
 
 //OffscreenCanvasRenderingContext2D includes CanvasTransform;
 //OffscreenCanvasRenderingContext2D includes CanvasDrawPath;
-//OffscreenCanvasRenderingContext2D includes CanvasText;
+OffscreenCanvasRenderingContext2D implements CanvasText;
 //OffscreenCanvasRenderingContext2D includes CanvasDrawImage;
 //OffscreenCanvasRenderingContext2D includes CanvasImageData;
 //OffscreenCanvasRenderingContext2D includes CanvasPathDrawingStyles;

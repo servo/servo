@@ -613,6 +613,12 @@ impl CanvasState {
             .borrow_mut()
             .image_smoothing_enabled = value;
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
+    pub fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+        let parsed_text: String = text.into();
+        self.send_canvas_2d_msg(Canvas2dMsg::FillText(parsed_text, x, y, max_width));
+    }
 }
 
 impl CanvasRenderingContext2D {
@@ -1196,8 +1202,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        let parsed_text: String = text.into();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillText(parsed_text, x, y, max_width));
+        self.canvas_state.borrow().FillText(text,x,y,max_width)
         self.mark_as_dirty();
     }
 
