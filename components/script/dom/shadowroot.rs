@@ -46,8 +46,6 @@ pub struct ShadowRoot {
     author_styles: DomRefCell<AuthorStyles<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     window: Dom<Window>,
-    /// Whether this ShadowRoot hosts a User Agent widget.
-    is_widget: IsUserAgentWidget,
 }
 
 impl ShadowRoot {
@@ -64,6 +62,9 @@ impl ShadowRoot {
             NodeFlags::IS_CONNECTED,
             host.upcast::<Node>().is_connected(),
         );
+        if is_widget == IsUserAgentWidget::Yes {
+            node.set_flag(NodeFlags::IS_USER_AGENT_WIDGET, true);
+        }
         ShadowRoot {
             document_fragment,
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
@@ -72,7 +73,6 @@ impl ShadowRoot {
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
-            is_widget,
         }
     }
 
@@ -169,10 +169,6 @@ impl ShadowRoot {
             &id,
             root,
         );
-    }
-
-    pub fn is_user_agent_widget(&self) -> bool {
-        self.is_widget == IsUserAgentWidget::Yes
     }
 }
 

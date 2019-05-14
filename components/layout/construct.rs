@@ -709,6 +709,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement));
         if !node.is_replaced_content() || is_media_element {
             for kid in node.children() {
+                if is_media_element && !kid.is_user_agent_widget() {
+                    // We only allow UA widgets as children of media elements.
+                    break;
+                }
+
                 if kid.get_pseudo_element_type() != PseudoElementType::Normal && !is_media_element {
                     self.process(&kid);
                 }

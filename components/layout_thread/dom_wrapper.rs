@@ -153,6 +153,10 @@ impl<'ln> ServoLayoutNode<'ln> {
     fn script_type_id(&self) -> NodeTypeId {
         unsafe { self.node.type_id_for_layout() }
     }
+
+    fn is_user_agent_widget(&self) -> bool {
+        unsafe { self.node.is_user_agent_widget_for_layout() }
+    }
 }
 
 impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
@@ -1080,6 +1084,10 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         } else {
             None
         }
+    }
+
+    fn is_user_agent_widget(&self) -> bool {
+        self.node.is_user_agent_widget()
     }
 
     fn parent_style(&self) -> Arc<ComputedValues> {

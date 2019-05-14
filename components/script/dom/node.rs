@@ -194,6 +194,9 @@ bitflags! {
 
         /// Specifies whether this node's shadow-including root is a document.
         const IS_CONNECTED = 1 << 10;
+
+        /// Wheter this node is part of an User Agent widget.
+        const IS_USER_AGENT_WIDGET = 1 << 11;
     }
 }
 
@@ -279,6 +282,7 @@ impl Node {
         let parent_in_doc = self.is_in_doc();
         let parent_in_shadow_tree = self.is_in_shadow_tree();
         let parent_is_connected = self.is_connected();
+        let parent_is_user_agent_widget = self.is_user_agent_widget();
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
@@ -290,6 +294,7 @@ impl Node {
             node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
+            node.set_flag(NodeFlags::IS_USER_AGENT_WIDGET, parent_is_user_agent_widget);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
             vtable_for(&&*node).bind_to_tree(&BindContext {
@@ -346,7 +351,8 @@ impl Node {
                     NodeFlags::IS_CONNECTED |
                     NodeFlags::HAS_DIRTY_DESCENDANTS |
                     NodeFlags::HAS_SNAPSHOT |
-                    NodeFlags::HANDLED_SNAPSHOT,
+                    NodeFlags::HANDLED_SNAPSHOT |
+                    NodeFlags::IS_USER_AGENT_WIDGET,
                 false,
             );
         }
@@ -511,6 +517,10 @@ impl Node {
 
     pub fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
+    pub fn is_user_agent_widget(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_USER_AGENT_WIDGET)
     }
 
     /// Returns the type ID of this node.
@@ -1193,6 +1203,7 @@ pub trait LayoutNodeHelpers {
     unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
+    unsafe fn is_user_agent_widget_for_layout(&self) -> bool;
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(&self, flag: NodeFlags, value: bool);
 
@@ -1226,6 +1237,12 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     #[allow(unsafe_code)]
     unsafe fn is_element_for_layout(&self) -> bool {
         (*self.unsafe_get()).is::<Element>()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn is_user_agent_widget_for_layout(&self) -> bool {
+        (*self.unsafe_get()).is_user_agent_widget()
     }
 
     #[inline]

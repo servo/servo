@@ -4509,6 +4509,7 @@ impl DocumentMethods for Document {
         self.exit_fullscreen()
     }
 
+    // check-tidy: no specs after this line
     // Servo only API to get an instance of the controls of a specific
     // media element matching the given id.
     fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {

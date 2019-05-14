@@ -310,6 +310,8 @@ pub trait ThreadSafeLayoutNode:
         let id = combine_id_with_fragment_type(self.opaque().id(), self.fragment_type());
         ExternalScrollId(id as u64, pipeline_id.to_webrender())
     }
+
+    fn is_user_agent_widget(&self) -> bool;
 }
 
 // This trait is only public so that it can be implemented by the gecko wrapper.
