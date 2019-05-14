@@ -889,13 +889,16 @@ impl ScriptThread {
                 let global = window.upcast::<GlobalScope>();
                 let trusted_global = Trusted::new(global);
                 let sender = script_thread.script_sender.clone();
+                let target_origin = window.get_url().origin();
                 let task = task!(navigate_javascript: move || {
-                    // TODO: Important re security. See https://github.com/servo/servo/issues/23373
-                    // Check origin of the source browsing-context versus the one that is being navigated.
-                    ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
-                    sender
-                        .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
-                        .unwrap();
+                    // Important re security. See https://github.com/servo/servo/issues/23373
+                    // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+                    if load_data.url.origin() == target_origin {
+                        ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
+                        sender
+                            .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                            .unwrap();
+                    }
                 });
                 global
                     .dom_manipulation_task_source()
