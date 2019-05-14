@@ -70,7 +70,6 @@ pub struct CanvasRenderingContext2D {
     /// The base URL for resolving CSS image URL values.
     /// Needed because of https://github.com/servo/servo/issues/17625
     base_url: ServoUrl,
-    saved_states: DomRefCell<Vec<CanvasContextState>>,
     canvas_state: DomRefCell<CanvasState>,
 }
 
@@ -124,11 +123,13 @@ pub struct CanvasState {
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
     canvas: Option<&HTMLCanvasElement>,
+    #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<dyn ImageCache>,
     base_url: ServoUrl,
     global: &GlobalScope,
     /// Any missing image URLs.
     missing_image_urls: DomRefCell<Vec<ServoUrl>>,
+    saved_states: DomRefCell<Vec<CanvasContextState>>,
 }
 
 impl CanvasState {
@@ -159,6 +160,7 @@ impl CanvasState {
             base_url: base_url,
             global: global,
             missing_image_urls: DomRefCell::new(Vec::new()),
+            saved_states: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -246,7 +248,7 @@ impl CanvasState {
         }
     }
 
-    fn parse_color(&self, string: &str) -> Result<RGBA, ()> {
+     fn parse_color(&self, string: &str) -> Result<RGBA, ()> {
         let mut input = ParserInput::new(string);
         let mut parser = Parser::new(&mut input);
         let color = CSSColor::parse(&mut parser);
@@ -544,6 +546,73 @@ impl CanvasState {
             Err(Error::Syntax)
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
+    pub fn Save(&self) {
+        self.saved_states
+            .borrow_mut()
+            .push(self.state.borrow().clone());
+        self.send_canvas_2d_msg(Canvas2dMsg::SaveContext);
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
+    pub fn Restore(&self) {
+        let mut saved_states = self.saved_states.borrow_mut();
+        if let Some(state) = saved_states.pop() {
+            self.state
+                .borrow_mut()
+                .clone_from(&state);
+            self.send_canvas_2d_msg(Canvas2dMsg::RestoreContext);
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
+    pub fn GlobalAlpha(&self) -> f64 {
+        self.state.borrow().global_alpha
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
+    pub fn SetGlobalAlpha(&self, alpha: f64) {
+        if !alpha.is_finite() || alpha > 1.0 || alpha < 0.0 {
+            return;
+        }
+
+        self.state.borrow_mut().global_alpha = alpha;
+        self.send_canvas_2d_msg(Canvas2dMsg::SetGlobalAlpha(alpha as f32))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
+    pub fn GlobalCompositeOperation(&self) -> DOMString {
+        match self.state.borrow().global_composition {
+            CompositionOrBlending::Composition(op) => DOMString::from(op.to_str()),
+            CompositionOrBlending::Blending(op) => DOMString::from(op.to_str()),
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
+    pub fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
+        if let Ok(op) = CompositionOrBlending::from_str(&op_str) {
+            self.state
+                .borrow_mut()
+                .global_composition = op;
+            self.send_canvas_2d_msg(Canvas2dMsg::SetGlobalComposition(op))
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
+    pub fn ImageSmoothingEnabled(&self) -> bool {
+        self.state
+            .borrow()
+            .image_smoothing_enabled
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
+    pub fn SetImageSmoothingEnabled(&self, value: bool) {
+        self.state
+            .borrow_mut()
+            .image_smoothing_enabled = value;
+    }
 }
 
 impl CanvasRenderingContext2D {
@@ -559,7 +628,6 @@ impl CanvasRenderingContext2D {
             canvas: canvas.map(Dom::from_ref),
             image_cache: image_cache,
             base_url: base_url,
-            saved_states: DomRefCell::new(Vec::new()),
             canvas_state: DomRefCell::new(CanvasState::new(
                 global,
                 canvas,
@@ -603,7 +671,7 @@ impl CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
     fn reset_to_initial_state(&self) {
-        self.saved_states.borrow_mut().clear();
+        self.canvas_state.borrow().saved_states.borrow_mut().clear();
         *self.canvas_state.borrow().state.borrow_mut() = CanvasContextState::new();
     }
 
@@ -825,11 +893,7 @@ impl CanvasRenderingContext2D {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        let (mut image_data, image_size) = self
-            .canvas_state
-            .borrow()
-            .fetch_image_data(url)
-            .ok_or(Error::InvalidState)?;
+        let (mut image_data, image_size) = self.canvas_state.borrow().fetch_image_data(url).ok_or(Error::InvalidState)?;
         pixels::rgba8_premultiply_inplace(&mut image_data);
         let image_size = image_size.to_f64();
 
@@ -868,10 +932,7 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
-        mem::replace(
-            &mut self.canvas_state.borrow().missing_image_urls.borrow_mut(),
-            vec![],
-        )
+        mem::replace(&mut self.canvas_state.borrow().missing_image_urls.borrow_mut(), vec![])
     }
 
     pub fn get_canvas_id(&self) -> CanvasId {
@@ -965,24 +1026,13 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
     fn Save(&self) {
-        self.saved_states
-            .borrow_mut()
-            .push(self.canvas_state.borrow().state.borrow().clone());
-        self.send_canvas_2d_msg(Canvas2dMsg::SaveContext);
+        self.canvas_state.borrow().Save()
     }
 
     #[allow(unrooted_must_root)]
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     fn Restore(&self) {
-        let mut saved_states = self.saved_states.borrow_mut();
-        if let Some(state) = saved_states.pop() {
-            self.canvas_state
-                .borrow()
-                .state
-                .borrow_mut()
-                .clone_from(&state);
-            self.send_canvas_2d_msg(Canvas2dMsg::RestoreContext);
-        }
+        self.canvas_state.borrow().Restore()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-scale
@@ -1067,37 +1117,22 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
     fn GlobalAlpha(&self) -> f64 {
-        self.canvas_state.borrow().state.borrow().global_alpha
+        self.canvas_state.borrow().GlobalAlpha()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
     fn SetGlobalAlpha(&self, alpha: f64) {
-        if !alpha.is_finite() || alpha > 1.0 || alpha < 0.0 {
-            return;
-        }
-
-        self.canvas_state.borrow().state.borrow_mut().global_alpha = alpha;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetGlobalAlpha(alpha as f32))
+        self.canvas_state.borrow().SetGlobalAlpha(alpha)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn GlobalCompositeOperation(&self) -> DOMString {
-        match self.canvas_state.borrow().state.borrow().global_composition {
-            CompositionOrBlending::Composition(op) => DOMString::from(op.to_str()),
-            CompositionOrBlending::Blending(op) => DOMString::from(op.to_str()),
-        }
+        self.canvas_state.borrow().GlobalCompositeOperation()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
-        if let Ok(op) = CompositionOrBlending::from_str(&op_str) {
-            self.canvas_state
-                .borrow()
-                .state
-                .borrow_mut()
-                .global_composition = op;
-            self.send_canvas_2d_msg(Canvas2dMsg::SetGlobalComposition(op))
-        }
+        self.canvas_state.borrow().SetGlobalCompositeOperation(op_str)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
@@ -1360,18 +1395,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn ImageSmoothingEnabled(&self) -> bool {
         self.canvas_state
             .borrow()
-            .state
-            .borrow()
-            .image_smoothing_enabled
+            .ImageSmoothingEnabled()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
     fn SetImageSmoothingEnabled(&self, value: bool) {
         self.canvas_state
             .borrow()
-            .state
-            .borrow_mut()
-            .image_smoothing_enabled = value;
+            .SetImageSmoothingEnabled(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
