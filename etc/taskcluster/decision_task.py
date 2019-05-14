@@ -485,7 +485,10 @@ def update_wpt():
         .with_max_run_time_minutes(5 * 60)
     )
     return (
-        with_homebrew(update_task, "etc/taskcluster/macos/Brewfile-wpt")
+        with_homebrew(update_task, [
+            "etc/taskcluster/macos/Brewfile-wpt",
+            "etc/taskcluster/macos/Brewfile-gstreamer",
+        ])
         .with_repo()
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
@@ -516,9 +519,15 @@ def macos_wpt():
         .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
     )
     def macos_run_task(name):
-        return macos_task(name).with_python2()
+        task = macos_task(name).with_python2()
+        return (
+            with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
+            .with_script("""
+                export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+            """)
+        )
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
-               total_chunks=6, processes=4, chunks=[1])
+               total_chunks=6, processes=4, chunks=[1,2,3])
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
@@ -538,6 +547,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
                 PROCESSES=str(processes),
+                GST_DEBUG="3",
             )
         )
         if this_chunk == chunks[-1]:
@@ -731,15 +741,18 @@ def windows_build_task(name, package=True, arch="x86_64"):
     return task
 
 
-def with_homebrew(task, brewfile):
-        return task.with_script("""
+def with_homebrew(task, brewfiles):
+        task = task.with_script("""
             mkdir -p "$HOME/homebrew"
             export PATH="$HOME/homebrew/bin:$PATH"
             which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
                 | tar xz --strip 1 -C "$HOME/homebrew"
-
-            time brew bundle install --no-upgrade --file={brewfile}
-        """.format(brewfile=brewfile))
+        """)
+        for brewfile in brewfiles:
+            task = task.with_script("""
+                time brew bundle install --no-upgrade --file={brewfile}
+            """.format(brewfile=brewfile))
+        return task
 
 
 def macos_build_task(name):
@@ -753,7 +766,10 @@ def macos_build_task(name):
         .with_rustup()
     )
     return (
-        with_homebrew(build_task, "etc/taskcluster/macos/Brewfile")
+        with_homebrew(build_task, [
+            "etc/taskcluster/macos/Brewfile",
+            "etc/taskcluster/macos/Brewfile-gstreamer",
+        ])
         .with_script("""
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
             export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
