@@ -1,6 +1,6 @@
 brew "gstreamer"
 brew "gst-plugins-base"
 brew "gst-libav"
-brew "gst-plugins-bad"
+brew "gst-plugins-bad", args: ["with-libnice", "with-srtp"]
 brew "gst-plugins-good"
 brew "gst-rtsp-server"
