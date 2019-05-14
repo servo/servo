@@ -7,6 +7,7 @@ use rustc::hir::intravisit as visit;
 use rustc::hir::{self, ExprKind, HirId};
 use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
 use rustc::ty;
+use syntax::symbol::sym;
 use syntax::{ast, source_map};
 
 declare_lint!(
@@ -32,30 +33,37 @@ declare_lint!(
 /// Structs which have their own mechanism of rooting their unrooted contents (e.g. `ScriptThread`)
 /// can be marked as `#[allow(unrooted_must_root)]`. Smart pointers which root their interior type
 /// can be marked as `#[allow_unrooted_interior]`
-pub struct UnrootedPass;
+pub(crate) struct UnrootedPass {
+    symbols: crate::Symbols,
+}
 
 impl UnrootedPass {
-    pub fn new() -> UnrootedPass {
-        UnrootedPass
+    pub fn new(symbols: crate::Symbols) -> UnrootedPass {
+        UnrootedPass { symbols }
     }
 }
 
 /// Checks if a type is unrooted or contains any owned unrooted types
-fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool {
+fn is_unrooted_ty(
+    sym: &crate::Symbols,
+    cx: &LateContext,
+    ty: &ty::TyS,
+    in_new_function: bool,
+) -> bool {
     let mut ret = false;
     ty.maybe_walk(|t| {
         match t.sty {
             ty::Adt(did, substs) => {
-                if cx.tcx.has_attr(did.did, "must_root") {
+                if cx.tcx.has_attr(did.did, sym.must_root) {
                     ret = true;
                     false
-                } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
+                } else if cx.tcx.has_attr(did.did, sym.allow_unrooted_interior) {
                     false
-                } else if match_def_path(cx, did.did, &["alloc", "rc", "Rc"]) {
+                } else if match_def_path(cx, did.did, &[sym.alloc, sym.rc, sym.Rc]) {
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
                     if let ty::Adt(did, _) = inner.sty {
-                        if cx.tcx.has_attr(did.did, "allow_unrooted_in_rc") {
+                        if cx.tcx.has_attr(did.did, sym.allow_unrooted_in_rc) {
                             false
                         } else {
                             true
@@ -63,23 +71,47 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
                     } else {
                         true
                     }
-                } else if match_def_path(cx, did.did, &["core", "cell", "Ref"]) ||
-                    match_def_path(cx, did.did, &["core", "cell", "RefMut"]) ||
-                    match_def_path(cx, did.did, &["core", "slice", "Iter"]) ||
-                    match_def_path(cx, did.did, &["core", "slice", "IterMut"]) ||
-                    match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Entry"]) ||
+                } else if match_def_path(cx, did.did, &[sym::core, sym.cell, sym.Ref]) ||
+                    match_def_path(cx, did.did, &[sym::core, sym.cell, sym.RefMut]) ||
+                    match_def_path(cx, did.did, &[sym::core, sym.slice, sym.Iter]) ||
+                    match_def_path(cx, did.did, &[sym::core, sym.slice, sym.IterMut]) ||
                     match_def_path(
                         cx,
                         did.did,
-                        &["std", "collections", "hash", "map", "OccupiedEntry"],
+                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Entry],
                     ) ||
                     match_def_path(
                         cx,
                         did.did,
-                        &["std", "collections", "hash", "map", "VacantEntry"],
+                        &[
+                            sym::std,
+                            sym.collections,
+                            sym.hash,
+                            sym.map,
+                            sym.OccupiedEntry,
+                        ],
                     ) ||
-                    match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Iter"]) ||
-                    match_def_path(cx, did.did, &["std", "collections", "hash", "set", "Iter"])
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[
+                            sym::std,
+                            sym.collections,
+                            sym.hash,
+                            sym.map,
+                            sym.VacantEntry,
+                        ],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Iter],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
+                    )
                 {
                     // Structures which are semantically similar to an &ptr.
                     false
@@ -126,10 +158,14 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                 .hir()
                 .expect_item_by_hir_id(cx.tcx.hir().get_parent_item(id)),
         };
-        if item.attrs.iter().all(|a| !a.check_name("must_root")) {
+        if item
+            .attrs
+            .iter()
+            .all(|a| !a.check_name(self.symbols.must_root))
+        {
             for ref field in def.fields() {
                 let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
-                if is_unrooted_ty(cx, cx.tcx.type_of(def_id), false) {
+                if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
                 }
@@ -144,13 +180,13 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             .expect_item_by_hir_id(map.get_parent_item(var.node.id))
             .attrs
             .iter()
-            .all(|a| !a.check_name("must_root"))
+            .all(|a| !a.check_name(self.symbols.must_root))
         {
             match var.node.data {
                 hir::VariantData::Tuple(ref fields, ..) => {
                     for ref field in fields {
                         let def_id = cx.tcx.hir().local_def_id_from_hir_id(field.hir_id);
-                        if is_unrooted_ty(cx, cx.tcx.type_of(def_id), false) {
+                        if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
                             cx.span_lint(
                                 UNROOTED_MUST_ROOT,
                                 field.ty.span,
@@ -186,13 +222,13 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
-                if is_unrooted_ty(cx, ty, false) {
+                if is_unrooted_ty(&self.symbols, cx, ty, false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, arg.span, "Type must be rooted")
                 }
             }
 
             if !in_new_function {
-                if is_unrooted_ty(cx, sig.output().skip_binder(), false) {
+                if is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false) {
                     cx.span_lint(
                         UNROOTED_MUST_ROOT,
                         decl.output.span(),
@@ -203,6 +239,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
         }
 
         let mut visitor = FnDefVisitor {
+            symbols: &self.symbols,
             cx: cx,
             in_new_function: in_new_function,
         };
@@ -211,6 +248,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
 }
 
 struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
+    symbols: &'a crate::Symbols,
     cx: &'a LateContext<'b, 'tcx>,
     in_new_function: bool,
 }
@@ -219,16 +257,16 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
     fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
         let cx = self.cx;
 
-        fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
+        let require_rooted = |cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr| {
             let ty = cx.tables.expr_ty(&subexpr);
-            if is_unrooted_ty(cx, ty, in_new_function) {
+            if is_unrooted_ty(&self.symbols, cx, ty, in_new_function) {
                 cx.span_lint(
                     UNROOTED_MUST_ROOT,
                     subexpr.span,
                     &format!("Expression of type {:?} must be rooted", ty),
                 )
             }
-        }
+        };
 
         match expr.node {
             // Trait casts from #[must_root] types are not allowed
@@ -263,7 +301,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
             hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
             hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
                 let ty = cx.tables.pat_ty(pat);
-                if is_unrooted_ty(cx, ty, self.in_new_function) {
+                if is_unrooted_ty(&self.symbols, cx, ty, self.in_new_function) {
                     cx.span_lint(
                         UNROOTED_MUST_ROOT,
                         pat.span,
