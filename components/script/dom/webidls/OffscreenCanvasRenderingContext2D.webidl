@@ -8,6 +8,9 @@ interface OffscreenCanvasRenderingContext2D {
   //void commit();
   readonly attribute OffscreenCanvas canvas;
 };
+OffscreenCanvasRenderingContext2D implements CanvasFillStrokeStyles;
+OffscreenCanvasRenderingContext2D implements CanvasShadowStyles;
+OffscreenCanvasRenderingContext2D implements CanvasFilters;
 OffscreenCanvasRenderingContext2D implements CanvasRect;
 
 
@@ -15,9 +18,6 @@ OffscreenCanvasRenderingContext2D implements CanvasRect;
 //OffscreenCanvasRenderingContext2D includes CanvasTransform;
 //OffscreenCanvasRenderingContext2D includes CanvasCompositing;
 //OffscreenCanvasRenderingContext2D includes CanvasImageSmoothing;
-//OffscreenCanvasRenderingContext2D includes CanvasFillStrokeStyles;
-//OffscreenCanvasRenderingContext2D includes CanvasShadowStyles;
-//OffscreenCanvasRenderingContext2D includes CanvasFilters;
 //OffscreenCanvasRenderingContext2D includes CanvasDrawPath;
 //OffscreenCanvasRenderingContext2D includes CanvasText;
 //OffscreenCanvasRenderingContext2D includes CanvasDrawImage;
