@@ -489,6 +489,7 @@ def update_wpt():
         .with_repo()
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
+            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
             tar -xzf target.tar.gz
             ./etc/ci/update-wpt-checkout fetch-and-update-expectations
             ./etc/ci/update-wpt-checkout open-pr
