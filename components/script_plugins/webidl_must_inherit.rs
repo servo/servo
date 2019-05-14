@@ -23,7 +23,9 @@ declare_lint!(
     "Warn and report usage of incorrect webidl inheritance"
 );
 
-pub struct WebIdlPass;
+pub(crate) struct WebIdlPass {
+    symbols: crate::Symbols,
+}
 
 #[derive(Clone, Debug)]
 pub struct ParentMismatchError {
@@ -53,8 +55,8 @@ impl Error for ParentMismatchError {
 }
 
 impl WebIdlPass {
-    pub fn new() -> WebIdlPass {
-        WebIdlPass
+    pub fn new(symbols: crate::Symbols) -> WebIdlPass {
+        WebIdlPass { symbols }
     }
 }
 
@@ -74,12 +76,12 @@ fn get_webidl_path(struct_name: &str) -> io::Result<path::PathBuf> {
     Ok(dir)
 }
 
-fn is_webidl_ty(cx: &LateContext, ty: &ty::TyS) -> bool {
+fn is_webidl_ty(symbols: &crate::Symbols, cx: &LateContext, ty: &ty::TyS) -> bool {
     let mut ret = false;
     ty.maybe_walk(|t| {
         match t.sty {
             ty::Adt(did, _substs) => {
-                if cx.tcx.has_attr(did.did, "webidl") {
+                if cx.tcx.has_attr(did.did, symbols.webidl) {
                     ret = true;
                 }
                 false
@@ -156,7 +158,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
         id: HirId,
     ) {
         let def_id = cx.tcx.hir().local_def_id_from_hir_id(id);
-        if !is_webidl_ty(cx, cx.tcx.type_of(def_id)) {
+        if !is_webidl_ty(&self.symbols, cx, cx.tcx.type_of(def_id)) {
             return;
         }
 

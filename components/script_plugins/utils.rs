@@ -5,11 +5,12 @@
 use rustc::hir::def_id::DefId;
 use rustc::lint::LateContext;
 use syntax::source_map::{ExpnFormat, Span};
+use syntax::symbol::Symbol;
 
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
-pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
+pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
     let krate = &cx.tcx.crate_name(def_id.krate);
     if krate != &path[0] {
         return false;
@@ -24,9 +25,8 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
 
     other
         .into_iter()
-        .map(|e| e.data)
         .zip(path)
-        .all(|(nm, p)| &*nm.as_interned_str().as_str() == *p)
+        .all(|(e, p)| e.data.as_interned_str().as_symbol() == *p)
 }
 
 pub fn in_derive_expn(span: Span) -> bool {
