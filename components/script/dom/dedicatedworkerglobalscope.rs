@@ -38,6 +38,7 @@ use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
@@ -174,6 +175,8 @@ pub struct DedicatedWorkerGlobalScope {
     #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan + Send>,
+    #[ignore_malloc_size_of = "Arc"]
+    image_cache: Arc<ImageCache>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
@@ -225,6 +228,7 @@ impl DedicatedWorkerGlobalScope {
         timer_event_chan: IpcSender<TimerEvent>,
         timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
         closing: Arc<AtomicBool>,
+        image_cache: Arc<dyn ImageCache>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -242,6 +246,7 @@ impl DedicatedWorkerGlobalScope {
             timer_event_port: timer_event_port,
             parent_sender: parent_sender,
             worker: DomRefCell::new(None),
+            image_cache: image_cache,
         }
     }
 
@@ -259,6 +264,7 @@ impl DedicatedWorkerGlobalScope {
         timer_event_chan: IpcSender<TimerEvent>,
         timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
         closing: Arc<AtomicBool>,
+        image_cache: Arc<dyn ImageCache>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -274,6 +280,7 @@ impl DedicatedWorkerGlobalScope {
             timer_event_chan,
             timer_event_port,
             closing,
+            image_cache,
         ));
         unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope) }
     }
@@ -292,6 +299,7 @@ impl DedicatedWorkerGlobalScope {
         worker_name: String,
         worker_type: WorkerType,
         closing: Arc<AtomicBool>,
+        image_cache: Arc<dyn ImageCache>,
     ) {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
@@ -363,6 +371,7 @@ impl DedicatedWorkerGlobalScope {
                     timer_ipc_chan,
                     timer_rx,
                     closing,
+                    image_cache,
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.
@@ -426,6 +435,10 @@ impl DedicatedWorkerGlobalScope {
                     );
             })
             .expect("Thread spawning failed");
+    }
+
+    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+        self.image_cache.clone()
     }
 
     pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {

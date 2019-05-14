@@ -8,6 +8,8 @@ importScripts("interfaces.js");
 // IMPORTANT: Do not change the list below without review from a DOM peer!
 test_interfaces([
   "Blob",
+  "CanvasGradient",
+  "CanvasPattern",
   "CloseEvent",
   "DOMMatrix",
   "DOMMatrixReadOnly",

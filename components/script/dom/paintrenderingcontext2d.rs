@@ -21,7 +21,6 @@ use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
 use canvas_traits::canvas::CanvasImageData;
 use canvas_traits::canvas::CanvasMsg;
 use canvas_traits::canvas::FromLayoutMsg;
@@ -44,16 +43,8 @@ pub struct PaintRenderingContext2D {
 impl PaintRenderingContext2D {
     fn new_inherited(global: &PaintWorkletGlobalScope) -> PaintRenderingContext2D {
         let size = Size2D::zero();
-        let image_cache = global.image_cache();
-        let base_url = global.upcast::<WorkletGlobalScope>().base_url();
         PaintRenderingContext2D {
-            context: CanvasRenderingContext2D::new_inherited(
-                global.upcast(),
-                None,
-                image_cache,
-                base_url,
-                size,
-            ),
+            context: CanvasRenderingContext2D::new_inherited(global.upcast(), None, size),
             device_pixel_ratio: Cell::new(TypedScale::new(1.0)),
         }
     }
