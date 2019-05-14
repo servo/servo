@@ -63,22 +63,22 @@ function cleanup() {
 # Build Servo and run the full WPT testsuite, saving the results to a log file.
 function unsafe_run_tests() {
     # Run the full testsuite and record the new test results.
-    ./mach test-wpt --release --processes 6 --log-raw "${1}" \
-           --always-succeed || return 1
+    #./mach test-wpt --release --processes 6 --log-raw "${1}" \
+    #       --always-succeed || return 1
 
     # Run the bluetooth testsuite, which uses the webdriver test harness.
-    ./mach test-wpt --release --processes 1 --product=servodriver --headless \
-           --log-raw "${2}" /bluetooth --always-succeed || return 2
+    #./mach test-wpt --release --processes 1 --product=servodriver --headless \
+    #       --log-raw "${2}" /bluetooth --always-succeed || return 2
 }
 
 # Using an existing log file, update the expected test results and amend the
 # last commit with the new results.
 function unsafe_update_metadata() {
-    ./mach update-wpt "${1}" "${2}" || return 1
+    #./mach update-wpt "${1}" "${2}" || return 1
     # Ensure any new directories or ini files are included in these changes.
-    git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
+    #git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
     # Merge all changes with the existing commit.
-    git commit -a --amend --no-edit || return 3
+    #git commit -a --amend --no-edit || return 3
 }
 
 # Push the branch to a remote branch, then open a PR for the branch
