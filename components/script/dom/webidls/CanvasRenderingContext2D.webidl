@@ -84,7 +84,7 @@ interface CanvasImageSmoothing {
   // attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasFillStrokeStyles {
   // colours and styles (see also the CanvasDrawingStyles interface)
   attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
@@ -96,7 +96,7 @@ interface CanvasFillStrokeStyles {
   CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasShadowStyles {
   // shadows
   attribute unrestricted double shadowOffsetX; // (default 0)
@@ -105,7 +105,7 @@ interface CanvasShadowStyles {
   attribute DOMString shadowColor; // (default transparent black)
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasFilters {
   // filters
   //attribute DOMString filter; // (default "none")
