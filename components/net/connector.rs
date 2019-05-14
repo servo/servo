@@ -77,8 +77,13 @@ pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
     ssl_connector_builder
         .set_cipher_list(DEFAULT_CIPHERS)
         .expect("could not set ciphers");
-    ssl_connector_builder
-        .set_options(SslOptions::NO_SSLV2 | SslOptions::NO_SSLV3 | SslOptions::NO_COMPRESSION);
+    ssl_connector_builder.set_options(
+        SslOptions::NO_SSLV2 |
+            SslOptions::NO_SSLV3 |
+            SslOptions::NO_TLSV1 |
+            SslOptions::NO_TLSV1_1 |
+            SslOptions::NO_COMPRESSION,
+    );
     ssl_connector_builder
 }
 
