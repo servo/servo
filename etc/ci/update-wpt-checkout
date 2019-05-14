@@ -69,6 +69,7 @@ function unsafe_run_tests() {
     # Run the bluetooth testsuite, which uses the webdriver test harness.
     #./mach test-wpt --release --processes 1 --product=servodriver --headless \
     #       --log-raw "${2}" /bluetooth --always-succeed || return 2
+    echo "run"
 }
 
 # Using an existing log file, update the expected test results and amend the
@@ -79,6 +80,7 @@ function unsafe_update_metadata() {
     #git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
     # Merge all changes with the existing commit.
     #git commit -a --amend --no-edit || return 3
+    echo "update"
 }
 
 # Push the branch to a remote branch, then open a PR for the branch
