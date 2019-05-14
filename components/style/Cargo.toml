@@ -22,6 +22,7 @@ servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5eve
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
          "servo_url", "string_cache", "crossbeam-channel", "to_shmem/servo", "servo_arc/servo"]
 gecko_debug = []
+gecko_profiler = []
 
 [dependencies]
 app_units = "0.7"
