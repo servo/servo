@@ -480,7 +480,7 @@ def update_wpt():
         .with_python2()
         .with_treeherder("macOS x64", "WPT update")
         .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/wpt-sync")
+        .with_scopes("secrets:get:garbage/servo/wpt-test")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(5 * 60)
     )
