@@ -395,7 +395,10 @@ impl FontGroup {
             return font;
         }
 
+        info!("couldn't find font for '{}' ({:x}) in families {:?}", codepoint, codepoint as usize, self.families);
+
         if let Some(ref fallback) = self.last_matching_fallback {
+            info!("checking last matching fallback");
             if has_glyph(&fallback) {
                 return self.last_matching_fallback.clone();
             }
@@ -407,6 +410,7 @@ impl FontGroup {
             return font;
         }
 
+        info!("using first available font");
         self.first(&mut font_context)
     }
 
@@ -446,6 +450,7 @@ impl FontGroup {
         S: FontSource,
         P: FnMut(&FontRef) -> bool,
     {
+        info!("checking fallback families");
         iter::once(FontFamilyDescriptor::default())
             .chain(fallback_font_families(codepoint).into_iter().map(|family| {
                 FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
