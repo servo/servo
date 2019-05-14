@@ -185,4 +185,49 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     ) -> Fallible<DomRoot<CanvasPattern>> {
         self.canvas_state.borrow().CreatePattern(image, repetition)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
+    fn Save(&self) {
+        self.canvas_state.borrow().Save()
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
+    fn Restore(&self) {
+        self.canvas_state.borrow().Restore()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
+    fn GlobalAlpha(&self) -> f64 {
+        self.canvas_state.borrow().GlobalAlpha()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
+    fn SetGlobalAlpha(&self, alpha: f64) {
+        self.canvas_state.borrow().SetGlobalAlpha(alpha)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
+    fn GlobalCompositeOperation(&self) -> DOMString {
+        self.canvas_state.borrow().GlobalCompositeOperation()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
+    fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
+        self.canvas_state.borrow().SetGlobalCompositeOperation(op_str)
+    }
+
+        // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
+    fn ImageSmoothingEnabled(&self) -> bool {
+        self.canvas_state
+            .borrow()
+            .ImageSmoothingEnabled()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
+    fn SetImageSmoothingEnabled(&self, value: bool) {
+        self.canvas_state
+            .borrow()
+            .SetImageSmoothingEnabled(value)
+    }
 }
