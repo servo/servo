@@ -92,8 +92,12 @@ function unsafe_open_pull_request() {
     git checkout "${BRANCH_NAME}" || return 0
 
     if [[ -z "${WPT_SYNC_TOKEN+set}" ]]; then
-        SECRET_RESPONSE=$(curl ${TASKCLUSTER_PROXY_URL}/secrets/v1/secret/project/servo/wpt-sync)
+        SECRET_RESPONSE=$(curl ${TASKCLUSTER_PROXY_URL}/secrets/v1/secret/garbage/servo/wpt-test)
+        echo "---"
+        echo "${SECRET_RESPONSE}"
+        echo "---"
         WPT_SYNC_TOKEN=`echo "${SECRET_RESPONSE}" | jq --raw-output '.secret.token'`
+        echo "${WPT_SYNC_TOKEN}"
     fi
 
     if [[ -z "${WPT_SYNC_TOKEN}" ]]; then
