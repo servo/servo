@@ -24,7 +24,7 @@ RUN \
         libgstreamer-plugins-bad1.0-dev \
         #
         # OpenSSL
-        libssl1.0-dev \
+        libssl-dev \
         #
         # blurz
         libdbus-1-dev \
