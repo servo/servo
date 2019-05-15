@@ -233,9 +233,10 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
-        let characters: [UniChar; 1] = [codepoint as UniChar];
-        let mut glyphs: [CGGlyph; 1] = [0 as CGGlyph];
-        let count: CFIndex = 1;
+        let mut characters: [UniChar; 2] = [0 as UniChar, 0];
+        let len = codepoint.encode_utf16(&mut characters).len();
+        let mut glyphs: [CGGlyph; 2] = [0 as CGGlyph, 0];
+        let count = len as CFIndex;
 
         let result = unsafe {
             self.ctfont
