@@ -1,0 +1,13 @@
+--- gst-plugins-bad.rb	2019-05-15 12:48:17.000000000 -0400
++++ gst-plugins-bad-new.rb	2019-05-15 12:49:35.000000000 -0400
+@@ -28,8 +28,10 @@
+   depends_on "libmms"
+   depends_on "openssl"
+   depends_on "opus"
+   depends_on "orc"
++  depends_on "libnice"
++  depends_on "srtp"
+ 
+   def install
+     args = %W[
+       --prefix=#{prefix}
