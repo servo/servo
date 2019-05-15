@@ -406,7 +406,8 @@ def windows_nightly():
         .with_treeherder("Windows x64", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
-        .with_script("mach build --release",
+        .with_script("mach fetch",
+                     "mach build --release",
                      "mach package --release",
                      "mach upload-nightly windows-msvc --secret-from-taskcluster")
         .with_artifacts("repo/target/release/msi/Servo.exe",
@@ -701,7 +702,7 @@ def windows_build_task(name, package=True, arch="x86_64"):
     version = "1.14.3"
     task = (
         windows_task(name)
-        .with_max_run_time_minutes(60)
+        .with_max_run_time_minutes(90)
         .with_env(
             **build_env,
             **windows_build_env[arch],
