@@ -90,13 +90,12 @@ If this doesn't work, file a bug, and, run the commands below:
 sudo apt install git curl autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
-    libssl1.0-dev libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
+    libssl-dev libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
     libharfbuzz-dev ccache clang libunwind-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
 ```
 
-If you using a version prior to **Ubuntu 17.04**, **Linux Mint 19** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
 Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gstreamer`, or run `./mach bootstrap-gstreamer` to set it up.
 
 If you are using **Ubuntu 16.04** or **Linux Mint 18.&#42;** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.

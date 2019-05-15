@@ -110,7 +110,7 @@ def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
     pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
                 'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
-                'build-essential', 'cmake', 'python-pip',
+                'build-essential', 'cmake', 'python-pip', "libssl-dev",
                 'libbz2-dev', 'liblzma-dev',
                 'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
                 'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev', 'libharfbuzz-dev',
@@ -124,24 +124,12 @@ def linux(context, force=False):
                 'ccache', 'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
                 'gstreamer1-plugins-base-devel', 'gstreamer1-plugins-bad-free-devel', 'autoconf213']
     if context.distro == "Ubuntu":
-        if context.distro_version in ["17.04", "19.04"]:
-            pkgs_apt += ["libssl-dev"]
-        elif int(context.distro_version.split(".")[0]) < 17:
-            pkgs_apt += ["libssl-dev"]
-        else:
-            pkgs_apt += ["libssl1.0-dev"]
-
         if context.distro_version == "14.04":
             pkgs_apt += ["python-virtualenv"]
         else:
             pkgs_apt += ["virtualenv"]
             pkgs_apt += ['libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
                          'libgstreamer-plugins-bad1.0-dev']
-
-    elif context.distro == "Debian" and context.distro_version == "Sid":
-        pkgs_apt += ["libssl-dev"]
-    else:
-        pkgs_apt += ["libssl1.0-dev"]
 
     installed_something = install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
 
