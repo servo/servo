@@ -50,7 +50,7 @@ use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
 use std::marker::PhantomData;
-use std::mem::{forget, uninitialized, zeroed};
+use std::mem::{forget, uninitialized, zeroed, ManuallyDrop};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
 use crate::values::computed::{NonNegativeLength, Percentage, TransitionProperty};
@@ -1095,10 +1095,10 @@ pub fn clone_transform_from_list(
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
     pub fn default(document: &structs::Document) -> Arc<Self> {
-        let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
+        let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: ManuallyDrop::new(unsafe { zeroed() }) });
         unsafe {
             Gecko_Construct_Default_${style_struct.gecko_ffi_name}(
-                &mut Arc::get_mut(&mut result).unwrap().gecko,
+                &mut *Arc::get_mut(&mut result).unwrap().gecko,
                 document,
             );
         }
@@ -1108,15 +1108,15 @@ impl ${style_struct.gecko_struct_name} {
 impl Drop for ${style_struct.gecko_struct_name} {
     fn drop(&mut self) {
         unsafe {
-            Gecko_Destroy_${style_struct.gecko_ffi_name}(&mut self.gecko);
+            Gecko_Destroy_${style_struct.gecko_ffi_name}(&mut *self.gecko);
         }
     }
 }
 impl Clone for ${style_struct.gecko_struct_name} {
     fn clone(&self) -> Self {
         unsafe {
-            let mut result = ${style_struct.gecko_struct_name} { gecko: zeroed() };
-            Gecko_CopyConstruct_${style_struct.gecko_ffi_name}(&mut result.gecko, &self.gecko);
+            let mut result = ${style_struct.gecko_struct_name} { gecko: ManuallyDrop::new(zeroed()) };
+            Gecko_CopyConstruct_${style_struct.gecko_ffi_name}(&mut *result.gecko, &*self.gecko);
             result
         }
     }
@@ -1545,8 +1545,9 @@ fn static_assert() {
 
     % for kind in ["rows", "columns"]:
     pub fn set_grid_auto_${kind}(&mut self, v: longhands::grid_auto_${kind}::computed_value::T) {
-        v.to_gecko_style_coords(&mut self.gecko.mGridAuto${kind.title()}Min,
-                                &mut self.gecko.mGridAuto${kind.title()}Max)
+        let gecko = &mut *self.gecko;
+        v.to_gecko_style_coords(&mut gecko.mGridAuto${kind.title()}Min,
+                                &mut gecko.mGridAuto${kind.title()}Max)
     }
 
     pub fn copy_grid_auto_${kind}_from(&mut self, other: &Self) {
@@ -1566,14 +1567,14 @@ fn static_assert() {
     pub fn set_grid_template_${kind}(&mut self, v: longhands::grid_template_${kind}::computed_value::T) {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use crate::gecko_bindings::structs::{nsTArray, nsStyleGridLine_kMaxLine};
-        use nsstring::nsStringRepr;
+        use nsstring::nsString;
         use std::usize;
         use crate::values::CustomIdent;
         use crate::values::generics::grid::TrackListType::Auto;
         use crate::values::generics::grid::{GridTemplateComponent, RepeatCount};
 
         #[inline]
-        fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<nsStringRepr>) {
+        fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<nsString>) {
             unsafe {
                 bindings::Gecko_ResizeTArrayForStrings(gecko_names, servo_names.len() as u32);
             }
@@ -1693,7 +1694,7 @@ fn static_assert() {
     pub fn clone_grid_template_${kind}(&self) -> longhands::grid_template_${kind}::computed_value::T {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use crate::gecko_bindings::structs::nsTArray;
-        use nsstring::nsStringRepr;
+        use nsstring::nsString;
         use crate::values::CustomIdent;
         use crate::values::generics::grid::{GridTemplateComponent, LineNameList, RepeatCount};
         use crate::values::generics::grid::{TrackList, TrackListType, TrackListValue, TrackRepeat, TrackSize};
@@ -1704,7 +1705,7 @@ fn static_assert() {
         };
 
         #[inline]
-        fn to_boxed_customident_slice(gecko_names: &nsTArray<nsStringRepr>) -> Box<[CustomIdent]> {
+        fn to_boxed_customident_slice(gecko_names: &nsTArray<nsString>) -> Box<[CustomIdent]> {
             let idents: Vec<CustomIdent> = gecko_names.iter().map(|gecko_name| {
                 CustomIdent(Atom::from(gecko_name.to_string()))
             }).collect();
@@ -1712,7 +1713,7 @@ fn static_assert() {
         }
 
         #[inline]
-        fn to_line_names_vec(gecko_line_names: &nsTArray<nsTArray<nsStringRepr>>)
+        fn to_line_names_vec(gecko_line_names: &nsTArray<nsTArray<nsString>>)
             -> Vec<Box<[CustomIdent]>> {
             gecko_line_names.iter().map(|gecko_names| {
                 to_boxed_customident_slice(gecko_names)
@@ -2129,14 +2130,14 @@ fn static_assert() {
         let ptr = v.0.as_ptr();
         forget(v);
         unsafe {
-            Gecko_nsStyleFont_SetLang(&mut self.gecko, ptr);
+            Gecko_nsStyleFont_SetLang(&mut *self.gecko, ptr);
         }
     }
 
     #[allow(non_snake_case)]
     pub fn copy__x_lang_from(&mut self, other: &Self) {
         unsafe {
-            Gecko_nsStyleFont_CopyLangFrom(&mut self.gecko, &other.gecko);
+            Gecko_nsStyleFont_CopyLangFrom(&mut *self.gecko, &*other.gecko);
         }
     }
 
@@ -2519,7 +2520,7 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn generate_combined_transform(&mut self) {
-        unsafe { bindings::Gecko_StyleDisplay_GenerateCombinedTransform(&mut self.gecko) };
+        unsafe { bindings::Gecko_StyleDisplay_GenerateCombinedTransform(&mut *self.gecko) };
     }
 
     #[inline]
@@ -2836,12 +2837,12 @@ fn static_assert() {
         match v {
             WillChange::AnimateableFeatures { features, bits } => {
                 unsafe {
-                    Gecko_ClearWillChange(&mut self.gecko, features.len());
+                    Gecko_ClearWillChange(&mut *self.gecko, features.len());
                 }
 
                 for feature in features.iter() {
                     unsafe {
-                        Gecko_AppendWillChange(&mut self.gecko, feature.0.as_ptr())
+                        Gecko_AppendWillChange(&mut *self.gecko, feature.0.as_ptr())
                     }
                 }
 
@@ -2849,7 +2850,7 @@ fn static_assert() {
             },
             WillChange::Auto => {
                 unsafe {
-                    Gecko_ClearWillChange(&mut self.gecko, 0);
+                    Gecko_ClearWillChange(&mut *self.gecko, 0);
                 }
                 self.gecko.mWillChangeBitField = WillChangeBits::empty();
             },
@@ -2861,7 +2862,7 @@ fn static_assert() {
 
         self.gecko.mWillChangeBitField = other.gecko.mWillChangeBitField;
         unsafe {
-            Gecko_CopyWillChangeFrom(&mut self.gecko, &other.gecko);
+            Gecko_CopyWillChangeFrom(&mut *self.gecko, &*other.gecko);
         }
     }
 
@@ -3307,13 +3308,13 @@ fn static_assert() {
         match image {
             UrlOrNone::None => {
                 unsafe {
-                    Gecko_SetListStyleImageNone(&mut self.gecko);
+                    Gecko_SetListStyleImageNone(&mut *self.gecko);
                 }
             }
             UrlOrNone::Url(ref url) => {
                 unsafe {
                     Gecko_SetListStyleImageImageValue(
-                        &mut self.gecko,
+                        &mut *self.gecko,
                         url.url_value_ptr(),
                     );
                 }
@@ -3322,7 +3323,7 @@ fn static_assert() {
     }
 
     pub fn copy_list_style_image_from(&mut self, other: &Self) {
-        unsafe { Gecko_CopyListStyleImageFrom(&mut self.gecko, &other.gecko); }
+        unsafe { Gecko_CopyListStyleImageFrom(&mut *self.gecko, &*other.gecko); }
     }
 
     pub fn reset_list_style_image(&mut self, other: &Self) {
@@ -3644,7 +3645,7 @@ fn static_assert() {
 
         let v = v.into_iter();
         unsafe {
-            Gecko_ResetFilters(&mut self.gecko, v.len());
+            Gecko_ResetFilters(&mut *self.gecko, v.len());
         }
         debug_assert_eq!(v.len(), self.gecko.mFilters.len());
 
@@ -3690,7 +3691,7 @@ fn static_assert() {
 
     pub fn copy_filter_from(&mut self, other: &Self) {
         unsafe {
-            Gecko_CopyFiltersFrom(&other.gecko as *const _ as *mut _, &mut self.gecko);
+            Gecko_CopyFiltersFrom(&other.gecko as *const _ as *mut _, &mut *self.gecko);
         }
     }
 
@@ -4139,7 +4140,7 @@ clip-path
                 let v = v.into_iter();
                 self.gecko.mContextFlags &= !CONTEXT_VALUE;
                 unsafe {
-                    bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.len() as u32);
+                    bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut *self.gecko, v.len() as u32);
                 }
                 for (gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
                     *gecko = servo;
@@ -4148,7 +4149,7 @@ clip-path
             SVGStrokeDashArray::ContextValue => {
                 self.gecko.mContextFlags |= CONTEXT_VALUE;
                 unsafe {
-                    bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, 0);
+                    bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut *self.gecko, 0);
                 }
             }
         }
@@ -4157,7 +4158,7 @@ clip-path
     pub fn copy_stroke_dasharray_from(&mut self, other: &Self) {
         use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
         unsafe {
-            bindings::Gecko_nsStyleSVG_CopyDashArray(&mut self.gecko, &other.gecko);
+            bindings::Gecko_nsStyleSVG_CopyDashArray(&mut *self.gecko, &*other.gecko);
         }
         self.gecko.mContextFlags =
             (self.gecko.mContextFlags & !CONTEXT_VALUE) |
@@ -4204,19 +4205,20 @@ clip-path
     {
         let v = v.into_iter();
         unsafe {
-            bindings::Gecko_nsStyleSVG_SetContextPropertiesLength(&mut self.gecko, v.len() as u32);
+            bindings::Gecko_nsStyleSVG_SetContextPropertiesLength(&mut *self.gecko, v.len() as u32);
         }
 
-        self.gecko.mContextPropsBits = 0;
-        for (gecko, servo) in self.gecko.mContextProps.iter_mut().zip(v) {
+        let s = &mut *self.gecko;
+        s.mContextPropsBits = 0;
+        for (gecko, servo) in s.mContextProps.iter_mut().zip(v) {
             if (servo.0).0 == atom!("fill") {
-                self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL as u8;
+                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL as u8;
             } else if (servo.0).0 == atom!("stroke") {
-                self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE as u8;
+                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE as u8;
             } else if (servo.0).0 == atom!("fill-opacity") {
-                self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY as u8;
+                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY as u8;
             } else if (servo.0).0 == atom!("stroke-opacity") {
-                self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY as u8;
+                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY as u8;
             }
             gecko.mRawPtr = (servo.0).0.into_addrefed();
         }
@@ -4225,7 +4227,7 @@ clip-path
     #[allow(non_snake_case)]
     pub fn copy__moz_context_properties_from(&mut self, other: &Self) {
         unsafe {
-            bindings::Gecko_nsStyleSVG_CopyContextProperties(&mut self.gecko, &other.gecko);
+            bindings::Gecko_nsStyleSVG_CopyContextProperties(&mut *self.gecko, &*other.gecko);
         }
     }
 
@@ -4242,7 +4244,7 @@ clip-path
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         self.gecko.mCursor = v.keyword;
         unsafe {
-            Gecko_SetCursorArrayLength(&mut self.gecko, v.images.len());
+            Gecko_SetCursorArrayLength(&mut *self.gecko, v.images.len());
         }
         for i in 0..v.images.len() {
             unsafe {
@@ -4268,7 +4270,7 @@ clip-path
     pub fn copy_cursor_from(&mut self, other: &Self) {
         self.gecko.mCursor = other.gecko.mCursor;
         unsafe {
-            Gecko_CopyCursorArrayFrom(&mut self.gecko, &other.gecko);
+            Gecko_CopyCursorArrayFrom(&mut *self.gecko, &*other.gecko);
         }
     }
 
@@ -4387,20 +4389,20 @@ clip-path
                 // Ensure destructors run, otherwise we could leak.
                 if !self.gecko.mContents.is_empty() {
                     unsafe {
-                        Gecko_ClearAndResizeStyleContents(&mut self.gecko, 0);
+                        Gecko_ClearAndResizeStyleContents(&mut *self.gecko, 0);
                     }
                 }
             },
             Content::MozAltContent => {
                 unsafe {
-                    Gecko_ClearAndResizeStyleContents(&mut self.gecko, 1);
+                    Gecko_ClearAndResizeStyleContents(&mut *self.gecko, 1);
                     *self.gecko.mContents[0].mContent.mString.as_mut() = ptr::null_mut();
                 }
                 self.gecko.mContents[0].mType = StyleContentType::AltContent;
             },
             Content::Items(items) => {
                 unsafe {
-                    Gecko_ClearAndResizeStyleContents(&mut self.gecko,
+                    Gecko_ClearAndResizeStyleContents(&mut *self.gecko,
                                                       items.len() as u32);
                 }
                 for (i, item) in items.into_vec().into_iter().enumerate() {
@@ -4481,7 +4483,7 @@ clip-path
     pub fn copy_content_from(&mut self, other: &Self) {
         use crate::gecko_bindings::bindings::Gecko_CopyStyleContentsFrom;
         unsafe {
-            Gecko_CopyStyleContentsFrom(&mut self.gecko, &other.gecko)
+            Gecko_CopyStyleContentsFrom(&mut *self.gecko, &*other.gecko)
         }
     }
 
@@ -4575,7 +4577,7 @@ clip-path
             v: longhands::counter_${counter_property.lower()}::computed_value::T
         ) {
             unsafe {
-                bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko, v.len() as u32);
+                bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut *self.gecko, v.len() as u32);
                 for (i, pair) in v.0.into_vec().into_iter().enumerate() {
                     self.gecko.m${counter_property}s[i].mCounter.set_move(
                         RefPtr::from_addrefed(pair.name.0.into_addrefed())
@@ -4587,7 +4589,7 @@ clip-path
 
         pub fn copy_counter_${counter_property.lower()}_from(&mut self, other: &Self) {
             unsafe {
-                bindings::Gecko_CopyCounter${counter_property}sFrom(&mut self.gecko, &other.gecko)
+                bindings::Gecko_CopyCounter${counter_property}sFrom(&mut *self.gecko, &*other.gecko)
             }
         }
 
