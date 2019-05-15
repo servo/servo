@@ -575,4 +575,14 @@ test(() => {
   document.body.offsetTop;
 }, 'Forcing a style update after adding an adopted stylesheet on a disconnected shadow root should not crash.');
 
+test(() => {
+  const host = document.createElement("div");
+  thirdSection.appendChild(host);
+  const root = host.attachShadow({mode: "open"});
+  const sheet = new CSSStyleSheet();
+  root.adoptedStyleSheets = [sheet];
+  host.remove();
+  sheet.replaceSync('');
+}, 'Modifying an adopted stylesheet on a disconnected shadow root should not crash.');
+
 </script>

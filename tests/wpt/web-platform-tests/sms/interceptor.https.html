@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/samuelgoto/sms-receiver">
+<title>Tests the SMS Receiver API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!--
+ sms_provider.js is a testing framework that enables engines to test the sms
+ receiver API by intercepting the connection between the browser and the
+ underlying operating system and mock its behavior.
+
+ Usage:
+
+ 1) Include <script src="./sms_provider.js"></script> in your test.
+ 2) Set expectations
+  await expect(getNextMessage).andReturn((timeout) => {
+    // mock behavior
+  })
+ 3) Call new SMSReceiver().start();
+ 4) Verify results
+
+ The mocking API is browser agnostic and is designed such that other engines
+ could implement it too.
+
+ Here are the symbols that are exposed to tests that need to be implemented
+ per engine:
+
+ - function getNextMessage(): the main/only function that can be mocked.
+ - function expect(): the main/only function that enables us to mock it.
+ - enum State {kSuccess, kTimeout}: allows you to mock success/failures.
+
+  -->
+<script src="./sms_provider.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await expect(getNextMessage).andReturn((timeout) => {
+      return Promise.resolve({
+        sms: {
+          content: "hello",
+          status: Status.kSuccess,
+        }
+      });
+  });
+
+  let receiver = new SMSReceiver();
+
+  let watcher = new EventWatcher(t, receiver, ["change"]);
+
+  await receiver.start();
+
+  // Waits for the first event.
+  await watcher.wait_for("change");
+
+  assert_equals(receiver.sms.content, "hello");
+}, 'Basic usage');
+
+promise_test(async t => {
+  await expect(getNextMessage).andReturn((timeout) => {
+      return Promise.resolve({
+        sms: {
+          content: "",
+          status: Status.kTimeout,
+        }
+      });
+  });
+
+  let receiver = new SMSReceiver();
+
+  let watcher = new EventWatcher(t, receiver, ["timeout"]);
+
+  await receiver.start();
+
+  // Waits for the first event.
+  await watcher.wait_for("timeout");
+}, 'Deal with timeouts');
+
+
+</script>

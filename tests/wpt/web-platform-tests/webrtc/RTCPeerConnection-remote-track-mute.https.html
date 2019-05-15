@@ -100,8 +100,28 @@ promise_test(async t => {
   await unmutePromise;
 
   const mutePromise = muteWatcher.wait_for('mute');
-  pc2.close();
+  localTransceiver.stop();
   await mutePromise;
-}, 'pc.close() mutes remote tracks');
+}, 'transceiver.stop() on one side (without renegotiation) causes mute events on the other');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc1Sender = pc1.addTrack(...await createTrackAndStreamWithCleanup(t));
+  const localTransceiver = findTransceiverForSender(pc1, pc1Sender);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  // Need to wait for the initial unmute event before closing, otherwise
+  // there will be no transition from unmuted->muted.
+  const muteWatcher = new EventWatcher(t, e.track, ['mute', 'unmute']);
+  const unmutePromise = muteWatcher.wait_for('unmute');
+  await exchangeAnswer(pc1, pc2);
+  await unmutePromise;
+
+  const mutePromise = muteWatcher.wait_for('mute');
+  pc1.close();
+  await mutePromise;
+}, 'pc.close() on one side causes mute events on the other');
 
 </script>

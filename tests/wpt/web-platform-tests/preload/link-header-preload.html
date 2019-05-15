@@ -1,20 +1,35 @@
 <!DOCTYPE html>
+<title>Makes sure that Link headers preload resources</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
-<script>
-    var t = async_test('Makes sure that Link headers preload resources');
-</script>
 <body>
 <script>
-    window.addEventListener("load", t.step_func(function() {
-        t.step_timeout(function() {
-            verifyPreloadAndRTSupport();
-            verifyNumberOfResourceTimingEntries("resources/square.png?link-header-preload", 1);
-            verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload", 1);
-            verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-preload", 1);
-            t.done();
-        }, 5000);
-    }));
+setup({explicit_done: true});
+
+var iterations = 0;
+
+function check_finished() {
+    if (numberOfResourceTimingEntries("resources/square.png?link-header-preload") == 1 &&
+        numberOfResourceTimingEntries("resources/dummy.js?link-header-preload") == 1 &&
+        numberOfResourceTimingEntries("resources/dummy.css?link-header-preload") == 1) {
+        done();
+    }
+    iterations++;
+    if (iterations == 10) {
+        // At least one is expected to fail, but this should give details to the exact failure(s).
+        verifyNumberOfResourceTimingEntries("resources/square.png?link-header-preload", 1);
+        verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload", 1);
+        verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-preload", 1);
+        done();
+    } else {
+        step_timeout(check_finished, 500);
+    }
+}
+
+window.addEventListener("load", function() {
+    verifyPreloadAndRTSupport();
+    step_timeout(check_finished, 0);
+});
 </script>
 </body>

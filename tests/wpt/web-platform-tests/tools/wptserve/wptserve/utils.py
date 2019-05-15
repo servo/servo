@@ -100,6 +100,7 @@ def is_bad_port(port):
     ]
 
 def get_port(host=''):
+    host = host or '127.0.0.1'
     port = 0
     while True:
         free_socket = _open_socket(host, 0)

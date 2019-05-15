@@ -25,6 +25,7 @@ function performChromiumSetup() {
 
   // Load the Chromium-specific resources.
   let prefix = '/resources/chromium';
+  let genPrefix = '/gen';
   let extra = [];
   const pathname = window.location.pathname;
   if (pathname.includes('/LayoutTests/') || pathname.includes('/web_tests/')) {
@@ -33,17 +34,19 @@ function performChromiumSetup() {
     extra = [
       `${root}/resources/bluetooth/bluetooth-fake-adapter.js`,
     ];
+    genPrefix = 'file:///gen';
   } else if (window.location.pathname.startsWith('/bluetooth/https/')) {
     extra = [
       '/js-test-resources/bluetooth/bluetooth-fake-adapter.js',
     ];
   }
   return loadScripts([
-    `${prefix}/mojo_bindings.js`,
-    `${prefix}/mojo_web_test_helper_test.mojom.js`,
-    `${prefix}/uuid.mojom.js`,
-    `${prefix}/fake_bluetooth.mojom.js`,
-    `${prefix}/fake_bluetooth_chooser.mojom.js`,
+    `${genPrefix}/layout_test_data/mojo/public/js/mojo_bindings.js`,
+    `${genPrefix}/content/test/data/mojo_web_test_helper_test.mojom.js`,
+    `${genPrefix}/device/bluetooth/public/mojom/uuid.mojom.js`,
+    `${genPrefix}/url/mojom/origin.mojom.js`,
+    `${genPrefix}/device/bluetooth/public/mojom/test/fake_bluetooth.mojom.js`,
+    `${genPrefix}/content/shell/common/web_test/fake_bluetooth_chooser.mojom.js`,
     `${prefix}/web-bluetooth-test.js`,
   ].concat(extra))
       // Call setBluetoothFakeAdapter() to clean up any fake adapters left over
@@ -497,6 +500,15 @@ function setUpPreconnectedDevice({
       knownServiceUUIDs: knownServiceUUIDs,
     }));
 }
+
+const health_thermometer_ad_packet = {
+  deviceAddress: '09:09:09:09:09:09',
+  rssi: -10,
+  scanRecord: {
+    name: 'Health Thermometer',
+    uuids: [health_thermometer.uuid],
+  },
+};
 
 // Returns a FakePeripheral that corresponds to a simulated pre-connected device
 // called 'Health Thermometer'. The device has two known serviceUUIDs:

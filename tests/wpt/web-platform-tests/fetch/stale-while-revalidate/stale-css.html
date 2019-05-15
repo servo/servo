@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests Stale While Revalidate works for css</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script>
+
+var request_token = token();
+async_test(t => {
+  window.onload = t.step_func(() => {
+    t.step_timeout(() => {
+      assert_equals(window.getComputedStyle(document.body).getPropertyValue('background-color'), "rgb(0, 128, 0)");
+      var link2 = document.createElement("link");
+      link2.onload = t.step_func(() => {
+        assert_equals(window.getComputedStyle(document.body).getPropertyValue('background-color'), "rgb(0, 128, 0)");
+        var checkResult = () => {
+          // We poll because we don't know when the revalidation will occur.
+          fetch("resources/stale-css.py?query&token=" + request_token).then(t.step_func((response) => {
+            var count = response.headers.get("Count");
+            if (count == '2') {
+              t.done();
+            } else {
+              t.step_timeout(checkResult, 25);
+            }
+          }));
+        };
+        t.step_timeout(checkResult, 25);
+      });
+      link2.rel = "stylesheet";
+      link2.type = "text/css";
+      link2.href = "resources/stale-css.py?token=" + request_token;
+      document.body.appendChild(link2);
+    }, 0);
+  });
+}, 'Cache returns stale resource');
+
+var link = document.createElement("link");
+link.rel = "stylesheet";
+link.type = "text/css";
+link.href = "resources/stale-css.py?token=" + request_token;
+document.body.appendChild(link);
+</script>
+</body>

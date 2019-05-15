@@ -5,14 +5,10 @@
   <script>
     promise_test(() => {
       var portal = document.createElement("portal");
-      portal.src = "resources/portals-nested-1.html";
+      portal.src = "resources/portals-nested-portal.html";
       document.body.appendChild(portal);
       var waitForMessage = new Promise((resolve, reject) => {
-        var bc = new BroadcastChannel("portals-nested");
-        bc.onmessage = () => {
-          bc.close();
-          resolve();
-        }
+        portal.onmessage = resolve;
       });
       return waitForMessage;
     }, "nested portals shouldn't crash");

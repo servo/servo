@@ -8,11 +8,7 @@
     portal.src = new URL("resources/simple-portal.html", location.href)
 
     await new Promise((resolve, reject) => {
-      var bc = new BroadcastChannel("simple-portal");
-      bc.onmessage = () => {
-        bc.close();
-        resolve();
-      }
+      portal.onmessage = resolve;
       win.document.body.appendChild(portal);
     });
 

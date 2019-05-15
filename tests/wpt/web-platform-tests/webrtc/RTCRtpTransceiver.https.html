@@ -1972,6 +1972,30 @@
       ]);
   };
 
+  const checkBundleTagRejected = async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream1 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stopTracks(stream1));
+    const track1 = stream1.getAudioTracks()[0];
+    const stream2 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stopTracks(stream2));
+    const track2 = stream2.getAudioTracks()[0];
+
+    pc1.addTrack(track1, stream1);
+    pc1.addTrack(track2, stream2);
+
+    await offerAnswer(pc1, pc2);
+
+    pc2.getTransceivers()[0].stop();
+
+    await offerAnswer(pc1, pc2);
+    await offerAnswer(pc2, pc1);
+  };
+
   const checkMsectionReuse = async t => {
     // Use max-compat to make it easier to check for disabled m-sections
     const pc1 = new RTCPeerConnection({ bundlePolicy: "max-compat" });
@@ -2254,7 +2278,9 @@ const tests = [
   checkRollbackAndSetRemoteOfferWithDifferentType,
   checkRemoteRollback,
   checkMsectionReuse,
-  checkStopAfterCreateOfferWithReusedMsection
+  checkStopAfterCreateOfferWithReusedMsection,
+  checkAddIceCandidateToStoppedTransceiver,
+  checkBundleTagRejected
 ].forEach(test => promise_test(test, test.name));
 
 </script>

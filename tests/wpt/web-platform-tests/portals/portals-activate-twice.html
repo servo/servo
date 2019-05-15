@@ -4,10 +4,7 @@
 <script>
 promise_test(async t => {
   let waitForMessage = new Promise((resolve, reject) => {
-    var bc = new BroadcastChannel("portals-activate-twice");
-    bc.onmessage = e => {
-      resolve(e.data);
-    }
+    window.onmessage = e => resolve(e.data);
   });
   window.open("resources/portal-activate-twice-window-1.html");
   let error = await waitForMessage;
@@ -16,10 +13,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   let waitForMessage = new Promise((resolve, reject) => {
-    var bc = new BroadcastChannel("portals-activate-twice");
-    bc.onmessage = e => {
-      resolve(e.data);
-    }
+    window.onmessage = e => resolve(e.data);
   });
   window.open("resources/portal-activate-twice-window-2.html");
   let error = await waitForMessage;

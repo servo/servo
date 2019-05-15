@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing only times certain types of trusted event.
+</title>
+<meta name="timeout" content="long">
+<button id='button' onmousedown='mainThreadBusy(60)'
+  onfocus='mainThreadBusy(60)'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<script src=resources/event-timing-test-utils.js></script>
+<script>
+  let trustedClickStart;
+  function trustedClickAndBlockMain(id) {
+    return new Promise((resolve, reject) => {
+      trustedClickStart = performance.now();
+      clickOnElement(id, resolve);
+    });
+  }
+
+  function untrustedClickAndBlockMain(id) {
+    const target = document.getElementById(id);
+    // Block mainthread in the callback, as dispatchEvent() is a sync call.
+    target.dispatchEvent(new MouseEvent('mousedown'));
+  }
+
+  function trustedFocusAndBlockMain(id) {
+    const target = document.getElementById(id);
+    trustedFocusStart = performance.now();
+    // Block mainthread in the callback,  as focus() is a sync call.
+    target.focus();
+  }
+
+  async_test(function(t) {
+    new PerformanceObserver(t.step_func_done(entryList => {
+      const observerCallbackTime = performance.now();
+      const entries = entryList.getEntries().filter(
+          entry => entry.name === 'mousedown');
+      assert_equals(entries.length, 1,
+          "Should only observe one entry: " +
+          JSON.stringify(entries) + ".");
+      assert_equals(entries[0].name, 'mousedown',
+          "The observed entry should be a click");
+      assert_less_than(entries[0].startTime, observerCallbackTime,
+          "The startTime should be before observerCallbackTime");
+      assert_greater_than(entries[0].startTime, trustedClickStart,
+          "The startTime should be after trustedClickStart");
+    })).observe({ entryTypes: ['event'] });
+    // Untrusted event of a type event timing cares about.
+    untrustedClickAndBlockMain('button');
+    // Trusted event of a type event timing doesn't cares about.
+    trustedFocusAndBlockMain('button');
+    // Trusted event of a type event timing cares about.
+    trustedClickAndBlockMain('button').then(wait);
+  }, "Event Timing only times certain types of trusted event.");
+</script>
+</html>

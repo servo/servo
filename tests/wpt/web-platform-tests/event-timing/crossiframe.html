@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8 />
+  <title>Event Timing: entries should be observable by its own frame.</title>
+  <meta name="timeout" content="long">
+</head>
+
+<body>
+<button id='button'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<script src=resources/event-timing-test-utils.js></script>
+<img src=./resources/slow-image.py>
+<iframe src=resources/crossiframe-childframe.html></iframe>
+<script>
+  let clickTimeMin;
+  let processingStartMin;
+  let onloadStart;
+
+  function validateEntries() {
+    const entries = performance.getEntriesByName('mousedown', 'event');
+
+    assert_equals(entries.length, 1,
+      "Observer of main frames should only capture main-frame event-timing entries."
+    );
+    const entry = entries[0];
+    verifyClickEvent(entry, true);
+
+    assert_greater_than(entry.processingStart, processingStartMin,
+        "The entry's processing start should be later than processingStartMin.");
+    assert_greater_than(onloadStart, entry.processingStart,
+        "onload should occur later than the entry's procesisng start.");
+    assert_greater_than(entry.startTime, clickTimeMin,
+        "The entry's start time should be later than clickTimeMin.");
+    assert_greater_than(onloadStart, entry.startTime,
+        "onload should occur later than the entry's start time.");
+  }
+
+  function validateChildFrameEntries(childFrameData) {
+    assert_equals(childFrameData.bufferedEntries.length, 1,
+      "Event Timing of child frames should only capture child-frame event-timing entries."
+    );
+    const entry = entries[0];
+    verifyClickEvent(entry);
+
+    assert_greater_than(entry.processingStart, childFrameData.processingStartMin,
+        "The entry's processing start should be later than the child frame's processingStartMin.");
+    assert_greater_than(childFrameData.onloadStart, entry.processingStart,
+        "Child frame's onload should occur later than the entry's processing \
+        start.");
+    assert_greater_than(entry.startTime, childFrameData.clickTimeMin,
+        "The entry's start time should be later than the child frame's \
+        clickTimeMin.");
+    assert_greater_than(childFrameData.onloadStart, entry.startTime,
+        "Child frame's onload should be later than the entry's start time.");
+
+    assert_array_equals(childFrameData.observedEntries,
+        childFrameData.bufferedEntries,
+        "The child frame's observed entries should be buffered as well.");
+  }
+
+  async_test(function(t) {
+    clickTimeMin = performance.now();
+    clickAndBlockMain('button');
+    processingStartMin = performance.now();
+    const childFrameEntriesPromise = new Promise((resolve, reject) => {
+      window.addEventListener("message", (event) => {
+        resolve(event.data);
+      }, false);
+    });
+    on_event(window, 'load', e => {
+      onloadStart = performance.now();
+      childFrameEntriesPromise.then((entries) => {
+        t.step(() => {
+          validateChildFrameEntries(entries);
+          validateEntries();
+        });
+        t.done();
+      });
+    });
+  }, "Event Timing: entries should only be observable by its own frame.");
+
+</script>
+</body>
+</html>

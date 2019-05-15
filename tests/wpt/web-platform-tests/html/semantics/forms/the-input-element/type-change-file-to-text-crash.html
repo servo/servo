@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#input-type-change">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input id="myInput" type="file">
+<script>
+  test(() => {
+    myInput.offsetTop;
+    myInput.type = "text";
+  }, "Changing type from file to text should not crash.");
+</script>

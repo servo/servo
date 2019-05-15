@@ -1499,7 +1499,7 @@ policies and contribution forms [3].
         }
         this.name = name;
 
-        this.phase = tests.is_aborted ?
+        this.phase = (tests.is_aborted || tests.phase === tests.phases.COMPLETE) ?
             this.phases.COMPLETE : this.phases.INITIAL;
 
         this.status = this.NOTRUN;
@@ -1521,6 +1521,13 @@ policies and contribution forms [3].
         this.cleanup_callbacks = [];
         this._user_defined_cleanup_count = 0;
         this._done_callbacks = [];
+
+        // Tests declared following harness completion are likely an indication
+        // of a programming error, but they cannot be reported
+        // deterministically.
+        if (tests.phase === tests.phases.COMPLETE) {
+            return;
+        }
 
         tests.push(this);
     }
@@ -2672,7 +2679,7 @@ policies and contribution forms [3].
         if (this.phase < this.STARTED) {
             this.init();
         }
-        if (!this.enabled) {
+        if (!this.enabled || this.phase === this.COMPLETE) {
             return;
         }
         this.resolve_log();

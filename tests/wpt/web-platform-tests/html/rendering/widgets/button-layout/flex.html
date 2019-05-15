@@ -1,0 +1,29 @@
+<!doctype html>
+<title>button with flex/inline-flex</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+#inline-flex { display: inline-flex }
+#flex { display: flex }
+#ref > div { display: flex }
+</style>
+<button id=inline-flex><div>1</div><div>2</div><div>3</div><div>4</div></button>
+<button id=flex><div>1</div><div>2</div><div>3</div><div>4</div></button>
+<button id=ref><div><div>1</div><div>2</div><div>3</div><div>4</div></div></button>
+<script>
+const ref = document.getElementById('ref');
+const expectedWidth = ref.clientWidth;
+const expectedHeight = ref.clientHeight;
+for (const elm of [document.getElementById('inline-flex'),
+                   document.getElementById('flex')]) {
+  test(() => {
+    // check that flex is supported
+    const flexValue = elm.id;
+    assert_equals(getComputedStyle(elm).display, flexValue, `${flexValue} is not supported`);
+    const width = elm.clientWidth;
+    const height = elm.clientHeight;
+    assert_equals(width, expectedWidth, 'clientWidth');
+    assert_equals(height, expectedHeight, 'clientHeight');
+  }, elm.id);
+}
+</script>

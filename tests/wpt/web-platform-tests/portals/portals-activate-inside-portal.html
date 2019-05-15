@@ -7,11 +7,7 @@
       var portal = document.createElement("portal");
       portal.src = "resources/portal-activate-inside-portal.html";
       let waitForMessage = new Promise((resolve, reject) => {
-        var bc = new BroadcastChannel("portals-activate-inside-portal");
-        bc.onmessage = e => {
-          bc.close();
-          resolve(e.data);
-        }
+        portal.onmessage = e => resolve(e.data);
         document.body.appendChild(portal);
       });
       var error = await waitForMessage;

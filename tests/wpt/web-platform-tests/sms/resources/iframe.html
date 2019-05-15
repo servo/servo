@@ -1,0 +1,8 @@
+<script>
+'use strict';
+
+new SMSReceiver().start().catch(error => {
+  window.parent.postMessage({errorType: error.name}, '*');
+});
+
+</script>

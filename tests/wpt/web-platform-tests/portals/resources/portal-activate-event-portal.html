@@ -17,7 +17,5 @@
     window.addEventListener("portalactivate", portalActivate);
   }
 
-  var bc = new BroadcastChannel("portal-" + test);
-  bc.postMessage("loaded");
-  bc.close();
+  window.portalHost.postMessage("loaded", "*");
 </script>

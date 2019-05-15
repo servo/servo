@@ -40,6 +40,12 @@ interface CSSStyleSheet : StyleSheet {
   void deleteRule(unsigned long index);
 };
 
+partial interface CSSStyleSheet {
+  [SameObject] readonly attribute CSSRuleList rules;
+  long addRule(optional DOMString selector = "undefined", optional DOMString style = "undefined", optional unsigned long index);
+  void removeRule(optional unsigned long index = 0);
+};
+
 [Exposed=Window]
 interface StyleSheetList {
   getter CSSStyleSheet? item(unsigned long index);
@@ -122,7 +128,7 @@ interface CSSStyleDeclaration {
   getter CSSOMString item(unsigned long index);
   CSSOMString getPropertyValue(CSSOMString property);
   CSSOMString getPropertyPriority(CSSOMString property);
-  [CEReactions] void setProperty(CSSOMString property, [TreatNullAs=EmptyString] CSSOMString value, [TreatNullAs=EmptyString] optional CSSOMString priority = "");
+  [CEReactions] void setProperty(CSSOMString property, [TreatNullAs=EmptyString] CSSOMString value, optional [TreatNullAs=EmptyString] CSSOMString priority = "");
   [CEReactions] CSSOMString removeProperty(CSSOMString property);
   readonly attribute CSSRule? parentRule;
   [CEReactions] attribute [TreatNullAs=EmptyString] CSSOMString cssFloat;

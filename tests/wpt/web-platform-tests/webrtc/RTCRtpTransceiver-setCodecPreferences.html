@@ -26,7 +26,7 @@
           RTCRtpTransceiver on which the method is called. Additionally, the
           RTCRtpCodecParameters dictionary members cannot be modified. If
           codecs does not fulfill these requirements, the user agent MUST throw
-          an InvalidAccessError.
+          an InvalidModificationError.
    */
 
   test(() => {
@@ -81,9 +81,23 @@
     const pc = new RTCPeerConnection();
     const transceiver = pc.addTransceiver('audio');
     const capabilities = RTCRtpSender.getCapabilities('video');
-    assert_throws(() => transceiver.setCodecPreferences(capabilities.codecs));
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(capabilities.codecs));
 
-  }, `setCodecPreferences() on audio transceiver with codecs returned from getCapabilities('video') should throw InvalidAccessError`);
+  }, `setCodecPreferences() on audio transceiver with codecs returned from getCapabilities('video') should throw InvalidModificationError`);
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const codecs = [{
+      mimeType: 'data',
+      clockRate: 2000,
+      channels: 2,
+      sdpFmtpLine: '0-15'
+    }];
+
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+
+  }, `setCodecPreferences() with user defined codec with invalid mimeType should throw InvalidModificationError`);
 
   test(() => {
     const pc = new RTCPeerConnection();
@@ -92,12 +106,12 @@
       mimeType: 'audio/piepiper',
       clockRate: 2000,
       channels: 2,
-      sdpFmtpLine: 'a=fmtp:98 0-15'
+      sdpFmtpLine: '0-15'
     }];
 
-    assert_throws(() => transceiver.setCodecPreferences(codecs));
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
-  }, `setCodecPreferences() with user defined codec should throw InvalidAccessError`);
+  }, `setCodecPreferences() with user defined codec should throw InvalidModificationError`);
 
   test(() => {
     const pc = new RTCPeerConnection();
@@ -109,12 +123,45 @@
         mimeType: 'audio/piepiper',
         clockRate: 2000,
         channels: 2,
-        sdpFmtpLine: 'a=fmtp:98 0-15'
+        sdpFmtpLine: '0-15'
       }];
 
-    assert_throws(() => transceiver.setCodecPreferences(codecs));
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
-  }, `setCodecPreferences() with user defined codec together with codecs returned from getCapabilities() should throw InvalidAccessError`);
+  }, `setCodecPreferences() with user defined codec together with codecs returned from getCapabilities() should throw InvalidModificationError`);
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpSender.getCapabilities('audio');
+    const codecs = [capabilities.codecs[0]];
+    codecs[0].clockRate = codecs[0].clockRate / 2;
+
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+
+  }, `setCodecPreferences() with modified codec clock rate should throw InvalidModificationError`);
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpSender.getCapabilities('audio');
+    const codecs = [capabilities.codecs[0]];
+    codecs[0].channels = codecs[0].channels + 11;
+
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+
+  }, `setCodecPreferences() with modified codec channel count should throw InvalidModificationError`);
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpSender.getCapabilities('audio');
+    const codecs = [capabilities.codecs[0]];
+    codecs[0].sdpFmtpLine = "modifiedparameter=1";
+
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+
+  }, `setCodecPreferences() with modified codec parameters should throw InvalidModificationError`);
 
   test(() => {
     const pc = new RTCPeerConnection();
@@ -129,8 +176,8 @@
     const { channels=2 } = codec;
     codec.channels = channels+1;
 
-    assert_throws(() => transceiver.setCodecPreferences(codecs));
+    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
-  }, `setCodecPreferences() with modified codecs returned from getCapabilities() should throw InvalidAccessError`);
+  }, `setCodecPreferences() with modified codecs returned from getCapabilities() should throw InvalidModificationError`);
 
  </script>

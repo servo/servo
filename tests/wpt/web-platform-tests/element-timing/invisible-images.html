@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: invisible images are not observable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #opacity0 {
+    opacity: 0;
+  }
+  #visibilityHidden {
+    visibility: hidden;
+  }
+  #displayNone {
+    display: none;
+  }
+</style>
+<script>
+  async_test(function (t) {
+    const observer = new PerformanceObserver(
+      t.step_func_done(() => {
+        // The image should not have caused an entry, so fail test.
+        assert_unreached('Should not have received an entry!');
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the images during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    window.onload = () => {
+      const img = document.createElement('img');
+      img.src = 'resources/square100.png';
+      img.setAttribute('elementtiming', 'my_image');
+      img.setAttribute('id', 'opacity0');
+      document.body.appendChild(img);
+
+      const img2 = document.createElement('img');
+      img2.src = 'resources/square20.png';
+      img2.setAttribute('elementtiming', 'my_image2');
+      img2.setAttribute('id', 'visibilityHidden');
+      document.body.appendChild(img2);
+
+      const img3 = document.createElement('img');
+      img3.src = 'resources/circle.svg';
+      img3.setAttribute('elementtiming', 'my_image3');
+      img3.setAttribute('id', 'displayNone');
+      document.body.appendChild(img3);
+      // Images have been added but should not cause entries to be dispatched.
+      // Wait for 500ms and end test, ensuring no entry was created.
+      t.step_timeout(() => {
+        t.done();
+      }, 500);
+    };
+  }, 'Images with opacity: 0, visibility: hidden, or display: none are not observable.');
+</script>

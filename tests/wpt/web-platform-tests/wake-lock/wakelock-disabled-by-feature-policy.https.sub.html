@@ -11,13 +11,13 @@
   const cross_origin_src =
     "https://{{domains[www]}}:{{ports[https][0]}}" + same_origin_src;
 
-  promise_test(t => {
-    return promise_rejects(t, "NotAllowedError", navigator.getWakeLock("screen"));
+  test(() => {
+    assert_throws("NotAllowedError", () => new WakeLock("screen"));
   }, 'Feature-Policy header {"wake-lock" : []} disallows the top-level document.');
 
   async_test(t => {
     test_feature_availability(
-      'navigator.getWakeLock("screen")',
+      'new WakeLock("screen")',
       t,
       same_origin_src,
       expect_feature_unavailable_default
@@ -26,7 +26,7 @@
 
   async_test(t => {
     test_feature_availability(
-      'navigator.getWakeLock("screen")',
+      'new WakeLock("screen")',
       t,
       cross_origin_src,
       expect_feature_unavailable_default

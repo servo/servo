@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>backdrop-filter: Should not filter outside parent stacking context.</title>
+<title>backdrop-filter: fixed position should not cause a backdrop root.</title>
 <link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
 <link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
-<link rel="match"  href="backdrop-filter-isolation-ref.html">
+<link rel="match"  href="backdrop-filter-non-isolation-ref.html">
 
 <div>
   <p>Expected: Two green boxes overlapped by a yellow box. The overlapped region<br>
-  of the right-hand box ONLY should be inverted (pink).</p>
+  of BOTH green boxes should be inverted (pink).</p>
 </div>
 <div class="box outside">
   <div class="box stacking-context">

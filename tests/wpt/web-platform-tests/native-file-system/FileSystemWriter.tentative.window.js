@@ -44,6 +44,66 @@ promise_test(async t => {
 }, 'write() called with an invalid offset');
 
 promise_test(async t => {
+  const handle = await createEmptyFile(t, 'empty_string');
+  const writer = await handle.createWriter();
+
+  await writer.write(0, '');
+  assert_equals(await getFileContents(handle), '');
+  assert_equals(await getFileSize(handle), 0);
+}, 'write() with an empty string to an empty file');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'valid_utf8_string');
+  const writer = await handle.createWriter();
+
+  await writer.write(0, 'foo🤘');
+  assert_equals(await getFileContents(handle), 'foo🤘');
+  assert_equals(await getFileSize(handle), 7);
+}, 'write() with a valid utf-8 string');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'string_with_unix_line_ending');
+  const writer = await handle.createWriter();
+
+  await writer.write(0, 'foo\n');
+  assert_equals(await getFileContents(handle), 'foo\n');
+  assert_equals(await getFileSize(handle), 4);
+}, 'write() with a string with unix line ending preserved');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'string_with_windows_line_ending');
+  const writer = await handle.createWriter();
+
+  await writer.write(0, 'foo\r\n');
+  assert_equals(await getFileContents(handle), 'foo\r\n');
+  assert_equals(await getFileSize(handle), 5);
+}, 'write() with a string with windows line ending preserved');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'empty_array_buffer');
+  const writer = await handle.createWriter();
+
+  let buf = new ArrayBuffer(0);
+  await writer.write(0, buf);
+  assert_equals(await getFileContents(handle), '');
+  assert_equals(await getFileSize(handle), 0);
+}, 'write() with an empty array buffer to an empty file');
+
+promise_test(async t => {
+  const handle = await createEmptyFile(t, 'valid_string_typed_byte_array');
+  const writer = await handle.createWriter();
+
+  let buf = new ArrayBuffer(3);
+  let intView = new Uint8Array(buf);
+  intView[0] = 0x66;
+  intView[1] = 0x6f;
+  intView[2] = 0x6f;
+  await writer.write(0, buf);
+  assert_equals(await getFileContents(handle), 'foo');
+  assert_equals(await getFileSize(handle), 3);
+}, 'write() with a valid typed array buffer');
+
+promise_test(async t => {
     const handle = await createEmptyFile(t, 'trunc_shrink');
     const writer = await handle.createWriter();
 
@@ -64,33 +124,3 @@ promise_test(async t => {
     assert_equals(await getFileContents(handle), 'abc\0\0');
     assert_equals(await getFileSize(handle), 5);
 }, 'truncate() to grow a file');
-
-promise_test(async t => {
-    const handle = await createEmptyFile(t, 'write_stream');
-    const writer = await handle.createWriter();
-
-    const stream = new Response('1234567890').body;
-    await writer.write(0, stream);
-
-    assert_equals(await getFileContents(handle), '1234567890');
-    assert_equals(await getFileSize(handle), 10);
-}, 'write() called with a ReadableStream');
-
-promise_test(async t => {
-    const handle = await createEmptyFile(t, 'write_stream');
-    const handle_writer = await handle.createWriter();
-
-    const { writable, readable } = new TransformStream();
-    const write_result = handle_writer.write(0, readable);
-
-    const stream_writer = writable.getWriter();
-    stream_writer.write(new Uint8Array([0x73, 0x74, 0x72, 0x65, 0x61, 0x6D, 0x73, 0x21]));
-    garbageCollect();
-    stream_writer.write(new Uint8Array([0x21, 0x21]));
-    stream_writer.close();
-
-    await write_result;
-
-    assert_equals(await getFileContents(handle), 'streams!!!');
-    assert_equals(await getFileSize(handle), 10);
-}, 'Using a WritableStream writer to write');

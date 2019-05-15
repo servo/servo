@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: buffer long-latency events before onload</title>
+<meta name="timeout" content="long">
+<button id='button'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<script src=resources/event-timing-test-utils.js></script>
+
+<script>
+  /* Timeline:
+     Onload
+     PerformanceObserver is registered
+     Click 1
+     Click 2
+     PerformanceObserver should observe only one firstInput entry.
+     (Dispatch and Process Click 2 - not buffered)
+  */
+  async_test(function(t) {
+    let numFirstInputObserved = 0;
+    let numEventsObserved = 0;
+    new PerformanceObserver(t.step_func((entryList, obs) => {
+        const observedEntries = entryList.getEntries().filter(
+            entry => entry.name === 'mousedown');
+        numEventsObserved += observedEntries.filter(entry =>
+            entry.entryType == 'event').length;
+        numFirstInputObserved += observedEntries.filter(entry =>
+            entry.entryType == 'firstInput').length;
+        if (numEventsObserved >= 2) {
+          assert_equals(performance.getEntriesByType('event').length, 0,
+            "There should be no buffered event entries.");
+          assert_equals(performance.getEntriesByType('firstInput').length, 1,
+            "There should be a buffered firstInput entry.");
+          // There should be 2 event entries and one firstInput entry.
+          assert_equals(numEventsObserved, 2,
+            "There should be 2 observed event entries.");
+          assert_equals(numFirstInputObserved, 1,
+            "There should be only 1 observed firstInput entry.");
+          t.done();
+        }
+    })).observe({ entryTypes: ['event', 'firstInput'] });
+    on_event(window, 'load', () => {
+      clickAndBlockMain('button').then(() => {
+        clickAndBlockMain('button');
+      });
+    });
+  },
+  "Event Timing: check firstInput after onload, observer, click, click."
+  );
+</script>
+</html>

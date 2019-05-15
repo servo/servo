@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Inheritance of CSS Text Decoration properties</title>
 <link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#property-index">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#property-index">
 <meta name="assert" content="Properties inherit or not according to the spec.">
 <meta name="assert" content="Properties have initial values according to the spec.">
 <script src="/resources/testharness.js"></script>
@@ -28,6 +29,8 @@ assert_inherited('text-emphasis-position', 'over right', 'under left');
 assert_inherited('text-emphasis-style', 'none', 'filled triangle');
 assert_inherited('text-shadow', 'none', 'rgba(42, 53, 64, 0.75) 10px 20px 0px');
 assert_inherited('text-underline-position', 'auto', 'under');
+
+assert_inherited('text-decoration-skip-ink', 'auto', 'none');
 </script>
 </body>
 </html>

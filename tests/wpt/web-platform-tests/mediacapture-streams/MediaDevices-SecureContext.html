@@ -10,6 +10,7 @@
 
 assert_false(window.isSecureContext, "This test must be run in a non secure context");
 assert_false('MediaDevices' in window, "MediaDevices is not exposed");
+assert_false('MediaDeviceInfo' in window, "MediaDeviceInfo is not exposed");
 assert_false('getUserMedia' in navigator, "getUserMedia is not exposed");
 assert_false('mediaDevices' in navigator, "mediaDevices is not exposed");
 

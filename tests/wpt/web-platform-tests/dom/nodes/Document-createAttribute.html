@@ -17,13 +17,25 @@ invalid_names.forEach(function(name) {
     assert_throws("INVALID_CHARACTER_ERR", function() {
       document.createAttribute(name, "test");
     });
-  }, "HTML document.createAttribute(" + format_value(name) + ")");
+  }, "HTML document.createAttribute(" + format_value(name) + ") should throw");
 
   test(function() {
     assert_throws("INVALID_CHARACTER_ERR", function() {
       xml_document.createAttribute(name, "test");
     });
-  }, "XML document.createAttribute(" + format_value(name) + ")");
+  }, "XML document.createAttribute(" + format_value(name) + ") should throw");
+});
+
+valid_names.forEach(name => {
+  test(() => {
+    let attr = document.createAttribute(name);
+    attr_is(attr, "", name.toLowerCase(), null, null, name.toLowerCase());
+  }, `HTML document.createAttribute(${format_value(name)})`);
+
+  test(() => {
+    let attr = xml_document.createAttribute(name);
+    attr_is(attr, "", name, null, null, name);
+  }, `XML document.createAttribute(${format_value(name)})`);
 });
 
 var tests = ["title", "TITLE", null, undefined];

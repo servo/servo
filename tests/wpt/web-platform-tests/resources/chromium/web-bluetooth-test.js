@@ -45,6 +45,22 @@ const CHARACTERISTIC_PROPERTIES_WEB_TO_MOJO = {
   extended_properties: 'extended_properties',
 };
 
+// Mapping of the Mojo ChooserEventType enum to a string.
+const MOJO_CHOOSER_EVENT_TYPE_MAP = (() => {
+  const ChooserEventType = content.mojom.ChooserEventType;
+  return {
+    [ChooserEventType.CHOOSER_OPENED]: 'chooser-opened',
+    [ChooserEventType.CHOOSER_CLOSED]: 'chooser-closed',
+    [ChooserEventType.ADAPTER_REMOVED]: 'adapter-removed',
+    [ChooserEventType.ADAPTER_DISABLED]: 'adapter-disabled',
+    [ChooserEventType.ADAPTER_ENABLED]: 'adapter-enabled',
+    [ChooserEventType.DISCOVERY_FAILED_TO_START]: 'discovery-failed-to-start',
+    [ChooserEventType.DISCOVERING]: 'discovering',
+    [ChooserEventType.DISCOVERY_IDLE]: 'discovery-idle',
+    [ChooserEventType.ADD_OR_UPDATE_DEVICE]: 'add-or-update-device',
+  }
+})();
+
 function ArrayToMojoCharacteristicProperties(arr) {
   let struct = new bluetooth.mojom.CharacteristicProperties();
 
@@ -504,14 +520,74 @@ class FakeRemoteGATTDescriptor {
   }
 }
 
-// FakeChooser allows clients to simulate events that a user would trigger when
-// using the Bluetooth chooser, and monitor the events that are produced.
+// FakeChooser allows clients to simulate user actions on a Bluetooth chooser,
+// and records the events produced by the Bluetooth chooser.
 class FakeChooser {
   constructor() {
+    let fakeBluetoothChooserFactoryPtr =
+        new content.mojom.FakeBluetoothChooserFactoryPtr();
+    Mojo.bindInterface(content.mojom.FakeBluetoothChooserFactory.name,
+        mojo.makeRequest(fakeBluetoothChooserFactoryPtr).handle, 'process');
+
     this.fake_bluetooth_chooser_ptr_ =
         new content.mojom.FakeBluetoothChooserPtr();
-    Mojo.bindInterface(content.mojom.FakeBluetoothChooser.name,
-        mojo.makeRequest(this.fake_bluetooth_chooser_ptr_).handle, 'process');
+
+    let clientPtrInfo = new mojo.AssociatedInterfacePtrInfo();
+    this.fake_bluetooth_chooser_client_binding_ =
+        new mojo.AssociatedBinding(content.mojom.FakeBluetoothChooserClient,
+            this, mojo.makeRequest(clientPtrInfo));
+
+    fakeBluetoothChooserFactoryPtr.createFakeBluetoothChooser(
+        mojo.makeRequest(this.fake_bluetooth_chooser_ptr_), clientPtrInfo);
+
+    this.events_ = new Array();
+    this.event_listener_ = null;
+  }
+
+  // If the chooser has received more events than |numOfEvents| this function
+  // will reject the promise, else it will wait until |numOfEvents| events are
+  // received before resolving with an array of |FakeBluetoothChooserEvent|
+  // objects.
+  async waitForEvents(numOfEvents) {
+    return new Promise(resolve => {
+      if (this.events_.length > numOfEvents) {
+        throw `Asked for ${numOfEvents} event(s), but received ` +
+            `${this.events_.length}.`;
+      }
+
+      this.event_listener_ = () => {
+         if (this.events_.length === numOfEvents) {
+          let result = Array.from(this.events_);
+          this.event_listener_ = null;
+          this.events_ = [];
+          resolve(result);
+        }
+      };
+      this.event_listener_();
+    });
+  }
+
+  async selectPeripheral(peripheral) {
+    if (!(peripheral instanceof FakePeripheral)) {
+      throw '|peripheral| must be an instance of FakePeripheral';
+    }
+    await this.fake_bluetooth_chooser_ptr_.selectPeripheral(peripheral.address);
+  }
+
+  async cancel() {
+    await this.fake_bluetooth_chooser_ptr_.cancel();
+  }
+
+  async rescan() {
+    await this.fake_bluetooth_chooser_ptr_.rescan();
+  }
+
+  onEvent(chooserEvent) {
+    chooserEvent.type = MOJO_CHOOSER_EVENT_TYPE_MAP[chooserEvent.type];
+    this.events_.push(chooserEvent);
+    if (this.event_listener_ !== null) {
+      this.event_listener_();
+    }
   }
 }
 

@@ -3,8 +3,8 @@ promise_test(async t => cleanupSandboxedFileSystem(),
     'Cleanup to setup test environment');
 
 promise_test(async t => {
-    const old_handle = await createFileWithContents(t, 'old-file', '12345');
-    const dir = await old_handle.getParent();
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+    const old_handle = await createFileWithContents(t, 'old-file', '12345', dir);
     const new_handle = await old_handle.moveTo(dir, 'new-name');
     t.add_cleanup(() => new_handle.remove());
 
@@ -45,8 +45,8 @@ promise_test(async t => {
 
 
 promise_test(async t => {
-    const handle = await createFileWithContents(t, 'old-file', '12345');
-    const dir = await handle.getParent();
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+    const handle = await createFileWithContents(t, 'old-file', '12345', dir);
 
     await promise_rejects(t, 'InvalidModificationError', handle.moveTo(dir));
     await promise_rejects(t, 'InvalidModificationError', handle.moveTo(dir, handle.name));
@@ -57,9 +57,9 @@ promise_test(async t => {
 }, 'moveTo() with existing name and parent should fail');
 
 promise_test(async t => {
-    const handle = await createFileWithContents(t, 'old-file', '12345');
-    const target_handle = await createFileWithContents(t, 'target', 'abc');
-    const dir = await handle.getParent();
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+    const handle = await createFileWithContents(t, 'old-file', '12345', dir);
+    const target_handle = await createFileWithContents(t, 'target', 'abc', dir);
 
     await handle.moveTo(dir, target_handle.name);
 

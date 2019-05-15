@@ -63,10 +63,14 @@ function testShippingAddressChange() {
     });
     request.show().catch(err => err);
     const results = await Promise.all([listenerPromise, handlerPromise]);
-    assert_true(
-      results.every(obj => obj instanceof PaymentAddress),
-      "Expected instances of PaymentAddress"
-    );
+    results.forEach(obj => {
+      assert_true(obj instanceof PaymentAddress,
+                  "Expected instance of PaymentAddress");
+      assert_equals(obj.organization, "", "organization should be redacted");
+      assert_equals(obj.phone, "", "phone should be redacted");
+      assert_equals(obj.recipient, "", "recipient should be redacted");
+      assert_equals(obj.addressLine.length, 0, "addressLine should be redacted");
+    });
     await request.abort();
   });
   done();

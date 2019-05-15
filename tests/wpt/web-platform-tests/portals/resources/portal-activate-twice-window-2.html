@@ -6,25 +6,14 @@
     var portal2 = document.createElement("portal");
     portal2.src = "simple-portal.html"
 
-    var bc = new BroadcastChannel("simple-portal");
-    var waitForPortalsToLoad = new Promise((resolve, reject) => {
-      var count = 0;
-      bc.onmessage = () => {
-        count++;
-        if (count == 2) {
-          bc.close();
-          resolve();
-        }
-      }
+    var waitForPortalToLoad = portal => new Promise((resolve, reject) => {
+      portal.onmessage = resolve;
     });
 
-    waitForPortalsToLoad.then(() => {
+    Promise.all([waitForPortalToLoad(portal1),
+                 waitForPortalToLoad(portal2)]).then(() => {
       portal1.activate();
-      portal2.activate().catch(e => {
-        var bc2 = new BroadcastChannel("portals-activate-twice");
-        bc2.postMessage(e.name, "*");
-        bc2.close();
-      });
+      portal2.activate().catch(e => window.opener.postMessage(e.name, "*"));
     });
 
     document.body.append(portal1);

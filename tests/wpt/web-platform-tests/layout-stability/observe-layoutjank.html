@@ -10,13 +10,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   async_test(function (t) {
+    const startTime = performance.now();
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
+        const endTime = performance.now();
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
         assert_equals(entry.entryType, "layoutJank");
         assert_equals(entry.name, "");
-        assert_equals(entry.startTime, 0.0);
+        assert_greater_than_equal(entry.startTime, startTime)
+        assert_less_than_equal(entry.startTime, endTime)
         assert_equals(entry.duration, 0.0);
         // The layout jank fraction should be: 300 * (100 + 60) / viewport size.
         assert_equals(entry.fraction, 300 * (100 + 60) /

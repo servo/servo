@@ -2,12 +2,10 @@
 <body>
   <script>
     var portal = document.createElement("portal");
-    portal.src = "portal-post-message-portal.html";
+    portal.src = "simple-portal.html";
     document.body.appendChild(portal);
 
-    var bc = new BroadcastChannel("portals-post-message");
-    bc.onmessage = () => {
-      bc.close();
+    portal.onmessage = () => {
       portal.activate();
       error = "";
       try {

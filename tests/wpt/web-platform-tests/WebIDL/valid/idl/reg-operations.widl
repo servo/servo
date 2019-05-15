@@ -4,8 +4,6 @@ interface Dimensions {
   attribute unsigned long height;
 };
 
-exception NoPointerDevice { };
-
 interface Button {
 
   // An operation that takes no arguments, returns a boolean

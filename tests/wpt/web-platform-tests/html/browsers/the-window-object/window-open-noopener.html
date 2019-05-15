@@ -12,27 +12,30 @@
 <script src=/resources/testharnessreport.js></script>
 <script>
 var testData = [
-  { testDescription: "window.open() with 'noopener' should not reuse existing target",
+  { testDescription: "window.open() with 'noopener' should reuse existing target",
     secondWindowFeatureString: "noopener",
-    shouldReuse: false },
+    shouldReturnWindow: false },
   { testDescription: "noopener=1 means the same as noopener",
     secondWindowFeatureString: "noopener=1",
-    shouldReuse: false },
+    shouldReturnWindow: false },
   { testDescription: "noopener=0 means lack of noopener",
     secondWindowFeatureString: "noopener=0",
-    shouldReuse: true },
-  { testDescription: "noopener needs to be present as a token on its own",
+    shouldReturnWindow: true },
+  { testDescription: "noopener separated only by spaces should work",
     secondWindowFeatureString: "make me noopener",
-    shouldReuse: true },
+    shouldReturnWindow: false },
   { testDescription: "Trailing noopener should work",
     secondWindowFeatureString: "abc def,  \n\r noopener",
-    shouldReuse: false },
+    shouldReturnWindow: false },
   { testDescription: "Leading noopener should work",
     secondWindowFeatureString: "noopener \f\t , hey, there",
-    shouldReuse: false },
+    shouldReturnWindow: false },
   { testDescription: "Interior noopener should work",
     secondWindowFeatureString: "and now, noopener   , hey, there",
-    shouldReuse: false },
+    shouldReturnWindow: false },
+  { testDescription: "noreferrer should also suppress opener when reusing existing target",
+    secondWindowFeatureString: "noreferrer",
+    shouldReturnWindow: false },
 ];
 
 /**
@@ -54,7 +57,7 @@ function indexedTests() {
     t.secondWindowFeatureString = test.secondWindowFeatureString;
     t.windowName = "someuniquename" + i;
 
-    if (test.shouldReuse) {
+    if (test.shouldReturnWindow) {
       t.step(function() {
         var windowName = this.windowName;
 
@@ -83,9 +86,9 @@ function indexedTests() {
         channel.onmessage = this.step_func_done(function(e) {
           var data = e.data;
           assert_equals(data.name, windowName, "Should have the right name");
-          assert_equals(data.haveOpener, false, "Should not have opener");
+          assert_equals(data.haveOpener, true, "Should still have opener");
           assert_equals(w1.opener, window);
-          assert_equals(w1.location.href, "about:blank");
+          assert_not_equals(w1.location.href, "about:blank", "Should have navigated");
         });
 
         w1 = window.open("", windowName);

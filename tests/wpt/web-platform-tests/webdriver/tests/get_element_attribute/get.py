@@ -57,7 +57,6 @@ def test_normal(session):
     ("img", ["ismap"]),
     ("input", ["autofocus", "checked", "disabled", "formnovalidate", "multiple", "readonly", "required"]),
     ("menuitem", ["checked", "default", "disabled"]),
-    ("object", ["typemustmatch"]),
     ("ol", ["reversed"]),
     ("optgroup", ["disabled"]),
     ("option", ["disabled", "selected"]),
@@ -71,29 +70,29 @@ def test_boolean_attribute(session, tag, attrs):
     for attr in attrs:
         session.url = inline("<{0} {1}>".format(tag, attr))
         element = session.find.css(tag, all=False)
-        result = result = get_element_attribute(session, element.id, attr)
+        result = get_element_attribute(session, element.id, attr)
         assert_success(result, "true")
 
 
 def test_global_boolean_attributes(session):
     session.url = inline("<p hidden>foo")
     element = session.find.css("p", all=False)
-    result = result = get_element_attribute(session, element.id, "hidden")
+    result = get_element_attribute(session, element.id, "hidden")
 
     assert_success(result, "true")
 
     session.url = inline("<p>foo")
     element = session.find.css("p", all=False)
-    result = result = get_element_attribute(session, element.id, "hidden")
+    result = get_element_attribute(session, element.id, "hidden")
     assert_success(result, None)
 
     session.url = inline("<p itemscope>foo")
     element = session.find.css("p", all=False)
-    result = result = get_element_attribute(session, element.id, "itemscope")
+    result = get_element_attribute(session, element.id, "itemscope")
 
     assert_success(result, "true")
 
     session.url = inline("<p>foo")
     element = session.find.css("p", all=False)
-    result = result = get_element_attribute(session, element.id, "itemscope")
+    result = get_element_attribute(session, element.id, "itemscope")
     assert_success(result, None)

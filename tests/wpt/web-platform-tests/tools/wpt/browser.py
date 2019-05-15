@@ -632,6 +632,53 @@ class Opera(Browser):
         if m:
             return m.group(0)
 
+class EdgeChromium(Browser):
+    """MicrosoftEdge-specific interface."""
+
+    product = "edgechromium"
+    requirements = "requirements_edge_chromium.txt"
+
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError
+
+    def find_binary(self, venv_path=None, channel=None):
+        raise find_executable("msedge")
+
+    def find_webdriver(self, channel=None):
+        return find_executable("msedgedriver")
+
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
+        if uname[0] != "Windows":
+            raise ValueError("Only Windows platform is currently supported")
+
+        if dest is None:
+            dest = os.pwd
+
+        platform = "x64" if uname[4] == "x86_64" else "x86"
+        url = "https://az813057.vo.msecnd.net/webdriver/msedgedriver_%s/msedgedriver.exe" % platform
+
+        self.logger.info("Downloading MSEdgeDriver from %s" % url)
+        resp = get(url)
+        installer_path = os.path.join(dest, "msedgedriver.exe")
+        with open(installer_path, "wb") as f:
+            f.write(resp.content)
+
+        return find_executable("msedgedriver", dest)
+
+    def version(self, binary=None, webdriver_binary=None):
+        if uname[0] != "Windows":
+            try:
+                version_string = call(binary, "--version").strip()
+            except subprocess.CalledProcessError:
+                self.logger.warning("Failed to call %s" % binary)
+                return None
+            m = re.match(r"(?:MSEdge|Edge) (.*)", version_string)
+            if not m:
+                self.logger.warning("Failed to extract version from: %s" % version_string)
+                return None
+            return m.group(1)
+        self.logger.warning("Unable to extract version from binary on Windows.")
+        return None
 
 class Edge(Browser):
     """Edge-specific interface."""

@@ -472,10 +472,12 @@ class ReftestTest(Test):
                 value.remove(atom_reset)
                 values = {}
             for key, data in value:
-                if len(key) == 3:
+                if isinstance(key, (tuple, list)):
+                    key = list(key)
                     key[0] = urljoin(self.url, key[0])
                     key[1] = urljoin(self.url, key[1])
-                else:
+                    key = tuple(key)
+                elif key:
                     # Key is just a relative url to a ref
                     key = urljoin(self.url, key)
                 values[key] = data

@@ -89,6 +89,42 @@ async_test(function() {
       assert_equals(Object.getPrototypeOf(dp), child.DOMParser.prototype);
       assert_equals(object_realm(dp), "parent window");
     }, "Constructor in parent window with bad NewTarget from child window");
+
+    test(function() {
+      var badNewTarget = Function.prototype.bind.call(new child.Function());
+      badNewTarget.prototype = 7;
+
+      var dp = Reflect.construct(DOMParser, [], badNewTarget);
+      assert_equals(Object.getPrototypeOf(dp), child.DOMParser.prototype);
+      assert_equals(object_realm(dp), "parent window");
+    }, "Constructor in parent window with bad NewTarget from parent window that's a bound child window function");
+
+    test(function() {
+      var badNewTarget = child.Function.prototype.bind.call(new Function());
+      badNewTarget.prototype = 7;
+
+      var dp = Reflect.construct(child.DOMParser, [], badNewTarget);
+      assert_equals(Object.getPrototypeOf(dp), DOMParser.prototype);
+      assert_equals(object_realm(dp), "child window");
+    }, "Constructor in child window with bad NewTarget from child window that's a bound parent window function");
+
+    test(function() {
+      var badNewTarget = new Proxy(new child.Function(), {});
+      badNewTarget.prototype = 7;
+
+      var dp = Reflect.construct(DOMParser, [], badNewTarget);
+      assert_equals(Object.getPrototypeOf(dp), child.DOMParser.prototype);
+      assert_equals(object_realm(dp), "parent window");
+    }, "Constructor in parent window with bad NewTarget from parent window that's a proxy for a child window function");
+
+    test(function() {
+      var badNewTarget = new child.Proxy(new Function(), {});
+      badNewTarget.prototype = 7;
+
+      var dp = Reflect.construct(child.DOMParser, [], badNewTarget);
+      assert_equals(Object.getPrototypeOf(dp), DOMParser.prototype);
+      assert_equals(object_realm(dp), "child window");
+    }, "Constructor in child window with bad NewTarget from child window that's a proxy for a parent window function");
   });
   iframe.src = "constructors-support.html";
   document.body.appendChild(iframe);

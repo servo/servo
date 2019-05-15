@@ -10,8 +10,5 @@
   bc.postMessage({hasHost: !!window.portalHost });
   bc.close();
 
-  bc = new BroadcastChannel("portal");
-  bc.postMessage("loaded");
-  bc.close();
-
+  window.portalHost.postMessage("loaded", "*");
 </script>

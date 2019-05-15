@@ -11,7 +11,7 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  // exchangeIceCandidates
+  // coupleIceCandidates
   // doSignalingHandshake
 
   /*
@@ -132,7 +132,7 @@
 
     pc1.addEventListener('iceconnectionstatechange', onIceConnectionStateChange);
 
-    exchangeIceCandidates(pc1, pc2);
+    coupleIceCandidates(pc1, pc2);
     doSignalingHandshake(pc1, pc2);
   }, 'connection with one data channel should eventually have connected or ' +
      'completed connection state');
@@ -178,9 +178,41 @@ async_test(t => {
 
     pc1.addEventListener('iceconnectionstatechange', onIceConnectionStateChange);
 
-    exchangeIceCandidates(pc1, pc2);
+    coupleIceCandidates(pc1, pc2);
     doSignalingHandshake(pc1, pc2);
   }, 'connection with one data channel should eventually ' +
+     'have connected connection state');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+
+    coupleIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+    await listenToIceConnected(pc1);
+  }, 'connection with audio track should eventually ' +
+     'have connected connection state');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({audio: true, video:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+
+    coupleIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+    await listenToIceConnected(pc1);
+  }, 'connection with audio and video tracks should eventually ' +
      'have connected connection state');
 
   promise_test(async t => {
@@ -191,9 +223,10 @@ async_test(t => {
 
     caller.addTransceiver('audio', {direction:'recvonly'});
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     callee.addTrack(track, stream);
-    exchangeIceCandidates(caller, callee);
+    coupleIceCandidates(caller, callee);
     await doSignalingHandshake(caller, callee);
 
     assert_equals(caller.getTransceivers().length, 1);

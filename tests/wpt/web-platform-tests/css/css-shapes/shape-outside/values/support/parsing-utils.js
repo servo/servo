@@ -735,17 +735,13 @@ var validCircleRadii = [
 ]
 var validEllipseRadii = [
     ['', 'at 50% 50%', 'at 50% 50%'],
-    ['50u1', '50u1 at 50% 50%', '50u1 at 50% 50%'],
-    ['50%', '50% at 50% 50%', '50% at 50% 50%'],
-    ['closest-side', 'at 50% 50%', 'at 50% 50%'],
-    ['farthest-side', 'farthest-side at 50% 50%', 'farthest-side at 50% 50%'],
     ['50u1 100u1', '50u1 100u1 at 50% 50%'],
     ['100u1 100px', '100u1 100px at 50% 50%'],
     ['25% 50%', '25% 50% at 50% 50%'],
     ['50u1 25%', '50u1 25% at 50% 50%'],
     ['25% 50u1', '25% 50u1 at 50% 50%'],
-    ['25% closest-side', '25% at 50% 50%'],
-    ['25u1 closest-side', '25u1 at 50% 50%'],
+    ['25% closest-side', '25% closest-side at 50% 50%'],
+    ['25u1 closest-side', '25u1 closest-side at 50% 50%'],
     ['closest-side 75%', 'closest-side 75% at 50% 50%'],
     ['closest-side 75u1', 'closest-side 75u1 at 50% 50%'],
     ['25% farthest-side', '25% farthest-side at 50% 50%'],
@@ -755,7 +751,7 @@ var validEllipseRadii = [
     ['closest-side closest-side', 'at 50% 50%'],
     ['farthest-side farthest-side', 'farthest-side farthest-side at 50% 50%'],
     ['closest-side farthest-side', 'closest-side farthest-side at 50% 50%'],
-    ['farthest-side closest-side', 'farthest-side at 50% 50%']
+    ['farthest-side closest-side', 'farthest-side closest-side at 50% 50%']
 ]
 
 var validInsets = [

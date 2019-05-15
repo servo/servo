@@ -12,7 +12,7 @@ interface PerformanceEventTiming : PerformanceEntry {
 
 [Exposed=Window]
 interface EventCounts {
-    readonly maplike<DOMString, unsigned long>;
+    readonly maplike<DOMString, unsigned long long>;
 };
 
 [Exposed=Window]

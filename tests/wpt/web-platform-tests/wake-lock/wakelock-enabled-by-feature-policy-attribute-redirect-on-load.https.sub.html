@@ -14,7 +14,7 @@
 
   async_test(t => {
     test_feature_availability(
-      'navigator.getWakeLock("screen")',
+      'new WakeLock("screen")',
       t,
       same_origin_src,
       expect_feature_available_default,
@@ -24,7 +24,7 @@
 
   async_test(t => {
     test_feature_availability(
-      'navigator.getWakeLock("screen")',
+      'new WakeLock("screen")',
       t,
       cross_origin_src,
       expect_feature_unavailable_default,

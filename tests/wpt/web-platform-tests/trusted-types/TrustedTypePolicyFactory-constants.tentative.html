@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+<body>
+<script>
+  test(t => {
+    const empty = TrustedTypes.emptyHTML;
+    assert_true(TrustedTypes.isHTML(empty));
+    assert_equals(empty.toString(), "");
+  }, 'TrustedTypes.emptyHTML returns the intended value.');
+
+  test(t => {
+    try { TrustedTypes.emptyHTML = 'fake'; } catch { }
+    assert_true(TrustedTypes.isHTML(TrustedTypes.emptyHTML));
+    assert_equals(TrustedTypes.emptyHTML.toString(), "");
+  }, 'TrustedTypes.emptyHTML cannot be redefined.');
+
+  test(t => {
+    try { Object.defineProperty(TrustedTypes, 'emptyHTML', 'fake'); } catch { }
+    assert_true(TrustedTypes.isHTML(TrustedTypes.emptyHTML));
+    assert_equals(TrustedTypes.emptyHTML.toString(), "");
+  }, 'TrustedTypes.emptyHTML cannot be redefined via defineProperty.');
+</script>

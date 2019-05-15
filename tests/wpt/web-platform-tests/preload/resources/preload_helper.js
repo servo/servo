@@ -12,8 +12,12 @@ function getAbsoluteURL(url)
 
 function verifyNumberOfResourceTimingEntries(url, number)
 {
-    var numEntries = performance.getEntriesByName(getAbsoluteURL(url)).length;
-    assert_equals(numEntries, number, url);
+    assert_equals(numberOfResourceTimingEntries(url), number, url);
+}
+
+function numberOfResourceTimingEntries(url)
+{
+    return performance.getEntriesByName(getAbsoluteURL(url)).length;
 }
 
 // Verifies that the resource is loaded, but not downloaded from network
