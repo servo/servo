@@ -9,8 +9,8 @@ GMT:
 {{ bin }}/generic-worker:
   file.managed:
     - name:
-    - source: https://github.com/taskcluster/generic-worker/releases/download/v14.1.0/generic-worker-nativeEngine-darwin-amd64
-    - source_hash: sha256=be9496acc40553c925571f344f84ea79fb5370cd68f11a637b9922843d216cae
+    - source: https://github.com/taskcluster/generic-worker/releases/download/v14.1.1/generic-worker-nativeEngine-darwin-amd64
+    - source_hash: sha256=817e72972a7c077f1a829d5824e5c0e831eb6f9b254672e7427246a8dd476a59
     - mode: 755
     - makedirs: True
 
