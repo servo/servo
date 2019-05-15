@@ -88,11 +88,11 @@ def main(task_for):
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
-        with_rust_nightly()
-        linux_nightly()
-        android_nightly()
-        windows_nightly()
-        macos_nightly()
+        #with_rust_nightly()
+        #linux_nightly()
+        #android_nightly()
+        #windows_nightly()
+        #macos_nightly()
         update_wpt()
 
 
