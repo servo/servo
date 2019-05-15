@@ -10,6 +10,7 @@
   "dom.fullscreen.test": false,
   "dom.gamepad.enabled": false,
   "dom.mediadevices.enabled": false,
+  "dom.mediadevices.mock": false,
   "dom.microdata.enabled": false,
   "dom.microdata.testing.enabled": false,
   "dom.mouseevent.which.enabled": false,

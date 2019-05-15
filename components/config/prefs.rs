@@ -193,6 +193,8 @@ mod gen {
                 mediadevices: {
                     #[serde(default)]
                     enabled: bool,
+                    #[serde(default)]
+                    mock: bool,
                 },
                 microdata: {
                     testing: {

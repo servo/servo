@@ -17,6 +17,7 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
+use servo_config::prefs;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
 use servo_media::streams::MediaStreamType;
 use servo_media::ServoMedia;
@@ -35,6 +36,10 @@ impl MediaDevices {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MediaDevices> {
+        let mock = prefs::pref_map().get("dom.mediadevices.mock").as_bool();
+        if let Some(true) = mock {
+            ServoMedia::get().unwrap().set_capture_mocking(true);
+        }
         reflect_dom_object(
             Box::new(MediaDevices::new_inherited()),
             global,
