@@ -99,7 +99,7 @@ function unsafe_open_pull_request() {
         echo "${SECRET_RESPONSE}"
         echo "---"
         WPT_SYNC_TOKEN=`echo "${SECRET_RESPONSE}" | jq --raw-output '.secret.token'`
-        echo "${WPT_SYNC_TOKEN}"
+        echo "token: ${WPT_SYNC_TOKEN}"
     fi
 
     if [[ -z "${WPT_SYNC_TOKEN}" ]]; then
@@ -109,9 +109,12 @@ function unsafe_open_pull_request() {
 
     # Push the changes to a remote branch owned by the bot.
     AUTH="${WPT_SYNC_USER}:${WPT_SYNC_TOKEN}"
+    echo "auth: ${AUTH}"
     UPSTREAM="https://${AUTH}@github.com/${WPT_SYNC_USER}/servo.git"
+    echo "upstream: ${UPSTREAM}"
     git remote add "${REMOTE_NAME}" "${UPSTREAM}" || return 2
-    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}:${REMOTE_BRANCH_NAME}" &>/dev/null || return 3
+    echo "git push -f '${REMOTE_NAME}' '${BRANCH_NAME}:${REMOTE_BRANCH_NAME}'
+    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}:${REMOTE_BRANCH_NAME}" || return 3
 
     # Prepare the pull request metadata.
     BODY="Automated downstream sync of changes from upstream as of "
