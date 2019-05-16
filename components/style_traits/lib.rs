@@ -16,6 +16,8 @@ extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
 extern crate euclid;
+#[macro_use]
+extern crate lazy_static;
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
