@@ -9,21 +9,19 @@ pub use crate::values::specified::list::ListStyleType;
 pub use crate::values::specified::list::MozListReversed;
 pub use crate::values::specified::list::{QuotePair, Quotes};
 
-use servo_arc::Arc;
-
 lazy_static! {
-    static ref INITIAL_QUOTES: Arc<Box<[QuotePair]>> = Arc::new(
+    static ref INITIAL_QUOTES: crate::ArcSlice<QuotePair> = crate::ArcSlice::from_iter(
         vec![
             QuotePair {
-                opening: "\u{201c}".to_owned().into_boxed_str(),
-                closing: "\u{201d}".to_owned().into_boxed_str(),
+                opening: "\u{201c}".to_owned().into(),
+                closing: "\u{201d}".to_owned().into(),
             },
             QuotePair {
-                opening: "\u{2018}".to_owned().into_boxed_str(),
-                closing: "\u{2019}".to_owned().into_boxed_str(),
+                opening: "\u{2018}".to_owned().into(),
+                closing: "\u{2019}".to_owned().into(),
             },
         ]
-        .into_boxed_slice()
+        .into_iter()
     );
 }
 

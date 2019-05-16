@@ -84,6 +84,7 @@ impl SpecifiedValueInfo for u16 {}
 impl SpecifiedValueInfo for u32 {}
 impl SpecifiedValueInfo for str {}
 impl SpecifiedValueInfo for String {}
+impl SpecifiedValueInfo for crate::owned_str::OwnedStr {}
 
 #[cfg(feature = "servo")]
 impl SpecifiedValueInfo for ::servo_atoms::Atom {}
