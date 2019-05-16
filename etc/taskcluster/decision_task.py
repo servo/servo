@@ -18,7 +18,7 @@ def main(task_for):
 
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
-        magicleap_dev = linux_arm32_dev = linux_arm64_dev = lambda: None
+        magicleap_dev = lambda: None
 
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
@@ -38,7 +38,6 @@ def main(task_for):
             android_arm32_dev_from_macos,
             android_arm32_release,
             android_x86_wpt,
-            linux_arm32_dev,
             linux_arm64_dev,
             linux_wpt,
             macos_wpt,
@@ -60,7 +59,7 @@ def main(task_for):
             "try-linux": [linux_tidy_unit_docs],
             "try-windows": [windows_unit, windows_x86],
             "try-magicleap": [magicleap_dev],
-            "try-arm": [linux_arm32_dev, linux_arm64_dev],
+            "try-arm": [linux_arm64_dev],
             "try-wpt": [linux_wpt],
             "try-wpt-mac": [macos_wpt],
             "try-wpt-android": [android_x86_wpt],
@@ -138,6 +137,31 @@ windows_build_env = {
         "LINKER": "lld-link.exe",
     },
 }
+arm64_build_env = {
+    "EXPAT_NO_PKG_CONFIG": "1",
+    "FONTCONFIG_NO_PKG_CONFIG": "1",
+    "FREETYPE2_NO_PKG_CONFIG": "1",
+    "PKG_CONFIG_ALLOW_CROSS": "1",
+    "BUILD_TARGET": "aarch64-unknown-linux-gnu",
+    "SERVO_RUSTC_WITH_GOLD": "False",
+    "AR": "aarch64-linux-gnu-ar",
+    "AS": "aarch64-linux-gnu-gcc",
+    "CC": "clang",
+    "CLAGS": "--target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -Wno-error=unused-command-line-argument",
+    "CPP": "clang",
+    "CPPFLAGS": "-I/usr/aarch64-linux-gnu/include",
+    "CXX": "clang++",
+    "CXXFLAGS": "--target=aarch64-unknown-linux-gnu -I/usr/aarch64-linux-gnu/include/ -I/usr/aarch64-linux-gnu/include/c++/4.8.4/aarch64-linux-gnu -Wno-error=unused-command-line-argument",
+    "HOST_CC": "clang",
+    "HOST_CFLAGS": "",
+    "HOST_CXX": "clang++",
+    "HOST_CXXFLAGS": "",
+    "LD": "aarch64-linux-gnu-ld",
+    "OBJCOPY": "aarch64-linux-gnu-objcopy",
+    "OBJDUMP": "aarch64-linux-gnu-objdump",
+    "RANLIB": "aarch64-linux-gnu-ranlib",
+    "STRIP": "aarch64-linux-gnu-strip",
+}
 
 windows_sparse_checkout = [
     "/*",
@@ -162,6 +186,30 @@ def tidy_untrusted():
             ./mach test-tidy --no-progress --all
         """)
         .create()
+    )
+
+
+def linux_arm64_dev():
+    return (
+        linux_build_task("arm64 dev build", dockerfile="build_arm64")
+        .with_treeherder("Linux aarch64", "Dev")
+        .with_env(**arm64_build_env)
+        .with_curl_script(
+            "https://servo-deps.s3.amazonaws.com/arm-deps/arm64-xenial-libs-v1.tgz",
+            "arm64-libs.tgz",
+        )
+        .with_script("""
+            mkdir aarch64
+            tar xvf arm64-libs.tgz -C aarch64
+
+            export CFLAGS="-fuse-ld=$PWD/support/arm64/fake-ld.sh $CFLAGS"
+            export CXXFLAGS="-fuse-ld=$PWD/support/arm64/fake-ld.sh $CXXFLAGS"
+            export PKG_CONFIG_PATH="$ARCH_PATH/usr/lib/aarch64-linux-gnu/pkgconfig"
+            export EXPAT_LIB_DIR="$ARCH_PATH/usr/lib/aarch64-linux-gnu"
+
+            ./mach build --dev --target=aarch64-unknown-linux-gnu
+        """)
+        .find_or_create("linux_arm64_dev." + CONFIG.git_sha)
     )
 
 
@@ -655,7 +703,7 @@ def macos_task(name):
     )
 
 
-def linux_build_task(name, *, build_env=build_env):
+def linux_build_task(name, *, build_env=build_env, dockerfile="build"):
     return (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
@@ -669,7 +717,7 @@ def linux_build_task(name, *, build_env=build_env):
         })
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         .with_max_run_time_minutes(60)
-        .with_dockerfile(dockerfile_path("build"))
+        .with_dockerfile(dockerfile_path(dockerfile))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo()
     )
