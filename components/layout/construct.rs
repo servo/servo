@@ -1255,15 +1255,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             // Go to a path that concatenates our kids' fragments.
             self.build_fragments_for_nonreplaced_inline_content(node)
         } else {
-            if node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement))
-            {
-                // Do not treat media elements as leafs.
-                self.build_flow_for_block(node, None)
-            } else {
-                // Otherwise, just nuke our kids' fragments, create our fragment if any, and be done
-                // with it.
-                self.build_fragments_for_replaced_inline_content(node)
-            }
+            // Otherwise, just nuke our kids' fragments, create our fragment if any, and be done
+            // with it.
+            self.build_fragments_for_replaced_inline_content(node)
         }
     }
 
