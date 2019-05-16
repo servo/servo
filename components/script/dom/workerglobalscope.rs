@@ -43,7 +43,9 @@ use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
 use msg::constellation_msg::PipelineId;
-use net_traits::request::{CredentialsMode, Destination, RequestBuilder as NetRequestInit};
+use net_traits::request::{
+    CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
+};
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use script_traits::{TimerEvent, TimerEventId};
@@ -224,6 +226,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             let request = NetRequestInit::new(url.clone())
                 .destination(Destination::Script)
                 .credentials_mode(CredentialsMode::Include)
+                .parser_metadata(ParserMetadata::NotParserInserted)
                 .use_url_credentials(true)
                 .origin(global_scope.origin().immutable().clone())
                 .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()))
