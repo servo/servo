@@ -13,6 +13,8 @@ GMT:
     - source_hash: sha256=817e72972a7c077f1a829d5824e5c0e831eb6f9b254672e7427246a8dd476a59
     - mode: 755
     - makedirs: True
+    - watch_in:
+      - service: net.generic.worker
 
 {{ bin }}/livelog:
   file.managed:
@@ -20,6 +22,8 @@ GMT:
     - source_hash: sha256=be5d4b998b208afd802ac6ce6c4d4bbf0fb3816bb039a300626abbc999dfe163
     - mode: 755
     - makedirs: True
+    - watch_in:
+      - service: net.generic.worker
 
 {{ bin }}/taskcluster-proxy:
   file.managed:
@@ -27,6 +31,8 @@ GMT:
     - source_hash: sha256=3faf524b9c6b9611339510797bf1013d4274e9f03e7c4bd47e9ab5ec8813d3ae
     - mode: 755
     - makedirs: True
+    - watch_in:
+      - service: net.generic.worker
 
 {{ user }} group:
   group.present:
@@ -73,7 +79,7 @@ GMT:
     - creates: {{ home }}/keypair
     - runas: {{ user }}
 
-/Library/LaunchAgents/net.generic.worker.plist:
+/Library/LaunchDaemons/net.generic.worker.plist:
   file.managed:
     - mode: 600
     - user: root
@@ -84,6 +90,11 @@ GMT:
       etc: {{ etc }}
       home: {{ home }}
       username: {{ user }}
+    - watch_in:
+      - service: net.generic.worker
+
+/Library/LaunchDaemons/net.generic.worker.plist:
+  file.absent: []
 
 net.generic.worker:
   service.running:
