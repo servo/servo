@@ -93,7 +93,7 @@ GMT:
     - watch_in:
       - service: net.generic.worker
 
-/Library/LaunchDaemons/net.generic.worker.plist:
+/Library/LaunchAgents/net.generic.worker.plist:
   file.absent: []
 
 net.generic.worker:
