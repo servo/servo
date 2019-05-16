@@ -819,6 +819,8 @@ def magicleap_build_task(name, build_type):
         .with_script("""
             export OPENSSL_INCLUDE_DIR=
             export OPENSSL_LIB_DIR=
+            export HOST_CC=$(brew --prefix llvm)/bin/clang
+            export HOST_CXX=$(brew --prefix llvm)/bin/clang++
         """)
     )
 
