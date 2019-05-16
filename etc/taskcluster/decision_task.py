@@ -830,7 +830,7 @@ def magicleap_dev():
         magicleap_build_task("Dev build", "Dev")
         .with_script("""
             ./mach build --magicleap --dev
-            ./mach package --magicleap --dev
+            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --dev
         """)
         .find_or_create("build.magicleap_dev." + CONFIG.git_sha)
     )
@@ -843,7 +843,7 @@ def magicleap_nightly():
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("""
             ./mach build --magicleap --release
-            ./mach package --magicleap --release
+            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --release
             "./mach upload-nightly magicleap --secret-from-taskcluster",
         """)
         .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo2D.mpk")
