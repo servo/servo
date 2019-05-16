@@ -811,11 +811,14 @@ def magicleap_build_task(name, build_type):
             sha256="cdc2d26bc87ecf1cd8133df4e72c4eca5df7ddd815d0adf3045460253c1fe123",
             path="magicleap"
         )
+        # Early script in order to run with the initial $PWD
+        .with_early_script("""
+            export MAGICLEAP_SDK="$PWD/magicleap/v0.17.0"
+            export MLCERT="$PWD/magicleap/certs/TempSharedCert.cert"
+        """)
         .with_script("""
             export OPENSSL_INCLUDE_DIR=
             export OPENSSL_LIB_DIR=
-            export MAGICLEAP_SDK="$HOME/magicleap/v0.17.0"
-            export MLCERT="$HOME/magicleap/certs/TempSharedCert.cert"
         """)
     )
 
