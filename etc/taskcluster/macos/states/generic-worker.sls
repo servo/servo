@@ -79,8 +79,12 @@ GMT:
     - creates: {{ home }}/keypair
     - runas: {{ user }}
 
-/Library/LaunchDaemons/net.generic.worker.plist:
+/Library/LaunchAgents/net.generic.worker.plist:
+  file.absent: []
+
+net.generic.worker:
   file.managed:
+    - name: /Library/LaunchDaemons/net.generic.worker.plist
     - mode: 600
     - user: root
     - template: jinja
@@ -90,12 +94,7 @@ GMT:
       etc: {{ etc }}
       home: {{ home }}
       username: {{ user }}
-    - watch_in:
-      - service: net.generic.worker
-
-/Library/LaunchAgents/net.generic.worker.plist:
-  file.absent: []
-
-net.generic.worker:
   service.running:
     - enable: True
+    - watch:
+      - file: /Library/LaunchDaemons/net.generic.worker.plist
