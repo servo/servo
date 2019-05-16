@@ -28,7 +28,6 @@ use crate::gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use crate::gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use crate::gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use crate::gecko_bindings::bindings::Gecko_SetCursorImageValue;
-use crate::gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use crate::gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
 use crate::gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use crate::gecko_bindings::bindings::Gecko_SetListStyleImageNone;
@@ -56,7 +55,7 @@ use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
 use crate::values::computed::{NonNegativeLength, Percentage, TransitionProperty};
 use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
-use crate::values::computed::effects::{BoxShadow, Filter, SimpleShadow};
+use crate::values::computed::effects::Filter;
 use crate::values::generics::column::ColumnCount;
 use crate::values::generics::transform::TransformStyle;
 use crate::values::generics::url::UrlOrNone;
@@ -3455,31 +3454,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Effects"
-                  skip_longhands="box-shadow clip filter">
-    pub fn set_box_shadow<I>(&mut self, v: I)
-        where I: IntoIterator<Item = BoxShadow>,
-              I::IntoIter: ExactSizeIterator
-    {
-        let v = v.into_iter();
-        self.gecko.mBoxShadow.replace_with_new(v.len() as u32);
-        for (servo, gecko_shadow) in v.zip(self.gecko.mBoxShadow.iter_mut()) {
-            gecko_shadow.set_from_box_shadow(servo);
-        }
-    }
-
-    pub fn copy_box_shadow_from(&mut self, other: &Self) {
-        self.gecko.mBoxShadow.copy_from(&other.gecko.mBoxShadow);
-    }
-
-    pub fn reset_box_shadow(&mut self, other: &Self) {
-        self.copy_box_shadow_from(other)
-    }
-
-    pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
-        let buf = self.gecko.mBoxShadow.iter().map(|v| v.to_box_shadow()).collect();
-        longhands::box_shadow::computed_value::List(buf)
-    }
-
+                  skip_longhands="clip filter">
     pub fn set_clip(&mut self, v: longhands::clip::computed_value::T) {
         use crate::gecko_bindings::structs::NS_STYLE_CLIP_AUTO;
         use crate::gecko_bindings::structs::NS_STYLE_CLIP_RECT;
@@ -3603,7 +3578,6 @@ fn static_assert() {
         I::IntoIter: ExactSizeIterator,
     {
         use crate::values::generics::effects::Filter::*;
-        use crate::gecko_bindings::structs::nsCSSShadowArray;
         use crate::gecko_bindings::structs::nsStyleFilter;
         use crate::gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
         use crate::gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
@@ -3644,19 +3618,10 @@ fn static_assert() {
 
                 DropShadow(shadow) => {
                     gecko_filter.mType = NS_STYLE_FILTER_DROP_SHADOW;
-
-                    fn init_shadow(filter: &mut nsStyleFilter) -> &mut nsCSSShadowArray {
-                        unsafe {
-                            let ref mut union = filter.__bindgen_anon_1;
-                            let shadow_array: &mut *mut nsCSSShadowArray = union.mDropShadow.as_mut();
-                            *shadow_array = Gecko_NewCSSShadowArray(1);
-
-                            &mut **shadow_array
-                        }
+                    unsafe {
+                        let ref mut union = gecko_filter.__bindgen_anon_1;
+                        ptr::write(union.mDropShadow.as_mut(), shadow);
                     }
-
-                    let gecko_shadow = init_shadow(gecko_filter);
-                    gecko_shadow.mArray[0].set_from_simple_shadow(shadow);
                 },
                 Url(ref url) => {
                     unsafe {
@@ -3715,7 +3680,7 @@ fn static_assert() {
                 },
                 NS_STYLE_FILTER_DROP_SHADOW => {
                     Filter::DropShadow(unsafe {
-                        (**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_simple_shadow()
+                        (*filter.__bindgen_anon_1.mDropShadow.as_ref()).clone()
                     })
                 },
                 NS_STYLE_FILTER_URL => {
@@ -3761,39 +3726,13 @@ fn static_assert() {
 
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align text-emphasis-style text-shadow
+                  skip_longhands="text-align text-emphasis-style
                                   -webkit-text-stroke-width text-emphasis-position">
 
     <% text_align_keyword = Keyword("text-align",
                                     "start end left right center justify -moz-center -moz-left -moz-right char",
                                     gecko_strip_moz_prefix=False) %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword)}
-
-    pub fn set_text_shadow<I>(&mut self, v: I)
-    where
-        I: IntoIterator<Item = SimpleShadow>,
-        I::IntoIter: ExactSizeIterator
-    {
-        let v = v.into_iter();
-        self.gecko.mTextShadow.replace_with_new(v.len() as u32);
-        for (servo, gecko_shadow) in v.zip(self.gecko.mTextShadow.iter_mut()) {
-            gecko_shadow.set_from_simple_shadow(servo);
-        }
-    }
-
-    pub fn copy_text_shadow_from(&mut self, other: &Self) {
-        self.gecko.mTextShadow.copy_from(&other.gecko.mTextShadow);
-    }
-
-    pub fn reset_text_shadow(&mut self, other: &Self) {
-        self.copy_text_shadow_from(other)
-    }
-
-    // FIXME(emilio): Remove by sharing representation.
-    pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-        let iter = self.gecko.mTextShadow.iter().map(|v| v.to_simple_shadow());
-        longhands::text_shadow::computed_value::List(crate::ArcSlice::from_iter(iter))
-    }
 
     fn clear_text_emphasis_style_if_string(&mut self) {
         if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {

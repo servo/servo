@@ -90,12 +90,16 @@
 //  * computed_value::List is just a convenient alias that you can use for the
 //    computed value list, since this is in the computed_value module.
 //
+// If simple_vector_bindings is true, then we don't use the complex iterator
+// machinery and set_foo_from, and just compute the value like any other
+// longhand.
 <%def name="vector_longhand(name, animation_value_type=None,
                             vector_animation_type=None, allow_empty=False,
+                            simple_vector_bindings=False,
                             separator='Comma',
                             **kwargs)">
     <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True,
-                          **kwargs)">
+                          simple_vector_bindings=simple_vector_bindings, **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
 
@@ -237,6 +241,20 @@
             }
             % endif
 
+            % if simple_vector_bindings:
+            impl From<ComputedList> for UnderlyingList<single_value::T> {
+                #[inline]
+                fn from(l: ComputedList) -> Self {
+                    l.0
+                }
+            }
+            impl From<UnderlyingList<single_value::T>> for ComputedList {
+                #[inline]
+                fn from(l: UnderlyingList<single_value::T>) -> Self {
+                    List(l)
+                }
+            }
+            % endif
 
             % if vector_animation_type:
             % if not animation_value_type:
@@ -345,6 +363,7 @@
 
         pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
 
+        % if not simple_vector_bindings:
         impl SpecifiedValue {
             fn compute_iter<'a, 'cx, 'cx_a>(
                 &'a self,
@@ -353,6 +372,7 @@
                 computed_value::Iter::new(context, &self.0)
             }
         }
+        % endif
 
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
@@ -473,7 +493,7 @@
                     .set_writing_mode_dependency(context.builder.writing_mode);
             % endif
 
-            % if property.is_vector:
+            % if property.is_vector and not property.simple_vector_bindings:
                 // In the case of a vector property we want to pass down an
                 // iterator so that this can be computed without allocation.
                 //
