@@ -303,14 +303,14 @@ impl ${style_struct.gecko_struct_name} {
 <%def name="impl_simple_clone(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        From::from(self.gecko.${gecko_ffi_name})
+        From::from(self.gecko.${gecko_ffi_name}.clone())
     }
 </%def>
 
 <%def name="impl_simple_copy(ident, gecko_ffi_name, *kwargs)">
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name}.clone();
     }
 
     #[allow(non_snake_case)]
@@ -4120,7 +4120,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="paint-order stroke-dasharray -moz-context-properties">
+                  skip_longhands="paint-order stroke-dasharray">
     pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
         self.gecko.mPaintOrder = v.0;
     }
@@ -4179,60 +4179,6 @@ clip-path
             return SVGStrokeDashArray::ContextValue;
         }
         SVGStrokeDashArray::Values(self.gecko.mStrokeDasharray.iter().cloned().collect())
-    }
-
-    #[allow(non_snake_case)]
-    pub fn _moz_context_properties_count(&self) -> usize {
-        self.gecko.mContextProps.len()
-    }
-
-    // FIXME(emilio): Remove by sharing representation.
-    #[allow(non_snake_case)]
-    pub fn clone__moz_context_properties(&self) -> longhands::_moz_context_properties::computed_value::T {
-        use crate::values::specified::svg::MozContextProperties;
-        let buf = self.gecko.mContextProps.iter().map(|v| {
-            MozContextProperties(CustomIdent(unsafe { Atom::from_raw(v.mRawPtr) }))
-        }).collect::<Vec<_>>();
-        longhands::_moz_context_properties::computed_value::List(crate::ArcSlice::from_iter(buf.into_iter()))
-    }
-
-    #[allow(non_snake_case)]
-    pub fn set__moz_context_properties<I>(&mut self, v: I)
-    where
-        I: IntoIterator<Item = longhands::_moz_context_properties::computed_value::single_value::T>,
-        I::IntoIter: ExactSizeIterator
-    {
-        let v = v.into_iter();
-        unsafe {
-            bindings::Gecko_nsStyleSVG_SetContextPropertiesLength(&mut *self.gecko, v.len() as u32);
-        }
-
-        let s = &mut *self.gecko;
-        s.mContextPropsBits = 0;
-        for (gecko, servo) in s.mContextProps.iter_mut().zip(v) {
-            if (servo.0).0 == atom!("fill") {
-                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL as u8;
-            } else if (servo.0).0 == atom!("stroke") {
-                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE as u8;
-            } else if (servo.0).0 == atom!("fill-opacity") {
-                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY as u8;
-            } else if (servo.0).0 == atom!("stroke-opacity") {
-                s.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY as u8;
-            }
-            gecko.mRawPtr = (servo.0).0.into_addrefed();
-        }
-    }
-
-    #[allow(non_snake_case)]
-    pub fn copy__moz_context_properties_from(&mut self, other: &Self) {
-        unsafe {
-            bindings::Gecko_nsStyleSVG_CopyContextProperties(&mut *self.gecko, &*other.gecko);
-        }
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset__moz_context_properties(&mut self, other: &Self) {
-        self.copy__moz_context_properties_from(other)
     }
 </%self:impl_trait>
 

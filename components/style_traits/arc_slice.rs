@@ -85,6 +85,16 @@ impl<T> ArcSlice<T> {
         mem::forget(self);
         ret
     }
+
+    /// Leaks an empty arc slice pointer, and returns it. Only to be used to
+    /// construct ArcSlices from FFI.
+    #[inline]
+    pub fn leaked_empty_ptr() -> *mut std::os::raw::c_void {
+        let empty: ArcSlice<_> = EMPTY_ARC_SLICE.clone();
+        let ptr = empty.0.ptr();
+        std::mem::forget(empty);
+        ptr as *mut _
+    }
 }
 
 /// The inner pointer of an ArcSlice<T>, to be sent via FFI.
