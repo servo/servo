@@ -765,6 +765,9 @@ def macos_build_task(name):
         .with_repo()
         .with_python2()
         .with_rustup()
+        # Debugging for surprising generic-worker behaviour
+        .with_early_script("ls")
+        .with_script("ls target")
     )
     return (
         with_homebrew(build_task, [
