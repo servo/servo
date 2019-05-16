@@ -7,22 +7,26 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
-use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use crate::script_thread::MainThreadScriptMsg;
+use crate::script_runtime::{CommonScriptMsg, LocalScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
-use crossbeam_channel::Sender;
 use msg::constellation_msg::PipelineId;
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 
-#[derive(Clone, JSTraceable)]
-pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
+#[derive(JSTraceable)]
+pub struct UserInteractionTaskSource(pub Box<dyn LocalScriptChan>, pub PipelineId);
 
 impl fmt::Debug for UserInteractionTaskSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "UserInteractionTaskSource(...)")
+    }
+}
+
+impl Clone for UserInteractionTaskSource {
+    fn clone(&self) -> UserInteractionTaskSource {
+        UserInteractionTaskSource(self.0.clone(), self.1.clone())
     }
 }
 
@@ -33,12 +37,12 @@ impl TaskSource for UserInteractionTaskSource {
     where
         T: TaskOnce + 'static,
     {
-        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+        let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::InputEvent,
             Box::new(canceller.wrap_task(task)),
             Some(self.1),
             UserInteractionTaskSource::NAME,
-        ));
+        );
         self.0.send(msg).map_err(|_| ())
     }
 }

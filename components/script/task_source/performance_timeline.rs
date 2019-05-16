@@ -8,7 +8,7 @@
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use crate::script_runtime::{CommonScriptMsg, LocalScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
 use msg::constellation_msg::PipelineId;
@@ -16,7 +16,7 @@ use std::fmt;
 use std::result::Result;
 
 #[derive(JSTraceable)]
-pub struct PerformanceTimelineTaskSource(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
+pub struct PerformanceTimelineTaskSource(pub Box<dyn LocalScriptChan>, pub PipelineId);
 
 impl Clone for PerformanceTimelineTaskSource {
     fn clone(&self) -> PerformanceTimelineTaskSource {

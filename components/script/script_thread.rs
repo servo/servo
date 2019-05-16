@@ -2460,7 +2460,10 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
     ) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.performance_timeline_task_sender.clone(), pipeline_id)
+        PerformanceTimelineTaskSource(
+            Box::new(ThreadLocalScriptChan(self.task_queue.local_port())),
+            pipeline_id,
+        )
     }
 
     pub fn history_traversal_task_source(
@@ -2474,7 +2477,10 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
     ) -> UserInteractionTaskSource {
-        UserInteractionTaskSource(self.user_interaction_task_sender.clone(), pipeline_id)
+        UserInteractionTaskSource(
+            Box::new(ThreadLocalScriptChan(self.task_queue.local_port())),
+            pipeline_id,
+        )
     }
 
     pub fn networking_task_source(&self, pipeline_id: PipelineId) -> NetworkingTaskSource {
@@ -2486,11 +2492,14 @@ impl ScriptThread {
     }
 
     pub fn remote_event_task_source(&self, pipeline_id: PipelineId) -> RemoteEventTaskSource {
-        RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
+        RemoteEventTaskSource(
+            Box::new(ThreadLocalScriptChan(self.task_queue.local_port())),
+            pipeline_id,
+        )
     }
 
     pub fn websocket_task_source(&self, pipeline_id: PipelineId) -> WebsocketTaskSource {
-        WebsocketTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
+        WebsocketTaskSource(self.file_reading_task_sender.clone(), pipeline_id)
     }
 
     /// Handles a request for the window title.

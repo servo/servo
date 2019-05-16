@@ -459,11 +459,11 @@ impl WorkerGlobalScope {
     }
 
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id())
+        PerformanceTimelineTaskSource(self.local_script_chan(), self.pipeline_id())
     }
 
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
-        RemoteEventTaskSource(self.script_chan(), self.pipeline_id())
+        RemoteEventTaskSource(self.local_script_chan(), self.pipeline_id())
     }
 
     pub fn websocket_task_source(&self) -> WebsocketTaskSource {
