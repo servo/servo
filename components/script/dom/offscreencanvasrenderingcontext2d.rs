@@ -304,16 +304,24 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
-        self.canvas_state
-            .borrow()
-            .GetImageData(self.htmlcanvas.as_ref().map(|c| &**c), &self.global(), sx, sy, sw, sh)
+        self.canvas_state.borrow().GetImageData(
+            self.htmlcanvas.as_ref().map(|c| &**c),
+            &self.global(),
+            sx,
+            sy,
+            sw,
+            sh,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
-        self.canvas_state
-            .borrow()
-            .PutImageData(self.htmlcanvas.as_ref().map(|c| &**c), imagedata, dx, dy)
+        self.canvas_state.borrow().PutImageData(
+            self.htmlcanvas.as_ref().map(|c| &**c),
+            imagedata,
+            dx,
+            dy,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -356,9 +364,14 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dw: f64,
         dh: f64,
     ) -> ErrorResult {
-        self.canvas_state
-            .borrow()
-            .DrawImage_(self.htmlcanvas.as_ref().map(|c| &**c), image, dx, dy, dw, dh)
+        self.canvas_state.borrow().DrawImage_(
+            self.htmlcanvas.as_ref().map(|c| &**c),
+            image,
+            dx,
+            dy,
+            dw,
+            dh,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
