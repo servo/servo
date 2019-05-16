@@ -247,7 +247,7 @@ impl CanvasState {
 
     fn parse_color(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         string: &str,
     ) -> Result<RGBA, ()> {
         let mut input = ParserInput::new(string);
@@ -286,7 +286,7 @@ impl CanvasState {
         }
     }
 
-    pub fn get_rect(&self, canvas: Option<Dom<HTMLCanvasElement>>, rect: Rect<u32>) -> Vec<u8> {
+    pub fn get_rect(&self, canvas: Option<&HTMLCanvasElement>, rect: Rect<u32>) -> Vec<u8> {
         assert!(self.origin_is_clean());
 
         // FIXME(nox): This is probably wrong when this is a context for an
@@ -644,7 +644,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     pub fn SetStrokeStyle(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
     ) {
         match value {
@@ -696,7 +696,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     pub fn SetFillStyle(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
     ) {
         match value {
@@ -979,7 +979,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     pub fn GetImageData(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
@@ -1020,7 +1020,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub fn PutImageData(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1041,7 +1041,7 @@ impl CanvasState {
     #[allow(unsafe_code)]
     pub fn PutImageData_(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1113,7 +1113,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     pub fn DrawImage_(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         image: CanvasImageSource,
         dx: f64,
         dy: f64,
@@ -1141,7 +1141,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     pub fn DrawImage__(
         &self,
-        canvas: Option<Dom<HTMLCanvasElement>>,
+        canvas: Option<&HTMLCanvasElement>,
         image: CanvasImageSource,
         sx: f64,
         sy: f64,
@@ -1445,14 +1445,14 @@ impl CanvasRenderingContext2D {
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
-            image_cache: image_cache,
-            base_url: base_url,
             canvas_state: DomRefCell::new(CanvasState::new(
                 global,
-                image_cache,
-                base_url,
+                image_cache.clone(),
+                base_url.clone(),
                 Size2D::new(size.width as u64, size.height as u64),
             )),
+            image_cache: image_cache,
+            base_url: base_url,
         }
     }
 
@@ -1499,15 +1499,6 @@ impl CanvasRenderingContext2D {
             .mark_as_dirty(self.canvas.as_ref().map(|c| &**c))
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean
-    fn is_origin_clean(&self, image: CanvasImageSource) -> bool {
-        self.canvas_state.borrow().is_origin_clean(image)
-    }
-
-    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<u32>)> {
-        self.canvas_state.borrow().fetch_image_data(url)
-    }
-
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
         mem::replace(
             &mut self.canvas_state.borrow().missing_image_urls.borrow_mut(),
@@ -1531,12 +1522,8 @@ impl CanvasRenderingContext2D {
         self.canvas_state.borrow().origin_is_clean()
     }
 
-    fn set_origin_unclean(&self) {
-        self.canvas_state.borrow().set_origin_unclean()
-    }
-
     pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
-        self.canvas_state.borrow().get_rect(self.canvas, rect)
+        self.canvas_state.borrow().get_rect(self.canvas.as_ref().map(|c| &**c), rect)
     }
 }
 
@@ -1722,7 +1709,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     ) -> ErrorResult {
         self.canvas_state
             .borrow()
-            .DrawImage_(self.canvas, image, dx, dy, dw, dh)
+            .DrawImage_(self.canvas.as_ref().map(|c| &**c), image, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -1740,7 +1727,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     ) -> ErrorResult {
         self.canvas_state
             .borrow()
-            .DrawImage__(self.canvas, image, sx, sy, sw, sh, dx, dy, dw, dh)
+            .DrawImage__(self.canvas.as_ref().map(|c| &**c), image, sx, sy, sw, sh, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto
@@ -1816,7 +1803,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
             .borrow()
-            .SetStrokeStyle(self.canvas, value)
+            .SetStrokeStyle(self.canvas.as_ref().map(|c| &**c), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -1826,7 +1813,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
-        self.canvas_state.borrow().SetFillStyle(self.canvas, value)
+        self.canvas_state.borrow().SetFillStyle(self.canvas.as_ref().map(|c| &**c), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1847,14 +1834,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
             .borrow()
-            .GetImageData(self.canvas, &self.global(), sx, sy, sw, sh)
+            .GetImageData(self.canvas.as_ref().map(|c| &**c), &self.global(), sx, sy, sw, sh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
         self.canvas_state
             .borrow()
-            .PutImageData(self.canvas, imagedata, dx, dy)
+            .PutImageData(self.canvas.as_ref().map(|c| &**c), imagedata, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1870,7 +1857,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         dirty_height: i32,
     ) {
         self.canvas_state.borrow().PutImageData_(
-            self.canvas,
+            self.canvas.as_ref().map(|c| &**c),
             imagedata,
             dx,
             dy,

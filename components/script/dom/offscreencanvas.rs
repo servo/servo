@@ -15,7 +15,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
-use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::jsapi::JSContext;
@@ -95,7 +94,7 @@ impl OffscreenCanvas {
         }
         let size = self.get_size();
         let context =
-            OffscreenCanvasRenderingContext2D::new(&self.global(), self, size, self.placeholder);
+            OffscreenCanvasRenderingContext2D::new(&self.global(), self, size, self.placeholder.as_ref().map(|c| &**c));
         *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(
             Dom::from_ref(&*context),
         ));

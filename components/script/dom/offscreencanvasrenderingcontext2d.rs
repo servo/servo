@@ -22,7 +22,6 @@ use crate::dom::canvasrenderingcontext2d::CanvasState;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::window_from_node;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use dom_struct::dom_struct;
 use euclid::Size2D;
@@ -40,14 +39,14 @@ impl OffscreenCanvasRenderingContext2D {
         global: &GlobalScope,
         canvas: Option<&OffscreenCanvas>,
         size: Size2D<u64>,
-        htmlcanvas: Option<Dom<HTMLCanvasElement>>,
+        htmlcanvas: Option<&HTMLCanvasElement>,
     ) -> OffscreenCanvasRenderingContext2D {
         let image_cache = global.image_cache();
         let base_url = global.api_base_url();
         OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
-            htmlcanvas: htmlcanvas,
+            htmlcanvas: htmlcanvas.map(Dom::from_ref),
             canvas_state: DomRefCell::new(CanvasState::new(
                 global,
                 image_cache,
@@ -61,7 +60,7 @@ impl OffscreenCanvasRenderingContext2D {
         global: &GlobalScope,
         canvas: &OffscreenCanvas,
         size: Size2D<u64>,
-        htmlcanvas: Option<Dom<HTMLCanvasElement>>,
+        htmlcanvas: Option<&HTMLCanvasElement>,
     ) -> DomRoot<OffscreenCanvasRenderingContext2D> {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
             global,
@@ -147,7 +146,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
             .borrow()
-            .SetStrokeStyle(self.htmlcanvas, value)
+            .SetStrokeStyle(self.htmlcanvas.as_ref().map(|c| &**c), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -159,7 +158,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
             .borrow()
-            .SetFillStyle(self.htmlcanvas, value)
+            .SetFillStyle(self.htmlcanvas.as_ref().map(|c| &**c), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
@@ -307,14 +306,14 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
             .borrow()
-            .GetImageData(self.htmlcanvas, &self.global(), sx, sy, sw, sh)
+            .GetImageData(self.htmlcanvas.as_ref().map(|c| &**c), &self.global(), sx, sy, sw, sh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
         self.canvas_state
             .borrow()
-            .PutImageData(self.htmlcanvas, imagedata, dx, dy)
+            .PutImageData(self.htmlcanvas.as_ref().map(|c| &**c), imagedata, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -330,7 +329,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dirty_height: i32,
     ) {
         self.canvas_state.borrow().PutImageData_(
-            self.htmlcanvas,
+            self.htmlcanvas.as_ref().map(|c| &**c),
             imagedata,
             dx,
             dy,
@@ -359,7 +358,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     ) -> ErrorResult {
         self.canvas_state
             .borrow()
-            .DrawImage_(self.htmlcanvas, image, dx, dy, dw, dh)
+            .DrawImage_(self.htmlcanvas.as_ref().map(|c| &**c), image, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -376,7 +375,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dh: f64,
     ) -> ErrorResult {
         self.canvas_state.borrow().DrawImage__(
-            self.htmlcanvas,
+            self.htmlcanvas.as_ref().map(|c| &**c),
             image,
             sx,
             sy,
