@@ -46,7 +46,7 @@ interface CanvasState {
   void restore(); // pop state stack and restore state
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasTransform {
   // transformations (default transform is the identity matrix)
   void scale(unrestricted double x, unrestricted double y);
@@ -119,7 +119,7 @@ interface CanvasRect {
   void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasDrawPath {
   // path API (see also CanvasPath)
   void beginPath();
@@ -156,7 +156,7 @@ interface CanvasText {
   //TextMetrics measureText(DOMString text);
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasDrawImage {
   // drawing images
   [Throws]
@@ -171,7 +171,7 @@ interface CanvasDrawImage {
                                           unrestricted double dw, unrestricted double dh);
 };
 
-[Exposed=Window, NoInterfaceObject]
+[Exposed=(Window, Worker), NoInterfaceObject]
 interface CanvasImageData {
   // pixel manipulation
   [Throws]
@@ -193,7 +193,7 @@ enum CanvasTextAlign { "start", "end", "left", "right", "center" };
 enum CanvasTextBaseline { "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" };
 enum CanvasDirection { "ltr", "rtl", "inherit" };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasPathDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
@@ -207,7 +207,7 @@ interface CanvasPathDrawingStyles {
   //attribute unrestricted double lineDashOffset;
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasTextDrawingStyles {
   // text
   //attribute DOMString font; // (default 10px sans-serif)
@@ -217,7 +217,7 @@ interface CanvasTextDrawingStyles {
   //attribute CanvasDirection direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
 interface CanvasPath {
   // shared path API methods
   void closePath();

@@ -51,6 +51,7 @@ use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::PipelineId;
+use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
@@ -374,6 +375,16 @@ impl GlobalScope {
     /// Get the origin for this global scope
     pub fn origin(&self) -> &MutableOrigin {
         &self.origin
+    }
+
+    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.image_cache();
+        }
+        if let Some(worker) = self.downcast::<DedicatedWorkerGlobalScope>() {
+            return worker.image_cache();
+        }
+        unreachable!();
     }
 
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)

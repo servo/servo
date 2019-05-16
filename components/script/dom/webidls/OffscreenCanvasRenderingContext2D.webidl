@@ -16,14 +16,14 @@ OffscreenCanvasRenderingContext2D implements CanvasShadowStyles;
 OffscreenCanvasRenderingContext2D implements CanvasFilters;
 OffscreenCanvasRenderingContext2D implements CanvasRect;
 
-//OffscreenCanvasRenderingContext2D includes CanvasTransform;
-//OffscreenCanvasRenderingContext2D includes CanvasDrawPath;
+OffscreenCanvasRenderingContext2D implements CanvasTransform;
+OffscreenCanvasRenderingContext2D implements CanvasDrawPath;
 OffscreenCanvasRenderingContext2D implements CanvasText;
-//OffscreenCanvasRenderingContext2D includes CanvasDrawImage;
-//OffscreenCanvasRenderingContext2D includes CanvasImageData;
-//OffscreenCanvasRenderingContext2D includes CanvasPathDrawingStyles;
-//OffscreenCanvasRenderingContext2D includes CanvasTextDrawingStyles;
-//OffscreenCanvasRenderingContext2D includes CanvasPath;
+OffscreenCanvasRenderingContext2D implements CanvasDrawImage;
+OffscreenCanvasRenderingContext2D implements CanvasImageData;
+OffscreenCanvasRenderingContext2D implements CanvasPathDrawingStyles;
+OffscreenCanvasRenderingContext2D implements CanvasTextDrawingStyles;
+OffscreenCanvasRenderingContext2D implements CanvasPath;
 
 
 

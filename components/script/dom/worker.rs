@@ -28,6 +28,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoRealm, JSContext, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
+use net_traits::image_cache::ImageCache;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -125,6 +126,7 @@ impl Worker {
             String::from(&*worker_options.name),
             worker_options.type_,
             closing,
+            global.image_cache(),
         );
 
         Ok(worker)
