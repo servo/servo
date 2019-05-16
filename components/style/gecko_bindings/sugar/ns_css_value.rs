@@ -276,29 +276,6 @@ impl nsCSSValue {
         }
         debug_assert!(values.next().is_none(), "Values should have been exhausted");
     }
-
-    /// Set a shared list
-    pub fn set_shared_list<I>(&mut self, values: I)
-    where
-        I: ExactSizeIterator<Item = nsCSSValue>,
-    {
-        debug_assert!(values.len() > 0, "Empty list is not supported");
-        unsafe { bindings::Gecko_CSSValue_InitSharedList(self, values.len() as u32) };
-        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_SharedList);
-        let list = unsafe {
-            self.mValue
-                .mSharedList
-                .as_ref()
-                .as_mut()
-                .expect("List pointer should be non-null")
-                .mHead
-                .as_mut()
-        };
-        debug_assert!(list.is_some(), "New created shared list shouldn't be null");
-        for (item, new_value) in list.unwrap().into_iter().zip(values) {
-            *item = new_value;
-        }
-    }
 }
 
 impl Drop for nsCSSValue {

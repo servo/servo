@@ -16,9 +16,9 @@ pub use crate::values::generics::transform::TransformStyle;
 
 /// A single operation in a computed CSS `transform`
 pub type TransformOperation =
-    generic::TransformOperation<Angle, Number, Length, Integer, LengthPercentage>;
+    generic::GenericTransformOperation<Angle, Number, Length, Integer, LengthPercentage>;
 /// A computed CSS `transform`
-pub type Transform = generic::Transform<TransformOperation>;
+pub type Transform = generic::GenericTransform<TransformOperation>;
 
 /// The computed value of a CSS `<transform-origin>`
 pub type TransformOrigin =
@@ -540,13 +540,13 @@ impl ToAnimatedZero for Transform {
             self.0
                 .iter()
                 .map(|op| op.to_animated_zero())
-                .collect::<Result<Vec<_>, _>>()?,
+                .collect::<Result<crate::OwnedSlice<_>, _>>()?,
         ))
     }
 }
 
 /// A computed CSS `rotate`
-pub type Rotate = generic::Rotate<Number, Angle>;
+pub type Rotate = generic::GenericRotate<Number, Angle>;
 
 impl Rotate {
     /// Convert TransformOperation to Rotate.
@@ -573,7 +573,7 @@ impl Rotate {
 }
 
 /// A computed CSS `translate`
-pub type Translate = generic::Translate<LengthPercentage, Length>;
+pub type Translate = generic::GenericTranslate<LengthPercentage, Length>;
 
 impl Translate {
     /// Convert TransformOperation to Translate.
@@ -602,7 +602,7 @@ impl Translate {
 }
 
 /// A computed CSS `scale`
-pub type Scale = generic::Scale<Number>;
+pub type Scale = generic::GenericScale<Number>;
 
 impl Scale {
     /// Convert TransformOperation to Scale.

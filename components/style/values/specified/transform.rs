@@ -42,7 +42,7 @@ impl Transform {
             .try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
-            return Ok(generic::Transform(Vec::new()));
+            return Ok(generic::Transform::none());
         }
 
         Ok(generic::Transform(Space::parse(input, |input| {
@@ -218,7 +218,7 @@ impl Transform {
                         .new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone()))
                 })
             })
-        })?))
+        })?.into()))
     }
 }
 

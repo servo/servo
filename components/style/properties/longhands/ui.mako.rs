@@ -81,7 +81,6 @@ ${helpers.predefined_type(
     "Transform",
     "generics::transform::Transform::none()",
     products="gecko",
-    gecko_ffi_name="mSpecifiedWindowTransform",
     flags="GETCS_NEEDS_LAYOUT_FLUSH",
     animation_value_type="ComputedValue",
     spec="None (Nonstandard internal property)",
