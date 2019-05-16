@@ -1160,11 +1160,17 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-name
     fn SetName(&self, name: DOMString) {
+        if self.window_proxy.get().is_none() || self.undiscarded_window_proxy().is_none() {
+            return;
+        }
         self.window_proxy().set_name(name);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-name
     fn Name(&self) -> DOMString {
+        if self.window_proxy.get().is_none() || self.undiscarded_window_proxy().is_none() {
+            return DOMString::from_string("".to_string());
+        }
         self.window_proxy().get_name()
     }
 
