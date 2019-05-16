@@ -288,7 +288,7 @@ impl CounterStyleOrNone {
                     .0
                     .iter()
                     .map(|symbol| match *symbol {
-                        Symbol::String(ref s) => nsCStr::from(s),
+                        Symbol::String(ref s) => nsCStr::from(&**s),
                         Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
                     })
                     .collect();
@@ -333,7 +333,7 @@ impl CounterStyleOrNone {
                 let symbol_type = SymbolsType::from_gecko_keyword(anonymous.mSystem as u32);
                 let symbols = symbols
                     .iter()
-                    .map(|gecko_symbol| Symbol::String(gecko_symbol.to_string()))
+                    .map(|gecko_symbol| Symbol::String(gecko_symbol.to_string().into()))
                     .collect();
                 Either::First(CounterStyleOrNone::Symbols(symbol_type, Symbols(symbols)))
             }
