@@ -1160,12 +1160,17 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-name
     fn SetName(&self, name: DOMString) {
-        self.window_proxy().set_name(name);
+        if let Some(proxy) = self.undiscarded_window_proxy() {
+            proxy.set_name(name);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-name
     fn Name(&self) -> DOMString {
-        self.window_proxy().get_name()
+        match self.undiscarded_window_proxy() {
+            Some(proxy) => proxy.get_name(),
+            None => "".into(),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-origin
