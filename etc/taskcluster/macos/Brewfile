@@ -5,7 +5,6 @@ brew "openssl"
 brew "pkg-config"
 brew "llvm"
 brew "yasm"
-brew "makedepend"
 
 # For sccache
 brew "openssl@1.1"
