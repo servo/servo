@@ -817,8 +817,8 @@ def magicleap_build_task(name, build_type):
             export MLCERT="$PWD/magicleap/certs/TempSharedCert.cert"
         """)
         .with_script("""
-            export OPENSSL_INCLUDE_DIR=
-            export OPENSSL_LIB_DIR=
+            unset OPENSSL_INCLUDE_DIR
+            unset OPENSSL_LIB_DIR
             export HOST_CC=$(brew --prefix llvm)/bin/clang
             export HOST_CXX=$(brew --prefix llvm)/bin/clang++
         """)
