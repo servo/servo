@@ -6,6 +6,14 @@
 GMT:
   timezone.system
 
+sshkeys:
+  ssh_auth.present:
+    - user: root
+    - names:
+    {% for key in pillar["ssh_keys"] %}
+      - {{ key | yaml_encode }}
+    {% endfor %}
+
 {{ bin }}/generic-worker:
   file.managed:
     - name:
