@@ -17,7 +17,7 @@
         "LengthPercentageOrAuto",
         "computed::LengthPercentageOrAuto::zero()",
         alias=maybe_moz_logical_alias(product, side, "-moz-margin-%s"),
-        allow_quirks=not side[1],
+        allow_quirks="No" if side[1] else "Yes",
         animation_value_type="ComputedValue",
         logical=side[1],
         logical_group="margin",

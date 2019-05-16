@@ -172,7 +172,7 @@ class Longhand(object):
                  gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, logical_group=None, alias=None, extra_prefixes=None, boxed=False,
-                 flags=None, allowed_in_page_rule=False, allow_quirks=False,
+                 flags=None, allowed_in_page_rule=False, allow_quirks="No",
                  ignored_when_colors_disabled=False,
                  simple_vector_bindings=False,
                  vector=False, servo_restyle_damage="repaint"):

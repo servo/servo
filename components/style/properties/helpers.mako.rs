@@ -10,7 +10,7 @@
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
             needs_context=True, vector=False,
             computed_type=None, initial_specified_value=None,
-            allow_quirks=False, allow_empty=False, **kwargs)">
+            allow_quirks='No', allow_empty=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
@@ -42,8 +42,8 @@
             context: &ParserContext,
             input: &mut Parser<'i, 't>,
         ) -> Result<SpecifiedValue, ParseError<'i>> {
-            % if allow_quirks:
-            specified::${type}::${parse_method}_quirky(context, input, AllowQuirks::Yes)
+            % if allow_quirks != "No":
+            specified::${type}::${parse_method}_quirky(context, input, AllowQuirks::${allow_quirks})
             % elif needs_context:
             specified::${type}::${parse_method}(context, input)
             % else:
@@ -523,8 +523,8 @@
             context: &ParserContext,
             input: &mut Parser<'i, 't>,
         ) -> Result<PropertyDeclaration, ParseError<'i>> {
-            % if property.allow_quirks:
-                parse_quirky(context, input, specified::AllowQuirks::Yes)
+            % if property.allow_quirks != "No":
+                parse_quirky(context, input, specified::AllowQuirks::${property.allow_quirks})
             % else:
                 parse(context, input)
             % endif
@@ -986,7 +986,7 @@
 </%def>
 
 <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function,
-                                 needs_context=True, allow_quirks=False, **kwargs)">
+                                 needs_context=True, allow_quirks='No', **kwargs)">
     <% sub_properties=' '.join(sub_property_pattern % side for side in PHYSICAL_SIDES) %>
     <%call expr="self.shorthand(name, sub_properties=sub_properties, **kwargs)">
         #[allow(unused_imports)]
@@ -999,8 +999,8 @@
             input: &mut Parser<'i, 't>,
         ) -> Result<Longhands, ParseError<'i>> {
             let rect = Rect::parse_with(context, input, |_c, i| {
-            % if allow_quirks:
-                ${parser_function}_quirky(_c, i, specified::AllowQuirks::Yes)
+            % if allow_quirks != "No":
+                ${parser_function}_quirky(_c, i, specified::AllowQuirks::${allow_quirks})
             % elif needs_context:
                 ${parser_function}(_c, i)
             % else:

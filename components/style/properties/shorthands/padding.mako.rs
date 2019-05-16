@@ -9,7 +9,7 @@ ${helpers.four_sides_shorthand(
     "padding-%s",
     "specified::NonNegativeLengthPercentage::parse",
     spec="https://drafts.csswg.org/css-box-3/#propdef-padding",
-    allow_quirks=True,
+    allow_quirks="Yes",
 )}
 
 ${helpers.two_properties_shorthand(

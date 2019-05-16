@@ -14,7 +14,7 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
-    allow_quirks=True,
+    allow_quirks="Yes",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER \
            CAN_ANIMATE_ON_COMPOSITOR",
 )}

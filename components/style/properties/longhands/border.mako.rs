@@ -28,7 +28,7 @@
         animation_value_type="AnimatedColor",
         logical=is_logical,
         logical_group="border-color",
-        allow_quirks=not is_logical,
+        allow_quirks="No" if is_logical else "Yes",
         flags="APPLIES_TO_FIRST_LETTER",
         ignored_when_colors_disabled=True,
     )}
@@ -56,7 +56,7 @@
         logical=is_logical,
         logical_group="border-width",
         flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
-        allow_quirks=not is_logical,
+        allow_quirks="No" if is_logical else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}
 % endfor

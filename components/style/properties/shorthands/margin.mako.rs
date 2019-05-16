@@ -10,7 +10,7 @@ ${helpers.four_sides_shorthand(
     "specified::LengthPercentageOrAuto::parse",
     spec="https://drafts.csswg.org/css-box/#propdef-margin",
     allowed_in_page_rule=True,
-    allow_quirks=True,
+    allow_quirks="Yes",
 )}
 
 ${helpers.two_properties_shorthand(

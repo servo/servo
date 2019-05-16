@@ -24,7 +24,7 @@
         logical_group="padding",
         spec=spec,
         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER GETCS_NEEDS_LAYOUT_FLUSH",
-        allow_quirks=not side[1],
+        allow_quirks="No" if side[1] else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}
 % endfor

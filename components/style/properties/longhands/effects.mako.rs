@@ -38,7 +38,7 @@ ${helpers.predefined_type(
     "computed::ClipRectOrAuto::auto()",
     animation_value_type="ComputedValue",
     boxed=True,
-    allow_quirks=True,
+    allow_quirks="Yes",
     spec="https://drafts.fxtf.org/css-masking/#clip-property",
 )}
 
