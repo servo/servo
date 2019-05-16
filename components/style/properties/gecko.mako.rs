@@ -3714,42 +3714,41 @@ fn static_assert() {
         use crate::gecko_bindings::structs::NS_STYLE_FILTER_DROP_SHADOW;
         use crate::gecko_bindings::structs::NS_STYLE_FILTER_URL;
 
-        let mut filters = Vec::new();
-        for filter in self.gecko.mFilters.iter(){
+        longhands::filter::computed_value::List(self.gecko.mFilters.iter().map(|filter| {
             match filter.mType {
                 % for func in FILTER_FUNCTIONS:
                 NS_STYLE_FILTER_${func.upper()} => {
-                    filters.push(Filter::${func}(
+                    Filter::${func}(
                         GeckoStyleCoordConvertible::from_gecko_style_coord(
-                            &filter.mFilterParameter).unwrap()));
+                            &filter.mFilterParameter
+                        ).unwrap()
+                    )
                 },
                 % endfor
                 NS_STYLE_FILTER_BLUR => {
-                    filters.push(Filter::Blur(NonNegativeLength::from_gecko_style_coord(
-                        &filter.mFilterParameter).unwrap()));
+                    Filter::Blur(NonNegativeLength::from_gecko_style_coord(
+                        &filter.mFilterParameter
+                    ).unwrap())
                 },
                 NS_STYLE_FILTER_HUE_ROTATE => {
-                    filters.push(Filter::HueRotate(
-                        GeckoStyleCoordConvertible::from_gecko_style_coord(
-                            &filter.mFilterParameter).unwrap()));
+                    Filter::HueRotate(GeckoStyleCoordConvertible::from_gecko_style_coord(
+                        &filter.mFilterParameter,
+                    ).unwrap())
                 },
                 NS_STYLE_FILTER_DROP_SHADOW => {
-                    filters.push(unsafe {
-                        Filter::DropShadow(
-                            (**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_simple_shadow(),
-                        )
-                    });
+                    Filter::DropShadow(unsafe {
+                        (**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_simple_shadow()
+                    })
                 },
                 NS_STYLE_FILTER_URL => {
-                    filters.push(Filter::Url(unsafe {
+                    Filter::Url(unsafe {
                         let url = RefPtr::new(*filter.__bindgen_anon_1.mURL.as_ref());
                         ComputedUrl::from_url_value(url)
-                    }));
+                    })
                 }
-                _ => {},
+                _ => unreachable!("Unknown filter function?"),
             }
-        }
-        longhands::filter::computed_value::List(filters)
+        }).collect())
     }
 
 </%self:impl_trait>
@@ -3793,8 +3792,9 @@ fn static_assert() {
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword)}
 
     pub fn set_text_shadow<I>(&mut self, v: I)
-        where I: IntoIterator<Item = SimpleShadow>,
-              I::IntoIter: ExactSizeIterator
+    where
+        I: IntoIterator<Item = SimpleShadow>,
+        I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
         self.gecko.mTextShadow.replace_with_new(v.len() as u32);
@@ -3812,8 +3812,8 @@ fn static_assert() {
     }
 
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-        let buf = self.gecko.mTextShadow.iter().map(|v| v.to_simple_shadow()).collect();
-        longhands::text_shadow::computed_value::List(buf)
+        let buf = self.gecko.mTextShadow.iter().map(|v| v.to_simple_shadow()).collect::<Vec<_>>();
+        longhands::text_shadow::computed_value::List(buf.into())
     }
 
     fn clear_text_emphasis_style_if_string(&mut self) {

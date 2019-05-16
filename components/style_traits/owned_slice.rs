@@ -10,7 +10,7 @@ use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
-use std::{fmt, mem, slice};
+use std::{fmt, iter, mem, slice};
 use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// A struct that basically replaces a `Box<[T]>`, but which cbindgen can
@@ -162,5 +162,12 @@ impl<T: ToShmem + Sized> ToShmem for OwnedSlice<T> {
             let dest = to_shmem::to_shmem_slice(self.iter(), builder);
             mem::ManuallyDrop::new(Self::from(Box::from_raw(dest)))
         }
+    }
+}
+
+impl<T> iter::FromIterator<T> for OwnedSlice<T> {
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Vec::from_iter(iter).into()
     }
 }

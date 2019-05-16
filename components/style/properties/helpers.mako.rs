@@ -113,10 +113,8 @@
         pub mod computed_value {
             pub use super::single_value::computed_value as single_value;
             pub use self::single_value::T as SingleComputedValue;
-            % if allow_empty and allow_empty != "NotInitial":
-            use std::vec::IntoIter;
-            % else:
-            use smallvec::{IntoIter, SmallVec};
+            % if not allow_empty or allow_empty == "NotInitial":
+            use smallvec::SmallVec;
             % endif
             use crate::values::computed::ComputedVecIter;
 
@@ -144,14 +142,16 @@
                 #[css(if_empty = "none", iterable)]
                 % endif
                 % if allow_empty and allow_empty != "NotInitial":
-                pub Vec<T>,
+                pub crate::OwnedSlice<T>,
                 % else:
+                // FIXME(emilio): Add an OwnedNonEmptySlice type, and figure out
+                // something for transition-name, which is the only remaining
+                // user of NotInitial.
                 pub SmallVec<[T; 1]>,
                 % endif
             );
 
 
-            /// The computed value, effectively a list of single values.
             % if vector_animation_type:
             % if not animation_value_type:
                 Sorry, this is stupid but needed for now.
@@ -191,21 +191,10 @@
             }
             % endif
 
+            /// The computed value, effectively a list of single values.
             pub type T = List<single_value::T>;
 
             pub type Iter<'a, 'cx, 'cx_a> = ComputedVecIter<'a, 'cx, 'cx_a, super::single_value::SpecifiedValue>;
-
-            impl IntoIterator for T {
-                type Item = single_value::T;
-                % if allow_empty and allow_empty != "NotInitial":
-                type IntoIter = IntoIter<single_value::T>;
-                % else:
-                type IntoIter = IntoIter<[single_value::T; 1]>;
-                % endif
-                fn into_iter(self) -> Self::IntoIter {
-                    self.0.into_iter()
-                }
-            }
         }
 
         /// The specified value of ${name}.
@@ -219,12 +208,12 @@
             % else:
             #[css(if_empty = "none", iterable)]
             % endif
-            pub Vec<single_value::SpecifiedValue>,
+            pub crate::OwnedSlice<single_value::SpecifiedValue>,
         );
 
         pub fn get_initial_value() -> computed_value::T {
             % if allow_empty and allow_empty != "NotInitial":
-                computed_value::List(vec![])
+                computed_value::List(Default::default())
             % else:
                 let mut v = SmallVec::new();
                 v.push(single_value::get_initial_value());
@@ -239,20 +228,21 @@
             use style_traits::Separator;
 
             % if allow_empty:
-                if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                    return Ok(SpecifiedValue(Vec::new()))
-                }
+            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                return Ok(SpecifiedValue(Default::default()))
+            }
             % endif
 
-            style_traits::${separator}::parse(input, |parser| {
+            let v = style_traits::${separator}::parse(input, |parser| {
                 single_value::parse(context, parser)
-            }).map(SpecifiedValue)
+            })?;
+            Ok(SpecifiedValue(v.into()))
         }
 
         pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
 
         impl SpecifiedValue {
-            pub fn compute_iter<'a, 'cx, 'cx_a>(
+            fn compute_iter<'a, 'cx, 'cx_a>(
                 &'a self,
                 context: &'cx Context<'cx_a>,
             ) -> computed_value::Iter<'a, 'cx, 'cx_a> {
@@ -265,14 +255,13 @@
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                computed_value::List(self.compute_iter(context).collect())
+                computed_value::List(self.0.iter().map(|i| i.to_computed_value(context)).collect())
             }
 
             #[inline]
             fn from_computed_value(computed: &computed_value::T) -> Self {
-                SpecifiedValue(computed.0.iter()
-                                    .map(ToComputedValue::from_computed_value)
-                                    .collect())
+                let iter = computed.0.iter().map(ToComputedValue::from_computed_value);
+                SpecifiedValue(iter.collect())
             }
         }
     </%call>

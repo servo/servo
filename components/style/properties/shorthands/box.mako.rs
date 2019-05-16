@@ -137,7 +137,7 @@ macro_rules! try_parse_one {
 
         Ok(expanded! {
             % for prop in "property duration timing_function delay".split():
-            transition_${prop}: transition_${prop}::SpecifiedValue(${prop}s),
+            transition_${prop}: transition_${prop}::SpecifiedValue(${prop}s.into()),
             % endfor
         })
     }
@@ -266,7 +266,7 @@ macro_rules! try_parse_one {
 
         Ok(expanded! {
             % for prop in props:
-            animation_${prop}: animation_${prop}::SpecifiedValue(${prop}s),
+            animation_${prop}: animation_${prop}::SpecifiedValue(${prop}s.into()),
             % endfor
         })
     }

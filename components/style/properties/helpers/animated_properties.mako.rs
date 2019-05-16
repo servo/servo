@@ -773,6 +773,7 @@ macro_rules! animated_list_impl {
     }
 }
 
+animated_list_impl!(<T> for crate::OwnedSlice<T>);
 animated_list_impl!(<T> for SmallVec<[T; 1]>);
 animated_list_impl!(<T> for Vec<T>);
 

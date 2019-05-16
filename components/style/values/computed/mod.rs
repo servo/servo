@@ -454,8 +454,7 @@ where
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         self.iter()
             .map(|item| item.to_computed_value(context))
-            .collect::<Vec<_>>()
-            .into()
+            .collect()
     }
 
     #[inline]
@@ -463,8 +462,7 @@ where
         computed
             .iter()
             .map(T::from_computed_value)
-            .collect::<Vec<_>>()
-            .into()
+            .collect()
     }
 }
 
