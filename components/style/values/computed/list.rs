@@ -10,7 +10,7 @@ pub use crate::values::specified::list::MozListReversed;
 pub use crate::values::specified::list::{QuotePair, Quotes};
 
 lazy_static! {
-    static ref INITIAL_QUOTES: crate::ArcSlice<QuotePair> = crate::ArcSlice::from_iter(
+    static ref INITIAL_QUOTES: crate::ArcSlice<QuotePair> = crate::ArcSlice::from_iter_leaked(
         vec![
             QuotePair {
                 opening: "\u{201c}".to_owned().into(),

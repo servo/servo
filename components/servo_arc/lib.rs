@@ -42,7 +42,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::iter::{ExactSizeIterator, Iterator};
 use std::marker::PhantomData;
-use std::mem;
+use std::mem::{self, align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::process;
@@ -115,7 +115,10 @@ pub struct Arc<T: ?Sized> {
 /// Once the mutation is finished, you can call `.shareable()` and get a regular `Arc`
 /// out of it.
 ///
-/// ```rust
+/// Ignore the doctest below there's no way to skip building with refcount
+/// logging during doc tests (see rust-lang/rust#45599).
+///
+/// ```rust,ignore
 /// # use servo_arc::UniqueArc;
 /// let data = [1, 2, 3, 4, 5];
 /// let mut x = UniqueArc::new(data);
@@ -169,16 +172,33 @@ impl<T> Arc<T> {
     /// Construct an `Arc<T>`
     #[inline]
     pub fn new(data: T) -> Self {
-        let x = Box::new(ArcInner {
+        let ptr = Box::into_raw(Box::new(ArcInner {
             count: atomic::AtomicUsize::new(1),
             data,
-        });
+        }));
+
+        #[cfg(all(feature = "gecko", debug_assertions))]
+        unsafe {
+            // FIXME(emilio): Would be so amazing to have
+            // std::intrinsics::type_name() around, so that we could also report
+            // a real size.
+            NS_LogCtor(ptr as *const _, b"ServoArc\0".as_ptr() as *const _, 8);
+        }
+
         unsafe {
             Arc {
-                p: ptr::NonNull::new_unchecked(Box::into_raw(x)),
+                p: ptr::NonNull::new_unchecked(ptr),
                 phantom: PhantomData,
             }
         }
+    }
+
+    /// Construct an intentionally-leaked arc.
+    #[inline]
+    pub fn new_leaked(data: T) -> Self {
+        let arc = Self::new(data);
+        arc.mark_as_intentionally_leaked();
+        arc
     }
 
     /// Convert the Arc<T> to a raw pointer, suitable for use across FFI
@@ -290,9 +310,29 @@ impl<T: ?Sized> Arc<T> {
         unsafe { &*self.ptr() }
     }
 
-    // Non-inlined part of `drop`. Just invokes the destructor.
+    #[inline(always)]
+    fn record_drop(&self) {
+        #[cfg(all(feature = "gecko", debug_assertions))]
+        unsafe {
+            NS_LogDtor(self.ptr() as *const _, b"ServoArc\0".as_ptr() as *const _, 8);
+        }
+    }
+
+    /// Marks this `Arc` as intentionally leaked for the purposes of refcount
+    /// logging.
+    ///
+    /// It's a logic error to call this more than once, but it's not unsafe, as
+    /// it'd just report negative leaks.
+    #[inline(always)]
+    pub fn mark_as_intentionally_leaked(&self) {
+        self.record_drop();
+    }
+
+    // Non-inlined part of `drop`. Just invokes the destructor and calls the
+    // refcount logging machinery if enabled.
     #[inline(never)]
     unsafe fn drop_slow(&mut self) {
+        self.record_drop();
         let _ = Box::from_raw(self.ptr());
     }
 
@@ -306,6 +346,12 @@ impl<T: ?Sized> Arc<T> {
     fn ptr(&self) -> *mut ArcInner<T> {
         self.p.as_ptr()
     }
+}
+
+#[cfg(all(feature = "gecko", debug_assertions))]
+extern "C" {
+    fn NS_LogCtor(aPtr: *const std::os::raw::c_void, aTypeName: *const std::os::raw::c_char, aSize: u32);
+    fn NS_LogDtor(aPtr: *const std::os::raw::c_void, aTypeName: *const std::os::raw::c_char, aSize: u32);
 }
 
 impl<T: ?Sized> Clone for Arc<T> {
@@ -612,7 +658,6 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         F: FnOnce(Layout) -> *mut u8,
         I: Iterator<Item = T> + ExactSizeIterator,
     {
-        use std::mem::{align_of, size_of};
         assert_ne!(size_of::<T>(), 0, "Need to think about ZST");
 
         let inner_align = align_of::<ArcInner<HeaderSlice<H, [T; 0]>>>();
@@ -698,6 +743,15 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
                 items.next().is_none(),
                 "ExactSizeIterator under-reported length"
             );
+        }
+
+        #[cfg(all(feature = "gecko", debug_assertions))]
+        unsafe {
+            if !is_static {
+                // FIXME(emilio): Would be so amazing to have
+                // std::intrinsics::type_name() around.
+                NS_LogCtor(ptr as *const _, b"ServoArc\0".as_ptr() as *const _, 8)
+            }
         }
 
         // Return the fat Arc.
