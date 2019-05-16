@@ -93,7 +93,7 @@ impl<T: Sized> OwnedSlice<T> {
 
     /// Iterate over all the elements in the slice taking ownership of them.
     #[inline]
-    pub fn into_iter(self) -> impl Iterator<Item = T> {
+    pub fn into_iter(self) -> impl Iterator<Item = T> + ExactSizeIterator {
         self.into_vec().into_iter()
     }
 

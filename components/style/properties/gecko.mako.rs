@@ -3811,9 +3811,10 @@ fn static_assert() {
         self.copy_text_shadow_from(other)
     }
 
+    // FIXME(emilio): Remove by sharing representation.
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-        let buf = self.gecko.mTextShadow.iter().map(|v| v.to_simple_shadow()).collect::<Vec<_>>();
-        longhands::text_shadow::computed_value::List(buf.into())
+        let iter = self.gecko.mTextShadow.iter().map(|v| v.to_simple_shadow());
+        longhands::text_shadow::computed_value::List(crate::ArcSlice::from_iter(iter))
     }
 
     fn clear_text_emphasis_style_if_string(&mut self) {
@@ -4185,16 +4186,14 @@ clip-path
         self.gecko.mContextProps.len()
     }
 
+    // FIXME(emilio): Remove by sharing representation.
     #[allow(non_snake_case)]
-    pub fn _moz_context_properties_at(
-        &self,
-        index: usize,
-    ) -> longhands::_moz_context_properties::computed_value::single_value::T {
-        longhands::_moz_context_properties::computed_value::single_value::T(
-            CustomIdent(unsafe {
-                Atom::from_raw(self.gecko.mContextProps[index].mRawPtr)
-            })
-        )
+    pub fn clone__moz_context_properties(&self) -> longhands::_moz_context_properties::computed_value::T {
+        use crate::values::specified::svg::MozContextProperties;
+        let buf = self.gecko.mContextProps.iter().map(|v| {
+            MozContextProperties(CustomIdent(unsafe { Atom::from_raw(v.mRawPtr) }))
+        }).collect::<Vec<_>>();
+        longhands::_moz_context_properties::computed_value::List(crate::ArcSlice::from_iter(buf.into_iter()))
     }
 
     #[allow(non_snake_case)]

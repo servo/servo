@@ -80,6 +80,16 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
+
+// The setup here is roughly:
+//
+//  * UnderlyingList is the list that is stored in the computed value. This may
+//    be a shared ArcSlice if the property is inherited.
+//  * UnderlyingOwnedList is the list that is used for animation.
+//  * Specified values always use OwnedSlice, since it's more compact.
+//  * computed_value::List is just a convenient alias that you can use for the
+//    computed value list, since this is in the computed_value module.
+//
 <%def name="vector_longhand(name, animation_value_type=None,
                             vector_animation_type=None, allow_empty=False,
                             separator='Comma',
@@ -111,6 +121,10 @@
 
         /// The definition of the computed value for ${name}.
         pub mod computed_value {
+            #[allow(unused_imports)]
+            use crate::values::animated::ToAnimatedValue;
+            #[allow(unused_imports)]
+            use crate::values::resolved::ToResolvedValue;
             pub use super::single_value::computed_value as single_value;
             pub use self::single_value::T as SingleComputedValue;
             % if not allow_empty or allow_empty == "NotInitial":
@@ -118,7 +132,32 @@
             % endif
             use crate::values::computed::ComputedVecIter;
 
-            /// The generic type defining the value for this property.
+            <% is_shared_list = allow_empty and allow_empty != "NotInitial" and data.longhands_by_name[name].style_struct.inherited %>
+
+            // FIXME(emilio): Add an OwnedNonEmptySlice type, and figure out
+            // something for transition-name, which is the only remaining user
+            // of NotInitial.
+            pub type UnderlyingList<T> =
+                % if allow_empty and allow_empty != "NotInitial":
+                % if data.longhands_by_name[name].style_struct.inherited:
+                    crate::ArcSlice<T>;
+                % else:
+                    crate::OwnedSlice<T>;
+                % endif
+                % else:
+                    SmallVec<[T; 1]>;
+                % endif
+
+            pub type UnderlyingOwnedList<T> =
+                % if allow_empty and allow_empty != "NotInitial":
+                    crate::OwnedSlice<T>;
+                % else:
+                    SmallVec<[T; 1]>;
+                % endif
+
+
+            /// The generic type defining the animated and resolved values for
+            /// this property.
             ///
             /// Making this type generic allows the compiler to figure out the
             /// animated value for us, instead of having to implement it
@@ -135,21 +174,68 @@
                 ToResolvedValue,
                 ToCss,
             )]
-            pub struct List<T>(
+            pub struct OwnedList<T>(
                 % if not allow_empty:
                 #[css(iterable)]
                 % else:
                 #[css(if_empty = "none", iterable)]
                 % endif
-                % if allow_empty and allow_empty != "NotInitial":
-                pub crate::OwnedSlice<T>,
-                % else:
-                // FIXME(emilio): Add an OwnedNonEmptySlice type, and figure out
-                // something for transition-name, which is the only remaining
-                // user of NotInitial.
-                pub SmallVec<[T; 1]>,
-                % endif
+                pub UnderlyingOwnedList<T>,
             );
+
+            /// The computed value for this property.
+            % if not is_shared_list:
+            pub type ComputedList = OwnedList<single_value::T>;
+            pub use self::OwnedList as List;
+            % else:
+            pub use self::ComputedList as List;
+
+            % if separator == "Comma":
+            #[css(comma)]
+            % endif
+            #[derive(
+                Clone,
+                Debug,
+                MallocSizeOf,
+                PartialEq,
+                ToCss,
+            )]
+            pub struct ComputedList(
+                % if not allow_empty:
+                #[css(iterable)]
+                % else:
+                #[css(if_empty = "none", iterable)]
+                % endif
+                % if is_shared_list:
+                #[ignore_malloc_size_of = "Arc"]
+                % endif
+                pub UnderlyingList<single_value::T>,
+            );
+
+            type ResolvedList = OwnedList<<single_value::T as ToResolvedValue>::ResolvedValue>;
+            impl ToResolvedValue for ComputedList {
+                type ResolvedValue = ResolvedList;
+
+                fn to_resolved_value(self, context: &crate::values::resolved::Context) -> Self::ResolvedValue {
+                    OwnedList(
+                        self.0
+                            .iter()
+                            .cloned()
+                            .map(|v| v.to_resolved_value(context))
+                            .collect()
+                    )
+                }
+
+                fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
+                    % if not is_shared_list:
+                    use std::iter::FromIterator;
+                    % endif
+                    let iter =
+                        resolved.0.into_iter().map(ToResolvedValue::from_resolved_value);
+                    ComputedList(UnderlyingList::from_iter(iter))
+                }
+            }
+            % endif
 
 
             % if vector_animation_type:
@@ -158,13 +244,31 @@
             % endif
 
             use crate::properties::animated_properties::ListAnimation;
-            use crate::values::animated::{Animate, ToAnimatedValue, ToAnimatedZero, Procedure};
+            use crate::values::animated::{Animate, ToAnimatedZero, Procedure};
             use crate::values::distance::{SquaredDistance, ComputeSquaredDistance};
 
             // FIXME(emilio): For some reason rust thinks that this alias is
             // unused, even though it's clearly used below?
             #[allow(unused)]
-            type AnimatedList = <List<single_value::T> as ToAnimatedValue>::AnimatedValue;
+            type AnimatedList = OwnedList<<single_value::T as ToAnimatedValue>::AnimatedValue>;
+
+            % if is_shared_list:
+            impl ToAnimatedValue for ComputedList {
+                type AnimatedValue = AnimatedList;
+
+                fn to_animated_value(self) -> Self::AnimatedValue {
+                    OwnedList(
+                        self.0.iter().map(|v| v.clone().to_animated_value()).collect()
+                    )
+                }
+
+                fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+                    let iter =
+                        animated.0.into_iter().map(ToAnimatedValue::from_animated_value);
+                    ComputedList(UnderlyingList::from_iter(iter))
+                }
+            }
+            % endif
 
             impl ToAnimatedZero for AnimatedList {
                 fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
@@ -176,7 +280,7 @@
                     other: &Self,
                     procedure: Procedure,
                 ) -> Result<Self, ()> {
-                    Ok(List(
+                    Ok(OwnedList(
                         self.0.animate_${vector_animation_type}(&other.0, procedure)?
                     ))
                 }
@@ -192,7 +296,7 @@
             % endif
 
             /// The computed value, effectively a list of single values.
-            pub type T = List<single_value::T>;
+            pub use self::ComputedList as T;
 
             pub type Iter<'a, 'cx, 'cx_a> = ComputedVecIter<'a, 'cx, 'cx_a, super::single_value::SpecifiedValue>;
         }
@@ -255,7 +359,12 @@
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                computed_value::List(self.0.iter().map(|i| i.to_computed_value(context)).collect())
+                % if not is_shared_list:
+                use std::iter::FromIterator;
+                % endif
+                computed_value::List(computed_value::UnderlyingList::from_iter(
+                    self.0.iter().map(|i| i.to_computed_value(context))
+                ))
             }
 
             #[inline]

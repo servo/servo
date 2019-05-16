@@ -196,7 +196,6 @@ ${helpers.predefined_type(
     "MozContextProperties",
     initial_value=None,
     vector=True,
-    need_index=True,
     animation_value_type="none",
     products="gecko",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-context-properties)",
