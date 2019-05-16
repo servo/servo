@@ -528,7 +528,7 @@ def macos_wpt():
             """)
         )
     wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
-               total_chunks=6, processes=4, chunks=[1,2,3])
+               total_chunks=6, processes=4)
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
@@ -567,6 +567,11 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
                     tests/wpt/mozilla/tests/css/img_simple.html \
                     tests/wpt/mozilla/tests/mozilla/secure.https.html \
+                    | cat
+                time ./mach test-wpt --release --processes 1 --product=servodriver \
+                    --headless --log-raw test-bluetooth.log \
+                    --log-errorsummary bluetooth-errorsummary.log \
+                    bluetooth \
                     | cat
             """)
         # `test-wpt` is piped into `cat` so that stdout is not a TTY
