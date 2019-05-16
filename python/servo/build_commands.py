@@ -518,6 +518,8 @@ class MachCommands(CommandBase):
             ml_sdk = env.get("MAGICLEAP_SDK")
             if not ml_sdk:
                 raise Exception("Magic Leap builds need the MAGICLEAP_SDK environment variable")
+            if not os.path.exists(ml_sdk):
+                raise Exception("Path specified by MAGICLEAP_SDK does not exist.")
 
             ml_support = path.join(self.get_top_dir(), "support", "magicleap")
 
