@@ -2513,7 +2513,7 @@ fn static_assert() {
                           transition-timing-function transition-property
                           transform-style
                           rotate scroll-snap-points-x scroll-snap-points-y
-                          scroll-snap-coordinate -moz-binding will-change
+                          scroll-snap-coordinate -moz-binding
                           offset-path shape-outside
                           translate scale -webkit-line-clamp""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
@@ -2828,66 +2828,6 @@ fn static_assert() {
     ${impl_individual_transform('rotate', 'Rotate', 'mSpecifiedRotate')}
     ${impl_individual_transform('translate', 'Translate', 'mSpecifiedTranslate')}
     ${impl_individual_transform('scale', 'Scale', 'mSpecifiedScale')}
-
-    pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
-        use crate::gecko_bindings::bindings::{Gecko_AppendWillChange, Gecko_ClearWillChange};
-        use crate::values::specified::box_::{WillChangeBits, WillChange};
-
-        match v {
-            WillChange::AnimateableFeatures { features, bits } => {
-                unsafe {
-                    Gecko_ClearWillChange(&mut *self.gecko, features.len());
-                }
-
-                for feature in features.iter() {
-                    unsafe {
-                        Gecko_AppendWillChange(&mut *self.gecko, feature.0.as_ptr())
-                    }
-                }
-
-                self.gecko.mWillChangeBitField = bits;
-            },
-            WillChange::Auto => {
-                unsafe {
-                    Gecko_ClearWillChange(&mut *self.gecko, 0);
-                }
-                self.gecko.mWillChangeBitField = WillChangeBits::empty();
-            },
-        };
-    }
-
-    pub fn copy_will_change_from(&mut self, other: &Self) {
-        use crate::gecko_bindings::bindings::Gecko_CopyWillChangeFrom;
-
-        self.gecko.mWillChangeBitField = other.gecko.mWillChangeBitField;
-        unsafe {
-            Gecko_CopyWillChangeFrom(&mut *self.gecko, &*other.gecko);
-        }
-    }
-
-    pub fn reset_will_change(&mut self, other: &Self) {
-        self.copy_will_change_from(other)
-    }
-
-    pub fn clone_will_change(&self) -> longhands::will_change::computed_value::T {
-        use crate::values::CustomIdent;
-        use crate::values::specified::box_::WillChange;
-
-        if self.gecko.mWillChange.len() == 0 {
-            return WillChange::Auto
-        }
-
-        let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
-            unsafe {
-                CustomIdent(Atom::from_raw(gecko_atom.mRawPtr))
-            }
-        }).collect();
-
-        WillChange::AnimateableFeatures {
-            features: custom_idents.into_boxed_slice(),
-            bits: self.gecko.mWillChangeBitField,
-        }
-    }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
 
