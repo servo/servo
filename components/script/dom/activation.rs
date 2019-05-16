@@ -12,6 +12,7 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::window_from_node;
 use crate::dom::window::ReflowReason;
 use script_layout_interface::message::ReflowGoal;
+use script_traits::MouseButton;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {
@@ -96,6 +97,7 @@ pub fn synthetic_click_activation(
         alt_key,
         meta_key,
         0,
+        MouseButton::Left as u16,
         None,
         None,
     );

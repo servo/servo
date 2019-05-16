@@ -3060,7 +3060,14 @@ impl ScriptThread {
                 self.handle_resize_event(pipeline_id, new_size, size_type);
             },
 
-            MouseButtonEvent(event_type, button, point, node_address, point_in_node) => {
+            MouseButtonEvent(
+                event_type,
+                button,
+                point,
+                node_address,
+                point_in_node,
+                pressed_mouse_buttons,
+            ) => {
                 self.handle_mouse_event(
                     pipeline_id,
                     event_type,
@@ -3068,10 +3075,11 @@ impl ScriptThread {
                     point,
                     node_address,
                     point_in_node,
+                    pressed_mouse_buttons,
                 );
             },
 
-            MouseMoveEvent(point, node_address) => {
+            MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
@@ -3086,6 +3094,7 @@ impl ScriptThread {
                     point,
                     &self.topmost_mouse_over_target,
                     node_address,
+                    pressed_mouse_buttons,
                 );
 
                 // Short-circuit if nothing changed
@@ -3185,6 +3194,7 @@ impl ScriptThread {
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
         point_in_node: Option<Point2D<f32>>,
+        pressed_mouse_buttons: u16,
     ) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
@@ -3197,6 +3207,7 @@ impl ScriptThread {
             mouse_event_type,
             node_address,
             point_in_node,
+            pressed_mouse_buttons,
         );
     }
 
