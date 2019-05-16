@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Child frame with worker marked as frozen</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test((t) => {
+
+  var child = document.createElement('iframe');
+
+  var loaded = false;
+  var frozen = false;
+  var resumed = false;
+
+  var subworker_freeze_count = 0;
+  var subworker2_freeze_count = 0;
+  var subworker_count = 0;
+  var subworker2_count = 0;
+  var bc = new BroadcastChannel('subworker_channel');
+  bc.onmessage = t.step_func((e) => {
+    if (e.data == 'subworker') {
+      subworker_count++;
+    } else if (e.data == 'subworker2') {
+      subworker2_count++;
+    } else {
+      assert_unreached('bad message');
+    }
+
+    // Ensure that if we have resumed that we get at least
+    // one message from each worker.
+    if (loaded && frozen && resumed &&
+        subworker2_count > subworker2_freeze_count &&
+        subworker_count > subworker_freeze_count) {
+      t.done();
+    } else if (loaded && frozen && !resumed) {
+      // Ensure that at most one message is sent after the frozen state.
+      assert_true(subworker_count - subworker_freeze_count <= 1);
+      assert_true(subworker2_count - subworker2_freeze_count <= 1);
+    }
+  });
+
+  window.addEventListener('message', t.step_func((e) => {
+    if (e.data == "load") {
+      loaded = true;
+    } else if (e.data == "freeze") {
+      assert_true(loaded);
+      frozen = true;
+      subworker_freeze_count = subworker_count;
+      subworker2_freeze_count = subworker2_count;
+      child.style = "display: block";
+    } else if (e.data == "resume") {
+      assert_true(loaded);
+      assert_true(frozen);
+      resumed = true;
+    }
+  }));
+
+  child.allow = "execution-while-not-rendered 'none'";
+  child.src = "resources/subframe_worker.html";
+  document.body.appendChild(child);
+  child.style = "display: none";
+}, "Child frame frozen");
+
+</script>
+</body>

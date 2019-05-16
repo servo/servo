@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <script>
-  var bc = new BroadcastChannel("portals-post-message");
-  bc.postMessage("loaded");
-  bc.close();
+  window.portalHost.postMessage("loaded", "*");
+
   window.portalHost.onmessage = e => {
     var message = {
       origin: e.origin,
@@ -27,8 +26,6 @@
       return;
     }
 
-    bc = new BroadcastChannel("portals-post-message");
-    bc.postMessage(message);
-    bc.close();
+    window.portalHost.postMessage(message, "*");
   };
 </script>

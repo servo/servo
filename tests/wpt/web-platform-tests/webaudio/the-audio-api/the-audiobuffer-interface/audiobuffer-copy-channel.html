@@ -143,7 +143,7 @@
               buffer.copyFromChannel(x, 0, bufferLength);
             },
             '6: buffer.copyFromChannel(x, 0, ' + bufferLength + ')')
-            .throw(DOMException, 'IndexSizeError');
+            .notThrow();
 
         should(() => {
           buffer.copyFromChannel(x, 3);
@@ -198,7 +198,7 @@
               buffer.copyToChannel(x, 0, bufferLength);
             },
             '5: buffer.copyToChannel(x, 0, ' + bufferLength + ')')
-            .throw(DOMException, 'IndexSizeError');
+            .notThrow();
 
         should(() => {
           buffer.copyToChannel(x, 3);
@@ -321,7 +321,6 @@
               'buffer.copyToChannel(src10, ' + c + ', ' + startInChannel + ')',
               buffer.getChannelData(c), 1, src10.length, startInChannel);
         }
-
         task.done();
       });
 

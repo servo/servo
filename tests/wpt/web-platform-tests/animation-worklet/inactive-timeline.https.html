@@ -35,7 +35,7 @@ function createScrollLinkedWorkletAnimation(test) {
     scrollSource: createScroller(test),
     timeRange: 1000
   });
-  const DURATION = 10000; // ms
+  const DURATION = 1000; // ms
   const KEYFRAMES = { transform: ['translateY(100px)', 'translateY(200px)'] };
   return new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(test),
         KEYFRAMES, DURATION), timeline);
@@ -49,6 +49,7 @@ function setupAndRegisterTests() {
     promise_test(async t => {
       const animation = createScrollLinkedWorkletAnimation(t);
       const scroller = animation.timeline.scrollSource;
+
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
       const timeRange = animation.timeline.timeRange;
       scroller.scrollTop = 0.2 * maxScroll;

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests Stale While Revalidate works for images</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<!--
+Use a child document to load the second stale image into because
+an image loaded into the same document will skip cache-control headers.
+See: https://html.spec.whatwg.org/#the-list-of-available-images
+-->
+<iframe id="child" srcdoc=""></iframe>
+<script>
+
+var request_token = token();
+async_test(t => {
+  window.onload = t.step_func(() => {
+    t.step_timeout(() => {
+      assert_equals(document.getElementById("firstimage").width, 16, "Width is 16");
+      var childDocument = document.getElementById('child').contentDocument;
+      var img2 = childDocument.createElement("img");
+      img2.onload = t.step_func(() => {
+        assert_equals(img2.width, 16, "image dimension");
+        var checkResult = () => {
+          // We poll because we don't know when the revalidation will occur.
+          fetch("resources/stale-image.py?query&token=" + request_token).then(t.step_func((response) => {
+            var count = response.headers.get("Count");
+            if (count == '2') {
+              t.done();
+            } else {
+              t.step_timeout(checkResult, 25);
+            }
+          }));
+        };
+        t.step_timeout(checkResult, 25);
+      });
+      img2.src = "resources/stale-image.py?token=" + request_token;
+      childDocument.body.appendChild(img2);
+    }, 0);
+  });
+}, 'Cache returns stale resource');
+
+var img = document.createElement("img");
+img.src = "resources/stale-image.py?token=" + request_token;
+img.id = "firstimage";
+document.body.appendChild(img);
+</script>
+</body>

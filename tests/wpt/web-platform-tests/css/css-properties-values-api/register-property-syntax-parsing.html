@@ -93,7 +93,6 @@ assert_valid("banan\\61", "banana");
 assert_valid("<custom-ident>", "banan\\61");
 assert_valid("big | bigger | BIGGER", "bigger");
 assert_valid("foo+|bar", "foo foo foo");
-assert_valid("default", "default");
 
 assert_valid("banana\t", "banana");
 assert_valid("\nbanana\r\n", "banana");
@@ -137,17 +136,30 @@ assert_invalid("||", "banana");
 assert_invalid("initial", "initial");
 assert_invalid("inherit", "inherit");
 assert_invalid("unset", "unset");
+assert_invalid("revert", "revert");
+assert_invalid("default", "default");
 assert_invalid("<length>|initial", "10px");
 assert_invalid("<length>|INHERIT", "10px");
 assert_invalid("<percentage>|unsEt", "2%");
+assert_invalid("<color>|REVert", "red");
+assert_invalid("<integer>|deFAUlt", "1");
 
 // Invalid initialValue
 assert_invalid("*", "initial");
 assert_invalid("*", "inherit");
 assert_invalid("*", "unset");
 assert_invalid("*", "revert");
+assert_invalid("*", "default");
 assert_invalid("<custom-ident>", "initial");
+assert_invalid("<custom-ident>", "inherit");
+assert_invalid("<custom-ident>", "unset");
+assert_invalid("<custom-ident>", "revert");
+assert_invalid("<custom-ident>", "default");
+assert_invalid("<custom-ident>+", "foo initial bar");
 assert_invalid("<custom-ident>+", "foo inherit bar");
+assert_invalid("<custom-ident>+", "foo unset bar");
+assert_invalid("<custom-ident>+", "foo revert bar");
+assert_invalid("<custom-ident>+", "foo default bar");
 
 assert_invalid("*", ")");
 assert_invalid("*", "([)]");

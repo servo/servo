@@ -32,19 +32,6 @@
                 ellipse_position_calc_tests.push(testCase);
             });
             ParsingUtils.calcTestValues.forEach(function(value) {
-                testCase = ['ellipse(farthest-side at '+ value[0] +' 50%)',
-                            'ellipse(farthest-side at '+ value[1] +' 50%)'];
-                if(Object.prototype.toString.call( value[2] ) === '[object Array]' && value[2].length == 2) {
-                    testCase.push([
-                                    'ellipse(farthest-side at '+ value[2][0] +' 50%)',
-                                    'ellipse(farthest-side at '+ value[2][1] +' 50%)'
-                                  ]);
-                } else {
-                    testCase.push('ellipse(farthest-side at '+ value[2] +' 50%)');
-                }
-                ellipse_position_calc_tests.push(testCase);
-            });
-            ParsingUtils.calcTestValues.forEach(function(value) {
                 testCase = ['ellipse(closest-side farthest-side at '+ value[0] +' '+ value[0] +')',
                             'ellipse(closest-side farthest-side at '+ value[1] +' '+ value[1] +')'];
                 if(Object.prototype.toString.call( value[2] ) === '[object Array]' && value[2].length == 2) {

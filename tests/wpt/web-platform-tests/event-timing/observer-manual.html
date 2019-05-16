@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8 />
+  <title>Event Timing: entries should be observable by its own frame.
+  </title>
+  <script src=./resources/event-timing-test-utils.js></script>
+</head>
+<body>
+  <h2>Description:</h2>
+  <p>
+    <div>
+      The goal of this manual test is to verify that observers that have
+      registered "event" entry type can observe the long-latency input events,
+      and verify the same behavior within iframe and in cross-frame scenario.
+    </div>
+  </p>
+  <h2>Manual test steps:</h2>
+  <p>
+    <div>
+      Step 1: Click the "make busy" button to make main-thread busy for 2 seconds.</span>
+    </div>
+    <div>
+      Step 2: do several clicks on "click while busy" while busy to generate long-latency inputs.
+    </div>
+    <div>
+      Step 3: observe in the "timeline" section that the long-latency clicks are captured by the observer.
+    </div>
+    <div>
+      Step 4: do step 1 to step 3 for the iframe. Observe that the observers only observe input events within its frame.
+    </div>
+  </p>
+  <div>
+    <h2>Actions:</h2>
+    <button id='busy_button' onclick='onMakeBusy()'>make busy</button>
+    <button id='click_input_button' onclick='1'> click while busy </button>
+  </div>
+  <h2>iframe:</h2>
+  <div>
+  <iframe name='childframe' width="100%" height="30%" src=./resources/observer-manual-childframe.html></iframe>
+  </div>
+  <h2>Timeline:</h2>
+  <p id='timeline'></p>
+</body>
+<script>
+  function log(message) {
+    const timestamp = performance.now();
+    const elem = document.createElement('div');
+    elem.innerHTML = `${timestamp.toFixed(1)}: ${message}`;
+    const timeline = document.getElementById('timeline');
+    timeline.appendChild(elem);
+  }
+
+  function onMakeBusy() {
+    log("busy start");
+    step_timeout(()=>{
+      mainThreadBusy(2000);
+      log("busy end");
+    }, 0);
+  }
+
+  document.body.onload = () => {
+    new PerformanceObserver((entryList) => {
+      entryList.getEntries().forEach(e => {
+        log(`entry observed: ${JSON.stringify(e)}`);
+      });
+    }).observe({ entryTypes: ['event'] });
+    log("observer registered");
+  };
+
+  window.onmessage = (msg) => {
+    log("received msg: " + msg.data);
+    if (msg.data === 'CHILD_FRAME_IS_READY') {
+      // TODO(crbug/831729): automate clicks on iframe when testdriver support
+      // clicking in iframe.
+    }
+  };
+</script>
+</html>

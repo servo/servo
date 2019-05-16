@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: support for the ch unit</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-values-3/#font-relative-lengths">
+<link rel="match" href="reference/ch-unit-013-ref.html">
+<meta name="assert" content="The ch unit is equal to 0em if the zero glyph's advance is 0.">
+<style>
+@font-face {
+  font-family: ChTestZeroWidthZero;
+  src: url(resources/ChTestZeroWidthZero.woff);
+}
+div {
+  height: 10px;
+  background-color: blue;
+  margin-top: 10px;
+}
+.test {
+  width: calc(100px + 5ch);
+}
+.ref {
+  width: 100px;
+}
+</style>
+<p>The test passes if there are two blue rectangles of equal length.</p>
+<!-- The '0' glyph in ChTestZeroWidthZero has a horizontal advance of
+     zero, so ch units should compute to 0em, resulting in the div being
+     100px wide. -->
+<div class="test" style="font: 20px ChTestZeroWidthZero;"></div>
+<div class="ref"></div>

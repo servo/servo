@@ -145,7 +145,6 @@ def env_options():
     #
     # https://github.com/web-platform-tests/wpt/pull/9480
     return {"server_host": "127.0.0.1",
-            "bind_address": False,
             "supports_debugger": True}
 
 

@@ -9,7 +9,7 @@ interface mixin AccessibilityRole {
 Element includes AccessibilityRole;
 
 interface mixin AriaAttributes {
-  attribute DOMString? ariaActiveDescendant;
+  attribute Element? ariaActiveDescendantElement;
   attribute DOMString? ariaAtomic;
   attribute DOMString? ariaAutoComplete;
   attribute DOMString? ariaBusy;
@@ -17,27 +17,27 @@ interface mixin AriaAttributes {
   attribute DOMString? ariaColCount;
   attribute DOMString? ariaColIndex;
   attribute DOMString? ariaColSpan;
-  attribute DOMString? ariaControls;
+  attribute FrozenArray<Element>? ariaControlsElements;
   attribute DOMString? ariaCurrent;
-  attribute DOMString? ariaDescribedBy;
-  attribute DOMString? ariaDetails;
+  attribute FrozenArray<Element>? ariaDescribedByElements;
+  attribute Element? ariaDetailsElement;
   attribute DOMString? ariaDisabled;
-  attribute DOMString? ariaErrorMessage;
+  attribute Element? ariaErrorMessageElement;
   attribute DOMString? ariaExpanded;
-  attribute DOMString? ariaFlowTo;
+  attribute FrozenArray<Element>? ariaFlowToElements;
   attribute DOMString? ariaHasPopup;
   attribute DOMString? ariaHidden;
   attribute DOMString? ariaInvalid;
   attribute DOMString? ariaKeyShortcuts;
   attribute DOMString? ariaLabel;
-  attribute DOMString? ariaLabelledBy;
+  attribute FrozenArray<Element>? ariaLabelledByElements;
   attribute DOMString? ariaLevel;
   attribute DOMString? ariaLive;
   attribute DOMString? ariaModal;
   attribute DOMString? ariaMultiLine;
   attribute DOMString? ariaMultiSelectable;
   attribute DOMString? ariaOrientation;
-  attribute DOMString? ariaOwns;
+  attribute FrozenArray<Element>? ariaOwnsElements;
   attribute DOMString? ariaPlaceholder;
   attribute DOMString? ariaPosInSet;
   attribute DOMString? ariaPressed;

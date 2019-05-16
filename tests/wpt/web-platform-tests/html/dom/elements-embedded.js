@@ -59,7 +59,6 @@ var embeddedElements = {
     // Conforming
     data: "url",
     type: "string",
-    typeMustMatch: "boolean",
     name: "string",
     useMap: "string",
     width: "string",

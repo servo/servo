@@ -5,13 +5,13 @@ interface Transaction {
   readonly attribute DOMString description;
   readonly attribute unsigned long number;
 
-  serializer;
+  [Default] object toJSON();
 };
 
 interface Account {
   attribute DOMString name;
   attribute unsigned long number;
-  serializer DOMString serialize();
+  DOMString serialize();
 };
 
 interface Transaction2 {
@@ -20,45 +20,35 @@ interface Transaction2 {
   readonly attribute float amount;
   readonly attribute DOMString description;
   readonly attribute unsigned long number;
-
-  serializer = { from, to, amount, description };
 };
 
 interface Account2 {
   attribute DOMString name;
   attribute unsigned long number;
-  serializer = number;
 };
 
 interface Account3 {
   attribute DOMString name;
   attribute unsigned long number;
-
-  serializer = { attribute };
 };
 
 interface Account4 {
   getter object getItem(unsigned long index);
-  serializer = { getter };
 };
 
 interface Account5 : Account {
   attribute DOMString secondname;
-  serializer = { inherit, secondname };
 };
 
 interface Account6 : Account {
   attribute DOMString secondname;
-  serializer = { inherit, attribute };
 };
 
 interface Account7 {
   attribute DOMString name;
   attribute unsigned long number;
-  serializer = [ name, number ];
 };
 
 interface Account8 {
   getter object getItem(unsigned long index);
-  serializer = [ getter ];
 };

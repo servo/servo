@@ -12,4 +12,22 @@ test(function() {
     elm();
   });
 }, 'object legacycaller should not be supported');
+
+test(() => {
+  const obj = document.createElement("object");
+  assert_false("typeMustMatch" in obj);
+}, "object's typeMustMatch IDL attribute should not be supported");
+
+async_test(t => {
+  const obj = document.createElement("object");
+  t.add_cleanup(() => obj.remove());
+  obj.setAttribute("data", "/common/blank.html");
+  obj.setAttribute("type", "text/plain");
+  obj.setAttribute("typemustmatch", "");
+  obj.onload = t.step_func_done(() => {
+    assert_not_equals(obj.contentDocument, null, "/common/blank.html should be loaded");
+  });
+  obj.onerror = t.unreached_func();
+  document.body.appendChild(obj);
+}, "object's typemustmatch content attribute should not be supported");
 </script>

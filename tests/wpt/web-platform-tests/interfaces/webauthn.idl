@@ -76,12 +76,19 @@ dictionary PublicKeyCredentialUserEntity : PublicKeyCredentialEntity {
 dictionary AuthenticatorSelectionCriteria {
     AuthenticatorAttachment      authenticatorAttachment;
     boolean                      requireResidentKey = false;
+    ResidentKeyRequirement       residentKey;
     UserVerificationRequirement  userVerification = "preferred";
 };
 
 enum AuthenticatorAttachment {
     "platform",
     "cross-platform"
+};
+
+enum ResidentKeyRequirement {
+    "discouraged",
+    "preferred",
+    "required"
 };
 
 enum AttestationConveyancePreference {
@@ -228,3 +235,15 @@ dictionary authenticatorBiometricPerfBounds{
     float FAR;
     float FRR;
     };
+
+partial dictionary AuthenticationExtensionsClientInputs {
+    boolean credProps;
+};
+
+dictionary CredentialPropertiesOutput {
+    boolean rk;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+    CredentialPropertiesOutput credProps;
+};

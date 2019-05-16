@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Reference for Anonymous button content box</title>
+<style>
+body { margin: 0 }
+.button { width: 124px; height: 124px; background: papayawhip; border: 2px solid; display: table-cell; vertical-align: middle; text-align: center; box-sizing: border-box; }
+.top { vertical-align: top }
+.left { text-align: left }
+.float { display: block; float: left; }
+body > div { clear: left; }
+.button > div { width: 50px; height: 50px; border: solid }
+.button > .tall { height: 150px }
+.button > .wide { width: 150px; margin-top: 32px }
+</style>
+<div>
+ <div class=button>input</div>
+ <div class="button">input grid</div>
+ <div class="button">input flex</div>
+ <div class=button>button</div>
+</div>
+<div>
+ <div class=button style="text-align: left">button left</div>
+ <div class=button><div>div</div></div>
+ <div class="button top">grid</div>
+ <div class="button top"><div>grid</div></div>
+</div>
+<div>
+ <div class="button top left float">flex</div>
+ <div class="button top float"><div>flex</div></div>
+ <div class="button float"><div class=tall>tall</div></div>
+ <div class="button float"><div class=wide>wide</div></div>
+</div>

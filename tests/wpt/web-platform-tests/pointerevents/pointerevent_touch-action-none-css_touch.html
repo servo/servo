@@ -109,7 +109,7 @@
                 touchScrollInTarget(target0, 'down').then(function() {
                     return touchScrollInTarget(target0, 'right');
                 }).then(function() {
-                    return touchTapInTarget(btnComplete);
+                    return clickInTarget("touch", btnComplete);
                 }).then(function() {
                     test_touchaction.step(function () {
                         assert_true(clickIsReceived, "click should be received before the test finishes");

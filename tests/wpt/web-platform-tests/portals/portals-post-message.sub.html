@@ -9,7 +9,7 @@
   <input id="input"/>
   <script>
     const sameOriginUrl = "resources/portal-post-message-portal.html"
-    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-post-message-cross-origin-portal.sub.html"
+    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-post-message-portal.html"
 
     async function createAndInsertPortal(portalSrc) {
       var portal = document.createElement("portal");
@@ -17,11 +17,7 @@
       document.body.append(portal);
 
       var loadPromise = new Promise((resolve, reject) => {
-        var bc = new BroadcastChannel("portals-post-message");
-        bc.onmessage = e => {
-          bc.close();
-          resolve();
-        };
+        portal.onmessage = resolve;
       });
       await loadPromise;
       return portal;
@@ -30,11 +26,7 @@
     function postMessage(portal, ...postMessageArgs) {
       return new Promise((resolve, reject) => {
         portal.postMessage(...postMessageArgs);
-        var bc = new BroadcastChannel("portals-post-message");
-        bc.onmessage = e => {
-          bc.close();
-          resolve(e.data);
-        };
+        portal.onmessage = e => { resolve(e.data); };
       });
     }
 

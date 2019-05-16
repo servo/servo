@@ -5,9 +5,9 @@
 
 dictionary RTCConfiguration {
              sequence<RTCIceServer> iceServers;
-             RTCIceTransportPolicy iceTransportPolicy = "all";
-             RTCBundlePolicy bundlePolicy = "balanced";
-             RTCRtcpMuxPolicy rtcpMuxPolicy = "require";
+             RTCIceTransportPolicy iceTransportPolicy;
+             RTCBundlePolicy bundlePolicy;
+             RTCRtcpMuxPolicy rtcpMuxPolicy;
              DOMString peerIdentity;
              sequence<RTCCertificate> certificates;
              [EnforceRange]
@@ -382,6 +382,7 @@ dictionary RTCRtpContributingSource {
     required DOMHighResTimeStamp timestamp;
     required unsigned long source;
              double audioLevel;
+             unsigned long rtpTimestamp;
 };
 
 dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {

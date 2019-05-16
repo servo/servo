@@ -1,0 +1,12 @@
+<!doctype html>
+<input autofocus/>
+<script>
+  window.addEventListener("message", (e) => {
+    if (e.data === "focus-window") {
+      window.focus();
+    }
+    else if (e.data === "focus-input") {
+      document.querySelector("input").focus();
+    }
+});
+</script>

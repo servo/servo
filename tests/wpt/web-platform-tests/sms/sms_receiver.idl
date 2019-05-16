@@ -1,0 +1,20 @@
+[
+  SecureContext,
+  Exposed=(Window,DedicatedWorker)]
+interface SMS {
+  readonly attribute DOMString content;
+};
+
+dictionary SMSReceiverOptions {
+  unsigned long timeout;
+};
+
+[
+  SecureContext,
+  Exposed=(Window,DedicatedWorker),
+  Constructor(optional SMSReceiverOptions options)
+] interface SMSReceiver : EventTarget {
+  readonly attribute SMS sms;
+  attribute EventHandler onchange;
+  Promise<void> start();
+};

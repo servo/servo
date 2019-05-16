@@ -283,10 +283,6 @@ interface SVGGElement : SVGGraphicsElement {
 };
 
 [Exposed=Window]
-interface SVGUnknownElement : SVGGraphicsElement {
-};
-
-[Exposed=Window]
 interface SVGDefsElement : SVGGraphicsElement {
 };
 

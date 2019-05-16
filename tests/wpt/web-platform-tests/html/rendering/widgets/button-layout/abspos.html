@@ -1,0 +1,31 @@
+<!doctype html>
+<title>abspos button with auto width, non-auto left/right</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<link rel=help href=https://html.spec.whatwg.org/multipage/rendering.html#button-layout>
+<!--
+If the element is absolutely positioned, then for the purpose of the CSS visual formatting model, act as if the element is a replaced element.  [CSS]
+-->
+<link rel=help href=https://drafts.csswg.org/css2/visudet.html#abs-replaced-width>
+<!--
+If at this point the values are over-constrained, ignore the value for either 'left' (in case the 'direction' property of the containing block is 'rtl') or 'right' (in case 'direction' is 'ltr') and solve for that value.
+-->
+<style>
+#overconstrained { position: absolute; left: 100px; right: 100px; }
+#ltr { position: absolute; left: 100px; margin-top: 2em }
+#rtl { position: absolute; right: 100px; margin-top: 2em }
+</style>
+<button id=overconstrained>test</button>
+<button id=ltr>test</button>
+<button id=rtl>test</button>
+<script>
+for (const dir of ['rtl', 'ltr']) {
+  test(() => {
+    document.documentElement.dir = dir;
+    const overconstrained = document.getElementById('overconstrained');
+    const ref = document.getElementById(dir);
+    assert_equals(overconstrained.offsetLeft, ref.offsetLeft, 'offsetLeft');
+    assert_equals(overconstrained.clientWidth, ref.clientWidth, 'clientWidth');
+  }, `${document.title} (${dir})`);
+}
+</script>

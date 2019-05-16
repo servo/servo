@@ -181,6 +181,46 @@ function exchangeIceCandidates(pc1, pc2) {
   doExchange(pc2, pc1);
 }
 
+// Helper class to exchange ice candidates between
+// two local peer connections
+class CandidateChannel {
+  constructor(source, dest, name) {
+    source.addEventListener('icecandidate', event => {
+      const { candidate } = event;
+      if (candidate && this.activated
+          && this.destination.signalingState !== 'closed') {
+        this.destination.addIceCandidate(candidate);
+      } else if (candidate) {
+        this.queue.push(candidate);
+      }
+    });
+    dest.addEventListener('signalingstatechange', event => {
+      if (this.destination.signalingState == 'stable' && !this.activated) {
+        this.activate();
+      }
+    });
+    this.name = name;
+    this.destination = dest;
+    this.activated = false;
+    this.queue = [];
+  }
+  activate() {
+    this.activated = true;
+    for (const candidate of this.queue) {
+      this.destination.addIceCandidate(candidate);
+    }
+  }
+}
+
+// Alternate function to exchange ICE candidates between two
+// PeerConnections. Unlike exchangeIceCandidates, it will function
+// correctly if candidates are added before descriptions are set.
+function coupleIceCandidates(pc1, pc2) {
+  const ch1 = new CandidateChannel(pc1, pc2, 'forward');
+  const ch2 = new CandidateChannel(pc2, pc1, 'back');
+  return [ch1, ch2];
+}
+
 // Helper function for doing one round of offer/answer exchange
 // between two local peer connections
 async function doSignalingHandshake(localPc, remotePc, options={}) {
@@ -200,9 +240,9 @@ async function doSignalingHandshake(localPc, remotePc, options={}) {
     answer = await options.modifyAnswer(answer);
   }
 
-  // Apply answer
-  await remotePc.setLocalDescription(answer);
+  // Apply answer. Note: localPc should enter stable state first.
   await localPc.setRemoteDescription(answer);
+  await remotePc.setLocalDescription(answer);
 }
 
 // Returns a promise that resolves when |pc.iceConnectionState| is 'connected'

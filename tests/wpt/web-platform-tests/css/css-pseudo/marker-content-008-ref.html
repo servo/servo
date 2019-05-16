@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+li { list-style-type: "ab"; }
+#t1 > li { list-style-type: "ab"; }
+#t2 > li { list-style-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAIAAAD3UuoiAAAAGklEQVQoz2Nk%2BP%2BfgRqAiYFKYNSgUYOGp0EA%2BQMCFrJdTgsAAAAASUVORK5CYII%3D); }
+li::after {
+  content: "d";
+}
+span { font-size: 32pt; }
+</style>
+</head>
+<body>
+<ol id="t1"><li>c</li><li>cB</li><li>c<span>C</span></li></ol>
+<ol id="t2"><li>c</li><li>cB</li><li>c<span>C</span></li></ol>
+</body>
+</html>

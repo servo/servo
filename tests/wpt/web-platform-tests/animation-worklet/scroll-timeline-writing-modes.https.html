@@ -57,7 +57,7 @@ function createAndPlayTestAnimation(elements, timeline_orientation) {
     timeRange: 1000,
     orientation: timeline_orientation
   });
-  const animation = new WorkletAnimation('passthrough_except_nan', effect, timeline);
+  const animation = new WorkletAnimation('passthrough', effect, timeline);
   animation.play();
   return animation;
 }
@@ -65,7 +65,7 @@ function createAndPlayTestAnimation(elements, timeline_orientation) {
 setup(setupAndRegisterTests, {explicit_done: true});
 
 function setupAndRegisterTests() {
-  registerPassthroughExceptNaNAnimator().then(() => {
+  registerPassthroughAnimator().then(() => {
     // Note that block horizontal-tb is tested implicitly in the basic
     // ScrollTimeline tests (as it is the default).
     async_test(

@@ -15,7 +15,7 @@
 // First serialization is being returned by Blink/Firefox/WebKit, second by Edge.
 test_valid_value("object-position", "10%", ["10% center", "10% 50%"]);
 test_valid_value("object-position", "right 30% top 60px"); // "calc(70%) 60px" in Edge.
-test_valid_value("object-position", "20% 30px");
+test_valid_value("object-position", "-20% -30px");
 test_valid_value("object-position", "30px center", ["30px center", "30px 50%"]);
 test_valid_value("object-position", "40px top", ["40px top", "40px 0%"]);
 test_valid_value("object-position", "bottom 10% right 20%", "right 20% bottom 10%"); // "calc(80%) calc(90%)" in Edge.

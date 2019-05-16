@@ -4,19 +4,14 @@
 <script>
   var searchParams = new URL(location).searchParams;
   var test = searchParams.get("test");
-  var bc = new BroadcastChannel(`portal-${test}`);
-  bc.onmessage = e => {
-    bc.close();
-    document.querySelector("portal").activate().then(() => {
-      window.portalHost.addEventListener("message", () => {
-        var bc_test = new BroadcastChannel(`test-${test}`);
-        bc_test.postMessage("passed");
-        bc_test.close();
+  var portal = document.createElement("portal");
+  portal.src = `portals-adopt-predecessor-portal.html?test=${test}`;
+  portal.onmessage = e => {
+    portal.activate().then(() => {
+      window.portalHost.addEventListener("message", e => {
+        window.opener.postMessage({test, message: e.data}, "*");
       });
     });
   }
-
-  var portal = document.createElement("portal");
-  portal.src = "portals-adopt-predecessor-portal.html?test=" + test;
   document.body.appendChild(portal);
 </script>

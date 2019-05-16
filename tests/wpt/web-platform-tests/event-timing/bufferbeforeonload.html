@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: buffer long-latency events before onload</title>
+<meta name="timeout" content="long">
+<button id='button' onmousedown='clickDelay()'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<script src=resources/event-timing-test-utils.js></script>
+<img src=resources/slow-image.py>
+
+<script>
+  let clickTimeMin;
+  let processingStartMin;
+  let onloadStart;
+  let firstClickStart = 0;
+  let firstClickEnd = 0;
+  function clickDelay() {
+    const onclickStart = performance.now();
+    if (firstClickStart === 0)
+      firstClickStart = onclickStart;
+    while(performance.now() < onclickStart + 60) {}
+    if (firstClickEnd === 0)
+      firstClickEnd = performance.now();
+  }
+
+  function validateEntries() {
+    const entries = performance.getEntriesByName('mousedown', 'event');
+
+    const entriesBeforeOnload = entries.filter(
+        e => e.startTime < onloadStart);
+    assert_equals(entriesBeforeOnload.length, 1,
+        "Long latency events before onload should be buffered.");
+    const entry = entriesBeforeOnload[0];
+    verifyClickEvent(entry, true);
+
+    assert_greater_than_equal(entry.startTime, clickTimeMin,
+        "The entry's start time should be later than clickTimeMin.");
+    assert_greater_than_equal(entry.processingStart, processingStartMin,
+        "The entry should be processed later than processingStartMin.");
+    assert_less_than_equal(entry.processingStart, firstClickStart,
+        "The processingStart must be before firstClickStart.")
+    assert_greater_than_equal(entry.processingEnd, firstClickEnd,
+        "The processingEnd must be after firstClickEnd.");
+
+    const entriesAfterOnload = entries.filter(
+        e => e.startTime >= onloadStart);
+    assert_equals(entriesAfterOnload.length, 0,
+        "Events after onload shouldn't be buffered.");
+  }
+
+  /* Timeline:
+     Begin Busy Loop
+     Click 1 arrives
+     End Busy Loop
+     (Dispatch and Process Click 1 - buffered)
+     Onload Event Fires
+     Begin Busy Loop
+     Click 2 arrives
+     End Busy Loop
+     (Dispatch and Process Click 2 - not buffered)
+  */
+  async_test(function(t) {
+    clickTimeMin = performance.now();
+    clickAndBlockMain('button');
+    // Use a dummy observer to know when both clicks have been dispatched.
+    const observerPromise = new Promise((resolve, reject) => {
+      let entryCount = 0;
+      new PerformanceObserver(entryList => {
+        entryCount += entryList.getEntries().filter(
+          entry => entry.name === 'mousedown').length;
+        if (entryCount >= 2)
+          resolve();
+      }).observe({ entryTypes: ['event'] });
+    });
+    // Event handlers will be dispatched asynchronously, so this will be called
+    // before processing begins.
+    processingStartMin = performance.now();
+    on_event(window, 'load', e => {
+      onloadStart = performance.now();
+      const clickPromise = clickAndBlockMain('button');
+      Promise.all([observerPromise, clickPromise]).then(
+          t.step_func_done(validateEntries));
+    });
+  }, "Event Timing: click, onload.");
+
+</script>
+</html>

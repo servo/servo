@@ -3,8 +3,8 @@ promise_test(async t => cleanupSandboxedFileSystem(),
     'Cleanup to setup test environment');
 
 promise_test(async t => {
-    const handle = await createFileWithContents(t, 'file-to-remove', '12345');
-    const dir = await handle.getParent();
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+    const handle = await createFileWithContents(t, 'file-to-remove', '12345', dir);
     await createFileWithContents(t, 'file-to-keep', 'abc');
     await handle.remove();
 

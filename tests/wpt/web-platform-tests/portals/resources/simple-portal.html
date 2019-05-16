@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <body>
   <script>
-    var bc = new BroadcastChannel("simple-portal");
-    bc.postMessage("loaded");
-    bc.close();
+    window.portalHost.postMessage("loaded", "*");
   </script>
 </body>

@@ -8,7 +8,7 @@
 'use strict';
 
 // The following helper functions are called from RTCPeerConnection-helper.js:
-//   exchangeIceCandidates
+//   coupleIceCandidates
 //   doSignalingHandshake
 //   trackFactories.audio()
 
@@ -42,36 +42,6 @@ function resolveWhen(t, dtlstransport, state) {
   });
 }
 
-// Helper class to exchange ice candidates between
-// two local peer connections
-class CandidateChannel {
-  constructor(source, dest) {
-    source.addEventListener('icecandidate', event => {
-      const { candidate } = event;
-      if (candidate && this.activated
-          && this.destination.signalingState !== 'closed') {
-        this.destination.addIceCandidate(candidate);
-      } else {
-        this.queue.push(candidate);
-      }
-    });
-    this.destination = dest;
-    this.activated = false;
-    this.queue = [];
-  }
-  activate() {
-    this.activated = true;
-    for (const candidate of this.queue) {
-      this.destination.addIceCandidate(candidate);
-    }
-  }
-}
-
-function coupleCandidates(pc1, pc2) {
-  const ch1 = new CandidateChannel(pc1, pc2);
-  const ch2 = new CandidateChannel(pc2, pc1);
-  return [ch1, ch2];
-}
 
 async function setupConnections(t) {
   const pc1 = new RTCPeerConnection();
@@ -80,11 +50,8 @@ async function setupConnections(t) {
   t.add_cleanup(() => pc2.close());
 
   pc1.addTrack(trackFactories.audio());
-  const channels = coupleCandidates(pc1, pc2);
+  const channels = coupleIceCandidates(pc1, pc2);
   await doSignalingHandshake(pc1, pc2);
-  for (const channel of channels) {
-    channel.activate();
-  }
   return [pc1, pc2];
 }
 

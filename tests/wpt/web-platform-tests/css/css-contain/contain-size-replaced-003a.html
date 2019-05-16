@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: intrinsic size of size-contained replaced elems</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+<link rel="match" href="contain-size-replaced-003-ref.html">
+<meta name=assert content="This test checks that various size-contained replaced elements have an intrinsic size of 0,0 regardless of their content.">
+<style>
+  video, audio, canvas, svg, img, embed, object, iframe {
+    border: 3px solid teal;
+    contain: size;
+    margin: 15px;
+  }
+</style>
+<body>
+  <!-- video element: -->
+  <video></video>
+  <video controls></video>
+  <video poster="support/blue-100x100.png"></video>
+  <video poster="support/blue-100x100.png" controls></video>
+  <video src="support/white.webm" controls></video>
+  <video src="support/white.webm" controls></video>
+  <br>
+
+  <!-- audio element with controls, and a few other misc replaced elements: -->
+  <audio controls></audio>
+  <canvas></canvas>
+  <svg></svg>
+  <br>
+
+  <!-- Image elements: -->
+  <img src="broken">
+  <img src="support/blue-100x100.png">
+  <picture><source srcset="support/blue-100x100.png"><img></picture>
+  <br>
+
+  <!-- Document-embedding elements (with & without a target resource that
+       could provide an intrinsic ratio in some cases, in the absence of
+       contain:size): -->
+  <embed>
+  <embed src="support/blue-100x100.png">
+  <object></object>
+  <object data="support/blue-100x100.png"></object>
+  <iframe></iframe>
+  <iframe src="support/blue-100x100.png"></iframe>
+  <br>
+</body>

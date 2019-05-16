@@ -80,11 +80,20 @@ ResizeTestHelper.prototype = {
       delete this._timeoutId;
     }
     this._harnessTest.step(() => {
-      let rafDelay = this._currentStep.notify(entries, this._observer);
-      if (rafDelay)
-        window.requestAnimationFrame(this._nextStepBind);
-      else
-        this._nextStep();
+      try {
+        let rafDelay = this._currentStep.notify(entries, this._observer);
+        if (rafDelay)
+          window.requestAnimationFrame(this._nextStepBind);
+        else
+          this._nextStep();
+      }
+      catch(err) {
+        this._harnessTest.step(() => {
+          throw err;
+        });
+        // Force to _done() the current test.
+        this._done();
+      }
     });
   },
 

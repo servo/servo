@@ -36,6 +36,23 @@ a=ssrc:3 cname:4
 a=ssrc:3 msid:1 2
 `;
 
+const sdp2 = sdpBase + `
+a=ssrc:3 cname:4
+a=ssrc:3 msid:1 2
+`;
+
+const sdp3 = sdpBase + `
+a=msid:1 2
+a=ssrc:3 cname:4
+a=ssrc:3 msid:3 2
+`;
+
+const sdp4 = sdp1.replace('msid-semantic', 'unknownattr');
+
+const sdp5 = sdpBase + `
+a=msid:-
+`;
+
 async function applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp)
 {
     const testTrackPromise = new Promise(resolve  => {
@@ -44,6 +61,64 @@ async function applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp)
     await pc.setRemoteDescription({type: 'offer', sdp: sdp});
     return testTrackPromise;
 }
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp0);
+    assert_equals(streams.length, 1, "track event has a stream");
+}, "When a=msid is absent, the track should still be associated with a stream");
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp1);
+    assert_equals(streams.length, 1, "track event has a stream");
+    assert_equals(streams[0].id, "1", "msid should match");
+}, "Source-level msid should be ignored if media-level msid is present");
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp2);
+    assert_equals(streams.length, 1, "track event has a stream");
+    assert_equals(streams[0].id, "1", "msid should match");
+}, "Source-level msid should be parsed if media-level msid is absent");
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    let track;
+    let streams;
+    try {
+      [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp3);
+    } catch (e) {
+      return;
+    }
+    assert_equals(streams.length, 1, "track event has a stream");
+    assert_equals(streams[0].id, "1", "msid should match");
+}, "Source-level msid should be ignored, or an error should be thrown, if a different media-level msid is present");
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp4);
+    assert_equals(streams.length, 1, "track event has a stream");
+    assert_equals(streams[0].id, "1", "msid should match");
+}, "stream ids should be found even if msid-semantic is absent");
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp5);
+    assert_equals(streams.length, 0, "track event has no stream");
+}, "a=msid:- should result in a track event with no streams");
 
 promise_test(async test => {
     const pc = new RTCPeerConnection();

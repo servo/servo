@@ -34,6 +34,13 @@ function assertRejectsWithInterfaceStateChangeInProgressError(promise) {
     'An operation that changes interface state is in progress.');
 }
 
+function detachBuffer(buffer) {
+  if (self.GLOBAL.isWindow())
+    window.postMessage('', '*', [buffer]);
+  else
+    self.postMessage('', [buffer]);
+}
+
 usb_test(() => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
     return waitForDisconnect(fakeDevice)
@@ -635,6 +642,47 @@ usb_test(() => {
   });
 }, 'requests to interfaces and endpoint require an interface claim');
 
+usb_test(async () => {
+  const { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+
+  const transfer_params = {
+      requestType: 'vendor',
+      recipient: 'device',
+      request: 0,
+      value: 0,
+      index: 0
+  };
+
+  try {
+    const array_buffer = new ArrayBuffer(64 * 8);
+    const result =
+        await device.controlTransferOut(transfer_params, array_buffer);
+    assert_equals(result.status, 'ok');
+
+    detachBuffer(array_buffer);
+    await device.controlTransferOut(transfer_params, array_buffer);
+    assert_unreached();
+  } catch (e) {
+    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  }
+
+  try {
+    const typed_array = new Uint8Array(64 * 8);
+    const result =
+        await device.controlTransferOut(transfer_params, typed_array);
+    assert_equals(result.status, 'ok');
+
+    detachBuffer(typed_array.buffer);
+    await device.controlTransferOut(transfer_params, typed_array);
+    assert_unreached();
+  } catch (e) {
+    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  }
+}, 'controlTransferOut rejects if called with a detached buffer');
+
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {
     return device.open()
@@ -763,6 +811,38 @@ usb_test(() => {
   });
 }, 'transferOut rejects if called on a disconnected device');
 
+usb_test(async () => {
+  const { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(1);
+
+
+  try {
+    const array_buffer = new ArrayBuffer(64 * 8);
+    const result = await device.transferOut(2, array_buffer);
+    assert_equals(result.status, 'ok');
+
+    detachBuffer(array_buffer);
+    await device.transferOut(2, array_buffer);
+    assert_unreached();
+  } catch (e) {
+    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  }
+
+  try {
+    const typed_array = new Uint8Array(64 * 8);
+    const result = await device.transferOut(2, typed_array);
+    assert_equals(result.status, 'ok');
+
+    detachBuffer(typed_array.buffer);
+    await device.transferOut(2, typed_array);
+    assert_unreached();
+  } catch (e) {
+    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  }
+}, 'transferOut rejects if called with a detached buffer');
+
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {
     return device.open()
@@ -853,6 +933,45 @@ usb_test(() => {
       });
   });
 }, 'isochronousTransferOut rejects when called on a disconnected device');
+
+usb_test(async () => {
+  const { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+
+
+  try {
+    const array_buffer = new ArrayBuffer(64 * 8);
+    const result = await device.isochronousTransferOut(
+        1, array_buffer, [64, 64, 64, 64, 64, 64, 64, 64]);
+    for (let i = 0; i < result.packets.length; ++i)
+      assert_equals(result.packets[i].status, 'ok');
+
+    detachBuffer(array_buffer);
+    await device.isochronousTransferOut(
+        1, array_buffer, [64, 64, 64, 64, 64, 64, 64, 64]);
+    assert_unreached();
+  } catch (e) {
+    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  }
+
+  try {
+    const typed_array = new Uint8Array(64 * 8);
+    const result = await device.isochronousTransferOut(
+        1, typed_array, [64, 64, 64, 64, 64, 64, 64, 64]);
+    for (let i = 0; i < result.packets.length; ++i)
+      assert_equals(result.packets[i].status, 'ok');
+
+    detachBuffer(typed_array.buffer);
+    await device.isochronousTransferOut(
+        1, typed_array, [64, 64, 64, 64, 64, 64, 64, 64]);
+    assert_unreached();
+  } catch (e) {
+    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  }
+}, 'isochronousTransferOut rejects when called with a detached buffer');
 
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {

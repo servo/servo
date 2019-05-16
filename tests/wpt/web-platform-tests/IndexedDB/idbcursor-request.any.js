@@ -18,6 +18,7 @@ function cursorRequestTest({ useIndex, useKeyCursor }) {
         cursor = req.result;
         assert_equals(cursor.request, req, 'cursor.request');
         assert_readonly(cursor, 'request');
+        assert_equals(cursor.request, cursor.request, 'cursor.request does not change');
       });
 
       req.transaction.oncomplete = t.step_func(() => {

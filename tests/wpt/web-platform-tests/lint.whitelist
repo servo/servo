@@ -76,6 +76,8 @@ SET TIMEOUT: docs/*
 WEB-PLATFORM.TEST:README.md
 WEB-PLATFORM.TEST:*/README.md
 WEB-PLATFORM.TEST:docs/*
+INDENT TABS:docs/*
+CR AT EOL:docs/*
 
 ## Helper scripts ##
 

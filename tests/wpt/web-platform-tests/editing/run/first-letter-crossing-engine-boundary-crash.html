@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="http://crbug.com/962090">
+<style>
+  #container::first-letter { background:blue; }
+</style>
+<div id="container">
+  <div id="edit" style="overflow:hidden;" contenteditable>xx</div>
+  <div id="elm" style="display:none;">PASS</div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  document.body.offsetTop;
+  elm.style.display = "initial";
+  test(()=>{}, "No crash or DCHECK failure");
+</script>

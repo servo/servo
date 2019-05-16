@@ -36,7 +36,7 @@ for (var target of ["self", "parent", "top"]) {
 
 /**
  * And now check that a noopener load targeted at something other than one of
- * the three special targets above in fact ignores existing things with the
+ * the three special targets above is still able to reuse existing things with the
  * given name.  We do this in two ways.  First, by opening a window named
  * "ourpopup" and then doing a load via <a rel="noopener" target="ourpopup"> and
  * verifying that the load happens in a window with a null opener, etc, while
@@ -44,17 +44,17 @@ for (var target of ["self", "parent", "top"]) {
  * <a rel="noopener"> at a name that an existing subframe has, and ensuring that
  * this subframe is not navigated.
  */
-var t1 = async_test("Check that targeting of rel=noopener with a given name ignores an existing window with that name");
+var t1 = async_test("Check that targeting of rel=noopener with a given name reuses an existing window with that name");
 var w;
 t1.add_cleanup(function() { w.close(); });
 var channel = new BroadcastChannel("ourpopup");
 channel.onmessage = t1.step_func_done(function(e) {
   var data = e.data;
-  assert_false(data.hasOpener);
+  assert_true(data.hasOpener);
   assert_false(data.hasParent);
   assert_equals(data.name, "ourpopup");
   assert_equals(w.opener, window);
-  assert_equals(w.location.href, "about:blank");
+  assert_not_equals(w.location.href, "about:blank");
 });
 t1.step(function() {
   w = window.open("", "ourpopup");
@@ -62,15 +62,15 @@ t1.step(function() {
   document.querySelectorAll("a")[0].click();
 });
 
-var t2 = async_test("Check that targeting of rel=noopener with a given name ignores an existing subframe with that name");
+var t2 = async_test("Check that targeting of rel=noopener with a given name reuses an existing subframe with that name");
 var channel = new BroadcastChannel("oursubframe");
 channel.onmessage = t2.step_func_done(function(e) {
   var data = e.data;
   assert_false(data.hasOpener);
-  assert_false(data.hasParent);
+  assert_true(data.hasParent);
   assert_equals(data.name, "oursubframe");
-  assert_equals(document.querySelector("iframe").contentWindow.location.href,
-                "about:blank");
+  assert_not_equals(document.querySelector("iframe").contentWindow.location.href,
+                    "about:blank");
 });
 t2.step(function() {
   document.querySelectorAll("a")[1].click();

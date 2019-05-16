@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos">
+<p>Test passes if there is a filled green square, and no scrollbars</p>
+<div id="container" style="overflow:auto; width:100px; height:100px; background:red;">
+  <div style="position:sticky; top:0; height:100px; background:green;"></div>
+  <div id="bigItem" style="height:600px;"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  container.scrollTop = 600;
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      bigItem.style.display = "none";
+      test(()=> {
+        assert_equals(container.scrollHeight, 100);
+      }, "Sticky position and its overflow contribution");
+    });
+  });
+</script>

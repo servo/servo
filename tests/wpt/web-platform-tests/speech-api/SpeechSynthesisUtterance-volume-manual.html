@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>5.2.3 SpeechSynthesisUtterance volume attribute test - Manual</title>
+  <style>
+    div,
+    #test {
+      display: block;
+      width: 640px;
+      word-break: break-all;
+      padding: 4px;
+    }
+    #test,
+    #volume {
+      background: skyblue;
+      font-weight: bold;
+    }
+  </style>
+  <script>
+    const text = "hello universe";
+    const volumes = [0, 0.2, 0.4, 0.6, 1];
+
+    handleVoicesChanged = async _ => {
+      for (const volume of volumes) {
+        await new Promise(resolve => {
+          document.getElementById("volume").value = volume;
+          const utterance = new SpeechSynthesisUtterance();
+          utterance.text = text;
+          utterance.volume = volume;
+          utterance.onend = resolve;
+          window.speechSynthesis.speak(utterance);
+        });
+      };
+    };
+    onload = e => {
+      document.getElementById("test").onclick = _ => {
+        if (window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+        } else {
+          handleVoicesChanged()
+        }
+      };
+    };
+  </script>
+</head>
+<body>
+  <div>
+    <h3>Specification:</h3>
+    <a href="https://w3c.github.io/speech-api/speechapi.html#utterance-attributes"><b><code><i><u>volume</u></i></code> attribute</b></a>
+    <blockquote>
+      This attribute specifies the speaking volume for the utterance. It ranges between 0 and 1 inclusive, with 0 being the lowest volume and 1 the highest volume, with a default of 1. If SSML is used, this value will be overridden by prosody tags in the markup.
+    </blockquote>
+  </div>
+  <div id="test">
+    Click to execute <code>window.speechSynthesis.speak()</code> with <code>volume attribute</code> set to <code>0, 0.2, 0.4, 0.6, 1.</code>
+  </div>
+  <br>
+  <div>
+    <label for="volume">Current volume: </label>
+    <input id="volume" readonly>
+    <h3>Manaul Test:</h3>Does the volume of audio output change?
+  </div>
+</body>
+</html>

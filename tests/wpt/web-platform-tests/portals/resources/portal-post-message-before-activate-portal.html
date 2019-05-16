@@ -12,9 +12,7 @@
     }
   });
 
-  var bc = new BroadcastChannel("portal");
-  bc.postMessage("loaded");
-  bc.close();
+  window.portalHost.postMessage("loaded", "*");
 
   Promise.all([postMessagePromise, activatePromise])
     .then(values => {

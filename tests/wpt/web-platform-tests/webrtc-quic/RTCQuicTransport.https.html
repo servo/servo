@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../webrtc/RTCIceTransport-extension-helper.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
 <script src="RTCQuicTransport-helper.js"></script>
 <script src="../webrtc/dictionary-helper.js"></script>
 <script>
@@ -47,6 +48,21 @@ test(t => {
       () => makeQuicTransport(t, iceTransport));
 }, 'RTCQuicTransport constructor throws if passed an RTCIceTransport that ' +
     'already has an active RTCQuicTransport.');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.createDataChannel('test');
+  await doSignalingHandshake(pc1, pc2);
+  const iceTransport = pc1.sctp.transport.iceTransport;
+
+  assert_throws('InvalidStateError',
+      () => makeQuicTransport(t, iceTransport));
+}, 'RTCQuicTransport constructor throws if passed an RTCIceTransport that ' +
+    'came from an RTCPeerConnection.');
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);

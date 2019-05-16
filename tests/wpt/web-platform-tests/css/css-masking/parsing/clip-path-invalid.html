@@ -35,7 +35,10 @@ test_invalid_value("clip-path", "circle(1% 2% at 0% 100%)");
 
 test_invalid_value("clip-path", "ellipse(farthest-side at)");
 test_invalid_value("clip-path", "ellipse(1% 2% top right)");
+test_invalid_value("clip-path", "ellipse(3%)");
 test_invalid_value("clip-path", "ellipse(3% at 100% 0%)");
+test_invalid_value("clip-path", "ellipse(closest-side)");
+test_invalid_value("clip-path", "ellipse(farthest-side at 100% 0%)");
 test_invalid_value("clip-path", "ellipse(10% -20% at 30% 40%)");
 test_invalid_value("clip-path", "ellipse(-50px 60px at 70% 80%)");
 

@@ -1,0 +1,20 @@
+<!doctype html>
+<title>default style on buttons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div class="tests">
+ <input type="reset">
+ <input type="button">
+ <input type="submit">
+ <input type="color">
+ <button></button>
+</div>
+<script>
+[].slice.call(document.querySelectorAll('.tests > *')).forEach(el => {
+  test(() => {
+    assert_equals(getComputedStyle(el).display, 'inline-block');
+  }, `default display on ${el.outerHTML}`);
+  test(() => {
+    assert_equals(getComputedStyle(el).boxSizing, 'border-box');
+  }, `default box-sizing on ${el.outerHTML}`);})
+</script>

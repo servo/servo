@@ -4,5 +4,5 @@
 // Source: CSS Images Module Level 4 (https://drafts.csswg.org/css-images-4/)
 
 partial namespace CSS {
-  // [SameObject] readonly attribute Map elementSources;
+  [SameObject] readonly attribute any elementSources;
 };

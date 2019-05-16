@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/common.js"></script>
+<title> 'focus-without-user-activation' Policy : Correctly block automatic focus when policy disabled
+</title>
+<body>
+  <input onblur="did_blur();" autofocus/>
+<script>
+  "use strict"
+
+  const url = "http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/focus_steal.html";
+
+  let did_blur_ = false;
+  function did_blur() {
+    did_blur_ = true;
+  }
+
+  function short_delay(test_instance) {
+    // Long enough to allow focus to propagate correctly.
+    const SHORT_DELAY = 400;
+    return new Promise( (r) => test_instance.step_timeout(r, SHORT_DELAY));
+  }
+
+  function reset_focus() {
+    did_blur_ = false;
+    document.querySelector("input").focus();
+  }
+
+  promise_test( async (instance) => {
+    const frame = createIframe(document.body, {
+      sandbox: "allow-scripts allow-same-origin",
+      allow: "focus-without-user-activation 'none'",
+      src: url
+    });
+    await wait_for_load(frame);
+
+    await short_delay(instance);
+    assert_false(did_blur_, "'autofocus' should not work.");
+
+    frame.contentWindow.postMessage("focus-input", "*");
+    await short_delay(instance);
+    assert_false(did_blur_, "'element.focus' should not work.");
+
+    frame.contentWindow.postMessage("focus-window", "*");
+    await short_delay(instance);
+    assert_false(did_blur_, "'window.focus' should not work.");
+  }, "When the policy is disabled, 'autofocus' and scripted focus do not focus " +
+     "the document.");
+
+
+  promise_test( async (instance) => {
+    const frame = createIframe(document.body, {
+      sandbox: "allow-scripts allow-same-origin",
+      allow: "focus-without-user-activation *",
+      src: url
+    });
+    await wait_for_load(frame);
+    await short_delay(instance);
+
+    reset_focus();
+    frame.contentWindow.postMessage("focus-input", "*");
+    await short_delay(instance);
+    assert_true(did_blur_, "'element.focus' should work.");
+    did_blur_ = false;
+
+    reset_focus();
+    frame.contentWindow.postMessage("focus-window", "*");
+    await short_delay(instance);
+    assert_true(did_blur_, "'window.focus' should work.");
+  }, "When the policy is enabled, 'autofocus' and scripted focus do focus " +
+     "the document.");
+</script>
+</body>

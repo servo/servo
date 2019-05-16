@@ -34,6 +34,8 @@ interface MediaSession {
   attribute MediaSessionPlaybackState playbackState;
 
   void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
+
+  void setPositionState(MediaPositionState? state);
 };
 
 [Constructor(optional MediaMetadataInit init), Exposed=Window]
@@ -55,4 +57,10 @@ dictionary MediaImage {
   required USVString src;
   DOMString sizes = "";
   DOMString type = "";
+};
+
+dictionary MediaPositionState {
+  required double duration;
+  double playbackRate = 1.0;
+  double position = 0.0;
 };

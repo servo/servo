@@ -1,13 +1,9 @@
 <!DOCTYPE html>
 <script>
-const bc = new BroadcastChannel('portal-activate-data');
 let logic = new Function('event', (new URL(location)).searchParams.get('logic'));
-onload = () => bc.postMessage('ready');
+onload = () => window.portalHost.postMessage('ready', '*');
 onportalactivate = event => {
-  try {
-    bc.postMessage(logic(event));
-  } finally {
-    bc.close();
-  }
+  var portal = event.adoptPredecessor();
+  portal.postMessage(logic(event), "*");
 };
 </script>

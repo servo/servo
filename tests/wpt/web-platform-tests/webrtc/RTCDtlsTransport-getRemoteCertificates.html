@@ -87,7 +87,7 @@
         if(dtlsTransport.state === 'connected') {
           onConnected(dtlsTransport);
         } else {
-          assert_array_equals(dtlsTransport.getCertificates(), [],
+          assert_array_equals(dtlsTransport.getRemoteCertificates(), [],
             'Expect DTLS certificates be initially empty until become connected');
 
           dtlsTransport.addEventListener('statechange', t.step_func(() => {

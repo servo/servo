@@ -556,7 +556,7 @@ class MultiDict(dict):
             return dict.__getitem__(self, key)[0]
         elif default is not missing:
             return default
-        raise KeyError
+        raise KeyError(key)
 
     def last(self, key, default=missing):
         """Get the last value with a given key
@@ -570,7 +570,7 @@ class MultiDict(dict):
             return dict.__getitem__(self, key)[-1]
         elif default is not missing:
             return default
-        raise KeyError
+        raise KeyError(key)
 
     def get_list(self, key):
         """Get all values with a given key as a list

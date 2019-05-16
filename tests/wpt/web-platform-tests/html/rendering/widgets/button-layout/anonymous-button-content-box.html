@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Anonymous button content box</title>
+<link rel=match href=anonymous-button-content-box-ref.html>
+<style>
+body { margin: 0 }
+button, input { width: 124px; height: 124px; background: papayawhip; border: 2px solid; margin: 0; padding: 0; float: left; font: inherit }
+body > div { clear: left; }
+button > div { width: 50px; height: 50px; border: solid }
+.grid { display: grid }
+.flex { display: flex }
+.tall { height: 150px }
+.wide { width: 150px }
+</style>
+<div>
+ <input type=button value=input>
+ <input type=button value="input grid" class=grid>
+ <input type=button value="input flex" class=flex>
+ <button>button</button>
+</div>
+<div>
+ <button style="text-align: left">button left</button>
+ <button><div>div</div></button>
+ <button class=grid>grid</button>
+ <button class=grid><div>grid</div></button>
+</div>
+<div>
+ <button class=flex>flex</button>
+ <button class=flex><div>flex</div></button>
+ <button><div class=tall>tall</div></button>
+ <button><div class=wide>wide</div></button>
+</div>

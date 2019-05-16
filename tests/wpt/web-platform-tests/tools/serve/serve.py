@@ -310,8 +310,7 @@ class RoutesBuilder(object):
 
         self.forbidden = [("*", "/_certs/*", handlers.ErrorHandler(404)),
                           ("*", "/tools/*", handlers.ErrorHandler(404)),
-                          ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
-                          ("*", "/serve.py", handlers.ErrorHandler(404))]
+                          ("*", "{spec}/tools/*", handlers.ErrorHandler(404))]
 
         self.extra = []
 
