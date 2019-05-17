@@ -155,6 +155,10 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
+    @CommandArgument('--media-stack',
+                     default=None,
+                     choices=["gstreamer", "dummy"],
+                     help='Which media stack to use')
     @CommandArgument('--no-package',
                      action='store_true',
                      help='For Android, disable packaging into a .apk after building')
@@ -171,7 +175,7 @@ class MachCommands(CommandBase):
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
-    def build(self, release=False, dev=False, jobs=None, params=None,
+    def build(self, release=False, dev=False, jobs=None, params=None, media_stack=None,
               no_package=False, verbose=False, very_verbose=False,
               target=None, android=False, magicleap=False, libsimpleservo=False,
               features=None, uwp=False, win_arm64=False, **kwargs):
@@ -190,6 +194,19 @@ class MachCommands(CommandBase):
         # Infer UWP build if only provided a target.
         if not uwp:
             uwp = target and 'uwp' in target
+
+        # A guess about which platforms should use the gstreamer media stack
+        if not(media_stack):
+            if (
+                    not(target) or
+                    ("armv7" in target and "android" in target) or
+                    ("x86_64" in target)
+            ):
+                media_stack = "gstreamer"
+            else:
+                media_stack = "dummy"
+
+        features += ["media-" + media_stack]
 
         target_path = base_path = self.get_target_dir()
         if android:

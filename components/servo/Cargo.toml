@@ -71,6 +71,8 @@ script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
 servo-media = {git = "https://github.com/servo/media"}
+servo-media-dummy = {git = "https://github.com/servo/media", optional = true}
+servo-media-gstreamer = {git = "https://github.com/servo/media", optional = true}
 servo_url = {path = "../url"}
 sparkle = "0.1"
 style = {path = "../style", features = ["servo"]}
@@ -90,10 +92,6 @@ gaol = "0.2.1"
 
 [target.'cfg(any(target_os = "android", target_arch = "x86_64", target_os = "windows"))'.dependencies]
 gstreamer = "0.14.5"
-servo-media-gstreamer= {git = "https://github.com/servo/media"}
-
-[target.'cfg(not(any(target_os = "android", target_arch = "x86_64", target_os = "windows")))'.dependencies.servo-media-dummy]
-git = "https://github.com/servo/media"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 mozangle = {version = "0.2"}
