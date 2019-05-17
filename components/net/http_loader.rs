@@ -381,6 +381,12 @@ fn obtain_response(
     // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
     // fetch passes the timing allow check
     let connect_start = precise_time_ms();
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::ConnectStart(connect_start));
+
     // https://url.spec.whatwg.org/#percent-encoded-bytes
     let request = HyperRequest::builder()
         .method(method)
