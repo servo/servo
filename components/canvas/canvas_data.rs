@@ -8,7 +8,7 @@ use azure::azure_hl::SurfacePattern;
 use azure::azure_hl::{AntialiasMode, AsAzurePoint, CapStyle, JoinStyle};
 use azure::azure_hl::{BackendType, DrawTarget};
 use azure::azure_hl::{ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
-use azure::azure_hl::{ExtendMode, LinearGradientPattern, RadialGradientPattern};
+use azure::azure_hl::{LinearGradientPattern, RadialGradientPattern};
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -167,22 +167,28 @@ trait GenericDrawTarget {
     fn copy_surface(&self, surface: SourceSurface, source: Rect<i32>, destination: Point2D<i32>);
     fn create_gradient_stops(
         &self,
-        gradient_stops: &[GradientStop],
+        gradient_stops: Vec<GradientStop>,
         extend_mode: ExtendMode,
     ) -> GradientStops;
     fn create_path_builder(&self);
     fn create_similar_draw_target(
         &self,
-        size: Size2D<i32>,
+        size: &Size2D<i32>,
         format: SurfaceFormat,
     ) -> Box<GenericDrawTarget>;
-    fn create_source_surface_from_data(&self);
+    fn create_source_surface_from_data(
+        &self,
+        data: &[u8],
+        size: Size2D<i32>,
+        stride: i32,
+        format: SurfaceFormat,
+    );
     fn draw_surface_with_shadow(
         &self,
         surface: SourceSurface,
         dest: &Point2D<f32>,
         color: &Color,
-        offset: Vector2D<f32>,
+        offset: &Vector2D<f32>,
         sigma: f32,
         operator: CompositionOp,
     );
@@ -219,6 +225,165 @@ trait GenericDrawTarget {
     );
 }
 
+impl GenericDrawTarget for azure_hl::DrawTarget {
+    fn clear_rect(&self, rect: &Rect<f32>) {
+        self.clear_rect(rect as &Rect<AzFloat>);
+    }
+
+    fn copy_surface(&self, surface: SourceSurface, source: Rect<i32>, destination: Point2D<i32>) {
+        self.copy_surface(surface.into_azure(), source, destination);
+    }
+
+    fn create_gradient_stops(
+        &self,
+        gradient_stops: Vec<GradientStop>,
+        extend_mode: ExtendMode,
+    ) -> GradientStops {
+        let gradient_stops: Vec<AzGradientStop> =
+            gradient_stops.into_iter().map(|x| x.into_azure()).collect();
+        GradientStops::Azure(self.create_gradient_stops(&gradient_stops, extend_mode.into_azure()))
+    }
+
+    fn create_path_builder(&self) {
+        self.create_path_builder();
+    }
+
+    fn create_similar_draw_target(
+        &self,
+        size: &Size2D<i32>,
+        format: SurfaceFormat,
+    ) -> Box<GenericDrawTarget> {
+        Box::new(self.create_similar_draw_target(size, format.into_azure()))
+    }
+    fn create_source_surface_from_data(
+        &self,
+        data: &[u8],
+        size: Size2D<i32>,
+        stride: i32,
+        format: SurfaceFormat,
+    ) {
+        self.create_source_surface_from_data(data, size, stride, format.into_azure());
+    }
+    fn draw_surface_with_shadow(
+        &self,
+        surface: SourceSurface,
+        dest: &Point2D<f32>,
+        color: &Color,
+        offset: &Vector2D<f32>,
+        sigma: f32,
+        operator: CompositionOp,
+    ) {
+        self.draw_surface_with_shadow(
+            surface.into_azure(),
+            dest as &Point2D<AzFloat>,
+            color.as_azure(),
+            offset as &Vector2D<AzFloat>,
+            sigma as AzFloat,
+            operator.into_azure(),
+        );
+    }
+    fn fill(&self, path: &Path, pattern: PatternRef, draw_options: &DrawOptions) {
+        self.fill(
+            path.as_azure(),
+            pattern.into_azure(),
+            draw_options.as_azure(),
+        );
+    }
+    fn fill_rect(&self, rect: &Rect<f32>, pattern: PatternRef, draw_options: Option<&DrawOptions>) {
+        self.fill_rect(
+            rect as &Rect<AzFloat>,
+            pattern.into_azure(),
+            draw_options.map(|x| x.as_azure()),
+        );
+    }
+    fn get_format(&self) -> SurfaceFormat {
+        SurfaceFormat::Azure(self.get_format())
+    }
+    fn get_size(&self) -> IntSize {
+        IntSize::Azure(self.get_size())
+    }
+    fn get_transform(&self) -> Transform2D<f32> {
+        self.get_transform() as Transform2D<f32>
+    }
+    fn pop_clip(&self) {
+        self.pop_clip();
+    }
+    fn push_clip(&self, path: &Path) {
+        self.push_clip(path.as_azure());
+    }
+    fn set_transform(&self, matrix: &Transform2D<f32>) {
+        self.set_transform(matrix as &Transform2D<AzFloat>);
+    }
+    fn snapshot(&self) -> SourceSurface {
+        SourceSurface::Azure(self.snapshot())
+    }
+    fn stroke(
+        &self,
+        path: &Path,
+        pattern: PatternRef,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
+    ) {
+        self.stroke(
+            path.as_azure(),
+            pattern.into_azure(),
+            stroke_options.as_azure(),
+            draw_options.as_azure(),
+        );
+    }
+    fn stroke_line(
+        &self,
+        start: Point2D<f32>,
+        end: Point2D<f32>,
+        pattern: PatternRef,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
+    ) {
+        self.stroke_line(
+            start as Point2D<AzFloat>,
+            end as Point2D<AzFloat>,
+            pattern.into_azure(),
+            stroke_options.as_azure(),
+            draw_options.as_azure(),
+        );
+    }
+    fn stroke_rect(
+        &self,
+        rect: &Rect<f32>,
+        pattern: PatternRef,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
+    ) {
+        self.stroke_rect(
+            rect as &Rect<AzFloat>,
+            pattern.into_azure(),
+            stroke_options.as_azure(),
+            draw_options.as_azure(),
+        );
+    }
+}
+
+enum ExtendMode {
+    Azure(azure_hl::ExtendMode),
+    Raqote(()),
+}
+
+impl ExtendMode {
+    fn as_azure(&self) -> &azure_hl::ExtendMode {
+        match self {
+            ExtendMode::Azure(m) => m,
+            _ => unreachable!(),
+        }
+    }
+
+    fn into_azure(self) -> azure_hl::ExtendMode {
+        match self {
+            ExtendMode::Azure(m) => m,
+            _ => unreachable!(),
+        }
+    }
+}
+
 enum GradientStop {
     Azure(AzGradientStop),
     Raqote(()),
@@ -226,6 +391,13 @@ enum GradientStop {
 
 impl GradientStop {
     fn as_azure(&self) -> &AzGradientStop {
+        match self {
+            GradientStop::Azure(s) => s,
+            _ => unreachable!(),
+        }
+    }
+
+    fn into_azure(self) -> AzGradientStop {
         match self {
             GradientStop::Azure(s) => s,
             _ => unreachable!(),
@@ -240,6 +412,13 @@ enum GradientStops {
 
 impl GradientStops {
     fn as_azure(&self) -> &azure_hl::GradientStops {
+        match self {
+            GradientStops::Azure(s) => s,
+            _ => unreachable!(),
+        }
+    }
+
+    fn into_azure(self) -> azure_hl::GradientStops {
         match self {
             GradientStops::Azure(s) => s,
             _ => unreachable!(),
@@ -267,7 +446,7 @@ enum CompositionOp {
 }
 
 impl CompositionOp {
-    fn as_azure(&self) -> &azure_hl::CompositionOp {
+    fn into_azure(self) -> azure_hl::CompositionOp {
         match self {
             CompositionOp::Azure(s) => s,
             _ => unreachable!(),
@@ -281,7 +460,7 @@ enum SurfaceFormat {
 }
 
 impl SurfaceFormat {
-    fn as_azure(&self) -> &azure_hl::SurfaceFormat {
+    fn into_azure(self) -> azure_hl::SurfaceFormat {
         match self {
             SurfaceFormat::Azure(s) => s,
             _ => unreachable!(),
@@ -295,7 +474,7 @@ enum SourceSurface {
 }
 
 impl SourceSurface {
-    fn as_azure(&self) -> &azure_hl::SourceSurface {
+    fn into_azure(self) -> azure_hl::SourceSurface {
         match self {
             SourceSurface::Azure(s) => s,
             _ => unreachable!(),
@@ -348,6 +527,13 @@ impl<'a> PatternRef<'a> {
             _ => unreachable!(),
         }
     }
+
+    fn into_azure(self) -> azure_hl::PatternRef<'a> {
+        match self {
+            PatternRef::Azure(p) => p,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Pattern {
@@ -379,7 +565,7 @@ enum StrokeOptions<'a> {
 }
 
 impl<'a> StrokeOptions<'a> {
-    fn as_azure_ref(&self) -> &azure_hl::StrokeOptions<'a> {
+    fn as_azure(&self) -> &azure_hl::StrokeOptions<'a> {
         match self {
             StrokeOptions::Azure(options) => options,
             _ => unreachable!(),
@@ -1400,7 +1586,7 @@ impl ToAzurePattern for FillOrStrokeStyle {
                         linear_gradient_style.x1 as AzFloat,
                         linear_gradient_style.y1 as AzFloat,
                     ),
-                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
+                    drawtarget.create_gradient_stops(&gradient_stops, azure_hl::ExtendMode::Clamp),
                     &Transform2D::identity(),
                 ))
             },
@@ -1425,7 +1611,7 @@ impl ToAzurePattern for FillOrStrokeStyle {
                     ),
                     radial_gradient_style.r0 as AzFloat,
                     radial_gradient_style.r1 as AzFloat,
-                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
+                    drawtarget.create_gradient_stops(&gradient_stops, azure_hl::ExtendMode::Clamp),
                     &Transform2D::identity(),
                 ))
             },
