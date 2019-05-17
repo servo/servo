@@ -32,12 +32,11 @@ ${helpers.single_keyword(
 )}
 
 ${helpers.predefined_type(
-    "-moz-user-select",
+    "user-select",
     "UserSelect",
     "computed::UserSelect::Auto",
     products="gecko",
-    gecko_ffi_name="mUserSelect",
-    alias="-webkit-user-select",
+    extra_prefixes="moz webkit",
     animation_value_type="discrete",
     needs_context=False,
     spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select",
