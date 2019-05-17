@@ -1180,7 +1180,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
-    pub fn Fill(&self, fill_rule: CanvasFillRule) {
+    pub fn Fill(&self, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
         self.send_canvas_2d_msg(Canvas2dMsg::Fill);
     }
@@ -1191,7 +1191,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
-    pub fn Clip(&self, fill_rule: CanvasFillRule) {
+    pub fn Clip(&self, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
         self.send_canvas_2d_msg(Canvas2dMsg::Clip);
     }
@@ -1923,7 +1923,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn CreatePattern(
         &self,
         image: CanvasImageSource,
-        mut repetition: DOMString,
+        repetition: DOMString,
     ) -> Fallible<DomRoot<CanvasPattern>> {
         self.canvas_state
             .borrow()

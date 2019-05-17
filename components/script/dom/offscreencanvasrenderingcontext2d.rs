@@ -193,7 +193,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     fn CreatePattern(
         &self,
         image: CanvasImageSource,
-        mut repetition: DOMString,
+        repetition: DOMString,
     ) -> Fallible<DomRoot<CanvasPattern>> {
         self.canvas_state
             .borrow()
