@@ -18,7 +18,7 @@ def main(task_for):
 
     if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22325 implement these:
-        magicleap_dev = linux_arm32_dev = linux_arm64_dev = lambda: None
+        linux_arm32_dev = linux_arm64_dev = lambda: None
 
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
@@ -94,6 +94,7 @@ def main(task_for):
         windows_nightly()
         macos_nightly()
         update_wpt()
+        magicleap_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -798,6 +799,60 @@ def macos_build_task(name):
             time brew install openssl@1.1
             export DYLD_LIBRARY_PATH="$HOME/homebrew/opt/openssl@1.1/lib"
         """)
+    )
+
+
+def magicleap_build_task(name, build_type):
+    return (
+        macos_build_task(name)
+        .with_treeherder("MagicLeap aarch64", build_type)
+        .with_directory_mount(
+            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.17.0.tar.gz",
+            sha256="e81de47ad963891ac68768d93ab5a36ed3af3a3efebb4dbc4db2e65647d57655",
+            path="magicleap"
+        )
+        .with_directory_mount(
+            "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
+            sha256="cdc2d26bc87ecf1cd8133df4e72c4eca5df7ddd815d0adf3045460253c1fe123",
+            path="magicleap"
+        )
+        # Early script in order to run with the initial $PWD
+        .with_early_script("""
+            export MAGICLEAP_SDK="$PWD/magicleap/v0.17.0"
+            export MLCERT="$PWD/magicleap/TempSharedCert.cert"
+        """)
+        .with_script("""
+            unset OPENSSL_INCLUDE_DIR
+            unset OPENSSL_LIB_DIR
+            export HOST_CC=$(brew --prefix llvm)/bin/clang
+            export HOST_CXX=$(brew --prefix llvm)/bin/clang++
+        """)
+    )
+
+
+def magicleap_dev():
+    return (
+        magicleap_build_task("Dev build", "Dev")
+        .with_script("""
+            ./mach build --magicleap --dev
+            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --dev
+        """)
+        .find_or_create("build.magicleap_dev." + CONFIG.git_sha)
+    )
+
+
+def magicleap_nightly():
+    return (
+        magicleap_build_task("Nightly build and upload", "Release")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        .with_script("""
+            ./mach build --magicleap --release
+            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --release
+            "./mach upload-nightly magicleap --secret-from-taskcluster",
+        """)
+        .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo2D.mpk")
+        .find_or_create("build.magicleap_nightly." + CONFIG.git_sha)
     )
 
 
