@@ -228,7 +228,7 @@ def macos_unit():
         macos_build_task("Dev build + unit tests")
         .with_treeherder("macOS x64", "Unit")
         .with_script("""
-            ./mach build --dev
+            ./mach build --dev --verbose
             ./mach test-unit
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
@@ -264,7 +264,7 @@ def android_arm32_dev_from_macos():
             export HOST_CC="$(brew --prefix llvm)/bin/clang"
             export HOST_CXX="$(brew --prefix llvm)/bin/clang++"
             ./mach bootstrap-android --accept-all-licences --build
-            ./mach build --android --dev
+            ./mach build --android --dev --verbose
         """)
         .find_or_create("android_arm32_dev.macos." + CONFIG.git_sha)
     )
@@ -509,7 +509,7 @@ def macos_wpt():
         macos_build_task("Release build")
         .with_treeherder("macOS x64", "Release")
         .with_script("""
-            ./mach build --release
+            ./mach build --release --verbose
             ./etc/ci/lockfile_changed.sh
             tar -czf target.tar.gz \
                 target/release/servo \
