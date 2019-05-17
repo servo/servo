@@ -170,6 +170,10 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build for Magic Leap')
+    @CommandArgument('--media-stack',
+                     default=None,
+                     choices=["gstreamer", "dummy"],
+                     help='Which media stack to use')
     @CommandArgument('--no-package',
                      action='store_true',
                      help='For Android, disable packaging into a .apk after building')
@@ -197,7 +201,7 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build with frame pointer enabled, used by the background hang monitor.')
-    def build(self, target=None, release=False, dev=False, jobs=None,
+    def build(self, target=None, release=False, dev=False, jobs=None, media_stack=None,
               features=None, android=None, magicleap=None, no_package=False, verbose=False, very_verbose=False,
               debug_mozjs=False, params=None, with_debug_assertions=False,
               libsimpleservo=False, with_frame_pointer=False):
@@ -223,6 +227,19 @@ class MachCommands(CommandBase):
 
         if target and not android and not magicleap:
             android = self.handle_android_target(target)
+
+        # A guess about which platforms should use the gstreamer media stack
+        if not(media_stack):
+            if (
+                    not(target) or
+                    ("armv7" in target and "android" in target) or
+                    ("x86_64" in target)
+            ):
+                media_stack = "gstreamer"
+            else:
+                media_stack = "dummy"
+
+        features += ["media-" + media_stack]
 
         target_path = base_path = self.get_target_dir()
         if android:
