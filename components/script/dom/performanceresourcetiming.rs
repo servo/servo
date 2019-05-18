@@ -118,7 +118,7 @@ impl PerformanceResourceTiming {
             redirect_start: resource_timing.redirect_start as f64,
             redirect_end: 0.,
             fetch_start: resource_timing.fetch_start as f64,
-            domain_lookup_start: 0.,
+            domain_lookup_start: resource_timing.domain_lookup_start as f64,
             domain_lookup_end: 0.,
             connect_start: resource_timing.connect_start as f64,
             connect_end: resource_timing.connect_end as f64,
