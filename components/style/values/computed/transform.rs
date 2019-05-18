@@ -548,80 +548,8 @@ impl ToAnimatedZero for Transform {
 /// A computed CSS `rotate`
 pub type Rotate = generic::GenericRotate<Number, Angle>;
 
-impl Rotate {
-    /// Convert TransformOperation to Rotate.
-    pub fn to_transform_operation(&self) -> Option<TransformOperation> {
-        match *self {
-            generic::Rotate::None => None,
-            generic::Rotate::Rotate(angle) => Some(generic::TransformOperation::Rotate(angle)),
-            generic::Rotate::Rotate3D(rx, ry, rz, angle) => {
-                Some(generic::TransformOperation::Rotate3D(rx, ry, rz, angle))
-            },
-        }
-    }
-
-    /// Convert Rotate to TransformOperation.
-    pub fn from_transform_operation(operation: &TransformOperation) -> Rotate {
-        match *operation {
-            generic::TransformOperation::Rotate(angle) => generic::Rotate::Rotate(angle),
-            generic::TransformOperation::Rotate3D(rx, ry, rz, angle) => {
-                generic::Rotate::Rotate3D(rx, ry, rz, angle)
-            },
-            _ => unreachable!("Found unexpected value for rotate property"),
-        }
-    }
-}
-
 /// A computed CSS `translate`
 pub type Translate = generic::GenericTranslate<LengthPercentage, Length>;
 
-impl Translate {
-    /// Convert TransformOperation to Translate.
-    pub fn to_transform_operation(&self) -> Option<TransformOperation> {
-        match *self {
-            generic::Translate::None => None,
-            generic::Translate::Translate(tx, ty) => {
-                Some(generic::TransformOperation::Translate(tx, ty))
-            },
-            generic::Translate::Translate3D(tx, ty, tz) => {
-                Some(generic::TransformOperation::Translate3D(tx, ty, tz))
-            },
-        }
-    }
-
-    /// Convert Translate to TransformOperation.
-    pub fn from_transform_operation(operation: &TransformOperation) -> Translate {
-        match *operation {
-            generic::TransformOperation::Translate(tx, ty) => generic::Translate::Translate(tx, ty),
-            generic::TransformOperation::Translate3D(tx, ty, tz) => {
-                generic::Translate::Translate3D(tx, ty, tz)
-            },
-            _ => unreachable!("Found unexpected value for translate"),
-        }
-    }
-}
-
 /// A computed CSS `scale`
 pub type Scale = generic::GenericScale<Number>;
-
-impl Scale {
-    /// Convert TransformOperation to Scale.
-    pub fn to_transform_operation(&self) -> Option<TransformOperation> {
-        match *self {
-            generic::Scale::None => None,
-            generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, sy)),
-            generic::Scale::Scale3D(sx, sy, sz) => {
-                Some(generic::TransformOperation::Scale3D(sx, sy, sz))
-            },
-        }
-    }
-
-    /// Convert Scale to TransformOperation.
-    pub fn from_transform_operation(operation: &TransformOperation) -> Scale {
-        match *operation {
-            generic::TransformOperation::Scale(sx, sy) => generic::Scale::Scale(sx, sy),
-            generic::TransformOperation::Scale3D(sx, sy, sz) => generic::Scale::Scale3D(sx, sy, sz),
-            _ => unreachable!("Found unexpected value for scale"),
-        }
-    }
-}
