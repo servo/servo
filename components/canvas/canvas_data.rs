@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use azure::azure::{AzFloat, AzGradientStop, AzIntSize};
+use azure::azure::{AzFloat, AzGradientStop, AzIntSize, AzPoint};
 use azure::azure_hl;
 use azure::azure_hl::SurfacePattern;
 use azure::azure_hl::{AntialiasMode, AsAzurePoint, CapStyle, JoinStyle};
@@ -54,6 +54,110 @@ impl PathState {
                 panic!("should have called ensure_path")
             },
         }
+    }
+}
+
+/// A generic PathBuilder that abstracts the interface for
+/// azure's and raqote's PathBuilder.
+trait GenericPathBuilder {
+    fn arc(
+        &self,
+        origin: Point2D<f32>,
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    );
+    fn bezier_curve_to(
+        &self,
+        control_point1: &Point2D<f32>,
+        control_point2: &Point2D<f32>,
+        control_point3: &Point2D<f32>,
+    );
+    fn close(&self);
+    fn ellipse(
+        &self,
+        origin: Point2D<f32>,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    );
+    fn get_current_point(&self) -> Point2D<f32>;
+    fn line_to(&self, point: Point2D<f32>);
+    fn move_to(&self, point: Point2D<f32>);
+    fn quadratic_curve_to(&self, control_point: &Point2D<f32>, end_point: &Point2D<f32>);
+}
+
+impl GenericPathBuilder for azure_hl::PathBuilder {
+    fn arc(
+        &self,
+        origin: Point2D<f32>,
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    ) {
+        self.arc(
+            origin as Point2D<AzFloat>,
+            radius as AzFloat,
+            start_angle as AzFloat,
+            end_angle as AzFloat,
+            anticlockwise,
+        );
+    }
+    fn bezier_curve_to(
+        &self,
+        control_point1: &Point2D<f32>,
+        control_point2: &Point2D<f32>,
+        control_point3: &Point2D<f32>,
+    ) {
+        self.bezier_curve_to(
+            control_point1 as &Point2D<AzFloat>,
+            control_point2 as &Point2D<AzFloat>,
+            control_point3 as &Point2D<AzFloat>,
+        );
+    }
+    fn close(&self) {
+        self.close();
+    }
+    fn ellipse(
+        &self,
+        origin: Point2D<f32>,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    ) {
+        self.ellipse(
+            origin as Point2D<AzFloat>,
+            radius_x as AzFloat,
+            radius_y as AzFloat,
+            rotation_angle as AzFloat,
+            start_angle as AzFloat,
+            end_angle as AzFloat,
+            anticlockwise,
+        );
+    }
+    fn get_current_point(&self) -> Point2D<f32> {
+        let AzPoint { x, y } = self.get_current_point();
+        Point2D::new(x as f32, y as f32)
+    }
+    fn line_to(&self, point: Point2D<f32>) {
+        self.line_to(point as Point2D<AzFloat>);
+    }
+    fn move_to(&self, point: Point2D<f32>) {
+        self.move_to(point as Point2D<AzFloat>);
+    }
+    fn quadratic_curve_to(&self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
+        self.quadratic_curve_to(
+            control_point as &Point2D<AzFloat>,
+            end_point as &Point2D<AzFloat>,
+        );
     }
 }
 
