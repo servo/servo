@@ -40,18 +40,9 @@ impl Tokenizer {
     }
 
     pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
-        if !input.is_empty() {
-            while let Some(chunk) = input.pop_front() {
-                self.inner.feed(chunk);
-                if let Some(script) = self.inner.sink.sink.script.take() {
-                    return Err(script);
-                }
-            }
-        } else {
-            self.inner.run();
-            if let Some(script) = self.inner.sink.sink.script.take() {
-                return Err(script);
-            }
+        self.inner.run(input);
+        if let Some(script) = self.inner.sink.sink.script.take() {
+            return Err(script);
         }
         Ok(())
     }

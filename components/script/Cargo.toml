@@ -56,7 +56,7 @@ fnv = "1.0"
 gleam = "0.6"
 headers-core = "0.0.1"
 headers-ext = "0.0.3"
-html5ever = "0.22"
+html5ever = "0.23"
 http = "0.1"
 hyper = "0.12"
 hyper_serde = "0.9"
@@ -110,7 +110,7 @@ unicode-segmentation = "1.1.0"
 url = "1.6"
 utf-8 = "0.7"
 uuid = {version = "0.7", features = ["v4"]}
-xml5ever = {version = "0.12"}
+xml5ever = {version = "0.14"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 
