@@ -1884,6 +1884,15 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_elements_css(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    selector,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {
                 webdriver_handlers::handle_focus_element(
                     &*documents,
