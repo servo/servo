@@ -12,6 +12,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// The offset-path value.
 ///
 /// https://drafts.fxtf.org/motion-1/#offset-path-property
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(
     Animate,
     Clone,
@@ -26,6 +27,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C, u8)]
 pub enum OffsetPath {
     // We could merge SVGPathData into ShapeSource, so we could reuse them. However,
     // we don't want to support other value for offset-path, so use SVGPathData only for now.
