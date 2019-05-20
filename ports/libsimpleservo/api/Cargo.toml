@@ -9,6 +9,7 @@ publish = false
 [dependencies]
 libservo = { path = "../../../components/servo" }
 log = "0.4"
+servo-media = { git = "https://github.com/servo/media" }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 libc = "0.2"
