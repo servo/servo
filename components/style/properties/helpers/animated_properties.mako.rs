@@ -9,9 +9,7 @@
     from itertools import groupby
 %>
 
-#[cfg(feature = "gecko")] use crate::gecko_bindings::structs::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use crate::gecko_bindings::structs::nsCSSPropertyID;
-#[cfg(feature = "gecko")] use crate::gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 use itertools::{EitherOrBoth, Itertools};
 use crate::properties::{CSSWideKeyword, PropertyDeclaration};
 use crate::properties::longhands;
@@ -189,13 +187,6 @@ impl AnimatedProperty {
 /// This HashMap stores the values that are the last AnimationValue to be
 /// composed for each TransitionProperty.
 pub type AnimationValueMap = FxHashMap<LonghandId, AnimationValue>;
-
-#[cfg(feature = "gecko")]
-unsafe impl HasFFI for AnimationValueMap {
-    type FFIType = RawServoAnimationValueMap;
-}
-#[cfg(feature = "gecko")]
-unsafe impl HasSimpleFFI for AnimationValueMap {}
 
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,

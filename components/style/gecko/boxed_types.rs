@@ -5,11 +5,21 @@
 //! FFI implementations for types listed in ServoBoxedTypeList.h.
 
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::properties::animated_properties::AnimationValueMap;
 use to_shmem::SharedMemoryBuilder;
 
 // TODO(heycam): The FFI impls for most of the types in ServoBoxedTypeList.h are spread across
 // various files at the moment, but should probably all move here, and use macros to define
 // them more succinctly, like we do in arc_types.rs.
+
+#[cfg(feature = "gecko")]
+unsafe impl HasFFI for AnimationValueMap {
+    type FFIType = crate::gecko_bindings::bindings::RawServoAnimationValueMap;
+}
+#[cfg(feature = "gecko")]
+unsafe impl HasSimpleFFI for AnimationValueMap {}
+#[cfg(feature = "gecko")]
+unsafe impl HasBoxFFI for AnimationValueMap {}
 
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for SharedMemoryBuilder {
