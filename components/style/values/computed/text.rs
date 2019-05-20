@@ -20,7 +20,7 @@ use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::TextAlignKeyword as TextAlign;
 pub use crate::values::specified::TextTransform;
-pub use crate::values::specified::{OverflowWrap, WordBreak};
+pub use crate::values::specified::{LineBreak, OverflowWrap, WordBreak};
 pub use crate::values::specified::{TextDecorationLine, TextEmphasisPosition};
 
 /// A computed value for the `initial-letter` property.

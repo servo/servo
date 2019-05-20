@@ -81,7 +81,7 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
 pub use self::table::XSpan;
 pub use self::text::TextTransform;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextAlign};
+pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
 pub use self::time::Time;

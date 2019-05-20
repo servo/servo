@@ -264,6 +264,16 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property",
 )}
 
+${helpers.predefined_type(
+    "line-break",
+    "LineBreak",
+    "computed::LineBreak::Auto",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text-3/#line-break-property",
+    needs_context=False,
+)}
+
 // CSS Compatibility
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(

@@ -1005,6 +1005,32 @@ pub enum WordBreak {
     BreakWord,
 }
 
+/// Values for the `line-break` property.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum LineBreak {
+    Auto,
+    /// TODO: additional values not yet implemented
+    /// Loose,
+    /// Normal,
+    /// Strict,
+    Anywhere,
+}
+
 /// Values for the `overflow-wrap` property.
 #[repr(u8)]
 #[derive(
