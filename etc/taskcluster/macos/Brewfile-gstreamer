@@ -1,3 +1,4 @@
+brew "gnutls"
 brew "gstreamer"
 brew "gst-plugins-base"
 brew "gst-libav"
