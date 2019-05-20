@@ -2337,6 +2337,14 @@ impl SourcePropertyDeclaration {
         }
     }
 
+    /// Create one with a single PropertyDeclaration.
+    #[inline]
+    pub fn with_one(decl: PropertyDeclaration) -> Self {
+        let mut result = Self::new();
+        result.declarations.push(decl);
+        result
+    }
+
     /// Similar to Vec::drain: leaves this empty when the return value is dropped.
     pub fn drain(&mut self) -> SourcePropertyDeclarationDrain {
         SourcePropertyDeclarationDrain {
