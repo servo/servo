@@ -17,7 +17,7 @@ use crate::values::specified::color::Color;
 use crate::values::specified::length::{Length, NonNegativeLength};
 #[cfg(feature = "gecko")]
 use crate::values::specified::url::SpecifiedUrl;
-use crate::values::specified::{Angle, NumberOrPercentage};
+use crate::values::specified::{Angle, Number, NumberOrPercentage};
 #[cfg(not(feature = "gecko"))]
 use crate::values::Impossible;
 use crate::Zero;
@@ -61,6 +61,10 @@ impl Factor {
                 Factor(NumberOrPercentage::Number(number.clamp_to_one()))
             },
         }
+    }
+
+    fn one() -> Self {
+        Factor(NumberOrPercentage::Number(Number::new(1.0)))
     }
 }
 
@@ -209,34 +213,61 @@ impl Parse for Filter {
         };
         input.parse_nested_block(|i| {
             match_ignore_ascii_case! { &*function,
-                "blur" => Ok(GenericFilter::Blur((Length::parse_non_negative(context, i)?).into())),
-                "brightness" => Ok(GenericFilter::Brightness(Factor::parse(context, i)?)),
-                "contrast" => Ok(GenericFilter::Contrast(Factor::parse(context, i)?)),
+                "blur" => Ok(GenericFilter::Blur(
+                    i.try(|i| NonNegativeLength::parse(context, i))
+                     .unwrap_or(Zero::zero()),
+                )),
+                "brightness" => Ok(GenericFilter::Brightness(
+                    i.try(|i| Factor::parse(context, i))
+                     .unwrap_or(Factor::one()),
+                )),
+                "contrast" => Ok(GenericFilter::Contrast(
+                    i.try(|i| Factor::parse(context, i))
+                     .unwrap_or(Factor::one()),
+                )),
                 "grayscale" => {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-grayscale
-                    Ok(GenericFilter::Grayscale(Factor::parse_with_clamping_to_one(context, i)?))
+                    Ok(GenericFilter::Grayscale(
+                        i.try(|i| Factor::parse_with_clamping_to_one(context, i))
+                         .unwrap_or(Factor::one()),
+                    ))
                 },
                 "hue-rotate" => {
                     // We allow unitless zero here, see:
                     // https://github.com/w3c/fxtf-drafts/issues/228
-                    Ok(GenericFilter::HueRotate(Angle::parse_with_unitless(context, i)?))
+                    Ok(GenericFilter::HueRotate(
+                        i.try(|i| Angle::parse_with_unitless(context, i))
+                         .unwrap_or(Zero::zero()),
+                    ))
                 },
                 "invert" => {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-invert
-                    Ok(GenericFilter::Invert(Factor::parse_with_clamping_to_one(context, i)?))
+                    Ok(GenericFilter::Invert(
+                        i.try(|i| Factor::parse_with_clamping_to_one(context, i))
+                         .unwrap_or(Factor::one()),
+                    ))
                 },
                 "opacity" => {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-opacity
-                    Ok(GenericFilter::Opacity(Factor::parse_with_clamping_to_one(context, i)?))
+                    Ok(GenericFilter::Opacity(
+                        i.try(|i| Factor::parse_with_clamping_to_one(context, i))
+                         .unwrap_or(Factor::one()),
+                    ))
                 },
-                "saturate" => Ok(GenericFilter::Saturate(Factor::parse(context, i)?)),
+                "saturate" => Ok(GenericFilter::Saturate(
+                    i.try(|i| Factor::parse(context, i))
+                     .unwrap_or(Factor::one()),
+                )),
                 "sepia" => {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-sepia
-                    Ok(GenericFilter::Sepia(Factor::parse_with_clamping_to_one(context, i)?))
+                    Ok(GenericFilter::Sepia(
+                        i.try(|i| Factor::parse_with_clamping_to_one(context, i))
+                         .unwrap_or(Factor::one()),
+                    ))
                 },
                 "drop-shadow" => Ok(GenericFilter::DropShadow(Parse::parse(context, i)?)),
                 _ => Err(location.new_custom_error(
