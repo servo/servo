@@ -566,6 +566,9 @@ install them, let us know by filing a bug!")
         if not android and self.needs_gstreamer_env(None):
             gstpath = self.get_gstreamer_path()
             os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
+            os.environ["GST_PLUGIN_SYSTEM_PATH"] = path.join(gstpath, "lib", "gstreamer-1.0")
+            os.environ["PKG_CONFIG_PATH"] = path.join(gstpath, "lib", "pkgconfig")
+            os.environ["GST_PLUGIN_SCANNER"] = path.join(gstpath, "libexec", "gstreamer-1.0", "gst-plugin-scanner")
 
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
