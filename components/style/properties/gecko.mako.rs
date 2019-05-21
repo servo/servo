@@ -718,23 +718,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_style_sides(ident)">
-    <% gecko_ffi_name = "m" + to_camel_case(ident) %>
-
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        v.to_gecko_rect(&mut self.gecko.${gecko_ffi_name});
-    }
-
-    <%self:copy_sides_style_coord ident="${ident}"></%self:copy_sides_style_coord>
-
-    #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        longhands::${ident}::computed_value::T::from_gecko_rect(&self.gecko.${gecko_ffi_name})
-            .expect("clone for ${ident} failed")
-    }
-</%def>
-
 <%def name="copy_sides_style_coord(ident)">
     <% gecko_ffi_name = "m" + to_camel_case(ident) %>
     #[allow(non_snake_case)]
@@ -989,7 +972,7 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="Border"
                   skip_longhands="${skip_border_longhands} border-image-source
-                                  border-image-repeat border-image-width">
+                                  border-image-repeat">
     % for side in SIDES:
     pub fn set_border_${side.ident}_style(&mut self, v: BorderStyle) {
         self.gecko.mBorderStyle[${side.index}] = v;
@@ -1128,8 +1111,6 @@ fn static_assert() {
         % endfor
         longhands::border_image_repeat::computed_value::T(servo_h, servo_v)
     }
-
-    <% impl_style_sides("border_image_width") %>
 </%self:impl_trait>
 
 <% skip_scroll_margin_longhands = " ".join(["scroll-margin-%s" % x.ident for x in SIDES]) %>

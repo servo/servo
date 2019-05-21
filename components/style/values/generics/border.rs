@@ -23,14 +23,17 @@ use style_traits::{CssWriter, ToCss};
     ToResolvedValue,
     ToShmem,
 )]
-pub enum BorderImageSideWidth<LengthPercentage, Number> {
+#[repr(C, u8)]
+pub enum GenericBorderImageSideWidth<LP, N> {
     /// `<length-or-percentage>`
-    Length(LengthPercentage),
+    LengthPercentage(LP),
     /// `<number>`
-    Number(Number),
+    Number(N),
     /// `auto`
     Auto,
 }
+
+pub use self::GenericBorderImageSideWidth as BorderImageSideWidth;
 
 /// A generic value for the `border-image-slice` property.
 #[derive(

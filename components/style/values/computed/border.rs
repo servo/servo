@@ -7,7 +7,7 @@
 use crate::values::computed::length::{NonNegativeLength, NonNegativeLengthPercentage};
 use crate::values::computed::{NonNegativeNumber, NonNegativeNumberOrPercentage};
 use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
-use crate::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
+use crate::values::generics::border::GenericBorderImageSideWidth;
 use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
