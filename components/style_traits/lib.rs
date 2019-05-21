@@ -152,8 +152,6 @@ pub enum StyleParseErrorKind<'i> {
 
     /// The property declaration was for an unknown property.
     UnknownProperty(CowRcStr<'i>),
-    /// An unknown vendor-specific identifier was encountered.
-    UnknownVendorProperty,
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid color value.

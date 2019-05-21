@@ -1301,11 +1301,9 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
             Ok(id) => id,
             Err(..) => {
                 self.last_parsed_property_id = None;
-                return Err(input.new_custom_error(if is_non_mozilla_vendor_identifier(&name) {
-                    StyleParseErrorKind::UnknownVendorProperty
-                } else {
+                return Err(input.new_custom_error(
                     StyleParseErrorKind::UnknownProperty(name)
-                }));
+                ));
             }
         };
         if self.context.error_reporting_enabled() {
@@ -1325,6 +1323,13 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
 }
 
 type SmallParseErrorVec<'i> = SmallVec<[(ParseError<'i>, &'i str, Option<PropertyId>); 2]>;
+
+fn alias_of_known_property(name: &str) -> Option<PropertyId> {
+    let mut prefixed = String::with_capacity(name.len() + 5);
+    prefixed.push_str("-moz-");
+    prefixed.push_str(name);
+    PropertyId::parse_enabled_for_all_content(&prefixed).ok()
+}
 
 #[cold]
 fn report_one_css_error<'i>(
@@ -1352,10 +1357,22 @@ fn report_one_css_error<'i>(
         }
     }
 
-    // If the unrecognized property looks like a vendor-specific property,
-    // silently ignore it instead of polluting the error output.
-    if let ParseErrorKind::Custom(StyleParseErrorKind::UnknownVendorProperty) = error.kind {
-        return;
+    if let ParseErrorKind::Custom(StyleParseErrorKind::UnknownProperty(ref name)) = error.kind {
+        if is_non_mozilla_vendor_identifier(name) {
+            // If the unrecognized property looks like a vendor-specific property,
+            // silently ignore it instead of polluting the error output.
+            return;
+        }
+        if let Some(alias) = alias_of_known_property(name) {
+            // This is an unknown property, but its -moz-* version is known.
+            // We don't want to report error if the -moz-* version is already
+            // specified.
+            if let Some(block) = block {
+                if all_properties_in_block(block, &alias) {
+                    return;
+                }
+            }
+        }
     }
 
     if let Some(ref property) = property {
