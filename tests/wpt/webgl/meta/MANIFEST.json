@@ -10888,7 +10888,9 @@
    "conformance/extensions/webgl-compressed-texture-s3tc.html": [
     [
      "conformance/extensions/webgl-compressed-texture-s3tc.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/extensions/webgl-compressed-texture-size-limit.html": [
@@ -27817,7 +27819,7 @@
    "testharness"
   ],
   "conformance/extensions/webgl-compressed-texture-s3tc.html": [
-   "28e3cfc5628760d1ae27166612f17ed46fa12b88",
+   "ea56180224af7537748a649a724563a86c431710",
    "testharness"
   ],
   "conformance/extensions/webgl-compressed-texture-size-limit.html": [
