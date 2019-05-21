@@ -467,6 +467,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
     }
 }
 
+#[derive(Clone)]
 enum ExtendMode {
     Azure(azure_hl::ExtendMode),
     Raqote(()),
@@ -488,6 +489,7 @@ impl ExtendMode {
     }
 }
 
+#[derive(Clone)]
 enum GradientStop {
     Azure(AzGradientStop),
     Raqote(()),
@@ -509,6 +511,7 @@ impl GradientStop {
     }
 }
 
+#[derive(Clone)]
 enum GradientStops {
     Azure(azure_hl::GradientStops),
     Raqote(()),
@@ -530,6 +533,7 @@ impl GradientStops {
     }
 }
 
+#[derive(Clone)]
 enum Color {
     Azure(azure_hl::Color),
     Raqote(()),
@@ -544,6 +548,7 @@ impl Color {
     }
 }
 
+#[derive(Clone)]
 enum CompositionOp {
     Azure(azure_hl::CompositionOp),
     Raqote(()),
@@ -558,6 +563,7 @@ impl CompositionOp {
     }
 }
 
+#[derive(Clone)]
 enum SurfaceFormat {
     Azure(azure_hl::SurfaceFormat),
     Raqote(()),
@@ -572,6 +578,7 @@ impl SurfaceFormat {
     }
 }
 
+#[derive(Clone)]
 enum SourceSurface {
     Azure(azure_hl::SourceSurface),
     Raqote(()),
@@ -586,6 +593,7 @@ impl SourceSurface {
     }
 }
 
+#[derive(Clone)]
 enum IntSize {
     Azure(AzIntSize),
     Raqote(()),
@@ -600,6 +608,7 @@ impl IntSize {
     }
 }
 
+#[derive(Clone)]
 enum Path {
     Azure(azure_hl::Path),
     Raqote(()),
@@ -614,11 +623,13 @@ impl Path {
     }
 }
 
+#[derive(Clone)]
 enum Pattern {
     Azure(azure_hl::Pattern),
     Raqote(()),
 }
 
+#[derive(Clone)]
 enum PatternRef<'a> {
     Azure(azure_hl::PatternRef<'a>),
     Raqote(()),
@@ -649,6 +660,7 @@ impl Pattern {
     }
 }
 
+#[derive(Clone)]
 enum DrawOptions {
     Azure(azure_hl::DrawOptions),
     Raqote(()),
@@ -663,6 +675,7 @@ impl DrawOptions {
     }
 }
 
+#[derive(Clone)]
 enum StrokeOptions<'a> {
     Azure(azure_hl::StrokeOptions<'a>),
     Raqote(()),
@@ -703,7 +716,7 @@ impl<'a> CanvasData<'a> {
         CanvasData {
             drawtarget: draw_target,
             path_state: None,
-            state: CanvasPaintState::new(antialias),
+            state: CanvasPaintState::new(antialias, CanvasBackend::Azure),
             saved_states: vec![],
             webrender_api: webrender_api,
             image_key: None,
@@ -1236,7 +1249,7 @@ impl<'a> CanvasData<'a> {
 
     pub fn recreate(&mut self, size: Size2D<u32>) {
         self.drawtarget = CanvasData::create(Size2D::new(size.width as u64, size.height as u64));
-        self.state = CanvasPaintState::new(self.state.draw_options.antialias);
+        self.state = CanvasPaintState::new(self.state.draw_options.antialias, CanvasBackend::Azure);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
         // TODO: there is an annying race condition here: the display list builder
@@ -1423,38 +1436,56 @@ impl<'a> Drop for CanvasData<'a> {
     }
 }
 
+enum CanvasBackend {
+    Azure,
+    Raqote,
+}
+
 #[derive(Clone)]
 struct CanvasPaintState<'a> {
-    draw_options: azure_hl::DrawOptions,
-    fill_style: azure_hl::Pattern,
-    stroke_style: azure_hl::Pattern,
-    stroke_opts: azure_hl::StrokeOptions<'a>,
+    draw_options: DrawOptions,
+    fill_style: Pattern,
+    stroke_style: Pattern,
+    stroke_opts: StrokeOptions<'a>,
     /// The current 2D transform matrix.
     transform: Transform2D<f32>,
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
-    shadow_color: azure_hl::Color,
+    shadow_color: Color,
 }
 
 impl<'a> CanvasPaintState<'a> {
-    fn new(antialias: AntialiasMode) -> CanvasPaintState<'a> {
-        CanvasPaintState {
-            draw_options: azure_hl::DrawOptions::new(1.0, azure_hl::CompositionOp::Over, antialias),
-            fill_style: azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black())),
-            stroke_style: azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black())),
-            stroke_opts: azure_hl::StrokeOptions::new(
-                1.0,
-                JoinStyle::MiterOrBevel,
-                CapStyle::Butt,
-                10.0,
-                &[],
-            ),
-            transform: Transform2D::identity(),
-            shadow_offset_x: 0.0,
-            shadow_offset_y: 0.0,
-            shadow_blur: 0.0,
-            shadow_color: azure_hl::Color::transparent(),
+    fn new(antialias: AntialiasMode, backend: CanvasBackend) -> CanvasPaintState<'a> {
+        match backend {
+            CanvasBackend::Azure => CanvasPaintState {
+                draw_options: DrawOptions::Azure(azure_hl::DrawOptions::new(1.0, azure_hl::CompositionOp::Over, antialias)),
+                fill_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black()))),
+                stroke_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black()))),
+                stroke_opts: StrokeOptions::Azure(azure_hl::StrokeOptions::new(
+                    1.0,
+                    JoinStyle::MiterOrBevel,
+                    CapStyle::Butt,
+                    10.0,
+                    &[],
+                    )),
+                    transform: Transform2D::identity(),
+                    shadow_offset_x: 0.0,
+                    shadow_offset_y: 0.0,
+                    shadow_blur: 0.0,
+                    shadow_color: Color::Azure(azure_hl::Color::transparent()),
+            },
+            CanvasBackend::Raqote => CanvasPaintState {
+                draw_options: DrawOptions::Raqote(()),
+                fill_style: Pattern::Raqote(()),
+                stroke_style: Pattern::Raqote(()),
+                stroke_opts: StrokeOptions::Raqote(()),
+                transform: Transform2D::identity(),
+                shadow_offset_x: 0.0,
+                shadow_offset_y: 0.0,
+                shadow_blur: 0.0,
+                shadow_color: Color::Raqote(()),
+            }
         }
     }
 }
