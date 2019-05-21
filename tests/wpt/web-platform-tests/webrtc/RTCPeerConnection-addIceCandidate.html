@@ -163,12 +163,24 @@ a=rtcp-rsize
     t.add_cleanup(() => pc.close());
 
     await pc.setRemoteDescription(sessionDesc);
-    await pc.addIceCandidate();
+    await pc.addIceCandidate(init);
     assert_candidate_line_between(pc.remoteDescription.sdp,
       mediaLine1, endOfCandidateLine, mediaLine2);
     assert_candidate_line_after(pc.remoteDescription.sdp,
       mediaLine2, endOfCandidateLine);
   }, `addIceCandidate(${JSON.stringify(init)}) should work, and add a=end-of-candidates to both m-sections`));
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.setLocalDescription(await pc.createAnswer());
+    await pc.addIceCandidate({});
+    assert_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2);
+    assert_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine);
+  }, 'addIceCandidate({}) in stable should work, and add a=end-of-candidates to both m-sections');
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();

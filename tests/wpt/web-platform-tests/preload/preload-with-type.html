@@ -1,10 +1,10 @@
 <!DOCTYPE html>
+<title>Makes sure that preloaded resources with a type attribute trigger the onload event</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
 <script src="/common/media.js"></script>
 <script>
-    var t = async_test('Makes sure that preloaded resources with a type attribute trigger the onload event');
     var scriptLoaded = false;
     var styleLoaded = false;
     var imageLoaded = false;
@@ -48,9 +48,18 @@
 <link rel=preload href="resources/foo.vtt" as=track type="text/foobar" onload="gibberishLoaded++;">
 <body>
 <script>
-    window.onload = t.step_func(function() {
-        t.step_timeout(function() {
-            verifyPreloadAndRTSupport();
+    setup({explicit_done: true});
+
+    var iterations = 0;
+
+    function check_finished() {
+        if (styleLoaded && scriptLoaded && imageLoaded && fontLoaded && videoLoaded && audioLoaded &&
+            trackLoaded && gibberishLoaded == 0) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
             assert_true(styleLoaded, "style triggered load event");
             assert_true(scriptLoaded, "script triggered load event");
             assert_true(imageLoaded, "image triggered load event");
@@ -59,8 +68,15 @@
             assert_true(audioLoaded, "audio triggered load event");
             assert_true(trackLoaded, "track triggered load event");
             assert_equals(gibberishLoaded, 0, "resources with gibberish type should not be loaded");
-            t.done();
-        }, 5000);
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
+        verifyPreloadAndRTSupport();
+        step_timeout(check_finished, 500);
     });
 </script>
 </body>

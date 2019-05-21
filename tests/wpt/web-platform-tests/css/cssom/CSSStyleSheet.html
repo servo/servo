@@ -38,6 +38,32 @@
         assert_equals(styleSheet.cssRules[2], undefined, "CSSStyleSheet cssRules attribute after deleteRule function");
         assert_equals(styleSheet.cssRules[0].randomProperty, 1, "[SameObject] cssRules attribute after deleteRule function");
         assert_equals(styleSheet.cssRules[1].randomProperty, 2, "[SameObject] cssRules attribute after deleteRule function");
+
+        styleSheet.removeRule();
+        assert_equals(styleSheet.cssRules.length, 1, "CSSStyleSheet cssRules attribute after removeRule function");
+        assert_equals(styleSheet.cssRules[0].cssText, "#foo { height: 100px; }", "CSSStyleSheet cssRules attribute after removeRule function");
+
+        assert_equals(styleSheet.addRule("@media all", "#foo { color: red }"), -1);
+        assert_equals(styleSheet.cssRules.length, 2, "CSSStyleSheet cssRules attribute after addRule function");
+        assert_true(styleSheet.cssRules[1] instanceof CSSMediaRule, "CSSStyleSheet addRule does some silly string concatenation");
+
+        styleSheet.removeRule(1);
+        assert_equals(styleSheet.cssRules.length, 1, "CSSStyleSheet cssRules attribute after removeRule function with index");
+        assert_equals(styleSheet.cssRules[0].cssText, "#foo { height: 100px; }", "CSSStyleSheet cssRules attribute after deleteRule function with index");
+
+        assert_equals(styleSheet.addRule("#foo", "color: red"), -1);
+        assert_equals(styleSheet.cssRules.length, 2, "CSSStyleSheet cssRules attribute after addRule function with simple selector");
+        assert_equals(styleSheet.cssRules[1].cssText, "#foo { color: red; }", "CSSStyleSheet cssRules attribute after addRule function without index appends to the end");
+
+        assert_equals(styleSheet.addRule("#foo", "color: blue", 0), -1);
+        assert_equals(styleSheet.cssRules.length, 3, "CSSStyleSheet cssRules attribute after addRule function with simple selector with index");
+        assert_equals(styleSheet.cssRules[0].cssText, "#foo { color: blue; }", "addRule function with index performs an insertion");
+
+        assert_equals(styleSheet.addRule(), -1);
+        assert_equals(styleSheet.cssRules.length, 4, "CSSStyleSheet cssRules attribute after addRule function without arguments");
+        assert_equals(styleSheet.cssRules[3].cssText, "undefined { }", "addRule arguments default to undefined");
+
+        assert_equals(styleSheet.cssRules, styleSheet.rules, "CSSStyleSheet.rules returns the same object as CSSStyleSheet.cssRules");
     });
     </script>
 </head>

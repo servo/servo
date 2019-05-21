@@ -11,8 +11,8 @@
 <script>
 'use strict';
 
-// Test that each property defined in the Animation interface does not produce
-// style change events.
+// Test that each property defined in the Animation interface behaves as
+// expected with regards to whether or not it produces style change events.
 //
 // There are two types of tests:
 //
@@ -29,8 +29,9 @@
 //     (b) An object with the following format:
 //
 //         {
-//            setup: elem => { /* return Animation */ }
-//            test: animation => { /* play |animation| */ }
+//            setup: elem => { /* return Animation */ },
+//            test: animation => { /* play |animation| */ },
+//            shouldFlush: boolean /* optional, defaults to false */
 //         }
 //
 //     If the latter form is used, the setup function should return an Animation
@@ -56,15 +57,17 @@
 //    animation, but simply needs to get/set the property under test.
 
 const PlayAnimationTest = testFuncOrObj => {
-  let test, setup;
+  let test, setup, shouldFlush;
 
   if (typeof testFuncOrObj === 'function') {
     test = testFuncOrObj;
+    shouldFlush = false;
   } else {
     test = testFuncOrObj.test;
     if (typeof testFuncOrObj.setup === 'function') {
       setup = testFuncOrObj.setup;
     }
+    shouldFlush = !!testFuncOrObj.shouldFlush;
   }
 
   if (!setup) {
@@ -74,11 +77,11 @@ const PlayAnimationTest = testFuncOrObj => {
       );
   }
 
-  return { test, setup };
+  return { test, setup, shouldFlush };
 };
 
 const UsePropertyTest = testFuncOrObj => {
-  const { setup, test } = PlayAnimationTest(testFuncOrObj);
+  const { setup, test, shouldFlush } = PlayAnimationTest(testFuncOrObj);
 
   let coveringAnimation;
   return {
@@ -93,6 +96,7 @@ const UsePropertyTest = testFuncOrObj => {
       test(animation);
       coveringAnimation.play();
     },
+    shouldFlush,
   };
 };
 
@@ -160,6 +164,7 @@ const tests = {
   }),
   playState: UsePropertyTest(animation => animation.playState),
   pending: UsePropertyTest(animation => animation.pending),
+  replaceState: UsePropertyTest(animation => animation.replaceState),
   ready: UsePropertyTest(animation => animation.ready),
   finished: UsePropertyTest(animation => {
     // Get the finished Promise
@@ -171,6 +176,13 @@ const tests = {
 
     // Set the onfinish menber
     animation.onfinish = () => {};
+  }),
+  onremove: UsePropertyTest(animation => {
+    // Get the onremove member
+    animation.onremove;
+
+    // Set the onremove menber
+    animation.onremove = () => {};
   }),
   oncancel: UsePropertyTest(animation => {
     // Get the oncancel member
@@ -225,6 +237,51 @@ const tests = {
       animation.reverse();
     },
   }),
+  persist: PlayAnimationTest({
+    setup: async elem => {
+      // Create an animation whose replaceState is 'removed'.
+      const animA = elem.animate(
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      const animB = elem.animate(
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      await animA.finished;
+      animB.cancel();
+
+      return animA;
+    },
+    test: animation => {
+      animation.persist();
+    },
+  }),
+  commitStyles: PlayAnimationTest({
+    setup: async elem => {
+      // Create an animation whose replaceState is 'removed'.
+      const animA = elem.animate(
+        // It's important to use opacity of '1' here otherwise we'll create a
+        // transition due to updating the specified style whereas the transition
+        // we want to detect is the one from flushing due to calling
+        // commitStyles.
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      const animB = elem.animate(
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      await animA.finished;
+      animB.cancel();
+
+      return animA;
+    },
+    test: animation => {
+      animation.commitStyles();
+    },
+    shouldFlush: true,
+  }),
   get ['Animation constructor']() {
     let originalElem;
     return UsePropertyTest({
@@ -266,7 +323,7 @@ test(() => {
 for (const key of properties) {
   promise_test(async t => {
     assert_own_property(tests, key, `Should have a test for '${key}' property`);
-    const { setup, test } = tests[key];
+    const { setup, test, shouldFlush } = tests[key];
 
     // Setup target element
     const div = createDiv(t);
@@ -276,7 +333,7 @@ for (const key of properties) {
     });
 
     // Setup animation
-    const animation = setup(div);
+    const animation = await setup(div);
 
     // Setup transition start point
     div.style.transition = 'opacity 100s';
@@ -291,17 +348,24 @@ for (const key of properties) {
     // If the test function produced a style change event it will have triggered
     // a transition.
 
-    // Wait for the animation to start and then for at least one animation
-    // frame to give the transitionrun event a chance to be dispatched.
+    // Wait for the animation to start and then for at least two animation
+    // frames to give the transitionrun event a chance to be dispatched.
     assert_true(
       typeof animation.ready !== 'undefined',
       'Should have a valid animation to wait on'
     );
     await animation.ready;
-    await waitForAnimationFrames(1);
+    await waitForAnimationFrames(2);
 
-    assert_false(gotTransition, 'A transition should NOT have been triggered');
-  }, `Animation.${key} does NOT trigger a style change event`);
+    if (shouldFlush) {
+      assert_true(gotTransition, 'A transition should have been triggered');
+    } else {
+      assert_false(
+        gotTransition,
+        'A transition should NOT have been triggered'
+      );
+    }
+  }, `Animation.${key} produces expected style change events`);
 }
 </script>
 </body>

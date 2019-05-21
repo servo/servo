@@ -98,7 +98,7 @@ promise_test(async t => {
   iceTransport.gather({});
   let candidate;
   do {
-    ({ candidate } = await watcher.wait_for('icecandidate'));
+    (({ candidate } = await watcher.wait_for('icecandidate')));
   } while (candidate !== null);
   assert_equals(iceTransport.gatheringState, 'gathering');
   await watcher.wait_for('gatheringstatechange');

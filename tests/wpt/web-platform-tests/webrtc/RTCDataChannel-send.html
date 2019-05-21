@@ -300,6 +300,7 @@
 
 promise_test(async t => {
   let pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
   let [channel1, channel2] = await createDataChannelPair(pc1);
   let message = 'hello888'; // 8 bytes
   while (message.length <= pc1.sctp.maxMessageSize) {

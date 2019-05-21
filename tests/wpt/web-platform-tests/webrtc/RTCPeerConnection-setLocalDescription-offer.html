@@ -171,4 +171,25 @@
     await pc1.setLocalDescription(offer);
   }, "Setting previously generated offer after a call to createAnswer should work");
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    await pc1.setLocalDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+
+    assert_equals(pc1.getTransceivers().length, 1);
+    assert_equals(pc1.getTransceivers()[0].receiver.track.kind, "audio");
+    assert_equals(pc2.getTransceivers().length, 1);
+    assert_equals(pc2.getTransceivers()[0].receiver.track.kind, "audio");
+  }, "Negotiation works when there has been a repeated setLocalDescription(offer)");
+
 </script>

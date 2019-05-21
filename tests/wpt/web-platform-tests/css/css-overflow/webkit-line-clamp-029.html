@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp and scrollable items</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-029-ref.html">
+<meta name="assert" content="-webkit-line-clamp should apply to flex items that are scrollable.">
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font: 16px / 32px monospace;
+  white-space: pre;
+  background-color: yellow;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+}
+.child {
+  overflow: hidden;
+}
+</style>
+<div class="clamp"><div class="child">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div></div>
+<p>Following content.</p>

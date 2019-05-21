@@ -223,4 +223,35 @@ promise_test(async t => {
 }, 'Playback events with the same timeline retain the order in which they are' +
    'queued');
 
+promise_test(async t => {
+  const div = createDiv(t);
+
+  // Create two animations with separate timelines
+
+  const timelineA = document.timeline;
+  const animA = div.animate(null, 100 * MS_PER_SEC);
+
+  const timelineB = new DocumentTimeline();
+  const animB = new Animation(
+    new KeyframeEffect(div, null, 100 * MS_PER_SEC),
+    timelineB
+  );
+  animB.play();
+
+  animA.currentTime = 99.9 * MS_PER_SEC;
+  animB.currentTime = 99.9 * MS_PER_SEC;
+
+  // When the next tick happens both animations should be updated, and we will
+  // notice that they are now finished. As a result their finished promise
+  // callbacks should be queued. All of that should happen before we run the
+  // next microtask checkpoint and actually run the promise callbacks and
+  // hence the calls to cancel should not stop the existing callbacks from
+  // being run.
+
+  animA.finished.then(() => { animB.cancel() });
+  animB.finished.then(() => { animA.cancel() });
+
+  await Promise.all([animA.finished, animB.finished]);
+}, 'All timelines are updated before running microtasks');
+
 </script>

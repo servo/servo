@@ -75,7 +75,7 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
   [SameObject] readonly attribute XRSession session;
 
   XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
-  XRPose? getPose(XRSpace sourceSpace, XRSpace destinationSpace);
+  XRPose? getPose(XRSpace space, XRSpace baseSpace);
 };
 
 [SecureContext, Exposed=Window] interface XRSpace : EventTarget {

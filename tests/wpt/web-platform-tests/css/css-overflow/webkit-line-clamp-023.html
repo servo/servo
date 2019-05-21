@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: Dynamically changing contents of a -webkit-line-clamp affected element</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-023-ref.html">
+<meta name="assert" content="Dynamically changing contents of a -webkit-line-clamp element so that it matches the specified number of lines should stop clamping.">
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>
+<p>Following content.</p>
+<script>
+window.onload = function() {
+  document.querySelector(".clamp").textContent = `Line 1
+Line 2
+Line 3`;
+  document.documentElement.className = "";
+};
+</script>

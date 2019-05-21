@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Font Loading reference: modification of descriptors</title>
+<style>
+@font-face { font-family: test; src: url(resources/GenR102.woff2); }
+@font-face { font-family: test; font-style:italic; src: url(resources/GenI102.woff2); }
+body { font-family: sans-serif; }
+.test { font-family: test, sans-serif; }
+</style>
+<body>
+<div>
+All lines below should use the same serif font, with the word "weight" in italics:
+<p class=test>Using original family name of a FontFace</p>
+<p class=test>Using updated family name of a FontFace</p>
+<p class=test>Using updated <i>weight</i> descriptors</p>
+<p class=test>Using updated unicode-range descriptors</p>
+</div>
+</body>

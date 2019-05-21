@@ -15,7 +15,7 @@ async_test(function(t) {
         assert_equals(cues[1].startTime, 31);
         assert_equals(cues[2].startTime, 61);
         assert_equals(cues.getCueById("4").startTime, 121);
-        assert_object_equals(cues.getCueById("junk"), undefined);
+        assert_equals(cues.getCueById("junk"), null);
 
         // Create a new cue, check values.
         var textCue = new VTTCue(33, 3.4, "Sausage?");
