@@ -193,7 +193,7 @@ function main() {
     elif [[ "${1}" == "cleanup" ]]; then
         cleanup
 
-    else
+    elif [[ "${1}" != "fetch-upstream-changes" ]]; then
         usage
     fi
 }
