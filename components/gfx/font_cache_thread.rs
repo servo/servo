@@ -90,6 +90,7 @@ impl FontTemplates {
     pub fn add_template(&mut self, identifier: Atom, maybe_data: Option<Vec<u8>>) {
         for template in &self.templates {
             if *template.identifier() == identifier {
+                info!("found existing template matching {:?}; ignoring", identifier);
                 return;
             }
         }
