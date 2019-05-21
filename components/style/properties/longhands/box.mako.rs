@@ -309,41 +309,6 @@ ${helpers.predefined_type(
     allowed_in_keyframe_block=False,
 )}
 
-% for axis in ["x", "y"]:
-    ${helpers.predefined_type(
-        "scroll-snap-points-" + axis,
-        "ScrollSnapPoint",
-        "computed::ScrollSnapPoint::none()",
-        animation_value_type="discrete",
-        gecko_pref="layout.css.scroll-snap.enabled",
-        products="gecko",
-        spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)",
-    )}
-% endfor
-
-${helpers.predefined_type(
-    "scroll-snap-destination",
-    "Position",
-    "computed::Position::zero()",
-    products="gecko",
-    gecko_pref="layout.css.scroll-snap.enabled",
-    boxed=True,
-    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-    animation_value_type="discrete",
-)}
-
-${helpers.predefined_type(
-    "scroll-snap-coordinate",
-    "Position",
-    "computed::Position::zero()",
-    vector=True,
-    allow_empty=True,
-    products="gecko",
-    gecko_pref="layout.css.scroll-snap.enabled",
-    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-    animation_value_type="discrete",
-)}
-
 <% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
 
 ${helpers.predefined_type(
