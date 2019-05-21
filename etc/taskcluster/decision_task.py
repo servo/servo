@@ -88,13 +88,13 @@ def main(task_for):
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
-        with_rust_nightly()
-        linux_nightly()
-        android_nightly()
-        windows_nightly()
-        macos_nightly()
+        #with_rust_nightly()
+        #linux_nightly()
+        #android_nightly()
+        #windows_nightly()
+        #macos_nightly()
         update_wpt()
-        magicleap_nightly()
+        #magicleap_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -476,7 +476,7 @@ def macos_nightly():
 
 def update_wpt():
     # Reuse the release build that was made for landing the PR
-    build_task = macos_release_build()
+    build_task = decisionlib.Task.find("build.macos_x64_release.56f2d418af42ff1f5e82b3cbe6104bfe1c415f4e")
     update_task = (
         macos_task("WPT update")
         .with_python2()
@@ -496,7 +496,7 @@ def update_wpt():
         .with_script("""
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
             tar -xzf target.tar.gz
-            ./etc/ci/update-wpt-checkout fetch-and-update-expectations
+            ./etc/ci/update-wpt-checkout fetch-upstream-changes
             ./etc/ci/update-wpt-checkout open-pr
             ./etc/ci/update-wpt-checkout cleanup
         """)
@@ -518,6 +518,7 @@ def macos_release_build():
                 target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
         """)
         .with_artifacts("repo/target.tar.gz")
+        .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
     )
 
