@@ -117,12 +117,12 @@ build_env = {
     "CARGO_INCREMENTAL": "0",
 }
 unix_build_env = {
-    "CCACHE": "sccache",
-    "RUSTC_WRAPPER": "sccache",
-    "SCCACHE_IDLE_TIMEOUT": "1200",
 }
 linux_build_env = {
     "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
+    "CCACHE": "sccache",
+    "RUSTC_WRAPPER": "sccache",
+    "SCCACHE_IDLE_TIMEOUT": "1200",
 }
 macos_build_env = {}
 windows_build_env = {
