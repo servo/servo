@@ -71,12 +71,15 @@ impl FontTemplateData {
     pub fn ctfont(&self, pt_size: f64) -> Option<CTFont> {
         let mut ctfonts = self.ctfont.lock().unwrap();
         let pt_size_key = Au::from_f64_px(pt_size);
+        info!("getting font for {:?} with {}", self.identifier, pt_size);
         if !ctfonts.contains_key(&pt_size_key) {
             // If you pass a zero font size to one of the Core Text APIs, it'll replace it with
             // 12.0. We don't want that! (Issue #10492.)
             let clamped_pt_size = pt_size.max(0.01);
+            info!("instantiating font for {:?} and {}", self.identifier, clamped_pt_size);
             let ctfont = match self.font_data {
                 Some(ref bytes) => {
+                    info!("getting cgfont from bytes");
                     let fontprov = CGDataProvider::from_buffer(bytes.clone());
                     let cgfont_result = CGFont::from_data_provider(fontprov);
                     match cgfont_result {
@@ -86,7 +89,10 @@ impl FontTemplateData {
                         Err(_) => None,
                     }
                 },
-                None => core_text::font::new_from_name(&*self.identifier, clamped_pt_size).ok(),
+                None => {
+                    info!("getting ctfont from name");
+                    core_text::font::new_from_name(&*self.identifier, clamped_pt_size).ok()
+                }
             };
             if let Some(ctfont) = ctfont {
                 ctfonts.insert(pt_size_key, ctfont);
@@ -116,6 +122,7 @@ impl FontTemplateData {
         .as_url()
         .to_file_path()
         .expect("Core Text font didn't name a path!");
+        info!("getting bytes for {:?} from {:?}", self.identifier, path.display());
         let mut bytes = Vec::new();
         File::open(path)
             .expect("Couldn't open font file!")
