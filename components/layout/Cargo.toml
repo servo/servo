@@ -24,7 +24,7 @@ fnv = "1.0"
 fxhash = "0.2"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-html5ever = "0.22"
+html5ever = "0.23"
 ipc-channel = "0.11"
 libc = "0.2"
 log = "0.4"
