@@ -427,7 +427,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             self.with_early_script("set PATH=%HOMEDRIVE%%HOMEPATH%\\{};%PATH%".format(p))
         return self
 
-    def with_repo(self, sparse_checkout=None, depth=None):
+    def with_repo(self, sparse_checkout=None, shallow=True):
         """
         Make a shallow clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
@@ -437,8 +437,6 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         to be used in `.git/info/sparse-checkout`.
         See <https://git-scm.com/docs/git-read-tree#_sparse_checkout>.
         """
-        if not depth:
-            depth = 1
         git = """
             git init repo
             cd repo
@@ -454,9 +452,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 type .git\\info\\sparse-checkout
             """
         git += """
-            git fetch --depth {depth} %GIT_URL% %GIT_REF%
+            git fetch {depth} %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%
-        """.format(depth=depth)
+        """.format(depth="--depth 1" if shallow else "")
         return self \
         .with_git() \
         .with_script(git) \
@@ -562,7 +560,7 @@ class UnixTaskMixin(Task):
         super().__init__(*args, **kwargs)
         self.curl_scripts_count = 0
 
-    def with_repo(self, depth=None):
+    def with_repo(self, shallow=True):
         """
         Make a shallow clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`
@@ -575,16 +573,14 @@ class UnixTaskMixin(Task):
           `git` and `ca-certificate` need to be installed in the Docker image.
 
         """
-        if not depth:
-            depth = 1
         return self \
         .with_env(**git_env()) \
         .with_early_script("""
             git init repo
             cd repo
-            git fetch --depth {depth} "$GIT_URL" "$GIT_REF"
+            git fetch {depth} "$GIT_URL" "$GIT_REF"
             git reset --hard "$GIT_SHA"
-        """.format(depth=depth))
+        """.format(depth="--depth 1" if shallow else ""))
 
     def with_curl_script(self, url, file_path):
         self.curl_scripts_count += 1
