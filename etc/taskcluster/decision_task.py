@@ -490,7 +490,8 @@ def update_wpt():
             "etc/taskcluster/macos/Brewfile-wpt",
             "etc/taskcluster/macos/Brewfile-gstreamer",
         ])
-        .with_repo()
+        # Pushing the new changes to the git remote requires a full repo clone.
+        .with_repo(shallow=False)
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
