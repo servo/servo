@@ -13,9 +13,7 @@ use std::fs;
 use std::io;
 use std::path;
 use syntax::ast;
-use webidl::ast::*;
-use webidl::visitor::*;
-use webidl::*;
+use weedle;
 
 declare_lint!(
     WEBIDL_INHERIT_CORRECT,
@@ -96,10 +94,22 @@ fn is_webidl_ty(symbols: &crate::Symbols, cx: &LateContext, ty: &ty::TyS) -> boo
 }
 
 fn check_inherits(code: &str, name: &str, parent_name: &str) -> Result<(), Box<Error>> {
-    let idl = parse_string(code)?;
-    let mut visitor = InterfaceVisitor::new(name.to_string());
-    visitor.visit(&idl);
-    let inherits = visitor.get_inherits();
+    let idl = weedle::parse(code).expect("Invalid webidl provided");
+    let mut inherits = "";
+
+    for def in idl {
+        if let weedle::Definition::Interface(def) = def {
+            if let Some(parent) = def.inheritance {
+                inherits = parent.identifier.0;
+                break;
+            }
+        } else if let weedle::Definition::CallbackInterface(def) = def {
+            if let Some(parent) = def.inheritance {
+                inherits = parent.identifier.0;
+                break;
+            }
+        }
+    }
 
     if inherits == parent_name {
         return Ok(());
@@ -184,41 +194,5 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for WebIdlPass {
                 cx.span_lint(WEBIDL_INHERIT_CORRECT, item.ident.span, &description)
             },
         };
-    }
-}
-
-struct InterfaceVisitor {
-    name: String,
-    inherits: String,
-}
-
-impl InterfaceVisitor {
-    pub fn new(name: String) -> Self {
-        InterfaceVisitor {
-            name: name,
-            inherits: String::new(),
-        }
-    }
-
-    pub fn get_inherits(&self) -> &String {
-        &self.inherits
-    }
-}
-
-impl<'ast> ImmutableVisitor<'ast> for InterfaceVisitor {
-    fn visit_callback_interface(&mut self, callback_interface: &'ast CallbackInterface) {
-        if callback_interface.name == self.name {
-            if let Some(ref inherit) = callback_interface.inherits {
-                self.inherits = inherit.to_string()
-            }
-        }
-    }
-
-    fn visit_non_partial_interface(&mut self, non_partial_interface: &'ast NonPartialInterface) {
-        if non_partial_interface.name == self.name {
-            if let Some(ref inherit) = non_partial_interface.inherits {
-                self.inherits = inherit.to_string()
-            }
-        }
     }
 }
