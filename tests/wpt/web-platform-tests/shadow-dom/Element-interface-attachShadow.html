@@ -53,30 +53,30 @@ test(function () {
 }, 'Element.attachShadow must create an instance of ShadowRoot');
 
 test(function () {
-    assert_throws({'name': 'InvalidStateError'}, function () {
+    assert_throws({'name': 'NotSupportedError'}, function () {
         var div = document.createElement('div');
         div.attachShadow({mode: "open"});
         div.attachShadow({mode: "open"});
     }, 'Calling attachShadow({mode: "open"}) twice on the same element must throw');
 
-    assert_throws({'name': 'InvalidStateError'}, function () {
+    assert_throws({'name': 'NotSupportedError'}, function () {
         var div = document.createElement('div');
         div.attachShadow({mode: "closed"});
         div.attachShadow({mode: "closed"});
     }, 'Calling attachShadow({mode: "closed"}) twice on the same element must throw');
 
-    assert_throws({'name': 'InvalidStateError'}, function () {
+    assert_throws({'name': 'NotSupportedError'}, function () {
         var div = document.createElement('div');
         div.attachShadow({mode: "open"});
         div.attachShadow({mode: "closed"});
     }, 'Calling attachShadow({mode: "closed"}) after attachShadow({mode: "open"}) on the same element must throw');
 
-    assert_throws({'name': 'InvalidStateError'}, function () {
+    assert_throws({'name': 'NotSupportedError'}, function () {
         var div = document.createElement('div');
         div.attachShadow({mode: "closed"});
         div.attachShadow({mode: "open"});
     }, 'Calling attachShadow({mode: "open"}) after attachShadow({mode: "closed"}) on the same element must throw');
-}, 'Element.attachShadow must throw a InvalidStateError if the context object already hosts a shadow tree');
+}, 'Element.attachShadow must throw a NotSupportedError if the context object already hosts a shadow tree');
 
 test(function () {
     for (var elementName of ATTACHSHADOW_DISALLOWED_ELEMENTS) {

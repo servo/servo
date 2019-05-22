@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>JSON modules: invalid Content-Type</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+const content_types = [
+  "application/json+protobuf",
+  "application/json+blah",
+  "text/x-json",
+  "text/json+blah",
+  "application/blahjson",
+  "image/json",
+];
+for (const content_type of content_types) {
+  async_test(t => {
+    const script = document.createElement("script");
+    script.onerror = t.step_func_done();
+    script.onload = t.unreached_func("Should not load");
+    script.type = "module";
+    script.src = `module.json?pipe=header(Content-Type,${content_type})`;
+    document.body.appendChild(script);
+  }, content_type);
+}
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>JSON modules: UTF-8 decoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function check(t, v) {
+  t.step(() => {
+    assert_equals(typeof v, "object");
+    assert_array_equals(Object.keys(v), ["test"]);
+    assert_equals(v.test, "\u2026");
+    t.done();
+  });
+}
+const t1 = async_test("utf-8");
+const t2 = async_test("shift-jis");
+const t3 = async_test("windows-1252");
+const t4 = async_test("utf-7");
+</script>
+<script type="module" onerror="t1.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/utf8.json&ct=text/json%3Bcharset=utf-8";
+check(t1, v);
+</script>
+<script type="module" onerror="t2.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/utf8.json&ct=text/json%3Bcharset=shift-jis";
+check(t2, v);
+</script>
+<script type="module" onerror="t3.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/utf8.json&ct=text/json%3Bcharset=windows-1252";
+check(t3, v);
+</script>
+<script type="module" onerror="t4.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/utf8.json&ct=text/json%3Bcharset=utf-7";
+check(t4, v);
+</script>

@@ -53,6 +53,7 @@ var miscElements = {
 
   // Global attributes should exist even on unknown elements
   undefinedelement: {
+    enterKeyHint: {type: "enum", keywords: ["enter", "done", "go", "next", "previous", "search", "send"]},
     inputMode: {type: "enum", keywords: ["none", "text", "tel", "url", "email", "numeric", "decimal", "search"]},
   },
 };

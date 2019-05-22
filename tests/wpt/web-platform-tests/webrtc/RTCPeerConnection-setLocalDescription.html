@@ -125,6 +125,7 @@
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const offer = await pc.createOffer();
     let eventSequence = '';
     const signalingstatechangeResolver = new Resolver();

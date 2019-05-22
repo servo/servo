@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-margin" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0px;
+}
+#scroller {
+  height: 500px;
+  width: 500px;
+  overflow: hidden;
+  scroll-snap-type: both mandatory;
+}
+#target {
+  width: 300px;
+  height: 300px;
+  background-color: blue;
+}
+#another-target {
+  width: 300px;
+  height: 300px;
+  top: 400px;
+  left: 400px;
+  background-color: blue;
+  scroll-snap-align: start;
+}
+</style>
+
+<div id="scroller">
+  <div style="width: 2000px; height: 2000px;"></div>
+  <div id="target"></div>
+  <div id="another-target"></div>
+</div>
+
+<script>
+test(() => {
+  target.style.scrollSnapAlign = "start";
+  target.style.scrollMargin = "100px";
+  target.style.left = "300px";
+  target.style.top = "300px";
+
+  scroller.scrollTo(0, 0);
+  // `target position (300px, 300px)` - `margin (100px, 100px)`.
+  assert_equals(scroller.scrollLeft, 200);
+  assert_equals(scroller.scrollTop, 200);
+
+  target.style.scrollSnapAlign = "end";
+
+  // `target position (300px, 300px)` + `target size (300px, 300px) +
+  // `margin (100px, 100px) - `scroller size (500px, 500px)`.
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 200);
+  assert_equals(scroller.scrollTop, 200);
+}, "Snaps to the positions adjusted by scroll-margin");
+
+test(() => {
+  target.style.left = "0px";
+  target.style.top = "0px";
+
+  target.style.scrollSnapAlign = "start";
+  target.style.scrollMargin = "100px";
+
+  // Scroll to the position between #target and #another-target elements but
+  // if the scroll-margin 100px contributed to the snap start-aligned snap
+  // position it will be farther than #another-target.
+  scroller.scrollTo(200, 200);
+  assert_equals(scroller.scrollLeft, 0);
+  assert_equals(scroller.scrollTop, 0);
+}, "scroll-margin doesn't contribute to the snap position of the element " +
+   "if it's outside of the scroll port");
+</script>

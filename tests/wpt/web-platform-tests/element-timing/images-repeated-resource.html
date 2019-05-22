@@ -21,6 +21,9 @@ body {
   const pathname = window.location.href.substring(0, index) +
       '/resources/square100.png';
   async_test(function (t) {
+    if (!window.PerformanceElementTiming) {
+      assert_unreached("PerformanceElementTiming is not implemented");
+    }
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         entryList.getEntries().forEach(entry => {

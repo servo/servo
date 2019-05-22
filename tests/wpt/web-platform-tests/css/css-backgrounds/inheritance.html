@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Inheritance of CSS Backgrounds and Borders properties</title>
 <link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#property-index">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#property-index">
 <meta name="assert" content="Properties inherit or not according to the spec.">
 <meta name="assert" content="Properties have initial values according to the spec.">
 <script src="/resources/testharness.js"></script>
@@ -42,6 +43,8 @@ assert_not_inherited('background-color', transparentColor, 'rgb(42, 53, 64)');
 assert_not_inherited('background-image', 'none', 'url("https://example.com/")');
 assert_not_inherited('background-origin', 'padding-box', 'content-box');
 assert_not_inherited('background-position', '0% 0%', '10px 20px');
+assert_not_inherited('background-position-x', '0%', '10px');
+assert_not_inherited('background-position-y', '0%', '20px');
 assert_not_inherited('background-repeat', 'repeat', 'space round');
 assert_not_inherited('background-size', 'auto', 'contain');
 

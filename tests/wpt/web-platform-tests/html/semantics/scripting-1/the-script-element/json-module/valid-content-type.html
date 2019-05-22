@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>JSON modules: Content-Type</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function check(t, v) {
+  t.step(() => {
+    assert_equals(typeof v, "object");
+    assert_array_equals(Object.keys(v), ["test"]);
+    assert_equals(v.test, true);
+    t.done();
+  });
+}
+const t1 = async_test("text/json");
+const t2 = async_test("application/json");
+const t3 = async_test("text/html+json");
+const t4 = async_test("image/svg+json");
+</script>
+<script type="module" onerror="t1.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json";
+check(t1, v);
+</script>
+<script type="module" onerror="t2.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=application/json";
+check(t2, v);
+</script>
+<script type="module" onerror="t3.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html+json";
+check(t3, v);
+</script>
+<script type="module" onerror="t4.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=image/svg+json";
+check(t4, v);
+</script>

@@ -44,8 +44,10 @@ const scroller_height = scroller.clientHeight;
     target.style.scrollSnapAlign = "end start";
     if (writing_mode == "vertical-rl") {
       target.style.left = (scroller_width - 700) + "px";
+      scroller.scrollTo(-500, 0);
+    } else {
+      scroller.scrollTo(0, 0);
     }
-    scroller.scrollTo(0, 0);
     assert_equals(scroller.scrollLeft, left, "aligns correctly on x");
     assert_equals(scroller.scrollTop, top, "aligns correctly on y");
     target.style.left = target_left;
@@ -65,8 +67,10 @@ const scroller_height = scroller.clientHeight;
     target.style.scrollSnapAlign = "start end";
     if (writing_mode == "vertical-rl") {
       target.style.left = (scroller_width - 700) + "px";
+      scroller.scrollTo(-500, 0);
+    } else {
+      scroller.scrollTo(0, 0);
     }
-    scroller.scrollTo(0, 0);
     assert_equals(scroller.scrollLeft, left, "aligns correctly on x");
     assert_equals(scroller.scrollTop, top, "aligns correctly on y");
     target.style.left = target_left;
@@ -81,7 +85,7 @@ test(() => {
   target.style.scrollSnapAlign = "end start";
   target.style.left = (scroller_width - 700) + "px";
 
-  scroller.scrollTo(0, 0);
+  scroller.scrollTo(-500, 0);
   assert_equals(scroller.scrollLeft, target.clientWidth - 700,
                 "aligns correctly on x");
   assert_equals(scroller.scrollTop, 500 - scroller_height,
@@ -98,7 +102,7 @@ test(() => {
   target.style.scrollSnapAlign = "start end";
   target.style.left = (scroller_width - 700) + "px";
 
-  scroller.scrollTo(0, 0);
+  scroller.scrollTo(-500, 0);
   assert_equals(scroller.scrollLeft, scroller_width - 700,
                 "aligns correctly on x");
   assert_equals(scroller.scrollTop, 300, "aligns correctly on y");

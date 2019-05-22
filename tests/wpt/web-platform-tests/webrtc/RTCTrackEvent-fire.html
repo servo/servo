@@ -53,6 +53,11 @@ const sdp5 = sdpBase + `
 a=msid:-
 `;
 
+const sdp6 = sdpBase + `
+a=msid:1 2
+a=msid:1 2
+`;
+
 async function applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp)
 {
     const testTrackPromise = new Promise(resolve  => {
@@ -119,6 +124,14 @@ promise_test(async test => {
     const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp5);
     assert_equals(streams.length, 0, "track event has no stream");
 }, "a=msid:- should result in a track event with no streams");
+
+promise_test(async test => {
+    const pc = new RTCPeerConnection();
+    test.add_cleanup(() => pc.close());
+
+    const [track, streams] = await applyRemoteDescriptionAndReturnRemoteTrackAndStreams(pc, sdp6);
+    assert_equals(streams.length, 1, "track event has one stream");
+}, "Duplicate a=msid should result in a track event with one stream");
 
 promise_test(async test => {
     const pc = new RTCPeerConnection();

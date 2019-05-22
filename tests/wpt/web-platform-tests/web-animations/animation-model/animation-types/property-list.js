@@ -993,6 +993,10 @@ const gCSSProperties = {
     types: [
     ]
   },
+  'offset-distance': {
+    // https://drafts.fxtf.org/motion-1/#offset-distance-property
+    types: [ 'lengthPercentageOrCalc' ]
+  },
   'offset-path': {
     // https://drafts.fxtf.org/motion-1/#offset-path-property
     types: [

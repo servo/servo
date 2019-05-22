@@ -1,5 +1,6 @@
 import abc
 import errno
+import multiprocessing
 import os
 import platform
 import socket
@@ -19,6 +20,7 @@ class WebDriverServer(object):
 
     default_base_path = "/"
     _used_ports = set()
+    _used_ports_lock = multiprocessing.Lock()
 
     def __init__(self, logger, binary, host="127.0.0.1", port=None,
                  base_path="", env=None, args=None):
@@ -111,8 +113,9 @@ class WebDriverServer(object):
 
     @staticmethod
     def _find_next_free_port():
-        port = get_free_port(4444, exclude=WebDriverServer._used_ports)
-        WebDriverServer._used_ports.add(port)
+        with WebDriverServer._used_ports_lock:
+            port = get_free_port(4444, exclude=WebDriverServer._used_ports)
+            WebDriverServer._used_ports.add(port)
         return port
 
 

@@ -341,6 +341,7 @@ promise_test(function() {
         video.oncanplaythrough = function() {
             resolve(video);
         }
+        video.preload = "auto";
         video.src = 'resources/pattern-srgb-fullcolor.ogv'
     }).then(testImageBitmapVideoSource);
 }, 'createImageBitmap in e-sRGB from a sRGB HTMLVideoElement with resize.');
