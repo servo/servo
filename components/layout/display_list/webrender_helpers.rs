@@ -12,8 +12,9 @@ use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::{
     self, ClipId, DisplayListBuilder, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId,
+    PropertyBinding, SpecificDisplayItem,
 };
-use webrender_api::{LayoutPoint, PropertyBinding, SpecificDisplayItem};
+use webrender_api::units::LayoutPoint;
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;

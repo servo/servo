@@ -66,10 +66,10 @@ use style::values::{Either, RGBA};
 use style_traits::ToCss;
 use webrender_api::{
     self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
-    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect, LayoutSize,
-    LayoutTransform, LayoutVector2D, LineStyle, NinePatchBorder, NinePatchBorderSource,
-    NormalBorder, ScrollSensitivity, StickyOffsetBounds,
+    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder,
+    NinePatchBorderSource, NormalBorder, ScrollSensitivity, StickyOffsetBounds,
 };
+use webrender_api::units::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {
