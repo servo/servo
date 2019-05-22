@@ -52,14 +52,6 @@ impl UTF8Bytes {
             UTF8Bytes::zero()
         }
     }
-
-    pub fn saturating_sub_assign(&mut self, other: UTF8Bytes) {
-        if *self > other {
-            *self = UTF8Bytes(self.0 + other.0)
-        } else {
-            *self = UTF8Bytes::zero()
-        }
-    }
 }
 
 impl Add for UTF8Bytes {
@@ -231,8 +223,6 @@ pub const CMD_OR_CONTROL: Modifiers = Modifiers::META;
 #[cfg(not(target_os = "macos"))]
 pub const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 
-// FIXME this function does not behave as described (if given string has fewer than n
-// characters, it returns 0, not the length of the whole string.
 /// The length in bytes of the first n characters in a UTF-8 string.
 ///
 /// If the string has fewer than n characters, returns the length of the whole string.
@@ -396,9 +386,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             self.edit_point, self.selection_origin, self.selection_direction
         );
         if let Some(begin) = self.selection_origin {
-            let UTF8Bytes(begin_offset) = begin.index;
             debug_assert!(begin.line < self.lines.len());
-            debug_assert!(begin_offset <= self.lines[begin.line].len());
+            debug_assert!(begin.index <= self.lines[begin.line].len_utf8());
 
             match self.selection_direction {
                 SelectionDirection::None | SelectionDirection::Forward => {
@@ -409,9 +398,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             }
         }
 
-        let UTF8Bytes(edit_offset) = self.edit_point.index;
         debug_assert!(self.edit_point.line < self.lines.len());
-        debug_assert!(edit_offset <= self.lines[self.edit_point.line].len());
+        debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len_utf8());
     }
 
     pub fn get_selection_text(&self) -> Option<String> {
@@ -1081,7 +1069,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     let line_end = val.len_utf8();
                     let new_acc = acc + line_end + UTF8Bytes::one();
                     if abs_point >= new_acc && index > line_end {
-                        index.saturating_sub_assign(line_end + UTF8Bytes::one());
+                        index = index.saturating_sub(line_end + UTF8Bytes::one());
                         line += 1;
                     }
                     new_acc
