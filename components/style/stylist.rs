@@ -1195,6 +1195,10 @@ impl Stylist {
         // See [3] for the bug to implement whatever gets resolved, and related
         // bugs for a bit more context.
         //
+        // FIXME(emilio): This should probably work for pseudo-elements (i.e.,
+        // use rule_hash_target().shadow_root() instead of
+        // element.shadow_root()).
+        //
         // [1]: https://cs.chromium.org/chromium/src/third_party/blink/renderer/
         //        core/css/resolver/style_resolver.cc?l=1267&rcl=90f9f8680ebb4a87d177f3b0833372ae4e0c88d8
         // [2]: https://github.com/w3c/csswg-drafts/issues/1995

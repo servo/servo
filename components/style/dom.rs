@@ -801,24 +801,29 @@ pub trait TElement:
     {
         use rule_collector::containing_shadow_ignoring_svg_use;
 
-        let mut doc_rules_apply = self.matches_user_and_author_rules();
+        let target = self.rule_hash_target();
+        if !target.matches_user_and_author_rules() {
+            return false;
+        }
+
+        let mut doc_rules_apply = true;
 
         // Use the same rules to look for the containing host as we do for rule
         // collection.
-        if let Some(shadow) = containing_shadow_ignoring_svg_use(*self) {
+        if let Some(shadow) = containing_shadow_ignoring_svg_use(target) {
             doc_rules_apply = false;
             if let Some(data) = shadow.style_data() {
                 f(data, shadow.host());
             }
         }
 
-        if let Some(shadow) = self.shadow_root() {
+        if let Some(shadow) = target.shadow_root() {
             if let Some(data) = shadow.style_data() {
                 f(data, shadow.host());
             }
         }
 
-        let mut current = self.assigned_slot();
+        let mut current = target.assigned_slot();
         while let Some(slot) = current {
             // Slots can only have assigned nodes when in a shadow tree.
             let shadow = slot.containing_shadow().unwrap();
