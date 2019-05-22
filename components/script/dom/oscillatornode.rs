@@ -13,23 +13,25 @@ use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNo
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::{
     self, OscillatorOptions, OscillatorType,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::node::AudioNodeInit;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::oscillator_node::OscillatorNodeMessage;
 use servo_media::audio::oscillator_node::OscillatorNodeOptions as ServoMediaOscillatorOptions;
 use servo_media::audio::oscillator_node::OscillatorType as ServoMediaOscillatorType;
 use servo_media::audio::param::ParamType;
+use std::cell::Cell;
 use std::f32;
 
 #[dom_struct]
 pub struct OscillatorNode {
     source_node: AudioScheduledSourceNode,
-    oscillator_type: OscillatorType,
-    frequency: Dom<AudioParam>,
     detune: Dom<AudioParam>,
+    frequency: Dom<AudioParam>,
+    oscillator_type: Cell<OscillatorType>,
 }
 
 impl OscillatorNode {
@@ -71,10 +73,9 @@ impl OscillatorNode {
             -440. / 2.,
             440. / 2.,
         );
-
         Ok(OscillatorNode {
             source_node,
-            oscillator_type: options.type_,
+            oscillator_type: Cell::new(options.type_),
             frequency: Dom::from_ref(&frequency),
             detune: Dom::from_ref(&detune),
         })
@@ -112,6 +113,25 @@ impl OscillatorNodeMethods for OscillatorNode {
     // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune
     fn Detune(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.detune)
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
+    fn Type(&self) -> OscillatorType {
+        self.oscillator_type.get()
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
+    fn SetType(&self, type_: OscillatorType) -> ErrorResult {
+        if type_ == OscillatorType::Custom {
+            return Err(Error::InvalidState);
+        }
+        self.oscillator_type.set(type_);
+        self.source_node
+            .node()
+            .message(AudioNodeMessage::OscillatorNode(
+                OscillatorNodeMessage::SetOscillatorType(type_.into()),
+            ));
+        return Ok(());
     }
 }
 
