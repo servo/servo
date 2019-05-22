@@ -427,7 +427,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             self.with_early_script("set PATH=%HOMEDRIVE%%HOMEPATH%\\{};%PATH%".format(p))
         return self
 
-    def with_repo(self, sparse_checkout=None):
+    def with_repo(self, sparse_checkout=None, shallow=True):
         """
         Make a shallow clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
@@ -452,9 +452,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 type .git\\info\\sparse-checkout
             """
         git += """
-            git fetch --depth 1 %GIT_URL% %GIT_REF%
+            git fetch {depth} %GIT_URL% %GIT_REF%
             git reset --hard %GIT_SHA%
-        """
+        """.format(depth="--depth 1" if shallow else "")
         return self \
         .with_git() \
         .with_script(git) \
@@ -560,7 +560,7 @@ class UnixTaskMixin(Task):
         super().__init__(*args, **kwargs)
         self.curl_scripts_count = 0
 
-    def with_repo(self):
+    def with_repo(self, shallow=True):
         """
         Make a shallow clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`
@@ -578,9 +578,9 @@ class UnixTaskMixin(Task):
         .with_early_script("""
             git init repo
             cd repo
-            git fetch --depth 1 "$GIT_URL" "$GIT_REF"
+            git fetch {depth} "$GIT_URL" "$GIT_REF"
             git reset --hard "$GIT_SHA"
-        """)
+        """.format(depth="--depth 1" if shallow else ""))
 
     def with_curl_script(self, url, file_path):
         self.curl_scripts_count += 1

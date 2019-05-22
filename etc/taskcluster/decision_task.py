@@ -475,8 +475,7 @@ def macos_nightly():
 
 
 def update_wpt():
-    # Reuse the release build that was made for landing the PR
-    build_task = decisionlib.Task.find("build.macos_x64_release." + CONFIG.git_sha)
+    build_task = macos_release_build()
     update_task = (
         macos_task("WPT update")
         .with_python2()
@@ -491,7 +490,8 @@ def update_wpt():
             "etc/taskcluster/macos/Brewfile-wpt",
             "etc/taskcluster/macos/Brewfile-gstreamer",
         ])
-        .with_repo()
+        # Pushing the new changes to the git remote requires a full repo clone.
+        .with_repo(shallow=False)
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
@@ -504,8 +504,8 @@ def update_wpt():
     )
 
 
-def macos_wpt():
-    build_task = (
+def macos_release_build():
+    return (
         macos_build_task("Release build")
         .with_treeherder("macOS x64", "Release")
         .with_script("""
@@ -520,6 +520,10 @@ def macos_wpt():
         .with_artifacts("repo/target.tar.gz")
         .find_or_create("build.macos_x64_release." + CONFIG.git_sha)
     )
+
+
+def macos_wpt():
+    build_task = macos_release_build()
     def macos_run_task(name):
         task = macos_task(name).with_python2()
         return (
@@ -771,6 +775,7 @@ def macos_build_task(name):
         .with_repo()
         .with_python2()
         .with_rustup()
+        .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         # Debugging for surprising generic-worker behaviour
         .with_early_script("ls")
         .with_script("ls target || true")
