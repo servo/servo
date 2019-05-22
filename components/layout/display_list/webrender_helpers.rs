@@ -28,7 +28,7 @@ struct ClipScrollState {
 }
 
 trait WebRenderDisplayItemConverter {
-    fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo;
+    //fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo;
     fn convert_to_webrender(
         &self,
         clip_scroll_nodes: &[ClipScrollNode],
@@ -76,7 +76,7 @@ impl WebRenderDisplayListConverter for DisplayList {
 }
 
 impl WebRenderDisplayItemConverter for DisplayItem {
-    fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo {
+    /*fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo {
         let tag = match self.base().metadata.pointing {
             Some(cursor) => Some((self.base().metadata.node.0 as u64, cursor)),
             None => None,
@@ -88,7 +88,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             is_backface_visible: true,
             tag,
         }
-    }
+    }*/
 
     fn convert_to_webrender(
         &self,
@@ -127,23 +127,23 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::Rectangle(ref item) => {
                 builder.push_item(
                     &SpecificDisplayItem::Rectangle(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
             },
             DisplayItem::Text(ref item) => {
                 builder.push_item(
                     &SpecificDisplayItem::Text(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
                 builder.push_iter(item.data.iter());
             },
             DisplayItem::Image(ref item) => {
                 builder.push_item(
                     &SpecificDisplayItem::Image(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
             },
             DisplayItem::Border(ref item) => {
@@ -152,49 +152,51 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 }
                 builder.push_item(
                     &SpecificDisplayItem::Border(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
             },
             DisplayItem::Gradient(ref item) => {
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(
                     &SpecificDisplayItem::Gradient(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
             },
             DisplayItem::RadialGradient(ref item) => {
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(
                     &SpecificDisplayItem::RadialGradient(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
             },
             DisplayItem::Line(ref item) => {
                 builder.push_item(
                     &SpecificDisplayItem::Line(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
             },
             DisplayItem::BoxShadow(ref item) => {
                 builder.push_item(
                     &SpecificDisplayItem::BoxShadow(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
+                    /*&self.prim_info(),
+                    &space_clip_info,*/
                 );
             },
             DisplayItem::PushTextShadow(ref item) => {
-                builder.push_shadow(&self.prim_info(), &space_clip_info, item.shadow);
+                builder.push_shadow(/*&self.prim_info(),*/ &space_clip_info, item.shadow);
             },
             DisplayItem::PopAllTextShadows(_) => {
                 builder.pop_all_shadows();
             },
             DisplayItem::Iframe(ref item) => {
                 builder.push_iframe(
-                    &self.prim_info(),
+                    //&self.prim_info(),
+                    self.base().bounds(),
+                    self.base().clip_rect,
                     &space_clip_info,
                     item.iframe.to_webrender(),
                     true,
@@ -204,7 +206,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
-                let mut info = webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds);
+                //let mut info = webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds);
+                let mut origin = stacking_context.bounds.origin;
                 let spatial_id =
                     if let Some(frame_index) = stacking_context.established_reference_frame {
                         let (transform, ref_frame) =
@@ -226,7 +229,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             };
 
                         let spatial_id = builder.push_reference_frame(
-                            &stacking_context.bounds,
+                            stacking_context.bounds.origin,
                             state.active_spatial_id,
                             stacking_context.transform_style,
                             PropertyBinding::Value(transform),
@@ -236,16 +239,19 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         state.spatial_ids[frame_index.to_index()] = Some(spatial_id);
                         state.clip_ids[frame_index.to_index()] = Some(cur_clip_id);
 
-                        info.rect.origin = LayoutPoint::zero();
-                        info.clip_rect.origin = LayoutPoint::zero();
+                        origin = LayoutPoint::zero();
+                        //info.rect.origin = LayoutPoint::zero();
+                        //info.clip_rect.origin = LayoutPoint::zero();
                         spatial_id
                     } else {
                         state.active_spatial_id
                     };
 
                 builder.push_stacking_context(
-                    &info,
+                    stacking_context.bounds.origin,
                     spatial_id,
+                    // TODO(gw): Make use of the WR backface visibility functionality.
+                    /* is_backface_visible = */ true,
                     None,
                     stacking_context.transform_style,
                     stacking_context.mix_blend_mode,
@@ -292,7 +298,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             node.clip.complex.clone(),
                             None,
                             scroll_sensitivity,
-                            webrender_api::LayoutVector2D::zero(),
+                            webrender_api::units::LayoutVector2D::zero(),
                         );
 
                         state.clip_ids[item.node_index.to_index()] = Some(space_clip_info.clip_id);
@@ -307,7 +313,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             sticky_data.margins,
                             sticky_data.vertical_offset_bounds,
                             sticky_data.horizontal_offset_bounds,
-                            webrender_api::LayoutVector2D::zero(),
+                            webrender_api::units::LayoutVector2D::zero(),
                         );
 
                         state.spatial_ids[item.node_index.to_index()] = Some(id);
