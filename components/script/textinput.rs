@@ -10,9 +10,9 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
 use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
 use std::borrow::ToOwned;
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::default::Default;
-use std::ops::Range;
+use std::ops::{Add, AddAssign, Range};
 use std::usize;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -27,6 +27,89 @@ pub enum SelectionDirection {
     Forward,
     Backward,
     None,
+}
+
+#[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+pub struct UTF8Bytes(pub usize);
+
+impl UTF8Bytes {
+    pub fn zero() -> UTF8Bytes {
+        UTF8Bytes(0)
+    }
+
+    pub fn one() -> UTF8Bytes {
+        UTF8Bytes(1)
+    }
+
+    pub fn unwrap_range(byte_range: Range<UTF8Bytes>) -> Range<usize> {
+        byte_range.start.0..byte_range.end.0
+    }
+
+    pub fn saturating_sub(self, other: UTF8Bytes) -> UTF8Bytes {
+        if self > other {
+            UTF8Bytes(self.0 - other.0)
+        } else {
+            UTF8Bytes::zero()
+        }
+    }
+}
+
+impl Add for UTF8Bytes {
+    type Output = UTF8Bytes;
+
+    fn add(self, other: UTF8Bytes) -> UTF8Bytes {
+        UTF8Bytes(self.0 + other.0)
+    }
+}
+
+impl AddAssign for UTF8Bytes {
+    fn add_assign(&mut self, other: UTF8Bytes) {
+        *self = UTF8Bytes(self.0 + other.0)
+    }
+}
+
+trait StrExt {
+    fn len_utf8(&self) -> UTF8Bytes;
+}
+impl StrExt for str {
+    fn len_utf8(&self) -> UTF8Bytes {
+        UTF8Bytes(self.len())
+    }
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
+pub struct UTF16CodeUnits(pub usize);
+
+impl UTF16CodeUnits {
+    pub fn zero() -> UTF16CodeUnits {
+        UTF16CodeUnits(0)
+    }
+
+    pub fn one() -> UTF16CodeUnits {
+        UTF16CodeUnits(1)
+    }
+
+    pub fn saturating_sub(self, other: UTF16CodeUnits) -> UTF16CodeUnits {
+        if self > other {
+            UTF16CodeUnits(self.0 - other.0)
+        } else {
+            UTF16CodeUnits::zero()
+        }
+    }
+}
+
+impl Add for UTF16CodeUnits {
+    type Output = UTF16CodeUnits;
+
+    fn add(self, other: UTF16CodeUnits) -> UTF16CodeUnits {
+        UTF16CodeUnits(self.0 + other.0)
+    }
+}
+
+impl AddAssign for UTF16CodeUnits {
+    fn add_assign(&mut self, other: UTF16CodeUnits) {
+        *self = UTF16CodeUnits(self.0 + other.0)
+    }
 }
 
 impl From<DOMString> for SelectionDirection {
@@ -53,8 +136,8 @@ impl From<SelectionDirection> for DOMString {
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
-    /// 0-based column number in UTF-8 bytes
-    pub index: usize,
+    /// 0-based column number in bytes
+    pub index: UTF8Bytes,
 }
 
 impl TextPoint {
@@ -64,7 +147,7 @@ impl TextPoint {
 
         TextPoint {
             line,
-            index: min(self.index, lines[line].len()),
+            index: min(self.index, lines[line].len_utf8()),
         }
     }
 }
@@ -99,8 +182,8 @@ pub struct TextInput<T: ClipboardProvider> {
     /// The maximum number of UTF-16 code units this text input is allowed to hold.
     ///
     /// <https://html.spec.whatwg.org/multipage/#attr-fe-maxlength>
-    max_length: Option<usize>,
-    min_length: Option<usize>,
+    max_length: Option<UTF16CodeUnits>,
+    min_length: Option<UTF16CodeUnits>,
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -113,7 +196,10 @@ pub enum KeyReaction {
 
 impl Default for TextPoint {
     fn default() -> TextPoint {
-        TextPoint { line: 0, index: 0 }
+        TextPoint {
+            line: 0,
+            index: UTF8Bytes::zero(),
+        }
     }
 }
 
@@ -140,25 +226,26 @@ pub const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 /// The length in bytes of the first n characters in a UTF-8 string.
 ///
 /// If the string has fewer than n characters, returns the length of the whole string.
-fn len_of_first_n_chars(text: &str, n: usize) -> usize {
+/// If n is 0, returns 0
+fn len_of_first_n_chars(text: &str, n: usize) -> UTF8Bytes {
     match text.char_indices().take(n).last() {
-        Some((index, ch)) => index + ch.len_utf8(),
-        None => 0,
+        Some((index, ch)) => UTF8Bytes(index + ch.len_utf8()),
+        None => UTF8Bytes::zero(),
     }
 }
 
-/// The length in bytes of the first n code units a string when encoded in UTF-16.
+/// The length in bytes of the first n code units in a string when encoded in UTF-16.
 ///
 /// If the string is fewer than n code units, returns the length of the whole string.
-fn len_of_first_n_code_units(text: &str, n: usize) -> usize {
-    let mut utf8_len = 0;
-    let mut utf16_len = 0;
+fn len_of_first_n_code_units(text: &str, n: UTF16CodeUnits) -> UTF8Bytes {
+    let mut utf8_len = UTF8Bytes::zero();
+    let mut utf16_len = UTF16CodeUnits::zero();
     for c in text.chars() {
-        utf16_len += c.len_utf16();
+        utf16_len += UTF16CodeUnits(c.len_utf16());
         if utf16_len > n {
             break;
         }
-        utf8_len += c.len_utf8();
+        utf8_len += UTF8Bytes(c.len_utf8());
     }
     utf8_len
 }
@@ -169,8 +256,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         lines: Lines,
         initial: DOMString,
         clipboard_provider: T,
-        max_length: Option<usize>,
-        min_length: Option<usize>,
+        max_length: Option<UTF16CodeUnits>,
+        min_length: Option<UTF16CodeUnits>,
         selection_direction: SelectionDirection,
     ) -> TextInput<T> {
         let mut i = TextInput {
@@ -205,11 +292,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_direction
     }
 
-    pub fn set_max_length(&mut self, length: Option<usize>) {
+    pub fn set_max_length(&mut self, length: Option<UTF16CodeUnits>) {
         self.max_length = length;
     }
 
-    pub fn set_min_length(&mut self, length: Option<usize>) {
+    pub fn set_min_length(&mut self, length: Option<UTF16CodeUnits>) {
         self.min_length = length;
     }
 
@@ -245,8 +332,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    /// The UTF-8 byte offset of the selection_start()
-    pub fn selection_start_offset(&self) -> usize {
+    /// The byte offset of the selection_start()
+    pub fn selection_start_offset(&self) -> UTF8Bytes {
         self.text_point_to_offset(&self.selection_start())
     }
 
@@ -259,8 +346,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    /// The UTF-8 byte offset of the selection_end()
-    pub fn selection_end_offset(&self) -> usize {
+    /// The byte offset of the selection_end()
+    pub fn selection_end_offset(&self) -> UTF8Bytes {
         self.text_point_to_offset(&self.selection_end())
     }
 
@@ -276,10 +363,10 @@ impl<T: ClipboardProvider> TextInput<T> {
         (self.selection_start(), self.selection_end())
     }
 
-    /// Return the selection range as UTF-8 byte offsets from the start of the content.
+    /// Return the selection range as byte offsets from the start of the content.
     ///
     /// If there is no selection, returns an empty range at the edit point.
-    pub fn sorted_selection_offsets_range(&self) -> Range<usize> {
+    pub fn sorted_selection_offsets_range(&self) -> Range<UTF8Bytes> {
         self.selection_start_offset()..self.selection_end_offset()
     }
 
@@ -300,7 +387,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         );
         if let Some(begin) = self.selection_origin {
             debug_assert!(begin.line < self.lines.len());
-            debug_assert!(begin.index <= self.lines[begin.line].len());
+            debug_assert!(begin.index <= self.lines[begin.line].len_utf8());
 
             match self.selection_direction {
                 SelectionDirection::None | SelectionDirection::Forward => {
@@ -312,7 +399,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         debug_assert!(self.edit_point.line < self.lines.len());
-        debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len());
+        debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len_utf8());
     }
 
     pub fn get_selection_text(&self) -> Option<String> {
@@ -324,9 +411,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The length of the selected text in UTF-16 code units.
-    fn selection_utf16_len(&self) -> usize {
-        self.fold_selection_slices(0usize, |len, slice| {
-            *len += slice.chars().map(char::len_utf16).sum::<usize>()
+    fn selection_utf16_len(&self) -> UTF16CodeUnits {
+        self.fold_selection_slices(UTF16CodeUnits::zero(), |len, slice| {
+            *len += UTF16CodeUnits(slice.chars().map(char::len_utf16).sum::<usize>())
         })
     }
 
@@ -336,17 +423,19 @@ impl<T: ClipboardProvider> TextInput<T> {
     fn fold_selection_slices<B, F: FnMut(&mut B, &str)>(&self, mut acc: B, mut f: F) -> B {
         if self.has_selection() {
             let (start, end) = self.sorted_selection_bounds();
+            let UTF8Bytes(start_offset) = start.index;
+            let UTF8Bytes(end_offset) = end.index;
 
             if start.line == end.line {
-                f(&mut acc, &self.lines[start.line][start.index..end.index])
+                f(&mut acc, &self.lines[start.line][start_offset..end_offset])
             } else {
-                f(&mut acc, &self.lines[start.line][start.index..]);
+                f(&mut acc, &self.lines[start.line][start_offset..]);
                 for line in &self.lines[start.line + 1..end.line] {
                     f(&mut acc, "\n");
                     f(&mut acc, line);
                 }
                 f(&mut acc, "\n");
-                f(&mut acc, &self.lines[end.line][..end.index])
+                f(&mut acc, &self.lines[end.line][..end_offset])
             }
         }
 
@@ -358,39 +447,38 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
-        let (start, end) = self.sorted_selection_bounds();
-
         let allowed_to_insert_count = if let Some(max_length) = self.max_length {
-            let len_after_selection_replaced = self.utf16_len() - self.selection_utf16_len();
+            let len_after_selection_replaced =
+                self.utf16_len().saturating_sub(self.selection_utf16_len());
             if len_after_selection_replaced >= max_length {
                 // If, after deleting the selection, the len is still greater than the max
                 // length, then don't delete/insert anything
                 return;
             }
 
-            max_length - len_after_selection_replaced
+            max_length.saturating_sub(len_after_selection_replaced)
         } else {
-            usize::MAX
+            UTF16CodeUnits(usize::MAX)
         };
 
-        let last_char_index = len_of_first_n_code_units(&*insert, allowed_to_insert_count);
-        let chars_to_insert = &insert[..last_char_index];
+        let UTF8Bytes(last_char_index) =
+            len_of_first_n_code_units(&*insert, allowed_to_insert_count);
+        let to_insert = &insert[..last_char_index];
 
-        self.clear_selection();
+        let (start, end) = self.sorted_selection_bounds();
+        let UTF8Bytes(start_offset) = start.index;
+        let UTF8Bytes(end_offset) = end.index;
 
         let new_lines = {
-            let prefix = &self.lines[start.line][..start.index];
-            let suffix = &self.lines[end.line][end.index..];
+            let prefix = &self.lines[start.line][..start_offset];
+            let suffix = &self.lines[end.line][end_offset..];
             let lines_prefix = &self.lines[..start.line];
             let lines_suffix = &self.lines[end.line + 1..];
 
             let mut insert_lines = if self.multiline {
-                chars_to_insert
-                    .split('\n')
-                    .map(|s| DOMString::from(s))
-                    .collect()
+                to_insert.split('\n').map(|s| DOMString::from(s)).collect()
             } else {
-                vec![DOMString::from(chars_to_insert)]
+                vec![DOMString::from(to_insert)]
             };
 
             // FIXME(ajeffrey): effecient append for DOMStrings
@@ -400,7 +488,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             insert_lines[0] = DOMString::from(new_line);
 
             let last_insert_lines_index = insert_lines.len() - 1;
-            self.edit_point.index = insert_lines[last_insert_lines_index].len();
+            self.edit_point.index = insert_lines[last_insert_lines_index].len_utf8();
             self.edit_point.line = start.line + last_insert_lines_index;
 
             // FIXME(ajeffrey): effecient append for DOMStrings
@@ -414,15 +502,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         };
 
         self.lines = new_lines;
+        self.clear_selection();
         self.assert_ok_selection();
     }
 
-    /// Return the length in UTF-8 bytes of the current line under the editing point.
-    pub fn current_line_length(&self) -> usize {
-        self.lines[self.edit_point.line].len()
+    /// Return the length in bytes of the current line under the editing point.
+    pub fn current_line_length(&self) -> UTF8Bytes {
+        self.lines[self.edit_point.line].len_utf8()
     }
 
-    /// Adjust the editing point position by a given of lines. The resulting column is
+    /// Adjust the editing point position by a given number of lines. The resulting column is
     /// as close to the original column position as possible.
     pub fn adjust_vertical(&mut self, adjust: isize, select: Selection) {
         if !self.multiline {
@@ -443,12 +532,15 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         if target_line < 0 {
             self.edit_point.line = 0;
-            self.edit_point.index = 0;
+            self.edit_point.index = UTF8Bytes::zero();
             if self.selection_origin.is_some() &&
                 (self.selection_direction == SelectionDirection::None ||
                     self.selection_direction == SelectionDirection::Forward)
             {
-                self.selection_origin = Some(TextPoint { line: 0, index: 0 });
+                self.selection_origin = Some(TextPoint {
+                    line: 0,
+                    index: UTF8Bytes::zero(),
+                });
             }
             return;
         } else if target_line as usize >= self.lines.len() {
@@ -462,10 +554,12 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
-        let col = self.lines[self.edit_point.line][..self.edit_point.index]
+        let UTF8Bytes(edit_index) = self.edit_point.index;
+        let col = self.lines[self.edit_point.line][..edit_index]
             .chars()
             .count();
         self.edit_point.line = target_line as usize;
+        // NOTE: this adjusts to the nearest complete Unicode codepoint, rather than grapheme cluster
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
         if let Some(origin) = self.selection_origin {
             if ((self.selection_direction == SelectionDirection::None ||
@@ -483,43 +577,38 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Adjust the editing point position by a given number of bytes. If the adjustment
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
-    pub fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
-        let direction = if adjust >= 0 {
-            Direction::Forward
-        } else {
-            Direction::Backward
-        };
+    pub fn adjust_horizontal(
+        &mut self,
+        adjust: UTF8Bytes,
+        direction: Direction,
+        select: Selection,
+    ) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
-        self.perform_horizontal_adjustment(adjust, select);
+        self.perform_horizontal_adjustment(adjust, direction, select);
     }
 
+    /// Adjust the editing point position by exactly one grapheme cluster. If the edit point
+    /// is at the beginning of the line and the direction is "Backward" or the edit point is at
+    /// the end of the line and the direction is "Forward", a vertical adjustment is made
     pub fn adjust_horizontal_by_one(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
         let adjust = {
             let current_line = &self.lines[self.edit_point.line];
-            match direction {
-                Direction::Forward => {
-                    match current_line[self.edit_point.index..].graphemes(true).next() {
-                        Some(c) => c.len() as isize,
-                        None => 1, // Going to the next line is a "one byte" offset
-                    }
-                },
-                Direction::Backward => {
-                    match current_line[..self.edit_point.index]
-                        .graphemes(true)
-                        .next_back()
-                    {
-                        Some(c) => -(c.len() as isize),
-                        None => -1, // Going to the previous line is a "one byte" offset
-                    }
-                },
+            let UTF8Bytes(current_offset) = self.edit_point.index;
+            let next_ch = match direction {
+                Direction::Forward => current_line[current_offset..].graphemes(true).next(),
+                Direction::Backward => current_line[..current_offset].graphemes(true).next_back(),
+            };
+            match next_ch {
+                Some(c) => UTF8Bytes(c.len() as usize),
+                None => UTF8Bytes::one(), // Going to the next line is a "one byte" offset
             }
         };
-        self.perform_horizontal_adjustment(adjust, select);
+        self.perform_horizontal_adjustment(adjust, direction, select);
     }
 
     /// Return whether to cancel the caret move
@@ -561,30 +650,47 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    fn perform_horizontal_adjustment(&mut self, adjust: isize, select: Selection) {
-        if adjust < 0 {
-            let remaining = self.edit_point.index;
-            if adjust.abs() as usize > remaining && self.edit_point.line > 0 {
-                self.adjust_vertical(-1, select);
-                self.edit_point.index = self.current_line_length();
-                self.adjust_horizontal(adjust + remaining as isize + 1, select);
-            } else {
-                self.edit_point.index = max(0, self.edit_point.index as isize + adjust) as usize;
-            }
-        } else {
-            let remaining = self.current_line_length() - self.edit_point.index;
-            if adjust as usize > remaining && self.lines.len() > self.edit_point.line + 1 {
-                self.adjust_vertical(1, select);
-                self.edit_point.index = 0;
-                // one shift is consumed by the change of line, hence the -1
-                self.adjust_horizontal(adjust - remaining as isize - 1, select);
-            } else {
-                self.edit_point.index = min(
-                    self.current_line_length(),
-                    self.edit_point.index + adjust as usize,
-                );
-            }
-        }
+    fn perform_horizontal_adjustment(
+        &mut self,
+        adjust: UTF8Bytes,
+        direction: Direction,
+        select: Selection,
+    ) {
+        match direction {
+            Direction::Backward => {
+                let remaining = self.edit_point.index;
+                if adjust > remaining && self.edit_point.line > 0 {
+                    self.adjust_vertical(-1, select);
+                    self.edit_point.index = self.current_line_length();
+                    // one shift is consumed by the change of line, hence the -1
+                    self.adjust_horizontal(
+                        adjust.saturating_sub(remaining + UTF8Bytes::one()),
+                        direction,
+                        select,
+                    );
+                } else {
+                    self.edit_point.index = remaining.saturating_sub(adjust);
+                }
+            },
+            Direction::Forward => {
+                let remaining = self
+                    .current_line_length()
+                    .saturating_sub(self.edit_point.index);
+                if adjust > remaining && self.lines.len() > self.edit_point.line + 1 {
+                    self.adjust_vertical(1, select);
+                    self.edit_point.index = UTF8Bytes::zero();
+                    // one shift is consumed by the change of line, hence the -1
+                    self.adjust_horizontal(
+                        adjust.saturating_sub(remaining + UTF8Bytes::one()),
+                        direction,
+                        select,
+                    );
+                } else {
+                    self.edit_point.index =
+                        min(self.current_line_length(), self.edit_point.index + adjust);
+                }
+            },
+        };
         self.update_selection_direction();
         self.assert_ok_selection();
     }
@@ -601,10 +707,13 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Select all text in the input control.
     pub fn select_all(&mut self) {
-        self.selection_origin = Some(TextPoint { line: 0, index: 0 });
+        self.selection_origin = Some(TextPoint {
+            line: 0,
+            index: UTF8Bytes::zero(),
+        });
         let last_line = self.lines.len() - 1;
         self.edit_point.line = last_line;
-        self.edit_point.index = self.lines[last_line].len();
+        self.edit_point.index = self.lines[last_line].len_utf8();
         self.selection_direction = SelectionDirection::Forward;
         self.assert_ok_selection();
     }
@@ -625,79 +734,81 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
-        let shift_increment: isize = {
-            let input: &str;
+        let shift_increment: UTF8Bytes = {
+            let current_index = self.edit_point.index;
+            let current_line = self.edit_point.line;
+            let mut newline_adjustment = UTF8Bytes::zero();
+            let mut shift_temp = UTF8Bytes::zero();
             match direction {
                 Direction::Backward => {
-                    let remaining = self.edit_point.index;
-                    let current_line = self.edit_point.line;
-                    let mut newline_adjustment = 0;
-                    if remaining == 0 && current_line > 0 {
+                    let input: &str;
+                    if current_index == UTF8Bytes::zero() && current_line > 0 {
                         input = &self.lines[current_line - 1];
-                        newline_adjustment = 1;
+                        newline_adjustment = UTF8Bytes::one();
                     } else {
+                        let UTF8Bytes(remaining) = current_index;
                         input = &self.lines[current_line][..remaining];
                     }
 
                     let mut iter = input.split_word_bounds().rev();
-                    let mut shift_temp: isize = 0;
                     loop {
                         match iter.next() {
                             None => break,
                             Some(x) => {
-                                shift_temp += -(x.len() as isize);
+                                shift_temp += UTF8Bytes(x.len() as usize);
                                 if x.chars().any(|x| x.is_alphabetic() || x.is_numeric()) {
                                     break;
                                 }
                             },
                         }
                     }
-                    shift_temp - newline_adjustment
                 },
                 Direction::Forward => {
-                    let remaining = self.current_line_length() - self.edit_point.index;
-                    let current_line = self.edit_point.line;
-                    let mut newline_adjustment = 0;
-                    if remaining == 0 && self.lines.len() > self.edit_point.line + 1 {
+                    let input: &str;
+                    let remaining = self.current_line_length().saturating_sub(current_index);
+                    if remaining == UTF8Bytes::zero() && self.lines.len() > self.edit_point.line + 1
+                    {
                         input = &self.lines[current_line + 1];
-                        newline_adjustment = 1;
+                        newline_adjustment = UTF8Bytes::one();
                     } else {
-                        input = &self.lines[current_line][self.edit_point.index..];
+                        let UTF8Bytes(current_offset) = current_index;
+                        input = &self.lines[current_line][current_offset..];
                     }
 
                     let mut iter = input.split_word_bounds();
-                    let mut shift_temp: isize = 0;
                     loop {
                         match iter.next() {
                             None => break,
                             Some(x) => {
-                                shift_temp += x.len() as isize;
+                                shift_temp += UTF8Bytes(x.len() as usize);
                                 if x.chars().any(|x| x.is_alphabetic() || x.is_numeric()) {
                                     break;
                                 }
                             },
                         }
                     }
-                    shift_temp + newline_adjustment
                 },
-            }
+            };
+
+            shift_temp + newline_adjustment
         };
 
-        self.adjust_horizontal(shift_increment, select);
+        self.adjust_horizontal(shift_increment, direction, select);
     }
 
     pub fn adjust_horizontal_to_line_end(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
-        let shift: isize = {
+        let shift: usize = {
             let current_line = &self.lines[self.edit_point.line];
+            let UTF8Bytes(current_offset) = self.edit_point.index;
             match direction {
-                Direction::Backward => -(current_line[..self.edit_point.index].len() as isize),
-                Direction::Forward => current_line[self.edit_point.index..].len() as isize,
+                Direction::Backward => current_line[..current_offset].len(),
+                Direction::Forward => current_line[current_offset..].len(),
             }
         };
-        self.perform_horizontal_adjustment(shift, select);
+        self.perform_horizontal_adjustment(UTF8Bytes(shift), direction, select);
     }
 
     pub fn adjust_horizontal_to_limit(&mut self, direction: Direction, select: Selection) {
@@ -707,11 +818,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         match direction {
             Direction::Backward => {
                 self.edit_point.line = 0;
-                self.edit_point.index = 0;
+                self.edit_point.index = UTF8Bytes::zero();
             },
             Direction::Forward => {
                 self.edit_point.line = &self.lines.len() - 1;
-                self.edit_point.index = (&self.lines[&self.lines.len() - 1]).len();
+                self.edit_point.index = (&self.lines[&self.lines.len() - 1]).len_utf8();
             },
         }
     }
@@ -827,7 +938,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             })
             .shortcut(Modifiers::empty(), Key::Enter, || self.handle_return())
             .optional_shortcut(macos, Modifiers::empty(), Key::Home, || {
-                self.edit_point.index = 0;
+                self.edit_point.index = UTF8Bytes::zero();
                 KeyReaction::RedrawSelection
             })
             .optional_shortcut(macos, Modifiers::empty(), Key::End, || {
@@ -864,20 +975,26 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The length of the content in bytes.
-    pub fn len(&self) -> usize {
-        self.lines.iter().fold(0, |m, l| {
-            m + l.len() + 1 // + 1 for the '\n'
-        }) - 1
+    pub fn len_utf8(&self) -> UTF8Bytes {
+        self.lines
+            .iter()
+            .fold(UTF8Bytes::zero(), |m, l| {
+                m + l.len_utf8() + UTF8Bytes::one() // + 1 for the '\n'
+            })
+            .saturating_sub(UTF8Bytes::one())
     }
 
-    /// The length of the content in bytes.
-    pub fn utf16_len(&self) -> usize {
-        self.lines.iter().fold(0, |m, l| {
-            m + l.chars().map(char::len_utf16).sum::<usize>() + 1 // + 1 for the '\n'
-        }) - 1
+    /// The total number of code units required to encode the content in utf16.
+    pub fn utf16_len(&self) -> UTF16CodeUnits {
+        self.lines
+            .iter()
+            .fold(UTF16CodeUnits::zero(), |m, l| {
+                m + UTF16CodeUnits(l.chars().map(char::len_utf16).sum::<usize>() + 1) // + 1 for the '\n'
+            })
+            .saturating_sub(UTF16CodeUnits::one())
     }
 
-    /// The length of the content in chars.
+    /// The length of the content in Unicode code points.
     pub fn char_count(&self) -> usize {
         self.lines.iter().fold(0, |m, l| {
             m + l.chars().count() + 1 // + 1 for the '\n'
@@ -925,34 +1042,41 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Convert a TextPoint into a byte offset from the start of the content.
-    fn text_point_to_offset(&self, text_point: &TextPoint) -> usize {
-        self.lines.iter().enumerate().fold(0, |acc, (i, val)| {
-            if i < text_point.line {
-                acc + val.len() + 1 // +1 for the \n
-            } else {
-                acc
-            }
-        }) + text_point.index
+    fn text_point_to_offset(&self, text_point: &TextPoint) -> UTF8Bytes {
+        self.lines
+            .iter()
+            .enumerate()
+            .fold(UTF8Bytes::zero(), |acc, (i, val)| {
+                if i < text_point.line {
+                    acc + val.len_utf8() + UTF8Bytes::one() // +1 for the \n
+                } else {
+                    acc
+                }
+            }) +
+            text_point.index
     }
 
     /// Convert a byte offset from the start of the content into a TextPoint.
-    fn offset_to_text_point(&self, abs_point: usize) -> TextPoint {
+    fn offset_to_text_point(&self, abs_point: UTF8Bytes) -> TextPoint {
         let mut index = abs_point;
         let mut line = 0;
         let last_line_idx = self.lines.len() - 1;
-        self.lines.iter().enumerate().fold(0, |acc, (i, val)| {
-            if i != last_line_idx {
-                let line_end = val.len();
-                let new_acc = acc + line_end + 1;
-                if abs_point >= new_acc && index > line_end {
-                    index -= line_end + 1;
-                    line += 1;
+        self.lines
+            .iter()
+            .enumerate()
+            .fold(UTF8Bytes::zero(), |acc, (i, val)| {
+                if i != last_line_idx {
+                    let line_end = val.len_utf8();
+                    let new_acc = acc + line_end + UTF8Bytes::one();
+                    if abs_point >= new_acc && index > line_end {
+                        index = index.saturating_sub(line_end + UTF8Bytes::one());
+                        line += 1;
+                    }
+                    new_acc
+                } else {
+                    acc
                 }
-                new_acc
-            } else {
-                acc
-            }
-        });
+            });
 
         TextPoint {
             line: line,
@@ -961,9 +1085,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     pub fn set_selection_range(&mut self, start: u32, end: u32, direction: SelectionDirection) {
-        let mut start = start as usize;
-        let mut end = end as usize;
-        let text_end = self.get_content().len();
+        let mut start = UTF8Bytes(start as usize);
+        let mut end = UTF8Bytes(end as usize);
+        let text_end = self.get_content().len_utf8();
 
         if end > text_end {
             end = text_end;
@@ -987,11 +1111,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.assert_ok_selection();
     }
 
+    /// Set the edit point index position based off of a given grapheme cluster offset
     pub fn set_edit_point_index(&mut self, index: usize) {
-        let byte_size = self.lines[self.edit_point.line]
+        let byte_offset = self.lines[self.edit_point.line]
             .graphemes(true)
             .take(index)
-            .fold(0, |acc, x| acc + x.len());
-        self.edit_point.index = byte_size;
+            .fold(UTF8Bytes::zero(), |acc, x| acc + x.len_utf8());
+        self.edit_point.index = byte_offset;
     }
 }

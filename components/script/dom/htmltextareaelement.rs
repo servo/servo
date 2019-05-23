@@ -31,7 +31,9 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
+use crate::textinput::{
+    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
+};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use script_traits::ScriptToConstellationChan;
@@ -89,7 +91,9 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
             return None;
         }
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
-        Some(textinput.sorted_selection_offsets_range())
+        Some(UTF8Bytes::unwrap_range(
+            textinput.sorted_selection_offsets_range(),
+        ))
     }
 
     #[allow(unsafe_code)]
@@ -307,7 +311,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-textlength
     fn TextLength(&self) -> u32 {
-        self.textinput.borrow().utf16_len() as u32
+        let UTF16CodeUnits(num_units) = self.textinput.borrow().utf16_len();
+        num_units as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -423,7 +428,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(value as usize))
+                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -435,7 +440,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(value as usize))
+                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),

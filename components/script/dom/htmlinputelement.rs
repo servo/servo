@@ -45,7 +45,7 @@ use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
 use crate::textinput::Lines::Single;
-use crate::textinput::{Direction, SelectionDirection, TextInput};
+use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
 use caseless::compatibility_caseless_match_str;
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
@@ -434,7 +434,7 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
         match (*self.unsafe_get()).input_type() {
             InputType::Password => {
                 let text = get_raw_textinput_value(self);
-                let sel = textinput.sorted_selection_offsets_range();
+                let sel = UTF8Bytes::unwrap_range(textinput.sorted_selection_offsets_range());
 
                 // Translate indices from the raw value to indices in the replacement value.
                 let char_start = text[..sel.start].chars().count();
@@ -443,9 +443,9 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char..char_end * bytes_per_char)
             },
-            input_type if input_type.is_textual() => {
-                Some(textinput.sorted_selection_offsets_range())
-            },
+            input_type if input_type.is_textual() => Some(UTF8Bytes::unwrap_range(
+                textinput.sorted_selection_offsets_range(),
+            )),
             _ => None,
         }
     }
@@ -1357,7 +1357,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(value as usize))
+                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -1369,7 +1369,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(value as usize))
+                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
