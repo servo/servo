@@ -33,12 +33,7 @@ def rel_dir_file_path(draw):
         return "a"
     else:
         remaining = length - 2
-        if os.path.sep == "/":
-            alphabet = "a/"
-        elif os.path.sep == "\\":
-            alphabet = "a/\\"
-        else:
-            assert False, "uhhhh, this platform is weird"
+        alphabet = "a" + os.path.sep
         mid = draw(hs.text(alphabet=alphabet, min_size=remaining, max_size=remaining))
         return os.path.normcase("a" + mid + "a")
 

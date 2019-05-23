@@ -6,7 +6,6 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
-        <script src="viewport_support.js"></script>
         <style>
           html {
               height: 100%;
@@ -41,7 +40,9 @@
 
       // Run the test after load to make sure any resize from load doesn't
       // interfere.
-      window.onload = requestAnimationFrame(runTest);
+      window.onload = requestAnimationFrame(function() {
+        requestAnimationFrame(runTest);
+      });
     </script>
     <div id="log"></div>
     </body>

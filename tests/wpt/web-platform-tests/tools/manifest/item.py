@@ -3,6 +3,8 @@ from six import iteritems
 from six.moves.urllib.parse import urljoin, urlparse
 from abc import ABCMeta, abstractproperty
 
+from .utils import to_os_path
+
 MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
@@ -60,6 +62,7 @@ class ManifestItem(object):
 
     @classmethod
     def from_json(cls, manifest, path, obj):
+        path = to_os_path(path)
         return cls(manifest.tests_root, path)
 
 
@@ -96,6 +99,7 @@ class URLManifestItem(ManifestItem):
 
     @classmethod
     def from_json(cls, manifest, path, obj):
+        path = to_os_path(path)
         url, extras = obj
         return cls(manifest.tests_root,
                    path,
@@ -190,6 +194,7 @@ class RefTestBase(URLManifestItem):
 
     @classmethod
     def from_json(cls, manifest, path, obj):
+        path = to_os_path(path)
         url, references, extras = obj
         return cls(manifest.tests_root,
                    path,

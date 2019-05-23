@@ -25,7 +25,7 @@ the target request is %(origin)s.'''
 
     self.test_page_title_template = 'Referrer-Policy: %s'
 
-    self.helper_js = '/referrer-policy/generic/referrer-policy-test-case.js?pipe=sub'
+    self.helper_js = '/referrer-policy/generic/referrer-policy-test-case.sub.js'
 
     # For debug target only.
     self.sanity_checker_js = '/referrer-policy/generic/sanity-checker.js'

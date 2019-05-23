@@ -20,7 +20,7 @@
     const validViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
 
     let testFunction = function(session, fakeDeviceController, t) {
-      return session.requestReferenceSpace({ type: 'stationary', subtype: 'eye-level' })
+      return session.requestReferenceSpace('local')
         .then((referenceSpace) => new Promise((resolve, reject) => {
           let counter = 0;
           function onFrame(time, vrFrame) {

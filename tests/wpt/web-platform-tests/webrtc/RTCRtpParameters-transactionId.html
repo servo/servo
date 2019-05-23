@@ -63,6 +63,7 @@
    */
   promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
     await doOfferAnswerExchange(t, pc);
 
@@ -73,7 +74,6 @@
     validateSenderRtpParameters(param2);
 
     assert_not_equals(param1.transactionId, param2.transactionId);
-
   }, `sender.getParameters() should return different transaction IDs for each call`);
 
   /*

@@ -9,6 +9,7 @@ enum RTCStatsType {
 "outbound-rtp",
 "remote-inbound-rtp",
 "remote-outbound-rtp",
+"media-source",
 "csrc",
 "peer-connection",
 "data-channel",
@@ -99,6 +100,7 @@ dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
 
 dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString trackId;
+             DOMString mediaSourceId;
              DOMString senderId;
              DOMString remoteId;
              DOMHighResTimeStamp lastPacketSentTimestamp;
@@ -109,6 +111,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              unsigned long framesEncoded;
              unsigned long long qpSum;
              double totalEncodeTime;
+             double totalPacketSendDelay;
              double averageRtcpInterval;
              RTCQualityLimitationReason qualityLimitationReason;
              record<DOMString, double> qualityLimitationDurations;
@@ -129,6 +132,21 @@ enum RTCQualityLimitationReason {
 dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString localId;
              DOMHighResTimeStamp remoteTimestamp;
+};
+
+dictionary RTCMediaSourceStats : RTCStats {
+             DOMString trackIdentifier;
+             DOMString kind;
+};
+
+dictionary RTCAudioSourceStats : RTCMediaSourceStats {
+};
+
+dictionary RTCVideoSourceStats : RTCMediaSourceStats {
+             unsigned long width;
+             unsigned long height;
+             unsigned long frames;
+             unsigned long framesPerSecond;
 };
 
 dictionary RTCRtpContributingSourceStats : RTCStats {
@@ -165,6 +183,7 @@ dictionary RTCVideoHandlerStats : RTCMediaHandlerStats {
 };
 
 dictionary RTCVideoSenderStats : RTCVideoHandlerStats {
+             DOMString mediaSourceId;
              unsigned long framesCaptured;
              unsigned long framesSent;
              unsigned long hugeFramesSent;
@@ -194,6 +213,7 @@ dictionary RTCAudioHandlerStats : RTCMediaHandlerStats {
 };
 
 dictionary RTCAudioSenderStats : RTCAudioHandlerStats {
+             DOMString mediaSourceId;
              double echoReturnLoss;
              double echoReturnLossEnhancement;
              unsigned long long totalSamplesSent;

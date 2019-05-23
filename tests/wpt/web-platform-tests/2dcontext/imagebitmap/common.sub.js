@@ -38,6 +38,11 @@ var imageBitmapVideoPromise = new Promise(function(resolve, reject) {
         resolve(video);
     };
     video.onerror = reject;
+
+    // preload=auto is required to ensure a frame is available once
+    // canplaythrough is fired. The default of preload=metadata does not
+    // gaurantee this.
+    video.preload = "auto";
     video.src = getVideoURI("/images/pattern");
 
     // Prevent WebKit from garbage collecting event handlers.
@@ -60,6 +65,11 @@ var imageBitmapDataUrlVideoPromise = fetch(getVideoURI("/images/pattern"))
 
             var encoded = btoa(String.fromCodePoint(...new Uint8Array(data)));
             var dataUrl = `data:${type};base64,${encoded}`;
+
+            // preload=auto is required to ensure a frame is available once
+            // canplaythrough is fired. The default of preload=metadata does not
+            // gaurantee this.
+            video.preload = "auto";
             video.src = dataUrl;
 
             // Prevent WebKit from garbage collecting event handlers.

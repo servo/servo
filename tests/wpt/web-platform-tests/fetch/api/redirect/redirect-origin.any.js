@@ -2,7 +2,7 @@
 // META: script=../resources/utils.js
 // META: script=/common/get-host-info.sub.js
 
-function testOriginAfterRedirection(desc, redirectUrl, redirectLocation, redirectStatus, expectedOrigin) {
+function testOriginAfterRedirection(desc, method, redirectUrl, redirectLocation, redirectStatus, expectedOrigin) {
     var uuid_token = token();
     var url = redirectUrl;
     var urlParameters = "?token=" + uuid_token + "&max_age=0";
@@ -28,10 +28,15 @@ var locationUrl =  get_host_info().HTTP_ORIGIN + dirname(location.pathname) + RE
 var corsLocationUrl =  get_host_info().HTTP_REMOTE_ORIGIN + dirname(location.pathname) + RESOURCES_DIR + "inspect-headers.py?cors&headers=origin";
 
 for (var code of [301, 302, 303, 307, 308]) {
-    testOriginAfterRedirection("Same origin to same origin redirection " + code, redirectUrl, locationUrl, code, null);
-    testOriginAfterRedirection("Same origin to other origin redirection " + code, redirectUrl, corsLocationUrl, code, get_host_info().HTTP_ORIGIN);
-    testOriginAfterRedirection("Other origin to other origin redirection " + code, corsRedirectUrl, corsLocationUrl, code, get_host_info().HTTP_ORIGIN);
-    testOriginAfterRedirection("Other origin to same origin redirection " + code, corsRedirectUrl, locationUrl + "&cors", code, "null");
+    testOriginAfterRedirection("Same origin to same origin redirection " + code, 'GET', redirectUrl, locationUrl, code, null);
+    testOriginAfterRedirection("Same origin to other origin redirection " + code, 'GET', redirectUrl, corsLocationUrl, code, get_host_info().HTTP_ORIGIN);
+    testOriginAfterRedirection("Other origin to other origin redirection " + code, 'GET', corsRedirectUrl, corsLocationUrl, code, get_host_info().HTTP_ORIGIN);
+    testOriginAfterRedirection("Other origin to same origin redirection " + code, 'GET', corsRedirectUrl, locationUrl + "&cors", code, "null");
+
+    testOriginAfterRedirection("Same origin to same origin redirection[POST] " + code, 'POST', redirectUrl, locationUrl, code, null);
+    testOriginAfterRedirection("Same origin to other origin redirection[POST] " + code, 'POST', redirectUrl, corsLocationUrl, code, get_host_info().HTTP_ORIGIN);
+    testOriginAfterRedirection("Other origin to other origin redirection[POST] " + code, 'POST', corsRedirectUrl, corsLocationUrl, code, get_host_info().HTTP_ORIGIN);
+    testOriginAfterRedirection("Other origin to same origin redirection[POST] " + code, 'POST', corsRedirectUrl, locationUrl + "&cors", code, "null");
 }
 
 done();

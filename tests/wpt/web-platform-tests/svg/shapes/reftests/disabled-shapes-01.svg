@@ -21,6 +21,7 @@
       <rect style="height: 0" width="10"/>
       <rect style="height: -10px"/>
       <rect style="height: -10px" width="10"/>
+      <rect style="width: calc(-10px); height: calc(-10px)"/>
     </g>
 
     <g transform="translate(150, 50)">
@@ -29,22 +30,22 @@
       <circle r="-10"/>
       <circle style="r: 0"/>
       <circle style="r: -10px"/>
+      <circle style="r: calc(-10px)"/>
     </g>
 
     <g transform="translate(250, 50)">
       <ellipse/>
       <ellipse rx="0"/>
       <ellipse rx="0" ry="10"/>
-      <ellipse rx="-10" ry="10"/>
       <ellipse ry="0"/>
       <ellipse ry="0" rx="10"/>
-      <ellipse ry="-10" rx="10"/>
       <ellipse style="rx: 0"/>
       <ellipse style="rx: -10px"/>
       <ellipse style="rx: 0" ry="10"/>
       <ellipse style="ry: 0"/>
       <ellipse style="ry: -10px"/>
       <ellipse style="ry: 0" rx="10"/>
+      <ellipse style="rx: calc(-10px); ry: calc(-10px)"/>
     </g>
   </g>
 </svg>

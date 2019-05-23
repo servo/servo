@@ -22,6 +22,9 @@ body {
 <script>
   let beforeRender, image1Observed=0, image2Observed=0, image3Observed=0;
   async_test(function (t) {
+    if (!window.PerformanceElementTiming) {
+      assert_unreached("PerformanceElementTiming is not implemented");
+    }
     const index = window.location.href.lastIndexOf('/');
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {

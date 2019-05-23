@@ -138,6 +138,74 @@ jobs:
     parameters:
       directory: tools/wpt/
 
+- job: tools_unittest_win
+  displayName: 'tools/ unittests (Windows)'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.tools_unittest']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/
+      toxenv: py27
+
+- job: tools_unittest_win_py3
+  displayName: 'tools/ unittests (Windows Python 3)'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.tools_unittest']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.6.x'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/
+      toxenv: py36
+
+- job: wptrunner_unittest_win
+  displayName: 'tools/wptrunner/ unittests (Windows)'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wptrunner/
+
+- job: wpt_integration_win
+  displayName: 'tools/wpt/ tests (Windows)'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wpt_integration']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  # full checkout required
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
+  # currently just using the outdated Chrome/Firefox on the VM rather than
+  # figuring out how to install Chrome Dev channel on Windows
+  # - template: tools/ci/azure/install_chrome.yml
+  # - template: tools/ci/azure/install_firefox.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wpt/
+
 - job: infrastructure_win10
   displayName: 'infrastructure/ tests (Windows 10)'
   # This job is only triggered manually until it has been shown to be robust.

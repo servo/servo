@@ -330,7 +330,8 @@ test(function () {
     assert_array_equals(prototypeCalls, [1, 'connectedCallback', 2, 'disconnectedCallback', 3, 'adoptedCallback', 4, 'attributeChangedCallback']);
     assert_array_equals(constructorCalls, [0, 'prototype',
                                            5, 'observedAttributes',
-                                           6, 'disabledFeatures']);
+                                           6, 'disabledFeatures',
+                                           7, 'formAssociated']);
 }, 'customElements.define must get "observedAttributes" property on the constructor prototype when "attributeChangedCallback" is present');
 
 test(function () {
@@ -436,6 +437,102 @@ test(function () {
     constructor.disabledFeatures = {[Symbol.iterator]: 1};
     assert_throws({'name': 'TypeError'}, () => customElements.define('element-with-disabled-features-with-uncallable-iterator', constructor));
 }, 'customElements.define must rethrow an exception thrown while retrieving Symbol.iterator on disabledFeatures');
+
+test(function () {
+    var constructor = function () {}
+    var calls = [];
+    var proxy = new Proxy(constructor, {
+        get: function (target, name) {
+            calls.push(name);
+            if (name == 'formAssociated')
+                throw {name: 'expectedError'};
+            return target[name];
+        }
+    });
+    assert_throws({'name': 'expectedError'},
+        () => customElements.define('element-with-throwing-form-associated', proxy));
+    assert_array_equals(calls, ['prototype', 'disabledFeatures', 'formAssociated'],
+        'customElements.define must get "prototype", "disabledFeatures", and ' +
+        '"formAssociated" on the constructor');
+}, 'customElements.define must rethrow an exception thrown while getting ' +
+   'formAssociated on the constructor prototype');
+
+test(function () {
+    var constructor = function () {}
+    var prototypeCalls = [];
+    constructor.prototype = new Proxy(constructor.prototype, {
+        get: function(target, name) {
+            prototypeCalls.push(name)
+            return target[name];
+        }
+    });
+    var constructorCalls = [];
+    var proxy = new Proxy(constructor, {
+        get: function (target, name) {
+            constructorCalls.push(name);
+            if (name == 'formAssociated')
+                return 1;
+            return target[name];
+        }
+    });
+    customElements.define('element-with-form-associated-true', proxy);
+    assert_array_equals(constructorCalls,
+        ['prototype', 'disabledFeatures', 'formAssociated'],
+        'customElements.define must get "prototype", "disabledFeatures", and ' +
+        '"formAssociated" on the constructor');
+    assert_array_equals(
+        prototypeCalls,
+        ['connectedCallback', 'disconnectedCallback', 'adoptedCallback',
+         'attributeChangedCallback', 'formAssociatedCallback',
+         'formResetCallback', 'formDisabledCallback',
+         'formStateRestoreCallback'],
+        'customElements.define must get 8 callbacks on the prototype');
+}, 'customElements.define must get four additional callbacks on the prototype' +
+   ' if formAssociated is converted to true');
+
+test(function () {
+    var constructor = function() {};
+    var proxy = new Proxy(constructor, {
+        get: function(target, name) {
+            if (name == 'formAssociated')
+                return {};  // Any object is converted to 'true'.
+            return target[name];
+        }
+    });
+    var calls = [];
+    constructor.prototype = new Proxy(constructor.prototype, {
+        get: function (target, name) {
+            calls.push(name);
+            if (name == 'formDisabledCallback')
+                throw {name: 'expectedError'};
+            return target[name];
+        }
+    });
+    assert_throws({'name': 'expectedError'},
+        () => customElements.define('element-with-throwing-callback-2', proxy));
+    assert_array_equals(calls, ['connectedCallback', 'disconnectedCallback',
+                                'adoptedCallback', 'attributeChangedCallback',
+                                'formAssociatedCallback', 'formResetCallback',
+                                'formDisabledCallback'],
+        'customElements.define must not get callbacks after one of the get throws');
+
+    var calls2 = [];
+    constructor.prototype = new Proxy(constructor.prototype, {
+        get: function (target, name) {
+            calls2.push(name);
+            if (name == 'formResetCallback')
+                return 43;  // Can't convert to a Function.
+            return target[name];
+        }
+    });
+    assert_throws({'name': 'TypeError'},
+        () => customElements.define('element-with-throwing-callback-3', proxy));
+    assert_array_equals(calls2, ['connectedCallback', 'disconnectedCallback',
+                                 'adoptedCallback', 'attributeChangedCallback',
+                                 'formAssociatedCallback', 'formResetCallback'],
+        'customElements.define must not get callbacks after one of the get throws');
+}, 'customElements.define must rethrow an exception thrown while getting ' +
+   'additional formAssociated callbacks on the constructor prototype');
 
 test(function () {
     class MyCustomElement extends HTMLElement {};

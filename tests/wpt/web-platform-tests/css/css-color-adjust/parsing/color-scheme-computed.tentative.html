@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Color Adjust: getComputedStyle for color-scheme</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_computed_value("color-scheme", "", "auto");
+  test_computed_value("color-scheme", "auto");
+  test_computed_value("color-scheme", "light dark");
+  test_computed_value("color-scheme", "dark light");
+  test_computed_value("color-scheme", "light unknown");
+  test_computed_value("color-scheme", "only light");
+  test_computed_value("color-scheme", "light light");
+  test_computed_value("color-scheme", "light only");
+  // reserved and css-wide keywords.
+  test_computed_value("color-scheme", "initial", "auto");
+  test_computed_value("color-scheme", "inherit", "auto");
+  test_computed_value("color-scheme", "unset", "auto");
+  test_computed_value("color-scheme", "revert", "auto");
+  test_computed_value("color-scheme", "default", "auto");
+  test_computed_value("color-scheme", "none", "auto");
+</script>

@@ -25,7 +25,7 @@ test_computed_value("filter", "blur()", "blur(0px)");
 
 test_computed_value("filter", "brightness(0)");
 test_computed_value("filter", "brightness(300%)", "brightness(3)");
-test_computed_value("filter", "brightness()", "brightness(0)");
+test_computed_value("filter", "brightness()", "brightness(1)");
 
 test_computed_value("filter", "contrast(0)");
 test_computed_value("filter", "contrast(300%)", "contrast(3)");
@@ -42,7 +42,7 @@ test_computed_value("filter", "hue-rotate()", "hue-rotate(0deg)");
 
 test_computed_value("filter", "invert(0)");
 test_computed_value("filter", "invert(100%)", "invert(1)");
-test_computed_value("filter", "invert()", "invert(0)");
+test_computed_value("filter", "invert()", "invert(1)");
 
 test_computed_value("filter", "opacity(0)");
 test_computed_value("filter", "opacity(100%)", "opacity(1)");
