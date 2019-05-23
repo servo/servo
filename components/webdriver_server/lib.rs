@@ -41,7 +41,9 @@ use uuid::Uuid;
 use webdriver::command::{
     AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
 };
-use webdriver::command::{SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
+use webdriver::command::{
+    NewSessionParameters, SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters,
+};
 use webdriver::command::{
     WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
 };
@@ -381,7 +383,17 @@ impl Handler {
         }
     }
 
-    fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+    fn handle_new_session(
+        &mut self,
+        parameters: &NewSessionParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        if let NewSessionParameters::Legacy(..) = parameters {
+            return Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "Unsupported legacy arguments",
+            ));
+        }
+
         debug!("new session");
         if self.session.is_none() {
             let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
@@ -1287,7 +1299,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         }
 
         match msg.command {
-            WebDriverCommand::NewSession(_) => self.handle_new_session(),
+            WebDriverCommand::NewSession(ref parameters) => self.handle_new_session(parameters),
             WebDriverCommand::DeleteSession => self.handle_delete_session(),
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
