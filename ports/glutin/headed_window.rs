@@ -5,7 +5,6 @@
 //! A glutin window implementation.
 
 use crate::app;
-use crate::context::GlContext;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
@@ -15,7 +14,7 @@ use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use glutin::Icon;
-use glutin::Api;
+use glutin::{Api, ContextBuilder, GlContext, GlWindow};
 use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
@@ -54,7 +53,7 @@ fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::Wind
 }
 
 pub struct Window {
-    gl_context: RefCell<GlContext>,
+    gl_window: GlWindow,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
@@ -107,7 +106,7 @@ impl Window {
 
         window_builder = builder_with_platform_options(window_builder);
 
-        let mut context_builder = glutin::ContextBuilder::new()
+        let mut context_builder = ContextBuilder::new()
             .with_gl(app::gl_version())
             .with_vsync(opts.enable_vsync);
 
@@ -115,19 +114,21 @@ impl Window {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)
         }
 
-        let context = context_builder
-            .build_windowed(window_builder, &events_loop)
+        let glutin_window = GlWindow::new(window_builder, context_builder, &events_loop)
             .expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
             let icon_bytes = include_bytes!("../../resources/servo64.png");
-            context.window().set_window_icon(Some(load_icon(icon_bytes)));
+            glutin_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
-        let context = unsafe {
-            context.make_current().expect("Couldn't make window current")
-        };
+        unsafe {
+            glutin_window
+                .context()
+                .make_current()
+                .expect("Couldn't make window current");
+        }
 
         let primary_monitor = events_loop.get_primary_monitor();
 
@@ -137,20 +138,19 @@ impl Window {
         } = primary_monitor.get_dimensions();
         let screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
         // TODO(ajeffrey): can this fail?
-        let LogicalSize { width, height } = context
-            .window()
+        let LogicalSize { width, height } = glutin_window
             .get_inner_size()
             .expect("Failed to get window inner size.");
         let inner_size = TypedSize2D::new(width as u32, height as u32);
 
-        context.window().show();
+        glutin_window.show();
 
-        let gl = match context.get_api() {
+        let gl = match glutin_window.context().get_api() {
             Api::OpenGl => unsafe {
-                gl::GlFns::load_with(|s| context.get_proc_address(s) as *const _)
+                gl::GlFns::load_with(|s| glutin_window.get_proc_address(s) as *const _)
             },
             Api::OpenGlEs => unsafe {
-                gl::GlesFns::load_with(|s| context.get_proc_address(s) as *const _)
+                gl::GlesFns::load_with(|s| glutin_window.get_proc_address(s) as *const _)
             },
             Api::WebGl => unreachable!("webgl is unsupported"),
         };
@@ -159,12 +159,8 @@ impl Window {
         gl.clear(gl::COLOR_BUFFER_BIT);
         gl.finish();
 
-        let mut context = GlContext::Current(context);
-
-        context.make_not_current();
-
         let window = Window {
-            gl_context: RefCell::new(context),
+            gl_window: glutin_window,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
@@ -267,7 +263,7 @@ impl Window {
     }
 
     fn device_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        TypedScale::new(self.gl_context.borrow().window().get_hidpi_factor() as f32)
+        TypedScale::new(self.gl_window.get_hidpi_factor() as f32)
     }
 
     fn servo_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -293,33 +289,31 @@ impl WindowPortsMethods for Window {
     fn page_height(&self) -> f32 {
         let dpr = self.servo_hidpi_factor();
         let size = self
-            .gl_context
-            .borrow()
-            .window()
+            .gl_window
             .get_inner_size()
             .expect("Failed to get window inner size.");
         size.height as f32 * dpr.get()
     }
 
     fn set_title(&self, title: &str) {
-        self.gl_context.borrow().window().set_title(title);
+        self.gl_window.set_title(title);
     }
 
     fn set_inner_size(&self, size: DeviceIntSize) {
         let size = size.to_f32() / self.device_hidpi_factor();
-        self.gl_context.borrow_mut().window()
+        self.gl_window
             .set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
         let point = point.to_f32() / self.device_hidpi_factor();
-        self.gl_context.borrow_mut().window()
+        self.gl_window
             .set_position(LogicalPosition::new(point.x.into(), point.y.into()))
     }
 
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
-            self.gl_context.borrow_mut().window()
+            self.gl_window
                 .set_fullscreen(Some(self.primary_monitor.clone()));
         }
         self.fullscreen.set(state);
@@ -369,7 +363,7 @@ impl WindowPortsMethods for Window {
             Cursor::ZoomOut => MouseCursor::ZoomOut,
             _ => MouseCursor::Default,
         };
-        self.gl_context.borrow_mut().window().set_cursor(winit_cursor);
+        self.gl_window.set_cursor(winit_cursor);
     }
 
     fn is_animating(&self) -> bool {
@@ -377,7 +371,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn id(&self) -> Option<glutin::WindowId> {
-        Some(self.gl_context.borrow().window().id())
+        Some(self.gl_window.id())
     }
 
     fn winit_event_to_servo_event(&self, event: glutin::WindowEvent) {
@@ -441,7 +435,10 @@ impl WindowPortsMethods for Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             },
             glutin::WindowEvent::Resized(size) => {
-                self.gl_context.borrow_mut().window().set_inner_size(size);
+                // size is DeviceIndependentPixel.
+                // gl_window.resize() takes DevicePixel.
+                let size = size.to_physical(self.device_hidpi_factor().get() as f64);
+                self.gl_window.resize(size);
                 // window.set_inner_size() takes DeviceIndependentPixel.
                 let (width, height) = size.into();
                 let new_size = TypedSize2D::new(width, height);
@@ -464,15 +461,11 @@ impl WindowMethods for Window {
         // TODO(ajeffrey): can this fail?
         let dpr = self.device_hidpi_factor();
         let LogicalSize { width, height } = self
-            .gl_context
-            .borrow()
-            .window()
+            .gl_window
             .get_outer_size()
             .expect("Failed to get window outer size.");
         let LogicalPosition { x, y } = self
-            .gl_context
-            .borrow()
-            .window()
+            .gl_window
             .get_position()
             .unwrap_or(LogicalPosition::new(0., 0.));
         let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
@@ -480,9 +473,7 @@ impl WindowMethods for Window {
         let screen = (self.screen_size.to_f32() * dpr).to_i32();
 
         let LogicalSize { width, height } = self
-            .gl_context
-            .borrow()
-            .window()
+            .gl_window
             .get_inner_size()
             .expect("Failed to get window inner size.");
         let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
@@ -501,8 +492,9 @@ impl WindowMethods for Window {
     }
 
     fn present(&self) {
-        self.gl_context.borrow().swap_buffers();
-        self.gl_context.borrow_mut().make_not_current();
+        if let Err(err) = self.gl_window.swap_buffers() {
+            warn!("Failed to swap window buffers ({}).", err);
+        }
     }
 
     fn set_animation_state(&self, state: AnimationState) {
@@ -510,7 +502,9 @@ impl WindowMethods for Window {
     }
 
     fn prepare_for_composite(&self) -> bool {
-        self.gl_context.borrow_mut().make_current();
+        if let Err(err) = unsafe { self.gl_window.context().make_current() } {
+            warn!("Couldn't make window current: {}", err);
+        }
         true
     }
 }

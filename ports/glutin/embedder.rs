@@ -9,6 +9,7 @@ use crate::events_loop::EventsLoop;
 use gleam::gl;
 use glutin;
 use glutin::dpi::LogicalSize;
+use glutin::{ContextBuilder, GlWindow};
 use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::EventLoopWaker;
@@ -51,13 +52,14 @@ impl EmbedderMethods for EmbedderCallbacks {
                     .with_dimensions(size)
                     .with_visibility(false)
                     .with_multitouch();
-                let context = glutin::ContextBuilder::new()
+                let context_builder = ContextBuilder::new()
                     .with_gl(app::gl_version())
-                    .with_vsync(false) // Assume the browser vsync is the same as the test VR window vsync
-                    .build_windowed(window_builder, &*self.events_loop.borrow().as_winit())
-                    .expect("Failed to create window.");
+                    .with_vsync(false); // Assume the browser vsync is the same as the test VR window vsync
+                let gl_window =
+                    GlWindow::new(window_builder, context_builder, &*self.events_loop.borrow().as_winit())
+                        .expect("Failed to create window.");
                 let gl = self.gl.clone();
-                let (service, heartbeat) = GlWindowVRService::new(name, context, gl);
+                let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
 
                 services.register(Box::new(service));
                 heartbeats.push(Box::new(heartbeat));
