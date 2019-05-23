@@ -573,7 +573,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     tests/wpt/mozilla/tests/css/img_simple.html \
                     tests/wpt/mozilla/tests/mozilla/secure.https.html \
                     | cat
-                time ./mach test-wpt --release --processes 1 --product=servodriver \
+                time ./mach test-wpt --release --processes $PROCESSES --product=servodriver \
                     --headless --log-raw test-bluetooth.log \
                     --log-errorsummary bluetooth-errorsummary.log \
                     bluetooth \
