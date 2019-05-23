@@ -244,6 +244,12 @@ impl FontHandleMethods for FontHandle {
         };
 
         if !result || glyphs[0] == 0 {
+            info!("checking index for glyph {} ({:x})", codepoint, codepoint as usize);
+            if !result {
+                info!("get_glyphs_for_characters returned false");
+            } else if glyphs[0] == 0 {
+                info!("glyphs[0] is 0");
+            }
             // No glyph for this character
             return None;
         }

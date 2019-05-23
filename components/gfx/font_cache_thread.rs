@@ -53,9 +53,12 @@ impl FontTemplates {
         for template in &mut self.templates {
             let maybe_template = template.data_for_descriptor(fctx, desc);
             if maybe_template.is_some() {
+                info!("found a template that matches");
                 return maybe_template;
             }
         }
+
+        info!("need to do approximate matching");
 
         // We didn't find an exact match. Do more expensive fuzzy matching.
         // TODO(#190): Do a better job.
@@ -71,6 +74,7 @@ impl FontTemplates {
             }
         }
         if best_template_data.is_some() {
+            info!("found best approx match");
             return best_template_data;
         }
 
@@ -80,10 +84,12 @@ impl FontTemplates {
         for template in &mut self.templates {
             let maybe_template = template.get();
             if maybe_template.is_some() {
+                info!("returning first valid template");
                 return maybe_template;
             }
         }
 
+        info!("no templates present");
         None
     }
 
@@ -95,8 +101,11 @@ impl FontTemplates {
             }
         }
 
-        if let Ok(template) = FontTemplate::new(identifier, maybe_data) {
+        if let Ok(template) = FontTemplate::new(identifier.clone(), maybe_data) {
+            info!("adding template for {}", identifier);
             self.templates.push(template);
+        } else {
+            info!("couldn't create template for {}", identifier);
         }
     }
 }
@@ -359,6 +368,8 @@ impl FontCache {
                 for_each_variation(&family_name, |path| {
                     s.add_template(Atom::from(&*path), None);
                 });
+            } else {
+                info!("already have templates");
             }
 
             // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.

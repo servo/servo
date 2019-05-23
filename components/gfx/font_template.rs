@@ -143,7 +143,9 @@ impl FontTemplate {
         // without having to reload the font (unless it is an actual match).
 
         self.descriptor.or_else(|| {
+            info!("about to instantiate");
             if self.instantiate(font_context).is_err() {
+                info!("error instantiating template");
                 return None;
             };
 
@@ -162,7 +164,7 @@ impl FontTemplate {
     ) -> Option<Arc<FontTemplateData>> {
         self.descriptor(&fctx).and_then(|descriptor| {
             if *requested_desc == descriptor {
-                self.data().ok()
+                self.data().map_err(|_| { info!("error optaining data"); () }).ok()
             } else {
                 None
             }
@@ -178,6 +180,7 @@ impl FontTemplate {
     ) -> Option<(Arc<FontTemplateData>, f32)> {
         self.descriptor(&font_context).and_then(|descriptor| {
             self.data()
+                .map_err(|_| { info!("error obtaining data for approx"); () })
                 .ok()
                 .map(|data| (data, descriptor.distance_from(requested_descriptor)))
         })

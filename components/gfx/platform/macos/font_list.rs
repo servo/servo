@@ -23,11 +23,17 @@ where
 
     let family_collection = core_text::font_collection::create_for_family(family_name);
     if let Some(family_collection) = family_collection {
+        info!("got a family collection");
         if let Some(family_descriptors) = family_collection.get_descriptors() {
+            info!("got descriptors");
             for family_descriptor in family_descriptors.iter() {
                 callback(family_descriptor.font_name());
             }
+        } else {
+            info!("no descriptors");
         }
+    } else {
+        info!("no collection");
     }
 }
 
