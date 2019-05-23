@@ -121,8 +121,13 @@ ResizeTestHelper.prototype = {
     window.requestAnimationFrame(() => { this._resolvePromise(); });
   },
 
-  start: function() {
+  start: function(cleanup) {
     this._harnessTest = async_test(this._name);
+
+    if (cleanup) {
+      this._harnessTest.add_cleanup(cleanup);
+    }
+
     this._harnessTest.step(() => {
       assert_equals(this._stepIdx, -1, "start can only be called once");
       this._nextStep();
@@ -137,6 +142,13 @@ ResizeTestHelper.prototype = {
     if (!this._rafCountRequest)
       throw "rAF count is not active";
     return this._rafCount;
+  },
+
+  get test() {
+    if (!this._harnessTest) {
+      throw "_harnessTest is not initialized";
+    }
+    return this._harnessTest;
   },
 
   _incrementRaf: function() {
@@ -154,4 +166,13 @@ ResizeTestHelper.prototype = {
     this._rafCount = 0;
     this._rafCountRequest = window.requestAnimationFrame(this._incrementRafBind);
   }
+}
+
+function createAndAppendElement(tagName, parent) {
+  if (!parent) {
+    parent = document.body;
+  }
+  const element = document.createElement(tagName);
+  parent.appendChild(element);
+  return element;
 }

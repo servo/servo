@@ -60,14 +60,14 @@
       }
 
       // Run the test after load to make sure any resize from a previous test
-      // doesn't interfere.
-      window.onload = function() {
+      // or from the load doesn't interfere.
+      window.onload = requestAnimationFrame(function() {
         try {
           runTest();
         } finally {
           done();
         }
-      };
+      });
     </script>
     <div id="log"></div>
     </body>

@@ -85,5 +85,25 @@ test(t => {
                 'changing the animation current time.');
 }, 'Test setting target from a valid target to another target');
 
+promise_test(async t => {
+  const animation = createDiv(t).animate(
+    { opacity: 0 },
+    { duration: 1, fill: 'forwards' }
+  );
+
+  const foreignElement
+    = document.createElementNS('http://example.org/test', 'test');
+  document.body.appendChild(foreignElement);
+  t.add_cleanup(() => {
+    foreignElement.remove();
+  });
+
+  animation.effect.target = foreignElement;
+
+  // Wait a frame to make sure nothing bad happens when the UA tries to update
+  // style.
+  await waitForNextFrame();
+}, 'Target element can be set to a foreign element');
+
 </script>
 </body>

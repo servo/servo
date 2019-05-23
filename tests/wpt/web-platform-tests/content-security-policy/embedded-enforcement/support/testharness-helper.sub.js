@@ -128,7 +128,7 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
       // Delay the check until after the postMessage has a chance to execute.
       setTimeout(t.step_func_done(function () {
         assert_equals(loaded[urlId], undefined);
-      }), 1);
+      }), 500);
       assert_throws("SecurityError", () => {
         var x = i.contentWindow.location.href;
       });

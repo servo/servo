@@ -14,6 +14,9 @@
   the performance timeline.
   */
   async_test(function(t) {
+    if (!window.PerformanceElementTiming) {
+      assert_unreached("PerformanceElementTiming is not implemented");
+    }
     beforeRender = performance.now();
     const img = document.createElement('img');
     img.src = 'resources/square20.jpg';

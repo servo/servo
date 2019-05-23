@@ -2242,6 +2242,38 @@
     await pc1.setRemoteDescription(answer);
   };
 
+  const checkAddIceCandidateToStoppedTransceiver = async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({audio: true, video: true});
+    t.add_cleanup(() => stopTracks(stream));
+    const audio = stream.getAudioTracks()[0];
+    const video = stream.getVideoTracks()[0];
+
+    pc1.addTrack(audio, stream);
+    pc1.addTrack(video, stream);
+
+    pc2.addTrack(audio, stream);
+    pc2.addTrack(video, stream);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    pc1.getTransceivers()[1].stop();
+    pc1.setLocalDescription({type: "rollback"});
+
+    const offer = await pc2.createOffer();
+    await pc2.setLocalDescription(offer);
+    await pc1.setRemoteDescription(offer);
+
+    await pc1.addIceCandidate(
+      {
+        candidate: "candidate:0 1 UDP 2122252543 192.168.1.112 64261 typ host",
+        sdpMid: pc2.getTransceivers()[1].mid
+      });
+  };
+
 const tests = [
   checkAddTransceiverNoTrack,
   checkAddTransceiverWithTrack,

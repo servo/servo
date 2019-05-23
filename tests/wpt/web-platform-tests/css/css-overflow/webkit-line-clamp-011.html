@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp with BFC child in flex item</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-011-ref.html">
+<meta name="assert" content="-webkit-line-clamp should skip lines in BFC children of the flex items.">
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+}
+.child {
+  overflow: auto;
+  font: 24px / 48px serif;
+  color: blue;
+  padding: 0 4px;
+}
+</style>
+<div class="clamp"><div>Line 1
+Line 2<div class="child">Line 3
+Line 4</div>Line 5
+Line 6</div></div>

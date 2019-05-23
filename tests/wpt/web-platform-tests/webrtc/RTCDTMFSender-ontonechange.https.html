@@ -221,11 +221,16 @@
     7.2.  insertDTMF
       11.2.  If transceiver.currentDirection is recvonly or inactive, abort these steps.
    */
-  async_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const transceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
-    const dtmfSender = transceiver.sender.dtmf;
+    const dtmfSender = await createDtmfSender(pc);
+    const pc2 = pc.otherPc;
+    assert_true(pc2 instanceof RTCPeerConnection,
+      'Expect pc2 to be a RTCPeerConnection');
+    t.add_cleanup(() => pc2.close());
+    const transceiver = pc.getTransceivers()[0];
+    assert_equals(transceiver.sender.dtmf, dtmfSender);
 
     // Since setRemoteDescription happens in parallel with tonechange event,
     // We use a flag and allow tonechange events to be fired as long as
@@ -235,42 +240,35 @@
     // We only do basic tone verification and not check timing here
     let expectedTones = ['A', 'B', 'C', 'D', ''];
 
-    const onToneChange = t.step_func(ev => {
-      assert_false(remoteDescriptionIsSet,
-        'Expect no tonechange event to be fired after currentDirection is changed to recvonly');
+    const firstTone = new Promise(resolve => {
+      const onToneChange = t.step_func(ev => {
+        assert_false(remoteDescriptionIsSet,
+          'Expect no tonechange event to be fired after currentDirection is changed to recvonly');
 
-      const { tone } = ev;
-      const expectedTone = expectedTones.shift();
-      assert_equals(tone, expectedTone,
-        `Expect fired event.tone to be ${expectedTone}`);
+        const { tone } = ev;
+        const expectedTone = expectedTones.shift();
+        assert_equals(tone, expectedTone,
+          `Expect fired event.tone to be ${expectedTone}`);
 
-      // Only change transceiver.currentDirection after the first
-      // tonechange event, to make sure that tonechange is triggered
-      // then stopped
-      if(tone === 'A') {
-        transceiver.direction = 'recvonly';
-
-        pc.createOffer()
-        .then(offer =>
-          pc.setLocalDescription(offer)
-          .then(() => generateAnswer(offer)))
-        .then(answer => pc.setRemoteDescription(answer))
-        .then(() => {
-          assert_equals(transceiver.currentDirection, 'recvonly');
-          remoteDescriptionIsSet = true;
-
-          // Pass the test if no further tonechange event is
-          // fired in the next 300ms
-          t.step_timeout(t.step_func_done(), 300);
-        })
-        .catch(t.step_func(err => {
-          assert_unreached(`Unexpected promise rejection: ${err}`);
-        }));
-      }
+        if(tone === 'A') {
+          resolve();
+        }
+      });
+      dtmfSender.addEventListener('tonechange', onToneChange);
     });
 
-    dtmfSender.addEventListener('tonechange', onToneChange);
     dtmfSender.insertDTMF('ABCD', 100, 70);
+    await firstTone;
+
+    // Only change transceiver.direction after the first
+    // tonechange event, to make sure that tonechange is triggered
+    // then stopped
+    transceiver.direction = 'recvonly';
+    await doSignalingHandshake(pc, pc2);
+    assert_equals(transceiver.currentDirection, 'inactive');
+    remoteDescriptionIsSet = true;
+
+    await new Promise(resolve => t.step_timeout(resolve, 300));
   }, `Setting transceiver.currentDirection to recvonly in the middle of tonechange events should stop future tonechange events from firing`);
 
   /* Section 7.3 - Tone change event */

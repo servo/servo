@@ -34,13 +34,21 @@
 
             video.src = getVideoURI("/media/test");
             video.play();
+
             // Wait for end of first cue (no events should fire while track is disabled).
-            t.step_timeout(testHiddenAndShowing, 400);
+            video.ontimeupdate = () => {
+                if (video.currentTime > 0.4) {
+                    testHiddenAndShowing();
+                    video.ontimeupdate = null;
+                }
+            }
         }
 
         track.oncuechange = t.step_func(function(event) {
             cueCount++;
-            if (cueCount == textTrack.cues.length)
+            // As the 'enter' and the 'exit' event would be fired for the second
+            // and the third cue, so there would be 4 times 'oncuechange' event.
+            if (cueCount == 4)
                 t.done();
         });
 

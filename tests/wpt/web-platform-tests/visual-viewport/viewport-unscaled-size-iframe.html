@@ -26,28 +26,40 @@
     <div id="log"></div>
     </body>
     <script>
-        var scrollbarThickness = calculateScrollbarThickness();
+        setup({ explicit_done: true });
 
-        test(function() {
-              assert_equals(frames[0].window.visualViewport.width, 200);
-            }, "window.visualViewport.width of iframe viewport should match iframe width.");
-        test(function() {
-              assert_equals(frames[0].window.visualViewport.height, 300);
-            }, "window.visualViewport.height of iframe viewport should match iframe height.");
+        function runTest() {
+          var scrollbarThickness = calculateScrollbarThickness();
 
-        document.getElementById("size-log").innerText = frames[0].window.visualViewport.width + ", " + frames[0].window.visualViewport.height;
+          test(function() {
+                assert_equals(frames[0].window.visualViewport.width, 200);
+              }, "window.visualViewport.width of iframe viewport should match iframe width.");
+          test(function() {
+                assert_equals(frames[0].window.visualViewport.height, 300);
+              }, "window.visualViewport.height of iframe viewport should match iframe height.");
 
-        // Add overflow so scrollbars appear.
-        window.frames[0].window.document.body.style.width = "2000px";
-        window.frames[0].window.document.body.style.height = "2000px";
+          document.getElementById("size-log").innerText = frames[0].window.visualViewport.width + ", " + frames[0].window.visualViewport.height;
 
-        test(function() {
-              assert_equals(frames[0].window.visualViewport.width, 200 - scrollbarThickness);
-            }, "window.visualViewport.width of iframe viewport should not include scrollbar.");
-        test(function() {
-              assert_equals(frames[0].window.visualViewport.height, 300 - scrollbarThickness);
-            }, "window.visualViewport.height of iframe viewport should not include scrollbar.");
+          // Add overflow so scrollbars appear.
+          window.frames[0].window.document.body.style.width = "2000px";
+          window.frames[0].window.document.body.style.height = "2000px";
 
-        document.getElementById("size-scrollbars-log").innerText = frames[0].window.visualViewport.width + ", " + frames[0].window.visualViewport.height;
+          test(function() {
+                assert_equals(frames[0].window.visualViewport.width, 200 - scrollbarThickness);
+              }, "window.visualViewport.width of iframe viewport should not include scrollbar.");
+          test(function() {
+                assert_equals(frames[0].window.visualViewport.height, 300 - scrollbarThickness);
+              }, "window.visualViewport.height of iframe viewport should not include scrollbar.");
+
+          document.getElementById("size-scrollbars-log").innerText = frames[0].window.visualViewport.width + ", " + frames[0].window.visualViewport.height;
+        }
+
+        window.onload = function() {
+          try {
+            runTest();
+          } finally {
+            done();
+          }
+        }
     </script>
 </html>

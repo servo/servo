@@ -1,0 +1,341 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test that execCommand with &lt;input&gt; or &lt;textarea&gt;</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="container"></div>
+<script>
+"use strict";
+
+setup({explicit_done: true});
+
+/**
+ * This test checks whether document.execCommand() does something expected or
+ * not in <input> and <textarea> with/without contenteditable parent.  Although
+ * this is not standardized even by any drafts.  So, this test uses expected
+ * values which may be expected by web developers.
+ */
+function runTests() {
+  let container = document.getElementById("container");
+  container.innerHTML = "<input id=\"target\">";
+  runTest(document.getElementById("target"), "In <input>");
+  container.innerHTML = "<textarea id=\"target\"></textarea>";
+  runTest(document.getElementById("target"), "In <textarea>");
+  container.setAttribute("contenteditable", "true");
+  container.innerHTML = "<input id=\"target\">";
+  runTest(document.getElementById("target"), "In <input> in contenteditable");
+  container.innerHTML = "<textarea id=\"target\"></textarea>";
+  runTest(document.getElementById("target"), "In <textarea> in contenteditable");
+
+  done();
+}
+
+function runTest(aTarget, aDescription) {
+  const kIsTextArea = aTarget.tagName === "TEXTAREA";
+  const kTests = [
+    /**
+     * command: command name of execCommand().
+     * param: param for the command.  i.e., the 3rd param of execCommand().
+     * value: initial value of <input> or <textarea>.  must have a pair of
+     *        "[" and "]" for specifying selection range.
+     * expectedValue: expected value of <input> or <textarea> after calling
+     *                execCommand() with command and param.  must have a
+     *                pair of "[" and "]" for specifying selection range.
+     * expectedExecCommandResult: expected bool result of execCommand().
+     * beforeinputExpected: if "beforeinput" event shouldn't be fired, set
+     *                      false.  otherwise, expected inputType value.
+     * inputExpected: if "input" event shouldn't be fired, set false.
+     *                otherwise, expected inputType value.
+     */
+    {command: "bold", param: "bold",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "italic", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "underline", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "strikethrough", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "superscript", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    // Should return true for web apps implementing custom editor.
+    {command: "cut", param: null,
+     value: "ab[]c", expectedValue: "ab[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "cut", param: null,
+     value: "a[b]c", expectedValue: "a[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "deleteByCut",
+    },
+    // Should return true for web apps implementing custom editor.
+    {command: "copy", param: null,
+     value: "abc[]d", expectedValue: "abc[]d",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "copy", param: null,
+     value: "a[bc]d", expectedValue: "a[bc]d",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "paste", param: null,
+     value: "a[]c", expectedValue: "a[bc]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "insertFromPaste",
+    },
+    {command: "delete", param: null,
+     value: "ab[]c", expectedValue: "a[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "deleteContentBackward",
+    },
+    {command: "delete", param: null,
+     value: "a[b]c", expectedValue: "a[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "deleteContentBackward",
+    },
+    {command: "forwarddelete", param: null,
+     value: "a[b]c", expectedValue: "a[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "deleteContentForward",
+    },
+    {command: "forwarddelete", param: null,
+     value: "a[]bc", expectedValue: "a[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "deleteContentForward",
+    },
+    {command: "selectall", param: null,
+     value: "a[b]c", expectedValue: "[abc]",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    // Setting value should forget any transactions.
+    {command: "undo", param: null,
+     value: "[a]bc", expectedValue: "[a]bc",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "undo", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     initFunc: () => {
+       document.execCommand("delete", false, null);
+     },
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "historyUndo",
+    },
+    // Setting value should forget any transactions.
+    {command: "redo", param: null,
+     value: "[a]bc", expectedValue: "[a]bc",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "redo", param: null,
+     value: "a[b]c", expectedValue: "a[]c",
+     initFunc: () => {
+       document.execCommand("delete", false, null);
+       document.execCommand("undo", false, null);
+     },
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "historyRedo",
+    },
+    {command: "indent", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "outdent", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "backcolor", param: "#000000",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "forecolor", param: "#000000",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "hilitecolor", param: "#000000",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "fontname", param: "DummyFont",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "fontsize", param: "5",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "increasefontsize", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "decreasefontsize", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "inserthorizontalrule", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "createlink", param: "foo.html",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "insertimage", param: "no-image.png",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "inserthtml", param: "<b>inserted</b>",
+     value: "a[b]c", expectedValue: "ainserted[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "insertText",
+    },
+    {command: "inserttext", param: "**inserted**",
+     value: "a[b]c", expectedValue: "a**inserted**[]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "insertText",
+    },
+    {command: "justifyleft", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "justifyright", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "justifycenter", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "justifyfull", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "removeformat", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "unlink", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "insertorderedlist", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "insertunorderedlist", param: null,
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "insertparagraph", param: null,
+     value: "a[b]c", expectedValue: kIsTextArea ? "a\n[]c" : "a[b]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "insertParagraph",
+    },
+    {command: "insertlinebreak", param: null,
+     value: "a[b]c", expectedValue: kIsTextArea ? "a\n[]c" : "a[b]c",
+     expectedExecCommandResult: true,
+     beforeinputExpected: false, inputExpected: "insertLineBreak",
+    },
+    {command: "formatblock", param: "div",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+    {command: "heading", param: "h1",
+     value: "a[b]c", expectedValue: "a[b]c",
+     expectedExecCommandResult: false,
+     beforeinputExpected: false, inputExpected: false,
+    },
+  ];
+
+  for (const kTest of kTests) {
+    const kDescription =
+        `${aDescription}, execCommand("${kTest.command}", false, ${kTest.param}), ${kTest.value})`;
+    if (!document.queryCommandSupported(kTest.command)) {
+      continue;
+    }
+    let value = kTest.value.replace(/[\[\]]/g, "");
+    aTarget.value = value;
+    aTarget.focus();
+    aTarget.selectionStart = kTest.value.indexOf("[");
+    aTarget.selectionEnd = kTest.value.indexOf("]") - 1;
+
+    if (kTest.initFunc) {
+      kTest.initFunc();
+    }
+
+    let beforeinput = false;
+    function onBeforeinput(event) {
+      beforeinput = event.inputType;
+    }
+    window.addEventListener("beforeinput", onBeforeinput, {capture: true});
+    let input = false;
+    function onInput(event) {
+      input = event.inputType;
+    }
+    window.addEventListener("input", onInput, {capture: true});
+    let ret;
+    test(function () {
+      ret = document.execCommand(kTest.command, false, kTest.param);
+      assert_equals(ret, kTest.expectedExecCommandResult);
+    }, `${kDescription}: calling execCommand()`);
+    if (ret == kTest.expectedExecCommandResult) {
+      test(function () {
+        let value = aTarget.value.substring(0, aTarget.selectionStart) +
+                        "[" +
+                        aTarget.value.substring(aTarget.selectionStart, aTarget.selectionEnd) +
+                        "]" +
+                        aTarget.value.substring(aTarget.selectionEnd);
+        assert_equals(value, kTest.expectedValue);
+      }, `${kDescription}: checking value and selection after execCommand()`);
+      test(function () {
+        assert_equals(beforeinput, kTest.beforeinputExpected);
+      }, `${kDescription}: checking beforeinput event`);
+      test(function () {
+        assert_equals(input, kTest.inputExpected);
+      }, `${kDescription}: checking input event`);
+    }
+    window.removeEventListener("beforeinput", onBeforeinput, {capture: true});
+    window.removeEventListener("input", onInput, {capture: true});
+  }
+}
+
+window.addEventListener("load", runTests, {once: true});
+</script>

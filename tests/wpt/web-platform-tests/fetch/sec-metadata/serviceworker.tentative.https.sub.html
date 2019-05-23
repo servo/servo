@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+  This test verifies presence of Sec-Fetch-... request headers on a request
+  that fetches the service worker script itself (i.e. the script at the URL
+  passed as an argument to navigator.serviceWorker.register).
+-->
 <meta charset="utf-8"/>
 <link rel="author" href="mtrzos@google.com" title="Maciek Trzos">
 <script src=/resources/testharness.js></script>

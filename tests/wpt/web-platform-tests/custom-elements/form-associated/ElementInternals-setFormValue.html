@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+class MyControl extends HTMLElement {
+  static get formAssociated() { return true; }
+
+  constructor() {
+    super();
+    this.internals_ = this.attachInternals();
+    this.value_ = '';
+  }
+
+  get value() {
+    return this.value_;
+  }
+  set value(v) {
+    this.internals_.setFormValue(v);
+    this.value_ = v;
+  }
+  setValues(nameValues) {
+    const formData = new FormData();
+    for (let p of nameValues) {
+      formData.append(p[0], p[1]);
+    }
+    this.internals_.setFormValue(formData);
+  }
+}
+customElements.define('my-control', MyControl);
+const $ = document.querySelector.bind(document);
+
+function submitPromise(t) {
+  return new Promise((resolve, reject) => {
+    const iframe = $('iframe');
+    iframe.onload = () => resolve(iframe.contentWindow.location.search);
+    iframe.onerror = () => reject(new Error('iframe onerror fired'));
+    $('form').submit();
+  });
+}
+
+promise_test(t => {
+  $('#container').innerHTML = '<form action="/common/blank.html" target="if1">' +
+      '<input name=name-pd1 value="value-pd1">' +
+      '<my-control></my-control>' +
+      '</form>' +
+      '<iframe name="if1"></iframe>';
+  return submitPromise(t).then(query => {
+    assert_equals(query, '?name-pd1=value-pd1');
+  });
+}, 'Single value - name is missing');
+
+promise_test(t => {
+  $('#container').innerHTML = '<form action="/common/blank.html" target="if1">' +
+      '<input name=name-pd1 value="value-pd1">' +
+      '<my-control name=""></my-control>' +
+      '<input name=name-pd2 value="value-pd2">' +
+      '</form>' +
+      '<iframe name="if1"></iframe>';
+  $('my-control').value = 'value-ce1';
+  return submitPromise(t).then(query => {
+    assert_equals(query, '?name-pd1=value-pd1&name-pd2=value-pd2');
+  });
+}, 'Single value - empty name exists');
+
+promise_test(t => {
+  $('#container').innerHTML = '<form action="/common/blank.html" target="if1" accept-charset=utf-8>' +
+      '<input name=name-pd1 value="value-pd1">' +
+      '<my-control name="name-ce1"></my-control>' +
+      '<my-control name="name-usv"></my-control>' +
+      '<my-control name="name-file"></my-control>' +
+      '</form>' +
+      '<iframe name="if1"></iframe>';
+  const USV_INPUT = 'abc\uDC00\uD800def';
+  const USV_OUTPUT = 'abc\uFFFD\uFFFDdef';
+  const FILE_NAME = 'test_file.txt';
+  $('[name=name-usv]').value = USV_INPUT;
+  $('[name=name-file]').value = new File(['file content'], FILE_NAME);
+  return submitPromise(t).then(query => {
+    assert_equals(query, `?name-pd1=value-pd1&name-ce1=&name-usv=${encodeURIComponent(USV_OUTPUT)}&name-file=${FILE_NAME}`);
+  });
+}, 'Single value - Non-empty name exists');
+
+promise_test(t => {
+  $('#container').innerHTML = '<form action="/common/blank.html" target="if1">' +
+      '<input name=name-pd1 value="value-pd1">' +
+      '<my-control name="name-ce1"></my-control>' +
+      '<my-control name="name-ce2"></my-control>' +
+      '</form>' +
+      '<iframe name="if1"></iframe>';
+  $('my-control').value = null;
+  return submitPromise(t).then(query => {
+    assert_equals(query, '?name-pd1=value-pd1&name-ce2=');
+  });
+}, 'Null value should submit nothing');
+
+promise_test(t => {
+  $('#container').innerHTML = '<form action="/common/blank.html" target="if1">' +
+      '<input name=name-pd1 value="value-pd1">' +
+      '<my-control name=name-ce1></my-control>' +
+      '</form>' +
+      '<iframe name="if1"></iframe>';
+  $('my-control').value = 'value-ce1';
+  $('my-control').setValues([]);
+  $('my-control').setValues([['sub1', 'subvalue1'],
+                             ['sub2', 'subvalue2'],
+                             ['sub2', 'subvalue3']]);
+  return submitPromise(t).then(query => {
+    assert_equals(query, '?name-pd1=value-pd1&sub1=subvalue1&sub2=subvalue2&sub2=subvalue3');
+  });
+}, 'Multiple values - name content attribute is ignored');
+
+promise_test(t => {
+  $('#container').innerHTML = '<form action="/common/blank.html" target="if1">' +
+      '<input name=name-pd1 value="value-pd1">' +
+      '<my-control name=name-ce1></my-control>' +
+      '</form>' +
+      '<iframe name="if1"></iframe>';
+  $('my-control').value = 'value-ce1';
+  $('my-control').setValues([]);
+  return submitPromise(t).then(query => {
+    assert_equals(query, '?name-pd1=value-pd1');
+  });
+}, 'setFormValue with an empty FormData should submit nothing');
+</script>

@@ -42,6 +42,18 @@ test(t => {
 }, 'Returns only the animations specific to each parent/child element');
 
 test(t => {
+  const foreignElement
+    = document.createElementNS('http://example.org/test', 'test');
+  document.body.appendChild(foreignElement);
+  t.add_cleanup(() => {
+    foreignElement.remove();
+  });
+
+  const animation = foreignElement.animate(null, 100 * MS_PER_SEC);
+  assert_array_equals(foreignElement.getAnimations(), [animation]);
+}, 'Returns animations for a foreign element');
+
+test(t => {
   const div = createDiv(t);
   const animation = div.animate(null, 100 * MS_PER_SEC);
   animation.finish();
@@ -196,6 +208,28 @@ test(t => {
                       + ' clipped end of the active interval');
 }, 'Returns animations based on dynamic changes to individual'
    + ' animations\' current time');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_array_equals(div.getAnimations(), [animB]);
+}, 'Does not return an animation that has been removed');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  animA.persist();
+
+  assert_array_equals(div.getAnimations(), [animA, animB]);
+}, 'Returns an animation that has been persisted');
 
 promise_test(async t => {
   const div = createDiv(t);
