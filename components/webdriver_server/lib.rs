@@ -1350,11 +1350,6 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     }
 
     fn delete_session(&mut self, _session: &Option<Session>) {
-        // Servo doesn't support multiple sessions, so we exit on session deletion
-        let _ = self
-            .constellation_chan
-            .send(ConstellationMsg::Exit)
-            .unwrap();
         self.session = None;
     }
 }
