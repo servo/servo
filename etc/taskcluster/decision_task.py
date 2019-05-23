@@ -65,9 +65,9 @@ def main(task_for):
             "try-wpt-mac": [macos_wpt],
             "try-wpt-android": [android_x86_wpt],
             "try-android": [
-                android_arm32_dev,
+                #android_arm32_dev,
                 android_arm32_dev_from_macos,
-                android_x86_wpt
+                #android_x86_wpt
             ],
         }
         for function in by_branch_name.get(branch, []):
