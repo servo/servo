@@ -64,11 +64,17 @@ class Config:
         # the merge parents rather that the actual sha of the merge commit. This ensures that tasks
         # can be reused if the tree is in an identical state. Otherwise, if the head commit is
         # not a merge, we can rely on the head commit sha for that purpose.
-        merge_parents_output = subprocess.check_output(["git", "show", "--format=%P", "HEAD"])
-        merge_parents = merge_parents_output.decode("utf8").strip().split(' ')
-        self._task_id = self.git_sha
-        if len(merge_parents) > 1:
-            self._task_id = '-'.join(merge_parents)
+        raw_commit = subprocess.check_output(["git", "cat-file", "commit", "HEAD"])
+        parent_commits = [
+            value.decode("utf8")
+            for line in raw_commit.split(b"\n")
+            for key, _, value in [line.partition(b" ")]
+            if key == b"parent"
+        ]
+        if len(parent_commits) > 1:
+            self._task_id = "-".join(parent_commits) # pragma: no cover
+        else:
+            self._task_id = self.git_sha # pragma: no cover
         return self._task_id
 
     def git_sha_is_current_head(self):
