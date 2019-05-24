@@ -245,6 +245,22 @@ async function doSignalingHandshake(localPc, remotePc, options={}) {
   await remotePc.setLocalDescription(answer);
 }
 
+// Returns a promise that resolves when the |transport| gets a
+// 'statechange' event with the value |state|.
+// This should work for RTCSctpTransport, RTCDtlsTransport and RTCIceTransport.
+function waitForState(transport, state) {
+  return new Promise((resolve, reject) => {
+    const eventHandler = () => {
+      if (transport.state == state) {
+        transport.removeEventListener('statechange', eventHandler, false);
+        resolve();
+      }
+    };
+    transport.addEventListener('statechange', eventHandler, false);
+  });
+}
+
+
 // Returns a promise that resolves when |pc.iceConnectionState| is 'connected'
 // or 'completed'.
 function listenToIceConnected(pc) {

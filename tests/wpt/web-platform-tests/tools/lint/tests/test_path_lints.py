@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import os
+
 from ..lint import check_path
 from .base import check_errors
 import pytest
@@ -72,6 +74,8 @@ def test_ahem_copy_negative(path):
                                   "elsewhere/resources/webidl2/.gitignore",
                                   "elsewhere/css/tools/apiclient/.gitignore"])
 def test_gitignore_file(path):
+    path = os.path.join(*path.split("/"))
+
     expected_error = ("GITIGNORE",
                       ".gitignore found outside the root",
                       path,
@@ -93,6 +97,8 @@ def test_gitignore_file(path):
                                   "css/tools/apiclient/.gitignore",
                                   "css/tools/apiclient/elsewhere/.gitignore"])
 def test_gitignore_negative(path):
+    path = os.path.join(*path.split("/"))
+
     errors = check_path("/foo/", path)
 
     assert errors == []

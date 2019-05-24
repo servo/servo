@@ -43,6 +43,15 @@ for (const kind of ['audio', 'video']) {
 
   promise_test(async t => {
     const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
+    const [ssrc] = await listenForSSRCs(t, receiver);
+    assert_equals(typeof ssrc.rtpTimestamp, 'number');
+    assert_greater_than_equal(ssrc.rtpTimestamp, 0);
+    assert_less_than_equal(ssrc.rtpTimestamp, 0xffffffff);
+  }, '[' + kind + '] RTCRtpSynchronizationSource.rtpTimestamp is a number ' +
+     '[0, 2^32-1]');
+
+  promise_test(async t => {
+    const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
     // Wait for packets to start flowing.
     await listenForSSRCs(t, receiver);
     // Wait for 10 seconds.

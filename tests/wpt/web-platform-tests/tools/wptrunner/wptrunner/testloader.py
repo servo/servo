@@ -277,9 +277,8 @@ class TestSource(object):
         self.current_metadata = None
 
     @abstractmethod
-    # noqa: N805
-    #@classmethod (doesn't compose with @abstractmethod)
-    def make_queue(cls, tests, **kwargs):
+    #@classmethod (doesn't compose with @abstractmethod in < 3.3)
+    def make_queue(cls, tests, **kwargs):  # noqa: N805
         pass
 
     @classmethod

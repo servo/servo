@@ -5,7 +5,8 @@ except ImportError:
 import json
 import os
 try:
-    import Queue as queue
+    # import Queue under its Python 3 name
+    import Queue as queue  # noqa: N813
 except ImportError:
     import queue
 import tempfile

@@ -28,6 +28,10 @@ tmpdir=$(mktemp -d)
 echo -n OCSP >$tmpdir/ocsp
 gen-certurl -pem $certfile -ocsp $tmpdir/ocsp > $certfile.cbor
 
+cert_base64=$(base64 -w 0 $certfile.cbor)
+data_cert_url="data:application/cert-chain+cbor;base64,$cert_base64"
+
+
 # A valid Signed Exchange.
 gen-signedexchange \
   -version $sxg_version \
@@ -514,6 +518,21 @@ gen-signedexchange \
   -date 2018-04-01T00:00:00Z \
   -expire 168h \
   -o sxg/register-sw-after-fallback.sxg \
+  -miRecordSize 100
+
+# A valid Signed Exchange using data URL for cert-url.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $data_cert_url \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg/sxg-data-cert-url.sxg \
   -miRecordSize 100
 
 rm -fr $tmpdir

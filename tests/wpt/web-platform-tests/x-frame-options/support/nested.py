@@ -1,6 +1,8 @@
 def main(request, response):
     origin = request.GET.first("origin");
     value = request.GET.first("value");
+    # This is used to solve the race condition we have for postMessages
+    shouldSucceed = request.GET.first("loadShouldSucceed", "false");
     return ([("Content-Type", "text/html")],
             """<!DOCTYPE html>
 <title>XFO.</title>
@@ -19,7 +21,13 @@ def main(request, response):
     // load event from racing with the onmessage event.
     requestAnimationFrame(_ => {
       requestAnimationFrame(_ => {
-        if (!gotMessage) {
+        // The race condition problem we have is it is possible
+        // that the sub iframe is loaded before the postMessage is
+        // dispatched, as a result, the "Failed" message is sent
+        // out. So the way we fixed is we simply let the timeout
+        // to happen if we expect the "Loaded" postMessage to be
+        // sent
+        if (!gotMessage && %s != true) {
           window.parent.postMessage("Failed", "*");
         }
       });
@@ -27,5 +35,5 @@ def main(request, response):
   };
   document.body.appendChild(i);
 </script>
-            """ % (origin, value))
+            """ % (origin, value, shouldSucceed))
 

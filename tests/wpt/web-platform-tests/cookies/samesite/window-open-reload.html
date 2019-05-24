@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
+<meta name="variant" content="">
+<meta name="variant" content="?samesite-by-default-cookies.tentative">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -15,7 +17,7 @@
             var reloaded = false;
             var msgHandler = e => {
               try {
-                verifySameSiteCookieState(expectedStatus, value, e.data);
+                getSameSiteVerifier()(expectedStatus, value, e.data);
               } catch (e) {
                 reject(e);
               }

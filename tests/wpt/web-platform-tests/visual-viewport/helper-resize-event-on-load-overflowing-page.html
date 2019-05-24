@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Resize Event On Load Overflowing Page</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script>
+            var opener = window.opener;
+            var numViewResizes = 0;
+            window.visualViewport.addEventListener('resize', function() {
+                numViewResizes++;
+            });
+
+            window.addEventListener('load', function() {
+              requestAnimationFrame(function() {
+                requestAnimationFrame(
+                    opener.t.step_func_done(function() {
+                        var isOverlay = opener.calculateScrollbarThickness() == 0;
+                        opener.assert_equals(numViewResizes, isOverlay ? 0 : 1);
+                    }));
+                });
+            });
+        </script>
+        <style>
+          html {
+            height: 100%;
+          }
+          body {
+              /* Ensure overflow */
+              height: 200%;
+          }
+          #log {
+              overflow: auto;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Resize Event On Load Overflowing Page</h1>
+    <h4>
+        Test Description: This test ensures that we fire a resize event against
+        window.visualViewport if the page has overflow (since this creates a scrollbar
+        and thus changes the viewport size).
+    </h4>
+    <div id="log"></div>
+    </body>
+</html>
+

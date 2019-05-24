@@ -94,8 +94,8 @@ promise_test(async t => {
   const sender = pc1.addTrack(track);
   exchangeIceCandidates(pc1, pc2);
   await doSignalingHandshake(pc1, pc2);
-  await waitForIceStateChange(pc1, ['connected']);
-}, 'PC should enter connected state when candidates are sent');
+  await waitForIceStateChange(pc1, ['connected', 'completed']);
+}, 'PC should enter connected (or completed) state when candidates are sent');
 
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
