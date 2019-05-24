@@ -16,6 +16,7 @@
     let testFunction = (testSession, testController, t) => new Promise((resolve) => {
       let staleFrame = null;
       let currentReferenceSpace = null;
+      let currentViewerSpace = null;
 
       function onFrame(time, xrFrame) {
         t.step(() => {
@@ -31,16 +32,19 @@
           // Attempting to call a method on the frame outside the callback that
           // originally provided it should cause it to throw an exception.
           assert_throws('InvalidStateError', () => staleFrame.getViewerPose(currentReferenceSpace));
-          assert_throws('InvalidStateError', () => staleFrame.getPose(testSession.viewerSpace, currentReferenceSpace));
+          assert_throws('InvalidStateError', () => staleFrame.getPose(currentViewerSpace, currentReferenceSpace));
         });
 
         // Test does not complete until the this function has executed.
         resolve();
       }
 
-      testSession.requestReferenceSpace({ type: 'stationary', subtype: 'eye-level' }).then((referenceSpace) => {
-        currentReferenceSpace = referenceSpace;
-        testSession.requestAnimationFrame(onFrame);
+      testSession.requestReferenceSpace('viewer').then((viewerSpace) => {
+        currentViewerSpace = viewerSpace;
+        testSession.requestReferenceSpace('local').then((referenceSpace) => {
+          currentReferenceSpace = referenceSpace;
+          testSession.requestAnimationFrame(onFrame);
+        });
       });
     });
 

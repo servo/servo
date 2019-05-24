@@ -7,18 +7,6 @@
 <script>
 'use strict';
 
-function waitForState(transport, state) {
-  return new Promise((resolve, reject) => {
-    const eventHandler = () => {
-      if (transport.state == state) {
-        transport.removeEventListener('statechange', eventHandler, false);
-        resolve();
-      }
-    };
-    transport.addEventListener('statechange', eventHandler, false);
-  });
-}
-
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());

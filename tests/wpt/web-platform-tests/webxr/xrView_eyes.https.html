@@ -25,7 +25,7 @@ let testFunction = function(session, fakeDeviceController, t) {
       viewMatrix: VALID_VIEW_MATRIX
     }]);
 
-  return session.requestReferenceSpace({ type: "identity" })
+  return session.requestReferenceSpace('viewer')
       .then((space) => new Promise((resolve) => {
     function onFrame(time, xrFrame) {
       let viewer_pose = xrFrame.getViewerPose(space);

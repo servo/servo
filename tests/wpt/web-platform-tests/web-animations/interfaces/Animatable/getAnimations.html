@@ -42,6 +42,81 @@ test(t => {
 }, 'Returns only the animations specific to each parent/child element');
 
 test(t => {
+  const divParent = createDiv(t);
+  const divChild = createDiv(t);
+  divParent.appendChild(divChild);
+  const divGrandChildA = createDiv(t);
+  const divGrandChildB = createDiv(t);
+  divChild.appendChild(divGrandChildA);
+  divChild.appendChild(divGrandChildB);
+
+  // Trigger the animations in a somewhat random order
+  const animGrandChildB = divGrandChildB.animate(null, 100 * MS_PER_SEC);
+  const animChild = divChild.animate(null, 100 * MS_PER_SEC);
+  const animGrandChildA = divGrandChildA.animate(null, 100 * MS_PER_SEC);
+
+  assert_array_equals(
+    divParent.getAnimations({ subtree: true }),
+    [animGrandChildB, animChild, animGrandChildA],
+    'Returns expected animations from parent'
+  );
+  assert_array_equals(
+    divChild.getAnimations({ subtree: true }),
+    [animGrandChildB, animChild, animGrandChildA],
+    'Returns expected animations from child'
+  );
+  assert_array_equals(
+    divGrandChildA.getAnimations({ subtree: true }),
+    [animGrandChildA],
+    'Returns expected animations from grandchild A'
+  );
+}, 'Returns animations on descendants when subtree: true is specified');
+
+test(t => {
+  createStyle(t, {
+    '@keyframes anim': '',
+    [`.pseudo::before`]: 'animation: anim 100s; ' + "content: '';",
+  });
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+
+  assert_equals(
+    div.getAnimations().length,
+    0,
+    'Returns no animations when subtree is false'
+  );
+  assert_equals(
+    div.getAnimations({ subtree: true }).length,
+    1,
+    'Returns one animation when subtree is true'
+  );
+}, 'Returns animations on pseudo-elements when subtree: true is specified');
+
+test(t => {
+  const host = createDiv(t);
+  const shadow = host.attachShadow({ mode: 'open' });
+
+  const elem = createDiv(t);
+  shadow.appendChild(elem);
+
+  const elemChild = createDiv(t);
+  elem.appendChild(elemChild);
+
+  elemChild.animate(null, 100 * MS_PER_SEC);
+
+  assert_equals(
+    host.getAnimations({ subtree: true }).length,
+    0,
+    'Returns no animations with subtree:true when called on the host'
+  );
+  assert_equals(
+    elem.getAnimations({ subtree: true }).length,
+    1,
+    'Returns one animation when called on a parent in the shadow tree'
+  );
+}, 'Does NOT cross shadow-tree boundaries when subtree: true is specified');
+
+test(t => {
   const foreignElement
     = document.createElementNS('http://example.org/test', 'test');
   document.body.appendChild(foreignElement);

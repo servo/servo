@@ -1,6 +1,6 @@
 // TODO: This function is currently placed and duplicated at:
 // - mixed-content/generic/mixed-content-test-case.js
-// - referrer-policy/generic/referrer-policy-test-case.js
+// - referrer-policy/generic/referrer-policy-test-case.sub.js
 // but should be moved to /common/security-features/resources/common.js.
 function getSubresourceOrigin(originType) {
   const httpProtocol = "http";

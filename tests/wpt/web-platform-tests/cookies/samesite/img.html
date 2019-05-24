@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="timeout" content="long">
+<meta name="variant" content="">
+<meta name="variant" content="?samesite-by-default-cookies.tentative">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -38,15 +40,21 @@
       var value = "" + Math.random();
       return resetSameSiteCookies(origin, value)
         .then(_ => {
-          return Promise.all([
-            assert_cookie_present(target, "samesite_none", value),
-            expectedStatus == SameSiteStatus.STRICT ?
-              assert_cookie_present(target, "samesite_strict", value) :
-              assert_cookie_absent(target, "samesite_strict", value),
-            expectedStatus == SameSiteStatus.CROSS_SITE ?
-              assert_cookie_absent(target, "samesite_lax", value) :
-              assert_cookie_present(target, "samesite_lax", value)
-          ]);
+          var asserts = [assert_cookie_present(target, "samesite_none", value),
+                         expectedStatus == SameSiteStatus.STRICT ?
+                           assert_cookie_present(target, "samesite_strict", value) :
+                           assert_cookie_absent(target, "samesite_strict", value),
+                         expectedStatus == SameSiteStatus.CROSS_SITE ?
+                           assert_cookie_absent(target, "samesite_lax", value) :
+                           assert_cookie_present(target, "samesite_lax", value)];
+          if (location.search && location.search === "?samesite-by-default-cookies.tentative") {
+            asserts.push(expectedStatus == SameSiteStatus.CROSS_SITE ?
+                           assert_cookie_absent(target, "samesite_unspecified", value) :
+                           assert_cookie_present(target, "samesite_unspecified", value));
+          } else {
+            asserts.push(assert_cookie_present(target, "samesite_unspecified", value));
+          }
+          return Promise.all(asserts);
         });
     }, title);
   }

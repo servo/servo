@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Candidate exchange</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+<script>
+
+function iceGatheringCompleteWaiter(pc) {
+  const waiter = new Promise((resolve) => {
+    const eventHandler = () => {
+      if (pc.iceGatheringState == 'complete') {
+        pc.removeEventListener('icegatheringstatechange', eventHandler, false);
+        resolve();
+      }
+    };
+    if (pc.iceGatheringState == 'complete') {
+      resolve();
+    } else {
+      pc.addEventListener('icegatheringstatechange', eventHandler, false);
+    }
+  });
+  return waiter;
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.createDataChannel('datachannel');
+  coupleIceCandidates(pc1, pc2);
+  await doSignalingHandshake(pc1, pc2);
+  await waitForIceStateChange(pc1, ['connected', 'completed']);
+}, 'Two way ICE exchange works');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  let candidates = [];
+  pc1.createDataChannel('datachannel');
+  pc1.onicecandidate = e => {
+    candidates.push(e.candidate);
+  }
+  // Candidates from PC2 are not delivered to pc1, so pc1 will use
+  // peer-reflexive candidates.
+  await doSignalingHandshake(pc1, pc2);
+  const waiter = iceGatheringCompleteWaiter(pc1);
+  await waiter;
+  for (const candidate of candidates) {
+    if (candidate) {
+      pc2.addIceCandidate(candidate);
+    }
+  }
+  await Promise.all([waitForIceStateChange(pc1, ['connected', 'completed']),
+                     waitForIceStateChange(pc2, ['connected', 'completed'])]);
+  const candidate_pair = pc1.sctp.transport.iceTransport.getSelectedCandidatePair();
+  assert_equals(candidate_pair.local.type, 'host');
+  assert_equals(candidate_pair.remote.type, 'prflx');
+}, 'Adding only caller -> callee candidates gives a connection');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  let candidates = [];
+  pc1.createDataChannel('datachannel');
+  pc2.onicecandidate = e => {
+    candidates.push(e.candidate);
+  }
+  // Candidates from pc1 are not delivered to pc2.  so pc2 will use
+  // peer-reflexive candidates.
+  await doSignalingHandshake(pc1, pc2);
+  const waiter = iceGatheringCompleteWaiter(pc2);
+  await waiter;
+  for (const candidate of candidates) {
+    if (candidate) {
+      pc1.addIceCandidate(candidate);
+    }
+  }
+  await Promise.all([waitForIceStateChange(pc1, ['connected', 'completed']),
+                     waitForIceStateChange(pc2, ['connected', 'completed'])]);
+  const candidate_pair = pc2.sctp.transport.iceTransport.getSelectedCandidatePair();
+  assert_equals(candidate_pair.local.type, 'host');
+  assert_equals(candidate_pair.remote.type, 'prflx');
+}, 'Adding only callee -> caller candidates gives a connection');
+
+</script>
+</body>
+</html>

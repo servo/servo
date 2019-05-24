@@ -3,7 +3,7 @@ from os.path import dirname, join
 from collections import OrderedDict
 
 from xml.parsers import expat
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as etree  # noqa: N813
 
 MYPY = False
 if MYPY:

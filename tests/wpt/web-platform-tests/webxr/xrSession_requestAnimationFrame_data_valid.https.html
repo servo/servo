@@ -43,7 +43,7 @@
 
     let testFunction = function(session, testDeviceController) {
       testSession = session;
-      return session.requestReferenceSpace({ type: 'stationary', subtype: 'eye-level' })
+      return session.requestReferenceSpace('local')
         .then((referenceSpace) => new Promise((resolve) => {
 
           function onFrame(time, xrFrame) {

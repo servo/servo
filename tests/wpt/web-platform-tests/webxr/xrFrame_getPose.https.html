@@ -26,8 +26,8 @@ let testFunction = function(session, fakeDeviceController, t) {
     }]);
 
   return Promise.all([
-    session.requestReferenceSpace({ type: "stationary", subtype: "eye-level" }),
-    session.requestReferenceSpace({ type: "stationary", subtype: "eye-level" })
+    session.requestReferenceSpace('local'),
+    session.requestReferenceSpace('local')
   ]).then((spaces) => new Promise((resolve) => {
     function onFrame(time, xrFrame) {
       const radians = Math.PI / 2.0; // 90 degrees

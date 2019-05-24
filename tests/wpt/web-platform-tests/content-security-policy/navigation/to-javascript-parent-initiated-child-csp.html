@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
-<iframe src="support/frame-with-csp.sub.html?csp=script-src%20%27self%27"></iframe>
+<iframe src="support/frame-with-csp.sub.html?csp=script-src%20%27unsafe-inline%27"></iframe>
 <div onclick="frames[0].location.href = 'javascript:parent.postMessage(\'executed\', \'*\')'" id="special_div"></div>
 <script>
   var t = async_test("Should have executed the javascript url");

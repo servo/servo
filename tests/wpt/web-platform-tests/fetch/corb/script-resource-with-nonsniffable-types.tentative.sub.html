@@ -56,9 +56,9 @@ protected_mime_types = [
   "application/x-gzip",
   "application/x-protobuf",
   "application/zip",
-  // TODO(lukasza): https://crbug.com/802836: Add application/pdf and text/csv
-  // to the list of content types tested here (after https://crbug.com/929300 is
-  // resolved).
+  // TODO(lukasza): https://crbug.com/944162: Add application/pdf and
+  // text/csv to the list of content types tested here (after
+  // kMimeHandlerViewInCrossProcessFrame gets enabled by default).
 ]
 protected_mime_types.forEach(function(type) {
     test(type, true /* is_blocking_expected */);
