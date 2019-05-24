@@ -384,6 +384,18 @@ ${helpers.predefined_type(
     servo_restyle_damage="reflow_out_of_flow"
 )}
 
+// Motion Path Module Level 1
+${helpers.predefined_type(
+    "offset-rotate",
+    "OffsetRotate",
+    "computed::OffsetRotate::auto()",
+    products="gecko",
+    animation_value_type="none",
+    gecko_pref="layout.css.motion-path.enabled",
+    spec="https://drafts.fxtf.org/motion-1/#offset-rotate-property",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword(

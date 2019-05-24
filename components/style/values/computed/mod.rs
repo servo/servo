@@ -65,7 +65,7 @@ pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageO
 pub use self::list::ListStyleType;
 pub use self::list::MozListReversed;
 pub use self::list::{QuotePair, Quotes};
-pub use self::motion::OffsetPath;
+pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, ZIndex};
