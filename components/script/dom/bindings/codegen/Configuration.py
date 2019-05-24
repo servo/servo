@@ -223,6 +223,7 @@ class Descriptor(DescriptorProvider):
         self.concreteType = typeName
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
+        self.inCompartmentMethods = [name for name in desc.get('inCompartments', [])]
         self.bindingPath = 'crate::dom::bindings::codegen::Bindings::%s' % ('::'.join([ifaceName + 'Binding'] * 2))
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False

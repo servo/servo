@@ -3316,6 +3316,8 @@ class CGCallGenerator(CGThing):
 
         if "cx" not in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
+        if nativeMethodName in descriptor.inCompartmentMethods:
+            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(cx))"));
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
@@ -5640,7 +5642,7 @@ class CGInterfaceTrait(CGThing):
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
-                        arguments = method_arguments(descriptor, rettype, arguments)
+                        arguments = method_arguments(descriptor, rettype, arguments, inCompartment=name in descriptor.inCompartmentMethods)
                         rettype = return_type(descriptor, rettype, infallible)
                         yield name + ('_' * idx), arguments, rettype
                 elif m.isAttr() and not m.isStatic():
@@ -5671,7 +5673,7 @@ class CGInterfaceTrait(CGThing):
                     if operation.isGetter():
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
-                        arguments = method_arguments(descriptor, rettype, arguments)
+                        arguments = method_arguments(descriptor, rettype, arguments, inCompartment=name in descriptor.inCompartmentMethods)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -5681,7 +5683,7 @@ class CGInterfaceTrait(CGThing):
                         if operation.isNamed():
                             yield "SupportedPropertyNames", [], "Vec<DOMString>"
                     else:
-                        arguments = method_arguments(descriptor, rettype, arguments)
+                        arguments = method_arguments(descriptor, rettype, arguments, inCompartment=name in descriptor.inCompartmentMethods)
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype
 
@@ -5975,6 +5977,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::windowproxy::WindowProxy',
         'crate::dom::globalscope::GlobalScope',
         'crate::mem::malloc_size_of_including_raw_self',
+        'crate::compartments::InCompartment',
+        'crate::compartments::AlreadyInCompartment',
         'libc',
         'servo_config::pref',
         'servo_config::prefs',
@@ -6676,7 +6680,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     return declType.define()
 
 
-def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None):
+def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None, inCompartment=False):
     if needCx(returnType, arguments, passJSBits):
         yield "cx", "*mut JSContext"
 
@@ -6687,6 +6691,9 @@ def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True,
 
     if trailing:
         yield trailing
+
+    if inCompartment:
+        yield "_comp", "InCompartment"
 
 
 def return_type(descriptorProvider, rettype, infallible):

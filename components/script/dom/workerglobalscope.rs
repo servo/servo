@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
@@ -368,8 +369,9 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         &self,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
+        comp: InCompartment,
     ) -> Rc<Promise> {
-        fetch::Fetch(self.upcast(), input, init)
+        fetch::Fetch(self.upcast(), input, init, comp)
     }
 
     // https://w3c.github.io/hr-time/#the-performance-attribute

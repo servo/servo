@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
@@ -1144,8 +1145,9 @@ impl WindowMethods for Window {
         &self,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
+        comp: InCompartment,
     ) -> Rc<Promise> {
-        fetch::Fetch(&self.upcast(), input, init)
+        fetch::Fetch(&self.upcast(), input, init, comp)
     }
 
     fn TestRunner(&self) -> DomRoot<TestRunner> {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
+use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
@@ -134,12 +134,12 @@ pub fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
+    comp: InCompartment,
 ) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let aic = AlreadyInCompartment::assert(global);
-    let promise = Promise::new_in_current_compartment(global, InCompartment::Already(&aic));
+    let promise = Promise::new_in_current_compartment(global, comp);
     let response = Response::new(global);
 
     // Step 2
