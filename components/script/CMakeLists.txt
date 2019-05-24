@@ -1,4 +1,4 @@
-project(script)
+project(script LANGUAGES)
 cmake_minimum_required(VERSION 2.6)
 
 set(DUMMY ${CMAKE_BUILD_TYPE})
