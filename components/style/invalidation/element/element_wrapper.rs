@@ -366,6 +366,10 @@ where
         self.element.is_root()
     }
 
+    fn is_pseudo_element(&self) -> bool {
+        self.element.is_pseudo_element()
+    }
+
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         self.element
             .pseudo_element_originating_element()

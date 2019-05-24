@@ -2002,9 +2002,7 @@ where
             },
             SimpleSelectorParseResult::SlottedPseudo(selector) => {
                 state.insert(SelectorParsingState::AFTER_SLOTTED);
-                if !builder.is_empty() {
-                    builder.push_combinator(Combinator::SlotAssignment);
-                }
+                builder.push_combinator(Combinator::SlotAssignment);
                 builder.push_simple_selector(Component::Slotted(selector));
             },
             SimpleSelectorParseResult::PseudoElement(p) => {
@@ -2012,9 +2010,7 @@ where
                 if !p.accepts_state_pseudo_classes() {
                     state.insert(SelectorParsingState::AFTER_NON_STATEFUL_PSEUDO_ELEMENT);
                 }
-                if !builder.is_empty() {
-                    builder.push_combinator(Combinator::PseudoElement);
-                }
+                builder.push_combinator(Combinator::PseudoElement);
                 builder.push_simple_selector(Component::PseudoElement(p));
             },
         }
@@ -2828,7 +2824,10 @@ pub mod tests {
         assert_eq!(
             parse("::before"),
             Ok(SelectorList::from_vec(vec![Selector::from_vec(
-                vec![Component::PseudoElement(PseudoElement::Before)],
+                vec![
+                    Component::Combinator(Combinator::PseudoElement),
+                    Component::PseudoElement(PseudoElement::Before),
+                ],
                 specificity(0, 0, 1) | HAS_PSEUDO_BIT,
             )]))
         );
@@ -2836,6 +2835,7 @@ pub mod tests {
             parse("::before:hover"),
             Ok(SelectorList::from_vec(vec![Selector::from_vec(
                 vec![
+                    Component::Combinator(Combinator::PseudoElement),
                     Component::PseudoElement(PseudoElement::Before),
                     Component::NonTSPseudoClass(PseudoClass::Hover),
                 ],
@@ -2846,6 +2846,7 @@ pub mod tests {
             parse("::before:hover:hover"),
             Ok(SelectorList::from_vec(vec![Selector::from_vec(
                 vec![
+                    Component::Combinator(Combinator::PseudoElement),
                     Component::PseudoElement(PseudoElement::Before),
                     Component::NonTSPseudoClass(PseudoClass::Hover),
                     Component::NonTSPseudoClass(PseudoClass::Hover),
@@ -2958,6 +2959,7 @@ pub mod tests {
                 specificity(0, 0, 0),
             )]))
         );
+
         assert_eq!(
             parse_ns(":not(svg|*)", &parser),
             Ok(SelectorList::from_vec(vec![Selector::from_vec(
@@ -3031,6 +3033,8 @@ pub mod tests {
             iter.next(),
             Some(&Component::PseudoElement(PseudoElement::Before))
         );
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_sequence(), Some(Combinator::PseudoElement));
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next_sequence(), None);
     }

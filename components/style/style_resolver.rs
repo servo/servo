@@ -233,7 +233,7 @@ where
 
         let mut pseudo_styles = EagerPseudoStyles::default();
 
-        if self.element.implemented_pseudo_element().is_none() {
+        if !self.element.is_pseudo_element() {
             let layout_parent_style_for_pseudo = if primary_style.style().is_display_contents() {
                 layout_parent_style
             } else {
@@ -293,10 +293,6 @@ where
         layout_parent_style: Option<&ComputedValues>,
         pseudo: Option<&PseudoElement>,
     ) -> ResolvedStyle {
-        debug_assert!(
-            self.element.implemented_pseudo_element().is_none() || pseudo.is_none(),
-            "Pseudo-elements can't have other pseudos!"
-        );
         debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
 
         let implemented_pseudo = self.element.implemented_pseudo_element();
@@ -477,8 +473,8 @@ where
         );
         debug_assert!(pseudo_element.is_eager());
         debug_assert!(
-            self.element.implemented_pseudo_element().is_none(),
-            "Element pseudos can't have any other pseudo."
+            !self.element.is_pseudo_element(),
+            "Element pseudos can't have any other eager pseudo."
         );
 
         let mut applicable_declarations = ApplicableDeclarationList::new();
