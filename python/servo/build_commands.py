@@ -352,7 +352,6 @@ class MachCommands(CommandBase):
                     sys.exit(1)
 
             env["RUST_TARGET"] = target
-            env["ANDROID_TOOLCHAIN_NAME"] = android_toolchain_name
             with cd(openssl_dir):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
@@ -386,9 +385,7 @@ class MachCommands(CommandBase):
                                       android_toolchain_prefix + "-4.9", "prebuilt", host)
             gcc_libs = path.join(gcc_toolchain, "lib", "gcc", android_toolchain_name, "4.9.x")
 
-            env['PATH'] = (path.join(llvm_toolchain, "bin") + ':'
-                           + path.join(gcc_toolchain, "bin") + ':'
-                           + env['PATH'])
+            env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
             env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "sysroot")
             support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
             cpufeatures_include = path.join(env['ANDROID_NDK'], "sources", "android", "cpufeatures")
@@ -468,7 +465,6 @@ class MachCommands(CommandBase):
             env["NDK_ANDROID_VERSION"] = android_api
             env["ANDROID_ABI"] = android_lib
             env["ANDROID_PLATFORM"] = android_platform
-            env["ANDROID_TOOLCHAIN_NAME"] = "clang"
             env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(env['ANDROID_NDK'], "build", "cmake", "android.toolchain.cmake")
             env["CMAKE_TOOLCHAIN_FILE"] = path.join(self.android_support_dir(), "toolchain.cmake")
             # Set output dir for gradle aar files

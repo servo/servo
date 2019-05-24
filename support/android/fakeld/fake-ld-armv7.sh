@@ -11,5 +11,4 @@ set -o pipefail
 source ./support/android/fakeld/fake-ld.sh
 
 export _GCC_PARAMS="${@}"
-call_gcc "arch-arm" "arm-linux-androideabi" "android-21" "armeabi-v7a" \
-         "arm-linux-androideabi"
+call_gcc "arch-arm" "armeabi-v7a" "armv7-linux-androideabi"
