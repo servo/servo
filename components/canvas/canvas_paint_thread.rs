@@ -197,7 +197,7 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetShadowBlur(value) => self.canvas(canvas_id).set_shadow_blur(value),
             Canvas2dMsg::SetShadowColor(ref color) => self
                 .canvas(canvas_id)
-                .set_shadow_color(color.to_azure_style()),
+                .set_shadow_color(Color::Azure(color.to_azure_style())),
         }
     }
 
