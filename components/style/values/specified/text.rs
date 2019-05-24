@@ -134,14 +134,16 @@ impl ToComputedValue for LineHeight {
 }
 
 /// A generic value for the `text-overflow` property.
+/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[repr(C, u8)]
 pub enum TextOverflowSide {
     /// Clip inline content.
     Clip,
     /// Render ellipsis to represent clipped inline content.
     Ellipsis,
     /// Render a given string to represent clipped inline content.
-    String(Box<str>),
+    String(crate::OwnedStr),
 }
 
 impl Parse for TextOverflowSide {
@@ -161,7 +163,7 @@ impl Parse for TextOverflowSide {
                 }
             },
             Token::QuotedString(ref v) => Ok(TextOverflowSide::String(
-                v.as_ref().to_owned().into_boxed_str(),
+                v.as_ref().to_owned().into(),
             )),
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
