@@ -5,9 +5,9 @@
 //! A thin atomically-reference-counted slice.
 
 use servo_arc::ThinArc;
-use std::{iter, mem};
 use std::ops::Deref;
 use std::ptr::NonNull;
+use std::{iter, mem};
 
 /// A canary that we stash in ArcSlices.
 ///

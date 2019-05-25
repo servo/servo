@@ -62,9 +62,8 @@ pub fn profiler_is_active() -> bool {
     use std::mem;
     use std::sync::atomic::{AtomicU32, Ordering};
 
-    let active_and_features: &AtomicU32 = unsafe {
-        mem::transmute(&detail::RacyFeatures_sActiveAndFeatures)
-    };
+    let active_and_features: &AtomicU32 =
+        unsafe { mem::transmute(&detail::RacyFeatures_sActiveAndFeatures) };
     (active_and_features.load(Ordering::Relaxed) & detail::RacyFeatures_Active) != 0
 }
 

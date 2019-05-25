@@ -10,7 +10,7 @@
 
 use crate::properties::PropertyId;
 use crate::values::computed::length::LengthPercentage;
-use crate::values::computed::url::{ComputedUrl, ComputedImageUrl};
+use crate::values::computed::url::{ComputedImageUrl, ComputedUrl};
 use crate::values::computed::Angle as ComputedAngle;
 use crate::values::computed::Image;
 use crate::values::specified::SVGPathData;

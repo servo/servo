@@ -162,9 +162,9 @@ impl Parse for TextOverflowSide {
                     ))
                 }
             },
-            Token::QuotedString(ref v) => Ok(TextOverflowSide::String(
-                v.as_ref().to_owned().into(),
-            )),
+            Token::QuotedString(ref v) => {
+                Ok(TextOverflowSide::String(v.as_ref().to_owned().into()))
+            },
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }

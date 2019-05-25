@@ -298,11 +298,7 @@ impl Parse for MozContextProperties {
                     return Ok(Self::default());
                 }
 
-                let ident = CustomIdent::from_ident(
-                    location,
-                    ident,
-                    &["all", "none", "auto"],
-                )?;
+                let ident = CustomIdent::from_ident(location, ident, &["all", "none", "auto"])?;
 
                 if ident.0 == atom!("fill") {
                     bits.insert(ContextPropertyBits::FILL);

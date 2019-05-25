@@ -455,10 +455,7 @@ where
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        computed
-            .iter()
-            .map(T::from_computed_value)
-            .collect()
+        computed.iter().map(T::from_computed_value).collect()
     }
 }
 

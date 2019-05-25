@@ -474,10 +474,7 @@ pub struct CounterRange {
 /// Empty represents 'auto'
 #[derive(Clone, Debug, ToShmem, ToCss)]
 #[css(comma)]
-pub struct CounterRanges(
-    #[css(iterable, if_empty = "auto")]
-    pub crate::OwnedSlice<CounterRange>,
-);
+pub struct CounterRanges(#[css(iterable, if_empty = "auto")] pub crate::OwnedSlice<CounterRange>);
 
 /// A bound found in `CounterRanges`.
 #[derive(Clone, Copy, Debug, ToCss, ToShmem)]
@@ -503,13 +500,9 @@ impl Parse for CounterRanges {
         let ranges = input.parse_comma_separated(|input| {
             let start = parse_bound(context, input)?;
             let end = parse_bound(context, input)?;
-            if let (CounterBound::Integer(start), CounterBound::Integer(end)) =
-                (start, end)
-            {
+            if let (CounterBound::Integer(start), CounterBound::Integer(end)) = (start, end) {
                 if start > end {
-                    return Err(
-                        input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    );
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
             }
             Ok(CounterRange { start, end })

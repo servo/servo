@@ -105,8 +105,7 @@ where
             MatchingMode::Normal => element.rule_hash_target(),
         };
 
-        let matches_user_and_author_rules =
-            rule_hash_target.matches_user_and_author_rules();
+        let matches_user_and_author_rules = rule_hash_target.matches_user_and_author_rules();
 
         // Gecko definitely has pseudo-elements with style attributes, like
         // ::-moz-color-swatch.

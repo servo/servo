@@ -140,9 +140,7 @@ impl Parse for Quotes {
         loop {
             let location = input.current_source_location();
             let opening = match input.next() {
-                Ok(&Token::QuotedString(ref value)) => {
-                    value.as_ref().to_owned().into()
-                },
+                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned().into(),
                 Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
             };
