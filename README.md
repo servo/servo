@@ -144,7 +144,7 @@ Please run `./mach bootstrap`.
 If this doesn't work, file a bug, and, run the commands below:
 
 ``` sh
-sudo dnf install curl libtool gcc-c++ libXi-devel \
+sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python2 python2-virtualenv python2-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
