@@ -136,7 +136,10 @@
             % endif
             use crate::values::computed::ComputedVecIter;
 
-            <% is_shared_list = allow_empty and allow_empty != "NotInitial" and data.longhands_by_name[name].style_struct.inherited %>
+            <%
+                is_shared_list = allow_empty and allow_empty != "NotInitial" and \
+                    data.longhands_by_name[name].style_struct.inherited
+            %>
 
             // FIXME(emilio): Add an OwnedNonEmptySlice type, and figure out
             // something for transition-name, which is the only remaining user

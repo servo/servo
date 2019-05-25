@@ -408,7 +408,7 @@ impl ToCss for System {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#typedef-symbol>
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss, ToShmem, MallocSizeOf)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub enum Symbol {
     /// <string>
     String(crate::OwnedStr),
@@ -461,7 +461,7 @@ impl Parse for Negative {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
-#[derive(Clone, Debug, ToShmem, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 pub struct CounterRange {
     /// The start of the range.
     pub start: CounterBound,
@@ -472,7 +472,7 @@ pub struct CounterRange {
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
 ///
 /// Empty represents 'auto'
-#[derive(Clone, Debug, ToShmem, ToCss)]
+#[derive(Clone, Debug, ToCss, ToShmem)]
 #[css(comma)]
 pub struct CounterRanges(#[css(iterable, if_empty = "auto")] pub crate::OwnedSlice<CounterRange>);
 
@@ -553,7 +553,7 @@ impl Parse for Fallback {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
-#[derive(Clone, Debug, Eq, PartialEq, MallocSizeOf, ToComputedValue, ToCss, ToShmem)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToShmem)]
 pub struct Symbols(#[css(iterable)] pub crate::OwnedSlice<Symbol>);
 
 impl Parse for Symbols {
