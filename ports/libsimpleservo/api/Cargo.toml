@@ -23,7 +23,7 @@ winapi = "0.3.2"
 libloading = "0.5"
 
 [build-dependencies]
-gl_generator = "0.10"
+gl_generator = "0.11"
 
 [features]
 default = ["unstable", "default-except-unstable"]

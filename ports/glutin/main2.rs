@@ -12,6 +12,7 @@ extern crate sig;
 
 mod app;
 mod browser;
+mod context;
 mod embedder;
 mod events_loop;
 mod headed_window;
