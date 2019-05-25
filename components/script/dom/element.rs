@@ -685,9 +685,9 @@ impl LayoutElementHelpers for LayoutDom<Element> {
         if let Some(url) = background {
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(vec![
-                    Either::Second(specified::Image::for_cascade(url.into())),
-                ])),
+                PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
+                    vec![Either::Second(specified::Image::for_cascade(url.into()))].into(),
+                )),
             ));
         }
 
@@ -2943,6 +2943,10 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         } else {
             None
         }
+    }
+
+    fn is_pseudo_element(&self) -> bool {
+        false
     }
 
     fn match_pseudo_element(
