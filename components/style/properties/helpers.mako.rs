@@ -366,7 +366,7 @@
 
         pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
 
-        % if not simple_vector_bindings:
+        % if not simple_vector_bindings and product == "gecko":
         impl SpecifiedValue {
             fn compute_iter<'a, 'cx, 'cx_a>(
                 &'a self,
@@ -496,7 +496,7 @@
                     .set_writing_mode_dependency(context.builder.writing_mode);
             % endif
 
-            % if property.is_vector and not property.simple_vector_bindings:
+            % if property.is_vector and not property.simple_vector_bindings and product == "gecko":
                 // In the case of a vector property we want to pass down an
                 // iterator so that this can be computed without allocation.
                 //

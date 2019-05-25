@@ -2482,20 +2482,7 @@ pub mod style_structs {
                 % if longhand.logical:
                     ${helpers.logical_setter(name=longhand.name)}
                 % else:
-                    % if longhand.is_vector:
-                        /// Set ${longhand.name}.
-                        #[allow(non_snake_case)]
-                        #[inline]
-                        pub fn set_${longhand.ident}<I>(&mut self, v: I)
-                        where
-                            I: IntoIterator<Item = longhands::${longhand.ident}
-                                                              ::computed_value::single_value::T>,
-                            I::IntoIter: ExactSizeIterator
-                        {
-                            self.${longhand.ident} = longhands::${longhand.ident}::computed_value
-                                                              ::List(v.into_iter().collect());
-                        }
-                    % elif longhand.ident == "display":
+                    % if longhand.ident == "display":
                         /// Set `display`.
                         ///
                         /// We need to keep track of the original display for hypothetical boxes,
@@ -3109,7 +3096,7 @@ impl ComputedValuesInner {
     pub fn transform_requires_layer(&self) -> bool {
         use crate::values::generics::transform::TransformOperation;
         // Check if the transform matrix is 2D or 3D
-        for transform in &self.get_box().transform.0 {
+        for transform in &*self.get_box().transform.0 {
             match *transform {
                 TransformOperation::Perspective(..) => {
                     return true;
@@ -3452,7 +3439,7 @@ impl<'a> StyleBuilder<'a> {
     }
     % endif
 
-    % if not property.is_vector or property.simple_vector_bindings:
+    % if not property.is_vector or property.simple_vector_bindings or product != "gecko":
     /// Set the `${property.ident}` to the computed value `value`.
     #[allow(non_snake_case)]
     pub fn set_${property.ident}(

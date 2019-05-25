@@ -15,7 +15,7 @@ use crate::values::generics::effects::SimpleShadow as GenericSimpleShadow;
 use crate::values::Impossible;
 
 /// An animated value for the `drop-shadow()` filter.
-type AnimatedSimpleShadow = GenericSimpleShadow<Color, Length, Length>;
+pub type AnimatedSimpleShadow = GenericSimpleShadow<Color, Length, Length>;
 
 /// An animated value for a single `filter`.
 #[cfg(feature = "gecko")]
