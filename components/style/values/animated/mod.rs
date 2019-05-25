@@ -10,7 +10,7 @@
 
 use crate::properties::PropertyId;
 use crate::values::computed::length::LengthPercentage;
-use crate::values::computed::url::{ComputedImageUrl, ComputedUrl};
+use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::Angle as ComputedAngle;
 use crate::values::computed::Image;
 use crate::values::specified::SVGPathData;
@@ -380,7 +380,6 @@ trivial_to_animated_value!(Au);
 trivial_to_animated_value!(LengthPercentage);
 trivial_to_animated_value!(ComputedAngle);
 trivial_to_animated_value!(ComputedUrl);
-trivial_to_animated_value!(ComputedImageUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
 // Note: This implementation is for ToAnimatedValue of ShapeSource.
