@@ -59,10 +59,10 @@ impl EmbedderMethods for EmbedderCallbacks {
                     GlWindow::new(window_builder, context_builder, &*self.events_loop.borrow().as_winit())
                         .expect("Failed to create window.");
                 let gl = self.gl.clone();
-                /*let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
+                let (service, heartbeat) = GlWindowVRService::new(name, gl_window, gl);
 
                 services.register(Box::new(service));
-                heartbeats.push(Box::new(heartbeat));*/
+                heartbeats.push(Box::new(heartbeat));
             }
         } else {
             // FIXME: support headless mode

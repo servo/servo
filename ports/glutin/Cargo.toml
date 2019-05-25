@@ -46,7 +46,7 @@ bitflags = "1.0"
 crossbeam-channel = "0.3"
 euclid = "0.19"
 gleam = "0.6"
-glutin = "0.19"
+glutin = "0.21"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
