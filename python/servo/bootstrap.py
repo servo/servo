@@ -114,8 +114,8 @@ def linux(context, force=False):
                 'libbz2-dev', 'liblzma-dev',
                 'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
                 'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev', 'libharfbuzz-dev',
-                'ccache', 'clang', 'autoconf2.13', "libunwind-dev"]
-    pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
+                'ccache', 'clang', 'autoconf2.13', 'libunwind-dev']
+    pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel','libunwind-devel',
                 'mesa-libGL-devel', 'mesa-libEGL-devel', 'glib2-devel', 'libX11-devel',
                 'libXrandr-devel', 'gperf', 'fontconfig-devel', 'cabextract', 'ttmkfdir',
                 'python2', 'python2-virtualenv', 'python2-pip', 'expat-devel', 'rpm-build',
