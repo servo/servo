@@ -3317,7 +3317,7 @@ class CGCallGenerator(CGThing):
         if "cx" not in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
         if nativeMethodName in descriptor.inCompartmentMethods:
-            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(cx))"));
+            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(cx))"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
@@ -5634,8 +5634,8 @@ class CGInterfaceTrait(CGThing):
             if argument:
                 yield "value", argument_type(descriptor, argument)
 
-	    if inCompartment:
-		yield "_comp", "InCompartment"
+            if inCompartment:
+                yield "_comp", "InCompartment"
 
         def members():
             for m in descriptor.interface.members:
@@ -5645,14 +5645,18 @@ class CGInterfaceTrait(CGThing):
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
-                        arguments = method_arguments(descriptor, rettype, arguments, inCompartment=name in descriptor.inCompartmentMethods)
+                        arguments = method_arguments(descriptor, rettype, arguments,
+                                                     inCompartment=name in descriptor.inCompartmentMethods)
                         rettype = return_type(descriptor, rettype, infallible)
                         yield name + ('_' * idx), arguments, rettype
                 elif m.isAttr() and not m.isStatic():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
                     yield (name,
-                           attribute_arguments(typeNeedsCx(m.type, True), inCompartment=name in descriptor.inCompartmentMethods),
+                           attribute_arguments(
+                               typeNeedsCx(m.type, True),
+                               inCompartment=name in descriptor.inCompartmentMethods
+                           ),
                            return_type(descriptor, m.type, infallible))
 
                     if not m.readonly:
@@ -5662,7 +5666,13 @@ class CGInterfaceTrait(CGThing):
                             rettype = "()"
                         else:
                             rettype = "ErrorResult"
-                        yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type, inCompartment=name in descriptor.inCompartmentMethods), rettype
+                        yield (name,
+                               attribute_arguments(
+                                   typeNeedsCx(m.type, False),
+                                   m.type,
+                                   inCompartment=name in descriptor.inCompartmentMethods
+                               ),
+                               rettype)
 
             if descriptor.proxy:
                 for name, operation in descriptor.operations.iteritems():
@@ -5676,7 +5686,8 @@ class CGInterfaceTrait(CGThing):
                     if operation.isGetter():
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
-                        arguments = method_arguments(descriptor, rettype, arguments, inCompartment=name in descriptor.inCompartmentMethods)
+                        arguments = method_arguments(descriptor, rettype, arguments,
+                                                     inCompartment=name in descriptor.inCompartmentMethods)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -5686,7 +5697,8 @@ class CGInterfaceTrait(CGThing):
                         if operation.isNamed():
                             yield "SupportedPropertyNames", [], "Vec<DOMString>"
                     else:
-                        arguments = method_arguments(descriptor, rettype, arguments, inCompartment=name in descriptor.inCompartmentMethods)
+                        arguments = method_arguments(descriptor, rettype, arguments,
+                                                     inCompartment=name in descriptor.inCompartmentMethods)
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype
 
