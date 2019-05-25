@@ -309,6 +309,21 @@ function listenToConnected(pc) {
   });
 }
 
+// Returns a promise that resolves when |pc.connectionState| is in one of the
+// wanted states.
+function waitForConnectionStateChange(pc, wantedStates) {
+  return new Promise((resolve) => {
+    if (wantedStates.includes(pc.connectionState)) {
+      resolve();
+      return;
+    }
+    pc.addEventListener('connectionstatechange', () => {
+      if (wantedStates.includes(pc.connectionState))
+        resolve();
+    });
+  });
+}
+
 // Resolves when RTP packets have been received.
 function listenForSSRCs(t, receiver) {
   return new Promise((resolve) => {

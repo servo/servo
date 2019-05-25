@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Screen wake locks respect page visibility changes</title>
+<link rel="help" href="https://w3c.github.io/wake-lock/#dfn-requesting-the-wake-lock">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const screenWakeLock = WakeLock.request('screen', { signal: controller.signal });
+  const systemWakeLock = WakeLock.request('system', { signal: controller.signal });
+  const systemWakeLockPromise = new Promise((resolve, reject) => {
+    systemWakeLock.catch(error => {
+      assert_equals("AbortError", error.name, "systemWakeLock must have been aborted");
+      assert_false(document.hidden, "systemWakeLock must have been aborted after the page is visible again");
+      resolve();
+    });
+  });
+
+  const eventWatcher = new EventWatcher(t, document, "visibilitychange");
+  await eventWatcher.wait_for("visibilitychange");
+  assert_true(document.hidden, "document is hidden after the visibilitychange event");
+  await promise_rejects(t, "AbortError", screenWakeLock, "existing screen locks are aborted");
+  await promise_rejects(t, "NotAllowedError", WakeLock.request('screen'),
+      "new screen locks are not allowed when the page is not visible");
+
+  await eventWatcher.wait_for("visibilitychange");
+  assert_false(document.hidden, "document is no longer hidden after the visibilitychange event");
+  controller.abort();
+
+  return systemWakeLockPromise;
+}, "Test screen locks respect page visibility changes and system locks are unchanged");
+
+</script>
+
+<p>Switch the page to the background, then switch back to it.</p>

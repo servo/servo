@@ -16,9 +16,11 @@ test_valid_value("offset-rotate", "auto");
 test_valid_value("offset-rotate", "reverse");
 test_valid_value("offset-rotate", "-400deg");
 test_valid_value("offset-rotate", "auto 5turn");
-test_valid_value("offset-rotate", "reverse 0rad");
+// https://github.com/w3c/fxtf-drafts/issues/340
+test_valid_value("offset-rotate", "reverse 0rad", ["reverse 0rad", "reverse"]);
 test_valid_value("offset-rotate", "5turn auto", "auto 5turn");
-test_valid_value("offset-rotate", "0rad reverse", "reverse 0rad");
+// https://github.com/w3c/fxtf-drafts/issues/340
+test_valid_value("offset-rotate", "0rad reverse", ["reverse 0rad", "reverse"]);
 </script>
 </body>
 </html>
