@@ -5627,12 +5627,15 @@ class CGInterfaceTrait(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
 
-        def attribute_arguments(needCx, argument=None):
+        def attribute_arguments(needCx, argument=None, inCompartment=False):
             if needCx:
                 yield "cx", "*mut JSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
+
+	    if inCompartment:
+		yield "_comp", "InCompartment"
 
         def members():
             for m in descriptor.interface.members:
@@ -5649,7 +5652,7 @@ class CGInterfaceTrait(CGThing):
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
                     yield (name,
-                           attribute_arguments(typeNeedsCx(m.type, True)),
+                           attribute_arguments(typeNeedsCx(m.type, True), inCompartment=name in descriptor.inCompartmentMethods),
                            return_type(descriptor, m.type, infallible))
 
                     if not m.readonly:
@@ -5659,7 +5662,7 @@ class CGInterfaceTrait(CGThing):
                             rettype = "()"
                         else:
                             rettype = "ErrorResult"
-                        yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type), rettype
+                        yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type, inCompartment=name in descriptor.inCompartmentMethods), rettype
 
             if descriptor.proxy:
                 for name, operation in descriptor.operations.iteritems():

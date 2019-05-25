@@ -1048,11 +1048,10 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self) -> Rc<Promise> {
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
+    fn PromiseAttribute(&self, comp: InCompartment) -> Rc<Promise> {
         Promise::new_in_current_compartment(
             &self.global(),
-            InCompartment::Already(&in_compartment_proof),
+            comp
         )
     }
 
