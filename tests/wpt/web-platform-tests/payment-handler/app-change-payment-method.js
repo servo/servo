@@ -20,7 +20,7 @@ async function responder(event) {
     });
     changePaymentMethodReturned = response;
   } catch (err) {
-    changePaymentMethodReturned = error.message;
+    changePaymentMethodReturned = err.message;
   }
   return {methodName, details: {changePaymentMethodReturned}};
 }

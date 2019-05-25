@@ -13,7 +13,8 @@
 <body>
 <div id="target"></div>
 <script>
-test_computed_value("offset-rotate", "auto", "auto 0deg");
+// https://github.com/w3c/fxtf-drafts/issues/340
+test_computed_value("offset-rotate", "auto", ["auto 0deg", "auto"]);
 test_computed_value("offset-rotate", "reverse", "auto 180deg");
 test_computed_value("offset-rotate", "calc(90deg - 0.5turn - 300grad + 0rad)", "-360deg");
 test_computed_value("offset-rotate", "auto 5turn", "auto 1800deg");
