@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // check-tidy: no specs after this line
-
+use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::Wrap;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
@@ -51,8 +51,13 @@ impl TestWorklet {
 }
 
 impl TestWorkletMethods for TestWorklet {
-    fn AddModule(&self, moduleURL: USVString, options: &WorkletOptions) -> Rc<Promise> {
-        self.worklet.AddModule(moduleURL, options)
+    fn AddModule(
+        &self,
+        moduleURL: USVString,
+        options: &WorkletOptions,
+        comp: InCompartment,
+    ) -> Rc<Promise> {
+        self.worklet.AddModule(moduleURL, options, comp)
     }
 
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
