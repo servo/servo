@@ -159,7 +159,7 @@ fn side_image_width(
     total_length: Au,
 ) -> f32 {
     match border_image_width {
-        BorderImageSideWidth::Length(v) => v.to_used_value(total_length).to_f32_px(),
+        BorderImageSideWidth::LengthPercentage(v) => v.to_used_value(total_length).to_f32_px(),
         BorderImageSideWidth::Number(x) => border_width * x.0,
         BorderImageSideWidth::Auto => border_width,
     }

@@ -2793,7 +2793,7 @@ impl Fragment {
         let mut overflow = Overflow::from_rect(&border_box);
 
         // Box shadows cause us to draw outside our border box.
-        for box_shadow in &self.style().get_effects().box_shadow.0 {
+        for box_shadow in &*self.style().get_effects().box_shadow.0 {
             let offset = Vector2D::new(
                 Au::from(box_shadow.base.horizontal),
                 Au::from(box_shadow.base.vertical),
