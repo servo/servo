@@ -715,6 +715,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
                 .map(ServoShadowRoot::from_layout_js)
         }
     }
+
+    fn local_name(&self) -> &LocalName {
+        self.element.local_name()
+    }
+
+    fn namespace(&self) -> &Namespace {
+        self.element.namespace()
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
@@ -879,13 +887,19 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn local_name(&self) -> &LocalName {
-        self.element.local_name()
+    fn has_local_name(&self, name: &LocalName) -> bool {
+        self.element.local_name() == name
     }
 
     #[inline]
-    fn namespace(&self) -> &Namespace {
-        self.element.namespace()
+    fn has_namespace(&self, ns: &Namespace) -> bool {
+        self.element.namespace() == ns
+    }
+
+    #[inline]
+    fn is_same_type(&self, other: &Self) -> bool {
+           self.element.local_name() == other.element.local_name()
+        && self.element.namespace() == other.element.namespace()
     }
 
     fn match_pseudo_element(
@@ -1262,8 +1276,8 @@ where
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if let Some(element) = node.as_element() {
-                            if element.local_name() == &local_name!("summary") &&
-                                element.namespace() == &ns!(html)
+                            if element.has_local_name(&local_name!("summary")) &&
+                                element.has_namespace(&ns!(html))
                             {
                                 self.current_node = None;
                                 return Some(node.clone());
@@ -1282,8 +1296,8 @@ where
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                        node.as_element().unwrap().local_name() == &local_name!("summary") &&
-                        node.as_element().unwrap().namespace() == &ns!(html)
+                        node.as_element().unwrap().has_local_name(&local_name!("summary")) &&
+                        node.as_element().unwrap().has_namespace(&ns!(html))
                     {
                         unsafe { node.dangerous_next_sibling() }
                     } else {
@@ -1429,13 +1443,19 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     #[inline]
-    fn local_name(&self) -> &LocalName {
-        self.element.local_name()
+    fn has_local_name(&self, name: &LocalName) -> bool {
+        self.element.local_name() == name
     }
 
     #[inline]
-    fn namespace(&self) -> &Namespace {
-        self.element.namespace()
+    fn has_namespace(&self, ns: &Namespace) -> bool {
+        self.element.namespace() == ns
+    }
+
+    #[inline]
+    fn is_same_type(&self, other: &Self) -> bool {
+           self.element.local_name() == other.element.local_name()
+        && self.element.namespace() == other.element.namespace()
     }
 
     fn match_pseudo_element(
