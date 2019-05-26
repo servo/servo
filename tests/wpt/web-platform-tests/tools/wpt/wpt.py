@@ -80,6 +80,34 @@ def import_command(prog, command, props):
     return script, parser
 
 
+def create_complete_parser():
+    """Eagerly load all subparsers. This involves more work than is required
+    for typical command-line usage. It is maintained for the purposes of
+    documentation generation as implemented in WPT's top-level `/docs`
+    directory."""
+
+    commands = load_commands()
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    for command in commands:
+        props = commands[command]
+
+        if props["virtualenv"]:
+            setup_virtualenv(None, False, props)
+
+        subparser = import_command('wpt', command, props)[1]
+        if not subparser:
+            continue
+
+        subparsers.add_parser(command,
+                              help=props["help"],
+                              add_help=False,
+                              parents=[subparser])
+
+    return parser
+
+
 def setup_virtualenv(path, skip_venv_setup, props):
     if skip_venv_setup and path is None:
         raise ValueError("Must set --venv when --skip-venv-setup is used")

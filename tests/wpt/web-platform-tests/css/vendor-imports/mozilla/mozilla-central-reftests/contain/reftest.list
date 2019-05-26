@@ -48,3 +48,10 @@
 == contain-layout-ignored-cases-no-principal-box-003.html contain-layout-ignored-cases-no-principal-box-003-ref.html
 == contain-layout-suppress-baseline-001.html contain-layout-suppress-baseline-001-ref.html
 == contain-layout-suppress-baseline-002.html contain-layout-suppress-baseline-002-ref.html
+
+# The following lines are duplicates of other lines from further up in this
+# manifest. They're listed again here so we can re-run these tests with
+# column-span enabled. These lines can be removed once the pref becomes
+# default-enabled (Bug 1426010).
+== contain-size-multicol-002.html contain-size-multicol-002-ref.html
+== contain-size-multicol-003.html contain-size-multicol-003-ref.html
