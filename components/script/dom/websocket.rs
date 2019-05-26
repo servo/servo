@@ -27,6 +27,7 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
@@ -40,7 +41,6 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
-use std::thread;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -216,42 +216,41 @@ impl WebSocket {
 
         let task_source = global.websocket_task_source();
         let canceller = global.task_canceller(WebsocketTaskSource::NAME);
-        thread::spawn(move || {
-            while let Ok(event) = dom_event_receiver.recv() {
-                match event {
-                    WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
-                        let open_thread = ConnectionEstablishedTask {
-                            address: address.clone(),
-                            protocol_in_use,
-                        };
-                        task_source
-                            .queue_with_canceller(open_thread, &canceller)
-                            .unwrap();
-                    },
-                    WebSocketNetworkEvent::MessageReceived(message) => {
-                        let message_thread = MessageReceivedTask {
-                            address: address.clone(),
-                            message: message,
-                        };
-                        task_source
-                            .queue_with_canceller(message_thread, &canceller)
-                            .unwrap();
-                    },
-                    WebSocketNetworkEvent::Fail => {
-                        fail_the_websocket_connection(address.clone(), &task_source, &canceller);
-                    },
-                    WebSocketNetworkEvent::Close(code, reason) => {
-                        close_the_websocket_connection(
-                            address.clone(),
-                            &task_source,
-                            &canceller,
-                            code,
-                            reason,
-                        );
-                    },
-                }
-            }
-        });
+        ROUTER.add_route(
+            dom_event_receiver.to_opaque(),
+            Box::new(move |message| match message.to().unwrap() {
+                WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
+                    let open_thread = ConnectionEstablishedTask {
+                        address: address.clone(),
+                        protocol_in_use,
+                    };
+                    task_source
+                        .queue_with_canceller(open_thread, &canceller)
+                        .unwrap();
+                },
+                WebSocketNetworkEvent::MessageReceived(message) => {
+                    let message_thread = MessageReceivedTask {
+                        address: address.clone(),
+                        message: message,
+                    };
+                    task_source
+                        .queue_with_canceller(message_thread, &canceller)
+                        .unwrap();
+                },
+                WebSocketNetworkEvent::Fail => {
+                    fail_the_websocket_connection(address.clone(), &task_source, &canceller);
+                },
+                WebSocketNetworkEvent::Close(code, reason) => {
+                    close_the_websocket_connection(
+                        address.clone(),
+                        &task_source,
+                        &canceller,
+                        code,
+                        reason,
+                    );
+                },
+            }),
+        );
 
         // Step 7.
         Ok(ws)
