@@ -42,7 +42,7 @@ pub fn containing_shadow_ignoring_svg_use<E: TElement>(
     loop {
         let host = shadow.host();
         let host_is_svg_use_element =
-            host.is_svg_element() && host.local_name() == &*local_name!("use");
+            host.is_svg_element() && host.has_local_name(&local_name!("use"));
         if !host_is_svg_use_element {
             return Some(shadow);
         }

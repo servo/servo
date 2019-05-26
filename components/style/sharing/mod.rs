@@ -698,13 +698,8 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.local_name() != candidate.element.local_name() {
-            trace!("Miss: Local Name");
-            return None;
-        }
-
-        if target.namespace() != candidate.element.namespace() {
-            trace!("Miss: Namespace");
+        if !target.is_same_type(&candidate.element) {
+            trace!("Miss: Local Name and/or Namespace");
             return None;
         }
 
@@ -838,10 +833,7 @@ impl<E: TElement> StyleSharingCache<E> {
             // NOTE(emilio): We only need to check name / namespace because we
             // do name-dependent style adjustments, like the display: contents
             // to display: none adjustment.
-            if target.namespace() != candidate.element.namespace() {
-                return None;
-            }
-            if target.local_name() != candidate.element.local_name() {
+            if !target.is_same_type(&candidate.element) {
                 return None;
             }
             // Rule nodes and styles are computed independent of the element's

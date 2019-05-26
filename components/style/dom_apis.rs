@@ -343,9 +343,9 @@ where
         ref lower_name,
     } = *local_name;
     if element.is_html_element_in_html_document() {
-        element.local_name() == lower_name.borrow()
+        element.has_local_name(&lower_name.borrow())
     } else {
-        element.local_name() == name.borrow()
+        element.has_local_name(&name.borrow())
     }
 }
 

@@ -312,13 +312,44 @@ where
     }
 
     #[inline]
-    fn local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
-        self.element.local_name()
+    fn local_name_hash(&self) -> u32 {
+        self.element.local_name_hash()
     }
 
     #[inline]
-    fn namespace(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedNamespaceUrl {
-        self.element.namespace()
+    fn get_local_name(&self) -> <Self::Impl as ::selectors::SelectorImpl>::LocalName {
+        self.element.get_local_name()
+    }
+
+    #[inline]
+    fn has_local_name(
+        &self,
+        local_name: &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName,
+    ) -> bool {
+        self.element.has_local_name(local_name)
+    }
+
+    #[inline]
+    fn namespace_hash(&self) -> u32 {
+        self.element.namespace_hash()
+    }
+
+    #[inline]
+    fn get_namespace(&self) -> <Self::Impl as ::selectors::SelectorImpl>::NamespaceUrl {
+        self.element.get_namespace()
+    }
+
+    #[inline]
+    fn has_namespace(
+        &self,
+        ns: &<Self::Impl as ::selectors::SelectorImpl>::BorrowedNamespaceUrl,
+    ) -> bool {
+        self.element.has_namespace(ns)
+    }
+
+    #[inline]
+    fn is_same_type(&self, other: &Self) -> bool {
+        self.element.is_same_type(&other.element)
     }
 
     fn attr_matches(

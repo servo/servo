@@ -100,8 +100,8 @@ where
     E: TElement,
     F: FnMut(u32),
 {
-    f(element.local_name().get_hash());
-    f(element.namespace().get_hash());
+    f(element.local_name_hash());
+    f(element.namespace_hash());
 
     if let Some(id) = element.id() {
         f(id.get_hash());
