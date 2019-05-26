@@ -877,6 +877,12 @@ pub trait TElement:
         hints: &mut V,
     ) where
         V: Push<ApplicableDeclarationBlock>;
+
+    /// Returns element's local name.
+    fn local_name(&self) -> &LocalName;
+
+    /// Returns element's namespace.
+    fn namespace(&self) -> &Namespace;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit
