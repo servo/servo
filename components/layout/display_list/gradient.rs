@@ -2,16 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// FIXME(rust-lang/rust#26264): Remove GenericEndingShape and GenericGradientItem.
-
 use crate::display_list::ToLayout;
 use app_units::Au;
 use euclid::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::computed::{Angle, GradientItem, LengthPercentage, Percentage, Position};
-use style::values::generics::image::EndingShape as GenericEndingShape;
-use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::generics::image::{Circle, ColorStop, Ellipse, ShapeExtent};
 use style::values::specified::position::{X, Y};
 use webrender_api::{ExtendMode, Gradient, GradientBuilder, GradientStop, RadialGradient};
@@ -92,11 +88,11 @@ fn convert_gradient_stops(
     let mut stop_items = gradient_items
         .iter()
         .filter_map(|item| match *item {
-            GenericGradientItem::SimpleColorStop(color) => Some(ColorStop {
+            GradientItem::SimpleColorStop(color) => Some(ColorStop {
                 color,
                 position: None,
             }),
-            GenericGradientItem::ComplexColorStop { color, position } => Some(ColorStop {
+            GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
                 color,
                 position: Some(position),
             }),
@@ -301,17 +297,15 @@ pub fn radial(
         center.vertical.to_used_value(size.height),
     );
     let radius = match shape {
-        GenericEndingShape::Circle(Circle::Radius(length)) => {
+        EndingShape::Circle(Circle::Radius(length)) => {
             let length = Au::from(length);
             Size2D::new(length, length)
         },
-        GenericEndingShape::Circle(Circle::Extent(extent)) => {
-            circle_size_keyword(extent, &size, &center)
-        },
-        GenericEndingShape::Ellipse(Ellipse::Radii(x, y)) => {
+        EndingShape::Circle(Circle::Extent(extent)) => circle_size_keyword(extent, &size, &center),
+        EndingShape::Ellipse(Ellipse::Radii(x, y)) => {
             Size2D::new(x.to_used_value(size.width), y.to_used_value(size.height))
         },
-        GenericEndingShape::Ellipse(Ellipse::Extent(extent)) => {
+        EndingShape::Ellipse(Ellipse::Extent(extent)) => {
             ellipse_size_keyword(extent, &size, &center)
         },
     };

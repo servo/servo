@@ -8,7 +8,6 @@ use style::computed_values::image_rendering::T as ImageRendering;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
 use style::computed_values::transform_style::T as TransformStyle;
 use style::values::computed::{BorderStyle, Filter};
-use style::values::generics::effects::Filter as GenericFilter;
 use style::values::specified::border::BorderImageRepeatKeyword;
 use style::values::RGBA;
 use webrender_api as wr;
@@ -40,19 +39,19 @@ impl ToLayout for Filter {
     type Type = wr::FilterOp;
     fn to_layout(&self) -> Self::Type {
         match *self {
-            GenericFilter::Blur(radius) => wr::FilterOp::Blur(radius.px()),
-            GenericFilter::Brightness(amount) => wr::FilterOp::Brightness(amount.0),
-            GenericFilter::Contrast(amount) => wr::FilterOp::Contrast(amount.0),
-            GenericFilter::Grayscale(amount) => wr::FilterOp::Grayscale(amount.0),
-            GenericFilter::HueRotate(angle) => wr::FilterOp::HueRotate(angle.radians()),
-            GenericFilter::Invert(amount) => wr::FilterOp::Invert(amount.0),
-            GenericFilter::Opacity(amount) => wr::FilterOp::Opacity(amount.0.into(), amount.0),
-            GenericFilter::Saturate(amount) => wr::FilterOp::Saturate(amount.0),
-            GenericFilter::Sepia(amount) => wr::FilterOp::Sepia(amount.0),
+            Filter::Blur(radius) => wr::FilterOp::Blur(radius.px()),
+            Filter::Brightness(amount) => wr::FilterOp::Brightness(amount.0),
+            Filter::Contrast(amount) => wr::FilterOp::Contrast(amount.0),
+            Filter::Grayscale(amount) => wr::FilterOp::Grayscale(amount.0),
+            Filter::HueRotate(angle) => wr::FilterOp::HueRotate(angle.radians()),
+            Filter::Invert(amount) => wr::FilterOp::Invert(amount.0),
+            Filter::Opacity(amount) => wr::FilterOp::Opacity(amount.0.into(), amount.0),
+            Filter::Saturate(amount) => wr::FilterOp::Saturate(amount.0),
+            Filter::Sepia(amount) => wr::FilterOp::Sepia(amount.0),
             // Statically check that DropShadow is impossible.
-            GenericFilter::DropShadow(ref shadow) => match *shadow {},
+            Filter::DropShadow(ref shadow) => match *shadow {},
             // Statically check that Url is impossible.
-            GenericFilter::Url(ref url) => match *url {},
+            Filter::Url(ref url) => match *url {},
         }
     }
 }
