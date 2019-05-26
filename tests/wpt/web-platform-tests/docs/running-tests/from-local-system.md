@@ -97,6 +97,9 @@ customising the test run:
 
     ./wpt run --help
 
+[A complete listing of the command-line arguments is available
+here](command-line-arguments).
+
 Additional browser-specific documentation:
 
 ```eval_rst

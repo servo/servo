@@ -8,19 +8,18 @@
   .flexBaselineCheck {
     display: flex;
     border: 1px solid black;
-    height: 70px;
   }
   .flexBaselineCheck > * {
     border: 2px solid teal;
-
     /* In the testcase, the (baseline-aligned) items should all have their
        bottom borders aligned with the 50px-tall canvas.  In other words, their
-       bottom borders should all be 20px away from the bottom of their flex
-       container.  Here in the reference case, we just use "flex-end" alignment
-       plus a hardcoded 20px margin-bottom to produce a precise reference
-       for what that should look like. */
+       bottom borders should all be aligned at the bottom of their flex
+       container, separated from the bottom by only by their margin-end
+       distance.  Here in the reference case, we just use "flex-end" alignment
+       (plus the same amount of margin) to produce a precise reference for what
+       that should look like. */
     align-self: flex-end;
-    margin-bottom: 20px;
+    margin: 2px;
   }
   canvas {
     background: purple;
