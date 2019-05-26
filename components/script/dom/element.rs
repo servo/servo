@@ -3004,12 +3004,17 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         })
     }
 
-    fn local_name(&self) -> &LocalName {
-        Element::local_name(self)
+    fn has_local_name(&self, local_name: &LocalName) -> bool {
+        Element::local_name(self) == local_name
     }
 
-    fn namespace(&self) -> &Namespace {
-        Element::namespace(self)
+    fn has_namespace(&self, ns: &Namespace) -> bool {
+        Element::namespace(self) == ns
+    }
+
+    fn is_same_type(&self, other: &Self) -> bool {
+        Element::local_name(self) == Element::local_name(other) &&
+            Element::namespace(self) == Element::namespace(other)
     }
 
     fn match_non_ts_pseudo_class<F>(

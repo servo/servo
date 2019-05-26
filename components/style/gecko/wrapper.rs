@@ -1166,6 +1166,19 @@ impl<'le> TElement for GeckoElement<'le> {
         self.namespace_id() == structs::root::kNameSpaceID_XUL as i32
     }
 
+    #[inline]
+    fn local_name(&self) -> &WeakAtom {
+        unsafe { WeakAtom::new(self.as_node().node_info().mInner.mName) }
+    }
+
+    #[inline]
+    fn namespace(&self) -> &WeakNamespace {
+        unsafe {
+            let namespace_manager = structs::nsContentUtils_sNameSpaceManager;
+            WeakNamespace::new((*namespace_manager).mURIArray[self.namespace_id() as usize].mRawPtr)
+        }
+    }
+
     /// Return the list of slotted nodes of this node.
     #[inline]
     fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
@@ -2071,16 +2084,18 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn local_name(&self) -> &WeakAtom {
-        unsafe { WeakAtom::new(self.as_node().node_info().mInner.mName) }
+    fn has_local_name(&self, name: &WeakAtom) -> bool {
+        self.local_name() == name
     }
 
     #[inline]
-    fn namespace(&self) -> &WeakNamespace {
-        unsafe {
-            let namespace_manager = structs::nsContentUtils_sNameSpaceManager;
-            WeakNamespace::new((*namespace_manager).mURIArray[self.namespace_id() as usize].mRawPtr)
-        }
+    fn has_namespace(&self, ns: &WeakNamespace) -> bool {
+        self.namespace() == ns
+    }
+
+    #[inline]
+    fn is_same_type(&self, other: &Self) -> bool {
+        self.local_name() == other.local_name() && self.namespace() == other.namespace()
     }
 
     fn match_non_ts_pseudo_class<F>(
