@@ -5,13 +5,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <link rel="help" href="https://dom.spec.whatwg.org/#callbackdef-eventlistener">
 <div id=log></div>
-<div id=target></div>
 <script>
 setup({ allow_uncaught_exception: true });
 
 test(function(t) {
     var type = "foo";
-    var target = document.getElementById("target");
+    var target = document.createElement("div");
     var eventListener = {
         handleEvent: function(evt) {
             var that = this;
@@ -30,12 +29,16 @@ test(function(t) {
 
 test(function(t) {
     var type = "foo";
-    var target = document.getElementById("target");
-    var thrownError = new Error();
+    var target = document.createElement("div");
+    var thrownError = { name: "test" };
     var uncaughtError;
-
-    window.addEventListener("error", function(event) {
+    var errorHandler = function(event) {
         uncaughtError = event.error;
+    };
+
+    window.addEventListener("error", errorHandler);
+    t.add_cleanup(function() {
+        window.removeEventListener("error", errorHandler);
     });
 
     target.addEventListener(type, {
@@ -50,7 +53,7 @@ test(function(t) {
 
 test(function(t) {
     var type = "foo";
-    var target = document.getElementById("target");
+    var target = document.createElement("div");
     var calls = 0;
 
     target.addEventListener(type, {
@@ -68,11 +71,27 @@ test(function(t) {
 
 test(function(t) {
     var type = "foo";
-    var target = document.getElementById("target");
-    var uncaughtError;
+    var target = document.createElement("div");
+    var calls = 0;
+    var eventListener = function() { calls++; };
+    eventListener.handleEvent = t.unreached_func("`handleEvent` method should not be called on functions");
 
-    window.addEventListener("error", function(event) {
+    target.addEventListener(type, eventListener);
+    target.dispatchEvent(new Event(type));
+    assert_equals(calls, 1);
+}, "doesn't call `handleEvent` method on callable `EventListener`");
+
+test(function(t) {
+    var type = "foo";
+    var target = document.createElement("div");
+    var uncaughtError;
+    var errorHandler = function(event) {
         uncaughtError = event.error;
+    };
+
+    window.addEventListener("error", errorHandler);
+    t.add_cleanup(function() {
+        window.removeEventListener("error", errorHandler);
     });
 
     target.addEventListener(type, {
@@ -81,5 +100,26 @@ test(function(t) {
 
     target.dispatchEvent(new Event(type));
     assert_true(uncaughtError instanceof TypeError);
-}, "throws if `handleEvent` is not callable");
+}, "throws if `handleEvent` is falsy and not callable");
+
+test(function(t) {
+    var type = "foo";
+    var target = document.createElement("div");
+    var uncaughtError;
+    var errorHandler = function(event) {
+        uncaughtError = event.error;
+    };
+
+    window.addEventListener("error", errorHandler);
+    t.add_cleanup(function() {
+        window.removeEventListener("error", errorHandler);
+    });
+
+    target.addEventListener(type, {
+        handleEvent: 1,
+    });
+
+    target.dispatchEvent(new Event(type));
+    assert_true(uncaughtError instanceof TypeError);
+}, "throws if `handleEvent` is thruthy and not callable");
 </script>
