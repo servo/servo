@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head></head>
-<body>
+<title>Makes sure that preloaded resources trigger the onerror event</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
 <script>
-    var t = async_test('Makes sure that preloaded resources trigger the onerror event');
     var scriptFailed = false;
     var styleFailed = false;
     var imageFailed = false;
@@ -28,10 +26,20 @@
 <link rel=preload href="non-existent/dummy.xml?foo" as=foobarxmlthing onerror="gibberishFailed = true;">
 <link rel=preload href="non-existent/dummy.xml?fetch" as=fetch onerror="fetchFailed = true;">
 <link rel=preload href="non-existent/dummy.xml?empty" onerror="emptyFailed = true;">
+<body>
 <script>
-    window.onload = t.step_func(function() {
-        t.step_timeout(function() {
-            verifyPreloadAndRTSupport();
+    setup({explicit_done: true});
+
+    var iterations = 0;
+
+    function check_finished() {
+        if (styleFailed && scriptFailed && imageFailed && fontFailed && videoFailed && audioFailed &&
+            trackFailed && !gibberishFailed && fetchFailed && !emptyFailed) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
             assert_true(styleFailed, "style triggered error event");
             assert_true(scriptFailed, "script triggered error event");
             assert_true(imageFailed, "image triggered error event");
@@ -42,8 +50,15 @@
             assert_false(gibberishFailed, "gibberish as value did not trigger error event");
             assert_true(fetchFailed, "fetch as triggered error event");
             assert_false(emptyFailed, "empty as triggered error event");
-            t.done();
-        }, 5000);
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
+        verifyPreloadAndRTSupport();
+        step_timeout(check_finished, 500);
     });
 </script>
 </body>

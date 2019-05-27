@@ -32,7 +32,7 @@ enum XREnvironmentBlendMode {
   // Attributes
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
   [SameObject] readonly attribute XRRenderState renderState;
-  readonly attribute XRInputSourceArray inputSources;
+  [SameObject] readonly attribute XRInputSourceArray inputSources;
 
   // Methods
   void updateRenderState(optional XRRenderStateInit state);

@@ -116,6 +116,8 @@ interface HTMLElement : Element {
   [CEReactions] attribute DOMString autocapitalize;
 
   [CEReactions] attribute [TreatNullAs=EmptyString] DOMString innerText;
+
+  ElementInternals attachInternals();
 };
 
 HTMLElement includes GlobalEventHandlers;
@@ -795,6 +797,7 @@ interface HTMLFormElement : HTMLElement {
   getter (RadioNodeList or Element) (DOMString name);
 
   void submit();
+  void requestSubmit(optional HTMLElement submitter);
   [CEReactions] void reset();
   boolean checkValidity();
   boolean reportValidity();
@@ -1412,9 +1415,9 @@ interface Path2D {
 };
 Path2D includes CanvasPath;
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface ImageBitmapRenderingContext {
-  readonly attribute HTMLCanvasElement canvas;
+  readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
   void transferFromImageBitmap(ImageBitmap? bitmap);
 };
 
@@ -1422,14 +1425,14 @@ dictionary ImageBitmapRenderingContextSettings {
   boolean alpha = true;
 };
 
-typedef (OffscreenCanvasRenderingContext2D or WebGLRenderingContext or WebGL2RenderingContext) OffscreenRenderingContext;
+typedef (OffscreenCanvasRenderingContext2D or ImageBitmapRenderingContext or WebGLRenderingContext or WebGL2RenderingContext) OffscreenRenderingContext;
 
 dictionary ImageEncodeOptions {
   DOMString type = "image/png";
   unrestricted double quality;
 };
 
-enum OffscreenRenderingContextId { "2d", "webgl", "webgl2" };
+enum OffscreenRenderingContextId { "2d", "bitmaprenderer", "webgl", "webgl2" };
 
 [Constructor([EnforceRange] unsigned long long width, [EnforceRange] unsigned long long height), Exposed=(Window,Worker), Transferable]
 interface OffscreenCanvas : EventTarget {
@@ -1475,6 +1478,40 @@ callback CustomElementConstructor = HTMLElement ();
 
 dictionary ElementDefinitionOptions {
   DOMString extends;
+};
+
+[Exposed=Window]
+interface ElementInternals {
+  // Form-associated custom elements
+
+  void setFormValue((File or USVString or FormData)? value,
+                    optional (File or USVString or FormData)? state);
+
+  readonly attribute HTMLFormElement? form;
+
+  void setValidity(ValidityStateFlags flags,
+                   optional DOMString message,
+                   optional HTMLElement anchor);
+  readonly attribute boolean willValidate;
+  readonly attribute ValidityState validity;
+  readonly attribute DOMString validationMessage;
+  boolean checkValidity();
+  boolean reportValidity();
+
+  readonly attribute NodeList labels;
+};
+
+dictionary ValidityStateFlags {
+  boolean valueMissing = false;
+  boolean typeMismatch = false;
+  boolean patternMismatch = false;
+  boolean tooLong = false;
+  boolean tooShort = false;
+  boolean rangeUnderflow = false;
+  boolean rangeOverflow = false;
+  boolean stepMismatch = false;
+  boolean badInput = false;
+  boolean customError = false;
 };
 
 dictionary FocusOptions {
