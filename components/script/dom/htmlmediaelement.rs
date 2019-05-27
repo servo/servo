@@ -846,13 +846,14 @@ impl HTMLMediaElement {
                             self.fetch_request(None);
                         },
                         SrcObject::MediaStream(ref stream) => {
-                            for stream in &*stream.get_tracks() {
+                            let tracks = &*stream.get_tracks();
+                            for (pos, track) in tracks.iter().enumerate() {
                                 if let Err(_) = self
                                     .player
                                     .borrow()
                                     .as_ref()
                                     .unwrap()
-                                    .set_stream(&stream.id())
+                                    .set_stream(&track.id(), pos == tracks.len() - 1)
                                 {
                                     self.queue_dedicated_media_source_failure_steps();
                                 }
@@ -1222,13 +1223,13 @@ impl HTMLMediaElement {
             _ => StreamType::Seekable,
         };
 
-        let player = ServoMedia::get()
-            .unwrap()
-            .create_player(stream_type, Box::new(PlayerContextDummy()));
-
         let (action_sender, action_receiver) = ipc::channel().unwrap();
-        player.register_event_handler(action_sender);
-        player.register_frame_renderer(self.frame_renderer.clone());
+        let player = ServoMedia::get().unwrap().create_player(
+            stream_type,
+            action_sender,
+            Some(self.frame_renderer.clone()),
+            Box::new(PlayerContextDummy()),
+        );
 
         *self.player.borrow_mut() = Some(player);
 
