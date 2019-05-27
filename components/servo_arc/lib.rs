@@ -90,6 +90,9 @@ const STATIC_REFCOUNT: usize = usize::MAX;
 /// usage of PhantomData.
 ///
 /// [`Arc`]: https://doc.rust-lang.org/stable/std/sync/struct.Arc.html
+///
+/// cbindgen:derive-eq=false
+/// cbindgen:derive-neq=false
 #[repr(C)]
 pub struct Arc<T: ?Sized> {
     p: ptr::NonNull<ArcInner<T>>,

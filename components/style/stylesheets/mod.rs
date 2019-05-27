@@ -63,9 +63,15 @@ pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentSt
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;
 
-/// Extra data that the backend may need to resolve url values.
-#[cfg(not(feature = "gecko"))]
-pub type UrlExtraData = ::servo_url::ServoUrl;
+/// The CORS mode used for a CSS load.
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ToShmem)]
+pub enum CorsMode {
+    /// No CORS mode, so cross-origin loads can be done.
+    None,
+    /// Anonymous CORS request.
+    Anonymous,
+}
 
 /// Extra data that the backend may need to resolve url values.
 ///
@@ -82,7 +88,12 @@ pub type UrlExtraData = ::servo_url::ServoUrl;
 /// `from_ptr_ref` can work.
 #[cfg(feature = "gecko")]
 #[derive(PartialEq)]
+#[repr(C)]
 pub struct UrlExtraData(usize);
+
+/// Extra data that the backend may need to resolve url values.
+#[cfg(not(feature = "gecko"))]
+pub type UrlExtraData = ::servo_url::ServoUrl;
 
 #[cfg(feature = "gecko")]
 impl Clone for UrlExtraData {

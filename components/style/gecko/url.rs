@@ -5,13 +5,11 @@
 //! Common handling for the specified value CSS url() values.
 
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::root::mozilla::css::URLValue;
-use crate::gecko_bindings::structs::root::mozilla::CORSMode;
-use crate::gecko_bindings::structs::root::nsStyleImageRequest;
-use crate::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI};
+use crate::gecko_bindings::structs;
+use crate::gecko_bindings::structs::nsStyleImageRequest;
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::parser::{Parse, ParserContext};
-use crate::stylesheets::UrlExtraData;
+use crate::stylesheets::{UrlExtraData, CorsMode};
 use crate::values::computed::{Context, ToComputedValue};
 use cssparser::Parser;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -27,25 +25,63 @@ use to_shmem::{SharedMemoryBuilder, ToShmem};
 /// A CSS url() value for gecko.
 #[css(function = "url")]
 #[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[repr(C)]
 pub struct CssUrl(pub Arc<CssUrlData>);
 
 /// Data shared between CssUrls.
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+///
+/// cbindgen:derive-eq=false
+/// cbindgen:derive-neq=false
+#[derive(Debug, SpecifiedValueInfo, ToCss, ToShmem)]
+#[repr(C)]
 pub struct CssUrlData {
     /// The URL in unresolved string form.
-    serialization: String,
+    serialization: crate::OwnedStr,
 
     /// The URL extra data.
     #[css(skip)]
     pub extra_data: UrlExtraData,
+
+    /// The CORS mode that will be used for the load.
+    #[css(skip)]
+    cors_mode: CorsMode,
+
+    /// Data to trigger a load from Gecko. This is mutable in C++.
+    ///
+    /// TODO(emilio): Maybe we can eagerly resolve URLs and make this immutable?
+    #[css(skip)]
+    load_data: LoadDataSource,
+}
+
+impl PartialEq for CssUrlData {
+    fn eq(&self, other: &Self) -> bool {
+        self.serialization == other.serialization &&
+            self.extra_data == other.extra_data &&
+            self.cors_mode == other.cors_mode
+    }
 }
 
 impl CssUrl {
+    fn parse_with_cors_mode<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
+    ) -> Result<Self, ParseError<'i>> {
+        let url = input.expect_url()?;
+        Ok(Self::parse_from_string(url.as_ref().to_owned(), context, cors_mode))
+    }
+
     /// Parse a URL from a string value that is a valid CSS token for a URL.
-    pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
+    pub fn parse_from_string(
+        url: String,
+        context: &ParserContext,
+        cors_mode: CorsMode,
+    ) -> Self {
         CssUrl(Arc::new(CssUrlData {
-            serialization: url,
+            serialization: url.into(),
             extra_data: context.url_data.clone(),
+            cors_mode,
+            load_data: LoadDataSource::Owned(LoadData::default()),
         }))
     }
 
@@ -85,27 +121,12 @@ impl CssUrlData {
     }
 }
 
-#[cfg(debug_assertions)]
-impl Drop for CssUrlData {
-    fn drop(&mut self) {
-        assert!(
-            !URL_VALUE_TABLE
-                .read()
-                .unwrap()
-                .contains_key(&CssUrlDataKey(self as *mut _ as *const _)),
-            "All CssUrlData objects used as keys in URL_VALUE_TABLE should be \
-             from shared memory style sheets, and so should never be dropped",
-        );
-    }
-}
-
 impl Parse for CssUrl {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let url = input.expect_url()?;
-        Ok(Self::parse_from_string(url.as_ref().to_owned(), context))
+        Self::parse_with_cors_mode(context, input, CorsMode::None)
     }
 }
 
@@ -122,143 +143,101 @@ impl MallocSizeOf for CssUrl {
     }
 }
 
-/// A key type for URL_VALUE_TABLE.
+/// A key type for LOAD_DATA_TABLE.
 #[derive(Eq, Hash, PartialEq)]
-struct CssUrlDataKey(*const CssUrlData);
+struct LoadDataKey(*const LoadDataSource);
 
-unsafe impl Sync for CssUrlDataKey {}
-unsafe impl Send for CssUrlDataKey {}
+unsafe impl Sync for LoadDataKey {}
+unsafe impl Send for LoadDataKey {}
 
-/// The source of a Gecko URLValue object for a SpecifiedUrl.
-#[derive(Clone, Debug)]
-pub enum URLValueSource {
-    /// A strong reference to a Gecko URLValue object.
-    URLValue(RefPtr<URLValue>),
-    /// A CORSMode value used to lazily construct a Gecko URLValue object.
-    ///
-    /// The lazily created object will be stored in URL_VALUE_TABLE.
-    CORSMode(CORSMode),
+/// The load data for a given URL. This is mutable from C++, for now at least.
+#[repr(C)]
+#[derive(Debug)]
+pub struct LoadData {
+    resolved: RefPtr<structs::nsIURI>,
+    load_id: u64,
+    tried_to_resolve: bool,
 }
 
-impl ToShmem for URLValueSource {
+impl Drop for LoadData {
+    fn drop(&mut self) {
+        if self.load_id != 0 {
+            unsafe {
+                bindings::Gecko_LoadData_DeregisterLoad(self);
+            }
+        }
+    }
+}
+
+impl Default for LoadData {
+    fn default() -> Self {
+        Self {
+            resolved: RefPtr::null(),
+            load_id: 0,
+            tried_to_resolve: false,
+        }
+    }
+}
+
+/// The data for a load, or a lazy-loaded, static member that will be stored in
+/// LOAD_DATA_TABLE, keyed by the memory location of this object, which is
+/// always in the heap because it's inside the CssUrlData object.
+///
+/// This type is meant not to be used from C++ so we don't derive helper
+/// methods.
+///
+/// cbindgen:derive-helper-methods=false
+#[derive(Debug)]
+#[repr(u8, C)]
+pub enum LoadDataSource {
+    /// An owned copy of the load data.
+    Owned(LoadData),
+    /// A lazily-resolved copy of it.
+    Lazy,
+}
+
+impl LoadDataSource {
+    /// Gets the load data associated with the source.
+    ///
+    /// This relies on the source on being in a stable location if lazy.
+    #[inline]
+    pub unsafe fn get(&self) -> *const LoadData {
+        match *self {
+            LoadDataSource::Owned(ref d) => return d,
+            LoadDataSource::Lazy => {},
+        }
+
+        let key = LoadDataKey(self);
+
+        {
+            let guard = LOAD_DATA_TABLE.read().unwrap();
+            if let Some(r) = guard.get(&key) {
+                return &**r;
+            }
+        }
+        let mut guard = LOAD_DATA_TABLE.write().unwrap();
+        let r = guard.entry(key).or_insert_with(Default::default);
+        &**r
+    }
+}
+
+impl ToShmem for LoadDataSource {
     fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
         ManuallyDrop::new(match self {
-            URLValueSource::URLValue(r) => URLValueSource::CORSMode(r.mCORSMode),
-            URLValueSource::CORSMode(c) => URLValueSource::CORSMode(*c),
+            LoadDataSource::Owned(..) => LoadDataSource::Lazy,
+            LoadDataSource::Lazy => LoadDataSource::Lazy,
         })
     }
 }
 
 /// A specified non-image `url()` value.
-#[derive(Clone, Debug, SpecifiedValueInfo, ToCss, ToShmem)]
-pub struct SpecifiedUrl {
-    /// The specified url value.
-    pub url: CssUrl,
-    /// Gecko's URLValue so that we can reuse it while rematching a
-    /// property with this specified value.
-    ///
-    /// Box this to avoid SpecifiedUrl getting bigger than two words,
-    /// and increasing the size of PropertyDeclaration.
-    #[css(skip)]
-    url_value: Box<URLValueSource>,
-}
+pub type SpecifiedUrl = CssUrl;
 
-fn make_url_value(url: &CssUrl, cors_mode: CORSMode) -> RefPtr<URLValue> {
-    unsafe {
-        let ptr = bindings::Gecko_URLValue_Create(url.0.clone().into_strong(), cors_mode);
-        // We do not expect Gecko_URLValue_Create returns null.
-        debug_assert!(!ptr.is_null());
-        RefPtr::from_addrefed(ptr)
-    }
-}
-
-impl SpecifiedUrl {
-    /// Parse a URL from a string value.
-    pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
-        Self::from_css_url(CssUrl::parse_from_string(url, context))
-    }
-
-    fn from_css_url_with_cors(url: CssUrl, cors: CORSMode) -> Self {
-        let url_value = Box::new(URLValueSource::URLValue(make_url_value(&url, cors)));
-        Self { url, url_value }
-    }
-
-    fn from_css_url(url: CssUrl) -> Self {
-        use crate::gecko_bindings::structs::root::mozilla::CORSMode_CORS_NONE;
-        Self::from_css_url_with_cors(url, CORSMode_CORS_NONE)
-    }
-
-    fn from_css_url_with_cors_anonymous(url: CssUrl) -> Self {
-        use crate::gecko_bindings::structs::root::mozilla::CORSMode_CORS_ANONYMOUS;
-        Self::from_css_url_with_cors(url, CORSMode_CORS_ANONYMOUS)
-    }
-
-    fn with_url_value<F, T>(&self, f: F) -> T
-    where
-        F: FnOnce(&RefPtr<URLValue>) -> T,
-    {
-        match *self.url_value {
-            URLValueSource::URLValue(ref r) => f(r),
-            URLValueSource::CORSMode(cors_mode) => {
-                {
-                    let guard = URL_VALUE_TABLE.read().unwrap();
-                    if let Some(r) = guard.get(&(CssUrlDataKey(&*self.url.0 as *const _))) {
-                        return f(r);
-                    }
-                }
-                let mut guard = URL_VALUE_TABLE.write().unwrap();
-                let r = guard
-                    .entry(CssUrlDataKey(&*self.url.0 as *const _))
-                    .or_insert_with(|| make_url_value(&self.url, cors_mode));
-                f(r)
-            },
-        }
-    }
-
-    /// Clone a new, strong reference to the Gecko URLValue.
-    pub fn clone_url_value(&self) -> RefPtr<URLValue> {
-        self.with_url_value(RefPtr::clone)
-    }
-
-    /// Get a raw pointer to the URLValue held by this SpecifiedUrl, for FFI.
-    pub fn url_value_ptr(&self) -> *mut URLValue {
-        self.with_url_value(RefPtr::get)
-    }
-}
-
-/// Clears URL_VALUE_TABLE.  Entries in this table, which are for specified URL
+/// Clears LOAD_DATA_TABLE.  Entries in this table, which are for specified URL
 /// values that come from shared memory style sheets, would otherwise persist
 /// until the end of the process and be reported as leaks.
 pub fn shutdown() {
-    URL_VALUE_TABLE.write().unwrap().clear();
-}
-
-impl Parse for SpecifiedUrl {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        CssUrl::parse(context, input).map(Self::from_css_url)
-    }
-}
-
-impl PartialEq for SpecifiedUrl {
-    fn eq(&self, other: &Self) -> bool {
-        self.url.eq(&other.url)
-    }
-}
-
-impl Eq for SpecifiedUrl {}
-
-impl MallocSizeOf for SpecifiedUrl {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.url.size_of(ops);
-        // Although this is a RefPtr, this is the primary reference because
-        // SpecifiedUrl is responsible for creating the url_value. So we
-        // measure unconditionally here.
-        n += unsafe { bindings::Gecko_URLValue_SizeOfIncludingThis(self.url_value_ptr()) };
-        n
-    }
+    LOAD_DATA_TABLE.write().unwrap().clear();
 }
 
 impl ToComputedValue for SpecifiedUrl {
@@ -277,12 +256,13 @@ impl ToComputedValue for SpecifiedUrl {
 
 /// A specified image `url()` value.
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[repr(C)]
 pub struct SpecifiedImageUrl(pub SpecifiedUrl);
 
 impl SpecifiedImageUrl {
     /// Parse a URL from a string value that is a valid CSS token for a URL.
     pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
-        SpecifiedImageUrl(SpecifiedUrl::parse_from_string(url, context))
+        SpecifiedImageUrl(SpecifiedUrl::parse_from_string(url, context, CorsMode::None))
     }
 
     /// Provides an alternate method for parsing that associates the URL
@@ -291,9 +271,11 @@ impl SpecifiedImageUrl {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        CssUrl::parse(context, input)
-            .map(SpecifiedUrl::from_css_url_with_cors_anonymous)
-            .map(SpecifiedImageUrl)
+        Ok(SpecifiedImageUrl(SpecifiedUrl::parse_with_cors_mode(
+            context,
+            input,
+            CorsMode::Anonymous,
+        )?))
     }
 }
 
@@ -320,59 +302,39 @@ impl ToComputedValue for SpecifiedImageUrl {
     }
 }
 
-fn serialize_computed_url<W>(
-    url_value: &URLValue,
-    dest: &mut CssWriter<W>,
-    get_url: unsafe extern "C" fn(*const URLValue, *mut nsCString),
-) -> fmt::Result
-where
-    W: Write,
-{
-    dest.write_str("url(")?;
-    unsafe {
-        let mut string = nsCString::new();
-        get_url(url_value, &mut string);
-        string.as_str_unchecked().to_css(dest)?;
-    }
-    dest.write_char(')')
-}
-
 /// The computed value of a CSS non-image `url()`.
 ///
 /// The only difference between specified and computed URLs is the
 /// serialization.
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+#[repr(C)]
 pub struct ComputedUrl(pub SpecifiedUrl);
+
+impl ComputedUrl {
+    fn serialize_with<W>(
+        &self,
+        function: unsafe extern "C" fn(*const Self, *mut nsCString),
+        dest: &mut CssWriter<W>,
+    ) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("url(")?;
+        unsafe {
+            let mut string = nsCString::new();
+            function(self, &mut string);
+            string.as_str_unchecked().to_css(dest)?;
+        }
+        dest.write_char(')')
+    }
+}
 
 impl ToCss for ComputedUrl {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
-        self.0
-            .with_url_value(|r| serialize_computed_url(r, dest, bindings::Gecko_GetComputedURLSpec))
-    }
-}
-
-impl ComputedUrl {
-    /// Convert from RefPtr<URLValue> to ComputedUrl.
-    pub unsafe fn from_url_value(url_value: RefPtr<URLValue>) -> Self {
-        let css_url = &*url_value.mCssUrl.mRawPtr;
-        let url = CssUrl(CssUrlData::as_arc(&css_url).clone_arc());
-        ComputedUrl(SpecifiedUrl {
-            url,
-            url_value: Box::new(URLValueSource::URLValue(url_value)),
-        })
-    }
-
-    /// Clone a new, strong reference to the Gecko URLValue.
-    pub fn clone_url_value(&self) -> RefPtr<URLValue> {
-        self.0.clone_url_value()
-    }
-
-    /// Get a raw pointer to the URLValue held by this ComputedUrl, for FFI.
-    pub fn url_value_ptr(&self) -> *mut URLValue {
-        self.0.url_value_ptr()
+        self.serialize_with(bindings::Gecko_GetComputedURLSpec, dest)
     }
 }
 
@@ -380,39 +342,26 @@ impl ComputedUrl {
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
 pub struct ComputedImageUrl(pub ComputedUrl);
 
+impl ComputedImageUrl {
+    /// Convert from nsStyleImageRequest to ComputedImageUrl.
+    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Self {
+        image_request.mImageURL.clone()
+    }
+}
+
 impl ToCss for ComputedImageUrl {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
-        (self.0).0.with_url_value(|r| {
-            serialize_computed_url(r, dest, bindings::Gecko_GetComputedImageURLSpec)
-        })
-    }
-}
-
-impl ComputedImageUrl {
-    /// Convert from nsStyleImageReques to ComputedImageUrl.
-    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Self {
-        let url_value = image_request.mImageValue.to_safe();
-        ComputedImageUrl(ComputedUrl::from_url_value(url_value))
-    }
-
-    /// Clone a new, strong reference to the Gecko URLValue.
-    pub fn clone_url_value(&self) -> RefPtr<URLValue> {
-        self.0.clone_url_value()
-    }
-
-    /// Get a raw pointer to the URLValue held by this ComputedImageUrl, for FFI.
-    pub fn url_value_ptr(&self) -> *mut URLValue {
-        self.0.url_value_ptr()
+        self.0.serialize_with(bindings::Gecko_GetComputedImageURLSpec, dest)
     }
 }
 
 lazy_static! {
-    /// A table mapping CssUrlData objects to their lazily created Gecko
-    /// URLValue objects.
-    static ref URL_VALUE_TABLE: RwLock<HashMap<CssUrlDataKey, RefPtr<URLValue>>> = {
+    /// A table mapping CssUrlData objects to their lazily created LoadData
+    /// objects.
+    static ref LOAD_DATA_TABLE: RwLock<HashMap<LoadDataKey, Box<LoadData>>> = {
         Default::default()
     };
 }
