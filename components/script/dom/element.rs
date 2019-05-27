@@ -3009,8 +3009,8 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn is_same_type(&self, other: &Self) -> bool {
-           Element::local_name(self) == Element::local_name(other)
-        && Element::namespace(self) == Element::namespace(other)
+        Element::local_name(self) == Element::local_name(other) &&
+            Element::namespace(self) == Element::namespace(other)
     }
 
     fn match_non_ts_pseudo_class<F>(

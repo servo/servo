@@ -898,8 +898,8 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     #[inline]
     fn is_same_type(&self, other: &Self) -> bool {
-           self.element.local_name() == other.element.local_name()
-        && self.element.namespace() == other.element.namespace()
+        self.element.local_name() == other.element.local_name() &&
+            self.element.namespace() == other.element.namespace()
     }
 
     fn match_pseudo_element(
@@ -1296,7 +1296,9 @@ where
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                        node.as_element().unwrap().has_local_name(&local_name!("summary")) &&
+                        node.as_element()
+                            .unwrap()
+                            .has_local_name(&local_name!("summary")) &&
                         node.as_element().unwrap().has_namespace(&ns!(html))
                     {
                         unsafe { node.dangerous_next_sibling() }
@@ -1454,8 +1456,8 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
     #[inline]
     fn is_same_type(&self, other: &Self) -> bool {
-           self.element.local_name() == other.element.local_name()
-        && self.element.namespace() == other.element.namespace()
+        self.element.local_name() == other.element.local_name() &&
+            self.element.namespace() == other.element.namespace()
     }
 
     fn match_pseudo_element(
