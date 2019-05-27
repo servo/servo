@@ -177,7 +177,7 @@ impl<T> Arc<T> {
             data,
         }));
 
-        #[cfg(all(feature = "gecko", debug_assertions))]
+        #[cfg(feature = "gecko_refcount_logging")]
         unsafe {
             // FIXME(emilio): Would be so amazing to have
             // std::intrinsics::type_name() around, so that we could also report
@@ -312,7 +312,7 @@ impl<T: ?Sized> Arc<T> {
 
     #[inline(always)]
     fn record_drop(&self) {
-        #[cfg(all(feature = "gecko", debug_assertions))]
+        #[cfg(feature = "gecko_refcount_logging")]
         unsafe {
             NS_LogDtor(self.ptr() as *const _, b"ServoArc\0".as_ptr() as *const _, 8);
         }
@@ -348,7 +348,7 @@ impl<T: ?Sized> Arc<T> {
     }
 }
 
-#[cfg(all(feature = "gecko", debug_assertions))]
+#[cfg(feature = "gecko_refcount_logging")]
 extern "C" {
     fn NS_LogCtor(aPtr: *const std::os::raw::c_void, aTypeName: *const std::os::raw::c_char, aSize: u32);
     fn NS_LogDtor(aPtr: *const std::os::raw::c_void, aTypeName: *const std::os::raw::c_char, aSize: u32);
@@ -745,7 +745,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             );
         }
 
-        #[cfg(all(feature = "gecko", debug_assertions))]
+        #[cfg(feature = "gecko_refcount_logging")]
         unsafe {
             if !is_static {
                 // FIXME(emilio): Would be so amazing to have

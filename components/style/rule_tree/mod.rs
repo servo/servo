@@ -755,7 +755,7 @@ unsafe impl Sync for RuleTree {}
 unsafe impl Send for RuleTree {}
 
 // On Gecko builds, hook into the leak checking machinery.
-#[cfg(all(feature = "gecko", debug_assertions))]
+#[cfg(feature = "gecko_refcount_logging")]
 mod gecko_leak_checking {
     use super::RuleNode;
     use std::mem::size_of;
@@ -788,13 +788,13 @@ mod gecko_leak_checking {
 
 #[inline(always)]
 fn log_new(_ptr: *const RuleNode) {
-    #[cfg(all(feature = "gecko", debug_assertions))]
+    #[cfg(feature = "gecko_refcount_logging")]
     gecko_leak_checking::log_ctor(_ptr);
 }
 
 #[inline(always)]
 fn log_drop(_ptr: *const RuleNode) {
-    #[cfg(all(feature = "gecko", debug_assertions))]
+    #[cfg(feature = "gecko_refcount_logging")]
     gecko_leak_checking::log_dtor(_ptr);
 }
 
