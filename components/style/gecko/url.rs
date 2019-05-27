@@ -256,7 +256,6 @@ impl ToComputedValue for SpecifiedUrl {
 
 /// A specified image `url()` value.
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-#[repr(C)]
 pub struct SpecifiedImageUrl(pub SpecifiedUrl);
 
 impl SpecifiedImageUrl {
@@ -340,6 +339,7 @@ impl ToCss for ComputedUrl {
 
 /// The computed value of a CSS image `url()`.
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+#[repr(transparent)]
 pub struct ComputedImageUrl(pub ComputedUrl);
 
 impl ComputedImageUrl {
