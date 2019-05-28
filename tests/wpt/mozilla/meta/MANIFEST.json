@@ -9735,6 +9735,9 @@
    "mozilla/webgl/tex_image_2d_simple_ref.html": [
     []
    ],
+   "mozilla/worker_member_test.js": [
+    []
+   ],
    "mozilla/worklets/syntax_error.js": [
     []
    ],
@@ -18895,7 +18898,7 @@
    "testharness"
   ],
   "mozilla/interface_member_exposed.html": [
-   "dd637cf92a894e4569e8fb0baf11eea6968033af",
+   "f408f9c3dae4b78b49bf77b5ad32c0d5ee406f7e",
    "testharness"
   ],
   "mozilla/interfaces.html": [
@@ -19593,6 +19596,10 @@
   "mozilla/windowproxy.html": [
    "d5c75899eb546d7243d65b6f55e876c5008c6292",
    "testharness"
+  ],
+  "mozilla/worker_member_test.js": [
+   "abca5cd280ac07914cb21ee4968ac4d27e7feb68",
+   "support"
   ],
   "mozilla/worklets/syntax_error.js": [
    "4adade8939ce62eb5e83d73d4faf2261b264d809",

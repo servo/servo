@@ -4,6 +4,7 @@ patch < debug.patch
 patch < callback-location.patch
 patch < union-typedef.patch
 patch < inline.patch
+patch < exposed-globals.patch
 
 wget https://hg.mozilla.org/mozilla-central/archive/tip.tar.gz/dom/bindings/parser/tests/ -O tests.tar.gz
 rm -r tests
