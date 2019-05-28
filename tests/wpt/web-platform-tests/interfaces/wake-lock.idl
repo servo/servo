@@ -16,5 +16,5 @@ interface WakeLock {
 };
 
 dictionary WakeLockRequestOptions {
-  AbortSignal? signal = null;
+  AbortSignal signal;
 };

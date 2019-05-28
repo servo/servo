@@ -382,7 +382,7 @@ dictionary RTCRtpContributingSource {
     required DOMHighResTimeStamp timestamp;
     required unsigned long source;
              double audioLevel;
-             unsigned long rtpTimestamp;
+    required unsigned long rtpTimestamp;
 };
 
 dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {

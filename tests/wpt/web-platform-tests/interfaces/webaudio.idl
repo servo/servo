@@ -568,7 +568,8 @@ interface AudioParamMap {
 
 [Exposed=Window,
  SecureContext,
- Constructor (BaseAudioContext context, DOMString name, optional AudioWorkletNodeOptions options)]
+ Constructor (BaseAudioContext context, DOMString name,
+              optional AudioWorkletNodeOptions options)]
 interface AudioWorkletNode : AudioNode {
   readonly attribute AudioParamMap parameters;
   readonly attribute MessagePort port;

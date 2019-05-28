@@ -161,6 +161,7 @@ def run_info_extras(**kwargs):
           "wasm": kwargs.get("wasm", True),
           "verify": kwargs["verify"],
           "headless": "MOZ_HEADLESS" in os.environ,
+          "fission": get_bool_pref("fission.autostart"),
           "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept")}
     rv.update(run_info_browser_version(kwargs["binary"]))
     return rv

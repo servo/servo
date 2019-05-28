@@ -12,9 +12,11 @@
       var client = new XMLHttpRequest()
       client.open("GET", "resources/well-formed.xml", false)
       client.send(null)
-      var responseURL = new URL('resources/well-formed.xml', location.href).href
+      var responseURLObject = new URL('resources/well-formed.xml', location.href);
+      var responseURL = responseURLObject.href
+      var responseDomain = responseURLObject.hostname
       var expected = {
-        domain:undefined,
+        domain:responseDomain,
         URL:responseURL,
         documentURI:responseURL,
         baseURI:responseURL,

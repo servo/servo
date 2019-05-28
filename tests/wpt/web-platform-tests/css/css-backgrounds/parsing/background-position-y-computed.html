@@ -26,11 +26,14 @@ test_computed_value("background-position-y", "10px");
 test_computed_value("background-position-y", "0.5em", "20px");
 test_computed_value("background-position-y", "calc(10px - 0.5em)", "-10px");
 test_computed_value("background-position-y", "top -20%", "-20%");
-test_computed_value("background-position-y", "bottom 10px", "calc(100% + 10px)");
-test_computed_value("background-position-y", "-20%, 10px");
-test_computed_value("background-position-y", "center, top, bottom", "50%, 0%, 100px");
-test_computed_value("background-position-y", "0.5em, y-start, y-end", "20px, y-start, y-end");
-test_computed_value("background-position-y", "calc(10px - 0.5em), top -20%, bottom 10px", "-10px, -20%, calc(100% + 10px)");
+test_computed_value("background-position-y", "bottom -10px", "calc(100% + 10px)");
+test_computed_value("background-position-y", "-20%, 10px", "-20%");
+test_computed_value("background-position-y", "center, top, bottom", "50%");
+test_computed_value("background-position-y", "0.5em, y-start, y-end", "20px");
+
+// See background-computed.html for a test with multiple background images.
+test_computed_value("background-position-y", "calc(10px - 0.5em), -20%, 10px", "-10px");
+test_computed_value("background-position-y", "calc(10px - 0.5em), top -20%, bottom 10px", "-10px");
 </script>
 </body>
 </html>

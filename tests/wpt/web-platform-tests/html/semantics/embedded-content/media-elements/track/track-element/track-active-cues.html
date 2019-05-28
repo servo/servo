@@ -17,6 +17,9 @@ async_test(function(t) {
 
     var video = document.createElement('video');
     video.src = getVideoURI('/media/movie_5');
+    // uanset media element's `show-poster` flag in order to run `time marches on`
+    // when we add new cues into media element's cues list.
+    video.play();
     var trackElement = document.createElement('track');
 
     trackElement.onload = t.step_func(eventCallback);

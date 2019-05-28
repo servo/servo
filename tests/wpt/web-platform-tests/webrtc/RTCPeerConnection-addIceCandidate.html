@@ -269,6 +269,17 @@ a=rtcp-rsize
     t.add_cleanup(() => pc.close());
 
     return pc.setRemoteDescription(sessionDesc)
+      .then(() => pc.addIceCandidate(new RTCIceCandidate({
+        candidate: candidateStr1,
+        sdpMid: sdpMid1 })));
+  }, 'Add candidate with only valid sdpMid and RTCIceCandidate should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
       .then(() => pc.addIceCandidate({
         candidate: candidateStr1,
         sdpMLineIndex: sdpMLineIndex1 }));

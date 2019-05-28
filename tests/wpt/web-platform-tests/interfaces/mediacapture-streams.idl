@@ -52,7 +52,6 @@ dictionary MediaTrackSupportedConstraints {
              boolean frameRate = true;
              boolean facingMode = true;
              boolean resizeMode = true;
-             boolean volume = true;
              boolean sampleRate = true;
              boolean sampleSize = true;
              boolean echoCancellation = true;
@@ -71,7 +70,6 @@ dictionary MediaTrackCapabilities {
              DoubleRange frameRate;
              sequence<DOMString> facingMode;
              sequence<DOMString> resizeMode;
-             DoubleRange volume;
              ULongRange sampleRate;
              ULongRange sampleSize;
              sequence<boolean> echoCancellation;
@@ -94,7 +92,6 @@ dictionary MediaTrackConstraintSet {
              ConstrainDouble frameRate;
              ConstrainDOMString facingMode;
              ConstrainDOMString resizeMode;
-             ConstrainDouble volume;
              ConstrainULong sampleRate;
              ConstrainULong sampleSize;
              ConstrainBoolean echoCancellation;
@@ -113,7 +110,6 @@ dictionary MediaTrackSettings {
              double frameRate;
              DOMString facingMode;
              DOMString resizeMode;
-             double volume;
              long sampleRate;
              long sampleSize;
              boolean echoCancellation;
