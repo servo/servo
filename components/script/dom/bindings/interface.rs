@@ -173,7 +173,7 @@ pub unsafe fn create_callback_interface_object(
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.is_null());
-    define_guarded_constants(cx, rval.handle(), constants);
+    define_guarded_constants(cx, rval.handle(), constants, global);
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, global, name, rval.handle());
 }
@@ -181,6 +181,7 @@ pub unsafe fn create_callback_interface_object(
 /// Create the interface prototype object of a non-callback interface.
 pub unsafe fn create_interface_prototype_object(
     cx: *mut JSContext,
+    global: HandleObject,
     proto: HandleObject,
     class: &'static JSClass,
     regular_methods: &[Guard<&'static [JSFunctionSpec]>],
@@ -191,6 +192,7 @@ pub unsafe fn create_interface_prototype_object(
 ) {
     create_object(
         cx,
+        global,
         proto,
         class,
         regular_methods,
@@ -233,6 +235,7 @@ pub unsafe fn create_noncallback_interface_object(
 ) {
     create_object(
         cx,
+        global,
         proto,
         class.as_jsclass(),
         static_methods,
@@ -288,6 +291,7 @@ pub unsafe fn create_named_constructors(
 /// Create a new object with a unique type.
 pub unsafe fn create_object(
     cx: *mut JSContext,
+    global: HandleObject,
     proto: HandleObject,
     class: &'static JSClass,
     methods: &[Guard<&'static [JSFunctionSpec]>],
@@ -297,9 +301,9 @@ pub unsafe fn create_object(
 ) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.is_null());
-    define_guarded_methods(cx, rval.handle(), methods);
-    define_guarded_properties(cx, rval.handle(), properties);
-    define_guarded_constants(cx, rval.handle(), constants);
+    define_guarded_methods(cx, rval.handle(), methods, global);
+    define_guarded_properties(cx, rval.handle(), properties, global);
+    define_guarded_constants(cx, rval.handle(), constants, global);
 }
 
 /// Conditionally define constants on an object.
@@ -307,9 +311,10 @@ pub unsafe fn define_guarded_constants(
     cx: *mut JSContext,
     obj: HandleObject,
     constants: &[Guard<&[ConstantSpec]>],
+    global: HandleObject,
 ) {
     for guard in constants {
-        if let Some(specs) = guard.expose(cx, obj) {
+        if let Some(specs) = guard.expose(cx, obj, global) {
             define_constants(cx, obj, specs);
         }
     }
@@ -320,9 +325,10 @@ pub unsafe fn define_guarded_methods(
     cx: *mut JSContext,
     obj: HandleObject,
     methods: &[Guard<&'static [JSFunctionSpec]>],
+    global: HandleObject,
 ) {
     for guard in methods {
-        if let Some(specs) = guard.expose(cx, obj) {
+        if let Some(specs) = guard.expose(cx, obj, global) {
             define_methods(cx, obj, specs).unwrap();
         }
     }
@@ -333,9 +339,10 @@ pub unsafe fn define_guarded_properties(
     cx: *mut JSContext,
     obj: HandleObject,
     properties: &[Guard<&'static [JSPropertySpec]>],
+    global: HandleObject,
 ) {
     for guard in properties {
-        if let Some(specs) = guard.expose(cx, obj) {
+        if let Some(specs) = guard.expose(cx, obj, global) {
             define_properties(cx, obj, specs).unwrap();
         }
     }
