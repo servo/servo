@@ -32,6 +32,7 @@ def main(task_for):
             linux_tidy_unit_docs,
             windows_unit,
             windows_x86,
+            windows_arm64,
             macos_unit,
             magicleap_dev,
             android_arm32_dev,
@@ -58,9 +59,9 @@ def main(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit_docs],
-            "try-windows": [windows_unit, windows_x86],
+            "try-windows": [windows_unit, windows_x86, windows_arm64],
             "try-magicleap": [magicleap_dev],
-            "try-arm": [linux_arm32_dev, linux_arm64_dev],
+            "try-arm": [linux_arm32_dev, linux_arm64_dev, windows_arm64],
             "try-wpt": [linux_wpt],
             "try-wpt-mac": [macos_wpt],
             "try-wpt-android": [android_x86_wpt],
@@ -133,6 +134,9 @@ windows_build_env = {
     "x86_64": {
         "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
+    },
+    "arm64": {
+        # No GStreamer support for arm64 windows yet.
     },
     "all": {
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
@@ -361,9 +365,6 @@ def windows_x86():
     return (
         windows_build_task("Dev build", arch="x86")
         .with_treeherder("Windows x86")
-        .with_env(**{
-            "VCVARSALL_PATH": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build"
-        })
         .with_script(
             "python mach build --dev --target i686-pc-windows-msvc",
             "python mach package --dev --target i686-pc-windows-msvc",
@@ -371,6 +372,17 @@ def windows_x86():
         .with_artifacts("repo/target/i686-pc-windows-msvc/debug/msi/Servo.exe",
                         "repo/target/i686-pc-windows-msvc/debug/msi/Servo.zip")
         .find_or_create("build.windows_x86_dev." + CONFIG.task_id())
+    )
+
+
+def windows_arm64():
+    return (
+        windows_build_task("Dev build", package=False, arch="arm64")
+        .with_treeherder("Windows arm64")
+        .with_script(
+            "python mach build --dev --target aarch64-pc-windows-msvc",
+        )
+        .find_or_create("build.windows_arm64_dev." + CONFIG.task_id())
     )
 
 
@@ -735,19 +747,22 @@ def windows_build_task(name, package=True, arch="x86_64"):
             path="python3",
         )
         .with_rustup()
-        .with_repacked_msi(
-            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                 "%s/gstreamer-1.0-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
-            sha256=hashes["non-devel"][arch],
-            path="gst",
-        )
-        .with_repacked_msi(
-            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                 "%s/gstreamer-1.0-devel-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
-            sha256=hashes["devel"][arch],
-            path="gst",
-        )
     )
+    if arch in hashes["non-devel"] and arch in hashes["devel"]:
+        task = (
+            task.with_repacked_msi(
+                url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                     "%s/gstreamer-1.0-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
+                sha256=hashes["non-devel"][arch],
+                path="gst",
+            )
+            .with_repacked_msi(
+                url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                     "%s/gstreamer-1.0-devel-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
+                sha256=hashes["devel"][arch],
+                path="gst",
+            )
+        )
     if package:
         task = (
             task
