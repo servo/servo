@@ -815,7 +815,7 @@ def magicleap_build_task(name, build_type):
         macos_build_task(name)
         .with_treeherder("MagicLeap aarch64", build_type)
         .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.20.0+ndk19c.tar.gz",
+            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.20.0%2Bndk19c.tar.gz",
             sha256="d5890cc7612694d79e60247a5d5fe4d8bdeb797095f098d56f3069be33426781",
             path="magicleap"
         )
