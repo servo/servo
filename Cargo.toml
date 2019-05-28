@@ -28,3 +28,4 @@ opt-level = 3
 # Those are here to dedupe winapi since mio is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
+remove_dir_all = { git = "https://github.com/servo/remove_dir_all", branch = "arm64" }
