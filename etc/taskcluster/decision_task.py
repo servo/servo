@@ -815,8 +815,8 @@ def magicleap_build_task(name, build_type):
         macos_build_task(name)
         .with_treeherder("MagicLeap aarch64", build_type)
         .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.17.0.tar.gz",
-            sha256="e81de47ad963891ac68768d93ab5a36ed3af3a3efebb4dbc4db2e65647d57655",
+            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.20.0%2Bndk19c.tar.gz",
+            sha256="d5890cc7612694d79e60247a5d5fe4d8bdeb797095f098d56f3069be33426781",
             path="magicleap"
         )
         .with_directory_mount(
@@ -826,7 +826,7 @@ def magicleap_build_task(name, build_type):
         )
         # Early script in order to run with the initial $PWD
         .with_early_script("""
-            export MAGICLEAP_SDK="$PWD/magicleap/v0.17.0"
+            export MAGICLEAP_SDK="$PWD/magicleap/v0.20.0+ndk19c"
             export MLCERT="$PWD/magicleap/TempSharedCert.cert"
         """)
         .with_script("""
