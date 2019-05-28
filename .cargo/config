@@ -27,3 +27,6 @@ linker = "lld-link.exe"
 
 [target.i686-pc-windows-msvc]
 linker = "lld-link.exe"
+
+[target.aarch64-pc-windows-msvc]
+linker = "lld-link.exe"
