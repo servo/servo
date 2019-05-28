@@ -1087,6 +1087,18 @@ impl TestBindingMethods for TestBinding {
     fn IncumbentGlobal(&self) -> DomRoot<GlobalScope> {
         GlobalScope::incumbent().unwrap()
     }
+
+    fn SemiExposedBoolFromInterface(&self) -> bool {
+        true
+    }
+
+    fn BoolFromSemiExposedPartialInterface(&self) -> bool {
+        true
+    }
+
+    fn SemiExposedBoolFromPartialInterface(&self) -> bool {
+        true
+    }
 }
 
 impl TestBinding {
