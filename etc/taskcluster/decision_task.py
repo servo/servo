@@ -136,6 +136,7 @@ windows_build_env = {
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
     },
     "arm64": {
+        "PKG_CONFIG_ALLOW_CROSS": "1",
         # No GStreamer support for arm64 windows yet.
     },
     "all": {
