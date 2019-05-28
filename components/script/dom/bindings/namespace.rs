@@ -37,6 +37,6 @@ pub unsafe fn create_namespace_object(
     name: &[u8],
     rval: MutableHandleObject,
 ) {
-    create_object(cx, proto, &class.0, methods, &[], &[], rval);
+    create_object(cx, global, proto, &class.0, methods, &[], &[], rval);
     define_on_global_object(cx, global, name, rval.handle());
 }

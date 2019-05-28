@@ -9,7 +9,7 @@
 
 [
   ExceptionClass,
-  Exposed=(Window,Worker),
+  Exposed=(Window,Worker,DissimilarOriginWindow),
   Constructor(optional DOMString message="", optional DOMString name="Error")
 ]
 interface DOMException {
