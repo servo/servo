@@ -3,5 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-windowproxy-exotic-object
-[NoInterfaceObject]
+[Exposed=(Window,DissimilarOriginWindow), NoInterfaceObject]
 interface WindowProxy {};

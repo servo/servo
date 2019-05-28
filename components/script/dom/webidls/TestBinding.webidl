@@ -556,6 +556,19 @@ interface TestBinding {
 
   GlobalScope entryGlobal();
   GlobalScope incumbentGlobal();
+
+  [Exposed=(Window)]
+  readonly attribute boolean semiExposedBoolFromInterface;
+};
+
+[Exposed=(Window)]
+partial interface TestBinding {
+  readonly attribute boolean boolFromSemiExposedPartialInterface;
+};
+
+partial interface TestBinding {
+  [Exposed=(Window)]
+  readonly attribute boolean semiExposedBoolFromPartialInterface;
 };
 
 callback SimpleCallback = void(any value);
