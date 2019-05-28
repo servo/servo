@@ -1507,7 +1507,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
                     returnType)
 
 
-def MemberCondition(pref, func):
+def MemberCondition(pref, func, exposed):
     """
     A string representing the condition for a member to actually be exposed.
     Any of the arguments can be None. If not None, they should have the
@@ -1515,14 +1515,18 @@ def MemberCondition(pref, func):
 
     pref: The name of the preference.
     func: The name of the function.
+    exposed: One or more names of an exposed global.
     """
     assert pref is None or isinstance(pref, str)
     assert func is None or isinstance(func, str)
-    assert func is None or pref is None
+    assert exposed is None or isinstance(exposed, set)
+    assert func is None or pref is None or exposed is None
     if pref:
         return 'Condition::Pref("%s")' % pref
     if func:
         return 'Condition::Func(%s)' % func
+    if exposed:
+        return ["Condition::Exposed(InterfaceObjectMap::Globals::%s)" % camel_to_upper_snake(i) for i in exposed]
     return "Condition::Satisfied"
 
 
@@ -1565,7 +1569,8 @@ class PropertyDefiner:
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Pref"),
             PropertyDefiner.getStringAttr(interfaceMember,
-                                          "Func"))
+                                          "Func"),
+            interfaceMember.exposedSet())
 
     def generateGuardedArray(self, array, name, specTemplate, specTerminator,
                              specType, getCondition, getDataTuple):
@@ -1603,8 +1608,13 @@ class PropertyDefiner:
             if specTerminator:
                 currentSpecs.append(specTerminator)
             specs.append("&[\n" + ",\n".join(currentSpecs) + "]\n")
-            prefableSpecs.append(
-                prefableTemplate % (cond, name + "_specs", len(specs) - 1))
+            if isinstance(cond, list):
+                for i in cond:
+                    prefableSpecs.append(
+                        prefableTemplate % (i, name + "_specs", len(specs) - 1))
+            else:
+                prefableSpecs.append(
+                    prefableTemplate % (cond, name + "_specs", len(specs) - 1))
 
         specsArray = ("const %s_specs: &'static [&'static[%s]] = &[\n" +
                       ",\n".join(specs) + "\n" +
@@ -2634,8 +2644,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s);"
-    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s);"
+    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s, global);"
+    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2745,7 +2755,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = ["%s(cx, obj.handle(), %s);" % (function, array.variableName())
+        members = ["%s(cx, obj.handle(), %s, obj.handle());" % (function, array.variableName())
                    for (function, array) in pairs if array.length() > 0]
         values["members"] = "\n".join(members)
 
@@ -2960,6 +2970,7 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
         code.append(CGGeneric("""
 rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
 create_interface_prototype_object(cx,
+                                  global.into(),
                                   prototype_proto.handle().into(),
                                   &PrototypeClass,
                                   %(methods)s,
@@ -7537,6 +7548,7 @@ impl %(base)s {
             for m in descriptor.interface.members:
                 if PropertyDefiner.getStringAttr(m, 'Pref') or \
                    PropertyDefiner.getStringAttr(m, 'Func') or \
+                   PropertyDefiner.getStringAttr(m, 'Exposed') or \
                    (m.isMethod() and m.isIdentifierLess()):
                     continue
                 display = m.identifier.name + ('()' if m.isMethod() else '')

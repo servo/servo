@@ -9,7 +9,7 @@
         client.addEventListener("readystatechange", test.step_func(function() {
           if(client.readyState == 4) {
             control_flag = true
-            assert_equals(client.responseXML, null)
+            assert_equals(test.GLOBAL.isWindow(), false)
             assert_equals(client.responseText, "")
             assert_equals(client.status, 0)
             assert_equals(client.statusText, "")
