@@ -145,7 +145,7 @@ name = "azure"
 version = "0.36.0"
 source = "git+https://github.com/servo/rust-azure#ca9cc643808f6f63576c5c2cd098e973406cc7f3"
 dependencies = [
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 4.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -579,8 +579,8 @@ dependencies = [
 
 [[package]]
 name = "cmake"
-version = "0.1.38"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.1.40"
+source = "git+https://github.com/alexcrichton/cmake-rs#a1bc46e419be49fe3ed9eb1da8d26800a8e7c972"
 dependencies = [
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1165,7 +1165,7 @@ name = "energymon-builder"
 version = "0.3.0"
 source = "git+https://github.com/energymon/energymon-sys.git#f8d77ea2906b25f9c0fd358aa9d300a46dc3e97c"
 dependencies = [
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1250,7 +1250,7 @@ name = "expat-sys"
 version = "2.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1329,7 +1329,7 @@ name = "fontsan"
 version = "0.4.0"
 source = "git+https://github.com/servo/fontsan#29e879c870348c4b3fd51086e42dbb6365171479"
 dependencies = [
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
  "miniz-sys 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1932,7 +1932,7 @@ name = "harfbuzz-sys"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "core-graphics 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 13.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2006,7 +2006,7 @@ name = "heartbeats-simple-sys"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3772,7 +3772,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "caseless 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "cookie 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.25.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4070,7 +4070,7 @@ name = "servo-freetype-sys"
 version = "4.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -4208,7 +4208,7 @@ version = "0.30000021.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "expat-sys 2.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5622,7 +5622,7 @@ dependencies = [
 "checksum clipboard 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "25a904646c0340239dcf7c51677b33928bf24fdf424b79a57909c0109075b2e7"
 "checksum clipboard-win 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "14cc3e6c075926b96490d5f90d4a5af7be8012a4d8a8698e619655085a7641a3"
 "checksum cloudabi 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
-"checksum cmake 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)" = "96210eec534fc3fbfc0452a63769424eaa80205fda6cea98e5b61cb3d97bcec8"
+"checksum cmake 0.1.40 (git+https://github.com/alexcrichton/cmake-rs)" = "<none>"
 "checksum cocoa 0.18.4 (registry+https://github.com/rust-lang/crates.io-index)" = "cf79daa4e11e5def06e55306aa3601b87de6b5149671529318da048f67cdd77b"
 "checksum color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a475fc4af42d83d28adf72968d9bcfaf035a1a9381642d8e85d8a04957767b0d"
 "checksum combine 3.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "54cedd8056314afe0d844a37a207007edf8a45f2cc452fd77629cd63c221740e"
