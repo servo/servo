@@ -1,4 +1,4 @@
-//META: title=WakeLock.request() with invaild type
+//META: title=WakeLock.request() with invalid type
 
 promise_test(async t => {
   await promise_rejects(t, new TypeError(), WakeLock.request());

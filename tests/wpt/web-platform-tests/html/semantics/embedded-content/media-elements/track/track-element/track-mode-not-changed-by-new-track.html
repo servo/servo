@@ -33,11 +33,12 @@ async_test(function(t) {
         assert_equals(track1.track.cues.length, 12);
         assert_equals(track1.track.cues[11].startTime, 22);
 
-        // Add a caption track, configured to load automatically.
+        // Add a caption track, and explicitly enable it.
         track2 = document.createElement('track');
         track2.setAttribute('kind', 'captions');
         track2.setAttribute('default', 'default');
         track2.setAttribute('src', 'resources/webvtt-file.vtt');
+        track2.track.mode = 'showing';
         track2.onload = t.step_func(captionsTrackLoaded);
         video.appendChild(track2);
     }
@@ -56,7 +57,7 @@ async_test(function(t) {
         track3.mode = 'showing';
     }
 
-    function trackAdded() {
+    function trackAdded(event) {
         // Check that metadata track state has not changed.
         assert_equals(track1.readyState, HTMLTrackElement.LOADED);
         assert_equals(track1.track.mode, 'hidden');
