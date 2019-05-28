@@ -1507,7 +1507,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
                     returnType)
 
 
-def MemberCondition(pref, func):
+def MemberCondition(pref, func, exposed):
     """
     A string representing the condition for a member to actually be exposed.
     Any of the arguments can be None. If not None, they should have the
@@ -1515,15 +1515,41 @@ def MemberCondition(pref, func):
 
     pref: The name of the preference.
     func: The name of the function.
+    exposed: One or more names of an exposed member.
     """
     assert pref is None or isinstance(pref, str)
     assert func is None or isinstance(func, str)
-    assert func is None or pref is None
+    assert exposed is None or isinstance(exposed, str) or isinstance(exposed, list)
+    assert func is None or pref is None or exposed is None
     if pref:
         return 'Condition::Pref("%s")' % pref
     if func:
         return 'Condition::Func(%s)' % func
+    if exposed:
+        if isinstance(exposed, str):
+            return "Condition::Exposed(%s)" % ExposedCondition(exposed)
     return "Condition::Satisfied"
+
+
+def ExposedCondition(cond):
+    exposed_dict = dict({
+        "Window": "Window",
+        "Worklet": "PaintWorkletGlobalScope",
+        "Worker": "DedicatedWorkerGlobalScope",
+        "ServiceWorker": "ServiceWorkerGlobalScope",
+        "DedicatedWorker": "DedicatedWorkerGlobalScope",
+        "PaintWorklet": "PaintWorkletGlobalScope",
+        "TestWorklet": "TestWorkletGlobalScope"
+    })
+    if isinstance(cond, list):
+        conditions = []
+        if isinstance(cond[0], list):
+            cond = cond[0]
+        conditions.append(sorted("InterfaceObjectMap::Globals::%s"
+                                 % camel_to_upper_snake(exposed_dict[i]) for i in cond))
+        return conditions[0]
+    else:
+        return "InterfaceObjectMap::Globals::%s" % camel_to_upper_snake(exposed_dict[cond])
 
 
 class PropertyDefiner:
@@ -1565,7 +1591,9 @@ class PropertyDefiner:
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Pref"),
             PropertyDefiner.getStringAttr(interfaceMember,
-                                          "Func"))
+                                          "Func"),
+            PropertyDefiner.getStringAttr(interfaceMember,
+                                          "Exposed"))
 
     def generateGuardedArray(self, array, name, specTemplate, specTerminator,
                              specType, getCondition, getDataTuple):
@@ -2592,6 +2620,12 @@ class CGConstructorEnabled(CGAbstractMethod):
         if func:
             assert isinstance(func, list) and len(func) == 1
             conditions.append("%s(aCx, aObj)" % func[0])
+
+        exposed = iface.getExtendedAttribute("Exposed")
+        if exposed:
+            if isinstance(exposed, str):
+                exposed = [exposed]
+            conditions.append("is_exposed_in(aObj, %s)" % " | ".join(i for i in ExposedCondition(exposed)))
 
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
@@ -7541,6 +7575,7 @@ impl %(base)s {
             for m in descriptor.interface.members:
                 if PropertyDefiner.getStringAttr(m, 'Pref') or \
                    PropertyDefiner.getStringAttr(m, 'Func') or \
+                   PropertyDefiner.getStringAttr(m, 'Exposed') or \
                    (m.isMethod() and m.isIdentifierLess()):
                     continue
                 display = m.identifier.name + ('()' if m.isMethod() else '')

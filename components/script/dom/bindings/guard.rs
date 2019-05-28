@@ -4,6 +4,8 @@
 
 //! Machinery to conditionally expose things.
 
+use crate::dom::bindings::codegen::InterfaceObjectMap;
+use crate::dom::bindings::interface::is_exposed_in;
 use js::jsapi::JSContext;
 use js::rust::HandleObject;
 use servo_config::prefs;
@@ -41,6 +43,8 @@ pub enum Condition {
     Func(unsafe fn(*mut JSContext, HandleObject) -> bool),
     /// The condition is satisfied if the preference is set.
     Pref(&'static str),
+    // The condition is satisfied if the interface is exposed in the global.
+    Exposed(InterfaceObjectMap::Globals),
     /// The condition is always satisfied.
     Satisfied,
 }
@@ -50,6 +54,7 @@ impl Condition {
         match *self {
             Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),
+            Condition::Exposed(globals) => is_exposed_in(obj, globals),
             Condition::Satisfied => true,
         }
     }
