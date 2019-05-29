@@ -12,9 +12,11 @@ path = "lib.rs"
 
 [features]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+raqote_backend = ["raqote"]
+azure_backend = ["azure"]
 
 [dependencies]
-azure = {git = "https://github.com/servo/rust-azure"}
+azure = {git = "https://github.com/servo/rust-azure", optional = true}
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
@@ -27,7 +29,7 @@ ipc-channel = "0.11"
 log = "0.4"
 num-traits = "0.2"
 offscreen_gl_context = {version = "0.22", features = ["serde", "osmesa"]}
-raqote = {git = "https://github.com/jrmuizel/raqote"}
+raqote = {git = "https://github.com/jrmuizel/raqote", optional = true}
 pixels = {path = "../pixels"}
 serde_bytes = "0.10"
 servo_config = {path = "../config"}

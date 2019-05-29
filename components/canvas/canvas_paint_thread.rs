@@ -3,13 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::canvas_data::*;
-use azure::azure_hl::AntialiasMode;
 use canvas_traits::canvas::*;
 use euclid::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::thread;
+
+pub enum AntialiasMode {
+    Default,
+    None,
+}
 
 pub struct CanvasPaintThread<'a> {
     canvases: HashMap<CanvasId, CanvasData<'a>>,
@@ -195,9 +199,9 @@ impl<'a> CanvasPaintThread<'a> {
                 self.canvas(canvas_id).set_shadow_offset_y(value)
             },
             Canvas2dMsg::SetShadowBlur(value) => self.canvas(canvas_id).set_shadow_blur(value),
-            Canvas2dMsg::SetShadowColor(ref color) => self
+            Canvas2dMsg::SetShadowColor(color) => self
                 .canvas(canvas_id)
-                .set_shadow_color(Color::Azure(color.to_azure_style())),
+                .set_shadow_color(color),
         }
     }
 

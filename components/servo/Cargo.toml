@@ -12,14 +12,15 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-max_log_level = ["log/release_max_level_info"]
-webdriver = ["webdriver_server"]
-energy-profiling = ["profile_traits/energy-profiling"]
+azure_backend = ["canvas/azure_backend"]
 debugmozjs = ["script/debugmozjs"]
+energy-profiling = ["profile_traits/energy-profiling"]
 profilemozjs = ["script/profilemozjs"]
 googlevr = ["webvr/googlevr"]
 js_backtrace = ["script/js_backtrace"]
+max_log_level = ["log/release_max_level_info"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
+raqote_backend = ["canvas/raqote_backend"]
 webrender_debugger = ["webrender/debugger"]
 no_static_freetype = ["webrender/no_static_freetype"]
 oculusvr = ["webvr/oculusvr"]
@@ -28,6 +29,7 @@ unstable = [
     "profile/unstable",
     "script/unstable",
 ]
+webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "canvas/webgl_backtrace",

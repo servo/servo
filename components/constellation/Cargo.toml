@@ -10,6 +10,10 @@ publish = false
 name = "constellation"
 path = "lib.rs"
 
+[features]
+azure_backend = ["canvas/azure_backend"]
+raqote_backend = ["canvas/raqote_backend"]
+
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor"}
 backtrace = "0.3"
