@@ -53,9 +53,12 @@ function test(mime_type, is_blocking_expected) {
 // Some mime types should be protected by CORB without any kind
 // of confirmation sniffing.
 protected_mime_types = [
+  "application/gzip",
   "application/x-gzip",
   "application/x-protobuf",
+  "application/x-www-form-urlencoded",
   "application/zip",
+  "text/event-stream",
   // TODO(lukasza): https://crbug.com/944162: Add application/pdf and
   // text/csv to the list of content types tested here (after
   // kMimeHandlerViewInCrossProcessFrame gets enabled by default).

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>PaymentRequest show() rejects if doc is not fully active</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#show-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+setup({
+  explicit_done: true,
+  explicit_timeout: true,
+});
+
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const validMethod = Object.freeze({
+  supportedMethods: "basic-card",
+});
+const validMethods = Object.freeze([validMethod, applePay]);
+
+const validDetails = Object.freeze({
+  total: {
+    label: "Total due",
+      amount: {
+      currency: "USD",
+      value: "5.00",
+    },
+  },
+});
+
+function getLoadedPaymentRequest(iframe, url) {
+  return new Promise(resolve => {
+    iframe.addEventListener(
+      "load",
+      () => {
+        const { PaymentRequest } = iframe.contentWindow;
+        const request = new PaymentRequest(validMethods, validDetails);
+        resolve(request);
+      },
+      { once: true }
+    );
+    iframe.src = url;
+  });
+}
+
+function testAbortShowIfDocumentIsNotActive() {
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    iframe.allowPaymentRequest = true;
+    document.body.appendChild(iframe);
+    // We first got to page1.html, grab a PaymentRequest instance.
+    const request1 = await getLoadedPaymentRequest(
+      iframe,
+      "/payment-request/resources/page1.html"
+    );
+    // We navigate the iframe again, putting request1's document into an inactive state.
+    const request2 = await getLoadedPaymentRequest(
+      iframe,
+      "/payment-request/resources/page2.html"
+    );
+    // Now, request1's relevant global object's document is no longer active.
+    // So, call .show(), and make sure it rejects appropriately.
+    await promise_rejects(
+      t,
+      "AbortError",
+      request1.show(),
+      "Inactive document, so must throw AbortError"
+    );
+    // request2 has an active document tho, so confirm it's working as expected:
+    request2.show();
+    await request2.abort();
+    await promise_rejects(
+      t,
+      "InvalidStateError",
+      request2.show(),
+      "Abort already called, so InvalidStateError"
+    );
+    // We are done, so clean up.
+    iframe.remove();
+  }, "PaymentRequest.show() aborts if the document is not active.");
+}
+
+function testAbortShowIfDocumentIsNotFullyActive() {
+  promise_test(async t => {
+    // We nest two iframes and wait for them to load.
+    const outerIframe = document.createElement("iframe");
+    outerIframe.allowPaymentRequest = true;
+    document.body.appendChild(outerIframe);
+    // Load the outer iframe (we don't care about the awaited request)
+    await getLoadedPaymentRequest(
+      outerIframe,
+      "/payment-request/resources/page1.html"
+    );
+
+    // Now we create the inner iframe
+    const innerIframe = outerIframe.contentDocument.createElement("iframe");
+    innerIframe.allowPaymentRequest = true;
+
+    // nest them
+    outerIframe.contentDocument.body.appendChild(innerIframe);
+
+    // load innerIframe, and get the PaymentRequest instance
+    const request = await getLoadedPaymentRequest(
+      innerIframe,
+      "/payment-request/resources/page2.html"
+    );
+
+    // Navigate the outer iframe to a new location.
+    // Wait for the load event to fire.
+    await new Promise(resolve => {
+      outerIframe.addEventListener("load", resolve);
+      outerIframe.src = "/payment-request/resources/page2.html";
+    });
+
+    const showPromise = request.show();
+    // Now, request's relevant global object's document is still active
+    // (it is the active document of the inner iframe), but is not fully active
+    // (since the parent of the inner iframe is itself no longer active).
+    // So, call request.show() and make sure it rejects appropriately.
+    await promise_rejects(
+      t,
+      "AbortError",
+      showPromise,
+      "Active, but not fully active, so must throw AbortError"
+    );
+    // We are done, so clean up.
+
+    outerIframe.remove();
+  }, "PaymentRequest.show() aborts if the document is active, but not fully active.");
+}
+</script>
+
+<h2>PaymentRequest show() rejects if doc is not fully active</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the
+  page. Each button will bring up the Payment Request UI window and then will
+  close it automatically. (If a payment sheet stays open, the test has failed.)
+</p>
+<ol>
+  <li>
+    <button onclick="testAbortShowIfDocumentIsNotActive()">
+      PaymentRequest.show() aborts if the document is not active.
+    </button>
+  </li>
+  <li>
+    <button onclick="testAbortShowIfDocumentIsNotFullyActive()">
+      PaymentRequest.show() aborts if the document is active, but not fully
+      active.
+    </button>
+  </li>
+  <li><button onclick="done()">Done!</button></li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>
