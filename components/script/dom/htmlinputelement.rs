@@ -1195,6 +1195,10 @@ impl HTMLInputElement {
             InputType::Range => {
                 value.set_best_representation_of_the_floating_point_number();
             },
+            InputType::Email => {
+                value.strip_newlines();
+                value.strip_leading_and_trailing_ascii_whitespace();
+            },
             _ => (),
         }
     }
