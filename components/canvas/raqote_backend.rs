@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::canvas_data::{
-    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, GenericDrawTarget,
-    GenericPathBuilder, Path, Pattern, StrokeOptions,
+    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, ExtendMode, Filter,
+    GenericDrawTarget, GenericPathBuilder, GradientStop, GradientStops, Path, Pattern,
+    SourceSurface, StrokeOptions, SurfaceFormat,
 };
 use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Rect, Size2D, Transform2D};
+use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use std::marker::PhantomData;
 
 pub struct RaqoteBackend;
@@ -57,8 +58,8 @@ impl Backend for RaqoteBackend {
         unimplemented!()
     }
 
-    fn create_drawtarget(&self, _size: Size2D<u64>) -> Box<GenericDrawTarget> {
-        unimplemented!()
+    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<GenericDrawTarget> {
+        Box::new(raqote::DrawTarget::new(size.width as i32, size.height as i32))
     }
 
     fn recreate_paint_state<'a>(&self, _state: &CanvasPaintState<'a>) -> CanvasPaintState<'a> {
@@ -126,6 +127,124 @@ impl Path {
     }
 
     pub fn copy_to_builder(&self) -> Box<GenericPathBuilder> {
+        unimplemented!()
+    }
+}
+
+impl GenericDrawTarget for raqote::DrawTarget {
+    fn clear_rect(&self, _rect: &Rect<f32>) {
+        unimplemented!()
+    }
+
+    fn copy_surface(&self, _surface: SourceSurface, _source: Rect<i32>, _destination: Point2D<i32>) {
+        unimplemented!()
+    }
+
+    fn create_gradient_stops(
+        &self,
+        _gradient_stops: Vec<GradientStop>,
+        _extend_mode: ExtendMode,
+    ) -> GradientStops {
+        unimplemented!()
+    }
+
+    fn create_path_builder(&self) -> Box<GenericPathBuilder> {
+        unimplemented!()
+    }
+
+    fn create_similar_draw_target(
+        &self,
+        _size: &Size2D<i32>,
+        _format: SurfaceFormat,
+    ) -> Box<GenericDrawTarget> {
+        unimplemented!()
+    }
+    fn create_source_surface_from_data(
+        &self,
+        _data: &[u8],
+        _size: Size2D<i32>,
+        _stride: i32,
+    ) -> Option<SourceSurface> {
+        unimplemented!()
+    }
+    fn draw_surface(
+        &self,
+        _surface: SourceSurface,
+        _dest: Rect<f64>,
+        _source: Rect<f64>,
+        _filter: Filter,
+        _draw_options: &DrawOptions,
+    ) {
+        unimplemented!()
+    }
+    fn draw_surface_with_shadow(
+        &self,
+        _surface: SourceSurface,
+        _dest: &Point2D<f32>,
+        _color: &Color,
+        _offset: &Vector2D<f32>,
+        _sigma: f32,
+        _operator: CompositionOp,
+    ) {
+        unimplemented!()
+    }
+    fn fill(&self, _path: &Path, _pattern: Pattern, _draw_options: &DrawOptions) {
+        unimplemented!()
+    }
+    fn fill_rect(&self, _rect: &Rect<f32>, _pattern: Pattern, _draw_options: Option<&DrawOptions>) {
+        unimplemented!()
+    }
+    fn get_format(&self) -> SurfaceFormat {
+        unimplemented!()
+    }
+    fn get_size(&self) -> Size2D<i32> {
+        unimplemented!()
+    }
+    fn get_transform(&self) -> Transform2D<f32> {
+        unimplemented!()
+    }
+    fn pop_clip(&self) {
+        unimplemented!()
+    }
+    fn push_clip(&self, _path: &Path) {
+        unimplemented!()
+    }
+    fn set_transform(&self, _matrix: &Transform2D<f32>) {
+        unimplemented!()
+    }
+    fn snapshot(&self) -> SourceSurface {
+        unimplemented!()
+    }
+    fn stroke(
+        &self,
+        _path: &Path,
+        _pattern: Pattern,
+        _stroke_options: &StrokeOptions,
+        _draw_options: &DrawOptions,
+    ) {
+        unimplemented!()
+    }
+    fn stroke_line(
+        &self,
+        _start: Point2D<f32>,
+        _end: Point2D<f32>,
+        _pattern: Pattern,
+        _stroke_options: &StrokeOptions,
+        _draw_options: &DrawOptions,
+    ) {
+        unimplemented!()
+    }
+    fn stroke_rect(
+        &self,
+        _rect: &Rect<f32>,
+        _pattern: Pattern,
+        _stroke_options: &StrokeOptions,
+        _draw_options: &DrawOptions,
+    ) {
+        unimplemented!()
+    }
+
+    fn snapshot_data(&self) -> Vec<u8> {
         unimplemented!()
     }
 }
