@@ -3,7 +3,10 @@ def main(request, response):
 
     # Allow simple requests, but deny preflight
     if request.method != "OPTIONS":
-        response.headers.set("Access-Control-Allow-Credentials", "true")
-        response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin"))
+        if "origin" in request.headers:
+            response.headers.set("Access-Control-Allow-Credentials", "true")
+            response.headers.set("Access-Control-Allow-Origin", request.headers["origin"])
+        else:
+            response.status = 500
     else:
         response.status = 400

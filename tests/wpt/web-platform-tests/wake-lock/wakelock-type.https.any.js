@@ -13,7 +13,7 @@ promise_test(t => {
     "",
     true
   ];
-  invalidTypes.map(async invalidType => {
-    await promise_rejects(t, new TypeError(), WakeLock.request(invalidType));
-  });
+  return Promise.all(invalidTypes.map(invalidType => {
+    return promise_rejects(t, new TypeError(), WakeLock.request(invalidType));
+  }));
 }, "'TypeError' is thrown when set an invalid wake lock type");
