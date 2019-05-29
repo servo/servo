@@ -125,6 +125,7 @@ impl Worker {
             String::from(&*worker_options.name),
             worker_options.type_,
             closing,
+            global.image_cache(),
         );
 
         Ok(worker)
