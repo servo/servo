@@ -73,27 +73,12 @@ impl FlowList {
         self.flows.push_back(FlowRef::new(new_head));
     }
 
-    pub fn back(&self) -> Option<&dyn Flow> {
-        self.flows.back().map(|x| &**x)
-    }
-
-    /// Add an element first in the list
-    ///
-    /// O(1)
-    pub fn push_front(&mut self, new_head: FlowRef) {
-        self.flows.push_front(new_head);
-    }
-
     pub fn push_front_arc(&mut self, new_head: Arc<dyn Flow>) {
         self.flows.push_front(FlowRef::new(new_head));
     }
 
     pub fn pop_front_arc(&mut self) -> Option<Arc<dyn Flow>> {
         self.flows.pop_front().map(FlowRef::into_arc)
-    }
-
-    pub fn front(&self) -> Option<&dyn Flow> {
-        self.flows.front().map(|x| &**x)
     }
 
     /// Create an empty list
