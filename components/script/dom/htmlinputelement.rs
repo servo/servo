@@ -1200,12 +1200,15 @@ impl HTMLInputElement {
                     value.strip_newlines();
                     value.strip_leading_and_trailing_ascii_whitespace();
                 } else {
-                    let new_value = str_join(split_commas(value).map(|token| {
-                        let mut token = DOMString::from_string(token.to_string());
-                        token.strip_newlines();
-                        token.strip_leading_and_trailing_ascii_whitespace();
-                        token
-                    }), ",");
+                    let new_value = str_join(
+                        split_commas(value).map(|token| {
+                            let mut token = DOMString::from_string(token.to_string());
+                            token.strip_newlines();
+                            token.strip_leading_and_trailing_ascii_whitespace();
+                            token
+                        }),
+                        ",",
+                    );
                     value.clear();
                     value.push_str(new_value.as_str());
                 }
