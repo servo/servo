@@ -59,7 +59,10 @@ impl Backend for RaqoteBackend {
     }
 
     fn create_drawtarget(&self, size: Size2D<u64>) -> Box<GenericDrawTarget> {
-        Box::new(raqote::DrawTarget::new(size.width as i32, size.height as i32))
+        Box::new(raqote::DrawTarget::new(
+            size.width as i32,
+            size.height as i32,
+        ))
     }
 
     fn recreate_paint_state<'a>(&self, _state: &CanvasPaintState<'a>) -> CanvasPaintState<'a> {
@@ -136,7 +139,12 @@ impl GenericDrawTarget for raqote::DrawTarget {
         unimplemented!()
     }
 
-    fn copy_surface(&self, _surface: SourceSurface, _source: Rect<i32>, _destination: Point2D<i32>) {
+    fn copy_surface(
+        &self,
+        _surface: SourceSurface,
+        _source: Rect<i32>,
+        _destination: Point2D<i32>,
+    ) {
         unimplemented!()
     }
 
@@ -244,7 +252,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
         unimplemented!()
     }
 
-    fn snapshot_data(&self) -> Vec<u8> {
+    fn snapshot_data(&self, _f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn snapshot_data_owned(&self) -> Vec<u8> {
         unimplemented!()
     }
 }

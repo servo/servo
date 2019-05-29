@@ -3,16 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::canvas_data::{
-    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, GenericDrawTarget,
-    GenericPathBuilder, Path, Pattern, StrokeOptions,
+    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, ExtendMode, Filter,
+    GenericDrawTarget, GenericPathBuilder, GradientStop, GradientStops, Path, Pattern,
+    SourceSurface, StrokeOptions, SurfaceFormat,
 };
 use crate::canvas_paint_thread::AntialiasMode;
-use azure::azure::{AzFloat, AzGradientStop, AzIntSize, AzPoint};
+use azure::azure::{AzFloat, AzGradientStop, AzPoint};
 use azure::azure_hl;
 use azure::azure_hl::SurfacePattern;
-use azure::azure_hl::{AsAzurePoint, CapStyle, JoinStyle};
 use azure::azure_hl::{BackendType, ColorPattern, DrawTarget};
+use azure::azure_hl::{CapStyle, JoinStyle};
 use azure::azure_hl::{LinearGradientPattern, RadialGradientPattern};
+use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 
@@ -24,7 +26,7 @@ impl Backend for AzureBackend {
     }
 
     fn need_to_draw_shadow(&self, color: &Color) -> bool {
-        self.state.shadow_color.as_azure().a != 0.0f32
+        color.as_azure().a != 0.0f32
     }
 
     fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>> {
@@ -93,7 +95,7 @@ impl Backend for AzureBackend {
 
     fn recreate_paint_state<'a>(&self, state: &CanvasPaintState<'a>) -> CanvasPaintState<'a> {
         CanvasPaintState::new(AntialiasMode::from_azure(
-            self.state.draw_options.as_azure().antialias,
+            state.draw_options.as_azure().antialias,
         ))
     }
 }
@@ -251,15 +253,15 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
         let surf_options = azure_hl::DrawSurfaceOptions::new(filter.as_azure(), true);
         let draw_options = azure_hl::DrawOptions::new(
             draw_options.as_azure().alpha,
-            draw_options.as_azure().composition.into_azure(),
+            draw_options.as_azure().composition,
             azure_hl::AntialiasMode::None,
         );
         self.draw_surface(
             surface.into_azure(),
-            dest as Rect<AzFloat>,
-            source as Rect<AzFloat>,
-            surf_options.into_azure(),
-            options.into_azure(),
+            dest.to_azure_style(),
+            source.to_azure_style(),
+            surf_options,
+            draw_options,
         );
     }
     fn draw_surface_with_shadow(
@@ -356,7 +358,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
             start,
             end,
             pattern.as_azure().to_pattern_ref(),
-            stroke_options.as_azure(),
+            &stroke_opts,
             draw_options.as_azure(),
         );
     }
@@ -375,8 +377,14 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
         );
     }
 
-    fn snapshot_data(&self) -> &[u8] {
-        unsafe { self.snapshot().get_data_surface().data() }
+    #[allow(unsafe_code)]
+    fn snapshot_data(&self, f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
+        unsafe { f(self.snapshot().get_data_surface().data()) }
+    }
+
+    #[allow(unsafe_code)]
+    fn snapshot_data_owned(&self) -> Vec<u8> {
+        unsafe { self.snapshot().get_data_surface().data().into() }
     }
 }
 
@@ -388,10 +396,11 @@ impl AntialiasMode {
         }
     }
 
-    fn from_azure(val: azure_hl::AntialiasMode) {
+    fn from_azure(val: azure_hl::AntialiasMode) -> AntialiasMode {
         match val {
             azure_hl::AntialiasMode::Default => AntialiasMode::Default,
             azure_hl::AntialiasMode::None => AntialiasMode::None,
+            v => unimplemented!("{:?} is unsupported", v),
         }
     }
 }
@@ -452,14 +461,6 @@ impl SourceSurface {
     }
 }
 
-impl IntSize {
-    fn into_azure(self) -> AzIntSize {
-        match self {
-            IntSize::Azure(s) => s,
-        }
-    }
-}
-
 impl Path {
     fn as_azure(&self) -> &azure_hl::Path {
         match self {
@@ -476,14 +477,6 @@ impl Pattern {
     }
 }
 
-impl DrawSurfaceOptions {
-    fn into_azure(self) -> azure_hl::DrawSurfaceOptions {
-        match self {
-            DrawSurfaceOptions::Azure(options) => options,
-        }
-    }
-}
-
 impl DrawOptions {
     fn as_azure(&self) -> &azure_hl::DrawOptions {
         match self {
@@ -491,11 +484,6 @@ impl DrawOptions {
         }
     }
     fn as_azure_mut(&mut self) -> &mut azure_hl::DrawOptions {
-        match self {
-            DrawOptions::Azure(options) => options,
-        }
-    }
-    fn into_azure(self) -> azure_hl::DrawOptions {
         match self {
             DrawOptions::Azure(options) => options,
         }
@@ -738,7 +726,7 @@ impl ToAzureStyle for RGBA {
 impl Pattern {
     pub fn is_zero_size_gradient(&self) -> bool {
         match *self {
-            Pattern::Azure(azure_hl::Pattern::LinearGradient(ref az_pattern)) => {
+            Pattern::Azure(azure_hl::Pattern::LinearGradient(ref gradient)) => {
                 gradient.is_zero_size()
             },
             _ => false,
@@ -768,6 +756,6 @@ impl Path {
     }
 
     pub fn copy_to_builder(&self) -> Box<GenericPathBuilder> {
-        self.as_azure().copy_to_builder()
+        Box::new(self.as_azure().copy_to_builder())
     }
 }

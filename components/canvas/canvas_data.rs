@@ -8,6 +8,7 @@ use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
+#[allow(unused_imports)]
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
@@ -274,27 +275,28 @@ pub trait GenericDrawTarget {
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     );
-    fn snapshot_data(&self) -> Vec<u8>;
+    fn snapshot_data(&self, f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8>;
+    fn snapshot_data_owned(&self) -> Vec<u8>;
 }
 
 #[derive(Clone)]
 pub enum ExtendMode {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::ExtendMode),
+    Azure(azure::azure_hl::ExtendMode),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
 
 pub enum GradientStop {
     #[cfg(feature = "azure_backend")]
-    Azure(AzGradientStop),
+    Azure(azure::AzGradientStop),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
 
 pub enum GradientStops {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::GradientStops),
+    Azure(azure::azure_hl::GradientStops),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
@@ -302,7 +304,7 @@ pub enum GradientStops {
 #[derive(Clone)]
 pub enum Color {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::Color),
+    Azure(azure::azure_hl::Color),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
@@ -310,14 +312,14 @@ pub enum Color {
 #[derive(Clone)]
 pub enum CompositionOp {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::CompositionOp),
+    Azure(azure::azure_hl::CompositionOp),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
 
 pub enum SurfaceFormat {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::SurfaceFormat),
+    Azure(azure::azure_hl::SurfaceFormat),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
@@ -325,14 +327,14 @@ pub enum SurfaceFormat {
 #[derive(Clone)]
 pub enum SourceSurface {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::SourceSurface),
+    Azure(azure::azure_hl::SourceSurface),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
 
 pub enum Path {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::Path),
+    Azure(azure::azure_hl::Path),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
@@ -340,14 +342,14 @@ pub enum Path {
 #[derive(Clone)]
 pub enum Pattern {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::Pattern),
+    Azure(azure::azure_hl::Pattern),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
 
 pub enum DrawSurfaceOptions {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::DrawSurfaceOptions),
+    Azure(azure::azure_hl::DrawSurfaceOptions),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
@@ -355,7 +357,7 @@ pub enum DrawSurfaceOptions {
 #[derive(Clone)]
 pub enum DrawOptions {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::DrawOptions),
+    Azure(azure::azure_hl::DrawOptions),
     #[cfg(feature = "raqote_backend")]
     Raqote(()),
 }
@@ -363,7 +365,7 @@ pub enum DrawOptions {
 #[derive(Clone)]
 pub enum StrokeOptions<'a> {
     #[cfg(feature = "azure_backend")]
-    Azure(azure_hl::StrokeOptions<'a>),
+    Azure(azure::azure_hl::StrokeOptions<'a>),
     #[cfg(feature = "raqote_backend")]
     Raqote(PhantomData<&'a ()>),
 }
@@ -927,13 +929,14 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
-        let data = IpcSharedMemory::from_bytes(&self.drawtarget.snapshot_data());
-        chan.send(data).unwrap();
+        self.drawtarget.snapshot_data(&|bytes| {
+            let data = IpcSharedMemory::from_bytes(bytes);
+            chan.send(data).unwrap();
+            vec![]
+        });
     }
 
-    #[allow(unsafe_code)]
     pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
         let size = self.drawtarget.get_size();
 
@@ -945,7 +948,8 @@ impl<'a> CanvasData<'a> {
             is_opaque: false,
             allow_mipmaps: false,
         };
-        let data = webrender_api::ImageData::Raw(Arc::new(self.drawtarget.snapshot_data().into()));
+        let data = self.drawtarget.snapshot_data_owned();
+        let data = webrender_api::ImageData::Raw(Arc::new(data));
 
         let mut txn = webrender_api::Transaction::new();
 
@@ -1070,12 +1074,9 @@ impl<'a> CanvasData<'a> {
             return vec![];
         }
 
-        pixels::rgba8_get_rect(
-            &self.drawtarget.snapshot_data(),
-            canvas_size.to_u32(),
-            read_rect.to_u32(),
-        )
-        .into_owned()
+        self.drawtarget.snapshot_data(&|bytes| {
+            pixels::rgba8_get_rect(bytes, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
+        })
     }
 }
 
