@@ -6,9 +6,9 @@
 
 [Exposed=Window, Pref="dom.webxr.test"]
 interface XRTest {
-  // // Simulates connecting a device to the system.
-  // // Used to instantiate a fake device for use in tests.
-  // Promise<FakeXRDeviceController> simulateDeviceConnection(FakeXRDeviceInit);
+  // Simulates connecting a device to the system.
+  // Used to instantiate a fake device for use in tests.
+  Promise<FakeXRDeviceController> simulateDeviceConnection(FakeXRDeviceInit init);
 
   // // Simulates a device being disconnected from the system.
   // Promise<void> simulateDeviceDisconnection(XRDevice);
@@ -17,4 +17,9 @@ interface XRTest {
   // // The activation is only guaranteed to be valid in the provided function and only applies to WebXR
   // // Device API methods.
   // void simulateUserActivation(Function);
+};
+
+dictionary FakeXRDeviceInit {
+    // TODO: Subject to change to match spec changes.
+    required boolean supportsImmersive;
 };
