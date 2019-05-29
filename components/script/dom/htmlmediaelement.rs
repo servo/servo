@@ -1224,10 +1224,14 @@ impl HTMLMediaElement {
         };
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let renderer: Option<Arc<Mutex<FrameRenderer>>> = match self.media_type_id() {
+            HTMLMediaElementTypeId::HTMLAudioElement => None,
+            HTMLMediaElementTypeId::HTMLVideoElement => Some(self.frame_renderer.clone()),
+        };
         let player = ServoMedia::get().unwrap().create_player(
             stream_type,
             action_sender,
-            Some(self.frame_renderer.clone()),
+            renderer,
             Box::new(PlayerContextDummy()),
         );
 
