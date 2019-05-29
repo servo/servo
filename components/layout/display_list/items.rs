@@ -27,7 +27,7 @@ use webrender_api as wr;
 use webrender_api::{BorderRadius, ClipMode};
 use webrender_api::{ComplexClipRegion, ExternalScrollId, FilterOp};
 use webrender_api::{GlyphInstance, GradientStop, ImageKey, LayoutPoint};
-use webrender_api::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
+use webrender_api::{LayoutRect, LayoutSize, LayoutTransform};
 use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow};
 use webrender_api::{StickyOffsetBounds, TransformStyle};
 
@@ -510,62 +510,6 @@ impl ClippingRegion {
         }
     }
 
-    /// Mutates this clipping region to intersect with the given rectangle.
-    ///
-    /// TODO(pcwalton): This could more eagerly eliminate complex clipping regions, at the cost of
-    /// complexity.
-    #[inline]
-    pub fn intersect_rect(&mut self, rect: &LayoutRect) {
-        self.main = self.main.intersection(rect).unwrap_or(LayoutRect::zero())
-    }
-
-    /// Returns true if this clipping region might be nonempty. This can return false positives,
-    /// but never false negatives.
-    #[inline]
-    pub fn might_be_nonempty(&self) -> bool {
-        !self.main.is_empty()
-    }
-
-    /// Returns true if this clipping region might contain the given point and false otherwise.
-    /// This is a quick, not a precise, test; it can yield false positives.
-    #[inline]
-    pub fn might_intersect_point(&self, point: &LayoutPoint) -> bool {
-        self.main.contains(point) &&
-            self.complex
-                .iter()
-                .all(|complex| complex.rect.contains(point))
-    }
-
-    /// Returns true if this clipping region might intersect the given rectangle and false
-    /// otherwise. This is a quick, not a precise, test; it can yield false positives.
-    #[inline]
-    pub fn might_intersect_rect(&self, rect: &LayoutRect) -> bool {
-        self.main.intersects(rect) &&
-            self.complex
-                .iter()
-                .all(|complex| complex.rect.intersects(rect))
-    }
-
-    /// Returns true if this clipping region completely surrounds the given rect.
-    #[inline]
-    pub fn does_not_clip_rect(&self, rect: &LayoutRect) -> bool {
-        self.main.contains(&rect.origin) &&
-            self.main.contains(&rect.bottom_right()) &&
-            self.complex.iter().all(|complex| {
-                complex.rect.contains(&rect.origin) && complex.rect.contains(&rect.bottom_right())
-            })
-    }
-
-    /// Returns a bounding rect that surrounds this entire clipping region.
-    #[inline]
-    pub fn bounding_rect(&self) -> LayoutRect {
-        let mut rect = self.main;
-        for complex in &*self.complex {
-            rect = rect.union(&complex.rect)
-        }
-        rect
-    }
-
     /// Intersects this clipping region with the given rounded rectangle.
     #[inline]
     pub fn intersect_with_rounded_rect(&mut self, rect: LayoutRect, radii: BorderRadius) {
@@ -592,28 +536,6 @@ impl ClippingRegion {
         }
 
         self.complex.push(new_complex_region);
-    }
-
-    /// Translates this clipping region by the given vector.
-    #[inline]
-    pub fn translate(&self, delta: &LayoutVector2D) -> ClippingRegion {
-        ClippingRegion {
-            main: self.main.translate(delta),
-            complex: self
-                .complex
-                .iter()
-                .map(|complex| ComplexClipRegion {
-                    rect: complex.rect.translate(delta),
-                    radii: complex.radii,
-                    mode: complex.mode,
-                })
-                .collect(),
-        }
-    }
-
-    #[inline]
-    pub fn is_max(&self) -> bool {
-        self.main == LayoutRect::max_rect() && self.complex.is_empty()
     }
 }
 
@@ -776,10 +698,6 @@ impl DisplayItem {
         }
     }
 
-    pub fn scroll_node_index(&self) -> ClipScrollNodeIndex {
-        self.base().clipping_and_scrolling.scrolling
-    }
-
     pub fn clipping_and_scrolling(&self) -> ClippingAndScrolling {
         self.base().clipping_and_scrolling
     }
@@ -794,14 +712,6 @@ impl DisplayItem {
 
     pub fn bounds(&self) -> LayoutRect {
         self.base().bounds
-    }
-
-    pub fn debug_with_level(&self, level: u32) {
-        let mut indent = String::new();
-        for _ in 0..level {
-            indent.push_str("| ")
-        }
-        println!("{}+ {:?}", indent, self);
     }
 }
 
