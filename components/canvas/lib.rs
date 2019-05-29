@@ -7,6 +7,12 @@
 #[macro_use]
 extern crate log;
 
+#[cfg(feature = "azure_backend")]
+mod azure_backend;
+
+#[cfg(feature = "raqote_backend")]
+mod raqote_backend;
+
 pub mod canvas_data;
 pub mod canvas_paint_thread;
 pub mod gl_context;

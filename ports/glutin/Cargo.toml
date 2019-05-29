@@ -27,18 +27,20 @@ OriginalFilename = "servo.exe"
 ProductName = "Servo"
 
 [features]
+azure_backend = ["libservo/azure_backend"]
 default = ["unstable", "default-except-unstable"]
 default-except-unstable = ["webdriver", "max_log_level"]
-native-bluetooth = ["libservo/native-bluetooth"]
-max_log_level = ["log/release_max_level_info"]
-webdriver = ["libservo/webdriver"]
 energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
+js_backtrace = ["libservo/js_backtrace"]
+max_log_level = ["log/release_max_level_info"]
+native-bluetooth = ["libservo/native-bluetooth"]
 profilemozjs = ["libservo/profilemozjs"]
+raqote_backend = ["libservo/raqote_backend"]
 unstable = ["libservo/unstable"]
+webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webrender_debugger = ["libservo/webrender_debugger"]
-js_backtrace = ["libservo/js_backtrace"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"

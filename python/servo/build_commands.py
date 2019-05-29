@@ -296,6 +296,9 @@ class MachCommands(CommandBase):
         if self.config["build"]["dom-backtrace"]:
             features += ["dom-backtrace"]
 
+        if "raqote_backend" not in features:
+            features += ["azure_backend"]
+
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
 
