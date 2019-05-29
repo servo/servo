@@ -9,12 +9,14 @@
 use crate::applicable_declarations::ApplicableDeclarationList;
 #[cfg(feature = "gecko")]
 use crate::gecko::selector_parser::PseudoElement;
+use crate::hash::{self, FxHashMap};
 use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheets::{Origin, StyleRule};
 use crate::thread_state;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use parking_lot::RwLock;
 use servo_arc::{Arc, ArcBorrow, ArcUnion, ArcUnionBorrow};
 use smallvec::SmallVec;
 use std::io::{self, Write};
@@ -81,12 +83,20 @@ impl MallocSizeOf for RuleTree {
 
         while let Some(node) = stack.pop() {
             n += unsafe { ops.malloc_size_of(node.ptr()) };
-            stack.extend(unsafe { (*node.ptr()).iter_children() });
+            stack.extend(unsafe {
+                (*node.ptr()).children.read().iter().map(|(_k, v)| v.clone())
+            });
         }
 
         n
     }
 }
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+struct ChildKey(CascadeLevel, ptr::NonNull<()>);
+
+unsafe impl Send for ChildKey {}
+unsafe impl Sync for ChildKey {}
 
 /// A style source for the rule node. It can either be a CSS style rule or a
 /// declaration block.
@@ -108,6 +118,11 @@ impl StyleSource {
     /// Creates a StyleSource from a StyleRule.
     pub fn from_rule(rule: Arc<Locked<StyleRule>>) -> Self {
         StyleSource(ArcUnion::from_first(rule))
+    }
+
+    #[inline]
+    fn key(&self) -> ptr::NonNull<()> {
+        self.0.ptr()
     }
 
     /// Creates a StyleSource from a PropertyDeclarationBlock.
@@ -570,7 +585,7 @@ const RULE_TREE_GC_INTERVAL: usize = 300;
 /// [3]: https://html.spec.whatwg.org/multipage/#presentational-hints
 /// [4]: https://drafts.csswg.org/css-scoping/#shadow-cascading
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
@@ -697,23 +712,6 @@ impl CascadeLevel {
     }
 }
 
-// The root node never has siblings, but needs a free count. We use the same
-// storage for both to save memory.
-struct PrevSiblingOrFreeCount(AtomicPtr<RuleNode>);
-impl PrevSiblingOrFreeCount {
-    fn new() -> Self {
-        PrevSiblingOrFreeCount(AtomicPtr::new(ptr::null_mut()))
-    }
-
-    unsafe fn as_prev_sibling(&self) -> &AtomicPtr<RuleNode> {
-        &self.0
-    }
-
-    unsafe fn as_free_count(&self) -> &AtomicUsize {
-        mem::transmute(&self.0)
-    }
-}
-
 /// A node in the rule tree.
 pub struct RuleNode {
     /// The root node. Only the root has no root pointer, for obvious reasons.
@@ -732,15 +730,14 @@ pub struct RuleNode {
     level: CascadeLevel,
 
     refcount: AtomicUsize,
-    first_child: AtomicPtr<RuleNode>,
-    next_sibling: AtomicPtr<RuleNode>,
 
-    /// Previous sibling pointer for all non-root nodes.
-    ///
-    /// For the root, stores the of RuleNodes we have added to the free list
-    /// since the last GC. (We don't update this if we rescue a RuleNode from
-    /// the free list.  It's just used as a heuristic to decide when to run GC.)
-    prev_sibling_or_free_count: PrevSiblingOrFreeCount,
+    /// Only used for the root, stores the number of free rule nodes that are
+    /// around.
+    free_count: AtomicUsize,
+
+    /// The children of a given rule node. Children remove themselves from here
+    /// when they go away.
+    children: RwLock<FxHashMap<ChildKey, WeakRuleNode>>,
 
     /// The next item in the rule tree free list, that starts on the root node.
     ///
@@ -812,9 +809,8 @@ impl RuleNode {
             source: Some(source),
             level: level,
             refcount: AtomicUsize::new(1),
-            first_child: AtomicPtr::new(ptr::null_mut()),
-            next_sibling: AtomicPtr::new(ptr::null_mut()),
-            prev_sibling_or_free_count: PrevSiblingOrFreeCount::new(),
+            children: Default::default(),
+            free_count: AtomicUsize::new(0),
             next_free: AtomicPtr::new(ptr::null_mut()),
         }
     }
@@ -826,75 +822,39 @@ impl RuleNode {
             source: None,
             level: CascadeLevel::UANormal,
             refcount: AtomicUsize::new(1),
-            first_child: AtomicPtr::new(ptr::null_mut()),
-            next_sibling: AtomicPtr::new(ptr::null_mut()),
-            prev_sibling_or_free_count: PrevSiblingOrFreeCount::new(),
+            free_count: AtomicUsize::new(0),
+            children: Default::default(),
             next_free: AtomicPtr::new(FREE_LIST_SENTINEL),
         }
+    }
+
+    fn key(&self) -> Option<ChildKey> {
+        Some(ChildKey(self.level, self.source.as_ref()?.key()))
     }
 
     fn is_root(&self) -> bool {
         self.parent.is_none()
     }
 
-    fn next_sibling(&self) -> Option<WeakRuleNode> {
-        // We use acquire semantics here to ensure proper synchronization while
-        // inserting in the child list.
-        let ptr = self.next_sibling.load(Ordering::Acquire);
-        if ptr.is_null() {
-            None
-        } else {
-            Some(WeakRuleNode::from_ptr(ptr))
-        }
-    }
-
-    fn prev_sibling(&self) -> &AtomicPtr<RuleNode> {
-        debug_assert!(!self.is_root());
-        unsafe { self.prev_sibling_or_free_count.as_prev_sibling() }
-    }
-
     fn free_count(&self) -> &AtomicUsize {
         debug_assert!(self.is_root());
-        unsafe { self.prev_sibling_or_free_count.as_free_count() }
+        &self.free_count
     }
 
     /// Remove this rule node from the child list.
     ///
-    /// This method doesn't use proper synchronization, and it's expected to be
-    /// called in a single-threaded fashion, thus the unsafety.
-    ///
     /// This is expected to be called before freeing the node from the free
-    /// list.
+    /// list, on the main thread.
     unsafe fn remove_from_child_list(&self) {
         debug!(
             "Remove from child list: {:?}, parent: {:?}",
             self as *const RuleNode,
             self.parent.as_ref().map(|p| p.ptr())
         );
-        // NB: The other siblings we use in this function can also be dead, so
-        // we can't use `get` here, since it asserts.
-        let prev_sibling = self.prev_sibling().swap(ptr::null_mut(), Ordering::Relaxed);
 
-        let next_sibling = self.next_sibling.swap(ptr::null_mut(), Ordering::Relaxed);
-
-        // Store the `next` pointer as appropriate, either in the previous
-        // sibling, or in the parent otherwise.
-        if prev_sibling.is_null() {
-            let parent = self.parent.as_ref().unwrap();
-            parent
-                .get()
-                .first_child
-                .store(next_sibling, Ordering::Relaxed);
-        } else {
-            let previous = &*prev_sibling;
-            previous.next_sibling.store(next_sibling, Ordering::Relaxed);
-        }
-
-        // Store the previous sibling pointer in the next sibling if present,
-        // otherwise we're done.
-        if !next_sibling.is_null() {
-            let next = &*next_sibling;
-            next.prev_sibling().store(prev_sibling, Ordering::Relaxed);
+        if let Some(parent) = self.parent.as_ref() {
+            let weak = parent.get().children.write().remove(&self.key().unwrap());
+            assert_eq!(weak.unwrap().ptr() as *const _, self as *const _);
         }
     }
 
@@ -930,23 +890,11 @@ impl RuleNode {
         }
 
         let _ = write!(writer, "\n");
-        for child in self.iter_children() {
+        for (_, child) in self.children.read().iter() {
             child
                 .upgrade()
                 .get()
                 .dump(guards, writer, indent + INDENT_INCREMENT);
-        }
-    }
-
-    fn iter_children(&self) -> RuleChildrenListIter {
-        // See next_sibling to see why we need Acquire semantics here.
-        let first_child = self.first_child.load(Ordering::Acquire);
-        RuleChildrenListIter {
-            current: if first_child.is_null() {
-                None
-            } else {
-                Some(WeakRuleNode::from_ptr(first_child))
-            },
         }
     }
 }
@@ -972,22 +920,21 @@ impl StrongRuleNode {
     fn new(n: Box<RuleNode>) -> Self {
         debug_assert_eq!(n.parent.is_none(), !n.source.is_some());
 
-        let ptr = Box::into_raw(n);
-        log_new(ptr);
+        // TODO(emilio): Use into_raw_non_null when it's stable.
+        let ptr = unsafe { ptr::NonNull::new_unchecked(Box::into_raw(n)) };
+        log_new(ptr.as_ptr());
 
         debug!("Creating rule node: {:p}", ptr);
 
         StrongRuleNode::from_ptr(ptr)
     }
 
-    fn from_ptr(ptr: *mut RuleNode) -> Self {
-        StrongRuleNode {
-            p: ptr::NonNull::new(ptr).expect("Pointer must not be null"),
-        }
+    fn from_ptr(p: ptr::NonNull<RuleNode>) -> Self {
+        StrongRuleNode { p }
     }
 
     fn downgrade(&self) -> WeakRuleNode {
-        WeakRuleNode::from_ptr(self.ptr())
+        WeakRuleNode::from_ptr(self.p)
     }
 
     /// Get the parent rule node of this rule node.
@@ -1001,80 +948,46 @@ impl StrongRuleNode {
         source: StyleSource,
         level: CascadeLevel,
     ) -> StrongRuleNode {
-        let mut last = None;
+        use parking_lot::RwLockUpgradableReadGuard;
 
-        // NB: This is an iterator over _weak_ nodes.
-        //
-        // It's fine though, because nothing can make us GC while this happens,
-        // and this happens to be hot.
-        //
-        // TODO(emilio): We could actually make this even less hot returning a
-        // WeakRuleNode, and implementing this on WeakRuleNode itself...
-        for child in self.get().iter_children() {
-            let child_node = unsafe { &*child.ptr() };
-            if child_node.level == level && child_node.source.as_ref().unwrap() == &source {
-                return child.upgrade();
-            }
-            last = Some(child);
+        let key = ChildKey(level, source.key());
+
+        let read_guard = self.get().children.upgradable_read();
+        if let Some(child) = read_guard.get(&key) {
+            return child.upgrade();
         }
 
-        let mut node = Box::new(RuleNode::new(root, self.clone(), source.clone(), level));
-        let new_ptr: *mut RuleNode = &mut *node;
-
-        loop {
-            let next;
-
-            {
-                let last_node = last.as_ref().map(|l| unsafe { &*l.ptr() });
-                let next_sibling_ptr = match last_node {
-                    Some(ref l) => &l.next_sibling,
-                    None => &self.get().first_child,
-                };
-
-                // We use `AqcRel` semantics to ensure the initializing writes
-                // in `node` are visible after the swap succeeds.
-                let existing =
-                    next_sibling_ptr.compare_and_swap(ptr::null_mut(), new_ptr, Ordering::AcqRel);
-
-                if existing.is_null() {
-                    // Now we know we're in the correct position in the child
-                    // list, we can set the back pointer, knowing that this will
-                    // only be accessed again in a single-threaded manner when
-                    // we're sweeping possibly dead nodes.
-                    if let Some(ref l) = last {
-                        node.prev_sibling().store(l.ptr(), Ordering::Relaxed);
-                    }
-
-                    return StrongRuleNode::new(node);
-                }
-
-                // Existing is not null: some thread inserted a child node since
-                // we accessed `last`.
-                next = WeakRuleNode::from_ptr(existing);
-
-                if unsafe { &*next.ptr() }.source.as_ref().unwrap() == &source {
-                    // That node happens to be for the same style source, use
-                    // that, and let node fall out of scope.
-                    return next.upgrade();
-                }
+        match RwLockUpgradableReadGuard::upgrade(read_guard).entry(key) {
+            hash::map::Entry::Occupied(ref occupied) => {
+                occupied.get().upgrade()
             }
+            hash::map::Entry::Vacant(vacant) => {
+                let new_node = StrongRuleNode::new(Box::new(RuleNode::new(
+                    root,
+                    self.clone(),
+                    source.clone(),
+                    level,
+                )));
 
-            // Try again inserting after the new last child.
-            last = Some(next);
+                vacant.insert(new_node.downgrade());
+
+                new_node
+            }
         }
     }
 
     /// Raw pointer to the RuleNode
+    #[inline]
     pub fn ptr(&self) -> *mut RuleNode {
         self.p.as_ptr()
     }
 
     fn get(&self) -> &RuleNode {
         if cfg!(debug_assertions) {
-            let node = unsafe { &*self.ptr() };
+            let node = unsafe { &*self.p.as_ptr() };
             assert!(node.refcount.load(Ordering::Relaxed) > 0);
         }
-        unsafe { &*self.ptr() }
+        unsafe { &*self.p.as_ptr() }
     }
 
     /// Get the style source corresponding to this rule node. May return `None`
@@ -1104,13 +1017,13 @@ impl StrongRuleNode {
     /// Returns whether this node has any child, only intended for testing
     /// purposes, and called on a single-threaded fashion only.
     pub unsafe fn has_children_for_testing(&self) -> bool {
-        !self.get().first_child.load(Ordering::Relaxed).is_null()
+        self.get().children.read().is_empty()
     }
 
     unsafe fn pop_from_free_list(&self) -> Option<WeakRuleNode> {
         // NB: This can run from the root node destructor, so we can't use
         // `get()`, since it asserts the refcount is bigger than zero.
-        let me = &*self.ptr();
+        let me = &*self.p.as_ptr();
 
         debug_assert!(me.is_root());
 
@@ -1136,7 +1049,7 @@ impl StrongRuleNode {
              same time?"
         );
         debug_assert!(
-            current != self.ptr(),
+            current != self.p.as_ptr(),
             "How did the root end up in the free list?"
         );
 
@@ -1156,17 +1069,17 @@ impl StrongRuleNode {
             current, next
         );
 
-        Some(WeakRuleNode::from_ptr(current))
+        Some(WeakRuleNode::from_ptr(ptr::NonNull::new_unchecked(current)))
     }
 
     unsafe fn assert_free_list_has_no_duplicates_or_null(&self) {
         assert!(cfg!(debug_assertions), "This is an expensive check!");
         use crate::hash::FxHashSet;
 
-        let me = &*self.ptr();
+        let me = &*self.p.as_ptr();
         assert!(me.is_root());
 
-        let mut current = self.ptr();
+        let mut current = self.p.as_ptr();
         let mut seen = FxHashSet::default();
         while current != FREE_LIST_SENTINEL {
             let next = (*current).next_free.load(Ordering::Relaxed);
@@ -1185,21 +1098,21 @@ impl StrongRuleNode {
 
         // NB: This can run from the root node destructor, so we can't use
         // `get()`, since it asserts the refcount is bigger than zero.
-        let me = &*self.ptr();
+        let me = &*self.p.as_ptr();
 
         debug_assert!(me.is_root(), "Can't call GC on a non-root node!");
 
         while let Some(weak) = self.pop_from_free_list() {
-            let node = &*weak.ptr();
+            let node = &*weak.p.as_ptr();
             if node.refcount.load(Ordering::Relaxed) != 0 {
                 // Nothing to do, the node is still alive.
                 continue;
             }
 
-            debug!("GC'ing {:?}", weak.ptr());
+            debug!("GC'ing {:?}", weak.p.as_ptr());
             node.remove_from_child_list();
-            log_drop(weak.ptr());
-            let _ = Box::from_raw(weak.ptr());
+            log_drop(weak.p.as_ptr());
+            let _ = Box::from_raw(weak.p.as_ptr());
         }
 
         me.free_count().store(0, Ordering::Relaxed);
@@ -1506,7 +1419,7 @@ impl Clone for StrongRuleNode {
         );
         debug_assert!(self.get().refcount.load(Ordering::Relaxed) > 0);
         self.get().refcount.fetch_add(1, Ordering::Relaxed);
-        StrongRuleNode::from_ptr(self.ptr())
+        StrongRuleNode::from_ptr(self.p)
     }
 }
 
@@ -1534,7 +1447,7 @@ impl Drop for StrongRuleNode {
             return;
         }
 
-        debug_assert_eq!(node.first_child.load(Ordering::Acquire), ptr::null_mut());
+        debug_assert!(node.children.read().is_empty());
         if node.parent.is_none() {
             debug!("Dropping root node!");
             // The free list should be null by this point
@@ -1652,41 +1565,25 @@ impl Drop for StrongRuleNode {
 
 impl<'a> From<&'a StrongRuleNode> for WeakRuleNode {
     fn from(node: &'a StrongRuleNode) -> Self {
-        WeakRuleNode::from_ptr(node.ptr())
+        WeakRuleNode::from_ptr(node.p)
     }
 }
 
 impl WeakRuleNode {
+    #[inline]
+    fn ptr(&self) -> *mut RuleNode {
+        self.p.as_ptr()
+    }
+
     fn upgrade(&self) -> StrongRuleNode {
         debug!("Upgrading weak node: {:p}", self.ptr());
 
         let node = unsafe { &*self.ptr() };
         node.refcount.fetch_add(1, Ordering::Relaxed);
-        StrongRuleNode::from_ptr(self.ptr())
+        StrongRuleNode::from_ptr(self.p)
     }
 
-    fn from_ptr(ptr: *mut RuleNode) -> Self {
-        WeakRuleNode {
-            p: ptr::NonNull::new(ptr).expect("Pointer must not be null"),
-        }
-    }
-
-    fn ptr(&self) -> *mut RuleNode {
-        self.p.as_ptr()
-    }
-}
-
-struct RuleChildrenListIter {
-    current: Option<WeakRuleNode>,
-}
-
-impl Iterator for RuleChildrenListIter {
-    type Item = WeakRuleNode;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.current.take().map(|current| {
-            self.current = unsafe { &*current.ptr() }.next_sibling();
-            current
-        })
+    fn from_ptr(p: ptr::NonNull<RuleNode>) -> Self {
+        WeakRuleNode { p }
     }
 }

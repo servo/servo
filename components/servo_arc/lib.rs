@@ -1305,11 +1305,18 @@ impl<A, B> ArcUnion<A, B> {
     }
 
     /// Returns true if the two values are pointer-equal.
+    #[inline]
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         this.p == other.p
     }
 
+    #[inline]
+    pub fn ptr(&self) -> ptr::NonNull<()> {
+        self.p
+    }
+
     /// Returns an enum representing a borrow of either A or B.
+    #[inline]
     pub fn borrow(&self) -> ArcUnionBorrow<A, B> {
         if self.is_first() {
             let ptr = self.p.as_ptr() as *const A;
