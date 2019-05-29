@@ -134,6 +134,7 @@ pub fn traverse_dom<E, D>(
                 let drain = discovered.drain(..);
                 pool.install(|| {
                     rayon::scope(|scope| {
+                        profiler_label!(Style);
                         parallel::traverse_nodes(
                             drain,
                             DispatchMode::TailCall,

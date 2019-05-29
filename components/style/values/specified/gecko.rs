@@ -7,32 +7,11 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::length::CSSPixelLength;
 use crate::values::computed::{self, LengthPercentage};
-use crate::values::generics::gecko::ScrollSnapPoint as GenericScrollSnapPoint;
 use crate::values::generics::rect::Rect;
-use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercentage;
 use cssparser::{Parser, Token};
 use std::fmt;
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-
-/// A specified type for scroll snap points.
-pub type ScrollSnapPoint = GenericScrollSnapPoint<SpecifiedLengthPercentage>;
-
-impl Parse for ScrollSnapPoint {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(GenericScrollSnapPoint::None);
-        }
-        input.expect_function_matching("repeat")?;
-        // FIXME(emilio): This won't clamp properly when animating.
-        let length = input
-            .parse_nested_block(|i| SpecifiedLengthPercentage::parse_non_negative(context, i))?;
-        Ok(GenericScrollSnapPoint::Repeat(length))
-    }
-}
 
 fn parse_pixel_or_percent<'i, 't>(
     _context: &ParserContext,

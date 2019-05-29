@@ -22,6 +22,7 @@ servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5eve
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
          "servo_url", "string_cache", "crossbeam-channel", "to_shmem/servo", "servo_arc/servo"]
 gecko_debug = []
+gecko_profiler = []
 
 [dependencies]
 app_units = "0.7"
@@ -79,7 +80,7 @@ void = "1.0.2"
 [build-dependencies]
 lazy_static = "1"
 log = "0.4"
-bindgen = { version = "0.49", optional = true, default-features = false }
+bindgen = {version = "0.49", optional = true, default-features = false}
 regex = {version = "1.1", optional = true}
 walkdir = "2.1.4"
 toml = {version = "0.4.5", optional = true, default-features = false}

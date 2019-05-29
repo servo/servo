@@ -75,6 +75,16 @@ where
     }
 }
 
+impl ToCss for crate::owned_str::OwnedStr {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        serialize_string(self, dest)
+    }
+}
+
 impl ToCss for str {
     #[inline]
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result

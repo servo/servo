@@ -612,16 +612,15 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         use std::mem::{align_of, size_of};
         assert_ne!(size_of::<T>(), 0, "Need to think about ZST");
 
+        let inner_align = align_of::<ArcInner<HeaderSlice<H, [T; 0]>>>();
+        debug_assert!(inner_align >= align_of::<T>());
+
         // Compute the required size for the allocation.
         let num_items = items.len();
         let size = {
-            // First, determine the alignment of a hypothetical pointer to a
-            // HeaderSlice.
-            let fake_slice_ptr_align: usize = mem::align_of::<ArcInner<HeaderSlice<H, [T; 0]>>>();
-
             // Next, synthesize a totally garbage (but properly aligned) pointer
             // to a sequence of T.
-            let fake_slice_ptr = fake_slice_ptr_align as *const T;
+            let fake_slice_ptr = inner_align as *const T;
 
             // Convert that sequence to a fat pointer. The address component of
             // the fat pointer will be garbage, but the length will be correct.
@@ -641,13 +640,13 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         let ptr: *mut ArcInner<HeaderSlice<H, [T]>>;
         unsafe {
             // Allocate the buffer.
-            let layout = if mem::align_of::<T>() <= mem::align_of::<usize>() {
-                Layout::from_size_align_unchecked(size, mem::align_of::<usize>())
-            } else if mem::align_of::<T>() <= mem::align_of::<u64>() {
-                // On 32-bit platforms <T> may have 8 byte alignment while usize has 4 byte aligment.
-                // Use u64 to avoid over-alignment.
+            let layout = if inner_align <= align_of::<usize>() {
+                Layout::from_size_align_unchecked(size, align_of::<usize>())
+            } else if inner_align <= align_of::<u64>() {
+                // On 32-bit platforms <T> may have 8 byte alignment while usize
+                // has 4 byte aligment.  Use u64 to avoid over-alignment.
                 // This branch will compile away in optimized builds.
-                Layout::from_size_align_unchecked(size, mem::align_of::<u64>())
+                Layout::from_size_align_unchecked(size, align_of::<u64>())
             } else {
                 panic!("Over-aligned type not handled");
             };
@@ -689,7 +688,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
                 // for some padding from the alignment.
                 debug_assert!(
                     (buffer.offset(size as isize) as usize - current as *mut u8 as usize) <
-                        align_of::<Self>()
+                        inner_align
                 );
             }
             assert!(

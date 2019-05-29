@@ -12,7 +12,6 @@ use crate::gecko_bindings::structs::{nsStyleCoord, CounterStylePtr};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::values::computed::{Angle, Length, LengthPercentage};
 use crate::values::computed::{Number, NumberOrPercentage, Percentage};
-use crate::values::generics::gecko::ScrollSnapPoint;
 use crate::values::generics::grid::{TrackBreadth, TrackKeyword};
 use crate::values::generics::length::LengthPercentageOrAuto;
 use crate::values::generics::{CounterStyleOrNone, NonNegative};
@@ -217,27 +216,6 @@ impl GeckoStyleCoordConvertible for Angle {
     }
 }
 
-impl GeckoStyleCoordConvertible for ScrollSnapPoint<LengthPercentage> {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        match self.repeated() {
-            None => coord.set_value(CoordDataValue::None),
-            Some(l) => l.to_gecko_style_coord(coord),
-        };
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        use crate::gecko_bindings::structs::root::nsStyleUnit;
-
-        Some(match coord.unit() {
-            nsStyleUnit::eStyleUnit_None => ScrollSnapPoint::None,
-            _ => ScrollSnapPoint::Repeat(
-                LengthPercentage::from_gecko_style_coord(coord)
-                    .expect("coord could not convert to LengthPercentage"),
-            ),
-        })
-    }
-}
-
 /// Convert a given RGBA value to `nscolor`.
 pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
     ((rgba.alpha as u32) << 24) |
@@ -288,7 +266,7 @@ impl CounterStyleOrNone {
                     .0
                     .iter()
                     .map(|symbol| match *symbol {
-                        Symbol::String(ref s) => nsCStr::from(s),
+                        Symbol::String(ref s) => nsCStr::from(&**s),
                         Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
                     })
                     .collect();
@@ -333,7 +311,7 @@ impl CounterStyleOrNone {
                 let symbol_type = SymbolsType::from_gecko_keyword(anonymous.mSystem as u32);
                 let symbols = symbols
                     .iter()
-                    .map(|gecko_symbol| Symbol::String(gecko_symbol.to_string()))
+                    .map(|gecko_symbol| Symbol::String(gecko_symbol.to_string().into()))
                     .collect();
                 Either::First(CounterStyleOrNone::Symbols(symbol_type, Symbols(symbols)))
             }

@@ -84,12 +84,6 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         self.current_len = 0;
     }
 
-    /// Returns true if no simple selectors have ever been pushed to this builder.
-    #[inline(always)]
-    pub fn is_empty(&self) -> bool {
-        self.simple_selectors.is_empty()
-    }
-
     /// Returns true if combinators have ever been pushed to this builder.
     #[inline(always)]
     pub fn has_combinators(&self) -> bool {

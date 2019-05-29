@@ -32,12 +32,11 @@ ${helpers.single_keyword(
 )}
 
 ${helpers.predefined_type(
-    "-moz-user-select",
+    "user-select",
     "UserSelect",
     "computed::UserSelect::Auto",
     products="gecko",
-    gecko_ffi_name="mUserSelect",
-    alias="-webkit-user-select",
+    extra_prefixes="moz webkit",
     animation_value_type="discrete",
     needs_context=False,
     spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select",
@@ -81,7 +80,6 @@ ${helpers.predefined_type(
     "Transform",
     "generics::transform::Transform::none()",
     products="gecko",
-    gecko_ffi_name="mSpecifiedWindowTransform",
     flags="GETCS_NEEDS_LAYOUT_FLUSH",
     animation_value_type="ComputedValue",
     spec="None (Nonstandard internal property)",

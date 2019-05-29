@@ -28,7 +28,7 @@
         animation_value_type="AnimatedColor",
         logical=is_logical,
         logical_group="border-color",
-        allow_quirks=not is_logical,
+        allow_quirks="No" if is_logical else "Yes",
         flags="APPLIES_TO_FIRST_LETTER",
         ignored_when_colors_disabled=True,
     )}
@@ -56,7 +56,7 @@
         logical=is_logical,
         logical_group="border-width",
         flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
-        allow_quirks=not is_logical,
+        allow_quirks="No" if is_logical else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}
 % endfor
@@ -159,60 +159,3 @@ ${helpers.predefined_type(
     flags="APPLIES_TO_FIRST_LETTER",
     boxed=True,
 )}
-
-// FIXME(emilio): Why does this live here? ;_;
-#[cfg(feature = "gecko")]
-impl crate::values::computed::BorderImageWidth {
-    pub fn to_gecko_rect(&self, sides: &mut crate::gecko_bindings::structs::nsStyleSides) {
-        use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
-        use crate::gecko::values::GeckoStyleCoordConvertible;
-        use crate::values::generics::border::BorderImageSideWidth;
-
-        % for i in range(0, 4):
-        match self.${i} {
-            BorderImageSideWidth::Auto => {
-                sides.data_at_mut(${i}).set_value(CoordDataValue::Auto)
-            },
-            BorderImageSideWidth::Length(l) => {
-                l.to_gecko_style_coord(&mut sides.data_at_mut(${i}))
-            },
-            BorderImageSideWidth::Number(n) => {
-                sides.data_at_mut(${i}).set_value(CoordDataValue::Factor(n.0))
-            },
-        }
-        % endfor
-    }
-
-    pub fn from_gecko_rect(
-        sides: &crate::gecko_bindings::structs::nsStyleSides,
-    ) -> Option<crate::values::computed::BorderImageWidth> {
-        use crate::gecko_bindings::structs::nsStyleUnit::{eStyleUnit_Factor, eStyleUnit_Auto};
-        use crate::gecko_bindings::sugar::ns_style_coord::CoordData;
-        use crate::gecko::values::GeckoStyleCoordConvertible;
-        use crate::values::computed::{LengthPercentage, Number};
-        use crate::values::generics::border::BorderImageSideWidth;
-        use crate::values::generics::NonNegative;
-
-        Some(
-            crate::values::computed::BorderImageWidth::new(
-                % for i in range(0, 4):
-                match sides.data_at(${i}).unit() {
-                    eStyleUnit_Auto => {
-                        BorderImageSideWidth::Auto
-                    },
-                    eStyleUnit_Factor => {
-                        BorderImageSideWidth::Number(
-                            NonNegative(Number::from_gecko_style_coord(&sides.data_at(${i}))
-                                .expect("sides[${i}] could not convert to Number")))
-                    },
-                    _ => {
-                        BorderImageSideWidth::Length(
-                            NonNegative(LengthPercentage::from_gecko_style_coord(&sides.data_at(${i}))
-                                .expect("sides[${i}] could not convert to LengthPercentage")))
-                    },
-                },
-                % endfor
-            )
-        )
-    }
-}

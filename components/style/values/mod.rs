@@ -174,6 +174,7 @@ impl<A: Debug, B: Debug> Debug for Either<A, B> {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct CustomIdent(pub Atom);
 
 impl CustomIdent {

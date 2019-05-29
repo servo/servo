@@ -768,7 +768,7 @@ ${helpers.four_sides_shorthand(
     "%s",
     "specified::LengthPercentageOrAuto::parse",
     spec="https://drafts.csswg.org/css-logical/#propdef-inset",
-    allow_quirks=False,
+    allow_quirks="No",
 )}
 
 ${helpers.two_properties_shorthand(

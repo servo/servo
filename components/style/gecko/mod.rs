@@ -13,9 +13,10 @@ pub mod conversions;
 pub mod data;
 pub mod media_features;
 pub mod media_queries;
+#[cfg(feature = "gecko_profiler")]
+pub mod profiler;
 pub mod pseudo_element;
 pub mod restyle_damage;
-pub mod rules;
 pub mod selector_parser;
 pub mod snapshot;
 pub mod snapshot_helpers;

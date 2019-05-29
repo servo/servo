@@ -53,6 +53,7 @@ macro_rules! local_name {
 /// This is either a strong reference to a dynamic atom (an nsAtom pointer),
 /// or an offset from gGkAtoms to the nsStaticAtom object.
 #[derive(Eq, PartialEq)]
+#[repr(C)]
 pub struct Atom(usize);
 
 /// An atom *without* a strong reference.

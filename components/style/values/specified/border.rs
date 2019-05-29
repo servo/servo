@@ -183,7 +183,7 @@ impl Parse for BorderImageSideWidth {
         }
 
         if let Ok(len) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
-            return Ok(GenericBorderImageSideWidth::Length(len));
+            return Ok(GenericBorderImageSideWidth::LengthPercentage(len));
         }
 
         let num = NonNegativeNumber::parse(context, input)?;

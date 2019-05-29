@@ -4,7 +4,6 @@
 
 use cssparser::RGBA;
 use style::values::animated::{Animate, Procedure, ToAnimatedValue};
-use style::values::generics::transform::{Transform, TransformOperation};
 
 fn interpolate_rgba(from: RGBA, to: RGBA, progress: f64) -> RGBA {
     let from = from.to_animated_value();
@@ -79,16 +78,5 @@ fn test_rgba_color_interepolation_out_of_range_clamped_2() {
             1.5
         ),
         RGBA::from_floats(0.0, 0.0, 0.0, 0.0)
-    );
-}
-
-#[test]
-fn test_transform_interpolation_on_scale() {
-    let from = Transform(vec![TransformOperation::Scale3D(1.0, 2.0, 1.0)]);
-    let to = Transform(vec![TransformOperation::Scale3D(2.0, 4.0, 2.0)]);
-    assert_eq!(
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 })
-            .unwrap(),
-        Transform(vec![TransformOperation::Scale3D(1.5, 3.0, 1.5)])
     );
 }

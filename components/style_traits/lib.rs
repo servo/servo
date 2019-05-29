@@ -16,6 +16,8 @@ extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
 extern crate euclid;
+#[macro_use]
+extern crate lazy_static;
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
@@ -91,6 +93,7 @@ pub mod values;
 #[macro_use]
 pub mod viewport;
 pub mod owned_slice;
+pub mod owned_str;
 
 pub use crate::specified_value_info::{CssType, KeywordsCollectFn, SpecifiedValueInfo};
 pub use crate::values::{
@@ -149,8 +152,6 @@ pub enum StyleParseErrorKind<'i> {
 
     /// The property declaration was for an unknown property.
     UnknownProperty(CowRcStr<'i>),
-    /// An unknown vendor-specific identifier was encountered.
-    UnknownVendorProperty,
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid color value.

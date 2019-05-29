@@ -56,7 +56,7 @@ ${helpers.predefined_type(
     "computed::LengthPercentage::zero()",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
-    allow_quirks=True,
+    allow_quirks="Yes",
     servo_restyle_damage = "reflow",
 )}
 
@@ -218,6 +218,7 @@ ${helpers.predefined_type(
     vector_animation_type="with_zero",
     animation_value_type="AnimatedTextShadowList",
     ignored_when_colors_disabled=True,
+    simple_vector_bindings=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property",
 )}
@@ -261,6 +262,16 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="LengthOrNumber",
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property",
+)}
+
+${helpers.predefined_type(
+    "line-break",
+    "LineBreak",
+    "computed::LineBreak::Auto",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text-3/#line-break-property",
+    needs_context=False,
 )}
 
 // CSS Compatibility

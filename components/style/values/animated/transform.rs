@@ -861,7 +861,7 @@ impl Animate for ComputedTransform {
         // animation procedures so we treat it separately here rather than
         // handling it in TransformOperation.
         if procedure == Procedure::Add {
-            let result = self.0.iter().chain(&other.0).cloned().collect::<Vec<_>>();
+            let result = self.0.iter().chain(&*other.0).cloned().collect();
             return Ok(Transform(result));
         }
 
@@ -898,15 +898,15 @@ impl Animate for ComputedTransform {
                 },
                 Procedure::Interpolate { progress } => {
                     result.push(TransformOperation::InterpolateMatrix {
-                        from_list: Transform(this_remainder.to_vec()),
-                        to_list: Transform(other_remainder.to_vec()),
+                        from_list: Transform(this_remainder.to_vec().into()),
+                        to_list: Transform(other_remainder.to_vec().into()),
                         progress: Percentage(progress as f32),
                     });
                 },
                 Procedure::Accumulate { count } => {
                     result.push(TransformOperation::AccumulateMatrix {
-                        from_list: Transform(this_remainder.to_vec()),
-                        to_list: Transform(other_remainder.to_vec()),
+                        from_list: Transform(this_remainder.to_vec().into()),
+                        to_list: Transform(other_remainder.to_vec().into()),
                         count: cmp::min(count, i32::max_value() as u64) as i32,
                     });
                 },
@@ -927,8 +927,8 @@ impl Animate for ComputedTransform {
                                 // matrix. Instead we need to wrap it in another ___Matrix type.
                                 TransformOperation::AccumulateMatrix { .. } |
                                 TransformOperation::InterpolateMatrix { .. } => {
-                                    let transform_list = Transform(vec![transform.clone()]);
-                                    let identity_list = Transform(vec![identity]);
+                                    let transform_list = Transform(vec![transform.clone()].into());
+                                    let identity_list = Transform(vec![identity].into());
                                     let (from_list, to_list) = if fill_right {
                                         (transform_list, identity_list)
                                     } else {
@@ -970,7 +970,7 @@ impl Animate for ComputedTransform {
             (None, None) => {},
         }
 
-        Ok(Transform(result))
+        Ok(Transform(result.into()))
     }
 }
 

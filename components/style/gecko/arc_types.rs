@@ -23,7 +23,6 @@ use crate::gecko_bindings::structs::RawServoMediaRule;
 use crate::gecko_bindings::structs::RawServoMozDocumentRule;
 use crate::gecko_bindings::structs::RawServoNamespaceRule;
 use crate::gecko_bindings::structs::RawServoPageRule;
-use crate::gecko_bindings::structs::RawServoQuotes;
 use crate::gecko_bindings::structs::RawServoStyleRule;
 use crate::gecko_bindings::structs::RawServoStyleSheetContents;
 use crate::gecko_bindings::structs::RawServoSupportsRule;
@@ -40,7 +39,6 @@ use crate::stylesheets::{NamespaceRule, PageRule};
 use crate::stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use servo_arc::{Arc, ArcBorrow};
 use std::{mem, ptr};
-use values::computed::QuotePair;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
@@ -114,9 +112,6 @@ impl_arc_ffi!(Locked<CounterStyleRule> => RawServoCounterStyleRule
 
 impl_arc_ffi!(CssUrlData => RawServoCssUrlData
               [Servo_CssUrlData_AddRef, Servo_CssUrlData_Release]);
-
-impl_arc_ffi!(Box<[QuotePair]> => RawServoQuotes
-              [Servo_Quotes_AddRef, Servo_Quotes_Release]);
 
 // ComputedStyle is not an opaque type on any side of FFI.
 // This means that doing the HasArcFFI type trick is actually unsound,

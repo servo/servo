@@ -310,13 +310,13 @@ impl ToComputedValue for SpecifiedImageUrl {
     type ComputedValue = ComputedImageUrl;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
-        ComputedImageUrl(self.clone())
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        ComputedImageUrl(self.0.to_computed_value(context))
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        computed.0.clone()
+        SpecifiedImageUrl(ToComputedValue::from_computed_value(&computed.0))
     }
 }
 
@@ -378,7 +378,7 @@ impl ComputedUrl {
 
 /// The computed value of a CSS image `url()`.
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
-pub struct ComputedImageUrl(pub SpecifiedImageUrl);
+pub struct ComputedImageUrl(pub ComputedUrl);
 
 impl ToCss for ComputedImageUrl {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
@@ -395,22 +395,17 @@ impl ComputedImageUrl {
     /// Convert from nsStyleImageReques to ComputedImageUrl.
     pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Self {
         let url_value = image_request.mImageValue.to_safe();
-        let css_url = &*url_value.mCssUrl.mRawPtr;
-        let url = CssUrl(CssUrlData::as_arc(&css_url).clone_arc());
-        ComputedImageUrl(SpecifiedImageUrl(SpecifiedUrl {
-            url,
-            url_value: Box::new(URLValueSource::URLValue(url_value)),
-        }))
+        ComputedImageUrl(ComputedUrl::from_url_value(url_value))
     }
 
     /// Clone a new, strong reference to the Gecko URLValue.
     pub fn clone_url_value(&self) -> RefPtr<URLValue> {
-        (self.0).0.clone_url_value()
+        self.0.clone_url_value()
     }
 
     /// Get a raw pointer to the URLValue held by this ComputedImageUrl, for FFI.
     pub fn url_value_ptr(&self) -> *mut URLValue {
-        (self.0).0.url_value_ptr()
+        self.0.url_value_ptr()
     }
 }
 

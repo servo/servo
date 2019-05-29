@@ -35,6 +35,7 @@ pub mod system_colors {
                            -moz-eventreerow -moz-field -moz-fieldtext -moz-dialog -moz-dialogtext
                            -moz-dragtargetzone -moz-gtk-info-bar-text -moz-html-cellhighlight
                            -moz-html-cellhighlighttext -moz-mac-buttonactivetext
+                           -moz-gtk-buttonactivetext
                            -moz-mac-chrome-active -moz-mac-chrome-inactive
                            -moz-mac-defaultbuttontext -moz-mac-focusring -moz-mac-menuselect
                            -moz-mac-menushadow -moz-mac-menutextdisable -moz-mac-menutextselect

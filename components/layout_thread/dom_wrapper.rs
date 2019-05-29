@@ -888,6 +888,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         self.element.namespace()
     }
 
+    fn is_pseudo_element(&self) -> bool {
+        false
+    }
+
     fn match_pseudo_element(
         &self,
         _pseudo: &PseudoElement,
@@ -1392,6 +1396,10 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
         ::selectors::OpaqueElement::new(unsafe { &*(self.as_node().opaque().0 as *const ()) })
+    }
+
+    fn is_pseudo_element(&self) -> bool {
+        false
     }
 
     fn parent_element(&self) -> Option<Self> {

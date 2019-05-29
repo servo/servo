@@ -628,10 +628,6 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         #[cfg(feature = "gecko")]
         {
-            if let Some(display) = builder.get_box_if_mutated() {
-                display.generate_combined_transform();
-            }
-
             if let Some(bg) = builder.get_background_if_mutated() {
                 bg.fill_arrays();
             }

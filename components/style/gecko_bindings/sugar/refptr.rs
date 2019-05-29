@@ -290,11 +290,6 @@ impl_threadsafe_refcount!(
     bindings::Gecko_ReleaseURLExtraDataArbitraryThread
 );
 impl_threadsafe_refcount!(
-    structs::nsCSSValueSharedList,
-    bindings::Gecko_AddRefCSSValueSharedListArbitraryThread,
-    bindings::Gecko_ReleaseCSSValueSharedListArbitraryThread
-);
-impl_threadsafe_refcount!(
     structs::mozilla::css::URLValue,
     bindings::Gecko_AddRefCSSURLValueArbitraryThread,
     bindings::Gecko_ReleaseCSSURLValueArbitraryThread

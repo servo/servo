@@ -30,6 +30,8 @@ error
 fantasy
 fetch
 file
+fill
+fill-opacity
 formdata
 fullscreenchange
 fullscreenerror
@@ -100,6 +102,8 @@ serif
 signalingstatechange
 srclang
 statechange
+stroke
+stroke-opacity
 storage
 submit
 suspend

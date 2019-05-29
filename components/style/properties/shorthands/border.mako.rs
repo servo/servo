@@ -7,7 +7,7 @@
 
 ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::Color::parse",
                                spec="https://drafts.csswg.org/css-backgrounds/#border-color",
-                               allow_quirks=True)}
+                               allow_quirks="Yes")}
 
 ${helpers.four_sides_shorthand(
     "border-style",
