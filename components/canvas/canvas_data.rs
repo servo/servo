@@ -56,9 +56,23 @@ pub trait Backend {
     fn get_composition_op(&self, opts: &DrawOptions) -> CompositionOp;
     fn need_to_draw_shadow(&self, color: &Color) -> bool;
     fn set_shadow_color<'a>(&mut self, color: RGBA, state: &mut CanvasPaintState<'a>);
-    fn set_fill_style<'a>(&mut self, style: FillOrStrokeStyle, state: &mut CanvasPaintState<'a>, drawtarget: &GenericDrawTarget);
-    fn set_stroke_style<'a>(&mut self, style: FillOrStrokeStyle, state: &mut CanvasPaintState<'a>, drawtarget: &GenericDrawTarget);
-    fn set_global_composition<'a>(&mut self, op: CompositionOrBlending, state: &mut CanvasPaintState<'a>);
+    fn set_fill_style<'a>(
+        &mut self,
+        style: FillOrStrokeStyle,
+        state: &mut CanvasPaintState<'a>,
+        drawtarget: &GenericDrawTarget,
+    );
+    fn set_stroke_style<'a>(
+        &mut self,
+        style: FillOrStrokeStyle,
+        state: &mut CanvasPaintState<'a>,
+        drawtarget: &GenericDrawTarget,
+    );
+    fn set_global_composition<'a>(
+        &mut self,
+        op: CompositionOrBlending,
+        state: &mut CanvasPaintState<'a>,
+    );
     fn create_drawtarget(&self, size: Size2D<u64>) -> Box<GenericDrawTarget>;
     fn recreate_paint_state<'a>(&self, state: &CanvasPaintState<'a>) -> CanvasPaintState<'a>;
     fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>>;
@@ -143,12 +157,7 @@ impl<'a> PathBuilderRef<'a> {
         )
     }
 
-    fn bezier_curve_to(
-        &self,
-        cp1: &Point2D<f32>,
-        cp2: &Point2D<f32>,
-        endpoint: &Point2D<f32>,
-    ) {
+    fn bezier_curve_to(&self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.builder.bezier_curve_to(
             &self.transform.transform_point(cp1),
             &self.transform.transform_point(cp2),
@@ -156,14 +165,7 @@ impl<'a> PathBuilderRef<'a> {
         )
     }
 
-    fn arc(
-        &self,
-        center: &Point2D<f32>,
-        radius: f32,
-        start_angle: f32,
-        end_angle: f32,
-        ccw: bool,
-    ) {
+    fn arc(&self, center: &Point2D<f32>, radius: f32, start_angle: f32, end_angle: f32, ccw: bool) {
         let center = self.transform.transform_point(center);
         self.builder
             .arc(center, radius, start_angle, end_angle, ccw);
@@ -305,7 +307,6 @@ pub enum Color {
     Raqote(()),
 }
 
-
 #[derive(Clone)]
 pub enum CompositionOp {
     #[cfg(feature = "azure_backend")]
@@ -438,7 +439,6 @@ impl<'a> CanvasData<'a> {
         } else {
             image_data.into()
         };
-
 
         let writer = |draw_target: &GenericDrawTarget| {
             write_image(
@@ -859,11 +859,13 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
-        self.backend.set_fill_style(style, &mut self.state, &*self.drawtarget);
+        self.backend
+            .set_fill_style(style, &mut self.state, &*self.drawtarget);
     }
 
     pub fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
-        self.backend.set_stroke_style(style, &mut self.state, &*self.drawtarget);
+        self.backend
+            .set_stroke_style(style, &mut self.state, &*self.drawtarget);
     }
 
     pub fn set_line_width(&mut self, width: f32) {
@@ -907,7 +909,9 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn recreate(&mut self, size: Size2D<u32>) {
-        self.drawtarget = self.backend.create_drawtarget(Size2D::new(size.width as u64, size.height as u64));
+        self.drawtarget = self
+            .backend
+            .create_drawtarget(Size2D::new(size.width as u64, size.height as u64));
         self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
@@ -925,9 +929,7 @@ impl<'a> CanvasData<'a> {
 
     #[allow(unsafe_code)]
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
-        let data = IpcSharedMemory::from_bytes(
-            &self.drawtarget.snapshot_data()
-        );
+        let data = IpcSharedMemory::from_bytes(&self.drawtarget.snapshot_data());
         chan.send(data).unwrap();
     }
 
@@ -943,9 +945,7 @@ impl<'a> CanvasData<'a> {
             is_opaque: false,
             allow_mipmaps: false,
         };
-        let data = webrender_api::ImageData::Raw(Arc::new(
-            self.drawtarget.snapshot_data().into()
-        ));
+        let data = webrender_api::ImageData::Raw(Arc::new(self.drawtarget.snapshot_data().into()));
 
         let mut txn = webrender_api::Transaction::new();
 
@@ -1065,17 +1065,17 @@ impl<'a> CanvasData<'a> {
         let canvas_rect = Rect::from_size(canvas_size);
         if canvas_rect
             .intersection(&read_rect)
-                .map_or(true, |rect| rect.is_empty())
-                {
-                    return vec![];
-                }
+            .map_or(true, |rect| rect.is_empty())
+        {
+            return vec![];
+        }
 
         pixels::rgba8_get_rect(
             &self.drawtarget.snapshot_data(),
             canvas_size.to_u32(),
             read_rect.to_u32(),
         )
-            .into_owned()
+        .into_owned()
     }
 }
 
@@ -1139,20 +1139,10 @@ fn write_image(
     let image_size = image_size.to_i32();
 
     let source_surface = draw_target
-        .create_source_surface_from_data(
-            &image_data,
-            image_size,
-            image_size.width * 4,
-        )
+        .create_source_surface_from_data(&image_data, image_size, image_size.width * 4)
         .unwrap();
-    
-    draw_target.draw_surface(
-        source_surface,
-        dest_rect,
-        image_rect,
-        filter,
-        draw_options,
-    );
+
+    draw_target.draw_surface(source_surface, dest_rect, image_rect, filter, draw_options);
 }
 
 pub trait PointToi32 {

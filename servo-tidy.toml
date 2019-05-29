@@ -39,14 +39,17 @@ packages = [
   "crossbeam-epoch",
   "crossbeam-utils",
   "digest",
+  "dwrote",
   "generic-array",
   "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "lock_api",
+  "memmap",
   "nix", # https://github.com/servo/servo/issues/23189#issuecomment-487512605
   "parking_lot",
   "parking_lot_core",
   "rand",
   "rand_core",
+  "servo-fontconfig",
   "scopeguard",
   "unicase",
 ]

@@ -199,9 +199,7 @@ impl<'a> CanvasPaintThread<'a> {
                 self.canvas(canvas_id).set_shadow_offset_y(value)
             },
             Canvas2dMsg::SetShadowBlur(value) => self.canvas(canvas_id).set_shadow_blur(value),
-            Canvas2dMsg::SetShadowColor(color) => self
-                .canvas(canvas_id)
-                .set_shadow_color(color),
+            Canvas2dMsg::SetShadowColor(color) => self.canvas(canvas_id).set_shadow_color(color),
         }
     }
 
