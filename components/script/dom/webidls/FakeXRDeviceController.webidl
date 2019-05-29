@@ -11,7 +11,7 @@ interface FakeXRDeviceController {
 
   // // Sets the values to be used for subsequent
   // // requestAnimationFrame() callbacks.
-  // void setViews(Array<FakeXRViewInit> views);
+  [Throws] void setViews(sequence<FakeXRViewInit> views);
 
   // void setViewerOrigin(FakeXRRigidTransform origin);
 
