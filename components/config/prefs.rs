@@ -294,6 +294,8 @@ mod gen {
                 webxr: {
                     #[serde(default)]
                     enabled: bool,
+                    #[serde(default)]
+                    test: bool,
                 },
                 worklet: {
                     blockingsleep: {
