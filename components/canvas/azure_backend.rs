@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
 use crate::canvas_data::{
     Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, GenericDrawTarget,
     GenericPathBuilder, Path, Pattern, StrokeOptions,
@@ -14,6 +13,7 @@ use azure::azure_hl::SurfacePattern;
 use azure::azure_hl::{AsAzurePoint, CapStyle, JoinStyle};
 use azure::azure_hl::{BackendType, ColorPattern, DrawTarget};
 use azure::azure_hl::{LinearGradientPattern, RadialGradientPattern};
+use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 
 pub struct AzureBackend;
@@ -40,8 +40,8 @@ impl Backend for AzureBackend {
                     },
                 };
                 Some(size)
-            }
-            Pattern::Azure(_) => None
+            },
+            Pattern::Azure(_) => None,
         }
     }
 
@@ -64,14 +64,18 @@ impl Backend for AzureBackend {
         &mut self,
         style: FillOrStrokeStyle,
         state: &mut CanvasPaintState<'a>,
-        drawtarget: &GenericDrawTarget)
-    {
+        drawtarget: &GenericDrawTarget,
+    ) {
         if let Some(pattern) = style.to_azure_pattern(drawtarget) {
             state.stroke_style = Pattern::Azure(pattern)
         }
     }
 
-    fn set_global_composition<'a>(&mut self, op: CompositionOrBlending, state: &mut CanvasPaintState<'a>) {
+    fn set_global_composition<'a>(
+        &mut self,
+        op: CompositionOrBlending,
+        state: &mut CanvasPaintState<'a>,
+    ) {
         state
             .draw_options
             .as_azure_mut()
@@ -89,7 +93,7 @@ impl Backend for AzureBackend {
 
     fn recreate_paint_state<'a>(&self, state: &CanvasPaintState<'a>) -> CanvasPaintState<'a> {
         CanvasPaintState::new(AntialiasMode::from_azure(
-            self.state.draw_options.as_azure().antialias
+            self.state.draw_options.as_azure().antialias,
         ))
     }
 }
@@ -97,9 +101,17 @@ impl Backend for AzureBackend {
 impl<'a> CanvasPaintState<'a> {
     pub fn new(antialias: AntialiasMode) -> CanvasPaintState<'a> {
         CanvasPaintState {
-            draw_options: DrawOptions::Azure(azure_hl::DrawOptions::new(1.0, azure_hl::CompositionOp::Over, antialias.into_azure())),
-            fill_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black()))),
-            stroke_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black()))),
+            draw_options: DrawOptions::Azure(azure_hl::DrawOptions::new(
+                1.0,
+                azure_hl::CompositionOp::Over,
+                antialias.into_azure(),
+            )),
+            fill_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(
+                azure_hl::Color::black(),
+            ))),
+            stroke_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(
+                azure_hl::Color::black(),
+            ))),
             stroke_opts: StrokeOptions::Azure(azure_hl::StrokeOptions::new(
                 1.0,
                 JoinStyle::MiterOrBevel,
@@ -112,7 +124,7 @@ impl<'a> CanvasPaintState<'a> {
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
             shadow_color: Color::Azure(azure_hl::Color::transparent()),
-        }        
+        }
     }
 }
 
@@ -240,7 +252,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
         let draw_options = azure_hl::DrawOptions::new(
             draw_options.as_azure().alpha,
             draw_options.as_azure().composition.into_azure(),
-            azure_hl::AntialiasMode::None
+            azure_hl::AntialiasMode::None,
         );
         self.draw_surface(
             surface.into_azure(),
@@ -364,9 +376,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
     }
 
     fn snapshot_data(&self) -> &[u8] {
-        unsafe {
-            self.snapshot().get_data_surface().data()
-        }
+        unsafe { self.snapshot().get_data_surface().data() }
     }
 }
 
@@ -634,10 +644,12 @@ impl ToAzurePattern for FillOrStrokeStyle {
                 let gradient_stops: Vec<GradientStop> = linear_gradient_style
                     .stops
                     .iter()
-                    .map(|s| GradientStop::Azure(azure_hl::GradientStop {
-                        offset: s.offset as f32,
-                        color: s.color.to_azure_style(),
-                    }))
+                    .map(|s| {
+                        GradientStop::Azure(azure_hl::GradientStop {
+                            offset: s.offset as f32,
+                            color: s.color.to_azure_style(),
+                        })
+                    })
                     .collect();
 
                 azure_hl::Pattern::LinearGradient(LinearGradientPattern::new(
@@ -649,7 +661,12 @@ impl ToAzurePattern for FillOrStrokeStyle {
                         linear_gradient_style.x1 as f32,
                         linear_gradient_style.y1 as f32,
                     ),
-                    drawtarget.create_gradient_stops(gradient_stops, ExtendMode::Azure(azure_hl::ExtendMode::Clamp)).into_azure(),
+                    drawtarget
+                        .create_gradient_stops(
+                            gradient_stops,
+                            ExtendMode::Azure(azure_hl::ExtendMode::Clamp),
+                        )
+                        .into_azure(),
                     &Transform2D::identity(),
                 ))
             },
@@ -657,10 +674,12 @@ impl ToAzurePattern for FillOrStrokeStyle {
                 let gradient_stops: Vec<GradientStop> = radial_gradient_style
                     .stops
                     .iter()
-                    .map(|s| GradientStop::Azure(azure_hl::GradientStop {
-                        offset: s.offset as f32,
-                        color: s.color.to_azure_style(),
-                    }))
+                    .map(|s| {
+                        GradientStop::Azure(azure_hl::GradientStop {
+                            offset: s.offset as f32,
+                            color: s.color.to_azure_style(),
+                        })
+                    })
                     .collect();
 
                 azure_hl::Pattern::RadialGradient(RadialGradientPattern::new(
@@ -674,17 +693,24 @@ impl ToAzurePattern for FillOrStrokeStyle {
                     ),
                     radial_gradient_style.r0 as f32,
                     radial_gradient_style.r1 as f32,
-                    drawtarget.create_gradient_stops(gradient_stops, ExtendMode::Azure(azure_hl::ExtendMode::Clamp)).into_azure(),
+                    drawtarget
+                        .create_gradient_stops(
+                            gradient_stops,
+                            ExtendMode::Azure(azure_hl::ExtendMode::Clamp),
+                        )
+                        .into_azure(),
                     &Transform2D::identity(),
                 ))
             },
             FillOrStrokeStyle::Surface(ref surface_style) => {
-                let source_surface = drawtarget.create_source_surface_from_data(
-                    &surface_style.surface_data,
-                    // FIXME(nox): Why are those i32 values?
-                    surface_style.surface_size.to_i32(),
-                    surface_style.surface_size.width as i32 * 4,
-                )?.into_azure();
+                let source_surface = drawtarget
+                    .create_source_surface_from_data(
+                        &surface_style.surface_data,
+                        // FIXME(nox): Why are those i32 values?
+                        surface_style.surface_size.to_i32(),
+                        surface_style.surface_size.width as i32 * 4,
+                    )?
+                    .into_azure();
                 azure_hl::Pattern::Surface(SurfacePattern::new(
                     source_surface.azure_source_surface,
                     surface_style.repeat_x,
@@ -711,10 +737,10 @@ impl ToAzureStyle for RGBA {
 
 impl Pattern {
     pub fn is_zero_size_gradient(&self) -> bool {
-        match *self  {
+        match *self {
             Pattern::Azure(azure_hl::Pattern::LinearGradient(ref az_pattern)) => {
                 gradient.is_zero_size()
-            }
+            },
             _ => false,
         }
     }
@@ -730,7 +756,10 @@ impl Filter {
 }
 
 impl Path {
-    pub fn transformed_copy_to_builder(&self, transform: &Transform2D<f32>) -> Box<GenericPathBuilder> {
+    pub fn transformed_copy_to_builder(
+        &self,
+        transform: &Transform2D<f32>,
+    ) -> Box<GenericPathBuilder> {
         Box::new(self.as_azure().transformed_copy_to_builder(transform))
     }
 

@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
 use crate::canvas_data::{
     Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, GenericDrawTarget,
     GenericPathBuilder, Path, Pattern, StrokeOptions,
 };
 use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
+use cssparser::RGBA;
 use euclid::{Rect, Size2D, Transform2D};
 use std::marker::PhantomData;
 
@@ -44,12 +44,16 @@ impl Backend for RaqoteBackend {
         &mut self,
         _style: FillOrStrokeStyle,
         _state: &mut CanvasPaintState<'a>,
-        _drawtarget: &GenericDrawTarget)
-    {
+        _drawtarget: &GenericDrawTarget,
+    ) {
         unimplemented!()
     }
 
-    fn set_global_composition<'a>(&mut self, _op: CompositionOrBlending, _state: &mut CanvasPaintState<'a>) {
+    fn set_global_composition<'a>(
+        &mut self,
+        _op: CompositionOrBlending,
+        _state: &mut CanvasPaintState<'a>,
+    ) {
         unimplemented!()
     }
 
@@ -74,13 +78,13 @@ impl<'a> CanvasPaintState<'a> {
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
             shadow_color: Color::Raqote(()),
-        }        
+        }
     }
 }
 
 impl Pattern {
     pub fn is_zero_size_gradient(&self) -> bool {
-        match *self  {
+        match *self {
             Pattern::Raqote(()) => unimplemented!(),
         }
     }
@@ -110,7 +114,10 @@ impl DrawOptions {
 }
 
 impl Path {
-    pub fn transformed_copy_to_builder(&self, _transform: &Transform2D<f32>) -> Box<GenericPathBuilder> {
+    pub fn transformed_copy_to_builder(
+        &self,
+        _transform: &Transform2D<f32>,
+    ) -> Box<GenericPathBuilder> {
         unimplemented!()
     }
 
