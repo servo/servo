@@ -4,7 +4,7 @@
 
 WINDOWS_MSVC = {
     "cmake": "3.14.3",
-    "llvm": "7.0.0",
+    "llvm": "8.0.0",
     "moztools": "3.2",
     "ninja": "1.7.1",
     "openssl": "1.0.2q-vs2017",
