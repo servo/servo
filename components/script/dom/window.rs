@@ -893,7 +893,14 @@ impl WindowMethods for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
         self.Document()
-            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback })
+            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback {
+                callback,
+                webgl_chan: if cfg!(target_os = "macos") {
+                    self.webgl_chan()
+                } else {
+                    None
+                },
+            })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>

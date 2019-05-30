@@ -107,6 +107,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
+use canvas_traits::webgl::{webgl_channel, WebGLChan, WebGLMsg};
 use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -4618,6 +4619,8 @@ pub enum AnimationFrameCallback {
     FrameRequestCallback {
         #[ignore_malloc_size_of = "Rc is hard"]
         callback: Rc<FrameRequestCallback>,
+        #[ignore_malloc_size_of = "channels are hard"]
+        webgl_chan: Option<WebGLChan>,
     },
 }
 
@@ -4633,7 +4636,15 @@ impl AnimationFrameCallback {
                     .unwrap();
                 devtools_sender.send(msg).unwrap();
             },
-            AnimationFrameCallback::FrameRequestCallback { ref callback } => {
+            AnimationFrameCallback::FrameRequestCallback {
+                ref callback,
+                ref webgl_chan,
+            } => {
+                if let Some(webgl_chan) = webgl_chan {
+                    let (sender, receiver) = webgl_channel().unwrap();
+                    webgl_chan.send(WebGLMsg::Swap(sender)).unwrap();
+                    let _ = receiver.recv().unwrap();
+                }
                 // TODO(jdm): The spec says that any exceptions should be suppressed:
                 // https://github.com/servo/servo/issues/6928
                 let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
