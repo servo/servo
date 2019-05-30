@@ -1111,7 +1111,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1321,7 +1321,7 @@ dependencies = [
  "memmap 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "walkdir 2.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2500,7 +2500,7 @@ dependencies = [
  "keyboard-types 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "layout_thread 0.0.1",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozangle 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozangle 0.2.2 (git+https://github.com/jdm/mozangle?branch=sse2)",
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
@@ -2711,7 +2711,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.53 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2852,8 +2852,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "mozangle"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.2.2"
+source = "git+https://github.com/jdm/mozangle?branch=sse2#2cdd799d6374f3dc55baa671f15503933c7c2e18"
 dependencies = [
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3807,7 +3807,7 @@ dependencies = [
  "mime 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime_guess 2.0.0-alpha.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozangle 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozangle 0.2.2 (git+https://github.com/jdm/mozangle?branch=sse2)",
  "mozjs 0.11.0 (git+https://github.com/servo/rust-mozjs?rev=357d1db91e4e49c3f148fe05fdfae5f8f0834ca8)",
  "msg 0.0.1",
  "net_traits 0.0.1",
@@ -5806,7 +5806,7 @@ dependencies = [
 "checksum mio-uds 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)" = "966257a94e196b11bb43aca423754d87429960a768de9414f3691d6957abf125"
 "checksum miow 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "396aa0f2003d7df8395cb93e09871561ccc3e785f0acb369170e8cc74ddf9226"
 "checksum mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
-"checksum mozangle 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c9ba1ce5212fd56a71cfbc463aedd4ece76090d98b96d5122f84dedffa0cc508"
+"checksum mozangle 0.2.2 (git+https://github.com/jdm/mozangle?branch=sse2)" = "<none>"
 "checksum mozjs 0.11.0 (git+https://github.com/servo/rust-mozjs?rev=357d1db91e4e49c3f148fe05fdfae5f8f0834ca8)" = "<none>"
 "checksum mozjs_sys 0.66.0 (git+https://github.com/servo/mozjs?rev=e21c05b415dfc246175ff8d5fc48b0e8c5b4e9e9)" = "<none>"
 "checksum msdos_time 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "aad9dfe950c057b1bfe9c1f2aa51583a8468ef2a5baba2ebbe06d775efeb7729"

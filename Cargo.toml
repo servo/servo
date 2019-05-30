@@ -30,3 +30,4 @@ mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
 remove_dir_all = { git = "https://github.com/servo/remove_dir_all", branch = "arm64" }
 cmake = { git = "https://github.com/jdm/cmake-rs", branch = "win-arm64" }
+mozangle = { git = "https://github.com/jdm/mozangle", branch = "sse2" }
