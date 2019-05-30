@@ -599,7 +599,11 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    #[cfg(any(target_os = "android", target_arch = "arm", target_arch = "aarch64"))]
+    #[cfg(any(
+        target_os = "android",
+        target_arch = "arm",
+        all(target_arch = "aarch64", not(target_os = "windows"))
+    ))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
         use ipc_channel::ipc::IpcOneShotServer;
         // Note that this function can panic, due to process creation,
