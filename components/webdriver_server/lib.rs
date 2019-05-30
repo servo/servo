@@ -10,8 +10,13 @@
 extern crate log;
 #[macro_use]
 extern crate serde;
+#[macro_use]
+extern crate serde_json;
+
+mod capabilities;
 
 use base64;
+use capabilities::ServoCapabilities;
 use crossbeam_channel::Sender;
 use euclid::TypedSize2D;
 use hyper::Method;
@@ -28,7 +33,7 @@ use script_traits::webdriver_msg::{
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
-use serde_json::{self, Value};
+use serde_json::{json, Value};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -38,6 +43,7 @@ use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
+use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
     AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
 };
@@ -119,6 +125,11 @@ struct WebDriverSession {
     /// Time to wait for the element location strategy when retrieving elements, and when
     /// waiting for an element to become interactable.
     implicit_wait_timeout: u64,
+
+    page_loading_strategy: String,
+    secure_tls: bool,
+    strict_file_interactability: bool,
+    unhandled_prompt_behavior: String,
 }
 
 impl WebDriverSession {
@@ -134,6 +145,11 @@ impl WebDriverSession {
             script_timeout: Some(30_000),
             load_timeout: 300_000,
             implicit_wait_timeout: 0,
+
+            page_loading_strategy: "normal".to_string(),
+            secure_tls: true,
+            strict_file_interactability: false,
+            unhandled_prompt_behavior: "dismiss and notify".to_string(),
         }
     }
 }
@@ -387,36 +403,149 @@ impl Handler {
         &mut self,
         parameters: &NewSessionParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        if let NewSessionParameters::Legacy(..) = parameters {
-            return Err(WebDriverError::new(
-                ErrorStatus::InvalidArgument,
-                "Unsupported legacy arguments",
-            ));
-        }
+        match parameters {
+            NewSessionParameters::Legacy(..) => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "Unsupported legacy arguments",
+                ))
+            },
+            NewSessionParameters::Spec(capabilities) => {
+                if self.session.is_none() {
+                    let mut servo_capabilities = ServoCapabilities::new();
+                    let processed_capabilities =
+                        capabilities.match_browser(&mut servo_capabilities)?;
+                    match processed_capabilities {
+                        Some(mut processed) => {
+                            let top_level_browsing_context_id =
+                                self.focus_top_level_browsing_context_id()?;
+                            let browsing_context_id =
+                                BrowsingContextId::from(top_level_browsing_context_id);
+                            let mut session = WebDriverSession::new(
+                                browsing_context_id,
+                                top_level_browsing_context_id,
+                            );
 
-        debug!("new session");
-        if self.session.is_none() {
-            let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
-            let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-            let session = WebDriverSession::new(browsing_context_id, top_level_browsing_context_id);
-            let mut capabilities = serde_json::Map::new();
-            capabilities.insert("browserName".to_owned(), serde_json::to_value("servo")?);
-            capabilities.insert("browserVersion".to_owned(), serde_json::to_value("0.0.1")?);
-            capabilities.insert(
-                "acceptInsecureCerts".to_owned(),
-                serde_json::to_value(false)?,
-            );
-            let response =
-                NewSessionResponse::new(session.id.to_string(), Value::Object(capabilities));
-            debug!("new session created {}.", session.id);
-            self.session = Some(session);
-            Ok(WebDriverResponse::NewSession(response))
-        } else {
-            debug!("new session failed.");
-            Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Session already created",
-            ))
+                            match processed.get("pageLoadStrategy") {
+                                Some(strategy) => {
+                                    session.page_loading_strategy = strategy.to_string()
+                                },
+                                None => {
+                                    processed.insert(
+                                        "pageLoadStrategy".to_string(),
+                                        json!(session.page_loading_strategy),
+                                    );
+                                },
+                            }
+
+                            match processed.get("strictFileInteractability") {
+                                Some(strict_file_interactability) => {
+                                    session.strict_file_interactability =
+                                        strict_file_interactability.as_bool().unwrap()
+                                },
+                                None => {
+                                    processed.insert(
+                                        "strictFileInteractability".to_string(),
+                                        json!(session.strict_file_interactability),
+                                    );
+                                },
+                            }
+
+                            match processed.get("proxy") {
+                                Some(_) => (),
+                                None => {
+                                    processed.insert("proxy".to_string(), json!({}));
+                                },
+                            }
+
+                            if let Some(timeouts) = processed.get("timeouts") {
+                                if let Some(script_timeout_value) = timeouts.get("script") {
+                                    session.script_timeout = script_timeout_value.as_u64();
+                                }
+                                if let Some(load_timeout_value) = timeouts.get("pageLoad") {
+                                    if let Some(load_timeout) = load_timeout_value.as_u64() {
+                                        session.load_timeout = load_timeout;
+                                    }
+                                }
+                                if let Some(implicit_wait_timeout_value) = timeouts.get("implicit")
+                                {
+                                    if let Some(implicit_wait_timeout) =
+                                        implicit_wait_timeout_value.as_u64()
+                                    {
+                                        session.implicit_wait_timeout = implicit_wait_timeout;
+                                    }
+                                }
+                            }
+                            processed.insert(
+                                "timeouts".to_string(),
+                                json!({
+                                    "script": session.script_timeout,
+                                    "pageLoad": session.load_timeout,
+                                    "implicit": session.implicit_wait_timeout,
+                                }),
+                            );
+
+                            match processed.get("acceptInsecureCerts") {
+                                Some(accept_insecure_certs) => {
+                                    session.secure_tls = !accept_insecure_certs.as_bool().unwrap()
+                                },
+                                None => {
+                                    processed.insert(
+                                        "acceptInsecureCerts".to_string(),
+                                        json!(servo_capabilities.accept_insecure_certs),
+                                    );
+                                },
+                            }
+
+                            match processed.get("unhandledPromptBehavior") {
+                                Some(unhandled_prompt_behavior) => {
+                                    session.unhandled_prompt_behavior =
+                                        unhandled_prompt_behavior.to_string()
+                                },
+                                None => {
+                                    processed.insert(
+                                        "unhandledPromptBehavior".to_string(),
+                                        json!(session.unhandled_prompt_behavior),
+                                    );
+                                },
+                            }
+
+                            processed.insert(
+                                "browserName".to_string(),
+                                json!(servo_capabilities.browser_name),
+                            );
+                            processed.insert(
+                                "browserVersion".to_string(),
+                                json!(servo_capabilities.browser_version),
+                            );
+                            processed.insert(
+                                "platformName".to_string(),
+                                json!(servo_capabilities
+                                    .platform_name
+                                    .unwrap_or("unknown".to_string())),
+                            );
+                            processed.insert(
+                                "setWindowRect".to_string(),
+                                json!(servo_capabilities.set_window_rect),
+                            );
+
+                            let response = NewSessionResponse::new(
+                                session.id.to_string(),
+                                Value::Object(processed),
+                            );
+                            self.session = Some(session);
+
+                            Ok(WebDriverResponse::NewSession(response))
+                        },
+                        None => Ok(WebDriverResponse::Void),
+                    }
+                } else {
+                    Err(WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        "Session already created",
+                    ))
+                }
+            },
         }
     }
 
