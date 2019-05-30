@@ -5,13 +5,13 @@
 use euclid::{Rect, Size2D};
 use gleam::gl;
 use gleam::gl::Gl;
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use pixels::PixelFormat;
 use std::borrow::Cow;
 use std::fmt;
 use std::num::NonZeroU32;
 use std::ops::Deref;
-use webrender_api::{DocumentId, ImageKey, PipelineId};
+use webrender_api::{DocumentId, ExternalImageId, ImageKey, PipelineId};
 use webvr_traits::WebVRPoseInformation;
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
@@ -58,12 +58,12 @@ pub enum WebGLMsg {
     /// WR locks a external texture when it wants to use the shared texture contents.
     /// The WR client should not change the shared texture content until the Unlock call.
     /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
-    Lock(WebGLContextId, WebGLSender<(u32, Size2D<i32>, usize)>),
+    Lock(ExternalImageId, IpcSender<(u32, Size2D<i32>, usize)>),
     /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
     /// with WebRender external image API.
     /// The WR unlocks a context when it finished reading the shared texture contents.
     /// Unlock messages are always sent after a Lock message.
-    Unlock(WebGLContextId),
+    Unlock(ExternalImageId),
     /// Creates or updates the image keys required for WebRender.
     UpdateWebRenderImage(WebGLContextId, WebGLSender<ImageKey>),
     /// Commands used for the DOMToTexture feature.

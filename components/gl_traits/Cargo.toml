@@ -1,0 +1,18 @@
+[package]
+name = "gl_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "gl_traits"
+path = "lib.rs"
+
+[dependencies]
+canvas_traits = {path = "../canvas_traits"}
+euclid = "0.19"
+ipc-channel = "0.11"
+serde = "1.0"
+webrender_api = {git = "https://github.com/servo/webrender"}

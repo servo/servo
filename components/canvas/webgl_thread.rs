@@ -7,8 +7,10 @@ use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
+use gl_traits::{ExternalImageHandlerChannel, WebrenderImageHandler, WebrenderImageHandlersMsg};
 use gleam::gl;
 use half::f16;
+use ipc_channel::ipc::IpcSender;
 use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
@@ -64,6 +66,11 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static> {
     webvr_compositor: Option<VR>,
     /// Texture ids and sizes used in DOM to texture outputs.
     dom_outputs: FnvHashMap<webrender_api::PipelineId, DOMToTextureData>,
+    /// Channel to register/unregister WebrenderImageHandlers.
+    webrender_image_handlers_sender: IpcSender<WebrenderImageHandlersMsg>,
+    /// Channel to communicate with the WebGLThread.
+    /// Used to register WebrenderImageHandlers.
+    webgl_sender: WebGLSender<WebGLMsg>,
 }
 
 impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
@@ -71,6 +78,8 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         gl_factory: GLContextFactory,
         webrender_api_sender: webrender_api::RenderApiSender,
         webvr_compositor: Option<VR>,
+        webrender_image_handlers_sender: IpcSender<WebrenderImageHandlersMsg>,
+        webgl_sender: WebGLSender<WebGLMsg>,
     ) -> Self {
         WebGLThread {
             gl_factory,
@@ -81,6 +90,8 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             next_webgl_id: 0,
             webvr_compositor,
             dom_outputs: Default::default(),
+            webrender_image_handlers_sender,
+            webgl_sender,
         }
     }
 
@@ -90,14 +101,20 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         gl_factory: GLContextFactory,
         webrender_api_sender: webrender_api::RenderApiSender,
         webvr_compositor: Option<VR>,
+        webrender_image_handlers_sender: IpcSender<WebrenderImageHandlersMsg>,
     ) -> WebGLSender<WebGLMsg> {
         let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
         let result = sender.clone();
         thread::Builder::new()
             .name("WebGLThread".to_owned())
             .spawn(move || {
-                let mut renderer =
-                    WebGLThread::new(gl_factory, webrender_api_sender, webvr_compositor);
+                let mut renderer = WebGLThread::new(
+                    gl_factory,
+                    webrender_api_sender,
+                    webvr_compositor,
+                    webrender_image_handlers_sender,
+                    sender.clone(),
+                );
                 let webgl_chan = WebGLChan(sender);
                 loop {
                     let msg = receiver.recv().unwrap();
@@ -169,10 +186,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             WebGLMsg::WebVRCommand(ctx_id, command) => {
                 self.handle_webvr_command(ctx_id, command);
             },
-            WebGLMsg::Lock(ctx_id, sender) => {
+            WebGLMsg::Lock(external_image_id, sender) => {
+                let ctx_id = WebGLContextId(external_image_id.0 as _);
                 self.handle_lock(ctx_id, sender);
             },
-            WebGLMsg::Unlock(ctx_id) => {
+            WebGLMsg::Unlock(external_image_id) => {
+                let ctx_id = WebGLContextId(external_image_id.0 as _);
                 self.handle_unlock(ctx_id);
             },
             WebGLMsg::UpdateWebRenderImage(ctx_id, sender) => {
@@ -227,7 +246,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     fn handle_lock(
         &mut self,
         context_id: WebGLContextId,
-        sender: WebGLSender<(u32, Size2D<i32>, usize)>,
+        sender: IpcSender<(u32, Size2D<i32>, usize)>,
     ) {
         let data =
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
@@ -408,10 +427,19 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             WebGLContextShareMode::SharedTexture => {
                 let size = info.size;
                 let alpha = info.alpha;
+                let image_handlers_sender = self.webrender_image_handlers_sender.clone();
+                let webgl_sender = self.webgl_sender.clone();
                 // Reuse existing ImageKey or generate a new one.
                 // When using a shared texture ImageKeys are only generated after a WebGLContext creation.
                 *info.image_key.get_or_insert_with(|| {
-                    Self::create_wr_external_image(webrender_api, size, alpha, context_id)
+                    Self::create_wr_external_image(
+                        webrender_api,
+                        size,
+                        alpha,
+                        context_id,
+                        image_handlers_sender,
+                        webgl_sender,
+                    )
                 })
             },
             WebGLContextShareMode::Readback => {
@@ -564,9 +592,20 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         size: Size2D<i32>,
         alpha: bool,
         context_id: WebGLContextId,
+        webrender_image_handlers_sender: IpcSender<WebrenderImageHandlersMsg>,
+        webgl_sender: WebGLSender<WebGLMsg>,
     ) -> webrender_api::ImageKey {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id);
+
+        let registration_msg =
+            WebrenderImageHandlersMsg::Register(WebrenderImageHandler::External(
+                webrender_api::ExternalImageId(context_id.0 as u64),
+                ExternalImageHandlerChannel::WebGL(webgl_sender),
+            ));
+        webrender_image_handlers_sender
+            .send(registration_msg)
+            .unwrap();
 
         let image_key = webrender_api.generate_image_key();
         let mut txn = webrender_api::Transaction::new();
