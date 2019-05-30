@@ -56,7 +56,7 @@ impl XRTestMethods for XRTest {
             .as_window()
             .webvr_thread()
             .unwrap()
-            .send(WebVRMsg::CreateMockDisplay);
+            .send(WebVRMsg::CreateMockDisplay).unwrap();
         p.resolve_native(&FakeXRDeviceController::new(&self.global()));
 
         p
