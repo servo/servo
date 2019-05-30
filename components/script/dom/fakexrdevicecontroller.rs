@@ -7,7 +7,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceControllerBinding::{
-    self, FakeXRDeviceControllerMethods, FakeXRViewInit,
+    self, FakeXRDeviceControllerMethods, FakeXRRigidTransform, FakeXRViewInit,
 };
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -42,7 +42,8 @@ impl FakeXRDeviceController {
             .as_window()
             .webvr_thread()
             .unwrap()
-            .send(WebVRMsg::MessageMockDisplay(msg));
+            .send(WebVRMsg::MessageMockDisplay(msg))
+            .unwrap();
     }
 }
 
@@ -64,7 +65,7 @@ impl FakeXRDeviceControllerMethods for FakeXRDeviceController {
             left.viewOffset.position.len() != 4 ||
             right.viewOffset.position.len() != 4
         {
-            return Err(Error::Type("Incorrectly sized matrix".into()));
+            return Err(Error::Type("Incorrectly sized array".into()));
         }
 
         let mut proj_l = [0.; 16];
@@ -83,6 +84,20 @@ impl FakeXRDeviceControllerMethods for FakeXRDeviceController {
 
         self.send_msg(MockVRControlMsg::SetProjectionMatrices(proj_l, proj_r));
         self.send_msg(MockVRControlMsg::SetEyeParameters(params_l, params_r));
+        Ok(())
+    }
+
+    fn SetViewerOrigin(&self, origin: &FakeXRRigidTransform) -> Fallible<()> {
+        if origin.position.len() != 4 || origin.orientation.len() != 4 {
+            return Err(Error::Type("Incorrectly sized array".into()));
+        }
+        let mut position = [0.; 3];
+        let mut orientation = [0.; 4];
+        let v: Vec<_> = origin.position.iter().map(|x| **x).collect();
+        position.copy_from_slice(&v[0..3]);
+        let v: Vec<_> = origin.orientation.iter().map(|x| **x).collect();
+        orientation.copy_from_slice(&v);
+        self.send_msg(MockVRControlMsg::SetViewerPose(position, orientation));
         Ok(())
     }
 }
