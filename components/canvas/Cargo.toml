@@ -22,11 +22,13 @@ azure = {git = "https://github.com/servo/rust-azure", optional = true}
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
+core-foundation = "0.6.2"
 cssparser = "0.25"
 euclid = "0.19"
 fnv = "1.0"
 gleam = "0.6.7"
 half = "1"
+io-surface = "0.11.1"
 ipc-channel = "0.11"
 log = "0.4"
 num-traits = "0.2"

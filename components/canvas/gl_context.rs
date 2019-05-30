@@ -91,7 +91,12 @@ impl GLContextFactory {
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attributes: GLContextAttributes,
+        color_attachment_type: ColorAttachmentType,
     ) -> Result<GLContextWrapper, &'static str> {
+        if ColorAttachmentType::IOSurface == color_attachment_type
+            && cfg!(not(target_os="macos")) {
+                return Err("IOSurface is not supported on this platform")
+        }
         let attributes = map_attrs(attributes);
         Ok(match *self {
             GLContextFactory::Native(..) => {
@@ -99,7 +104,7 @@ impl GLContextFactory {
                     // FIXME(nox): Why are those i32 values?
                     size.to_i32(),
                     attributes,
-                    ColorAttachmentType::Texture,
+                    color_attachment_type,
                     gl::GlType::default(),
                     Self::gl_version(webgl_version),
                     None,
@@ -111,7 +116,7 @@ impl GLContextFactory {
                     // FIXME(nox): Why are those i32 values?
                     size.to_i32(),
                     attributes,
-                    ColorAttachmentType::Texture,
+                    color_attachment_type,
                     gl::GlType::default(),
                     Self::gl_version(webgl_version),
                     None,
@@ -170,34 +175,52 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn get_info(&self) -> (Size2D<i32>, u32, GLLimits) {
+    pub fn get_info(&self) -> (Size2D<i32>, u32, Option<u32>, GLLimits) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
-                let (real_size, texture_id) = {
+                let (real_size, texture_id, io_surface_id) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
                     (
                         draw_buffer.size(),
                         draw_buffer.get_bound_texture_id().unwrap(),
+                        draw_buffer.get_complete_io_surface_id(),
                     )
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
-                (real_size, texture_id, map_limits(limits))
+                (real_size, texture_id, io_surface_id, map_limits(limits))
             },
             GLContextWrapper::OSMesa(ref ctx) => {
-                let (real_size, texture_id) = {
+                let (real_size, texture_id, io_surface_id) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
                     (
                         draw_buffer.size(),
                         draw_buffer.get_bound_texture_id().unwrap(),
+                        draw_buffer.get_complete_io_surface_id(),
                     )
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
-                (real_size, texture_id, map_limits(limits))
+                (real_size, texture_id, io_surface_id, map_limits(limits))
             },
+        }
+    }
+
+    /// Swap the backing texture for the draw buffer, returning the id of the texture
+    /// now used for reading.
+    pub fn swap_draw_buffer(&mut self) -> Option<u32> {
+        match *self {
+            GLContextWrapper::Native(ref mut ctx) => ctx.swap_draw_buffer(),
+            GLContextWrapper::OSMesa(ref mut ctx) => ctx.swap_draw_buffer(),
+        }
+    }
+
+    pub fn draw_buffer_is_bound(&self) -> bool {
+        match *self {
+            GLContextWrapper::Native(ref ctx) => ctx.draw_buffer_is_bound(),
+            GLContextWrapper::OSMesa(ref ctx) => ctx.draw_buffer_is_bound(),
         }
     }
 
@@ -210,6 +233,17 @@ impl GLContextWrapper {
             GLContextWrapper::OSMesa(ref mut ctx) => {
                 // FIXME(nox): Why are those i32 values?
                 ctx.resize(size.to_i32())
+            },
+        }
+    }
+
+    pub fn get_framebuffer(&self) -> gl::GLuint {
+        match *self {
+            GLContextWrapper::Native(ref ctx) => {
+                ctx.get_framebuffer()
+            },
+            GLContextWrapper::OSMesa(ref ctx) => {
+                ctx.get_framebuffer()
             },
         }
     }
