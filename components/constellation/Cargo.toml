@@ -13,6 +13,7 @@ path = "lib.rs"
 [features]
 azure_backend = ["canvas/azure_backend"]
 raqote_backend = ["canvas/raqote_backend"]
+no_wgl = ["canvas/no_wgl"]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor"}
