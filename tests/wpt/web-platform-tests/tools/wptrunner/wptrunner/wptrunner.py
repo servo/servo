@@ -12,6 +12,7 @@ import testloader
 import wptcommandline
 import wptlogging
 import wpttest
+from mozlog import capture
 from font import FontInstaller
 from testrunner import ManagerGroup
 from browsers.base import NullBrowser
@@ -132,7 +133,7 @@ def get_pause_after_test(test_loader, **kwargs):
 
 
 def run_tests(config, test_paths, product, **kwargs):
-    with wptlogging.CaptureIO(logger, not kwargs["no_capture_stdio"]):
+    with capture.CaptureIO(logger, not kwargs["no_capture_stdio"]):
         env.do_delayed_imports(logger, test_paths)
 
         product = products.load_product(config, product, load_cls=True)

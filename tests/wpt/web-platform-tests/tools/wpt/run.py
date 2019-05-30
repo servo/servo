@@ -125,6 +125,11 @@ def check_environ(product):
         else:
             hosts_path = "/etc/hosts"
 
+        if os.path.abspath(os.curdir) == wpt_root:
+            wpt_path = "wpt"
+        else:
+            wpt_path = os.path.join(wpt_root, "wpt")
+
         with open(hosts_path, "r") as f:
             for line in f:
                 line = line.split("#", 1)[0].strip()
@@ -136,13 +141,14 @@ def check_environ(product):
                 if is_windows:
                     message = """Missing hosts file configuration. Run
 
-python wpt make-hosts-file | Out-File %s -Encoding ascii -Append
+python %s make-hosts-file | Out-File %s -Encoding ascii -Append
 
-in PowerShell with Administrator privileges.""" % hosts_path
+in PowerShell with Administrator privileges.""" % (wpt_path, hosts_path)
                 else:
                     message = """Missing hosts file configuration. Run
 
-./wpt make-hosts-file | sudo tee -a %s""" % hosts_path
+%s make-hosts-file | sudo tee -a %s""" % ("./wpt" if wpt_path == "wpt" else wpt_path,
+                                          hosts_path)
                 raise WptrunError(message)
 
 

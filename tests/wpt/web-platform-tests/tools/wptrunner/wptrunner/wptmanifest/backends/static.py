@@ -1,10 +1,10 @@
 import operator
 
-from ..node import NodeVisitor
+from . import base
 from ..parser import parse
 
 
-class Compiler(NodeVisitor):
+class Compiler(base.Compiler):
     """Compiler backend that evaluates conditional expressions
     to give static output"""
 
@@ -26,29 +26,7 @@ class Compiler(NodeVisitor):
         self._kwargs = kwargs
         self.expr_data = expr_data
 
-        if data_cls_getter is None:
-            self.data_cls_getter = lambda x, y: ManifestItem
-        else:
-            self.data_cls_getter = data_cls_getter
-
-        self.output_node = None
-        self.visit(tree)
-        return self.output_node
-
-    def visit_DataNode(self, node):
-        output_parent = self.output_node
-        if self.output_node is None:
-            assert node.parent is None
-            self.output_node = self.data_cls_getter(None, None)(None, **self._kwargs)
-        else:
-            self.output_node = self.data_cls_getter(self.output_node, node)(node.data)
-
-        for child in node.children:
-            self.visit(child)
-
-        if output_parent is not None:
-            output_parent.append(self.output_node)
-            self.output_node = self.output_node.parent
+        return self._compile(tree, data_cls_getter, **kwargs)
 
     def visit_KeyValueNode(self, node):
         key_name = node.data
@@ -61,15 +39,6 @@ class Compiler(NodeVisitor):
         if key_value is not None:
             self.output_node.set(key_name, key_value)
 
-    def visit_ValueNode(self, node):
-        return node.data
-
-    def visit_AtomNode(self, node):
-        return node.data
-
-    def visit_ListNode(self, node):
-        return [self.visit(child) for child in node.children]
-
     def visit_ConditionalNode(self, node):
         assert len(node.children) == 2
         if self.visit(node.children[0]):
@@ -80,12 +49,6 @@ class Compiler(NodeVisitor):
         for child in node.children:
             value = self.visit(child)(value)
         return value
-
-    def visit_NumberNode(self, node):
-        if "." in node.data:
-            return float(node.data)
-        else:
-            return int(node.data)
 
     def visit_VariableNode(self, node):
         value = self.expr_data[node.data]
@@ -121,92 +84,6 @@ class Compiler(NodeVisitor):
                 "or": operator.or_,
                 "==": operator.eq,
                 "!=": operator.ne}[node.data]
-
-
-class ManifestItem(object):
-    def __init__(self, name, **kwargs):
-        self.parent = None
-        self.name = name
-        self.children = []
-        self._data = {}
-
-    def __repr__(self):
-        return "<static.ManifestItem %s>" % (self.name)
-
-    def __str__(self):
-        rv = [repr(self)]
-        for item in self.children:
-            rv.extend("  %s" % line for line in str(item).split("\n"))
-        return "\n".join(rv)
-
-    def set_defaults(self):
-        pass
-
-    @property
-    def is_empty(self):
-        if self._data:
-            return False
-        return all(child.is_empty for child in self.children)
-
-    @property
-    def root(self):
-        node = self
-        while node.parent is not None:
-            node = node.parent
-        return node
-
-    def has_key(self, key):
-        for node in [self, self.root]:
-            if key in node._data:
-                return True
-        return False
-
-    def get(self, key):
-        for node in [self, self.root]:
-            if key in node._data:
-                return node._data[key]
-        raise KeyError
-
-    def set(self, name, value):
-        self._data[name] = value
-
-    def remove(self):
-        if self.parent:
-            self.parent._remove_child(self)
-
-    def _remove_child(self, child):
-        self.children.remove(child)
-        child.parent = None
-
-    def iterchildren(self, name=None):
-        for item in self.children:
-            if item.name == name or name is None:
-                yield item
-
-    def _flatten(self):
-        rv = {}
-        for node in [self, self.root]:
-            for name, value in node._data.iteritems():
-                if name not in rv:
-                    rv[name] = value
-        return rv
-
-    def iteritems(self):
-        for item in self._flatten().iteritems():
-            yield item
-
-    def iterkeys(self):
-        for item in self._flatten().iterkeys():
-            yield item
-
-    def itervalues(self):
-        for item in self._flatten().itervalues():
-            yield item
-
-    def append(self, child):
-        child.parent = self
-        self.children.append(child)
-        return child
 
 
 def compile_ast(ast, expr_data, data_cls_getter=None, **kwargs):

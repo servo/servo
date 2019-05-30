@@ -153,7 +153,7 @@ class MtimeCache(CacheFile):
 
     def __init__(self, cache_root, tests_root, manifest_path, rebuild=False):
         self.manifest_path = manifest_path
-        super(MtimeCache, self).__init__(cache_root, tests_root, rebuild=False)
+        super(MtimeCache, self).__init__(cache_root, tests_root, rebuild)
 
     def updated(self, rel_path, stat):
         """Return a boolean indicating whether the file changed since the cache was last updated.

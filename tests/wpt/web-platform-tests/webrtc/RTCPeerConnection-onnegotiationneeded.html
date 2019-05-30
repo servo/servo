@@ -328,6 +328,27 @@
   }, 'Updating the direction of the transceiver should cause negotiationneeded to fire');
 
   /*
+    5.2.  RTCRtpSender Interface
+
+      setStreams
+        7.  Update the negotiation-needed flag for connection.
+  */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    const stream = new MediaStream();
+    transceiver.sender.setStreams(stream);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'Calling setStreams should cause negotiationneeded to fire');
+
+  /*
     TODO
     4.7.3.  Updating the Negotiation-Needed flag
 

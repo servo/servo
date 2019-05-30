@@ -116,7 +116,7 @@ function forEachWebxrObject(callback) {
 
 // Code for loading test api in chromium.
 let loadChromiumResources = Promise.resolve().then(() => {
-  if (!MojoInterfaceInterceptor) {
+  if (!('MojoInterfaceInterceptor' in self)) {
     // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
     // not present in the global namespace.
     return;

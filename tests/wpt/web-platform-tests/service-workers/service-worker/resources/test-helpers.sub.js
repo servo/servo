@@ -75,9 +75,11 @@ function wait_for_update(test, registration) {
   }
 
   return new Promise(test.step_func(function(resolve) {
-      registration.addEventListener('updatefound', test.step_func(function() {
-          resolve(registration.installing);
-        }));
+      var handler = test.step_func(function() {
+        registration.removeEventListener('updatefound', handler);
+        resolve(registration.installing);
+      });
+      registration.addEventListener('updatefound', handler);
     }));
 }
 

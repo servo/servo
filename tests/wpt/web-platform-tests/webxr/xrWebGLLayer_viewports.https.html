@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-constants.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/xr-test-asserts.js"></script>
+<canvas></canvas>
+
+<script>
+
+let immersiveTestName = "XRWebGLLayer reports a valid viewports for immersive sessions";
+let inlineTestName = "XRWebGLLayer reports a valid viewports for inline sessions";
+
+let fakeDeviceInitParams = { supportsImmersive:true };
+
+let testFunction = function(session, fakeDeviceController, t) {
+  // Need to have a valid pose.
+  fakeDeviceController.setXRPresentationFrameData(VALID_POSE_MATRIX, [{
+      eye:"left",
+      projectionMatrix: VALID_PROJECTION_MATRIX,
+      viewMatrix: VALID_VIEW_MATRIX
+    }, {
+      eye:"right",
+      projectionMatrix: VALID_PROJECTION_MATRIX,
+      viewMatrix: VALID_VIEW_MATRIX
+    }]);
+
+  return session.requestReferenceSpace('viewer')
+      .then((space) => new Promise((resolve) => {
+    function onFrame(time, xrFrame) {
+      let viewer_pose = xrFrame.getViewerPose(space);
+
+      let layer = xrFrame.session.renderState.baseLayer;
+      for (view of viewer_pose.views) {
+        let viewport = layer.getViewport(view);
+
+        // Ensure the returned object is an XRViewport object
+        assert_not_equals(viewport, null);
+        assert_true(viewport instanceof XRViewport);
+
+        // Ensure the viewport dimensions are valid
+        assert_greater_than_equal(viewport.x, 0);
+        assert_greater_than_equal(viewport.y, 0);
+        assert_greater_than_equal(viewport.width, 1);
+        assert_greater_than_equal(viewport.height, 1);
+      }
+
+      // Finished test.
+      resolve();
+    }
+
+    session.requestAnimationFrame(onFrame);
+  }));
+};
+
+xr_session_promise_test(immersiveTestName, testFunction,
+  fakeDeviceInitParams, 'immersive-vr');
+xr_session_promise_test(inlineTestName, testFunction,
+  fakeDeviceInitParams, 'inline');
+
+</script>
