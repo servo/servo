@@ -365,7 +365,10 @@ def windows_x86():
         })
         .with_script(
             "python mach build --dev --target i686-pc-windows-msvc",
+            "python mach package --dev",
         )
+        .with_artifacts("repo/target/debug/msi/Servo.exe",
+                        "repo/target/debug/msi/Servo.zip")
         .find_or_create("build.windows_x86_dev." + CONFIG.task_id())
     )
 
