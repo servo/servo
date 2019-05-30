@@ -14,6 +14,8 @@ use gleam::gl;
 use servo_config::pref;
 use std::rc::Rc;
 
+use io_surface;
+
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);
 
@@ -70,11 +72,21 @@ impl WebGLThreads {
 struct WebGLExternalImages {
     webrender_gl: Rc<dyn gl::Gl>,
     webgl_channel: WebGLSender<WebGLMsg>,
+    // Mapping between an IOSurface and the texture it is bound on the WR thread
+    textures: FnvHashMap<u32, gl::GLuint>,
     // Used to avoid creating a new channel on each received WebRender request.
     lock_channel: (
-        WebGLSender<(u32, Size2D<i32>, usize)>,
-        WebGLReceiver<(u32, Size2D<i32>, usize)>,
+        WebGLSender<(u32, Size2D<i32>, Option<u32>, usize)>,
+        WebGLReceiver<(u32, Size2D<i32>, Option<u32>, usize)>,
     ),
+}
+
+impl Drop for WebGLExternalImages {
+    fn drop(&mut self) {
+        for (_, texture_id) in &self.textures {
+            self.webrender_gl.delete_textures(&[*texture_id]);
+        }
+    }
 }
 
 impl WebGLExternalImages {
@@ -82,6 +94,7 @@ impl WebGLExternalImages {
         Self {
             webrender_gl,
             webgl_channel: channel,
+            textures: Default::default(),
             lock_channel: webgl_channel().unwrap(),
         }
     }
@@ -94,13 +107,41 @@ impl WebGLExternalImageApi for WebGLExternalImages {
         self.webgl_channel
             .send(WebGLMsg::Lock(ctx_id, self.lock_channel.0.clone()))
             .unwrap();
-        let (image_id, size, gl_sync) = self.lock_channel.1.recv().unwrap();
-        // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
-        // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
-        // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
-        self.webrender_gl
-            .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-        (image_id, size)
+        let (image_id, size, io_surface_id, gl_sync) = self.lock_channel.1.recv().unwrap();
+
+        let texture_id = if let Some(io_surface_id) = io_surface_id {
+            self.webrender_gl.enable(gl::TEXTURE_RECTANGLE);
+            let mut new_texture = false;
+            let new_texture_id = self.webrender_gl.gen_textures(1)[0];
+
+            let texture_id = *self.textures.entry(io_surface_id).or_insert_with(||{
+                new_texture = true;
+                new_texture_id
+            });
+
+            if new_texture {
+                self.webrender_gl.bind_texture(gl::TEXTURE_RECTANGLE, texture_id);
+                let io_surface = io_surface::lookup(io_surface_id);
+                io_surface.bind_to_gl_texture(size.width, size.height);
+            } else {
+                self.webrender_gl.delete_textures(&[new_texture_id]);
+            }
+
+            self.webrender_gl
+                .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
+
+            texture_id
+        } else {
+            // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
+            // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
+            // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
+            self.webrender_gl
+                .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
+            image_id
+        };
+
+
+        (texture_id, size)
     }
 
     fn unlock(&mut self, ctx_id: WebGLContextId) {
