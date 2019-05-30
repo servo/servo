@@ -25,12 +25,6 @@ pub struct RecalcStyleAndConstructFlows<'a> {
 }
 
 impl<'a> RecalcStyleAndConstructFlows<'a> {
-    pub fn layout_context(&self) -> &LayoutContext<'a> {
-        &self.context
-    }
-}
-
-impl<'a> RecalcStyleAndConstructFlows<'a> {
     /// Creates a traversal context, taking ownership of the shared layout context.
     pub fn new(context: LayoutContext<'a>) -> Self {
         RecalcStyleAndConstructFlows { context: context }

@@ -51,7 +51,6 @@ use num_traits::cast::FromPrimitive;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
 use std::fmt;
-use std::iter::Zip;
 use std::slice::IterMut;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -126,11 +125,6 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     /// If this is a flex flow, returns the underlying object. Fails otherwise.
     fn as_flex(&self) -> &FlexFlow {
         panic!("called as_flex() on a non-flex flow")
-    }
-
-    /// If this is a flex flow, returns the underlying object, borrowed mutably. Fails otherwise.
-    fn as_mut_flex(&mut self) -> &mut FlexFlow {
-        panic!("called as_mut_flex() on a non-flex flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
@@ -785,8 +779,6 @@ impl<'a> Iterator for AbsoluteDescendantIter<'a> {
         self.iter.size_hint()
     }
 }
-
-pub type AbsoluteDescendantOffsetIter<'a> = Zip<AbsoluteDescendantIter<'a>, IterMut<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows) that is computed during block-size assignment.

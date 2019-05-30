@@ -127,12 +127,6 @@ impl FlowList {
 
     /// O(1)
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.flows.is_empty()
-    }
-
-    /// O(1)
-    #[inline]
     pub fn len(&self) -> usize {
         self.flows.len()
     }
