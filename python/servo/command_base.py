@@ -367,7 +367,9 @@ class CommandBase(object):
     def get_gstreamer_path(self):
         return path.join(self.context.topdir, "support", "linux", "gstreamer", "gst")
 
-    def get_binary_path(self, release, dev, android=False, magicleap=False):
+    def get_binary_path(self, release, dev, target=None, android=False, magicleap=False):
+        assert (not android and not magicleap) or not target
+
         # TODO(autrilla): this function could still use work - it shouldn't
         # handle quitting, or printing. It should return the path, or an error.
         base_path = self.get_target_dir()
@@ -380,6 +382,8 @@ class CommandBase(object):
         elif android:
             base_path = path.join(base_path, "android", self.config["android"]["target"])
             binary_name = "libsimpleservo.so"
+        elif target:
+            base_path = path.join(base_path, target)
 
         release_path = path.join(base_path, "release", binary_name)
         dev_path = path.join(base_path, "debug", binary_name)
