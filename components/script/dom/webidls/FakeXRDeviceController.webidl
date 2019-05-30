@@ -13,7 +13,7 @@ interface FakeXRDeviceController {
   // // requestAnimationFrame() callbacks.
   [Throws] void setViews(sequence<FakeXRViewInit> views);
 
-  // void setViewerOrigin(FakeXRRigidTransform origin);
+  [Throws] void setViewerOrigin(FakeXRRigidTransform origin);
 
   // Simulates the user activating the reset pose on a device.
   // void simulateResetPose();
