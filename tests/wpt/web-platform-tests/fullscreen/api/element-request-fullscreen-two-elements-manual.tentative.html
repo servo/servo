@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+    https://github.com/whatwg/fullscreen/issues/152
+
+-->
+<title>Element#requestFullscreen() on two elements in the same document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="a"></div>
+<div id="b"></div>
+<script>
+promise_test(async (test) => {
+  // Request fullscreen on both elements, but in reverse tree order.
+  const a = document.getElementById('a');
+  const b = document.getElementById('b');
+
+  // Expect two fullscreenchange events, with document.fullscreenElement
+  // changing in the same order as the requests.
+  const order = [];
+  const fullscreenChangePromise = new Promise((resolve, reject) => {
+    document.onfullscreenchange = test.step_func(() => {
+      assert_in_array(document.fullscreenElement, [a, b]);
+      order.push(document.fullscreenElement.id);
+      if (order.length == 2) {
+        // Since fullscreenchange event occurs at animation frame timing we might
+        // have not seen the transition from null -> 'b' but just see the
+        // resulting 'a' transition twice.
+        assert_true(order[0] == 'a' || order[0] == 'b', 'first id seen is a or b');
+        assert_true(order[1] == 'a', 'second id seen is b');
+      }
+      resolve();
+    });
+  });
+  const fullscreenErrorPromise = new Promise((resolve, reject) => {
+    document.onfullscreenerror = test.step_func(() => {
+      resolve();
+    });
+  });
+
+  trusted_click(test, () => {
+    b.requestFullscreen();
+    var p = a.requestFullscreen();
+    if (p) {
+      p.then(test.unreached_func("promise unexpectedly resolved"), ()=>{});
+    }
+  }, document.body);
+
+  await Promise.all([
+    fullscreenChangePromise,
+    fullscreenErrorPromise,
+  ]);
+});
+</script>

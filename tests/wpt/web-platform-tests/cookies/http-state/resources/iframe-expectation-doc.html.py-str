@@ -5,7 +5,7 @@
     <title>Cookie Test Expectation Document</title>
   </head>
   <body>
-    <div id="data">{data}</div>
+    <div id="data" style="white-space: pre">{data}</div>
     <script src="iframe-content-pushing.js"></script>
   </body>
 </html>

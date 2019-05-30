@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+    https://github.com/whatwg/fullscreen/issues/152
+
+-->
+<title>Element#requestFullscreen() twice</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+promise_test(async (test) => {
+  const div = document.querySelector("div");
+
+  const fullscreenChangePromise = new Promise((resolve, reject) => {
+    document.onfullscreenchange = test.step_func(() => {
+      assert_equals(document.fullscreenElement, div);
+      // Ensure that there's only one fullscreenchange event.
+      document.onfullscreenchange = test.unreached_func("second fullscreenchange event");
+      resolve();
+    });
+  });
+
+  const fullscreenErrorPromise = new Promise((resolve, reject) => {
+    document.onfullscreenerror = test.step_func(() => {
+      resolve();
+    });
+  });
+
+  trusted_click(test, () => {
+    // Request fullscreen twice.
+    div.requestFullscreen();
+    assert_equals(document.fullscreenElement, null, "fullscreenElement after first requestFullscreen()");
+    var p = div.requestFullscreen();
+    if (p) {
+      p.then(test.unreached_func("promise unexpectedly resolved"), ()=>{});
+    }
+  }, document.body);
+
+  await Promise.all([
+    fullscreenChangePromise,
+    fullscreenErrorPromise,
+  ]);
+});
+</script>

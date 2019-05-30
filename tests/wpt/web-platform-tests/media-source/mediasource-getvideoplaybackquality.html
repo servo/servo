@@ -60,7 +60,7 @@
                   assert_false(sourceBuffer.updating, "updating");
                   mediaSource.endOfStream();
                   assert_less_than(mediaSource.duration, 10, "duration");
-                  mediaElement.play();
+                  mediaElement.play().catch(test.unreached_func("Unexpected promise rejection"));;
                   test.expectEvent(mediaElement, 'ended', 'mediaElement');
               });
 
@@ -103,7 +103,7 @@
                   mediaSource.endOfStream();
                   assert_less_than(mediaSource.duration, 10, "duration");
                   startTime = window.performance.now();
-                  mediaElement.play();
+                  mediaElement.play().catch(test.unreached_func("Unexpected promise rejection"));
                   test.expectEvent(mediaElement, 'ended', 'mediaElement');
               });
 

@@ -61,8 +61,8 @@ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
 
 typedef (DOMString or Function) TimerHandler;
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowOrWorkerGlobalScope {
+[Exposed=(Window,Worker)]
+interface mixin WindowOrWorkerGlobalScope {
   [Replaceable] readonly attribute USVString origin;
 
   // base64 utility methods
@@ -79,17 +79,17 @@ interface WindowOrWorkerGlobalScope {
   Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options);
   Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, long sx, long sy, long sw, long sh, optional ImageBitmapOptions options);
 };
-WorkerGlobalScope implements WindowOrWorkerGlobalScope;
+WorkerGlobalScope includes WindowOrWorkerGlobalScope;
 
 [Exposed=Worker]
 interface WorkerNavigator {};
-WorkerNavigator implements NavigatorID;
-WorkerNavigator implements NavigatorLanguage;
-WorkerNavigator implements NavigatorOnLine;
-WorkerNavigator implements NavigatorConcurrentHardware;
+WorkerNavigator includes NavigatorID;
+WorkerNavigator includes NavigatorLanguage;
+WorkerNavigator includes NavigatorOnLine;
+WorkerNavigator includes NavigatorConcurrentHardware;
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorID {
+[Exposed=(Window,Worker)]
+interface mixin NavigatorID {
   readonly attribute DOMString appCodeName; // constant "Mozilla"
   readonly attribute DOMString appName; // constant "Netscape"
   readonly attribute DOMString appVersion;
@@ -103,19 +103,19 @@ interface NavigatorID {
   // also has additional members in a partial interface
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorLanguage {
+[Exposed=(Window,Worker)]
+interface mixin NavigatorLanguage {
   readonly attribute DOMString language;
   readonly attribute FrozenArray<DOMString> languages;
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorOnLine {
+[Exposed=(Window,Worker)]
+interface mixin NavigatorOnLine {
   readonly attribute boolean onLine;
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorConcurrentHardware {
+[Exposed=(Window,Worker)]
+interface mixin NavigatorConcurrentHardware {
   readonly attribute unsigned long long hardwareConcurrency;
 };
 

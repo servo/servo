@@ -42,7 +42,8 @@ release = u''
 # ones.
 extensions = [
     'recommonmark',
-    'sphinxarg.ext'
+    'sphinxarg.ext',
+    'sphinx.ext.autodoc'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

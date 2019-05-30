@@ -179,7 +179,11 @@ class Firefox(Browser):
             binary = find_executable("firefox", os.path.join(path, "firefox"))
         elif self.platform == "win":
             import mozinstall
-            binary = mozinstall.get_binary(path, "firefox")
+            try:
+                binary = mozinstall.get_binary(path, "firefox")
+            except mozinstall.InvalidBinary:
+                # ignore the case where we fail to get a binary
+                pass
         elif self.platform == "macos":
             binary = find_executable("firefox", os.path.join(path, self.application_name.get(channel, "Firefox Nightly.app"),
                                                              "Contents", "MacOS"))

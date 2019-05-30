@@ -17,12 +17,12 @@
             // Testing TextTrackCueList [] operator.
             assert_equals(cues[0].id, "1");
             assert_equals(cues[3].id, "4");
-            assert_object_equals(cues[4], undefined);
+            assert_equals(cues[4], undefined);
 
             // Testing TextTrackCueList getCueById().
             assert_equals(cues.getCueById("1").startTime, 0);
             assert_equals(cues.getCueById("4").startTime, 121);
-            assert_object_equals(cues.getCueById("junk"), undefined);
+            assert_equals(cues.getCueById("junk"), null);
         });
     });
     </script>

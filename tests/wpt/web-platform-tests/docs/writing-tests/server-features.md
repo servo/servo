@@ -82,12 +82,20 @@ the file e.g. `test.html.sub.headers`.
 
 ### Tests Requiring Full Control Over The HTTP Response
 
+```eval_rst
+.. toctree::
+   :maxdepth: 1
+
+   python-handlers/index
+   server-pipes
+```
+
 For full control over the request and response the server provides the
 ability to write `.asis` files; these are served as literal HTTP
-responses. It also provides the ability to write Python scripts that
-have access to request data and can manipulate the content and timing
-of the response. For details see the
-[wptserve documentation](https://wptserve.readthedocs.org).
+responses. It also provides the ability to write [Python
+"handlers"](python-handlers/index)--Python scripts that have access to request
+data and can manipulate the content and timing of the response. Responses are
+also influenced by [the `pipe` query string parameter](server-pipes).
 
 
 ### Writing tests for HTTP/2.0

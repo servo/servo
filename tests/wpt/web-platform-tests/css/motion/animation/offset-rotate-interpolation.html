@@ -27,6 +27,45 @@
 
       test_interpolation({
         property: 'offset-rotate',
+        from: 'auto 45deg',
+        to: 'auto 125deg',
+      }, [
+        {at: -1, expect: 'auto -35deg'},
+        {at: 0, expect: 'auto 45deg'},
+        {at: 0.125, expect: 'auto 55deg'},
+        {at: 0.875, expect: 'auto 115deg'},
+        {at: 1, expect: 'auto 125deg'},
+        {at: 2, expect: 'auto 205deg'}
+      ]);
+
+      test_interpolation({
+        property: 'offset-rotate',
+        from: 'auto 170deg',
+        to: '100grad auto',
+      }, [
+        {at: -1, expect: 'auto 250deg'},
+        {at: 0, expect: 'auto 170deg'},
+        {at: 0.125, expect: 'auto 160deg'},
+        {at: 0.875, expect: 'auto 100deg'},
+        {at: 1, expect: '100grad auto'},
+        {at: 2, expect: 'auto 10deg'}
+      ]);
+
+      test_interpolation({
+        property: 'offset-rotate',
+        from: 'auto -280deg',
+        to: 'auto calc(90deg - 0.5turn - 300grad + 0rad)',
+      }, [
+        {at: -1, expect: 'auto -200deg'},
+        {at: 0, expect: 'auto -280deg'},
+        {at: 0.125, expect: 'auto -290deg'},
+        {at: 0.875, expect: 'auto -350deg'},
+        {at: 1, expect: 'auto calc(90deg - 0.5turn - 300grad + 0rad)'},
+        {at: 2, expect: 'auto -440deg'}
+      ]);
+
+      test_interpolation({
+        property: 'offset-rotate',
         from: 'auto 100deg',
         to: 'reverse',
       }, [
