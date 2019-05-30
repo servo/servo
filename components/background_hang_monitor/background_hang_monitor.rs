@@ -51,7 +51,10 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
     ) -> Box<BackgroundHangMonitor> {
         let bhm_chan = BackgroundHangMonitorChan::new(self.sender.clone(), component_id);
 
-        #[cfg(target_os = "windows")]
+        #[cfg(all(
+            target_os = "windows",
+            any(target_arch = "x86_64", target_arch = "x86")
+        ))]
         let sampler = crate::sampler_windows::WindowsSampler::new();
         #[cfg(target_os = "macos")]
         let sampler = crate::sampler_mac::MacOsSampler::new();
