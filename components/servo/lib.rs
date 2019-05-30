@@ -285,7 +285,7 @@ where
         script::init();
 
         let mut webvr_heartbeats = Vec::new();
-        let webvr_services = if pref!(dom.webvr.enabled) {
+        let webvr_services = if pref!(dom.webvr.enabled) || pref!(dom.webxr.enabled) {
             let mut services = VRServiceManager::new();
             services.register_defaults();
             embedder.register_vr_services(&mut services, &mut webvr_heartbeats);
