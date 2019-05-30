@@ -63,7 +63,7 @@ use std::cell::Cell;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
-use style::str::split_commas;
+use style::str::{split_commas, str_join};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -1194,6 +1194,24 @@ impl HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#range-state-(type=range):value-sanitization-algorithm
             InputType::Range => {
                 value.set_best_representation_of_the_floating_point_number();
+            },
+            InputType::Email => {
+                if !self.Multiple() {
+                    value.strip_newlines();
+                    value.strip_leading_and_trailing_ascii_whitespace();
+                } else {
+                    let sanitized = str_join(
+                        split_commas(value).map(|token| {
+                            let mut token = DOMString::from_string(token.to_string());
+                            token.strip_newlines();
+                            token.strip_leading_and_trailing_ascii_whitespace();
+                            token
+                        }),
+                        ",",
+                    );
+                    value.clear();
+                    value.push_str(sanitized.as_str());
+                }
             },
             _ => (),
         }
