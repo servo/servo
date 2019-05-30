@@ -358,7 +358,7 @@ def android_x86_wpt():
 
 def windows_x86():
     return (
-        windows_build_task("Dev build", package=False, arch="x86")
+        windows_build_task("Dev build", arch="x86")
         .with_treeherder("Windows x86")
         .with_env(**{
             "VCVARSALL_PATH": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build"
