@@ -701,15 +701,19 @@ def android_build_task(name):
 def windows_build_task(name, package=True, arch="x86_64"):
     hashes = {
         "devel": {
-            "x86_64": "b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
-            "x86": "50a18d050cdbb0779cd00607cc00a90f24fac48f2fb6c622ade6f23f050feb7a",
+            "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
+            "x86": "fed862659360b4fbc77920bdc28f1a7da56bb953b88044834db5161c0ee05eb3",
         },
         "non-devel": {
-            "x86_64": "f4f20c713766ed6718b914b9ae57ed993a59ffe194e6ef530c8547508b4484d8",
-            "x86": "52692c12ba8c3f59b5a289050e146d34d8374ab32b9f5070f7d1e37809656068",
+            "x86_64": "0744a8ef2a4ba393dacb7927d741df871400a85bab5aecf7905f63bf52c405e4",
+            "x86": "f36df8ba7a3858c2299162312cb939e3fe8ff65c704f988c497405ba8d9cb275",
         },
     }
-    version = "1.14.3"
+    prefix = {
+        "x86_64": "msvc",
+        "x86": "mingw",
+    }
+    version = "1.16.0"
     task = (
         windows_task(name)
         .with_max_run_time_minutes(90)
@@ -728,13 +732,13 @@ def windows_build_task(name, package=True, arch="x86_64"):
         .with_rustup()
         .with_repacked_msi(
             url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                 "%s/gstreamer-1.0-%s-%s.msi" % (version, arch, version)),
+                 "%s/gstreamer-1.0-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
             sha256=hashes["non-devel"][arch],
             path="gst",
         )
         .with_repacked_msi(
             url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                 "%s/gstreamer-1.0-devel-%s-%s.msi" % (version, arch, version)),
+                 "%s/gstreamer-1.0-devel-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
             sha256=hashes["devel"][arch],
             path="gst",
         )
