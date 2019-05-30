@@ -38,3 +38,6 @@ webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webrender_traits = {path = "../webrender_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
+
+[target.x86_64-apple-darwin.dependencies]
+io-surface = "0.11.1"
