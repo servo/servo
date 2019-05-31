@@ -21,6 +21,7 @@ use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
 use crate::dom::xrsession::XRSession;
+use crate::dom::xrtest::XRTest;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
@@ -36,6 +37,7 @@ pub struct XR {
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
     pending_immersive_session: Cell<bool>,
     active_immersive_session: MutNullableDom<VRDisplay>,
+    test: MutNullableDom<XRTest>,
 }
 
 impl XR {
@@ -46,6 +48,7 @@ impl XR {
             gamepads: DomRefCell::new(Vec::new()),
             pending_immersive_session: Cell::new(false),
             active_immersive_session: Default::default(),
+            test: Default::default(),
         }
     }
 
@@ -140,6 +143,11 @@ impl XRMethods for XR {
         let session = XRSession::new(&self.global(), &displays[0]);
         session.xr_present(promise.clone());
         promise
+    }
+
+    // https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    fn Test(&self) -> DomRoot<XRTest> {
+        self.test.or_init(|| XRTest::new(&self.global()))
     }
 }
 

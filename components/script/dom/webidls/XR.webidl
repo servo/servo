@@ -28,3 +28,8 @@ dictionary XRSessionCreationOptions {
   XRSessionMode mode = "inline";
   // XRPresentationContext outputContext;
 };
+
+partial interface XR {
+  // https://github.com/immersive-web/webxr-test-api/
+  [SameObject, Pref="dom.webxr.test"] readonly attribute XRTest test;
+};

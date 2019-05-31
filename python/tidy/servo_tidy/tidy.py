@@ -98,6 +98,7 @@ WEBIDL_STANDARDS = [
     "//wicg.github.io",
     "//webaudio.github.io",
     "//immersive-web.github.io/",
+    "//github.com/immersive-web/webxr-test-api/",
     # Not a URL
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."

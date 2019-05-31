@@ -99,7 +99,8 @@ impl XRSpace {
             orient[1] as f64,
             orient[2] as f64,
             orient[3] as f64,
-        );
+        )
+        .normalize();
         RigidTransform3D::new(rotation, translation)
     }
 

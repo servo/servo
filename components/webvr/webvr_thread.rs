@@ -14,6 +14,7 @@ use script_traits::ConstellationMsg;
 use servo_config::pref;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
+use std::sync::mpsc;
 use std::{thread, time};
 use webvr_traits::webvr::*;
 use webvr_traits::{WebVRMsg, WebVRPoseInformation, WebVRResult};
@@ -46,6 +47,7 @@ pub struct WebVRThread {
     vr_compositor_chan: WebVRCompositorSender,
     polling_events: bool,
     presenting: HashMap<u32, PipelineId>,
+    mock: Option<mpsc::Sender<MockVRControlMsg>>,
 }
 
 impl WebVRThread {
@@ -65,6 +67,7 @@ impl WebVRThread {
             vr_compositor_chan: vr_compositor_chan,
             polling_events: false,
             presenting: HashMap::new(),
+            mock: None,
         }
     }
 
@@ -130,6 +133,13 @@ impl WebVRThread {
                 },
                 WebVRMsg::GetGamepadsForDisplay(display_id, sender) => {
                     self.handle_get_gamepads_for_display(display_id, sender);
+                },
+
+                WebVRMsg::CreateMockDisplay => {
+                    self.handle_create_mock();
+                },
+                WebVRMsg::MessageMockDisplay(msg) => {
+                    self.handle_message_mock_display(msg);
                 },
                 WebVRMsg::Exit => break,
             }
@@ -300,6 +310,22 @@ impl WebVRThread {
             })
             .collect();
         sender.send(Ok(data)).unwrap();
+    }
+
+    fn handle_create_mock(&mut self) {
+        if self.mock.is_some() {
+            warn!("Mock display already created");
+            return;
+        }
+        self.mock = Some(self.service.register_mock_with_remote());
+    }
+
+    fn handle_message_mock_display(&mut self, msg: MockVRControlMsg) {
+        self.mock
+            .as_ref()
+            .expect("Mock Display not yet set up")
+            .send(msg)
+            .expect("Could not send message to mock display");
     }
 
     fn poll_events(&mut self, sender: IpcSender<bool>) {
