@@ -32,6 +32,7 @@ hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.12", optional = true }
 hyper_serde = { version = "0.9", optional = true }
 keyboard-types = {version = "0.4.3", optional = true}
+parking_lot = "0.8"
 selectors = { path = "../selectors" }
 serde = { version = "1.0.27", optional = true }
 serde_bytes = { version = "0.10", optional = true }
