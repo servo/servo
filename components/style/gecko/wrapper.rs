@@ -704,9 +704,8 @@ impl<'le> GeckoElement<'le> {
                     .map(GeckoElement)
             }
         } else {
-            let binding_parent = unsafe { self.non_xul_xbl_binding_parent_raw_content().as_ref() }
-                .map(GeckoNode::from_content)
-                .and_then(|n| n.as_element());
+            let binding_parent = unsafe { self.non_xul_xbl_binding_parent().as_ref() }
+                .map(GeckoElement);
 
             debug_assert!(
                 binding_parent ==
@@ -721,10 +720,10 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
+    fn non_xul_xbl_binding_parent(&self) -> *mut RawGeckoElement {
         debug_assert!(!self.is_xul_element());
         self.extended_slots().map_or(ptr::null_mut(), |slots| {
-            slots._base.mBindingParent.raw::<nsIContent>()
+            slots._base.mBindingParent.mRawPtr
         })
     }
 
