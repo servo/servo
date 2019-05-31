@@ -617,15 +617,14 @@ class MachCommands(CommandBase):
             if sys.platform == "win32":
                 servo_exe_dir = path.join(base_path, "debug" if dev else "release")
 
-                msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
                 # on msvc builds, use editbin to change the subsystem to windows, but only
                 # on release builds -- on debug builds, it hides log output
                 if not dev:
                     call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
                          verbose=verbose)
                 # on msvc, we need to copy in some DLLs in to the servo.exe dir
-                for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
-                    shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
+                for ssl_lib in ["libeay32.dll", "ssleay32.dll"]:
+                    shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin", ssl_lib),
                                 servo_exe_dir)
                 # Search for the generated nspr4.dll
                 build_path = path.join(servo_exe_dir, "build")
@@ -647,6 +646,7 @@ class MachCommands(CommandBase):
                 package_generated_shared_libraries(["nspr4.dll", "libEGL.dll"], build_path, servo_exe_dir)
 
                 # copy needed gstreamer DLLs in to servo.exe dir
+                msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
                 gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
                 gst_root = ""
                 gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
