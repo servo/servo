@@ -43,6 +43,7 @@ impl XRTest {
 }
 
 impl XRTestMethods for XRTest {
+    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit) -> Rc<Promise> {
         let p = Promise::new(&self.global());
 

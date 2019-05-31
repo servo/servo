@@ -48,7 +48,7 @@ impl FakeXRDeviceController {
 }
 
 impl FakeXRDeviceControllerMethods for FakeXRDeviceController {
-    // check-tidy: no specs after this line
+    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn SetViews(&self, views: Vec<FakeXRViewInit>) -> Fallible<()> {
         if views.len() != 2 {
             return Err(Error::NotSupported);
@@ -87,6 +87,7 @@ impl FakeXRDeviceControllerMethods for FakeXRDeviceController {
         Ok(())
     }
 
+    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn SetViewerOrigin(&self, origin: &FakeXRRigidTransform) -> Fallible<()> {
         if origin.position.len() != 4 || origin.orientation.len() != 4 {
             return Err(Error::Type("Incorrectly sized array".into()));
