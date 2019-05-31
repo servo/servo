@@ -3355,9 +3355,6 @@ clip-path
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Color">
-</%self:impl_trait>
-
 <%self:impl_trait style_struct_name="InheritedUI" skip_longhands="cursor">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         self.gecko.mCursor = v.keyword;

@@ -645,7 +645,7 @@ impl ToComputedValue for ColorPropertyValue {
     fn to_computed_value(&self, context: &Context) -> RGBA {
         self.0
             .to_computed_value(context)
-            .to_rgba(context.builder.get_parent_color().clone_color())
+            .to_rgba(context.builder.get_parent_inherited_text().clone_color())
     }
 
     #[inline]
