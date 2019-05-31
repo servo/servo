@@ -257,6 +257,25 @@ class MarionettePrefsProtocolPart(PrefsProtocolPart):
                 case prefInterface.PREF_INT:
                     prefInterface.setIntPref(pref, value);
                     break;
+                case prefInterface.PREF_INVALID:
+                    // Pref doesn't seem to be defined already; guess at the
+                    // right way to set it based on the type of value we have.
+                    switch (typeof value) {
+                        case "boolean":
+                            prefInterface.setBoolPref(pref, value);
+                            break;
+                        case "string":
+                            prefInterface.setCharPref(pref, value);
+                            break;
+                        case "number":
+                            prefInterface.setIntPref(pref, value);
+                            break;
+                        default:
+                            throw new Error("Unknown pref value type: " + (typeof value));
+                    }
+                    break;
+                default:
+                    throw new Error("Unknown pref type " + type);
             }
             """ % (name, value)
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):

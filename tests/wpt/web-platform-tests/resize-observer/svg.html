@@ -188,7 +188,7 @@ function test5() {
 function test6() {
   let target = document.querySelector('polygon');
   let helper = new ResizeTestHelper(
-    "test6: observe svg:path",
+    "test6: observe svg:polygon",
   [
     {
       setup: observer => {
@@ -311,6 +311,58 @@ function test10() {
   return helper.start();
 }
 
+function test11() {
+  // <svg>
+  //   <view></view>
+  //   <defs>
+  //     <linearGradient>
+  //       <stop></stop>
+  //     </linearGradient>
+  //   </defs>
+  // </svg>
+  const svgNS = "http://www.w3.org/2000/svg";
+  let svg = document.createElementNS(svgNS, 'svg');
+  document.body.appendChild(svg);
+
+  let view = document.createElementNS(svgNS, 'view');
+  svg.appendChild(view);
+
+  let defs = document.createElementNS(svgNS, 'defs');
+  let linearGradient = document.createElementNS(svgNS, 'linearGradient');
+  let stop = document.createElementNS(svgNS, 'stop');
+  linearGradient.appendChild(stop);
+  defs.appendChild(linearGradient);
+  svg.appendChild(defs);
+
+  let helper = new ResizeTestHelper(
+    "test11: observe svg non-displayable element",
+  [
+    {
+      setup: observer => {
+        observer.observe(view);
+      },
+      notify: (entries, observer) => {
+        assert_unreached("no entries should be observed on <view> Element");
+      },
+      timeout: () => {
+        // expected
+      }
+    },
+    {
+      setup: observer => {
+        observer.observe(stop);
+      },
+      notify: (entries, observer) => {
+        assert_unreached("no entries should be observed on <stop> Element");
+      },
+      timeout: () => {
+        // expected
+      }
+    },
+  ]);
+  return helper.start(() => svg.remove());
+}
+
 let guard;
 test(_ => {
   assert_own_property(window, "ResizeObserver");
@@ -328,6 +380,7 @@ test0()
   .then(() => { return test8(); })
   .then(() => { return test9(); })
   .then(() => { return test10(); })
+  .then(() => { return test11(); })
   .then(() => { guard.done(); });
 
 </script>
