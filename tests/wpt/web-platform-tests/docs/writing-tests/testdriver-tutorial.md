@@ -5,14 +5,14 @@ Adding new commands to testdriver.js
 ## Assumptions
 We assume the following in this writeup:
  - You know what web-platform-tests is and you have a working checkout and can run tests
- - You know what WebDriver or Selenium is
+ - You know what WebDriver is
  - Familiarity with JavaScript and Python
 
 ## Introduction!
 
 Let's implement window resizing. We can do this via the [Set Window Rect](https://w3c.github.io/webdriver/webdriver-spec.html#dfn-set-window-rect) command in WebDriver.
 
-First, we need to think of what the API will look like a little. We will be using Selenium and Marionette for this, so we can look and see that they take in x, y coordinates, width and height integers.
+First, we need to think of what the API will look like a little. We will be using WebDriver and Marionette for this, so we can look and see that they take in x, y coordinates, width and height integers.
 
 The first part of this will be browser agnostic, but later we will need to implement a specific layer for each browser (here we will do Firefox and Chrome).
 
@@ -190,12 +190,12 @@ Now we write the browser specific implementations.
 
 ### Chrome
 
-We will use [executorselenium](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/executorselenium.py) and use the Selenium API (in the future there are plans to use the WebDriver API directly).
+We will use [executorwebdriver](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/executorwebdriver.py) and use the WebDriver API.
 
 There isn't too much work to do here, we just need to define a subclass of the protocol part we defined earlier.
 
 ```python
-class SeleniumSetWindowRectProtocolPart(SetWindowRectProtocolPart):
+class WebDriverSetWindowRectProtocolPart(SetWindowRectProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
@@ -217,20 +217,20 @@ from .protocol import (BaseProtocolPart,
                        TestDriverProtocolPart)
 ```
 
-Here we have the setup method which just redefines the webdriver object at this level. The important part is the `set_window_rect` function (and it's important it is named that since we called it that earlier). This will be call the Selenium API for [set window rect](http://selenium-python.readthedocs.io/api.html#selenium.webdriver.remote.webdriver.WebDriver.set_window_rect) (`self.webdriver` is a Selenium WebDriver instance here).
+Here we have the setup method which just redefines the webdriver object at this level. The important part is the `set_window_rect` function (and it's important it is named that since we called it that earlier). This will call the WebDriver API for [set window rect](https://w3c.github.io/webdriver/#set-window-rect).
 
-Finally, we just need to tell the SeleniumProtocol to implement this part.
+Finally, we just need to tell the WebDriverProtocol to implement this part.
 
 ```python
-class SeleniumProtocol(Protocol):
-    implements = [SeleniumBaseProtocolPart,
-                  SeleniumTestharnessProtocolPart,
-                  SeleniumSelectorProtocolPart,
-                  SeleniumClickProtocolPart,
-                  SeleniumSendKeysProtocolPart,
+class WebDriverProtocol(Protocol):
+    implements = [WebDriverBaseProtocolPart,
+                  WebDriverTestharnessProtocolPart,
+                  WebDriverSelectorProtocolPart,
+                  WebDriverClickProtocolPart,
+                  WebDriverSendKeysProtocolPart,
                   {... other protocol parts}
-                  SeleniumSetWindowRectProtocolPart,
-                  SeleniumTestDriverProtocolPart]
+                  WebDriverSetWindowRectProtocolPart, # add this!
+                  WebDriverTestDriverProtocolPart]
 ```
 
 
@@ -264,9 +264,9 @@ from .protocol import (BaseProtocolPart,
                        TestDriverProtocolPart)
 ```
 
-Here we have the setup method which just redefines the webdriver object at this level. The important part is the `set_window_rect` function (and it's important it is named that since we called it that earlier). This will be call the Marionette API for [set window rect](http://marionette-client.readthedocs.io/en/master/reference.html#marionette_driver.marionette.Marionette.set_window_rect) (`self.marionette` is a marionette instance here).
+Here we have the setup method which just redefines the webdriver object at this level. The important part is the `set_window_rect` function (and it's important it is named that since we called it that earlier). This will call the Marionette API for [set window rect](https://firefox-source-docs.mozilla.org/python/marionette_driver.html#marionette_driver.marionette.Marionette.set_window_rect) (`self.marionette` is a marionette instance here).
 
-Finally, we just need to tell the SeleniumProtocol to implement this part.
+Finally, we just need to tell the MarionetteProtocol to implement this part.
 
 ```python
 class MarionetteProtocol(Protocol):
@@ -278,13 +278,13 @@ class MarionetteProtocol(Protocol):
                   MarionetteClickProtocolPart,
                   MarionetteSendKeysProtocolPart,
                   {... other protocol parts}
-                  MarionetteSetWindowRectProtocolPart # add this
+                  MarionetteSetWindowRectProtocolPart, # add this
                   MarionetteTestDriverProtocolPart]
 ```
 
 ### Other Browsers
 
-Other browsers may also use executorselenium (such as safari), or a completely new executor (such as servo). For these, you must change the executor in the same way as we did with chrome and firefox.
+Other browsers (such as safari) may use executorselenium, or a completely new executor (such as servo). For these, you must change the executor in the same way as we did with chrome and firefox.
 
 ### Write an infra test
 
@@ -311,7 +311,7 @@ promise_test(async t => {
 ### What about testdriver-vendor.js?
 
 The file [testdriver-vendor.js](https://github.com/web-platform-tests/wpt/blob/master/resources/testdriver-vendor.js) is the equivalent to testdriver-extra.js above, except it is
-run instead of testdriver-extra.js in browser specific test environments. For example, in [Chromium LayoutTests](https://cs.chromium.org/chromium/src/third_party/WebKit/LayoutTests/?q=LayoutTests&sq=package:chromium&dr).
+run instead of testdriver-extra.js in browser-specific test environments. For example, in [Chromium web_tests](https://cs.chromium.org/chromium/src/third_party/blink/web_tests/).
 
 ### What if I need to return a value from my testdriver API?
 
