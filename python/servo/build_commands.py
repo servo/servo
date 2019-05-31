@@ -615,7 +615,7 @@ class MachCommands(CommandBase):
                     return rv
 
             if sys.platform == "win32":
-                servo_exe_dir = path.join(base_path, "debug" if dev else "release")
+                servo_exe_dir = self.get_binary_path(release, dev, target=target)
 
                 msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
                 # on msvc builds, use editbin to change the subsystem to windows, but only
