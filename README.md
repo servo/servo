@@ -210,7 +210,7 @@ export LIBCLANG_PATH="/usr/lib64/llvm/*/lib64"
 ```
 #### On Windows (MSVC)
 
-1. Install Python for Windows (https://www.python.org/downloads/release/python-2714/). The Windows x86-64 MSI installer is fine.
+1. Install Python for Windows (https://www.python.org/downloads/release/python-2716/). The Windows x86-64 MSI installer is fine.
 You should change the installation to install the "Add python.exe to Path" feature.
 
 2. Install virtualenv.
