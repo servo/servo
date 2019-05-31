@@ -64,7 +64,7 @@ lazy_static! {
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
-    pub http_cache: RwLock<HttpCache>,
+    pub http_cache: HttpCache,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
@@ -77,7 +77,7 @@ impl HttpState {
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::new()),
             history_states: RwLock::new(HashMap::new()),
-            http_cache: RwLock::new(HttpCache::new()),
+            http_cache: HttpCache::new(),
             client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
         }
     }
@@ -963,42 +963,40 @@ fn http_network_or_cache_fetch(
     // TODO If there’s a proxy-authentication entry, use it as appropriate.
 
     // Step 5.19
-    if let Ok(http_cache) = context.state.http_cache.read() {
-        if let Some(response_from_cache) = http_cache.construct_response(&http_request, done_chan) {
-            let response_headers = response_from_cache.response.headers.clone();
-            // Substep 1, 2, 3, 4
-            let (cached_response, needs_revalidation) =
-                match (http_request.cache_mode, &http_request.mode) {
-                    (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
-                    (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
-                        (Some(response_from_cache.response), false)
-                    },
-                    (CacheMode::OnlyIfCached, _) |
-                    (CacheMode::NoStore, _) |
-                    (CacheMode::Reload, _) => (None, false),
-                    (_, _) => (
-                        Some(response_from_cache.response),
-                        response_from_cache.needs_validation,
-                    ),
-                };
-            if needs_revalidation {
-                revalidating_flag = true;
-                // Substep 5
-                if let Some(http_date) = response_headers.typed_get::<LastModified>() {
-                    let http_date: SystemTime = http_date.into();
-                    http_request
-                        .headers
-                        .typed_insert(IfModifiedSince::from(http_date));
-                }
-                if let Some(entity_tag) = response_headers.get(header::ETAG) {
-                    http_request
-                        .headers
-                        .insert(header::IF_NONE_MATCH, entity_tag.clone());
-                }
-            } else {
-                // Substep 6
-                response = cached_response;
+    if let Some(response_from_cache) = context.state.http_cache.construct_response(&http_request, done_chan) {
+        let response_headers = response_from_cache.response.headers.clone();
+        // Substep 1, 2, 3, 4
+        let (cached_response, needs_revalidation) =
+            match (http_request.cache_mode, &http_request.mode) {
+                (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
+                (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
+                    (Some(response_from_cache.response), false)
+                },
+                (CacheMode::OnlyIfCached, _) |
+                (CacheMode::NoStore, _) |
+                (CacheMode::Reload, _) => (None, false),
+                (_, _) => (
+                    Some(response_from_cache.response),
+                    response_from_cache.needs_validation,
+                ),
+            };
+        if needs_revalidation {
+            revalidating_flag = true;
+            // Substep 5
+            if let Some(http_date) = response_headers.typed_get::<LastModified>() {
+                let http_date: SystemTime = http_date.into();
+                http_request
+                    .headers
+                    .typed_insert(IfModifiedSince::from(http_date));
             }
+            if let Some(entity_tag) = response_headers.get(header::ETAG) {
+                http_request
+                    .headers
+                    .insert(header::IF_NONE_MATCH, entity_tag.clone());
+            }
+        } else {
+            // Substep 6
+            response = cached_response;
         }
     }
 
@@ -1050,9 +1048,7 @@ fn http_network_or_cache_fetch(
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
-                if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.invalidate(&http_request, &forward_response);
-                }
+                context.state.http_cache.invalidate(&http_request, &forward_response);
             }
         }
         // Substep 4
@@ -1062,19 +1058,15 @@ fn http_network_or_cache_fetch(
                 .as_ref()
                 .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
         {
-            if let Ok(mut http_cache) = context.state.http_cache.write() {
-                response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
-                wait_for_cached_response(done_chan, &mut response);
-            }
+            response = context.state.http_cache.refresh(&http_request, forward_response.clone(), done_chan);
+            wait_for_cached_response(done_chan, &mut response);
         }
 
         // Substep 5
         if response.is_none() {
             if http_request.cache_mode != CacheMode::NoStore {
                 // Subsubstep 2, doing it first to avoid a clone of forward_response.
-                if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.store(&http_request, &forward_response);
-                }
+                context.state.http_cache.store(&http_request, &forward_response);
             }
             // Subsubstep 1
             response = Some(forward_response);
@@ -1378,9 +1370,7 @@ fn http_network_fetch(
 
     // Step 14
     if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
-        if let Ok(mut http_cache) = context.state.http_cache.write() {
-            http_cache.store(&request, &response);
-        }
+        context.state.http_cache.store(&request, &response);
     }
 
     // TODO this step isn't possible yet

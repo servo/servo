@@ -134,7 +134,7 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
     let http_state = HttpState {
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
-        http_cache: RwLock::new(http_cache),
+        http_cache: http_cache,
         hsts_list: RwLock::new(hsts_list),
         history_states: RwLock::new(HashMap::new()),
         client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
@@ -200,19 +200,17 @@ impl ResourceChannelManager {
         private_http_state: &Arc<HttpState>,
     ) {
         let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-        let public_cache = public_http_state.http_cache.read().unwrap();
-        let private_cache = private_http_state.http_cache.read().unwrap();
 
         let public_report = Report {
             path: path!["memory-cache", "public"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: public_cache.size_of(&mut ops),
+            size: public_http_state.http_cache.size_of(&mut ops),
         };
 
         let private_report = Report {
             path: path!["memory-cache", "private"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: private_cache.size_of(&mut ops),
+            size: private_http_state.http_cache.size_of(&mut ops),
         };
 
         msg.send(vec![public_report, private_report]);

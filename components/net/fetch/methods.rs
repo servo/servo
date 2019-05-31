@@ -458,9 +458,7 @@ pub fn main_fetch(
     target.process_response_eof(&response);
 
     if !response.is_network_error() {
-        if let Ok(mut http_cache) = context.state.http_cache.write() {
-            http_cache.update_awaiting_consumers(&request, &response);
-        }
+        context.state.http_cache.update_awaiting_consumers(&request, &response);
     }
 
     // Steps 25-27.

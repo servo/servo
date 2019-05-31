@@ -2883,6 +2883,7 @@ dependencies = [
  "msg 0.0.1",
  "net_traits 0.0.1",
  "openssl 0.10.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parking_lot 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "pixels 0.0.1",
  "profile_traits 0.0.1",
  "rayon 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -21,9 +21,10 @@ use malloc_size_of::{
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
+use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -128,7 +129,9 @@ pub struct CachedResponse {
 #[derive(MallocSizeOf)]
 pub struct HttpCache {
     /// cached responses.
-    entries: HashMap<CacheKey, Vec<CachedResource>>,
+    entries: RwLock<HashMap<CacheKey, Vec<CachedResource>>>,
+    /// Set of known resources.
+    known: RwLock<HashSet<CacheKey>>,
 }
 
 /// Determine if a given response is cacheable based on the initial metadata received.
@@ -563,7 +566,8 @@ impl HttpCache {
     /// Create a new memory cache instance.
     pub fn new() -> HttpCache {
         HttpCache {
-            entries: HashMap::new(),
+            entries: RwLock::new(HashMap::new()),
+            known: RwLock::new(HashSet::new())
         }
     }
 
@@ -580,8 +584,11 @@ impl HttpCache {
             return None;
         }
         let entry_key = CacheKey::new(request.clone());
-        let resources = self
-            .entries
+        if !self.known.read().contains(&entry_key) {
+            return None
+        }
+        let entries = self.entries.read();
+        let resources = entries
             .get(&entry_key)?
             .into_iter()
             .filter(|r| !r.aborted.load(Ordering::Relaxed));
@@ -653,10 +660,10 @@ impl HttpCache {
     }
 
     /// Updating consumers who received a response constructed with a ResponseBody::Receiving.
-    pub fn update_awaiting_consumers(&mut self, request: &Request, response: &Response) {
+    pub fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
         if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
             let entry_key = CacheKey::new(request.clone());
-            if let Some(cached_resources) = self.entries.get(&entry_key) {
+            if let Some(cached_resources) = self.entries.read().get(&entry_key) {
                 for cached_resource in cached_resources.iter() {
                     let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                     for done_sender in awaiting_consumers.drain(..) {
@@ -675,14 +682,14 @@ impl HttpCache {
     /// Freshening Stored Responses upon Validation.
     /// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
     pub fn refresh(
-        &mut self,
+        &self,
         request: &Request,
         response: Response,
         done_chan: &mut DoneChannel,
     ) -> Option<Response> {
         assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
         let entry_key = CacheKey::new(request.clone());
-        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
+        if let Some(cached_resources) = self.entries.write().get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
                 // done_chan will have been set to Some(..) by http_network_fetch.
                 // If the body is not receiving data, set the done_chan back to None.
@@ -728,9 +735,9 @@ impl HttpCache {
         None
     }
 
-    fn invalidate_for_url(&mut self, url: &ServoUrl) {
+    fn invalidate_for_url(&self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
-        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
+        if let Some(cached_resources) = self.entries.write().get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
                 cached_resource.data.expires = Duration::seconds(0i64);
             }
@@ -739,7 +746,7 @@ impl HttpCache {
 
     /// Invalidation.
     /// <https://tools.ietf.org/html/rfc7234#section-4.4>
-    pub fn invalidate(&mut self, request: &Request, response: &Response) {
+    pub fn invalidate(&self, request: &Request, response: &Response) {
         // TODO(eijebong): Once headers support typed_get, update this to use them
         if let Some(Ok(location)) = response
             .headers
@@ -764,7 +771,7 @@ impl HttpCache {
 
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
-    pub fn store(&mut self, request: &Request, response: &Response) {
+    pub fn store(&self, request: &Request, response: &Response) {
         if pref!(network.http_cache.disabled) {
             return;
         }
@@ -810,7 +817,9 @@ impl HttpCache {
                 last_validated: time::now(),
             }),
         };
-        let entry = self.entries.entry(entry_key).or_insert(vec![]);
+        self.known.write().insert(entry_key.clone());
+        let mut entries = self.entries.write();
+        let entry = entries.entry(entry_key).or_insert(vec![]);
         entry.push(entry_resource);
     }
 }
