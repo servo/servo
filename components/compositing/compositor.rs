@@ -30,7 +30,6 @@ use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEven
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
-use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
 use std::env;
@@ -194,6 +193,19 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Current mouse cursor.
     cursor: Cursor,
+
+    output_file: Option<String>,
+
+    is_running_problem_test: bool,
+
+    /// True to exit after page load ('-x').
+    exit_after_load: bool,
+
+    /// True to translate mouse input into touch events.
+    convert_mouse_to_touch: bool,
+
+    /// Ratio of device pixels per px at the default scale.
+    device_pixels_per_px: Option<f32>,
 }
 
 #[derive(Clone, Copy)]
@@ -259,8 +271,16 @@ enum CompositeTarget {
 }
 
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
-    fn new(window: Rc<Window>, state: InitialCompositorState) -> Self {
-        let composite_target = match opts::get().output_file {
+    fn new(
+        window: Rc<Window>,
+        state: InitialCompositorState,
+        output_file: Option<String>,
+        is_running_problem_test: bool,
+        exit_after_load: bool,
+        convert_mouse_to_touch: bool,
+        device_pixels_per_px: Option<f32>,
+    ) -> Self {
+        let composite_target = match output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window,
         };
@@ -295,11 +315,32 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webvr_heartbeats: state.webvr_heartbeats,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
+            output_file,
+            is_running_problem_test,
+            exit_after_load,
+            convert_mouse_to_touch,
+            device_pixels_per_px,
         }
     }
 
-    pub fn create(window: Rc<Window>, state: InitialCompositorState) -> Self {
-        let mut compositor = IOCompositor::new(window, state);
+    pub fn create(
+        window: Rc<Window>,
+        state: InitialCompositorState,
+        output_file: Option<String>,
+        is_running_problem_test: bool,
+        exit_after_load: bool,
+        convert_mouse_to_touch: bool,
+        device_pixels_per_px: Option<f32>,
+    ) -> Self {
+        let mut compositor = IOCompositor::new(
+            window,
+            state,
+            output_file,
+            is_running_problem_test,
+            exit_after_load,
+            convert_mouse_to_touch,
+            device_pixels_per_px,
+        );
 
         // Set the size of the root layer.
         compositor.update_zoom_transform();
@@ -404,12 +445,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 );
                 if is_ready {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
-                    if opts::get().is_running_problem_test {
+                    if self.is_running_problem_test {
                         println!("ready to save image!");
                     }
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
-                    if opts::get().is_running_problem_test {
+                    if self.is_running_problem_test {
                         println!("resetting ready_to_save_state!");
                     }
                 }
@@ -449,7 +490,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (Msg::LoadComplete(_), ShutdownState::NotShuttingDown) => {
                 // If we're painting in headless mode, schedule a recomposite.
-                if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                if self.output_file.is_some() || self.exit_after_load {
                     self.composite_if_necessary(CompositingReason::Headless);
                 }
             },
@@ -625,7 +666,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
-        if opts::get().convert_mouse_to_touch {
+        if self.convert_mouse_to_touch {
             match mouse_window_event {
                 MouseWindowEvent::Click(_, _) => {},
                 MouseWindowEvent::MouseDown(_, p) => self.on_touch_down(TouchId(0), p),
@@ -686,7 +727,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn on_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
-        if opts::get().convert_mouse_to_touch {
+        if self.convert_mouse_to_touch {
             self.on_touch_move(TouchId(0), cursor);
             return;
         }
@@ -986,9 +1027,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        match opts::get().device_pixels_per_px {
+        match self.device_pixels_per_px {
             Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
-            None => match opts::get().output_file {
+            None => match self.output_file {
                 Some(_) => TypedScale::new(1.0),
                 None => self.embedder_coordinates.hidpi_factor,
             },
@@ -1125,7 +1166,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
-                if opts::get().is_running_problem_test {
+                if self.is_running_problem_test {
                     println!("was ready to save, resetting ready_to_save_state");
                 }
                 self.ready_to_save_state = ReadyState::Unknown;
@@ -1138,13 +1179,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let target = self.composite_target;
         match self.composite_specific_target(target) {
             Ok(_) => {
-                if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                if self.output_file.is_some() || self.exit_after_load {
                     println!("Shutting down the Constellation after generating an output file or exit flag specified");
                     self.start_shutting_down();
                 }
             },
             Err(e) => {
-                if opts::get().is_running_problem_test {
+                if self.is_running_problem_test {
                     if e != UnableToComposite::NotReadyToPaintImage(
                         NotReadyToPaint::WaitingOnConstellation,
                     ) {
@@ -1178,7 +1219,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let wait_for_stable_image = match target {
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => true,
-            CompositeTarget::Window => opts::get().exit_after_load,
+            CompositeTarget::Window => self.exit_after_load,
         };
 
         if wait_for_stable_image {
@@ -1279,7 +1320,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     ProfilerCategory::ImageSaving,
                     None,
                     self.time_profiler_chan.clone(),
-                    || match opts::get().output_file.as_ref() {
+                    || match self.output_file.as_ref() {
                         Some(path) => match File::create(path) {
                             Ok(mut file) => {
                                 let img = gl::draw_img(gl, rt_info, width, height);
@@ -1315,11 +1356,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
         if self.composition_request == CompositionRequest::NoCompositingNecessary {
-            if opts::get().is_running_problem_test {
+            if self.is_running_problem_test {
                 println!("updating composition_request ({:?})", reason);
             }
             self.composition_request = CompositionRequest::CompositeNow(reason)
-        } else if opts::get().is_running_problem_test {
+        } else if self.is_running_problem_test {
             println!(
                 "composition_request is already {:?}",
                 self.composition_request

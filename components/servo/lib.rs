@@ -337,6 +337,11 @@ where
                 webrender_api,
                 webvr_heartbeats,
             },
+            opts.output_file.clone(),
+            opts.is_running_problem_test,
+            opts.exit_after_load,
+            opts.convert_mouse_to_touch,
+            opts.device_pixels_per_px,
         );
 
         Servo {
