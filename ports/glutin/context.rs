@@ -19,6 +19,15 @@ impl GlContext {
             GlContext::None => unreachable!(),
         }
     }
+    pub fn resize(&mut self, size: glutin::dpi::PhysicalSize) {
+        if let GlContext::NotCurrent(_) = self {
+            self.make_current();
+        }
+        match self {
+            GlContext::Current(c) => c.resize(size),
+            _ => unreachable!(),
+        }
+    }
     pub fn make_current(&mut self) {
         *self = match std::mem::replace(self, GlContext::None) {
             GlContext::Current(c) => {

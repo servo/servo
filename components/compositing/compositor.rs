@@ -622,6 +622,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         self.send_window_size(WindowSizeType::Resize);
+        self.composite_if_necessary(CompositingReason::Resize);
     }
 
     pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
@@ -1525,4 +1526,6 @@ pub enum CompositingReason {
     NewWebRenderFrame,
     /// WebRender has processed a scroll event and has generated a new frame.
     NewWebRenderScrollFrame,
+    /// The window has been resized and will need to be synchronously repainted.
+    Resize,
 }

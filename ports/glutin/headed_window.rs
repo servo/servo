@@ -441,7 +441,8 @@ impl WindowPortsMethods for Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             },
             glutin::WindowEvent::Resized(size) => {
-                self.gl_context.borrow_mut().window().set_inner_size(size);
+                let physical_size = size.to_physical(self.device_hidpi_factor().get() as f64);
+                self.gl_context.borrow_mut().resize(physical_size);
                 // window.set_inner_size() takes DeviceIndependentPixel.
                 let (width, height) = size.into();
                 let new_size = TypedSize2D::new(width, height);
