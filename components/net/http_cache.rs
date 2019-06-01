@@ -664,7 +664,12 @@ impl HttpCache {
         if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
             let entry_key = CacheKey::new(request.clone());
             if let Some(cached_resources) = self.entries.get(&entry_key) {
-                for cached_resource in cached_resources.iter() {
+                // Ensure we only wake-up consumers of relevant resources,
+                // ie we don't want to wake-up 200 awaiting consumers with a 206.
+                let relevant_cached_resources = cached_resources
+                    .iter()
+                    .filter(|resource| resource.data.raw_status == response.raw_status);
+                for cached_resource in relevant_cached_resources {
                     let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                     for done_sender in awaiting_consumers.drain(..) {
                         if cached_resource.aborted.load(Ordering::Relaxed) {
