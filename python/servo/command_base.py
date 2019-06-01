@@ -584,7 +584,6 @@ install them, let us know by filing a bug!")
         extra_path = []
         extra_lib = []
         if "msvc" in (target or host_triple()):
-            msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
             msvc_deps_dir = path.join(self.context.sharedir, "msvc-dependencies")
 
             def package_dir(package):
@@ -593,10 +592,19 @@ install them, let us know by filing a bug!")
             extra_path += [path.join(package_dir("cmake"), "bin")]
             extra_path += [path.join(package_dir("llvm"), "bin")]
             extra_path += [path.join(package_dir("ninja"), "bin")]
+
+            arch = (target or host_triple()).split('-')[0]
+            vcpkg_arch = {
+                "x86_64": "x64-windows",
+                "i686": "x86-windows",
+                "aarch64": "arm64-windows",
+            }
+            openssl_base_dir = path.join(package_dir("openssl"), vcpkg_arch[arch])
+
             # Link openssl
-            env["OPENSSL_INCLUDE_DIR"] = path.join(package_dir("openssl"), "include")
-            env["OPENSSL_LIB_DIR"] = path.join(package_dir("openssl"), "lib" + msvc_x64)
-            env["OPENSSL_LIBS"] = "libsslMD:libcryptoMD"
+            env["OPENSSL_INCLUDE_DIR"] = path.join(openssl_base_dir, "include")
+            env["OPENSSL_LIB_DIR"] = path.join(openssl_base_dir, "lib")
+            env["OPENSSL_LIBS"] = "libeay32:ssleay32"
             # Link moztools, used for building SpiderMonkey
             env["MOZTOOLS_PATH"] = os.pathsep.join([
                 path.join(package_dir("moztools"), "bin"),
