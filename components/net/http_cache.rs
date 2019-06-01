@@ -638,9 +638,27 @@ impl HttpCache {
                 done_chan,
             );
         } else {
-            // Not a Range request.
-            if let Some(ref cached_resource) = candidates.first() {
-                // Returning the first response that can be constructed
+            while let Some(cached_resource) = candidates.pop() {
+                // Not a Range request.
+                // Do not allow 206 responses to be constructed.
+                //
+                // See https://tools.ietf.org/html/rfc7234#section-3.1
+                //
+                // A cache MUST NOT use an incomplete response to answer requests unless the
+                // response has been made complete or the request is partial and
+                // specifies a range that is wholly within the incomplete response.
+                //
+                // TODO: Combining partial content to fulfill a non-Range request
+                // see https://tools.ietf.org/html/rfc7234#section-3.3
+                match cached_resource.data.raw_status {
+                    Some((ref code, _)) => {
+                        if *code == 206 {
+                            continue;
+                        }
+                    },
+                    None => continue,
+                }
+                // Returning a response that can be constructed
                 // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
                 // or using the Date header to return the most recent one.
                 let cached_headers = cached_resource.data.metadata.headers.lock().unwrap();
@@ -649,6 +667,7 @@ impl HttpCache {
                 return Some(cached_response);
             }
         }
+        // The cache wasn't able to construct anything.
         None
     }
 
@@ -657,10 +676,21 @@ impl HttpCache {
         if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
             let entry_key = CacheKey::new(request.clone());
             if let Some(cached_resources) = self.entries.get(&entry_key) {
-                for cached_resource in cached_resources.iter() {
+                // Ensure we only wake-up consumers of relevant resources,
+                // ie we don't want to wake-up 200 awaiting consumers with a 206.
+                let relevant_cached_resources = cached_resources
+                    .iter()
+                    .filter(|resource| resource.data.raw_status == response.raw_status);
+                for cached_resource in relevant_cached_resources {
                     let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                     for done_sender in awaiting_consumers.drain(..) {
-                        if cached_resource.aborted.load(Ordering::Relaxed) {
+                        if cached_resource.aborted.load(Ordering::Relaxed) ||
+                            response.is_network_error()
+                        {
+                            // In the case of an aborted fetch or a network errror,
+                            // wake-up all awaiting consumers.
+                            // Each will then start a new network request.
+                            // TODO: Wake-up only one consumer, and make it the producer on which others wait.
                             let _ = done_sender.send(Data::Cancelled);
                         } else {
                             let _ = done_sender.send(Data::Payload(completed_body.clone()));
@@ -812,5 +842,8 @@ impl HttpCache {
         };
         let entry = self.entries.entry(entry_key).or_insert(vec![]);
         entry.push(entry_resource);
+        // TODO: Complete imcoplete responses, including 206 response, when stored here.
+        // See A cache MAY complete a stored incomplete response by making a subsequent range request
+        // https://tools.ietf.org/html/rfc7234#section-3.1
     }
 }
