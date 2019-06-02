@@ -870,10 +870,6 @@ impl Flow for FlexFlow {
         FlowClass::Flex
     }
 
-    fn as_mut_flex(&mut self) -> &mut FlexFlow {
-        self
-    }
-
     fn as_flex(&self) -> &FlexFlow {
         self
     }

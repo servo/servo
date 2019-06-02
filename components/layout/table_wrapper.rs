@@ -333,10 +333,6 @@ impl Flow for TableWrapperFlow {
         FlowClass::TableWrapper
     }
 
-    fn as_mut_table_wrapper(&mut self) -> &mut TableWrapperFlow {
-        self
-    }
-
     fn as_table_wrapper(&self) -> &TableWrapperFlow {
         self
     }

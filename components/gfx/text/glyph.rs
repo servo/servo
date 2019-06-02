@@ -105,8 +105,6 @@ fn is_simple_advance(advance: Au) -> bool {
     }
 }
 
-pub type DetailedGlyphCount = u16;
-
 // Getters and setters for GlyphEntry. Setter methods are functional,
 // because GlyphEntry is immutable and only a u32 in size.
 impl GlyphEntry {

@@ -280,10 +280,6 @@ impl<'a> TextRun {
         self.font_metrics.ascent
     }
 
-    pub fn descent(&self) -> Au {
-        self.font_metrics.descent
-    }
-
     pub fn advance_for_range(&self, range: &Range<ByteIndex>) -> Au {
         if range.is_empty() {
             return Au(0);
