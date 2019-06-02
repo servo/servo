@@ -644,7 +644,7 @@ impl HttpCache {
                 match cached_resource.data.raw_status {
                     Some((ref code, _)) => {
                         if !(*code == 200) {
-                            continue
+                            continue;
                         }
                     },
                     None => continue,
@@ -675,7 +675,9 @@ impl HttpCache {
                 for cached_resource in relevant_cached_resources {
                     let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                     for done_sender in awaiting_consumers.drain(..) {
-                        if cached_resource.aborted.load(Ordering::Relaxed) || response.is_network_error() {
+                        if cached_resource.aborted.load(Ordering::Relaxed) ||
+                            response.is_network_error()
+                        {
                             // In the case of an aborted fetch or a network errror,
                             // wake-up all awaiting consumers.
                             // Each will then start a new network request.
