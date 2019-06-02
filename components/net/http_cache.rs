@@ -663,20 +663,6 @@ impl HttpCache {
 
     /// Updating consumers who received a response constructed with a ResponseBody::Receiving.
     pub fn update_awaiting_consumers(&mut self, request: &Request, response: &Response) {
-        if response.is_network_error() {
-            // In the case of a network error, wake-up all awaiting consumers,
-            // each will then start a new network request.
-            // TODO: Wake-up only one consumer, and make it the producer on which others wait.
-            let entry_key = CacheKey::new(request.clone());
-            if let Some(cached_resources) = self.entries.get(&entry_key) {
-                for cached_resource in cached_resources {
-                    let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
-                    for done_sender in awaiting_consumers.drain(..) {
-                        let _ = done_sender.send(Data::Cancelled);
-                    }
-                }
-            }
-        }
         if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
             let entry_key = CacheKey::new(request.clone());
             if let Some(cached_resources) = self.entries.get(&entry_key) {
@@ -688,9 +674,10 @@ impl HttpCache {
                 for cached_resource in relevant_cached_resources {
                     let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                     for done_sender in awaiting_consumers.drain(..) {
-                        if cached_resource.aborted.load(Ordering::Relaxed) {
-                            // In the case of an aborted fetch, wake-up all awaiting consumers,
-                            // each will then start a new network request.
+                        if cached_resource.aborted.load(Ordering::Relaxed) || response.is_network_error() {
+                            // In the case of an aborted fetch or a network errror,
+                            // wake-up all awaiting consumers.
+                            // Each will then start a new network request.
                             // TODO: Wake-up only one consumer, and make it the producer on which others wait.
                             let _ = done_sender.send(Data::Cancelled);
                         } else {
