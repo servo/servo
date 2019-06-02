@@ -997,26 +997,6 @@ fn write_image(
     );
 }
 
-pub trait PointToi32 {
-    fn to_i32(&self) -> Point2D<i32>;
-}
-
-impl PointToi32 for Point2D<f64> {
-    fn to_i32(&self) -> Point2D<i32> {
-        Point2D::new(self.x.to_i32().unwrap(), self.y.to_i32().unwrap())
-    }
-}
-
-pub trait SizeToi32 {
-    fn to_i32(&self) -> Size2D<i32>;
-}
-
-impl SizeToi32 for Size2D<f64> {
-    fn to_i32(&self) -> Size2D<i32> {
-        Size2D::new(self.width.to_i32().unwrap(), self.height.to_i32().unwrap())
-    }
-}
-
 pub trait RectToi32 {
     fn to_i32(&self) -> Rect<i32>;
     fn ceil(&self) -> Rect<f64>;

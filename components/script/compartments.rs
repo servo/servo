@@ -27,4 +27,8 @@ impl<'a> InCompartment<'a> {
     pub fn in_compartment(token: &AlreadyInCompartment) -> InCompartment {
         InCompartment::Already(token)
     }
+
+    pub fn entered(token: &JSAutoRealm) -> InCompartment {
+        InCompartment::Entered(token)
+    }
 }
