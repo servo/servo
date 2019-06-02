@@ -639,14 +639,17 @@ impl HttpCache {
             );
         } else {
             // Not a Range request.
-            // Only allow 200 responses to be constructed.
-            let candidates: Vec<CachedResource> = candidates
-                .iter()
-                .filter(|resource| match resource.data.raw_status {
-                    Some((ref code, _)) => *code == 200,
-                    None => false,
-            }).collect();
-            if let Some(ref cached_resource) = candidates.first() {
+            while let Some(ref cached_resource) = candidates.first() {
+                // Only allow 200 responses to be constructed.
+                match cached_resource.data.raw_status {
+                    Some((ref code, _)) => {
+                        if !(*code == 200) {
+                            continue
+                        }
+                    },
+                    None => continue,
+
+                }
                 // Returning the first response that can be constructed
                 // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
                 // or using the Date header to return the most recent one.
