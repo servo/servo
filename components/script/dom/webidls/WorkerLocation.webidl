@@ -6,7 +6,7 @@
 [Exposed=Worker]
 interface WorkerLocation {
   /*stringifier*/ readonly attribute USVString href;
-  // readonly attribute USVString origin;
+  readonly attribute USVString origin;
   readonly attribute USVString protocol;
   readonly attribute USVString host;
   readonly attribute USVString hostname;
