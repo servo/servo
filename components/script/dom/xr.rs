@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
+use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding;
@@ -87,13 +87,9 @@ impl Drop for XR {
 
 impl XRMethods for XR {
     /// https://immersive-web.github.io/webxr/#dom-xr-supportssessionmode
-    fn SupportsSessionMode(&self, mode: XRSessionMode) -> Rc<Promise> {
+    fn SupportsSessionMode(&self, mode: XRSessionMode, comp: InCompartment) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-        let promise = Promise::new_in_current_compartment(
-            &self.global(),
-            InCompartment::Already(&in_compartment_proof),
-        );
+        let promise = Promise::new_in_current_compartment(&self.global(), comp);
         if mode == XRSessionMode::Immersive_vr {
             promise.resolve_native(&());
         } else {
@@ -105,12 +101,12 @@ impl XRMethods for XR {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xr-requestsession
-    fn RequestSession(&self, options: &XRSessionCreationOptions) -> Rc<Promise> {
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-        let promise = Promise::new_in_current_compartment(
-            &self.global(),
-            InCompartment::Already(&in_compartment_proof),
-        );
+    fn RequestSession(
+        &self,
+        options: &XRSessionCreationOptions,
+        comp: InCompartment,
+    ) -> Rc<Promise> {
+        let promise = Promise::new_in_current_compartment(&self.global(), comp);
         if options.mode != XRSessionMode::Immersive_vr {
             promise.reject_error(Error::NotSupported);
             return promise;

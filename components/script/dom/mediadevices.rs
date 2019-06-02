@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
+use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::MediaStreamConstraints;
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::{self, MediaDevicesMethods};
 use crate::dom::bindings::codegen::UnionTypes::BooleanOrMediaTrackConstraints;
@@ -46,12 +46,12 @@ impl MediaDevices {
 impl MediaDevicesMethods for MediaDevices {
     /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
     #[allow(unsafe_code)]
-    fn GetUserMedia(&self, constraints: &MediaStreamConstraints) -> Rc<Promise> {
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-        let p = Promise::new_in_current_compartment(
-            &self.global(),
-            InCompartment::Already(&in_compartment_proof),
-        );
+    fn GetUserMedia(
+        &self,
+        constraints: &MediaStreamConstraints,
+        comp: InCompartment,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_current_compartment(&self.global(), comp);
         let media = ServoMedia::get().unwrap();
         let stream = MediaStream::new(&self.global());
         if let Some(constraints) = convert_constraints(&constraints.audio) {

@@ -535,12 +535,8 @@ impl From<BluetoothError> for Error {
 
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-        let p = Promise::new_in_current_compartment(
-            &self.global(),
-            InCompartment::Already(&in_compartment_proof),
-        );
+    fn RequestDevice(&self, option: &RequestDeviceOptions, comp: InCompartment) -> Rc<Promise> {
+        let p = Promise::new_in_current_compartment(&self.global(), comp);
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -557,12 +553,8 @@ impl BluetoothMethods for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
-    fn GetAvailability(&self) -> Rc<Promise> {
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-        let p = Promise::new_in_current_compartment(
-            &self.global(),
-            InCompartment::Already(&in_compartment_proof),
-        );
+    fn GetAvailability(&self, comp: InCompartment) -> Rc<Promise> {
+        let p = Promise::new_in_current_compartment(&self.global(), comp);
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);

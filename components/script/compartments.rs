@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::globalscope::GlobalScope;
-use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
+use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm, JSContext};
 
 pub struct AlreadyInCompartment(());
 
@@ -12,6 +12,13 @@ impl AlreadyInCompartment {
     pub fn assert(global: &GlobalScope) -> AlreadyInCompartment {
         unsafe {
             assert!(!GetCurrentRealmOrNull(global.get_cx()).is_null());
+        }
+        AlreadyInCompartment(())
+    }
+
+    pub fn assert_for_cx(cx: *mut JSContext) -> AlreadyInCompartment {
+        unsafe {
+            assert!(!GetCurrentRealmOrNull(cx).is_null());
         }
         AlreadyInCompartment(())
     }
