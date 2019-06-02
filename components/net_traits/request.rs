@@ -227,14 +227,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn service_workers_mode(
-        mut self,
-        service_workers_mode: ServiceWorkersMode,
-    ) -> RequestBuilder {
-        self.service_workers_mode = service_workers_mode;
-        self
-    }
-
     pub fn destination(mut self, destination: Destination) -> RequestBuilder {
         self.destination = destination;
         self
@@ -247,11 +239,6 @@ impl RequestBuilder {
 
     pub fn mode(mut self, mode: RequestMode) -> RequestBuilder {
         self.mode = mode;
-        self
-    }
-
-    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestBuilder {
-        self.cache_mode = cache_mode;
         self
     }
 
@@ -297,11 +284,6 @@ impl RequestBuilder {
 
     pub fn integrity_metadata(mut self, integrity_metadata: String) -> RequestBuilder {
         self.integrity_metadata = integrity_metadata;
-        self
-    }
-
-    pub fn url_list(mut self, url_list: Vec<ServoUrl>) -> RequestBuilder {
-        self.url_list = url_list;
         self
     }
 

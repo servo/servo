@@ -48,11 +48,6 @@ impl CacheKey {
             url: servo_url.clone(),
         }
     }
-
-    /// Retrieve the URL associated with this key
-    pub fn url(&self) -> ServoUrl {
-        self.url.clone()
-    }
 }
 
 /// A complete cached resource.

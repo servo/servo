@@ -90,14 +90,6 @@ impl RelativePos {
             end: (start + span).to_usize().unwrap(),
         }
     }
-
-    /// Inverse operation of to_abs_range
-    pub fn from_abs_range(range: Range<usize>, size: usize) -> RelativePos {
-        RelativePos {
-            start: range.start as i64,
-            end: Some(size as i64 - range.end as i64),
-        }
-    }
 }
 
 /// Response to file selection request

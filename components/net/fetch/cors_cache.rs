@@ -108,16 +108,6 @@ impl CorsCache {
             .find(|e| match_headers(e, request) && e.header_or_method.match_method(&method))
     }
 
-    /// [Clear the cache](https://fetch.spec.whatwg.org/#concept-cache-clear)
-    pub fn clear(&mut self, request: &Request) {
-        let CorsCache(buf) = self.clone();
-        let new_buf: Vec<CorsCacheEntry> = buf
-            .into_iter()
-            .filter(|e| e.origin == request.origin && request.current_url() == e.url)
-            .collect();
-        *self = CorsCache(new_buf);
-    }
-
     /// Remove old entries
     pub fn cleanup(&mut self) {
         let CorsCache(buf) = self.clone();

@@ -535,9 +535,4 @@ impl ImageCache for ImageCacheImpl {
             },
         }
     }
-
-    /// Ensure an image has a webrender key.
-    fn set_webrender_image_key(&self, image: &mut Image) {
-        set_webrender_image_key(&self.store.lock().unwrap().webrender_api, image);
-    }
 }
