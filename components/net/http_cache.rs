@@ -640,10 +640,10 @@ impl HttpCache {
         } else {
             while let Some(ref cached_resource) = candidates.first() {
                 // Not a Range request.
-                // Only allow 200 responses to be constructed.
+                // Do not allow 206 responses to be constructed.
                 match cached_resource.data.raw_status {
                     Some((ref code, _)) => {
-                        if !(*code == 200) {
+                        if *code == 206 {
                             continue;
                         }
                     },
