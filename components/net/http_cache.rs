@@ -638,8 +638,8 @@ impl HttpCache {
                 done_chan,
             );
         } else {
-            // Not a Range request.
             while let Some(ref cached_resource) = candidates.first() {
+                // Not a Range request.
                 // Only allow 200 responses to be constructed.
                 match cached_resource.data.raw_status {
                     Some((ref code, _)) => {
@@ -658,6 +658,7 @@ impl HttpCache {
                 return Some(cached_response);
             }
         }
+        // The cache wasn't able to construct anything.
         None
     }
 
