@@ -550,10 +550,6 @@ pub type NsDuration = Length<u64, Nanoseconds>;
 pub fn precise_time_ms() -> MsDuration {
     Length::new(time::precise_time_ns() / (1000 * 1000))
 }
-/// Returns the duration since an unspecified epoch measured in ns.
-pub fn precise_time_ns() -> NsDuration {
-    Length::new(time::precise_time_ns())
-}
 
 /// Data needed to construct a script thread.
 ///

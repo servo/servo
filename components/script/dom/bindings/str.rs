@@ -17,7 +17,7 @@ use std::marker::PhantomData;
 use std::ops;
 use std::ops::{Deref, DerefMut};
 use std::str;
-use std::str::{Bytes, FromStr};
+use std::str::FromStr;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -38,11 +38,6 @@ impl ByteString {
     /// Returns the length.
     pub fn len(&self) -> usize {
         self.0.len()
-    }
-
-    /// Compare `self` to `other`, matching A–Z and a–z as equal.
-    pub fn eq_ignore_case(&self, other: &ByteString) -> bool {
-        self.0.eq_ignore_ascii_case(&other.0)
     }
 
     /// Returns `self` with A–Z replaced by a–z.
@@ -217,11 +212,6 @@ impl DOMString {
     /// Shortens this String to the specified length.
     pub fn truncate(&mut self, new_len: usize) {
         self.0.truncate(new_len);
-    }
-
-    /// An iterator over the bytes of this `DOMString`.
-    pub fn bytes(&self) -> Bytes {
-        self.0.bytes()
     }
 
     /// Removes newline characters according to <https://infra.spec.whatwg.org/#strip-newlines>.

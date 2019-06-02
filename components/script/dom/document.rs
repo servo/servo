@@ -473,10 +473,6 @@ impl Document {
         self.https_state.set(https_state);
     }
 
-    pub fn is_completely_loaded(&self) -> bool {
-        self.completely_loaded.get()
-    }
-
     pub fn is_fully_active(&self) -> bool {
         self.activity.get() == DocumentActivity::FullyActive
     }
