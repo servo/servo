@@ -648,7 +648,6 @@ impl HttpCache {
                         }
                     },
                     None => continue,
-
                 }
                 // Returning the first response that can be constructed
                 // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
@@ -690,6 +689,9 @@ impl HttpCache {
                     let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                     for done_sender in awaiting_consumers.drain(..) {
                         if cached_resource.aborted.load(Ordering::Relaxed) {
+                            // In the case of an aborted fetch, wake-up all awaiting consumers,
+                            // each will then start a new network request.
+                            // TODO: Wake-up only one consumer, and make it the producer on which others wait.
                             let _ = done_sender.send(Data::Cancelled);
                         } else {
                             let _ = done_sender.send(Data::Payload(completed_body.clone()));
