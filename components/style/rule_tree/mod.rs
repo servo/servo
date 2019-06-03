@@ -14,8 +14,7 @@ use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheets::{Origin, StyleRule};
 use crate::thread_state;
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
 use servo_arc::{Arc, ArcBorrow, ArcUnion, ArcUnionBorrow};
 use smallvec::SmallVec;
@@ -46,7 +45,6 @@ use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 /// logs from http://logs.glob.uno/?c=mozilla%23servo&s=3+Apr+2017&e=3+Apr+2017#c644094
 /// to se a discussion about the different memory orderings used here.
 #[derive(Debug)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct RuleTree {
     root: StrongRuleNode,
 }
@@ -74,7 +72,6 @@ impl Drop for RuleTree {
     }
 }
 
-#[cfg(feature = "gecko")]
 impl MallocSizeOf for RuleTree {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut n = 0;
@@ -83,9 +80,9 @@ impl MallocSizeOf for RuleTree {
 
         while let Some(node) = stack.pop() {
             n += unsafe { ops.malloc_size_of(node.ptr()) };
-            unsafe {
-                (*node.ptr()).children.read().each(|c| stack.push(c.clone()));
-            }
+            let children = unsafe { (*node.ptr()).children.read() };
+            children.shallow_size_of(ops);
+            children.each(|c| stack.push(c.clone()));
         }
 
         n
@@ -767,6 +764,18 @@ enum RuleNodeChildren {
     /// At least at one point in time there was more than one kid (that is to
     /// say, we don't bother re-allocating if children are removed dynamically).
     Map(Box<FxHashMap<ChildKey, WeakRuleNode>>),
+}
+
+impl MallocShallowSizeOf for RuleNodeChildren {
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match *self {
+            RuleNodeChildren::One(..) | RuleNodeChildren::Empty => 0,
+            RuleNodeChildren::Map(ref m) => {
+                // Want to account for both the box and the hashmap.
+                m.shallow_size_of(ops) + (**m).shallow_size_of(ops)
+            },
+        }
+    }
 }
 
 impl Default for RuleNodeChildren {
