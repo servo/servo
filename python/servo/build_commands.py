@@ -618,7 +618,8 @@ class MachCommands(CommandBase):
                     return rv
 
             if sys.platform == "win32":
-                servo_exe_dir = path.join(base_path, "debug" if dev else "release")
+                servo_exe_dir = os.path.dirname(self.get_binary_path(release, dev, target=target))
+                assert os.path.exists(servo_exe_dir)
 
                 # on msvc builds, use editbin to change the subsystem to windows, but only
                 # on release builds -- on debug builds, it hides log output
@@ -631,6 +632,7 @@ class MachCommands(CommandBase):
                                 servo_exe_dir)
                 # Search for the generated nspr4.dll
                 build_path = path.join(servo_exe_dir, "build")
+                assert os.path.exists(build_path)
 
                 def package_generated_shared_libraries(libs, build_path, servo_exe_dir):
                     for root, dirs, files in os.walk(build_path):

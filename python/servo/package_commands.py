@@ -219,7 +219,7 @@ class PackageCommands(CommandBase):
         if magicleap:
             target = "aarch64-linux-android"
         env = self.build_env(target=target)
-        binary_path = self.get_binary_path(release, dev, android=android, magicleap=magicleap)
+        binary_path = self.get_binary_path(release, dev, target=target, android=android, magicleap=magicleap)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if magicleap:
