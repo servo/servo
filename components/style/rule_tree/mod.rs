@@ -96,7 +96,7 @@ impl MallocSizeOf for RuleTree {
     }
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 struct ChildKey(CascadeLevel, ptr::NonNull<()>);
 
 unsafe impl Send for ChildKey {}

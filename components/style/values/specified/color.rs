@@ -47,7 +47,7 @@ pub enum Color {
 /// System colors.
 #[allow(missing_docs)]
 #[cfg(feature = "gecko")]
-#[derive(Copy, Clone, Debug, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
 #[repr(u8)]
 pub enum SystemColor {
     #[css(skip)]
