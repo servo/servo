@@ -264,6 +264,8 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
+        params += ["--features", "azure_backend"]
+
         returncode = self.call_rustup_run(
             ["cargo", "doc", "--manifest-path", self.ports_glutin_manifest()] + params,
             env=self.build_env())
