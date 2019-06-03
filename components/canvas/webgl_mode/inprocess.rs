@@ -114,13 +114,14 @@ impl WebGLExternalImageApi for WebGLExternalImages {
             let mut new_texture = false;
             let new_texture_id = self.webrender_gl.gen_textures(1)[0];
 
-            let texture_id = *self.textures.entry(io_surface_id).or_insert_with(||{
+            let texture_id = *self.textures.entry(io_surface_id).or_insert_with(|| {
                 new_texture = true;
                 new_texture_id
             });
 
             if new_texture {
-                self.webrender_gl.bind_texture(gl::TEXTURE_RECTANGLE, texture_id);
+                self.webrender_gl
+                    .bind_texture(gl::TEXTURE_RECTANGLE, texture_id);
                 let io_surface = io_surface::lookup(io_surface_id);
                 io_surface.bind_to_gl_texture(size.width, size.height);
             } else {
@@ -139,7 +140,6 @@ impl WebGLExternalImageApi for WebGLExternalImages {
                 .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
             image_id
         };
-
 
         (texture_id, size)
     }
