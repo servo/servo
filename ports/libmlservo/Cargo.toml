@@ -12,6 +12,10 @@ crate-type = ["staticlib"]
 test = false
 bench = false
 
+[features]
+azure_backend = ["simpleservo/azure_backend"]
+raqote_backend = ["simpleservo/raqote_backend"]
+
 [dependencies]
 libservo = { path = "../../components/servo", features = ["no_static_freetype"] }
 simpleservo = { path = "../libsimpleservo/api", features = ["no_static_freetype"] }

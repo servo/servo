@@ -2,19 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use azure::azure::AzFloat;
-use azure::azure_hl::SurfacePattern;
-use azure::azure_hl::{AntialiasMode, AsAzurePoint, CapStyle, CompositionOp, JoinStyle};
-use azure::azure_hl::{
-    BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat,
-};
-use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, Path, PathBuilder};
-use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
+use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
+#[allow(unused_imports)]
+use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 use webrender::api::DirtyRect;
@@ -31,13 +26,13 @@ enum PathState {
     /// Path builder in user-space. If a transform has been applied
     /// but no further path operations have occurred, it is stored
     /// in the optional field.
-    UserSpacePathBuilder(PathBuilder, Option<Transform2D<AzFloat>>),
+    UserSpacePathBuilder(Box<GenericPathBuilder>, Option<Transform2D<f32>>),
     /// Path builder in device-space.
-    DeviceSpacePathBuilder(PathBuilder),
+    DeviceSpacePathBuilder(Box<GenericPathBuilder>),
     /// Path in user-space. If a transform has been applied but
     /// but no further path operations have occurred, it is stored
     /// in the optional field.
-    UserSpacePath(Path, Option<Transform2D<AzFloat>>),
+    UserSpacePath(Path, Option<Transform2D<f32>>),
 }
 
 impl PathState {
@@ -58,20 +53,81 @@ impl PathState {
     }
 }
 
+pub trait Backend {
+    fn get_composition_op(&self, opts: &DrawOptions) -> CompositionOp;
+    fn need_to_draw_shadow(&self, color: &Color) -> bool;
+    fn set_shadow_color<'a>(&mut self, color: RGBA, state: &mut CanvasPaintState<'a>);
+    fn set_fill_style<'a>(
+        &mut self,
+        style: FillOrStrokeStyle,
+        state: &mut CanvasPaintState<'a>,
+        drawtarget: &GenericDrawTarget,
+    );
+    fn set_stroke_style<'a>(
+        &mut self,
+        style: FillOrStrokeStyle,
+        state: &mut CanvasPaintState<'a>,
+        drawtarget: &GenericDrawTarget,
+    );
+    fn set_global_composition<'a>(
+        &mut self,
+        op: CompositionOrBlending,
+        state: &mut CanvasPaintState<'a>,
+    );
+    fn create_drawtarget(&self, size: Size2D<u64>) -> Box<GenericDrawTarget>;
+    fn recreate_paint_state<'a>(&self, state: &CanvasPaintState<'a>) -> CanvasPaintState<'a>;
+    fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>>;
+}
+
+/// A generic PathBuilder that abstracts the interface for
+/// azure's and raqote's PathBuilder.
+pub trait GenericPathBuilder {
+    fn arc(
+        &self,
+        origin: Point2D<f32>,
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    );
+    fn bezier_curve_to(
+        &self,
+        control_point1: &Point2D<f32>,
+        control_point2: &Point2D<f32>,
+        control_point3: &Point2D<f32>,
+    );
+    fn close(&self);
+    fn ellipse(
+        &self,
+        origin: Point2D<f32>,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    );
+    fn get_current_point(&self) -> Point2D<f32>;
+    fn line_to(&self, point: Point2D<f32>);
+    fn move_to(&self, point: Point2D<f32>);
+    fn quadratic_curve_to(&self, control_point: &Point2D<f32>, end_point: &Point2D<f32>);
+    fn finish(&self) -> Path;
+}
+
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
 /// applied to any points to ensure they are in the matching device space.
 struct PathBuilderRef<'a> {
-    builder: &'a PathBuilder,
-    transform: Transform2D<AzFloat>,
+    builder: &'a Box<GenericPathBuilder>,
+    transform: Transform2D<f32>,
 }
 
 impl<'a> PathBuilderRef<'a> {
-    fn line_to(&self, pt: &Point2D<AzFloat>) {
+    fn line_to(&self, pt: &Point2D<f32>) {
         let pt = self.transform.transform_point(pt);
         self.builder.line_to(pt);
     }
 
-    fn move_to(&self, pt: &Point2D<AzFloat>) {
+    fn move_to(&self, pt: &Point2D<f32>) {
         let pt = self.transform.transform_point(pt);
         self.builder.move_to(pt);
     }
@@ -95,19 +151,14 @@ impl<'a> PathBuilderRef<'a> {
         self.builder.close();
     }
 
-    fn quadratic_curve_to(&self, cp: &Point2D<AzFloat>, endpoint: &Point2D<AzFloat>) {
+    fn quadratic_curve_to(&self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.builder.quadratic_curve_to(
             &self.transform.transform_point(cp),
             &self.transform.transform_point(endpoint),
         )
     }
 
-    fn bezier_curve_to(
-        &self,
-        cp1: &Point2D<AzFloat>,
-        cp2: &Point2D<AzFloat>,
-        endpoint: &Point2D<AzFloat>,
-    ) {
+    fn bezier_curve_to(&self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.builder.bezier_curve_to(
             &self.transform.transform_point(cp1),
             &self.transform.transform_point(cp2),
@@ -115,14 +166,7 @@ impl<'a> PathBuilderRef<'a> {
         )
     }
 
-    fn arc(
-        &self,
-        center: &Point2D<AzFloat>,
-        radius: AzFloat,
-        start_angle: AzFloat,
-        end_angle: AzFloat,
-        ccw: bool,
-    ) {
+    fn arc(&self, center: &Point2D<f32>, radius: f32, start_angle: f32, end_angle: f32, ccw: bool) {
         let center = self.transform.transform_point(center);
         self.builder
             .arc(center, radius, start_angle, end_angle, ccw);
@@ -130,12 +174,12 @@ impl<'a> PathBuilderRef<'a> {
 
     pub fn ellipse(
         &self,
-        center: &Point2D<AzFloat>,
-        radius_x: AzFloat,
-        radius_y: AzFloat,
-        rotation_angle: AzFloat,
-        start_angle: AzFloat,
-        end_angle: AzFloat,
+        center: &Point2D<f32>,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        start_angle: f32,
+        end_angle: f32,
         ccw: bool,
     ) {
         let center = self.transform.transform_point(center);
@@ -150,7 +194,7 @@ impl<'a> PathBuilderRef<'a> {
         );
     }
 
-    fn current_point(&self) -> Option<Point2D<AzFloat>> {
+    fn current_point(&self) -> Option<Point2D<f32>> {
         let inverse = match self.transform.inverse() {
             Some(i) => i,
             None => return None,
@@ -160,8 +204,181 @@ impl<'a> PathBuilderRef<'a> {
     }
 }
 
+// TODO(pylbrecht)
+// This defines required methods for DrawTarget of azure and raqote
+// The prototypes are derived from azure's methods.
+pub trait GenericDrawTarget {
+    fn clear_rect(&self, rect: &Rect<f32>);
+    fn copy_surface(&self, surface: SourceSurface, source: Rect<i32>, destination: Point2D<i32>);
+    fn create_gradient_stops(
+        &self,
+        gradient_stops: Vec<GradientStop>,
+        extend_mode: ExtendMode,
+    ) -> GradientStops;
+    fn create_path_builder(&self) -> Box<GenericPathBuilder>;
+    fn create_similar_draw_target(
+        &self,
+        size: &Size2D<i32>,
+        format: SurfaceFormat,
+    ) -> Box<GenericDrawTarget>;
+    fn create_source_surface_from_data(
+        &self,
+        data: &[u8],
+        size: Size2D<i32>,
+        stride: i32,
+    ) -> Option<SourceSurface>;
+    fn draw_surface(
+        &self,
+        surface: SourceSurface,
+        dest: Rect<f64>,
+        source: Rect<f64>,
+        filter: Filter,
+        draw_options: &DrawOptions,
+    );
+    fn draw_surface_with_shadow(
+        &self,
+        surface: SourceSurface,
+        dest: &Point2D<f32>,
+        color: &Color,
+        offset: &Vector2D<f32>,
+        sigma: f32,
+        operator: CompositionOp,
+    );
+    fn fill(&self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
+    fn fill_rect(&self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
+    fn get_format(&self) -> SurfaceFormat;
+    fn get_size(&self) -> Size2D<i32>;
+    fn get_transform(&self) -> Transform2D<f32>;
+    fn pop_clip(&self);
+    fn push_clip(&self, path: &Path);
+    fn set_transform(&self, matrix: &Transform2D<f32>);
+    fn snapshot(&self) -> SourceSurface;
+    fn stroke(
+        &self,
+        path: &Path,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
+    );
+    fn stroke_line(
+        &self,
+        start: Point2D<f32>,
+        end: Point2D<f32>,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
+    );
+    fn stroke_rect(
+        &self,
+        rect: &Rect<f32>,
+        pattern: Pattern,
+        stroke_options: &StrokeOptions,
+        draw_options: &DrawOptions,
+    );
+    fn snapshot_data(&self, f: &Fn(&[u8]) -> Vec<u8>) -> Vec<u8>;
+    fn snapshot_data_owned(&self) -> Vec<u8>;
+}
+
+#[derive(Clone)]
+pub enum ExtendMode {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::ExtendMode),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+pub enum GradientStop {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::AzGradientStop),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+pub enum GradientStops {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::GradientStops),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+#[derive(Clone)]
+pub enum Color {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::Color),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+#[derive(Clone)]
+pub enum CompositionOp {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::CompositionOp),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+pub enum SurfaceFormat {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::SurfaceFormat),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+#[derive(Clone)]
+pub enum SourceSurface {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::SourceSurface),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+pub enum Path {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::Path),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+#[derive(Clone)]
+pub enum Pattern {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::Pattern),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+pub enum DrawSurfaceOptions {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::DrawSurfaceOptions),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+#[derive(Clone)]
+pub enum DrawOptions {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::DrawOptions),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(()),
+}
+
+#[derive(Clone)]
+pub enum StrokeOptions<'a> {
+    #[cfg(feature = "azure_backend")]
+    Azure(azure::azure_hl::StrokeOptions<'a>),
+    #[cfg(feature = "raqote_backend")]
+    Raqote(PhantomData<&'a ()>),
+}
+
+#[derive(Clone, Copy)]
+pub enum Filter {
+    Linear,
+    Point,
+}
+
 pub struct CanvasData<'a> {
-    drawtarget: DrawTarget,
+    backend: Box<Backend>,
+    drawtarget: Box<GenericDrawTarget>,
     path_state: Option<PathState>,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
@@ -174,6 +391,16 @@ pub struct CanvasData<'a> {
     pub canvas_id: CanvasId,
 }
 
+#[cfg(feature = "azure_backend")]
+fn create_backend() -> Box<Backend> {
+    Box::new(crate::azure_backend::AzureBackend)
+}
+
+#[cfg(feature = "raqote_backend")]
+fn create_backend() -> Box<Backend> {
+    Box::new(crate::raqote_backend::RaqoteBackend)
+}
+
 impl<'a> CanvasData<'a> {
     pub fn new(
         size: Size2D<u64>,
@@ -181,9 +408,11 @@ impl<'a> CanvasData<'a> {
         antialias: AntialiasMode,
         canvas_id: CanvasId,
     ) -> CanvasData<'a> {
-        let draw_target = CanvasData::create(size);
+        let backend = create_backend();
+        let draw_target = backend.create_drawtarget(size);;
         let webrender_api = webrender_api_sender.create_api();
         CanvasData {
+            backend,
             drawtarget: draw_target,
             path_state: None,
             state: CanvasPaintState::new(antialias),
@@ -213,15 +442,14 @@ impl<'a> CanvasData<'a> {
             image_data.into()
         };
 
-        let writer = |draw_target: &DrawTarget| {
+        let writer = |draw_target: &GenericDrawTarget| {
             write_image(
-                &draw_target,
+                draw_target,
                 image_data,
                 source_rect.size,
                 dest_rect,
                 smoothing_enabled,
-                self.state.draw_options.composition,
-                self.state.draw_options.alpha,
+                &self.state.draw_options,
             );
         };
 
@@ -231,9 +459,10 @@ impl<'a> CanvasData<'a> {
                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32),
             );
 
+            // TODO(pylbrecht) pass another closure for raqote
             self.draw_with_shadow(&rect, writer);
         } else {
-            writer(&self.drawtarget);
+            writer(&*self.drawtarget);
         }
     }
 
@@ -257,40 +486,29 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn fill_rect(&self, rect: &Rect<f32>) {
-        if is_zero_size_gradient(&self.state.fill_style) {
+        if self.state.fill_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         let draw_rect = Rect::new(
             rect.origin,
-            match self.state.fill_style {
-                Pattern::Surface(ref surface) => {
-                    let surface_size = surface.size();
-                    match (surface.repeat_x, surface.repeat_y) {
-                        (true, true) => rect.size,
-                        (true, false) => Size2D::new(rect.size.width, surface_size.height as f32),
-                        (false, true) => Size2D::new(surface_size.width as f32, rect.size.height),
-                        (false, false) => {
-                            Size2D::new(surface_size.width as f32, surface_size.height as f32)
-                        },
-                    }
-                },
-                _ => rect.size,
-            },
+            self.backend
+                .size_from_pattern(&rect, &self.state.fill_style)
+                .unwrap_or(rect.size),
         );
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&draw_rect, |new_draw_target: &DrawTarget| {
+            self.draw_with_shadow(&draw_rect, |new_draw_target: &GenericDrawTarget| {
                 new_draw_target.fill_rect(
                     &draw_rect,
-                    self.state.fill_style.to_pattern_ref(),
+                    self.state.fill_style.clone(),
                     Some(&self.state.draw_options),
                 );
             });
         } else {
             self.drawtarget.fill_rect(
                 &draw_rect,
-                self.state.fill_style.to_pattern_ref(),
+                self.state.fill_style.clone(),
                 Some(&self.state.draw_options),
             );
         }
@@ -301,43 +519,31 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn stroke_rect(&self, rect: &Rect<f32>) {
-        if is_zero_size_gradient(&self.state.stroke_style) {
+        if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
+            self.draw_with_shadow(&rect, |new_draw_target: &GenericDrawTarget| {
                 new_draw_target.stroke_rect(
                     rect,
-                    self.state.stroke_style.to_pattern_ref(),
+                    self.state.stroke_style.clone(),
                     &self.state.stroke_opts,
                     &self.state.draw_options,
                 );
             });
         } else if rect.size.width == 0. || rect.size.height == 0. {
-            let cap = match self.state.stroke_opts.line_join {
-                JoinStyle::Round => CapStyle::Round,
-                _ => CapStyle::Butt,
-            };
-
-            let stroke_opts = StrokeOptions::new(
-                self.state.stroke_opts.line_width,
-                self.state.stroke_opts.line_join,
-                cap,
-                self.state.stroke_opts.miter_limit,
-                self.state.stroke_opts.mDashPattern,
-            );
             self.drawtarget.stroke_line(
                 rect.origin,
                 rect.bottom_right(),
-                self.state.stroke_style.to_pattern_ref(),
-                &stroke_opts,
+                self.state.stroke_style.clone(),
+                &self.state.stroke_opts,
                 &self.state.draw_options,
             );
         } else {
             self.drawtarget.stroke_rect(
                 rect,
-                self.state.stroke_style.to_pattern_ref(),
+                self.state.stroke_style.clone(),
                 &self.state.stroke_opts,
                 &self.state.draw_options,
             );
@@ -419,27 +625,27 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn fill(&mut self) {
-        if is_zero_size_gradient(&self.state.fill_style) {
+        if self.state.fill_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         self.ensure_path();
         self.drawtarget.fill(
             &self.path(),
-            self.state.fill_style.to_pattern_ref(),
+            self.state.fill_style.clone(),
             &self.state.draw_options,
         );
     }
 
     pub fn stroke(&mut self) {
-        if is_zero_size_gradient(&self.state.stroke_style) {
+        if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         self.ensure_path();
         self.drawtarget.stroke(
             &self.path(),
-            self.state.stroke_style.to_pattern_ref(),
+            self.state.stroke_style.clone(),
             &self.state.stroke_opts,
             &self.state.draw_options,
         );
@@ -469,11 +675,11 @@ impl<'a> CanvasData<'a> {
         chan.send(result).unwrap();
     }
 
-    pub fn move_to(&mut self, point: &Point2D<AzFloat>) {
+    pub fn move_to(&mut self, point: &Point2D<f32>) {
         self.path_builder().move_to(point);
     }
 
-    pub fn line_to(&mut self, point: &Point2D<AzFloat>) {
+    pub fn line_to(&mut self, point: &Point2D<f32>) {
         self.path_builder().line_to(point);
     }
 
@@ -545,34 +751,34 @@ impl<'a> CanvasData<'a> {
         self.path_builder().rect(rect);
     }
 
-    pub fn quadratic_curve_to(&mut self, cp: &Point2D<AzFloat>, endpoint: &Point2D<AzFloat>) {
+    pub fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.path_builder().quadratic_curve_to(cp, endpoint);
     }
 
     pub fn bezier_curve_to(
         &mut self,
-        cp1: &Point2D<AzFloat>,
-        cp2: &Point2D<AzFloat>,
-        endpoint: &Point2D<AzFloat>,
+        cp1: &Point2D<f32>,
+        cp2: &Point2D<f32>,
+        endpoint: &Point2D<f32>,
     ) {
         self.path_builder().bezier_curve_to(cp1, cp2, endpoint);
     }
 
     pub fn arc(
         &mut self,
-        center: &Point2D<AzFloat>,
-        radius: AzFloat,
-        start_angle: AzFloat,
-        end_angle: AzFloat,
+        center: &Point2D<f32>,
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
         ccw: bool,
     ) {
         self.path_builder()
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
-    pub fn arc_to(&mut self, cp1: &Point2D<AzFloat>, cp2: &Point2D<AzFloat>, radius: AzFloat) {
+    pub fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         let cp0 = match self.path_builder().current_point() {
-            Some(p) => p.as_azure_point(),
+            Some(p) => p,
             None => return,
         };
         let cp1 = *cp1;
@@ -635,12 +841,12 @@ impl<'a> CanvasData<'a> {
 
     pub fn ellipse(
         &mut self,
-        center: &Point2D<AzFloat>,
-        radius_x: AzFloat,
-        radius_y: AzFloat,
-        rotation_angle: AzFloat,
-        start_angle: AzFloat,
-        end_angle: AzFloat,
+        center: &Point2D<f32>,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        start_angle: f32,
+        end_angle: f32,
         ccw: bool,
     ) {
         self.path_builder().ellipse(
@@ -655,31 +861,29 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
-        if let Some(pattern) = style.to_azure_pattern(&self.drawtarget) {
-            self.state.fill_style = pattern
-        }
+        self.backend
+            .set_fill_style(style, &mut self.state, &*self.drawtarget);
     }
 
     pub fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
-        if let Some(pattern) = style.to_azure_pattern(&self.drawtarget) {
-            self.state.stroke_style = pattern
-        }
+        self.backend
+            .set_stroke_style(style, &mut self.state, &*self.drawtarget);
     }
 
     pub fn set_line_width(&mut self, width: f32) {
-        self.state.stroke_opts.line_width = width;
+        self.state.stroke_opts.set_line_width(width);
     }
 
     pub fn set_line_cap(&mut self, cap: LineCapStyle) {
-        self.state.stroke_opts.line_cap = cap.to_azure_style();
+        self.state.stroke_opts.set_line_cap(cap);
     }
 
     pub fn set_line_join(&mut self, join: LineJoinStyle) {
-        self.state.stroke_opts.line_join = join.to_azure_style();
+        self.state.stroke_opts.set_line_join(join);
     }
 
     pub fn set_miter_limit(&mut self, limit: f32) {
-        self.state.stroke_opts.miter_limit = limit;
+        self.state.stroke_opts.set_miter_limit(limit);
     }
 
     pub fn set_transform(&mut self, transform: &Transform2D<f32>) {
@@ -699,23 +903,18 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn set_global_alpha(&mut self, alpha: f32) {
-        self.state.draw_options.alpha = alpha;
+        self.state.draw_options.set_alpha(alpha);
     }
 
     pub fn set_global_composition(&mut self, op: CompositionOrBlending) {
-        self.state
-            .draw_options
-            .set_composition_op(op.to_azure_style());
-    }
-
-    pub fn create(size: Size2D<u64>) -> DrawTarget {
-        // FIXME(nox): Why is the size made of i32 values?
-        DrawTarget::new(BackendType::Skia, size.to_i32(), SurfaceFormat::B8G8R8A8)
+        self.backend.set_global_composition(op, &mut self.state);
     }
 
     pub fn recreate(&mut self, size: Size2D<u32>) {
-        self.drawtarget = CanvasData::create(Size2D::new(size.width as u64, size.height as u64));
-        self.state = CanvasPaintState::new(self.state.draw_options.antialias);
+        self.drawtarget = self
+            .backend
+            .create_drawtarget(Size2D::new(size.width as u64, size.height as u64));
+        self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
         // TODO: there is an annying race condition here: the display list builder
@@ -730,15 +929,14 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
-        let data = IpcSharedMemory::from_bytes(unsafe {
-            self.drawtarget.snapshot().get_data_surface().data()
+        self.drawtarget.snapshot_data(&|bytes| {
+            let data = IpcSharedMemory::from_bytes(bytes);
+            chan.send(data).unwrap();
+            vec![]
         });
-        chan.send(data).unwrap();
     }
 
-    #[allow(unsafe_code)]
     pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
         let size = self.drawtarget.get_size();
 
@@ -750,9 +948,8 @@ impl<'a> CanvasData<'a> {
             is_opaque: false,
             allow_mipmaps: false,
         };
-        let data = webrender_api::ImageData::Raw(Arc::new(unsafe {
-            self.drawtarget.snapshot().get_data_surface().data().into()
-        }));
+        let data = self.drawtarget.snapshot_data_owned();
+        let data = webrender_api::ImageData::Raw(Arc::new(data));
 
         let mut txn = webrender_api::Transaction::new();
 
@@ -793,7 +990,6 @@ impl<'a> CanvasData<'a> {
                 &imagedata,
                 rect.size.to_i32(),
                 rect.size.width as i32 * 4,
-                SurfaceFormat::B8G8R8A8,
             )
             .unwrap();
         self.drawtarget.copy_surface(
@@ -815,19 +1011,19 @@ impl<'a> CanvasData<'a> {
         self.state.shadow_blur = value;
     }
 
-    pub fn set_shadow_color(&mut self, value: Color) {
-        self.state.shadow_color = value;
+    pub fn set_shadow_color(&mut self, value: RGBA) {
+        self.backend.set_shadow_color(value, &mut self.state);
     }
 
     // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
     fn need_to_draw_shadow(&self) -> bool {
-        self.state.shadow_color.a != 0.0f32 &&
+        self.backend.need_to_draw_shadow(&self.state.shadow_color) &&
             (self.state.shadow_offset_x != 0.0f64 ||
                 self.state.shadow_offset_y != 0.0f64 ||
                 self.state.shadow_blur != 0.0f64)
     }
 
-    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
+    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> Box<GenericDrawTarget> {
         let draw_target = self.drawtarget.create_similar_draw_target(
             &Size2D::new(
                 source_rect.size.width as i32,
@@ -844,24 +1040,24 @@ impl<'a> CanvasData<'a> {
 
     fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
     where
-        F: FnOnce(&DrawTarget),
+        F: FnOnce(&GenericDrawTarget),
     {
         let shadow_src_rect = self.state.transform.transform_rect(rect);
         let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
-        draw_shadow_source(&new_draw_target);
+        draw_shadow_source(&*new_draw_target);
         self.drawtarget.draw_surface_with_shadow(
             new_draw_target.snapshot(),
             &Point2D::new(
-                shadow_src_rect.origin.x as AzFloat,
-                shadow_src_rect.origin.y as AzFloat,
+                shadow_src_rect.origin.x as f32,
+                shadow_src_rect.origin.y as f32,
             ),
             &self.state.shadow_color,
             &Vector2D::new(
-                self.state.shadow_offset_x as AzFloat,
-                self.state.shadow_offset_y as AzFloat,
+                self.state.shadow_offset_x as f32,
+                self.state.shadow_offset_y as f32,
             ),
-            (self.state.shadow_blur / 2.0f64) as AzFloat,
-            self.state.draw_options.composition,
+            (self.state.shadow_blur / 2.0f64) as f32,
+            self.backend.get_composition_op(&self.state.draw_options),
         );
     }
 
@@ -877,13 +1073,10 @@ impl<'a> CanvasData<'a> {
         {
             return vec![];
         }
-        let data_surface = self.drawtarget.snapshot().get_data_surface();
-        pixels::rgba8_get_rect(
-            unsafe { data_surface.data() },
-            canvas_size.to_u32(),
-            read_rect.to_u32(),
-        )
-        .into_owned()
+
+        self.drawtarget.snapshot_data(&|bytes| {
+            pixels::rgba8_get_rect(bytes, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
+        })
     }
 }
 
@@ -903,48 +1096,17 @@ impl<'a> Drop for CanvasData<'a> {
 }
 
 #[derive(Clone)]
-struct CanvasPaintState<'a> {
-    draw_options: DrawOptions,
-    fill_style: Pattern,
-    stroke_style: Pattern,
-    stroke_opts: StrokeOptions<'a>,
+pub struct CanvasPaintState<'a> {
+    pub draw_options: DrawOptions,
+    pub fill_style: Pattern,
+    pub stroke_style: Pattern,
+    pub stroke_opts: StrokeOptions<'a>,
     /// The current 2D transform matrix.
-    transform: Transform2D<f32>,
-    shadow_offset_x: f64,
-    shadow_offset_y: f64,
-    shadow_blur: f64,
-    shadow_color: Color,
-}
-
-impl<'a> CanvasPaintState<'a> {
-    fn new(antialias: AntialiasMode) -> CanvasPaintState<'a> {
-        CanvasPaintState {
-            draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
-            fill_style: Pattern::Color(ColorPattern::new(Color::black())),
-            stroke_style: Pattern::Color(ColorPattern::new(Color::black())),
-            stroke_opts: StrokeOptions::new(
-                1.0,
-                JoinStyle::MiterOrBevel,
-                CapStyle::Butt,
-                10.0,
-                &[],
-            ),
-            transform: Transform2D::identity(),
-            shadow_offset_x: 0.0,
-            shadow_offset_y: 0.0,
-            shadow_blur: 0.0,
-            shadow_color: Color::transparent(),
-        }
-    }
-}
-
-fn is_zero_size_gradient(pattern: &Pattern) -> bool {
-    if let &Pattern::LinearGradient(ref gradient) = pattern {
-        if gradient.is_zero_size() {
-            return true;
-        }
-    }
-    false
+    pub transform: Transform2D<f32>,
+    pub shadow_offset_x: f64,
+    pub shadow_offset_y: f64,
+    pub shadow_blur: f64,
+    pub shadow_color: Color,
 }
 
 /// It writes an image to the destination target
@@ -954,13 +1116,12 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
 /// dest_rect: Area of the destination target where the pixels will be copied
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 fn write_image(
-    draw_target: &DrawTarget,
+    draw_target: &GenericDrawTarget,
     image_data: Vec<u8>,
     image_size: Size2D<f64>,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
-    composition_op: CompositionOp,
-    global_alpha: f32,
+    draw_options: &DrawOptions,
 ) {
     if image_data.is_empty() {
         return;
@@ -979,22 +1140,10 @@ fn write_image(
     let image_size = image_size.to_i32();
 
     let source_surface = draw_target
-        .create_source_surface_from_data(
-            &image_data,
-            image_size,
-            image_size.width * 4,
-            SurfaceFormat::B8G8R8A8,
-        )
+        .create_source_surface_from_data(&image_data, image_size, image_size.width * 4)
         .unwrap();
-    let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-    let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
-    draw_target.draw_surface(
-        source_surface,
-        dest_rect.to_azure_style(),
-        image_rect.to_azure_style(),
-        draw_surface_options,
-        draw_options,
-    );
+
+    draw_target.draw_surface(source_surface, dest_rect, image_rect, filter, draw_options);
 }
 
 pub trait PointToi32 {
@@ -1040,191 +1189,6 @@ impl RectToi32 for Rect<f64> {
         Rect::new(
             Point2D::new(self.origin.x.ceil(), self.origin.y.ceil()),
             Size2D::new(self.size.width.ceil(), self.size.height.ceil()),
-        )
-    }
-}
-
-pub trait ToAzureStyle {
-    type Target;
-    fn to_azure_style(self) -> Self::Target;
-}
-
-impl ToAzureStyle for Rect<f64> {
-    type Target = Rect<AzFloat>;
-
-    fn to_azure_style(self) -> Rect<AzFloat> {
-        Rect::new(
-            Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
-            Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat),
-        )
-    }
-}
-
-impl ToAzureStyle for LineCapStyle {
-    type Target = CapStyle;
-
-    fn to_azure_style(self) -> CapStyle {
-        match self {
-            LineCapStyle::Butt => CapStyle::Butt,
-            LineCapStyle::Round => CapStyle::Round,
-            LineCapStyle::Square => CapStyle::Square,
-        }
-    }
-}
-
-impl ToAzureStyle for LineJoinStyle {
-    type Target = JoinStyle;
-
-    fn to_azure_style(self) -> JoinStyle {
-        match self {
-            LineJoinStyle::Round => JoinStyle::Round,
-            LineJoinStyle::Bevel => JoinStyle::Bevel,
-            LineJoinStyle::Miter => JoinStyle::Miter,
-        }
-    }
-}
-
-impl ToAzureStyle for CompositionStyle {
-    type Target = CompositionOp;
-
-    fn to_azure_style(self) -> CompositionOp {
-        match self {
-            CompositionStyle::SrcIn => CompositionOp::In,
-            CompositionStyle::SrcOut => CompositionOp::Out,
-            CompositionStyle::SrcOver => CompositionOp::Over,
-            CompositionStyle::SrcAtop => CompositionOp::Atop,
-            CompositionStyle::DestIn => CompositionOp::DestIn,
-            CompositionStyle::DestOut => CompositionOp::DestOut,
-            CompositionStyle::DestOver => CompositionOp::DestOver,
-            CompositionStyle::DestAtop => CompositionOp::DestAtop,
-            CompositionStyle::Copy => CompositionOp::Source,
-            CompositionStyle::Lighter => CompositionOp::Add,
-            CompositionStyle::Xor => CompositionOp::Xor,
-        }
-    }
-}
-
-impl ToAzureStyle for BlendingStyle {
-    type Target = CompositionOp;
-
-    fn to_azure_style(self) -> CompositionOp {
-        match self {
-            BlendingStyle::Multiply => CompositionOp::Multiply,
-            BlendingStyle::Screen => CompositionOp::Screen,
-            BlendingStyle::Overlay => CompositionOp::Overlay,
-            BlendingStyle::Darken => CompositionOp::Darken,
-            BlendingStyle::Lighten => CompositionOp::Lighten,
-            BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
-            BlendingStyle::ColorBurn => CompositionOp::ColorBurn,
-            BlendingStyle::HardLight => CompositionOp::HardLight,
-            BlendingStyle::SoftLight => CompositionOp::SoftLight,
-            BlendingStyle::Difference => CompositionOp::Difference,
-            BlendingStyle::Exclusion => CompositionOp::Exclusion,
-            BlendingStyle::Hue => CompositionOp::Hue,
-            BlendingStyle::Saturation => CompositionOp::Saturation,
-            BlendingStyle::Color => CompositionOp::Color,
-            BlendingStyle::Luminosity => CompositionOp::Luminosity,
-        }
-    }
-}
-
-impl ToAzureStyle for CompositionOrBlending {
-    type Target = CompositionOp;
-
-    fn to_azure_style(self) -> CompositionOp {
-        match self {
-            CompositionOrBlending::Composition(op) => op.to_azure_style(),
-            CompositionOrBlending::Blending(op) => op.to_azure_style(),
-        }
-    }
-}
-
-pub trait ToAzurePattern {
-    fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern>;
-}
-
-impl ToAzurePattern for FillOrStrokeStyle {
-    fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern> {
-        Some(match *self {
-            FillOrStrokeStyle::Color(ref color) => {
-                Pattern::Color(ColorPattern::new(color.to_azure_style()))
-            },
-            FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = linear_gradient_style
-                    .stops
-                    .iter()
-                    .map(|s| GradientStop {
-                        offset: s.offset as AzFloat,
-                        color: s.color.to_azure_style(),
-                    })
-                    .collect();
-
-                Pattern::LinearGradient(LinearGradientPattern::new(
-                    &Point2D::new(
-                        linear_gradient_style.x0 as AzFloat,
-                        linear_gradient_style.y0 as AzFloat,
-                    ),
-                    &Point2D::new(
-                        linear_gradient_style.x1 as AzFloat,
-                        linear_gradient_style.y1 as AzFloat,
-                    ),
-                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Transform2D::identity(),
-                ))
-            },
-            FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = radial_gradient_style
-                    .stops
-                    .iter()
-                    .map(|s| GradientStop {
-                        offset: s.offset as AzFloat,
-                        color: s.color.to_azure_style(),
-                    })
-                    .collect();
-
-                Pattern::RadialGradient(RadialGradientPattern::new(
-                    &Point2D::new(
-                        radial_gradient_style.x0 as AzFloat,
-                        radial_gradient_style.y0 as AzFloat,
-                    ),
-                    &Point2D::new(
-                        radial_gradient_style.x1 as AzFloat,
-                        radial_gradient_style.y1 as AzFloat,
-                    ),
-                    radial_gradient_style.r0 as AzFloat,
-                    radial_gradient_style.r1 as AzFloat,
-                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Transform2D::identity(),
-                ))
-            },
-            FillOrStrokeStyle::Surface(ref surface_style) => {
-                let source_surface = drawtarget.create_source_surface_from_data(
-                    &surface_style.surface_data,
-                    // FIXME(nox): Why are those i32 values?
-                    surface_style.surface_size.to_i32(),
-                    surface_style.surface_size.width as i32 * 4,
-                    SurfaceFormat::B8G8R8A8,
-                )?;
-                Pattern::Surface(SurfacePattern::new(
-                    source_surface.azure_source_surface,
-                    surface_style.repeat_x,
-                    surface_style.repeat_y,
-                    &Transform2D::identity(),
-                ))
-            },
-        })
-    }
-}
-
-impl ToAzureStyle for RGBA {
-    type Target = Color;
-
-    fn to_azure_style(self) -> Color {
-        Color::rgba(
-            self.red_f32() as AzFloat,
-            self.green_f32() as AzFloat,
-            self.blue_f32() as AzFloat,
-            self.alpha_f32() as AzFloat,
         )
     }
 }
