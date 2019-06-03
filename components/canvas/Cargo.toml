@@ -30,7 +30,7 @@ half = "1"
 ipc-channel = "0.11"
 log = "0.4"
 num-traits = "0.2"
-offscreen_gl_context = {version = "0.22", features = ["serde", "osmesa"]}
+offscreen_gl_context = {version = "0.22", features = ["serde", "osmesa", "no_wgl"]}
 raqote = {git = "https://github.com/jrmuizel/raqote", optional = true}
 pixels = {path = "../pixels"}
 serde_bytes = "0.10"
