@@ -30,3 +30,7 @@ mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
 remove_dir_all = { git = "https://github.com/XAMPPRocky/remove_dir_all" }
 cmake = { git = "https://github.com/alexcrichton/cmake-rs" }
+[patch."https://github.com/servo/mozjs"]
+mozjs_sys = { path = "../mozjs" }
+[patch."https://github.com/servo/rust-mozjs"]
+mozjs = { path = "../rust-mozjs" }

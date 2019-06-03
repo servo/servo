@@ -176,12 +176,12 @@ unsafe extern "C" fn read_callback(
 }
 
 unsafe extern "C" fn write_callback(
-    _cx: *mut JSContext,
+    cx: *mut JSContext,
     w: *mut JSStructuredCloneWriter,
     obj: RawHandleObject,
     _closure: *mut raw::c_void,
 ) -> bool {
-    if let Ok(blob) = root_from_handleobject::<Blob>(Handle::from_raw(obj)) {
+    if let Ok(blob) = root_from_handleobject::<Blob>(Handle::from_raw(obj), cx) {
         return write_blob(blob, w).is_ok();
     }
     return false;

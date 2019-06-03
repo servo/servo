@@ -79,7 +79,7 @@ use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use html5ever::interface::QualName;
 use html5ever::LocalName;
-use js::glue::UnwrapObject;
+use js::glue::UnwrapObjectStatic;
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
 use js::jsapi::{JSAutoRealm, JSContext, JSObject};
 use js::rust::HandleObject;
@@ -109,7 +109,7 @@ where
         },
     };
 
-    rooted!(in(window.get_cx()) let callee = UnwrapObject(call_args.callee(), 1));
+    rooted!(in(window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
     if callee.is_null() {
         return Err(Error::Security);
     }
