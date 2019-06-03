@@ -14,7 +14,7 @@ use pixels::{self, PixelFormat};
 use std::borrow::Cow;
 use std::thread;
 
-use io_surface::{IOSurfaceID};
+use io_surface::IOSurfaceID;
 use offscreen_gl_context::ColorAttachmentType;
 
 /// WebGL Threading API entry point that lives in the constellation.
@@ -186,7 +186,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             },
             WebGLMsg::Swap(sender) => {
                 self.swap_draw_buffers(sender);
-            }
+            },
             WebGLMsg::Exit => {
                 return true;
             },
@@ -196,10 +196,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Swap the underlying IOsurfaces upon requestAnimationFrame is called
-    fn swap_draw_buffers(
-        &mut self,
-        sender: WebGLSender<()>
-    ) {
+    fn swap_draw_buffers(&mut self, sender: WebGLSender<()>) {
         for (context_id, ref mut data) in self.contexts.iter_mut() {
             if Some(*context_id) != self.bound_context_id {
                 data.ctx.make_current();
@@ -252,9 +249,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         context_id: WebGLContextId,
         sender: WebGLSender<(u32, Size2D<i32>, Option<u32>, usize)>,
     ) {
-        let data =
-            Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id)
-                .expect("WebGLContext not found in a WebGLMsg::Lock message");
+        let data = Self::make_current_if_needed_mut(
+            context_id,
+            &mut self.contexts,
+            &mut self.bound_context_id,
+        )
+        .expect("WebGLContext not found in a WebGLMsg::Lock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         info.render_state = ContextRenderState::Locked(None);
         // Insert a OpenGL Fence sync object that sends a signal when all the WebGL commands are finished.
@@ -273,7 +273,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         }
 
         sender
-            .send((info.texture_id, info.size, info.io_surface_id, gl_sync as usize))
+            .send((
+                info.texture_id,
+                info.size,
+                info.io_surface_id,
+                gl_sync as usize,
+            ))
             .unwrap();
     }
 
@@ -458,7 +463,13 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 // Reuse existing ImageKey or generate a new one.
                 // When using a shared texture ImageKeys are only generated after a WebGLContext creation.
                 *info.image_key.get_or_insert_with(|| {
-                    Self::create_wr_external_image(webrender_api, size, alpha, context_id, texture_target)
+                    Self::create_wr_external_image(
+                        webrender_api,
+                        size,
+                        alpha,
+                        context_id,
+                        texture_target,
+                    )
                 })
             },
             WebGLContextShareMode::Readback => {
@@ -688,13 +699,14 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Helper function to create a `webrender_api::ImageData::External` instance.
-    fn external_image_data(context_id: WebGLContextId, target: webrender_api::TextureTarget) -> webrender_api::ImageData {
+    fn external_image_data(
+        context_id: WebGLContextId,
+        target: webrender_api::TextureTarget,
+    ) -> webrender_api::ImageData {
         let data = webrender_api::ExternalImageData {
             id: webrender_api::ExternalImageId(context_id.0 as u64),
             channel_index: 0,
-            image_type: webrender_api::ExternalImageType::TextureHandle(
-                target,
-            ),
+            image_type: webrender_api::ExternalImageType::TextureHandle(target),
         };
         webrender_api::ImageData::External(data)
     }

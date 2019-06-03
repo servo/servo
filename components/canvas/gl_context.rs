@@ -93,9 +93,9 @@ impl GLContextFactory {
         attributes: GLContextAttributes,
         color_attachment_type: ColorAttachmentType,
     ) -> Result<GLContextWrapper, &'static str> {
-        if ColorAttachmentType::IOSurface == color_attachment_type
-            && cfg!(not(target_os="macos")) {
-                return Err("IOSurface is not supported on this platform")
+        if ColorAttachmentType::IOSurface == color_attachment_type && cfg!(not(target_os = "macos"))
+        {
+            return Err("IOSurface is not supported on this platform");
         }
         let attributes = map_attrs(attributes);
         Ok(match *self {
@@ -250,12 +250,8 @@ impl GLContextWrapper {
 
     pub fn get_framebuffer(&self) -> gl::GLuint {
         match *self {
-            GLContextWrapper::Native(ref ctx) => {
-                ctx.get_framebuffer()
-            },
-            GLContextWrapper::OSMesa(ref ctx) => {
-                ctx.get_framebuffer()
-            },
+            GLContextWrapper::Native(ref ctx) => ctx.get_framebuffer(),
+            GLContextWrapper::OSMesa(ref ctx) => ctx.get_framebuffer(),
         }
     }
 }
