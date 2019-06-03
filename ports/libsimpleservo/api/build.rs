@@ -15,16 +15,10 @@ fn main() {
     // For now, we only support EGL, and only on Windows and Android.
     if target.contains("android") || target.contains("windows") {
         let mut file = File::create(&dest.join("egl_bindings.rs")).unwrap();
-        if target.contains("android") {
-            Registry::new(Api::Egl, (1, 5), Profile::Core, Fallbacks::All, [])
-                .write_bindings(gl_generator::StaticStructGenerator, &mut file)
-                .unwrap();
-        }
-        if target.contains("windows") {
-            Registry::new(Api::Egl, (1, 5), Profile::Core, Fallbacks::All, [])
-                .write_bindings(gl_generator::StructGenerator, &mut file)
-                .unwrap();
-        };
+        Registry::new(Api::Egl, (1, 5), Profile::Core, Fallbacks::All, [])
+            .write_bindings(gl_generator::StaticStructGenerator, &mut file)
+            .unwrap();
+        println!("cargo:rustc-link-lib=libegl");
     }
 
     if target.contains("linux") ||
