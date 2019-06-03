@@ -9,20 +9,9 @@ pub type ServoGl = std::rc::Rc<dyn servo::gl::Gl>;
 pub mod egl {
     use servo::gl::GlesFns;
     use std::ffi::CString;
-    #[cfg(not(target_os = "windows"))]
     use std::os::raw::c_void;
-    #[cfg(target_os = "windows")]
-    use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA};
 
-    #[cfg(target_os = "windows")]
-    pub type EGLNativeWindowType = winapi::shared::windef::HWND;
-    #[cfg(target_os = "linux")]
     pub type EGLNativeWindowType = *const libc::c_void;
-    #[cfg(target_os = "android")]
-    pub type EGLNativeWindowType = *const libc::c_void;
-    #[cfg(any(target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd"))]
-    pub type EGLNativeWindowType = *const libc::c_void;
-
     pub type khronos_utime_nanoseconds_t = khronos_uint64_t;
     pub type khronos_uint64_t = libc::uint64_t;
     pub type khronos_ssize_t = libc::c_long;
@@ -35,7 +24,6 @@ pub mod egl {
 
     include!(concat!(env!("OUT_DIR"), "/egl_bindings.rs"));
 
-    #[cfg(target_os = "android")]
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         info!("Loading EGL...");
         unsafe {
@@ -50,27 +38,6 @@ pub mod egl {
             });
             info!("EGL loaded");
             Ok(egl)
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
-        info!("Loading EGL...");
-
-        let dll = b"libEGL.dll\0" as &[u8];
-        let dll = unsafe { LoadLibraryA(dll.as_ptr() as *const _) };
-        if dll.is_null() {
-            Err("Can't find libEGL.dll")
-        } else {
-            unsafe {
-                let egl = GlesFns::load_with(|addr| {
-                    let addr = CString::new(addr.as_bytes()).unwrap();
-                    let addr = addr.as_ptr();
-                    GetProcAddress(dll, addr) as *const _
-                });
-                info!("EGL loaded");
-                Ok(egl)
-            }
         }
     }
 }
