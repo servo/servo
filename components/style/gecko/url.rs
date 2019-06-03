@@ -9,7 +9,7 @@ use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsStyleImageRequest;
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::parser::{Parse, ParserContext};
-use crate::stylesheets::{UrlExtraData, CorsMode};
+use crate::stylesheets::{CorsMode, UrlExtraData};
 use crate::values::computed::{Context, ToComputedValue};
 use cssparser::Parser;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -68,15 +68,15 @@ impl CssUrl {
         cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         let url = input.expect_url()?;
-        Ok(Self::parse_from_string(url.as_ref().to_owned(), context, cors_mode))
+        Ok(Self::parse_from_string(
+            url.as_ref().to_owned(),
+            context,
+            cors_mode,
+        ))
     }
 
     /// Parse a URL from a string value that is a valid CSS token for a URL.
-    pub fn parse_from_string(
-        url: String,
-        context: &ParserContext,
-        cors_mode: CorsMode,
-    ) -> Self {
+    pub fn parse_from_string(url: String, context: &ParserContext, cors_mode: CorsMode) -> Self {
         CssUrl(Arc::new(CssUrlData {
             serialization: url.into(),
             extra_data: context.url_data.clone(),
@@ -261,7 +261,11 @@ pub struct SpecifiedImageUrl(pub SpecifiedUrl);
 impl SpecifiedImageUrl {
     /// Parse a URL from a string value that is a valid CSS token for a URL.
     pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
-        SpecifiedImageUrl(SpecifiedUrl::parse_from_string(url, context, CorsMode::None))
+        SpecifiedImageUrl(SpecifiedUrl::parse_from_string(
+            url,
+            context,
+            CorsMode::None,
+        ))
     }
 
     /// Provides an alternate method for parsing that associates the URL
@@ -354,7 +358,8 @@ impl ToCss for ComputedImageUrl {
     where
         W: Write,
     {
-        self.0.serialize_with(bindings::Gecko_GetComputedImageURLSpec, dest)
+        self.0
+            .serialize_with(bindings::Gecko_GetComputedImageURLSpec, dest)
     }
 }
 

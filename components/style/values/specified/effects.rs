@@ -30,7 +30,8 @@ pub type BoxShadow =
 
 /// A specified value for a single `filter`.
 #[cfg(feature = "gecko")]
-pub type SpecifiedFilter = GenericFilter<Angle, Factor, NonNegativeLength, SimpleShadow, SpecifiedUrl>;
+pub type SpecifiedFilter =
+    GenericFilter<Angle, Factor, NonNegativeLength, SimpleShadow, SpecifiedUrl>;
 
 /// A specified value for a single `filter`.
 #[cfg(feature = "servo")]

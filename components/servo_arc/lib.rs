@@ -314,7 +314,11 @@ impl<T: ?Sized> Arc<T> {
     fn record_drop(&self) {
         #[cfg(feature = "gecko_refcount_logging")]
         unsafe {
-            NS_LogDtor(self.ptr() as *const _, b"ServoArc\0".as_ptr() as *const _, 8);
+            NS_LogDtor(
+                self.ptr() as *const _,
+                b"ServoArc\0".as_ptr() as *const _,
+                8,
+            );
         }
     }
 
@@ -350,8 +354,16 @@ impl<T: ?Sized> Arc<T> {
 
 #[cfg(feature = "gecko_refcount_logging")]
 extern "C" {
-    fn NS_LogCtor(aPtr: *const std::os::raw::c_void, aTypeName: *const std::os::raw::c_char, aSize: u32);
-    fn NS_LogDtor(aPtr: *const std::os::raw::c_void, aTypeName: *const std::os::raw::c_char, aSize: u32);
+    fn NS_LogCtor(
+        aPtr: *const std::os::raw::c_void,
+        aTypeName: *const std::os::raw::c_char,
+        aSize: u32,
+    );
+    fn NS_LogDtor(
+        aPtr: *const std::os::raw::c_void,
+        aTypeName: *const std::os::raw::c_char,
+        aSize: u32,
+    );
 }
 
 impl<T: ?Sized> Clone for Arc<T> {

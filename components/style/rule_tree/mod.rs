@@ -84,7 +84,11 @@ impl MallocSizeOf for RuleTree {
         while let Some(node) = stack.pop() {
             n += unsafe { ops.malloc_size_of(node.ptr()) };
             stack.extend(unsafe {
-                (*node.ptr()).children.read().iter().map(|(_k, v)| v.clone())
+                (*node.ptr())
+                    .children
+                    .read()
+                    .iter()
+                    .map(|(_k, v)| v.clone())
             });
         }
 
@@ -958,9 +962,7 @@ impl StrongRuleNode {
         }
 
         match RwLockUpgradableReadGuard::upgrade(read_guard).entry(key) {
-            hash::map::Entry::Occupied(ref occupied) => {
-                occupied.get().upgrade()
-            }
+            hash::map::Entry::Occupied(ref occupied) => occupied.get().upgrade(),
             hash::map::Entry::Vacant(vacant) => {
                 let new_node = StrongRuleNode::new(Box::new(RuleNode::new(
                     root,
@@ -972,7 +974,7 @@ impl StrongRuleNode {
                 vacant.insert(new_node.downgrade());
 
                 new_node
-            }
+            },
         }
     }
 

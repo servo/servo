@@ -75,7 +75,9 @@ impl SharedRwLock {
     #[cfg(feature = "gecko")]
     pub fn new_leaked() -> Self {
         SharedRwLock {
-            cell: Some(Arc::new_leaked(AtomicRefCell::new(SomethingZeroSizedButTyped))),
+            cell: Some(Arc::new_leaked(AtomicRefCell::new(
+                SomethingZeroSizedButTyped,
+            ))),
         }
     }
 

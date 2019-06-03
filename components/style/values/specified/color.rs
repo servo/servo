@@ -253,7 +253,6 @@ impl SystemColor {
     }
 }
 
-
 #[cfg(feature = "gecko")]
 mod gecko {
     #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
