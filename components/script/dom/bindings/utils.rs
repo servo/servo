@@ -15,12 +15,12 @@ use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, JS_GetReservedSlot, WrapperNew};
-use js::glue::{UnwrapObject, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
+use js::glue::{UnwrapObjectDynamic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::jsapi::{CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
+use js::jsapi::{AutoIdVector, CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
 use js::jsapi::{Heap, JSAutoRealm, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
@@ -210,7 +210,7 @@ pub unsafe fn find_enum_value<'a, T>(
 
 /// Returns wether `obj` is a platform object
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
-pub fn is_platform_object(obj: *mut JSObject) -> bool {
+pub fn is_platform_object(obj: *mut JSObject, cx: *mut JSContext) -> bool {
     unsafe {
         // Fast-path the common case
         let mut clasp = get_object_class(obj);
@@ -219,7 +219,7 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
         }
         // Now for simplicity check for security wrappers before anything else
         if IsWrapper(obj) {
-            let unwrapped_obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
+            let unwrapped_obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ 0);
             if unwrapped_obj.is_null() {
                 return false;
             }
@@ -342,7 +342,12 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 }
 
 /// Enumerate lazy properties of a global object.
-pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: RawHandleObject) -> bool {
+pub unsafe extern "C" fn enumerate_global(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    _props: *mut AutoIdVector,
+    _enumerable_only: bool,
+) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
     if !JS_EnumerateStandardClasses(cx, obj) {
         return false;
@@ -463,7 +468,7 @@ unsafe fn generic_call(
     let depth = (*info).depth;
     let proto_check =
         |class: &'static DOMClass| class.interface_chain[depth as usize] as u16 == proto_id;
-    let this = match private_from_proto_check(obj.get(), proto_check) {
+    let this = match private_from_proto_check(obj.get(), cx, proto_check) {
         Ok(val) => val,
         Err(()) => {
             if is_lenient {

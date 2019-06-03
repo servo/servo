@@ -286,7 +286,7 @@ unsafe extern "C" fn native_handler_callback(
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
     assert!(v.get().is_object());
 
-    let handler = root_from_object::<PromiseNativeHandler>(v.to_object())
+    let handler = root_from_object::<PromiseNativeHandler>(v.to_object(), cx)
         .expect("unexpected value for native handler in promise native handler callback");
 
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));

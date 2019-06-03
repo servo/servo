@@ -16,6 +16,7 @@ use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::script_runtime::notify_about_rejected_promises;
 use crate::script_thread::ScriptThread;
+use js::jsapi::{JSContext, JobQueueIsEmpty, JobQueueMayNotBeEmpty};
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
@@ -54,14 +55,21 @@ pub struct EnqueuedPromiseCallback {
 impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
-    pub fn enqueue(&self, job: Microtask) {
+    #[allow(unsafe_code)]
+    pub unsafe fn enqueue(&self, job: Microtask, cx: *mut JSContext) {
         self.microtask_queue.borrow_mut().push(job);
+        JobQueueMayNotBeEmpty(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
-    pub fn checkpoint<F>(&self, target_provider: F, globalscopes: Vec<DomRoot<GlobalScope>>)
-    where
+    #[allow(unsafe_code)]
+    pub unsafe fn checkpoint<F>(
+        &self,
+        cx: *mut JSContext,
+        target_provider: F,
+        globalscopes: Vec<DomRoot<GlobalScope>>,
+    ) where
         F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
         if self.performing_a_microtask_checkpoint.get() {
@@ -76,7 +84,11 @@ impl MicrotaskQueue {
             rooted_vec!(let mut pending_queue);
             mem::swap(&mut *pending_queue, &mut *self.microtask_queue.borrow_mut());
 
-            for job in pending_queue.iter() {
+            for (idx, job) in pending_queue.iter().enumerate() {
+                if idx == pending_queue.len() - 1 && self.microtask_queue.borrow().is_empty() {
+                    JobQueueIsEmpty(cx);
+                }
+
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
@@ -108,5 +120,9 @@ impl MicrotaskQueue {
 
         // Step 5
         self.performing_a_microtask_checkpoint.set(false);
+    }
+
+    pub fn empty(&self) -> bool {
+        self.microtask_queue.borrow().is_empty()
     }
 }

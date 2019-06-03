@@ -46,7 +46,7 @@ pub use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvert
 use js::error::throw_type_error;
 use js::glue::GetProxyReservedSlot;
 use js::glue::JS_GetReservedSlot;
-use js::glue::{IsWrapper, UnwrapObject};
+use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING};
 use js::jsapi::{Heap, JSContext, JSObject, JSString};
@@ -113,11 +113,11 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
     type Config = ();
 
     unsafe fn from_jsval(
-        _cx: *mut JSContext,
+        cx: *mut JSContext,
         value: HandleValue,
         _config: Self::Config,
     ) -> Result<ConversionResult<DomRoot<T>>, ()> {
-        Ok(match root_from_handlevalue(value) {
+        Ok(match root_from_handlevalue(value, cx) {
             Ok(result) => ConversionResult::Success(result),
             Err(()) => ConversionResult::Failure("value is not an object".into()),
         })
@@ -411,6 +411,7 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
 #[inline]
 pub unsafe fn private_from_proto_check<F>(
     mut obj: *mut JSObject,
+    cx: *mut JSContext,
     proto_check: F,
 ) -> Result<*const libc::c_void, ()>
 where
@@ -419,7 +420,7 @@ where
     let dom_class = get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
             trace!("found wrapper");
-            obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
+            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ 0);
             if obj.is_null() {
                 trace!("unwrapping security wrapper failed");
                 Err(())
@@ -443,12 +444,44 @@ where
     }
 }
 
+/// Get a `*const libc::c_void` for the given DOM object, unless it is a DOM
+/// wrapper, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is a wrapper or if the object is not an object
+/// for a DOM object of the given type (as defined by the proto_id and proto_depth).
+#[inline]
+pub unsafe fn private_from_proto_check_static<F>(
+    obj: *mut JSObject,
+    proto_check: F,
+) -> Result<*const libc::c_void, ()>
+where
+    F: Fn(&'static DOMClass) -> bool,
+{
+    let dom_class = get_dom_class(obj).map_err(|_| ())?;
+    if proto_check(dom_class) {
+        trace!("good prototype");
+        Ok(private_from_object(obj))
+    } else {
+        trace!("bad prototype");
+        Err(())
+    }
+}
+
 /// Get a `*const T` for a DOM object accessible from a `JSObject`.
-pub fn native_from_object<T>(obj: *mut JSObject) -> Result<*const T, ()>
+pub fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
-    unsafe { private_from_proto_check(obj, T::derives).map(|ptr| ptr as *const T) }
+    unsafe { private_from_proto_check(obj, cx, T::derives).map(|ptr| ptr as *const T) }
+}
+
+/// Get a `*const T` for a DOM object accessible from a `JSObject`, where the DOM object
+/// is guaranteed not to be a wrapper.
+pub fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const T, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    unsafe { private_from_proto_check_static(obj, T::derives).map(|ptr| ptr as *const T) }
 }
 
 /// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper
@@ -457,43 +490,56 @@ where
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn root_from_object<T>(obj: *mut JSObject) -> Result<DomRoot<T>, ()>
+pub fn root_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
-    native_from_object(obj).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
+    native_from_object(obj, cx).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
+}
+
+/// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper
+/// around it first, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
+/// not a reflector for a DOM object of the given type (as defined by the
+/// proto_id and proto_depth).
+pub fn root_from_object_static<T>(obj: *mut JSObject) -> Result<DomRoot<T>, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    native_from_object_static(obj).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
 }
 
 /// Get a `*const T` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
-pub fn native_from_handlevalue<T>(v: HandleValue) -> Result<*const T, ()>
+pub fn native_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
     if !v.get().is_object() {
         return Err(());
     }
-    native_from_object(v.get().to_object())
+    native_from_object(v.get().to_object(), cx)
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
-pub fn root_from_handlevalue<T>(v: HandleValue) -> Result<DomRoot<T>, ()>
+pub fn root_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
     if !v.get().is_object() {
         return Err(());
     }
-    root_from_object(v.get().to_object())
+    root_from_object(v.get().to_object(), cx)
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleObject`.
-pub fn root_from_handleobject<T>(obj: HandleObject) -> Result<DomRoot<T>, ()>
+pub fn root_from_handleobject<T>(obj: HandleObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
-    root_from_object(obj.get())
+    root_from_object(obj.get(), cx)
 }
 
 impl<T: DomObject> ToJSValConvertible for DomRoot<T> {

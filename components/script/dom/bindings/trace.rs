@@ -68,7 +68,7 @@ use hyper::StatusCode;
 use indexmap::IndexMap;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
+use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, JobQueue, TraceKind};
 use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle, Runtime};
 use js::typedarray::TypedArray;
@@ -161,6 +161,8 @@ unsafe_no_jsmanaged_fields!(Reflector);
 unsafe_no_jsmanaged_fields!(Duration);
 
 unsafe_no_jsmanaged_fields!(TexDataType, TexFormat);
+
+unsafe_no_jsmanaged_fields!(*mut JobQueue);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
