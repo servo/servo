@@ -382,6 +382,7 @@ def windows_unit():
             "mach build --dev",
             "mach test-unit",
             "mach package --dev",
+            "mach build --dev --libsimpleservo",
         )
         .with_artifacts("repo/target/debug/msi/Servo.exe",
                         "repo/target/debug/msi/Servo.zip")
