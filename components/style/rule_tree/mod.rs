@@ -382,7 +382,56 @@ impl RuleTree {
 
     /// This can only be called when no other threads is accessing this tree.
     pub unsafe fn maybe_gc(&self) {
+        #[cfg(debug_assertions)]
+        self.maybe_dump_stats();
+
         self.root.maybe_gc();
+    }
+
+    #[cfg(debug_assertions)]
+    fn maybe_dump_stats(&self) {
+        use itertools::Itertools;
+        use std::cell::Cell;
+        use std::time::{Duration, Instant};
+
+        if !log_enabled!(log::Level::Trace) {
+            return;
+        }
+
+        const RULE_TREE_STATS_INTERVAL: Duration = Duration::from_secs(2);
+
+        thread_local! {
+            pub static LAST_STATS: Cell<Instant> = Cell::new(Instant::now());
+        };
+
+        let should_dump = LAST_STATS.with(|s| {
+            let now = Instant::now();
+            if now.duration_since(s.get()) < RULE_TREE_STATS_INTERVAL {
+                return false;
+            }
+            s.set(now);
+            true
+        });
+
+        if !should_dump {
+            return;
+        }
+
+        let mut children_count = FxHashMap::default();
+
+        let mut stack = SmallVec::<[_; 32]>::new();
+        stack.push(self.root.clone());
+        while let Some(node) = stack.pop() {
+            let children = node.get().children.read();
+            *children_count.entry(children.len()).or_insert(0) += 1;
+            stack.extend(children.iter().map(|(_k, v)| v.upgrade()))
+        }
+
+        trace!("Rule tree stats:");
+        let counts = children_count.keys().sorted();
+        for count in counts {
+            trace!(" {} - {}", count, children_count[count]);
+        }
     }
 
     /// Replaces a rule in a given level (if present) for another rule.
