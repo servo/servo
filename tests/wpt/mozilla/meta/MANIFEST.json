@@ -1,5 +1,11 @@
 {
  "items": {
+  "conformancechecker": {
+   "mozilla/xmlhttprequest_url.html": []
+  },
+  "manual": {
+   "mozilla/xmlhttprequest_url.html": []
+  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -7624,7 +7630,8 @@
      ],
      {}
     ]
-   ]
+   ],
+   "mozilla/xmlhttprequest_url.html": []
   },
   "reftest_node": {
    "css/border_black_groove.html": [
@@ -7638,7 +7645,11 @@
      ],
      {}
     ]
-   ]
+   ],
+   "mozilla/xmlhttprequest_url.html": []
+  },
+  "stub": {
+   "mozilla/xmlhttprequest_url.html": []
   },
   "support": {
    ".gitignore": [
@@ -11210,7 +11221,8 @@
     [
      {}
     ]
-   ]
+   ],
+   "mozilla/xmlhttprequest_url.html": []
   },
   "testharness": {
    "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
@@ -13909,7 +13921,19 @@
      "mozilla/worklets/test_worklet.html",
      {}
     ]
+   ],
+   "mozilla/xmlhttprequest_url.html": [
+    [
+     "mozilla/xmlhttprequest_url.html",
+     {}
+    ]
    ]
+  },
+  "visual": {
+   "mozilla/xmlhttprequest_url.html": []
+  },
+  "wdspec": {
+   "mozilla/xmlhttprequest_url.html": []
   }
  },
  "paths": {
@@ -21084,6 +21108,10 @@
   "mozilla/worklets/throw_exception.js": [
    "6ca4f80fc2728c00848bb4474b62fa3596ed2f18",
    "support"
+  ],
+  "mozilla/xmlhttprequest_url.html": [
+   "e5d10f27c06e1febd3bb70f8f128194fc3f63861",
+   "testharness"
   ]
  },
  "url_base": "/_mozilla/",
