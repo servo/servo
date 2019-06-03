@@ -1519,7 +1519,7 @@ impl Fragment {
     }
 
     pub fn color(&self) -> Color {
-        self.style().get_color().color
+        self.style().get_inherited_text().color
     }
 
     /// Returns the text decoration line of this fragment, according to the style of the nearest ancestor

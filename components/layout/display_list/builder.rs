@@ -1489,7 +1489,7 @@ impl Fragment {
         state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
             base,
             webrender_api::RectangleDisplayItem {
-                color: self.style().get_color().color.to_layout(),
+                color: self.style().get_inherited_text().color.to_layout(),
             },
         )));
     }
@@ -1967,9 +1967,9 @@ impl Fragment {
         // TODO(emilio): Allow changing more properties by ::selection
         // Paint the text with the color as described in its styling.
         let text_color = if text_fragment.selected() {
-            self.selected_style().get_color().color
+            self.selected_style().get_inherited_text().color
         } else {
-            self.style().get_color().color
+            self.style().get_inherited_text().color
         };
 
         // Determine the orientation and cursor to use.
