@@ -184,12 +184,32 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             WebGLMsg::DOMToTextureCommand(command) => {
                 self.handle_dom_to_texture(command);
             },
+            WebGLMsg::Swap(sender) => {
+                self.swap_draw_buffers(sender);
+            }
             WebGLMsg::Exit => {
                 return true;
             },
         }
 
         false
+    }
+
+    /// Swap the underlying IOsurfaces upon requestAnimationFrame is called
+    fn swap_draw_buffers(
+        &mut self,
+        sender: WebGLSender<()>
+    ) {
+        for (context_id, ref mut data) in self.contexts.iter_mut() {
+            if Some(*context_id) != self.bound_context_id {
+                data.ctx.make_current();
+                self.bound_context_id = Some(*context_id);
+            }
+            let info = self.cached_context_info.get_mut(&context_id).unwrap();
+            info.io_surface_id = data.ctx.swap_draw_buffer();
+            info.needs_swap = false;
+        }
+        sender.send(()).unwrap();
     }
 
     /// Handles a WebGLCommand for a specific WebGLContext
@@ -205,17 +225,6 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             &mut self.bound_context_id,
         );
         if let Some(data) = data {
-            // Making the swap here insetad in handle_lock fixes the flickering for some examples
-            // but also ruins the rendering for other cases
-            /*match command {
-                WebGLCommand::Clear(_) => {
-                    if data.ctx.draw_buffer_is_bound() {
-                        let info = self.cached_context_info.get_mut(&context_id).unwrap();
-                        info.io_surface_id = data.ctx.swap_draw_buffer();
-                    }
-                }
-                _ => {}
-            }*/
             data.ctx.apply_command(command, backtrace, &mut data.state);
         }
     }
@@ -256,7 +265,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         // Without proper flushing, the sync object may never be signaled.
         data.ctx.gl().flush();
 
-        info.io_surface_id = data.ctx.swap_draw_buffer();
+        // If there was no requestAnimationFrame we need to swap the buffers twice since we are using triple buffering
+        if info.needs_swap {
+            data.ctx.swap_draw_buffer();
+            data.ctx.swap_draw_buffer();
+            info.needs_swap = false;
+        }
 
         sender
             .send((info.texture_id, info.size, info.io_surface_id, gl_sync as usize))
@@ -335,6 +349,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 gl_sync: None,
                 render_state: ContextRenderState::Unlocked,
                 io_surface_id,
+                needs_swap: true,
             },
         );
 
@@ -764,13 +779,15 @@ struct WebGLContextInfo {
     render_state: ContextRenderState,
     /// The ID of the IOSurface which we can send to the WR thread
     io_surface_id: Option<IOSurfaceID>,
+    /// True if there is no requestAnimationFrame
+    needs_swap: bool,
 }
 
 impl WebGLContextInfo {
     fn texture_target(&self) -> webrender_api::TextureTarget {
         match self.io_surface_id {
             Some(_) => webrender_api::TextureTarget::Rect,
-            _ => webrender_api::TextureTarget::Default,
+            None => webrender_api::TextureTarget::Default,
         }
     }
 }

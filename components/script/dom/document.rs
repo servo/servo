@@ -164,6 +164,8 @@ use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::percent_encoding::percent_decode;
 use url::Host;
 
+use canvas_traits::webgl::{WebGLChan, webgl_channel, WebGLMsg};
+
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
 ///
@@ -4618,6 +4620,8 @@ pub enum AnimationFrameCallback {
     FrameRequestCallback {
         #[ignore_malloc_size_of = "Rc is hard"]
         callback: Rc<FrameRequestCallback>,
+        #[ignore_malloc_size_of = "channels are hard"]
+        webgl_chan: Option<WebGLChan>,
     },
 }
 
@@ -4633,10 +4637,18 @@ impl AnimationFrameCallback {
                     .unwrap();
                 devtools_sender.send(msg).unwrap();
             },
-            AnimationFrameCallback::FrameRequestCallback { ref callback } => {
+            AnimationFrameCallback::FrameRequestCallback { ref callback, ref webgl_chan } => {
+                if let Some(webgl_chan) = webgl_chan {
+                    let (sender, receiver) = webgl_channel().unwrap();
+                    webgl_chan
+                        .send(WebGLMsg::Swap(sender))
+                        .unwrap();
+                    let _ = receiver.recv().unwrap();
+                }
                 // TODO(jdm): The spec says that any exceptions should be suppressed:
                 // https://github.com/servo/servo/issues/6928
                 let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
+
             },
         }
     }

@@ -70,6 +70,8 @@ pub enum WebGLMsg {
     DOMToTextureCommand(DOMToTextureCommand),
     /// Frees all resources and closes the thread.
     Exit,
+    /// Swap
+    Swap(WebGLSender<()>),
 }
 
 /// Contains the WebGLCommand sender and information about a WebGLContext
