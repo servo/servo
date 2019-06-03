@@ -260,12 +260,8 @@ pub struct SpecifiedImageUrl(pub SpecifiedUrl);
 
 impl SpecifiedImageUrl {
     /// Parse a URL from a string value that is a valid CSS token for a URL.
-    pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
-        SpecifiedImageUrl(SpecifiedUrl::parse_from_string(
-            url,
-            context,
-            CorsMode::None,
-        ))
+    pub fn parse_from_string(url: String, context: &ParserContext, cors_mode: CorsMode) -> Self {
+        SpecifiedImageUrl(SpecifiedUrl::parse_from_string(url, context, cors_mode))
     }
 
     /// Provides an alternate method for parsing that associates the URL

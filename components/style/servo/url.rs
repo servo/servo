@@ -5,14 +5,12 @@
 //! Common handling for the specified value CSS url() values.
 
 use crate::parser::{Parse, ParserContext};
+use crate::stylesheets::CorsMode;
+use crate::values::computed::{Context, ToComputedValue};
 use cssparser::Parser;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::fmt::{self, Write};
-// Note: We use std::sync::Arc rather than servo_arc::Arc here because the
-// nonzero optimization is important in keeping the size of SpecifiedUrl below
-// the threshold.
-use crate::values::computed::{Context, ToComputedValue};
-use servo_arc::Arc;
 use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A CSS url() value for servo.
@@ -44,7 +42,9 @@ pub struct CssUrl {
 impl CssUrl {
     /// Try to parse a URL from a string value that is a valid CSS token for a
     /// URL.
-    pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
+    ///
+    /// FIXME(emilio): Should honor CorsMode.
+    pub fn parse_from_string(url: String, context: &ParserContext, _: CorsMode) -> Self {
         let serialization = Arc::new(url);
         let resolved = context.url_data.join(&serialization).ok();
         CssUrl {
@@ -121,7 +121,11 @@ impl Parse for CssUrl {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let url = input.expect_url()?;
-        Ok(Self::parse_from_string(url.as_ref().to_owned(), context))
+        Ok(Self::parse_from_string(
+            url.as_ref().to_owned(),
+            context,
+            CorsMode::None,
+        ))
     }
 }
 

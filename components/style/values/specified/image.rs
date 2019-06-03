@@ -11,6 +11,7 @@ use crate::custom_properties::SpecifiedValue;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs;
 use crate::parser::{Parse, ParserContext};
+use crate::stylesheets::CorsMode;
 #[cfg(feature = "gecko")]
 use crate::values::computed::{Context, Position as ComputedPosition, ToComputedValue};
 use crate::values::generics::image::PaintWorklet;
@@ -1032,7 +1033,11 @@ impl Parse for MozImageRect {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
             let string = i.expect_url_or_string()?;
-            let url = SpecifiedImageUrl::parse_from_string(string.as_ref().to_owned(), context);
+            let url = SpecifiedImageUrl::parse_from_string(
+                string.as_ref().to_owned(),
+                context,
+                CorsMode::None,
+            );
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;
             i.expect_comma()?;
