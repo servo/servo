@@ -69,12 +69,6 @@ pub enum HttpsState {
     Modern,
 }
 
-pub enum ResponseMsg {
-    Chunk(Vec<u8>),
-    Finished,
-    Errored,
-}
-
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResponseInit {
     pub url: ServoUrl,
