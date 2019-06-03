@@ -635,7 +635,6 @@ dependencies = [
  "pixels 0.0.1",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
- "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
  "style_traits 0.0.1",
