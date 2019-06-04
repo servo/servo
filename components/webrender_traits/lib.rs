@@ -7,6 +7,7 @@
 use euclid::Size2D;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use webrender_api::units::TexelRect;
 
 /// This trait is used as a bridge between the different GL clients
 /// in Servo that handles WebRender ExternalImages and the WebRender
@@ -117,14 +118,14 @@ impl webrender::ExternalImageHandler for WebrenderExternalImageHandlers {
                 let (texture_id, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
                 (
                     texture_id,
-                    webrender_api::TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
+                    TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
                 )
             },
             WebrenderImageHandlerType::Media => {
                 let (texture_id, size) = self.media_handler.as_mut().unwrap().lock(key.0);
                 (
                     texture_id,
-                    webrender_api::TexelRect::new(0.0, 0.0, size.width as f32, size.height as f32),
+                    TexelRect::new(0.0, 0.0, size.width as f32, size.height as f32),
                 )
             },
         };

@@ -132,7 +132,8 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
-use webrender_api::{DeviceIntPoint, DeviceIntSize, DocumentId, ExternalScrollId, RenderApiSender};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::{DocumentId, ExternalScrollId, RenderApiSender};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object

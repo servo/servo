@@ -8,7 +8,7 @@ extern crate malloc_size_of_derive;
 use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::{Length, Point2D, Rect, Size2D};
 use std::f32;
-use webrender_api::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
+use webrender_api::units::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
 
 // Units for use with euclid::length and euclid::scale_factor.
 

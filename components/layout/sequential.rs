@@ -17,7 +17,7 @@ use app_units::Au;
 use euclid::{Point2D, Vector2D};
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use webrender_api::LayoutPoint;
+use webrender_api::units::LayoutPoint;
 
 pub fn resolve_generated_content(root: &mut dyn Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);

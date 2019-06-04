@@ -58,9 +58,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use webrender_api::{
-    DeviceIntSize, DevicePixel, DocumentId, ExternalScrollId, ImageKey, RenderApiSender,
-};
+use webrender_api::units::{DeviceIntSize, DevicePixel};
+use webrender_api::{DocumentId, ExternalScrollId, ImageKey, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use crate::script_msg::{
