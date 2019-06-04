@@ -1019,7 +1019,7 @@ impl StrongRuleNode {
     /// Returns whether this node has any child, only intended for testing
     /// purposes, and called on a single-threaded fashion only.
     pub unsafe fn has_children_for_testing(&self) -> bool {
-        self.get().children.read().is_empty()
+        !self.get().children.read().is_empty()
     }
 
     unsafe fn pop_from_free_list(&self) -> Option<WeakRuleNode> {
