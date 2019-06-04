@@ -73,12 +73,14 @@ fn get_manifest_dir() -> io::Result<path::PathBuf> {
             dir.push(var);
             Ok(dir)
         },
-        Err(env::VarError::NotPresent) => {
-            Err(io::Error::new(io::ErrorKind::NotFound, "CARGO_MANIFEST_DIR environment variable was not found"))
-        },
-        Err(env::VarError::NotUnicode(_)) => {
-            Err(io::Error::new(io::ErrorKind::InvalidData, "CARGO_MANIFEST_DIR environment variable's contents are non valid UTF-8"))
-        },
+        Err(env::VarError::NotPresent) => Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "CARGO_MANIFEST_DIR environment variable was not found",
+        )),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "CARGO_MANIFEST_DIR environment variable's contents are non valid UTF-8",
+        )),
     }
 }
 
