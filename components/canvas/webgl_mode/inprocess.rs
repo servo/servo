@@ -16,7 +16,6 @@ use servo_config::pref;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
-
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);
 
@@ -116,7 +115,8 @@ impl WebGLExternalImageApi for WebGLExternalImages {
                     Entry::Occupied(o) => *o.get(),
                     Entry::Vacant(v) => {
                         let texture_id = self.webrender_gl.gen_textures(1)[0];
-                        self.webrender_gl.bind_texture(gl::TEXTURE_RECTANGLE, texture_id);
+                        self.webrender_gl
+                            .bind_texture(gl::TEXTURE_RECTANGLE, texture_id);
                         let io_surface = io_surface::lookup(io_surface_id);
                         io_surface.bind_to_gl_texture(size.width, size.height);
                         *v.insert(texture_id)

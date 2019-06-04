@@ -14,7 +14,6 @@ use pixels::{self, PixelFormat};
 use std::borrow::Cow;
 use std::thread;
 
-
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
 pub use crate::webgl_mode::WebGLThreads;
@@ -196,13 +195,16 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     /// Swap the underlying IOsurfaces upon requestAnimationFrame is called
     fn swap_draw_buffers(&mut self, sender: WebGLSender<()>) {
         for (context_id, ref mut data) in self.contexts.iter_mut() {
-            if Some(*context_id) != self.bound_context_id {
-                data.ctx.make_current();
-                self.bound_context_id = Some(*context_id);
-            }
             let info = self.cached_context_info.get_mut(&context_id).unwrap();
-            info.io_surface_id = data.ctx.swap_draw_buffer();
-            info.needs_swap = false;
+            if info.received_webgl_command {
+                if Some(*context_id) != self.bound_context_id {
+                    data.ctx.make_current();
+                    self.bound_context_id = Some(*context_id);
+                }
+                info.io_surface_id = data.ctx.swap_draw_buffer();
+            }
+            info.received_webgl_command = false;
+            info.has_request_animtion = true;
         }
         sender.send(()).unwrap();
     }
@@ -214,6 +216,8 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         command: WebGLCommand,
         backtrace: WebGLCommandBacktrace,
     ) {
+        let info = self.cached_context_info.get_mut(&context_id).unwrap();
+        info.received_webgl_command = true;
         let data = Self::make_current_if_needed_mut(
             context_id,
             &mut self.contexts,
@@ -263,11 +267,9 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         // Without proper flushing, the sync object may never be signaled.
         data.ctx.gl().flush();
 
-        // If there was no requestAnimationFrame we need to swap the buffers twice since we are using triple buffering
-        if info.needs_swap {
-            data.ctx.swap_draw_buffer();
-            data.ctx.swap_draw_buffer();
-            info.needs_swap = false;
+        // If no Swap message received we use the currently bound IOSurface
+        if !info.has_request_animtion {
+            info.io_surface_id = data.ctx.get_active_io_surface_id();
         }
 
         sender
@@ -356,7 +358,8 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 gl_sync: None,
                 render_state: ContextRenderState::Unlocked,
                 io_surface_id,
-                needs_swap: true,
+                has_request_animtion: false,
+                received_webgl_command: false,
             },
         );
 
@@ -793,8 +796,10 @@ struct WebGLContextInfo {
     render_state: ContextRenderState,
     /// The ID of the IOSurface which we can send to the WR thread
     io_surface_id: Option<u32>,
-    /// True if there is no requestAnimationFrame
-    needs_swap: bool,
+    /// True if the context has requestAnimationFrame call
+    has_request_animtion: bool,
+    /// True if the context received a WebGLCommand between two requestAnimationFrame
+    received_webgl_command: bool,
 }
 
 impl WebGLContextInfo {
