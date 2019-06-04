@@ -9,13 +9,11 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
-use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
+use offscreen_gl_context::{ColorAttachmentType, DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
 use std::thread;
 
-use io_surface::IOSurfaceID;
-use offscreen_gl_context::ColorAttachmentType;
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
@@ -288,7 +286,6 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                 .expect("WebGLContext not found in a WebGLMsg::Unlock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
-
         info.render_state = ContextRenderState::Unlocked;
         if let Some(gl_sync) = info.gl_sync.take() {
             // Release the GLSync object.
@@ -314,13 +311,18 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             .new_shared_context(version, size, attributes)
             .map(|r| (r, WebGLContextShareMode::SharedTexture))
             .or_else(|err| {
-                warn!(
-                    "Couldn't create shared GL context ({}), try to use native texture sharing instead.",
-                    err
-                );
-                self.gl_factory
-                    .new_context(version, size, attributes, ColorAttachmentType::IOSurface)
-                    .map(|r| (r, WebGLContextShareMode::SharedTexture))
+                #[cfg(target_os = "macos")]
+                {
+                    warn!(
+                        "Couldn't create shared GL context ({}), trying to use native texture sharing instead.",
+                        err
+                    );
+                    self.gl_factory
+                        .new_context(version, size, attributes, ColorAttachmentType::IOSurface)
+                        .map(|r| (r, WebGLContextShareMode::SharedTexture))
+                }
+                #[cfg(not(target_os = "macos"))]
+                Err(err)
             })
             .or_else(|err| {
                 warn!(
@@ -790,7 +792,7 @@ struct WebGLContextInfo {
     /// The status of this context with respect to external consumers.
     render_state: ContextRenderState,
     /// The ID of the IOSurface which we can send to the WR thread
-    io_surface_id: Option<IOSurfaceID>,
+    io_surface_id: Option<u32>,
     /// True if there is no requestAnimationFrame
     needs_swap: bool,
 }

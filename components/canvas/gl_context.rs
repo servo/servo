@@ -93,10 +93,6 @@ impl GLContextFactory {
         attributes: GLContextAttributes,
         color_attachment_type: ColorAttachmentType,
     ) -> Result<GLContextWrapper, &'static str> {
-        if ColorAttachmentType::IOSurface == color_attachment_type && cfg!(not(target_os = "macos"))
-        {
-            return Err("IOSurface is not supported on this platform");
-        }
         let attributes = map_attrs(attributes);
         Ok(match *self {
             GLContextFactory::Native(..) => {
@@ -217,13 +213,6 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn draw_buffer_is_bound(&self) -> bool {
-        match *self {
-            GLContextWrapper::Native(ref ctx) => ctx.draw_buffer_is_bound(),
-            GLContextWrapper::OSMesa(ref ctx) => ctx.draw_buffer_is_bound(),
-        }
-    }
-
     pub fn resize(&mut self, size: Size2D<u32>) -> Result<DrawBuffer, &'static str> {
         match *self {
             GLContextWrapper::Native(ref mut ctx) => {
@@ -234,13 +223,6 @@ impl GLContextWrapper {
                 // FIXME(nox): Why are those i32 values?
                 ctx.resize(size.to_i32())
             },
-        }
-    }
-
-    pub fn get_framebuffer(&self) -> gl::GLuint {
-        match *self {
-            GLContextWrapper::Native(ref ctx) => ctx.get_framebuffer(),
-            GLContextWrapper::OSMesa(ref ctx) => ctx.get_framebuffer(),
         }
     }
 }

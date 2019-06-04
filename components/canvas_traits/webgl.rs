@@ -71,10 +71,10 @@ pub enum WebGLMsg {
     UpdateWebRenderImage(WebGLContextId, WebGLSender<ImageKey>),
     /// Commands used for the DOMToTexture feature.
     DOMToTextureCommand(DOMToTextureCommand),
+    /// Tells the WebGL contexts to swap their underlying texture targets
+    Swap(WebGLSender<()>),
     /// Frees all resources and closes the thread.
     Exit,
-    /// Swap
-    Swap(WebGLSender<()>),
 }
 
 /// Contains the WebGLCommand sender and information about a WebGLContext

@@ -877,7 +877,7 @@ impl WindowMethods for Window {
         self.Document()
             .request_animation_frame(AnimationFrameCallback::FrameRequestCallback {
                 callback,
-                webgl_chan: self.webgl_chan(),
+                webgl_chan: if cfg!(target_os="macos") { self.webgl_chan() } else { None },
             })
     }
 
