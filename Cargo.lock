@@ -423,7 +423,6 @@ dependencies = [
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
- "core-foundation 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.25.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",

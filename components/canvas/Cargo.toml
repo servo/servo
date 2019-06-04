@@ -18,7 +18,6 @@ azure = {git = "https://github.com/servo/rust-azure"}
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
-core-foundation = "0.6.2"
 cssparser = "0.25"
 euclid = "0.19"
 fnv = "1.0"
