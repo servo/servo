@@ -18,8 +18,6 @@ pub trait Int:
 {
     fn zero() -> Self;
     fn one() -> Self;
-    fn max_value() -> Self;
-    fn from_usize(n: usize) -> Option<Self>;
     fn to_usize(self) -> usize;
 }
 impl Int for isize {
@@ -30,14 +28,6 @@ impl Int for isize {
     #[inline]
     fn one() -> isize {
         1
-    }
-    #[inline]
-    fn max_value() -> isize {
-        ::std::isize::MAX
-    }
-    #[inline]
-    fn from_usize(n: usize) -> Option<isize> {
-        num_traits::NumCast::from(n)
     }
     #[inline]
     fn to_usize(self) -> usize {
@@ -52,14 +42,6 @@ impl Int for usize {
     #[inline]
     fn one() -> usize {
         1
-    }
-    #[inline]
-    fn max_value() -> usize {
-        ::std::usize::MAX
-    }
-    #[inline]
-    fn from_usize(n: usize) -> Option<usize> {
-        Some(n)
     }
     #[inline]
     fn to_usize(self) -> usize {
@@ -133,10 +115,6 @@ macro_rules! int_range_index {
             fn zero() -> $Self_ { $Self_($crate::Int::zero()) }
             #[inline]
             fn one() -> $Self_ { $Self_($crate::Int::one()) }
-            #[inline]
-            fn max_value() -> $Self_ { $Self_($crate::Int::max_value()) }
-            #[inline]
-            fn from_usize(n: usize) -> Option<$Self_> { $crate::Int::from_usize(n).map($Self_) }
             #[inline]
             fn to_usize(self) -> usize { self.to_usize() }
         }

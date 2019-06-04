@@ -421,7 +421,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     }
 
     #[inline(always)]
-    fn apply_declaration<Phase: CascadePhase>(
+    fn apply_declaration(
         &mut self,
         longhand_id: LonghandId,
         declaration: &PropertyDeclaration,
@@ -544,7 +544,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // FIXME(emilio): We should avoid generating code for logical
             // longhands and just use the physical ones, then rename
             // physical_longhand_id to just longhand_id.
-            self.apply_declaration::<Phase>(longhand_id, &*declaration);
+            self.apply_declaration(longhand_id, &*declaration);
         }
 
         if Phase::is_early() {

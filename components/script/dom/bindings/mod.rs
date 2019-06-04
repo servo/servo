@@ -168,9 +168,6 @@ pub mod codegen {
     pub mod InterfaceObjectMap {
         include!(concat!(env!("OUT_DIR"), "/InterfaceObjectMap.rs"));
     }
-    pub mod InterfaceTypes {
-        include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
-    }
     #[allow(dead_code, unused_imports)]
     pub mod InheritTypes {
         include!(concat!(env!("OUT_DIR"), "/InheritTypes.rs"));

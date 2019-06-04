@@ -62,12 +62,6 @@ impl AtomicOptThreadId {
         let number = self.0.load(ordering);
         NonZeroUsize::new(number).map(ThreadId)
     }
-    #[allow(unsafe_code)]
-    pub fn swap(&self, value: Option<ThreadId>, ordering: Ordering) -> Option<ThreadId> {
-        let number = value.map(|id| id.0.get()).unwrap_or(0);
-        let number = self.0.swap(number, ordering);
-        NonZeroUsize::new(number).map(ThreadId)
-    }
 }
 
 /// A type for hand-over-hand mutexes.

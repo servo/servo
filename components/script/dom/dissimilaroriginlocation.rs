@@ -12,7 +12,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::str::USVString;
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use dom_struct::dom_struct;
-use servo_url::MutableOrigin;
 
 /// Represents a dissimilar-origin `Location` that exists in another script thread.
 ///
@@ -45,11 +44,6 @@ impl DissimilarOriginLocation {
             window,
             DissimilarOriginLocationBinding::Wrap,
         )
-    }
-
-    #[allow(dead_code)]
-    pub fn origin(&self) -> &MutableOrigin {
-        self.window.origin()
     }
 }
 

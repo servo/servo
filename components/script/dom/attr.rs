@@ -252,10 +252,8 @@ impl Attr {
 pub trait AttrHelpersForLayout {
     unsafe fn value_forever(&self) -> &'static AttrValue;
     unsafe fn value_ref_forever(&self) -> &'static str;
-    unsafe fn value_atom_forever(&self) -> Option<Atom>;
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
     unsafe fn local_name_atom_forever(&self) -> LocalName;
-    unsafe fn value_for_layout(&self) -> &AttrValue;
 }
 
 #[allow(unsafe_code)]
@@ -272,15 +270,6 @@ impl AttrHelpersForLayout for LayoutDom<Attr> {
     }
 
     #[inline]
-    unsafe fn value_atom_forever(&self) -> Option<Atom> {
-        let value = (*self.unsafe_get()).value.borrow_for_layout();
-        match *value {
-            AttrValue::Atom(ref val) => Some(val.clone()),
-            _ => None,
-        }
-    }
-
-    #[inline]
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]> {
         // This transmute is used to cheat the lifetime restriction.
         match *self.value_forever() {
@@ -292,10 +281,5 @@ impl AttrHelpersForLayout for LayoutDom<Attr> {
     #[inline]
     unsafe fn local_name_atom_forever(&self) -> LocalName {
         (*self.unsafe_get()).identifier.local_name.clone()
-    }
-
-    #[inline]
-    unsafe fn value_for_layout(&self) -> &AttrValue {
-        (*self.unsafe_get()).value.borrow_for_layout()
     }
 }

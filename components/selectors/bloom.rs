@@ -18,11 +18,6 @@ const KEY_MASK: u32 = (1 << KEY_SIZE) - 1;
 /// A counting Bloom filter with 8-bit counters.
 pub type BloomFilter = CountingBloomFilter<BloomStorageU8>;
 
-/// A non-counting Bloom filter.
-///
-/// Effectively a counting Bloom filter with 1-bit counters.
-pub type NonCountingBloomFilter = CountingBloomFilter<BloomStorageBool>;
-
 /// A counting Bloom filter with parameterized storage to handle
 /// counters of different sizes.  For now we assume that having two hash
 /// functions is enough, but we may revisit that decision later.

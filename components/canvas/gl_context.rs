@@ -147,17 +147,6 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn unbind(&self) {
-        match *self {
-            GLContextWrapper::Native(ref ctx) => {
-                ctx.unbind().unwrap();
-            },
-            GLContextWrapper::OSMesa(ref ctx) => {
-                ctx.unbind().unwrap();
-            },
-        }
-    }
-
     pub fn apply_command(
         &self,
         cmd: WebGLCommand,

@@ -451,18 +451,10 @@ impl Documents {
             .map(|ref doc| DomRoot::from_ref(&**doc))
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
-    }
-
     pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
         self.map
             .get(&pipeline_id)
             .map(|doc| DomRoot::from_ref(&**doc))
-    }
-
-    pub fn len(&self) -> usize {
-        self.map.len()
     }
 
     pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
@@ -821,13 +813,6 @@ impl ScriptThread {
                     .borrow_mut()
                     .insert(Dom::from_ref(doc));
             }
-        })
-    }
-
-    pub fn invoke_perform_a_microtask_checkpoint() {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.perform_a_microtask_checkpoint()
         })
     }
 

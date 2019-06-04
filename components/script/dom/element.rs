@@ -600,8 +600,6 @@ pub trait LayoutElementHelpers {
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
     fn get_lang_for_layout(&self) -> String;
-    fn get_checked_state_for_layout(&self) -> bool;
-    fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
     fn insert_selector_flags(&self, flags: ElementSelectorFlags);
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
@@ -1026,26 +1024,6 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             // TODO: Check meta tags for a pragma-set default language
             // TODO: Check HTTP Content-Language header
             String::new()
-        }
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_checked_state_for_layout(&self) -> bool {
-        // TODO option and menuitem can also have a checked state.
-        match self.downcast::<HTMLInputElement>() {
-            Some(input) => unsafe { input.checked_state_for_layout() },
-            None => false,
-        }
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_indeterminate_state_for_layout(&self) -> bool {
-        // TODO progress elements can also be matched with :indeterminate
-        match self.downcast::<HTMLInputElement>() {
-            Some(input) => unsafe { input.indeterminate_state_for_layout() },
-            None => false,
         }
     }
 
@@ -3293,10 +3271,6 @@ impl Element {
         self.state.set(state);
     }
 
-    pub fn active_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_ACTIVE_STATE)
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
     pub fn set_active_state(&self, value: bool) {
         self.set_state(ElementState::IN_ACTIVE_STATE, value);
@@ -3360,16 +3334,8 @@ impl Element {
         }
     }
 
-    pub fn target_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_TARGET_STATE)
-    }
-
     pub fn set_target_state(&self, value: bool) {
         self.set_state(ElementState::IN_TARGET_STATE, value)
-    }
-
-    pub fn fullscreen_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_FULLSCREEN_STATE)
     }
 
     pub fn set_fullscreen_state(&self, value: bool) {

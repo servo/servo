@@ -3,10 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::{Point2D, Rect};
+use euclid::Rect;
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
-use style::properties::longhands::overflow_x;
 use style::properties::ComputedValues;
 use webrender_api::ExternalScrollId;
 
@@ -49,8 +48,6 @@ pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
 pub struct NodeGeometryResponse {
     pub client_rect: Rect<i32>,
 }
-
-pub struct NodeOverflowResponse(pub Option<Point2D<overflow_x::computed_value::T>>);
 
 pub struct NodeScrollIdResponse(pub ExternalScrollId);
 

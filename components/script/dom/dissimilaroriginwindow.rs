@@ -5,7 +5,6 @@
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
@@ -20,7 +19,6 @@ use js::rust::HandleValue;
 use msg::constellation_msg::PipelineId;
 use script_traits::ScriptMsg;
 use servo_url::ImmutableOrigin;
-use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
@@ -69,10 +67,6 @@ impl DissimilarOriginWindow {
             location: Default::default(),
         });
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
-    }
-
-    pub fn origin(&self) -> &MutableOrigin {
-        self.upcast::<GlobalScope>().origin()
     }
 
     pub fn window_proxy(&self) -> DomRoot<WindowProxy> {
