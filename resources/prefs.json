@@ -84,6 +84,7 @@
   "layout.threads": 3,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
+  "media.glvideo.enabled": false,
   "media.testing.enabled": false,
   "network.http-cache.disabled": false,
   "network.mime.sniff": false,
