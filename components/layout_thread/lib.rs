@@ -830,7 +830,7 @@ impl LayoutThread {
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
                 let mut txn = webrender_api::Transaction::new();
                 txn.scroll_node_with_id(
-                    webrender_api::LayoutPoint::from_untyped(&point),
+                    webrender_api::units::LayoutPoint::from_untyped(&point),
                     state.scroll_id,
                     webrender_api::ScrollClamping::ToContentBounds,
                 );
@@ -1244,7 +1244,7 @@ impl LayoutThread {
                 epoch.next();
                 self.epoch.set(epoch);
 
-                let viewport_size = webrender_api::LayoutSize::from_untyped(&viewport_size);
+                let viewport_size = webrender_api::units::LayoutSize::from_untyped(&viewport_size);
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
@@ -1666,7 +1666,8 @@ impl LayoutThread {
                     // particular pipeline, so we need to tell WebRender about that.
                     flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = webrender_api::WorldPoint::from_untyped(&client_point);
+                    let client_point =
+                        webrender_api::units::WorldPoint::from_untyped(&client_point);
                     let results = self.webrender_api.hit_test(
                         self.webrender_document,
                         Some(self.id.to_webrender()),

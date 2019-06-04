@@ -114,23 +114,23 @@ impl ToLayout for RGBA {
 }
 
 impl ToLayout for Point2D<Au> {
-    type Type = wr::LayoutPoint;
+    type Type = wr::units::LayoutPoint;
     fn to_layout(&self) -> Self::Type {
-        wr::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
+        wr::units::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
 impl ToLayout for Rect<Au> {
-    type Type = wr::LayoutRect;
+    type Type = wr::units::LayoutRect;
     fn to_layout(&self) -> Self::Type {
-        wr::LayoutRect::new(self.origin.to_layout(), self.size.to_layout())
+        wr::units::LayoutRect::new(self.origin.to_layout(), self.size.to_layout())
     }
 }
 
 impl ToLayout for SideOffsets2D<Au> {
-    type Type = wr::LayoutSideOffsets;
+    type Type = wr::units::LayoutSideOffsets;
     fn to_layout(&self) -> Self::Type {
-        wr::LayoutSideOffsets::new(
+        wr::units::LayoutSideOffsets::new(
             self.top.to_f32_px(),
             self.right.to_f32_px(),
             self.bottom.to_f32_px(),
@@ -140,16 +140,16 @@ impl ToLayout for SideOffsets2D<Au> {
 }
 
 impl ToLayout for Size2D<Au> {
-    type Type = wr::LayoutSize;
+    type Type = wr::units::LayoutSize;
     fn to_layout(&self) -> Self::Type {
-        wr::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
+        wr::units::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
     }
 }
 
 impl ToLayout for Vector2D<Au> {
-    type Type = wr::LayoutVector2D;
+    type Type = wr::units::LayoutVector2D;
     fn to_layout(&self) -> Self::Type {
-        wr::LayoutVector2D::new(self.x.to_f32_px(), self.y.to_f32_px())
+        wr::units::LayoutVector2D::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 

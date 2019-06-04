@@ -28,7 +28,7 @@ use servo_url::ServoUrl;
 use std::fmt;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
-use webrender_api::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 /// A particular iframe's size, associated with a browsing context.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

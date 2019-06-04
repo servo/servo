@@ -36,7 +36,7 @@ extern crate to_shmem_derive;
 #[cfg(feature = "servo")]
 extern crate webrender_api;
 #[cfg(feature = "servo")]
-pub use webrender_api::DevicePixel;
+pub use webrender_api::units::DevicePixel;
 
 use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseErrorKind;
