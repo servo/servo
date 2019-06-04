@@ -24,7 +24,7 @@ use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEven
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::script_traits::{TouchEventType, WheelMode, WheelDelta};
-use servo::servo_config::opts;
+use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::{
@@ -527,10 +527,18 @@ impl WindowMethods for Window {
     }
 
     fn get_gl_context(&self) -> PlayerGLContext {
-        self.gl_context.borrow().raw_context()
+        if pref!(media.glvideo.enabled) {
+            self.gl_context.borrow().raw_context()
+        } else {
+            PlayerGLContext::Unknown
+        }
     }
 
     fn get_native_display(&self) -> NativeDisplay {
+        if !pref!(media.glvideo.enabled) {
+            return NativeDisplay::Unknown;
+        }
+
         #[cfg(any(
             target_os = "linux",
             target_os = "dragonfly",
