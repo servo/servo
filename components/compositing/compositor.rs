@@ -42,10 +42,8 @@ use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender_api::{
-    self, DeviceIntPoint, DevicePoint, FramebufferIntSize, HitTestFlags, HitTestResult,
-};
-use webrender_api::{LayoutVector2D, ScrollLocation};
+use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
+use webrender_api::units::{DeviceIntPoint, DevicePoint, FramebufferIntSize, LayoutVector2D};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
@@ -719,7 +717,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let dppx = self.page_zoom * self.hidpi_factor();
         let scaled_point = (point / dppx).to_untyped();
 
-        let world_cursor = webrender_api::WorldPoint::from_untyped(&scaled_point);
+        let world_cursor = webrender_api::units::WorldPoint::from_untyped(&scaled_point);
         self.webrender_api.hit_test(
             self.webrender_document,
             None,
@@ -839,8 +837,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let cursor = TypedPoint2D::new(-1, -1); // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(
-                        webrender_api::LayoutVector2D::from_untyped(&scroll_delta.to_untyped()),
+                    scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
+                            &scroll_delta.to_untyped()),
                     ),
                     cursor: cursor,
                     event_count: 1,
@@ -928,8 +926,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 last_combined_event @ &mut None => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(
-                            webrender_api::LayoutVector2D::from_untyped(&this_delta.to_untyped()),
+                        scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
+                                &this_delta.to_untyped()),
                         ),
                         cursor: this_cursor,
                         event_count: 1,
@@ -961,15 +959,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     let scaled_delta = (TypedVector2D::from_untyped(&delta.to_untyped()) /
                         self.scale)
                         .to_untyped();
-                    let calculated_delta =
-                        webrender_api::LayoutVector2D::from_untyped(&scaled_delta);
+                    let calculated_delta = LayoutVector2D::from_untyped(&scaled_delta);
                     ScrollLocation::Delta(calculated_delta)
                 },
                 // Leave ScrollLocation unchanged if it is Start or End location.
                 sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
+            let cursor = webrender_api::units::WorldPoint::from_untyped(&cursor);
             let mut txn = webrender_api::Transaction::new();
             txn.scroll(scroll_location, cursor);
             if combined_event.magnification != 1.0 {

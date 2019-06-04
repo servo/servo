@@ -151,7 +151,7 @@ impl webrender::OutputImageHandler for OutputHandler {
     fn lock(
         &mut self,
         id: webrender_api::PipelineId,
-    ) -> Option<(u32, webrender_api::FramebufferIntSize)> {
+    ) -> Option<(u32, webrender_api::units::FramebufferIntSize)> {
         // Insert a fence in the WR command queue
         let gl_sync = self
             .webrender_gl
@@ -164,7 +164,7 @@ impl webrender::OutputImageHandler for OutputHandler {
         self.lock_channel.1.recv().unwrap().map(|(tex_id, size)| {
             (
                 tex_id,
-                webrender_api::FramebufferIntSize::new(size.width, size.height),
+                webrender_api::units::FramebufferIntSize::new(size.width, size.height),
             )
         })
     }

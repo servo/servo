@@ -16,7 +16,7 @@ use euclid::TypedSize2D;
 use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use style_traits::CSSPixel;
-use webrender_api::DeviceIntSize;
+use webrender_api::units::DeviceIntSize;
 
 #[dom_struct]
 pub struct Screen {

@@ -629,7 +629,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     /// Helper function to create a `webrender_api::ImageDescriptor`.
     fn image_descriptor(size: Size2D<i32>, alpha: bool) -> webrender_api::ImageDescriptor {
         webrender_api::ImageDescriptor {
-            size: webrender_api::DeviceIntSize::new(size.width, size.height),
+            size: webrender_api::units::DeviceIntSize::new(size.width, size.height),
             stride: None,
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
@@ -765,7 +765,10 @@ impl<T: WebGLExternalImageApi> webrender::ExternalImageHandler for WebGLExternal
         let (texture_id, size) = self.handler.lock(ctx_id);
 
         webrender::ExternalImage {
-            uv: webrender_api::TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
+            uv: webrender_api::units::TexelRect::new(0.0,
+                                                     size.height as f32,
+                                                     size.width as f32,
+                                                     0.0),
             source: webrender::ExternalImageSource::NativeTexture(texture_id),
         }
     }

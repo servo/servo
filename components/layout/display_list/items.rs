@@ -24,12 +24,10 @@ use std::f32;
 use std::fmt;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
-use webrender_api::{BorderRadius, ClipMode};
-use webrender_api::{ComplexClipRegion, ExternalScrollId, FilterOp};
-use webrender_api::{GlyphInstance, GradientStop, ImageKey, LayoutPoint};
-use webrender_api::{LayoutRect, LayoutSize, LayoutTransform};
-use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow};
-use webrender_api::{StickyOffsetBounds, TransformStyle};
+use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
+use webrender_api::{BorderRadius, ClipMode, ComplexClipRegion, ExternalScrollId, FilterOp};
+use webrender_api::{GlyphInstance, GradientStop, ImageKey, MixBlendMode, ScrollSensitivity};
+use webrender_api::{Shadow, StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
 

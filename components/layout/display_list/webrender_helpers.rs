@@ -10,10 +10,9 @@
 use crate::display_list::items::{ClipScrollNode, ClipScrollNodeType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use webrender_api::{
-    self, ClipId, DisplayListBuilder, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId,
-};
-use webrender_api::{LayoutPoint, PropertyBinding, SpecificDisplayItem};
+use webrender_api::units::LayoutPoint;
+use webrender_api::{self, ClipId, DisplayListBuilder, RasterSpace, ReferenceFrameKind};
+use webrender_api::{SpaceAndClipInfo, SpatialId, SpecificDisplayItem};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -306,7 +305,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             sticky_data.margins,
                             sticky_data.vertical_offset_bounds,
                             sticky_data.horizontal_offset_bounds,
-                            webrender_api::LayoutVector2D::zero(),
+                            webrender_api::units::LayoutVector2D::zero(),
                         );
 
                         state.spatial_ids[item.node_index.to_index()] = Some(id);

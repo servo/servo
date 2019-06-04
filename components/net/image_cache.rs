@@ -17,6 +17,7 @@ use std::io;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use webrender_api::units::DeviceIntSize;
 
 ///
 /// TODO(gw): Remaining work on image cache:
@@ -72,7 +73,7 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
         },
     };
     let descriptor = webrender_api::ImageDescriptor {
-        size: webrender_api::DeviceIntSize::new(image.width as i32, image.height as i32),
+        size: DeviceIntSize::new(image.width as i32, image.height as i32),
         stride: None,
         format: webrender_api::ImageFormat::BGRA8,
         offset: 0,
