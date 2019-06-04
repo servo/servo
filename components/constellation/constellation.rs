@@ -802,10 +802,6 @@ where
                     .browsing_context_group_set
                     .get_mut(&bc_group_id)
                     .expect("That this group Id is in the set");
-                // https://html.spec.whatwg.org/multipage/#bcg-append
-                bc_group
-                    .top_level_browsing_context_set
-                    .insert(top_level_browsing_context_id.clone());
                 bc_group.event_loops.get(host)
             },
             None => {
@@ -822,22 +818,9 @@ where
                             None
                         }
                     })
-                    .last();
-                if let Some(bc_group) = bc_group {
-                    bc_group.event_loops.get(host)
-                } else {
-                    // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
-                    assert!(opener.is_none());
-                    let mut new_bc_group: BrowsingContextGroup = Default::default();
-                    let new_bc_group_id = self.browsing_context_group_next_id;
-                    self.browsing_context_group_next_id += 1;
-                    new_bc_group
-                        .top_level_browsing_context_set
-                        .insert(top_level_browsing_context_id.clone());
-                    self.browsing_context_group_set
-                        .insert(new_bc_group_id, new_bc_group);
-                    return None;
-                }
+                    .last()
+                    .expect("The top-level to be part of a group");
+                bc_group.event_loops.get(host)
             },
         };
         if let Some(event_loop) = event_loop {
@@ -2011,6 +1994,16 @@ where
             },
         );
 
+        // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
+        let mut new_bc_group: BrowsingContextGroup = Default::default();
+        let new_bc_group_id = self.browsing_context_group_next_id;
+        self.browsing_context_group_next_id += 1;
+        new_bc_group
+            .top_level_browsing_context_set
+            .insert(top_level_browsing_context_id.clone());
+        self.browsing_context_group_set
+            .insert(new_bc_group_id, new_bc_group);
+
         self.new_pipeline(
             pipeline_id,
             browsing_context_id,
@@ -2045,6 +2038,39 @@ where
         self.browsers.remove(&top_level_browsing_context_id);
         if self.active_browser_id == Some(top_level_browsing_context_id) {
             self.active_browser_id = None;
+        }
+        // https://html.spec.whatwg.org/multipage/#bcg-remove
+        let bc_group_id_to_remove = {
+            let bc_group_id = self
+                .browsing_context_group_set
+                .iter()
+                .filter_map(|(id, bc_group)| {
+                    if bc_group
+                        .top_level_browsing_context_set
+                        .contains(&top_level_browsing_context_id)
+                    {
+                        Some(id.clone())
+                    } else {
+                        None
+                    }
+                })
+                .last()
+                .expect("The top-level BC to be part of an existing BC group");
+            let bc_group = self
+                .browsing_context_group_set
+                .get_mut(&bc_group_id)
+                .expect("That this group Id is in the set");
+            bc_group
+                .top_level_browsing_context_set
+                .remove(&top_level_browsing_context_id);
+            if bc_group.top_level_browsing_context_set.is_empty() {
+                Some(bc_group_id)
+            } else {
+                None
+            }
+        };
+        if let Some(bc_group_id) = bc_group_id_to_remove {
+            self.browsing_context_group_set.remove(&bc_group_id);
         }
     }
 
@@ -2348,6 +2374,35 @@ where
                 session_history: JointSessionHistory::new(),
             },
         );
+
+        // https://html.spec.whatwg.org/multipage/#bcg-append
+        let opener = self
+            .browsing_contexts
+            .get(&opener_browsing_context_id)
+            .expect("Opener BC to exist");
+        let bc_group_id = self
+            .browsing_context_group_set
+            .iter()
+            .filter_map(|(id, bc_group)| {
+                if bc_group
+                    .top_level_browsing_context_set
+                    .contains(&opener.top_level_id)
+                {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .last()
+            .expect("The opener to have an existing BC group");
+        let bc_group = self
+            .browsing_context_group_set
+            .get_mut(&bc_group_id)
+            .expect("That this group Id is in the set");
+        bc_group
+            .top_level_browsing_context_set
+            .insert(new_top_level_browsing_context_id.clone());
+
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: new_top_level_browsing_context_id,
             browsing_context_id: new_browsing_context_id,
@@ -4137,40 +4192,6 @@ where
                 },
                 Some(parent_pipeline) => parent_pipeline.remove_child(browsing_context_id),
             };
-        } else {
-            // https://html.spec.whatwg.org/multipage/#bcg-remove
-            let bc_group_id_to_remove = {
-                let bc_group_id = self
-                    .browsing_context_group_set
-                    .iter()
-                    .filter_map(|(id, bc_group)| {
-                        if bc_group
-                            .top_level_browsing_context_set
-                            .contains(&browsing_context.top_level_id)
-                        {
-                            Some(id.clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .last()
-                    .expect("The top-level BC to be part of an existing BC group");
-                let bc_group = self
-                    .browsing_context_group_set
-                    .get_mut(&bc_group_id)
-                    .expect("That this group Id is in the set");
-                bc_group
-                    .top_level_browsing_context_set
-                    .remove(&browsing_context.top_level_id);
-                if bc_group.top_level_browsing_context_set.is_empty() {
-                    Some(bc_group_id)
-                } else {
-                    None
-                }
-            };
-            if let Some(bc_group_id) = bc_group_id_to_remove {
-                self.browsing_context_group_set.remove(&bc_group_id);
-            }
         }
         debug!("Closed browsing context {:?}.", browsing_context_id);
     }
