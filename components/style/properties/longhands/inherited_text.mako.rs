@@ -374,3 +374,14 @@ ${helpers.single_keyword(
     products="gecko",
     spec="Nonstandard",
 )}
+
+// text underline offset
+${helpers.predefined_type(
+    "text-underline-offset",
+    "LengthOrAuto",
+    "computed::LengthOrAuto::auto()",
+    products="gecko",
+    animation_value_type="ComputedValue",
+    gecko_pref="layout.css.text-underline-offset.enabled",
+    spec="https://drafts.csswg.org/css-text-decor-4/#underline-offset",
+)}
