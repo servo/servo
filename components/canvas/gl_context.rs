@@ -215,6 +215,17 @@ impl GLContextWrapper {
         }
     }
 
+    pub fn get_active_io_surface_id(&self) -> Option<u32> {
+        match *self {
+            GLContextWrapper::Native(ref ctx) => {
+                ctx.borrow_draw_buffer().unwrap().get_active_io_surface_id()
+            },
+            GLContextWrapper::OSMesa(ref ctx) => {
+                ctx.borrow_draw_buffer().unwrap().get_active_io_surface_id()
+            },
+        }
+    }
+
     /// Swap the backing texture for the draw buffer, returning the id of the texture
     /// now used for reading.
     pub fn swap_draw_buffer(&mut self) -> Option<u32> {
