@@ -25,7 +25,6 @@ STYLE_STRUCT_LIST = [
     "background",
     "border",
     "box",
-    "color",
     "column",
     "counters",
     "effects",

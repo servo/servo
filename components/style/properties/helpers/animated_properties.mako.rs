@@ -22,7 +22,7 @@ use std::mem::{self, ManuallyDrop};
 use crate::hash::FxHashMap;
 use super::ComputedValues;
 use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-use crate::values::animated::effects::Filter as AnimatedFilter;
+use crate::values::animated::effects::AnimatedFilter;
 #[cfg(feature = "gecko")] use crate::values::computed::TransitionProperty;
 use crate::values::computed::{ClipRect, Context};
 use crate::values::computed::ToComputedValue;

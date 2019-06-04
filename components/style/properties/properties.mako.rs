@@ -2832,7 +2832,7 @@ impl ComputedValues {
     ///   style.resolve_color(style.get_border().clone_border_top_color());
     #[inline]
     pub fn resolve_color(&self, color: computed::Color) -> RGBA {
-        color.to_rgba(self.get_color().clone_color())
+        color.to_rgba(self.get_inherited_text().clone_color())
     }
 }
 

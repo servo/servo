@@ -7,6 +7,16 @@
 <% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
 ${helpers.predefined_type(
+    "color",
+    "ColorPropertyValue",
+    "::cssparser::RGBA::new(0, 0, 0, 255)",
+    animation_value_type="AnimatedRGBA",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    ignored_when_colors_disabled="True",
+    spec="https://drafts.csswg.org/css-color/#color",
+)}
+
+${helpers.predefined_type(
     "line-height",
     "LineHeight",
     "computed::LineHeight::normal()",

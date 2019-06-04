@@ -12,6 +12,7 @@ path = "lib.rs"
 
 [features]
 servo = ["serde"]
+gecko_refcount_logging = []
 
 [dependencies]
 nodrop = {version = "0.1.8"}

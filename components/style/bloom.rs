@@ -19,7 +19,7 @@ thread_local! {
     /// such that they can be reused across style traversals. StyleBloom is responsible
     /// for ensuring that the bloom filter is zeroed when it is dropped.
     static BLOOM_KEY: Arc<AtomicRefCell<BloomFilter>> =
-              Arc::new(AtomicRefCell::new(BloomFilter::new()));
+        Arc::new_leaked(AtomicRefCell::new(BloomFilter::new()));
 }
 
 /// A struct that allows us to fast-reject deep descendant selectors avoiding

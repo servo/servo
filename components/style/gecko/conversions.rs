@@ -122,11 +122,11 @@ impl nsStyleImage {
         match image {
             GenericImage::Gradient(boxed_gradient) => self.set_gradient(*boxed_gradient),
             GenericImage::Url(ref url) => unsafe {
-                bindings::Gecko_SetLayerImageImageValue(self, url.url_value_ptr())
+                bindings::Gecko_SetLayerImageImageValue(self, url);
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    bindings::Gecko_SetLayerImageImageValue(self, image_rect.url.url_value_ptr());
+                    bindings::Gecko_SetLayerImageImageValue(self, &image_rect.url);
                     bindings::Gecko_InitializeImageCropRect(self);
 
                     // Set CropRect
@@ -584,9 +584,10 @@ pub mod basic_shape {
 
     impl<'a> From<&'a StyleShapeSource> for ClippingShape {
         fn from(other: &'a StyleShapeSource) -> Self {
-            use crate::values::generics::image::Image as GenericImage;
             match other.mType {
                 StyleShapeSourceType::Image => unsafe {
+                    use crate::values::generics::image::Image as GenericImage;
+
                     let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
                     let image = shape_image.into_image().expect("Cannot convert to Image");
                     match image {

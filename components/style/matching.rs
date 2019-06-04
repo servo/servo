@@ -718,7 +718,7 @@ pub trait MatchMethods: TElement {
                 let device = context.shared.stylist.device();
 
                 // Needed for the "inherit from body" quirk.
-                let text_color = new_primary_style.get_color().clone_color();
+                let text_color = new_primary_style.get_inherited_text().clone_color();
                 device.set_body_text_color(text_color);
             }
         }

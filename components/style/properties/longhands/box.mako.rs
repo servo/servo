@@ -390,7 +390,7 @@ ${helpers.predefined_type(
     "OffsetRotate",
     "computed::OffsetRotate::auto()",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="ComputedValue",
     gecko_pref="layout.css.motion-path.enabled",
     spec="https://drafts.fxtf.org/motion-1/#offset-rotate-property",
     servo_restyle_damage="reflow_out_of_flow"
@@ -644,7 +644,6 @@ ${helpers.predefined_type(
     "basic_shape::FloatAreaShape",
     "generics::basic_shape::ShapeSource::None",
     products="gecko",
-    boxed=True,
     animation_value_type="basic_shape::FloatAreaShape",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",

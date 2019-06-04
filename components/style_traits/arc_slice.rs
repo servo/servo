@@ -40,7 +40,7 @@ impl<T> Deref for ArcSlice<T> {
 lazy_static! {
     // ThinArc doesn't support alignments greater than align_of::<u64>.
     static ref EMPTY_ARC_SLICE: ArcSlice<u64> = {
-        ArcSlice(ThinArc::from_header_and_iter(ARC_SLICE_CANARY, iter::empty()))
+        ArcSlice::from_iter_leaked(iter::empty())
     };
 }
 
@@ -72,6 +72,19 @@ impl<T> ArcSlice<T> {
             return Self::default();
         }
         ArcSlice(ThinArc::from_header_and_iter(ARC_SLICE_CANARY, items))
+    }
+
+    /// Creates an Arc for a slice using the given iterator to generate the
+    /// slice, and marks the arc as intentionally leaked from the refcount
+    /// logging point of view.
+    #[inline]
+    pub fn from_iter_leaked<I>(items: I) -> Self
+    where
+        I: Iterator<Item = T> + ExactSizeIterator,
+    {
+        let thin_arc = ThinArc::from_header_and_iter(ARC_SLICE_CANARY, items);
+        thin_arc.with_arc(|a| a.mark_as_intentionally_leaked());
+        ArcSlice(thin_arc)
     }
 
     /// Creates a value that can be passed via FFI, and forgets this value

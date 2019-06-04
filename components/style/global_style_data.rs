@@ -125,7 +125,7 @@ lazy_static! {
     };
     /// Global style data
     pub static ref GLOBAL_STYLE_DATA: GlobalStyleData = GlobalStyleData {
-        shared_lock: SharedRwLock::new(),
+        shared_lock: SharedRwLock::new_leaked(),
         options: StyleSystemOptions::default(),
     };
 }

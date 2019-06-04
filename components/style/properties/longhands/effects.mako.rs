@@ -47,6 +47,8 @@ ${helpers.predefined_type(
     "Filter",
     None,
     vector=True,
+    simple_vector_bindings=True,
+    gecko_ffi_name="mFilters",
     separator="Space",
     animation_value_type="AnimatedFilterList",
     vector_animation_type="with_zero",

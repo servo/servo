@@ -33,13 +33,11 @@ use crate::gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use crate::gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use crate::gecko_bindings::bindings::Gecko_SetListStyleImageImageValue;
 use crate::gecko_bindings::bindings::Gecko_SetNullImageValue;
-use crate::gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
-use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
+use crate::gecko_bindings::sugar::ns_style_coord::CoordDataMut;
 use crate::gecko_bindings::sugar::refptr::RefPtr;
-use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko::values::round_border_to_device_pixels;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
@@ -52,11 +50,10 @@ use std::marker::PhantomData;
 use std::mem::{forget, uninitialized, zeroed, ManuallyDrop};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
-use crate::values::computed::{NonNegativeLength, Percentage, TransitionProperty};
+use crate::values::computed::{Percentage, TransitionProperty};
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
-use crate::values::computed::effects::Filter;
 use crate::values::generics::column::ColumnCount;
 use crate::values::generics::transform::TransformStyle;
 use crate::values::generics::url::UrlOrNone;
@@ -278,7 +275,7 @@ impl ComputedValuesInner {
 
     #[allow(non_snake_case)]
     pub fn has_moz_binding(&self) -> bool {
-        !self.get_box().gecko.mBinding.mRawPtr.is_null()
+        !self.get_box().gecko.mBinding.is_none()
     }
 }
 
@@ -550,7 +547,7 @@ def set_gecko_property(ffi_name, expr):
                 unsafe {
                     bindings::Gecko_nsStyleSVGPaint_SetURLValue(
                         paint,
-                        url.url_value_ptr(),
+                        &url
                     )
                 }
             }
@@ -591,7 +588,6 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::values::computed::url::ComputedUrl;
         use crate::values::generics::svg::{SVGPaint, SVGPaintKind};
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
@@ -613,8 +609,7 @@ def set_gecko_property(ffi_name, expr):
             nsStyleSVGPaintType::eStyleSVGPaintType_ContextStroke => SVGPaintKind::ContextStroke,
             nsStyleSVGPaintType::eStyleSVGPaintType_Server => {
                 SVGPaintKind::PaintServer(unsafe {
-                    let url = RefPtr::new(*paint.mPaint.mPaintServer.as_ref());
-                    ComputedUrl::from_url_value(url)
+                    paint.mPaint.mPaintServer.as_ref().clone()
                 })
             }
             nsStyleSVGPaintType::eStyleSVGPaintType_Color => {
@@ -735,45 +730,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_css_url(ident, gecko_ffi_name)">
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        match v {
-            UrlOrNone::Url(ref url) => {
-                self.gecko.${gecko_ffi_name}.set_move(url.clone_url_value())
-            }
-            UrlOrNone::None => {
-                unsafe {
-                    self.gecko.${gecko_ffi_name}.clear();
-                }
-            }
-        }
-    }
-    #[allow(non_snake_case)]
-    pub fn copy_${ident}_from(&mut self, other: &Self) {
-        unsafe {
-            self.gecko.${gecko_ffi_name}.set(&other.gecko.${gecko_ffi_name});
-        }
-    }
-    #[allow(non_snake_case)]
-    pub fn reset_${ident}(&mut self, other: &Self) {
-        self.copy_${ident}_from(other)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::values::computed::url::ComputedUrl;
-
-        if self.gecko.${gecko_ffi_name}.mRawPtr.is_null() {
-            return UrlOrNone::none()
-        }
-
-        UrlOrNone::Url(unsafe {
-            ComputedUrl::from_url_value(self.gecko.${gecko_ffi_name}.to_safe())
-        })
-    }
-</%def>
-
 <%def name="impl_logical(name, **kwargs)">
     ${helpers.logical_setter(name)}
 </%def>
@@ -879,7 +835,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "SVGOpacity": impl_svg_opacity,
         "SVGPaint": impl_svg_paint,
         "SVGWidth": impl_svg_length,
-        "url::UrlOrNone": impl_css_url,
     }
 
     def longhand_method(longhand):
@@ -2164,8 +2119,7 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           clear transition-duration transition-delay
                           transition-timing-function transition-property
-                          transform-style -moz-binding shape-outside
-                          -webkit-line-clamp""" %>
+                          transform-style shape-outside -webkit-line-clamp""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -2205,7 +2159,7 @@ fn static_assert() {
         gecko_inexhaustive=True,
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
-    ${impl_css_url('_moz_binding', 'mBinding')}
+
     ${impl_transition_time_value('delay', 'Delay')}
     ${impl_transition_time_value('duration', 'Duration')}
     ${impl_transition_timing_function()}
@@ -2834,10 +2788,7 @@ fn static_assert() {
             }
             UrlOrNone::Url(ref url) => {
                 unsafe {
-                    Gecko_SetListStyleImageImageValue(
-                        &mut *self.gecko,
-                        url.url_value_ptr(),
-                    );
+                    Gecko_SetListStyleImageImageValue(&mut *self.gecko, url);
                 }
             }
         }
@@ -2973,8 +2924,7 @@ fn static_assert() {
     ${impl_simple_copy('_x_span', 'mSpan')}
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Effects"
-                  skip_longhands="clip filter">
+<%self:impl_trait style_struct_name="Effects" skip_longhands="clip">
     pub fn set_clip(&mut self, v: longhands::clip::computed_value::T) {
         use crate::gecko_bindings::structs::NS_STYLE_CLIP_AUTO;
         use crate::gecko_bindings::structs::NS_STYLE_CLIP_RECT;
@@ -3082,138 +3032,6 @@ fn static_assert() {
 
         Either::First(ClipRect { top, right, bottom, left })
     }
-
-    <%
-    # This array is several filter function which has percentage or
-    # number value for function of clone / set.
-    # The setting / cloning process of other function(e.g. Blur / HueRotate) is
-    # different from these function. So this array don't include such function.
-    FILTER_FUNCTIONS = [ 'Brightness', 'Contrast', 'Grayscale', 'Invert',
-                         'Opacity', 'Saturate', 'Sepia' ]
-     %>
-
-    pub fn set_filter<I>(&mut self, v: I)
-    where
-        I: IntoIterator<Item = Filter>,
-        I::IntoIter: ExactSizeIterator,
-    {
-        use crate::values::generics::effects::Filter::*;
-        use crate::gecko_bindings::structs::nsStyleFilter;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_CONTRAST;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_GRAYSCALE;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_INVERT;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_OPACITY;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_SATURATE;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_SEPIA;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_HUE_ROTATE;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_DROP_SHADOW;
-
-        fn fill_filter(m_type: u32, value: CoordDataValue, gecko_filter: &mut nsStyleFilter){
-            gecko_filter.mType = m_type;
-            gecko_filter.mFilterParameter.set_value(value);
-        }
-
-        let v = v.into_iter();
-        unsafe {
-            Gecko_ResetFilters(&mut *self.gecko, v.len());
-        }
-        debug_assert_eq!(v.len(), self.gecko.mFilters.len());
-
-        for (servo, gecko_filter) in v.zip(self.gecko.mFilters.iter_mut()) {
-            match servo {
-                % for func in FILTER_FUNCTIONS:
-                ${func}(factor) => fill_filter(NS_STYLE_FILTER_${func.upper()},
-                                               CoordDataValue::Factor(factor.0),
-                                               gecko_filter),
-                % endfor
-                Blur(length) => fill_filter(NS_STYLE_FILTER_BLUR,
-                                            CoordDataValue::Coord(length.0.to_i32_au()),
-                                            gecko_filter),
-
-                HueRotate(angle) => fill_filter(NS_STYLE_FILTER_HUE_ROTATE,
-                                                CoordDataValue::from(angle),
-                                                gecko_filter),
-
-                DropShadow(shadow) => {
-                    gecko_filter.mType = NS_STYLE_FILTER_DROP_SHADOW;
-                    unsafe {
-                        let ref mut union = gecko_filter.__bindgen_anon_1;
-                        ptr::write(union.mDropShadow.as_mut(), shadow);
-                    }
-                },
-                Url(ref url) => {
-                    unsafe {
-                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.url_value_ptr());
-                    }
-                },
-            }
-        }
-    }
-
-    pub fn copy_filter_from(&mut self, other: &Self) {
-        unsafe {
-            Gecko_CopyFiltersFrom(&other.gecko as *const _ as *mut _, &mut *self.gecko);
-        }
-    }
-
-    pub fn reset_filter(&mut self, other: &Self) {
-        self.copy_filter_from(other)
-    }
-
-    pub fn clone_filter(&self) -> longhands::filter::computed_value::T {
-        use crate::values::generics::effects::Filter;
-        use crate::values::computed::url::ComputedUrl;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_CONTRAST;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_GRAYSCALE;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_INVERT;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_OPACITY;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_SATURATE;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_SEPIA;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_HUE_ROTATE;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_DROP_SHADOW;
-        use crate::gecko_bindings::structs::NS_STYLE_FILTER_URL;
-
-        longhands::filter::computed_value::List(self.gecko.mFilters.iter().map(|filter| {
-            match filter.mType {
-                % for func in FILTER_FUNCTIONS:
-                NS_STYLE_FILTER_${func.upper()} => {
-                    Filter::${func}(
-                        GeckoStyleCoordConvertible::from_gecko_style_coord(
-                            &filter.mFilterParameter
-                        ).unwrap()
-                    )
-                },
-                % endfor
-                NS_STYLE_FILTER_BLUR => {
-                    Filter::Blur(NonNegativeLength::from_gecko_style_coord(
-                        &filter.mFilterParameter
-                    ).unwrap())
-                },
-                NS_STYLE_FILTER_HUE_ROTATE => {
-                    Filter::HueRotate(GeckoStyleCoordConvertible::from_gecko_style_coord(
-                        &filter.mFilterParameter,
-                    ).unwrap())
-                },
-                NS_STYLE_FILTER_DROP_SHADOW => {
-                    Filter::DropShadow(unsafe {
-                        (*filter.__bindgen_anon_1.mDropShadow.as_ref()).clone()
-                    })
-                },
-                NS_STYLE_FILTER_URL => {
-                    Filter::Url(unsafe {
-                        let url = RefPtr::new(*filter.__bindgen_anon_1.mURL.as_ref());
-                        ComputedUrl::from_url_value(url)
-                    })
-                }
-                _ => unreachable!("Unknown filter function?"),
-            }
-        }).collect())
-    }
-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedBox">
@@ -3537,9 +3355,6 @@ clip-path
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Color">
-</%self:impl_trait>
-
 <%self:impl_trait style_struct_name="InheritedUI" skip_longhands="cursor">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         self.gecko.mCursor = v.keyword;
@@ -3550,7 +3365,7 @@ clip-path
             unsafe {
                 Gecko_SetCursorImageValue(
                     &mut self.gecko.mCursorImages[i],
-                    v.images[i].url.url_value_ptr(),
+                    &v.images[i].url
                 );
             }
 
@@ -3769,7 +3584,7 @@ clip-path
                             unsafe {
                                 bindings::Gecko_SetContentDataImageValue(
                                     &mut self.gecko.mContents[i],
-                                    url.url_value_ptr(),
+                                    url,
                                 )
                             }
                         }

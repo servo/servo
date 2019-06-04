@@ -63,15 +63,25 @@ impl<T: RefCounted> RefPtr<T> {
         }
     }
 
+    /// Returns whether the current pointer is null.
+    pub fn is_null(&self) -> bool {
+        self.ptr.is_null()
+    }
+
+    /// Returns a null pointer.
+    pub fn null() -> Self {
+        Self {
+            ptr: ptr::null_mut(),
+            _marker: PhantomData,
+        }
+    }
+
     /// Create a new RefPtr from a pointer obtained from FFI.
-    ///
-    /// The pointer must be valid and non null.
     ///
     /// This method calls addref() internally
     pub unsafe fn new(ptr: *mut T) -> Self {
-        debug_assert!(!ptr.is_null());
         let ret = RefPtr {
-            ptr: ptr,
+            ptr,
             _marker: PhantomData,
         };
         ret.addref();
@@ -97,8 +107,10 @@ impl<T: RefCounted> RefPtr<T> {
 
     /// Addref the inner data, obviously leaky on its own.
     pub fn addref(&self) {
-        unsafe {
-            (*self.ptr).addref();
+        if !self.ptr.is_null() {
+            unsafe {
+                (*self.ptr).addref();
+            }
         }
     }
 
@@ -106,7 +118,9 @@ impl<T: RefCounted> RefPtr<T> {
     ///
     /// Call only when the data actually needs releasing.
     pub unsafe fn release(&self) {
-        (*self.ptr).release();
+        if !self.ptr.is_null() {
+            (*self.ptr).release();
+        }
     }
 }
 
@@ -130,6 +144,7 @@ impl<T: RefCounted> UniqueRefPtr<T> {
 impl<T: RefCounted> Deref for RefPtr<T> {
     type Target = T;
     fn deref(&self) -> &T {
+        debug_assert!(!self.ptr.is_null());
         unsafe { &*self.ptr }
     }
 }
@@ -152,7 +167,6 @@ impl<T: RefCounted> structs::RefPtr<T> {
     ///
     /// Must be called on a valid, non-null structs::RefPtr<T>.
     pub unsafe fn to_safe(&self) -> RefPtr<T> {
-        debug_assert!(!self.mRawPtr.is_null());
         let r = RefPtr {
             ptr: self.mRawPtr,
             _marker: PhantomData,
@@ -290,9 +304,9 @@ impl_threadsafe_refcount!(
     bindings::Gecko_ReleaseURLExtraDataArbitraryThread
 );
 impl_threadsafe_refcount!(
-    structs::mozilla::css::URLValue,
-    bindings::Gecko_AddRefCSSURLValueArbitraryThread,
-    bindings::Gecko_ReleaseCSSURLValueArbitraryThread
+    structs::nsIURI,
+    bindings::Gecko_AddRefnsIURIArbitraryThread,
+    bindings::Gecko_ReleasensIURIArbitraryThread
 );
 impl_threadsafe_refcount!(
     structs::mozilla::css::GridTemplateAreasValue,
