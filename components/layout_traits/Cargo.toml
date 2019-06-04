@@ -12,6 +12,7 @@ path = "lib.rs"
 
 [dependencies]
 crossbeam-channel = "0.3"
+euclid = "0.19"
 gfx = {path = "../gfx"}
 ipc-channel = "0.11"
 metrics = {path = "../metrics"}
@@ -20,4 +21,5 @@ net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 servo_url = {path = "../url"}
+servo_geometry = {path = "../geometry"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

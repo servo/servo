@@ -89,7 +89,7 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::pref;
-use servo_geometry::MaxRect;
+use servo_geometry::{DeviceIndependentPixel, MaxRect};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -247,6 +247,42 @@ pub struct LayoutThread {
 
     /// Flag that indicates if LayoutThread is busy handling a request.
     busy: Arc<AtomicBool>,
+
+    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
+    load_webfonts_synchronously: bool,
+
+    /// The initial request size of the window
+    initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+
+    /// The ratio of device pixels per px at the default scale.
+    /// If unspecified, will use the platform default setting.
+    device_pixels_per_px: Option<f32>,
+
+    /// Dumps the display list form after a layout.
+    dump_display_list: bool,
+
+    /// Dumps the display list in JSON form after a layout.
+    dump_display_list_json: bool,
+
+    /// Dumps the DOM after restyle.
+    dump_style_tree: bool,
+
+    /// Dumps the flow tree after a layout.
+    dump_rule_tree: bool,
+
+    /// Emits notifications when there is a relayout.
+    relayout_event: bool,
+
+    /// True to turn off incremental layout.
+    nonincremental_layout: bool,
+
+    /// True if each step of layout is traced to an external JSON file
+    /// for debugging purposes. Setting this implies sequential layout
+    /// and paint.
+    trace_layout: bool,
+
+    /// Dumps the flow tree after a layout.
+    dump_flow_tree: bool,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -272,6 +308,17 @@ impl LayoutThreadFactory for LayoutThread {
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
+        load_webfonts_synchronously: bool,
+        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        device_pixels_per_px: Option<f32>,
+        dump_display_list: bool,
+        dump_display_list_json: bool,
+        dump_style_tree: bool,
+        dump_rule_tree: bool,
+        relayout_event: bool,
+        nonincremental_layout: bool,
+        trace_layout: bool,
+        dump_flow_tree: bool,
     ) {
         thread::Builder::new()
             .name(format!("LayoutThread {:?}", id))
@@ -310,6 +357,17 @@ impl LayoutThreadFactory for LayoutThread {
                         webrender_document,
                         paint_time_metrics,
                         busy,
+                        load_webfonts_synchronously,
+                        initial_window_size,
+                        device_pixels_per_px,
+                        dump_display_list,
+                        dump_display_list_json,
+                        dump_style_tree,
+                        dump_rule_tree,
+                        relayout_event,
+                        nonincremental_layout,
+                        trace_layout,
+                        dump_flow_tree,
                     );
 
                     let reporter_name = format!("layout-reporter-{}", id);
@@ -423,8 +481,9 @@ fn add_font_face_rules(
     font_cache_thread: &FontCacheThread,
     font_cache_sender: &IpcSender<()>,
     outstanding_web_fonts_counter: &Arc<AtomicUsize>,
+    load_webfonts_synchronously: bool,
 ) {
-    if opts::get().load_webfonts_synchronously {
+    if load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
         stylesheet.effective_font_face_rules(&device, guard, |rule| {
             if let Some(font_face) = rule.font_face() {
@@ -472,13 +531,24 @@ impl LayoutThread {
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
+        load_webfonts_synchronously: bool,
+        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        device_pixels_per_px: Option<f32>,
+        dump_display_list: bool,
+        dump_display_list_json: bool,
+        dump_style_tree: bool,
+        dump_rule_tree: bool,
+        relayout_event: bool,
+        nonincremental_layout: bool,
+        trace_layout: bool,
+        dump_flow_tree: bool,
     ) -> LayoutThread {
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
             MediaType::screen(),
-            opts::get().initial_window_size.to_f32() * TypedScale::new(1.0),
-            TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
+            initial_window_size.to_f32() * TypedScale::new(1.0),
+            TypedScale::new(device_pixels_per_px.unwrap_or(1.0)),
         );
 
         // Create the channel on which new animations can be sent.
@@ -550,7 +620,18 @@ impl LayoutThread {
             paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
             last_iframe_sizes: Default::default(),
-            busy: busy,
+            busy,
+            load_webfonts_synchronously,
+            initial_window_size,
+            device_pixels_per_px,
+            dump_display_list,
+            dump_display_list_json,
+            dump_style_tree,
+            dump_rule_tree,
+            relayout_event,
+            nonincremental_layout,
+            trace_layout,
+            dump_flow_tree,
         }
     }
 
@@ -872,6 +953,17 @@ impl LayoutThread {
             self.webrender_document,
             info.paint_time_metrics,
             info.layout_is_busy,
+            self.load_webfonts_synchronously,
+            self.initial_window_size,
+            self.device_pixels_per_px,
+            self.dump_display_list,
+            self.dump_display_list_json,
+            self.dump_style_tree,
+            self.dump_rule_tree,
+            self.relayout_event,
+            self.nonincremental_layout,
+            self.trace_layout,
+            self.dump_flow_tree,
         );
     }
 
@@ -927,6 +1019,7 @@ impl LayoutThread {
                 &self.font_cache_thread,
                 &self.font_cache_sender,
                 &self.outstanding_web_fonts,
+                self.load_webfonts_synchronously,
             );
         }
     }
@@ -1126,10 +1219,10 @@ impl LayoutThread {
                 }
                 let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
 
-                if opts::get().dump_display_list {
+                if self.dump_display_list {
                     display_list.print();
                 }
-                if opts::get().dump_display_list_json {
+                if self.dump_display_list_json {
                     println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
                 }
 
@@ -1460,11 +1553,11 @@ impl LayoutThread {
 
         layout_context = traversal.destroy();
 
-        if opts::get().dump_style_tree {
+        if self.dump_style_tree {
             println!("{:?}", ShowSubtreeDataAndPrimaryValues(element.as_node()));
         }
 
-        if opts::get().dump_rule_tree {
+        if self.dump_rule_tree {
             layout_context
                 .style_context
                 .stylist
@@ -1630,7 +1723,7 @@ impl LayoutThread {
     }
 
     fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
-        if opts::get().relayout_event {
+        if self.relayout_event {
             println!(
                 "**** pipeline={}\tForDisplay\tSpecial\tAnimationTick",
                 self.id
@@ -1724,7 +1817,7 @@ impl LayoutThread {
                 // that are needed in both incremental and non-incremental traversals.
                 let damage = FlowRef::deref_mut(root_flow).compute_layout_damage();
 
-                if opts::get().nonincremental_layout ||
+                if self.nonincremental_layout ||
                     damage.contains(SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT)
                 {
                     FlowRef::deref_mut(root_flow).reflow_entire_document()
@@ -1732,7 +1825,7 @@ impl LayoutThread {
             },
         );
 
-        if opts::get().trace_layout {
+        if self.trace_layout {
             layout_debug::begin_trace(root_flow.clone());
         }
 
@@ -1827,11 +1920,11 @@ impl LayoutThread {
             rw_data,
         );
 
-        if opts::get().trace_layout {
+        if self.trace_layout {
             layout_debug::end_trace(self.generation.get());
         }
 
-        if opts::get().dump_flow_tree {
+        if self.dump_flow_tree {
             root_flow.print("Post layout flow tree".to_owned());
         }
 

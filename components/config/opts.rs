@@ -54,6 +54,7 @@ pub struct Opts {
     /// and cause it to produce output on that interval (`-m`).
     pub mem_profiler_period: Option<f64>,
 
+    /// True to turn off incremental layout.
     pub nonincremental_layout: bool,
 
     /// Where to load userscripts from, if any. An empty string will load from
@@ -111,7 +112,7 @@ pub struct Opts {
     pub enable_canvas_antialiasing: bool,
 
     /// True if each step of layout is traced to an external JSON file
-    /// for debugging purposes. Settings this implies sequential layout
+    /// for debugging purposes. Setting this implies sequential layout
     /// and paint.
     pub trace_layout: bool,
 
