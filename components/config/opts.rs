@@ -80,6 +80,7 @@ pub struct Opts {
     /// Use ANGLE to create the GL context (Windows-only).
     pub angle: bool,
 
+    /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
 
     /// True if we should bubble intrinsic widths sequentially (`-b`). If this is true, then

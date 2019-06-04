@@ -679,6 +679,7 @@ dependencies = [
  "script_traits 0.0.1",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
+ "servo_geometry 0.0.1",
  "servo_rand 0.0.1",
  "servo_remutex 0.0.1",
  "servo_url 0.0.1",

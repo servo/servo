@@ -153,6 +153,7 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
+use servo_geometry::DeviceIndependentPixel;
 use servo_rand::{random, Rng, SeedableRng, ServoRng};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -379,6 +380,17 @@ pub struct Constellation<Message, LTF, STF> {
     /// Bitmask which indicates which combination of mouse buttons are
     /// currently being pressed.
     pressed_mouse_buttons: u16,
+
+    is_running_problem_test: bool,
+
+    /// If True, exits on thread failure instead of displaying about:failure
+    hard_fail: bool,
+
+    /// If set with --disable-canvas-aa, disable antialiasing on the HTML
+    /// canvas element.
+    /// Like --disable-text-aa, this is useful for reftests where pixel perfect
+    /// results are required.
+    enable_canvas_antialiasing: bool,
 }
 
 /// State needed to construct a constellation.
@@ -599,6 +611,13 @@ where
     /// Create a new constellation thread.
     pub fn start(
         state: InitialConstellationState,
+        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        device_pixels_per_px: Option<f32>,
+        random_pipeline_closure_probability: Option<f32>,
+        random_pipeline_closure_seed: Option<usize>,
+        is_running_problem_test: bool,
+        hard_fail: bool,
+        enable_canvas_antialiasing: bool,
     ) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
         let (compositor_sender, compositor_receiver) = unbounded();
 
@@ -685,11 +704,8 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     window_size: WindowSizeData {
-                        initial_viewport: opts::get().initial_window_size.to_f32() *
-                            TypedScale::new(1.0),
-                        device_pixel_ratio: TypedScale::new(
-                            opts::get().device_pixels_per_px.unwrap_or(1.0),
-                        ),
+                        initial_viewport: initial_window_size.to_f32() * TypedScale::new(1.0),
+                        device_pixel_ratio: TypedScale::new(device_pixels_per_px.unwrap_or(1.0)),
                     },
                     phantom: PhantomData,
                     clipboard_ctx: match ClipboardContext::new() {
@@ -706,22 +722,21 @@ where
                     webrender_api_sender: state.webrender_api_sender,
                     shutting_down: false,
                     handled_warnings: VecDeque::new(),
-                    random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(
-                        |prob| {
-                            let seed = opts::get()
-                                .random_pipeline_closure_seed
-                                .unwrap_or_else(random);
-                            let rng = ServoRng::from_seed(&[seed]);
-                            warn!("Randomly closing pipelines.");
-                            info!("Using seed {} for random pipeline closure.", seed);
-                            (rng, prob)
-                        },
-                    ),
+                    random_pipeline_closure: random_pipeline_closure_probability.map(|prob| {
+                        let seed = random_pipeline_closure_seed.unwrap_or_else(random);
+                        let rng = ServoRng::from_seed(&[seed]);
+                        warn!("Randomly closing pipelines.");
+                        info!("Using seed {} for random pipeline closure.", seed);
+                        (rng, prob)
+                    }),
                     webgl_threads: state.webgl_threads,
                     webvr_chan: state.webvr_chan,
                     canvas_chan: CanvasPaintThread::start(),
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
+                    is_running_problem_test,
+                    hard_fail,
+                    enable_canvas_antialiasing,
                 };
 
                 constellation.run();
@@ -1165,13 +1180,13 @@ where
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
                 debug!("Ready to save image {:?}.", is_ready);
-                if opts::get().is_running_problem_test {
+                if self.is_running_problem_test {
                     println!("got ready to save image query, result is {:?}", is_ready);
                 }
                 let is_ready = is_ready == ReadyToSave::Ready;
                 self.compositor_proxy
                     .send(ToCompositorMsg::IsReadyToSaveImageReply(is_ready));
-                if opts::get().is_running_problem_test {
+                if self.is_running_problem_test {
                     println!("sent response");
                 }
             },
@@ -1694,7 +1709,7 @@ where
         reason: String,
         backtrace: Option<String>,
     ) {
-        if opts::get().hard_fail {
+        if self.hard_fail {
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
             println!("Pipeline failed in hard-fail mode.  Crashing!");
@@ -3155,7 +3170,7 @@ where
             canvas_id_sender,
             size,
             webrender_api,
-            opts::get().enable_canvas_antialiasing,
+            self.enable_canvas_antialiasing,
         )) {
             return warn!("Create canvas paint thread failed ({})", e);
         }

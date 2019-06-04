@@ -617,6 +617,9 @@ fn create_constellation(
     window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
+    // Global configuration options, parsed from the command line.
+    let opts = opts::get();
+
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
@@ -651,7 +654,7 @@ fn create_constellation(
         };
 
     // GLContext factory used to create WebGL Contexts
-    let gl_factory = if opts::get().should_use_osmesa() {
+    let gl_factory = if opts.should_use_osmesa() {
         GLContextFactory::current_osmesa_handle()
     } else {
         GLContextFactory::current_native_handle(&compositor_proxy)
@@ -697,7 +700,16 @@ fn create_constellation(
         script_layout_interface::message::Msg,
         layout_thread::LayoutThread,
         script::script_thread::ScriptThread,
-    >::start(initial_state);
+    >::start(
+        initial_state,
+        opts.initial_window_size,
+        opts.device_pixels_per_px,
+        opts.random_pipeline_closure_probability,
+        opts.random_pipeline_closure_seed,
+        opts.is_running_problem_test,
+        opts.hard_fail,
+        opts.enable_canvas_antialiasing,
+    );
 
     if let Some(webvr_constellation_sender) = webvr_constellation_sender {
         // Set constellation channel used by WebVR thread to broadcast events

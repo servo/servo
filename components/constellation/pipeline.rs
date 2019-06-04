@@ -646,7 +646,7 @@ impl UnprivilegedPipelineContent {
             .expect("Failed to create IPC one-shot server.");
 
         // If there is a sandbox, use the `gaol` API to create the child process.
-        if opts::get().sandbox {
+        if self.opts.sandbox {
             let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
             self.setup_common(&mut command, token);
 
