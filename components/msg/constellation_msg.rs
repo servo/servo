@@ -174,6 +174,9 @@ impl fmt::Display for BrowsingContextId {
     }
 }
 
+#[derive(Clone, Default, Eq, Hash, PartialEq)]
+pub struct BrowsingContextGroupId(pub u32);
+
 thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> = Cell::new(None));
 
 #[derive(
