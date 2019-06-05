@@ -32,7 +32,7 @@ use script_traits::{
     MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId, WheelDelta,
 };
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
-use servo_geometry::DeviceIndependentPixel;
+use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
@@ -1260,7 +1260,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             CompositeTarget::Window => gl::RenderTargetInfo::default(),
             #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
-                gl::initialize_png(&*self.window.gl(), width, height)
+                gl::initialize_png(&*self.window.gl(),
+                                   FramebufferUintLength::new(width.get()),
+                                   FramebufferUintLength::new(height.get()))
             },
             #[cfg(not(feature = "gl"))]
             _ => (),
@@ -1322,7 +1324,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             CompositeTarget::Window => None,
             #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng => {
-                let img = gl::draw_img(&*self.window.gl(), rt_info, width, height);
+                let img = gl::draw_img(&*self.window.gl(),
+                                       rt_info,
+                                       FramebufferUintLength::new(width.get()),
+                                       FramebufferUintLength::new(height.get()));
                 Some(Image {
                     width: img.width(),
                     height: img.height(),
@@ -1341,7 +1346,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     || match self.output_file.as_ref() {
                         Some(path) => match File::create(path) {
                             Ok(mut file) => {
-                                let img = gl::draw_img(gl, rt_info, width, height);
+                                let img = gl::draw_img(gl,
+                                                       rt_info,
+                                                       FramebufferUintLength::new(width.get()),
+                                                       FramebufferUintLength::new(height.get()));
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
                                 if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::PNG)
                                 {
