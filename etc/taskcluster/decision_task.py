@@ -380,6 +380,11 @@ def windows_arm64():
     return (
         windows_build_task("Dev build", package=False, arch="arm64")
         .with_treeherder("Windows arm64")
+        .with_env(**{
+            "VCINSTALLDIR_SERVO": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\",
+            "VisualStudioVersion": "15.0",
+            "WindowsSdkDir": "C:\\Program Files (x86)\\Windows Kits\\10\\",
+        })
         .with_script(
             "python mach build --dev --libsimpleservo \
               --target aarch64-pc-windows-msvc \

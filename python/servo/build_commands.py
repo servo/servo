@@ -626,12 +626,14 @@ class MachCommands(CommandBase):
                     return rv
 
             if sys.platform == "win32":
-                servo_exe_dir = os.path.dirname(self.get_binary_path(release, dev, target=target))
+                servo_exe_dir = os.path.dirname(
+                    self.get_binary_path(release, dev, target=target, simpleservo=libsimpleservo)
+                )
                 assert os.path.exists(servo_exe_dir)
 
                 # on msvc builds, use editbin to change the subsystem to windows, but only
                 # on release builds -- on debug builds, it hides log output
-                if not dev:
+                if not dev and libsimpleservo:
                     call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
                          verbose=verbose)
                 # on msvc, we need to copy in some DLLs in to the servo.exe dir
@@ -659,110 +661,14 @@ class MachCommands(CommandBase):
                 package_generated_shared_libraries(["nspr4.dll", "libEGL.dll"], build_path, servo_exe_dir)
 
                 # copy needed gstreamer DLLs in to servo.exe dir
-                msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
-                gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
-                gst_root = ""
-                gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
-                gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
-                if os.path.exists(path.join(gst_default_path, "bin", "libffi-7.dll")) or \
-                   os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
-                    gst_root = gst_default_path
-                elif os.environ.get(gst_env) is not None:
-                    gst_root = os.environ.get(gst_env)
-                else:
-                    print("Could not found GStreamer installation directory.")
+                target_triple = target or host_triple()
+                if "aarch64" not in target_triple:
+                    print("Packaging gstreamer DLLs")
+                    if not package_gstreamer_dlls(servo_exe_dir, target_triple):
+                        status = 1
+                print("Packaging MSVC DLLs")
+                if not package_msvc_dlls(servo_exe_dir, target_triple):
                     status = 1
-                gst_dlls = [
-                    ["libffi-7.dll", "ffi-7.dll"],
-                    ["libgio-2.0-0.dll", "gio-2.0-0.dll"],
-                    ["libglib-2.0-0.dll", "glib-2.0-0.dll"],
-                    ["libgmodule-2.0-0.dll", "gmodule-2.0-0.dll"],
-                    ["libgobject-2.0-0.dll", "gobject-2.0-0.dll"],
-                    ["libgstapp-1.0-0.dll", "gstapp-1.0-0.dll"],
-                    ["libgstaudio-1.0-0.dll", "gstaudio-1.0-0.dll"],
-                    ["libgstbase-1.0-0.dll", "gstbase-1.0-0.dll"],
-                    ["libgstgl-1.0-0.dll", "gstgl-1.0-0.dll"],
-                    ["libgstpbutils-1.0-0.dll", "gstpbutils-1.0-0.dll"],
-                    ["libgstplayer-1.0-0.dll", "gstplayer-1.0-0.dll"],
-                    ["libgstreamer-1.0-0.dll", "gstreamer-1.0-0.dll"],
-                    ["libgstrtp-1.0-0.dll", "gstrtp-1.0-0.dll"],
-                    ["libgstsdp-1.0-0.dll", "gstsdp-1.0-0.dll"],
-                    ["libgsttag-1.0-0.dll", "gsttag-1.0-0.dll"],
-                    ["libgstvideo-1.0-0.dll", "gstvideo-1.0-0.dll"],
-                    ["libgstwebrtc-1.0-0.dll", "gstwebrtc-1.0-0.dll"],
-                    ["libintl-8.dll", "intl-8.dll"],
-                    ["liborc-0.4-0.dll", "orc-0.4-0.dll"],
-                    ["libwinpthread-1.dll", "winpthread-1.dll"],
-                    ["libz.dll", "libz-1.dll", "z-1.dll"]
-                ]
-                if gst_root:
-                    for gst_lib in gst_dlls:
-                        if isinstance(gst_lib, str):
-                            gst_lib = [gst_lib]
-                        for lib in gst_lib:
-                            try:
-                                shutil.copy(path.join(gst_root, "bin", lib),
-                                            servo_exe_dir)
-                                break
-                            except:
-                                pass
-                        else:
-                            print("ERROR: could not find required GStreamer DLL: " + str(gst_lib))
-                            sys.exit(1)
-
-                # copy some MSVC DLLs to servo.exe dir
-                msvc_redist_dir = None
-                vs_platform = os.environ.get("PLATFORM", "").lower()
-                vc_dir = os.environ.get("VCINSTALLDIR", "")
-                vs_version = os.environ.get("VisualStudioVersion", "")
-                msvc_deps = [
-                    "api-ms-win-crt-runtime-l1-1-0.dll",
-                    "msvcp140.dll",
-                    "vcruntime140.dll",
-                ]
-                # Check if it's Visual C++ Build Tools or Visual Studio 2015
-                vs14_vcvars = path.join(vc_dir, "vcvarsall.bat")
-                is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
-                if is_vs14:
-                    msvc_redist_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
-                elif vs_version == "15.0":
-                    redist_dir = path.join(os.environ.get("VCINSTALLDIR", ""), "Redist", "MSVC")
-                    if os.path.isdir(redist_dir):
-                        for p in os.listdir(redist_dir)[::-1]:
-                            redist_path = path.join(redist_dir, p)
-                            for v in ["VC141", "VC150"]:
-                                # there are two possible paths
-                                # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
-                                redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
-                                redist2 = path.join(redist_path, "onecore", vs_platform, "Microsoft.{}.CRT".format(v))
-                                if os.path.isdir(redist1):
-                                    msvc_redist_dir = redist1
-                                    break
-                                elif os.path.isdir(redist2):
-                                    msvc_redist_dir = redist2
-                                    break
-                            if msvc_redist_dir:
-                                break
-                if msvc_redist_dir:
-                    redist_dirs = [
-                        msvc_redist_dir,
-                        path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
-                    ]
-                    for msvc_dll in msvc_deps:
-                        dll_found = False
-                        for dll_dir in redist_dirs:
-                            dll = path.join(dll_dir, msvc_dll)
-                            servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
-                            if os.path.isfile(dll):
-                                if os.path.isfile(servo_dir_dll):
-                                    # avoid permission denied error when overwrite dll in servo build directory
-                                    os.chmod(servo_dir_dll, stat.S_IWUSR)
-                                shutil.copy(dll, servo_exe_dir)
-                                dll_found = True
-                                break
-                        if not dll_found:
-                            print("DLL file `{}` not found!".format(msvc_dll))
-                            status = 1
 
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
@@ -811,3 +717,128 @@ class MachCommands(CommandBase):
         opts += params
         return check_call(["cargo", "clean"] + opts,
                           env=self.build_env(), cwd=self.ports_glutin_crate(), verbose=verbose)
+
+
+def package_gstreamer_dlls(servo_exe_dir, target):
+    msvc_x64 = "64" if "x86_64" in target else ""
+    gst_x64 = "X86_64" if msvc_x64 == "64" else "X86"
+    gst_root = ""
+    gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
+    gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
+    if os.path.exists(path.join(gst_default_path, "bin", "libffi-7.dll")) or \
+       os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
+        gst_root = gst_default_path
+    elif os.environ.get(gst_env) is not None:
+        gst_root = os.environ.get(gst_env)
+    else:
+        print("Could not found GStreamer installation directory.")
+        return False
+
+    gst_dlls = [
+        ["libffi-7.dll", "ffi-7.dll"],
+        ["libgio-2.0-0.dll", "gio-2.0-0.dll"],
+        ["libglib-2.0-0.dll", "glib-2.0-0.dll"],
+        ["libgmodule-2.0-0.dll", "gmodule-2.0-0.dll"],
+        ["libgobject-2.0-0.dll", "gobject-2.0-0.dll"],
+        ["libgstapp-1.0-0.dll", "gstapp-1.0-0.dll"],
+        ["libgstaudio-1.0-0.dll", "gstaudio-1.0-0.dll"],
+        ["libgstbase-1.0-0.dll", "gstbase-1.0-0.dll"],
+        ["libgstgl-1.0-0.dll", "gstgl-1.0-0.dll"],
+        ["libgstpbutils-1.0-0.dll", "gstpbutils-1.0-0.dll"],
+        ["libgstplayer-1.0-0.dll", "gstplayer-1.0-0.dll"],
+        ["libgstreamer-1.0-0.dll", "gstreamer-1.0-0.dll"],
+        ["libgstrtp-1.0-0.dll", "gstrtp-1.0-0.dll"],
+        ["libgstsdp-1.0-0.dll", "gstsdp-1.0-0.dll"],
+        ["libgsttag-1.0-0.dll", "gsttag-1.0-0.dll"],
+        ["libgstvideo-1.0-0.dll", "gstvideo-1.0-0.dll"],
+        ["libgstwebrtc-1.0-0.dll", "gstwebrtc-1.0-0.dll"],
+        ["libintl-8.dll", "intl-8.dll"],
+        ["liborc-0.4-0.dll", "orc-0.4-0.dll"],
+        ["libwinpthread-1.dll", "winpthread-1.dll"],
+        ["libz.dll", "libz-1.dll", "z-1.dll"]
+    ]
+
+    missing = []
+    for gst_lib in gst_dlls:
+        if isinstance(gst_lib, str):
+            gst_lib = [gst_lib]
+        for lib in gst_lib:
+            try:
+                shutil.copy(path.join(gst_root, "bin", lib), servo_exe_dir)
+                break
+            except:
+                pass
+        else:
+            missing += [str(gst_lib)]
+
+    for gst_lib in missing:
+        print("ERROR: could not find required GStreamer DLL: " + gst_lib)
+    return not missing
+
+
+def package_msvc_dlls(servo_exe_dir, target):
+    # copy some MSVC DLLs to servo.exe dir
+    msvc_redist_dir = None
+    vs_platforms = {
+        "x86_64": "x64",
+        "i686": "x86",
+        "aarch64": "arm64",
+    }
+    target_arch = target.split('-')[0]
+    vs_platform = vs_platforms[target_arch]
+    vc_dir = os.environ.get("VCINSTALLDIR", "") or os.environ.get("VCINSTALLDIR_SERVO")
+    vs_version = os.environ.get("VisualStudioVersion", "")
+    msvc_deps = [
+        "msvcp140.dll",
+        "vcruntime140.dll",
+    ]
+    if target_arch != "aarch64":
+        msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
+
+    # Check if it's Visual C++ Build Tools or Visual Studio 2015
+    vs14_vcvars = path.join(vc_dir, "vcvarsall.bat")
+    is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
+    if is_vs14:
+        msvc_redist_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
+    elif vs_version == "15.0":
+        redist_dir = path.join(vc_dir, "Redist", "MSVC")
+        if os.path.isdir(redist_dir):
+            for p in os.listdir(redist_dir)[::-1]:
+                redist_path = path.join(redist_dir, p)
+                for v in ["VC141", "VC150"]:
+                    # there are two possible paths
+                    # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
+                    redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
+                    redist2 = path.join(redist_path, "onecore", vs_platform, "Microsoft.{}.CRT".format(v))
+                    if os.path.isdir(redist1):
+                        msvc_redist_dir = redist1
+                        break
+                    elif os.path.isdir(redist2):
+                        msvc_redist_dir = redist2
+                        break
+                if msvc_redist_dir:
+                    break
+    if not msvc_redist_dir:
+        print("Couldn't locate MSVC redistributable directory")
+        return False
+    redist_dirs = [
+        msvc_redist_dir,
+        path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
+    ]
+    missing = []
+    for msvc_dll in msvc_deps:
+        for dll_dir in redist_dirs:
+            dll = path.join(dll_dir, msvc_dll)
+            servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
+            if os.path.isfile(dll):
+                if os.path.isfile(servo_dir_dll):
+                    # avoid permission denied error when overwrite dll in servo build directory
+                    os.chmod(servo_dir_dll, stat.S_IWUSR)
+                shutil.copy(dll, servo_exe_dir)
+                break
+        else:
+            missing += [msvc_dll]
+
+    for msvc_dll in missing:
+        print("DLL file `{}` not found!".format(msvc_dll))
+    return not missing
