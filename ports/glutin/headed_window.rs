@@ -510,9 +510,8 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self) {
         self.gl_context.borrow_mut().make_current();
-        true
     }
 }
 
