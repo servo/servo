@@ -66,9 +66,27 @@ fn get_ty_name(ty: &str) -> &str {
     }
 }
 
+fn get_manifest_dir() -> io::Result<path::PathBuf> {
+    match env::var("CARGO_MANIFEST_DIR") {
+        Ok(var) => {
+            let mut dir = path::PathBuf::new();
+            dir.push(var);
+            Ok(dir)
+        },
+        Err(env::VarError::NotPresent) => Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "CARGO_MANIFEST_DIR environment variable was not found",
+        )),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "CARGO_MANIFEST_DIR environment variable's contents are non valid UTF-8",
+        )),
+    }
+}
+
 fn get_webidl_path(struct_name: &str) -> io::Result<path::PathBuf> {
-    let mut dir = env::current_dir()?;
-    dir.push("components/script/dom/webidls/");
+    let mut dir = get_manifest_dir()?;
+    dir.push("dom/webidls/");
     dir.push(format!("{}.webidl", struct_name));
 
     Ok(dir)
