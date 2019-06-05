@@ -31,6 +31,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
+use crate::script_module::ModuleObject;
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -107,6 +108,11 @@ pub struct GlobalScope {
 
     /// Timers used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, u64>>,
+
+    /// module map is used when importing JavaScript modules
+    /// https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map
+    #[ignore_malloc_size_of = "mozjs"]
+    module_map: DomRefCell<HashMap<ServoUrl, ModuleObject>>,
 
     /// For providing instructions to an optional devtools server.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -311,6 +317,7 @@ impl GlobalScope {
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
+            module_map: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
@@ -844,6 +851,14 @@ impl GlobalScope {
 
     pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.consumed_rejections
+    }
+
+    pub fn set_module_map(&self, url: ServoUrl, module: ModuleObject) {
+        self.module_map.borrow_mut().insert(url, module);
+    }
+
+    pub fn get_module_map(&self) -> &DomRefCell<HashMap<ServoUrl, ModuleObject>> {
+        &self.module_map
     }
 
     #[allow(unsafe_code)]

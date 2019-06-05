@@ -27,6 +27,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_CORS_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::script_module::{fetch_module_script_graph, ModuleOwner};
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -143,7 +144,7 @@ pub struct ScriptOrigin {
 }
 
 impl ScriptOrigin {
-    fn internal(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn internal(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
@@ -152,13 +153,17 @@ impl ScriptOrigin {
         }
     }
 
-    fn external(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn external(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: true,
             type_,
         }
+    }
+
+    pub fn text(&self) -> DOMString {
+        self.text.clone()
     }
 }
 
@@ -514,6 +519,7 @@ impl HTMLScriptElement {
                 },
             };
 
+            // Step 24.6.
             match script_type {
                 ScriptType::Classic => {
                     // Preparation for step 26.
@@ -555,10 +561,17 @@ impl HTMLScriptElement {
                     }
                 },
                 ScriptType::Module => {
-                    warn!(
-                        "{} is a module script. It should be fixed after #23545 landed.",
-                        url.clone()
+                    fetch_module_script_graph(
+                        ModuleOwner::Window(Trusted::new(self)),
+                        url,
+                        Destination::Script,
                     );
+
+                    if r#async {
+                        // doc.add_asap_script(self);
+                    } else {
+                        // doc.add_deferred_script(self);
+                    };
                 },
             }
         } else {
