@@ -13,7 +13,7 @@ use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::{DeviceIntRect, FramebufferIntSize};
+use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
 use servo_media::player::context as MediaPlayerCtxt;
 use std::cell::Cell;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -178,7 +178,7 @@ impl WindowMethods for Window {
         let size =
             (TypedSize2D::new(self.context.width, self.context.height).to_f32() * dpr).to_i32();
         let viewport = DeviceIntRect::new(TypedPoint2D::zero(), size);
-        let framebuffer = FramebufferIntSize::from_untyped(&size.to_untyped());
+        let framebuffer = DeviceIntSize::from_untyped(&size.to_untyped());
         EmbedderCoordinates {
             viewport,
             framebuffer,
