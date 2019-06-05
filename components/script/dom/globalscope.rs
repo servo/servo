@@ -24,6 +24,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
+use crate::dom::htmlscriptelement::ScriptId;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -32,6 +33,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::script_module::ModuleTree;
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
@@ -118,6 +120,14 @@ pub struct GlobalScope {
 
     /// Timers used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, u64>>,
+
+    /// module map is used when importing JavaScript modules
+    /// https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map
+    #[ignore_malloc_size_of = "mozjs"]
+    module_map: DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>>,
+
+    #[ignore_malloc_size_of = "mozjs"]
+    inline_module_map: DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>>,
 
     /// For providing instructions to an optional devtools server.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -391,6 +401,8 @@ impl GlobalScope {
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
+            module_map: DomRefCell::new(Default::default()),
+            inline_module_map: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
@@ -1355,6 +1367,24 @@ impl GlobalScope {
 
     pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.consumed_rejections
+    }
+
+    pub fn set_module_map(&self, url: ServoUrl, module: ModuleTree) {
+        self.module_map.borrow_mut().insert(url, Rc::new(module));
+    }
+
+    pub fn get_module_map(&self) -> &DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>> {
+        &self.module_map
+    }
+
+    pub fn set_inline_module_map(&self, script_id: ScriptId, module: ModuleTree) {
+        self.inline_module_map
+            .borrow_mut()
+            .insert(script_id, Rc::new(module));
+    }
+
+    pub fn get_inline_module_map(&self) -> &DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>> {
+        &self.inline_module_map
     }
 
     #[allow(unsafe_code)]

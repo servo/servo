@@ -83,6 +83,8 @@ mod microtask;
 #[warn(deprecated)]
 mod network_listener;
 #[warn(deprecated)]
+mod script_module;
+#[warn(deprecated)]
 pub mod script_runtime;
 #[warn(deprecated)]
 #[allow(unsafe_code)]
