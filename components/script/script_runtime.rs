@@ -22,6 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask};
+use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -372,6 +373,8 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
 
     SetEnqueuePromiseJobCallback(cx, Some(enqueue_job), ptr::null_mut());
     SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
+
+    EnsureModuleHooksInitialized(runtime.rt());
 
     set_gc_zeal_options(cx);
 

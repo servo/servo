@@ -64,6 +64,7 @@ mod layout_image;
 mod mem;
 mod microtask;
 mod network_listener;
+mod script_module;
 pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
