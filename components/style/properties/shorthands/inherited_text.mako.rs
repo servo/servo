@@ -48,7 +48,6 @@
 <%helpers:shorthand name="-webkit-text-stroke"
                     sub_properties="-webkit-text-stroke-width
                                     -webkit-text-stroke-color"
-                    gecko_pref="layout.css.prefixes.webkit"
                     products="gecko"
                     derive_serialize="True"
                     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke">
