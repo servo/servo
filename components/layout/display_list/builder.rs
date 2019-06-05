@@ -13,7 +13,7 @@ use crate::context::LayoutContext;
 use crate::display_list::background::{self, get_cyclic};
 use crate::display_list::border;
 use crate::display_list::gradient;
-use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, BLUR_INFLATION_FACTOR};
+use crate::display_list::items::{self, BaseDisplayItem, ClipScrollNode, BLUR_INFLATION_FACTOR};
 use crate::display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use crate::display_list::items::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use crate::display_list::items::{CommonDisplayItem, DisplayListSection};
@@ -43,7 +43,7 @@ use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use script_traits::IFrameSize;
 use servo_config::opts;
-use servo_geometry::MaxRect;
+use servo_geometry::{self, MaxRect};
 use std::default::Default;
 use std::f32;
 use std::mem;
@@ -716,6 +716,7 @@ impl Fragment {
                 base,
                 webrender_api::RectangleDisplayItem {
                     color: background_color.to_layout(),
+                    common: items::empty_common_item_properties(),
                 },
             )));
         });
@@ -854,6 +855,8 @@ impl Fragment {
             state.add_image_item(
                 base,
                 webrender_api::ImageDisplayItem {
+                    bounds: placement.bounds.to_f32_px(),
+                    common: items::empty_common_item_properties(),
                     image_key: webrender_image.key.unwrap(),
                     stretch_size: placement.tile_size.to_layout(),
                     tile_spacing: placement.tile_spacing.to_layout(),
@@ -976,6 +979,8 @@ impl Fragment {
                     );
                     let item = webrender_api::GradientDisplayItem {
                         gradient,
+                        bounds: placement.bounds.to_f32_px(),
+                        common: items::empty_common_item_properties(),
                         tile_size: placement.tile_size.to_layout(),
                         tile_spacing: placement.tile_spacing.to_layout(),
                     };
@@ -992,6 +997,8 @@ impl Fragment {
                     );
                     let item = webrender_api::RadialGradientDisplayItem {
                         gradient,
+                        bounds: placement.bounds.to_f32_px(),
+                        common: items::empty_common_item_properties(),
                         tile_size: placement.tile_size.to_layout(),
                         tile_spacing: placement.tile_spacing.to_layout(),
                     };
@@ -1034,6 +1041,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::BoxShadow(CommonDisplayItem::new(
                 base,
                 webrender_api::BoxShadowDisplayItem {
+                    common: items::empty_common_item_properties(),
                     box_bounds: absolute_bounds.to_layout(),
                     color: style.resolve_color(box_shadow.base.color).to_layout(),
                     offset: LayoutVector2D::new(
@@ -1157,9 +1165,12 @@ impl Fragment {
             radius: border_radius,
             do_aa: true,
         });
+        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds,
+                common: items::empty_common_item_properties(),
                 widths: border_widths.to_layout(),
                 details,
             },
@@ -1261,9 +1272,12 @@ impl Fragment {
                 border_image_outset.left.to_f32_px(),
             ),
         });
+        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds,
+                common: items::empty_common_item_properties(),
                 widths: border_image_width,
                 details,
             },
@@ -1313,9 +1327,12 @@ impl Fragment {
             get_cursor(&style, Cursor::Default),
             DisplayListSection::Outlines,
         );
+        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds,
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(width).to_layout(),
                 details: BorderDetails::Normal(border::simple(color, outline_style.to_layout())),
             },
@@ -1344,9 +1361,12 @@ impl Fragment {
             get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
+        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds,
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
                     ColorU::new(0, 0, 200, 1).into(),
@@ -1375,9 +1395,12 @@ impl Fragment {
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
         let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
+        let area = base.bounds;
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
+                common: items::empty_common_item_properties(),
+                area,
                 orientation: webrender_api::LineOrientation::Horizontal,
                 wavy_line_thickness,
                 color: ColorU::new(0, 200, 0, 1).into(),
@@ -1401,9 +1424,12 @@ impl Fragment {
             get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
+        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds,
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
                     ColorU::new(0, 0, 200, 1).into(),
@@ -1446,6 +1472,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
                 webrender_api::RectangleDisplayItem {
+                    common: items::empty_common_item_properties(),
                     color: background_color.to_layout(),
                 },
             )));
@@ -1492,6 +1519,7 @@ impl Fragment {
         state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
             base,
             webrender_api::RectangleDisplayItem {
+                common: items::empty_common_item_properties(),
                 color: self.style().get_inherited_text().color.to_layout(),
             },
         )));
@@ -1676,6 +1704,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
                 webrender_api::RectangleDisplayItem {
+                    common: items::empty_common_item_properties(),
                     color: ColorF::TRANSPARENT,
                 },
             )));
@@ -1824,9 +1853,12 @@ impl Fragment {
                 if let Some(ref image) = image_fragment.image {
                     if let Some(id) = image.id {
                         let base = create_base_display_item(state);
+                        let bounds = base.bounds;
                         state.add_image_item(
                             base,
                             webrender_api::ImageDisplayItem {
+                                bounds,
+                                common: items::empty_common_item_properties(),
                                 image_key: id,
                                 stretch_size: stacking_relative_content_box.size.to_layout(),
                                 tile_spacing: LayoutSize::zero(),
@@ -1845,9 +1877,12 @@ impl Fragment {
             SpecificFragmentInfo::Media(ref fragment_info) => {
                 if let Some((ref image_key, _, _)) = fragment_info.current_frame {
                     let base = create_base_display_item(state);
+                    let bounds = base.bounds;
                     state.add_image_item(
                         base,
                         webrender_api::ImageDisplayItem {
+                            bounds,
+                            common: items::empty_common_item_properties(),
                             image_key: *image_key,
                             stretch_size: stacking_relative_border_box.size.to_layout(),
                             tile_spacing: LayoutSize::zero(),
@@ -1879,6 +1914,8 @@ impl Fragment {
 
                 let base = create_base_display_item(state);
                 let display_item = webrender_api::ImageDisplayItem {
+                    bounds: base.bounds,
+                    common: items::empty_common_item_properties(),
                     image_key,
                     stretch_size: stacking_relative_content_box.size.to_layout(),
                     tile_spacing: LayoutSize::zero(),
@@ -2015,7 +2052,6 @@ impl Fragment {
                         offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
                         color: self.style.resolve_color(shadow.color).to_layout(),
                         blur_radius: shadow.blur.px(),
-                        should_inflate: true,
                     },
                 },
             )));
@@ -2075,6 +2111,8 @@ impl Fragment {
             state.add_display_item(DisplayItem::Text(CommonDisplayItem::with_data(
                 base.clone(),
                 webrender_api::TextDisplayItem {
+                    bounds: base.bounds,
+                    common: items::empty_common_item_properties(),
                     font_key: text_fragment.run.font_key,
                     color: text_color.to_layout(),
                     glyph_options: None,
@@ -2130,9 +2168,12 @@ impl Fragment {
 
         // TODO(gw): Use a better estimate for wavy line thickness.
         let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
+        let area = base.bounds;
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
+                common: items::empty_common_item_properties(),
+                area,
                 orientation: webrender_api::LineOrientation::Horizontal,
                 wavy_line_thickness,
                 color: color.to_layout(),
@@ -2843,9 +2884,12 @@ impl BaseFlow {
             None,
             DisplayListSection::Content,
         );
+        let bounds = base.bounds;
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds,
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(2)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
                     color,
@@ -3009,5 +3053,17 @@ impl IndexableText {
                 .text_run
                 .range_index_of_advance(&item[0].range, offset.x),
         )
+    }
+}
+
+trait ToF32Px {
+    type Output;
+    fn to_f32_px(&self) -> Self::Output;
+}
+
+impl ToF32Px for TypedRect<Au> {
+    type Output = LayoutRect;
+    fn to_f32_px(&self) -> LayoutRect {
+        LayoutRect::from_untyped(&servo_geometry::au_rect_to_f32_rect(*self))
     }
 }

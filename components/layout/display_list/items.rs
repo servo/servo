@@ -24,10 +24,11 @@ use std::f32;
 use std::fmt;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
-use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
-use webrender_api::{BorderRadius, ClipMode, ComplexClipRegion, ExternalScrollId, FilterOp};
-use webrender_api::{GlyphInstance, GradientStop, ImageKey, MixBlendMode, ScrollSensitivity};
-use webrender_api::{Shadow, StickyOffsetBounds, TransformStyle};
+use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform};
+use webrender_api::{BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion};
+use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, GradientStop, ImageKey};
+use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow, SpatialId};
+use webrender_api::{StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
 
@@ -463,6 +464,16 @@ impl BaseDisplayItem {
                 ClipScrollNodeIndex::root_scroll_node(),
             ),
         }
+    }
+}
+
+pub fn empty_common_item_properties() -> CommonItemProperties {
+    CommonItemProperties {
+        clip_rect: LayoutRect::max_rect(),
+        clip_id: ClipId::root(wr::PipelineId::dummy()),
+        spatial_id: SpatialId::root_scroll_node(wr::PipelineId::dummy()),
+        hit_info: None,
+        is_backface_visible: false,
     }
 }
 
