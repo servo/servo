@@ -33,6 +33,7 @@ dictionary VideoConfiguration {
   required unsigned long height;
   required unsigned long long bitrate;
   required DOMString framerate;
+  boolean hasAlphaChannel;
 };
 
 dictionary AudioConfiguration {

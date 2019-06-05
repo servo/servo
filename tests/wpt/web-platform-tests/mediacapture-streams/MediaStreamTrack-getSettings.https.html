@@ -97,13 +97,6 @@
 
   promise_test(async t => {
     const settings = await createAudioStreamAndGetSettings(t);
-    assert_equals(typeof(settings.volume), "number",
-                  "volume should exist and it should be a number.");
-    assert_between_inclusive(settings.volume, 0.0, 1.0);
-  }, 'volume is reported by getSettings() for getUserMedia() audio tracks');
-
-  promise_test(async t => {
-    const settings = await createAudioStreamAndGetSettings(t);
     assert_equals(typeof(settings.sampleRate), "number",
                   "sampleRate should exist and it should be a number.");
     assert_greater_than(settings.sampleRate, 0);

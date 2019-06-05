@@ -5,7 +5,7 @@
     portal.src = "portal-post-message-before-activate-portal.html";
     document.body.appendChild(portal);
 
-    portal.onmessage = () => {
+    portal.onload = () => {
       portal.postMessage("message");
       portal.activate();
     }

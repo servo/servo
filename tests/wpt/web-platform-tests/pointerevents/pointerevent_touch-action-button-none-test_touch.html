@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Button touch-action test</title>
+        <meta name="assert" content="TA15.11 -The touch-action CSS property applies to button elements.">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            #target0 {
+            height: 150px;
+            width: 200px;
+            overflow-y: auto;
+            background: black;
+            padding: 100px;
+            position: relative;
+            }
+            button {
+            touch-action: none;
+            width: 350px;
+            height: 350px;
+            border: 2px solid red;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h2>Pointer Events touch-action attribute support</h2>
+        <h4 id="desc">Test Description: Try to scroll element DOWN then RIGHT inside of the "Test Button" element. Tap Complete button under the rectangle when done.</h4>
+        <p>Note: this test is for touch only</p>
+        <div id="target0">
+            <button id="testButton">Test Button</button>
+        </div>
+        <br>
+        <input type="button" id="btnComplete" value="Complete test">
+
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var btnComplete = document.getElementById("btnComplete");
+                var actions_promise;
+
+                //TA 15.11
+                var test_touchaction = async_test("touch-action attribute test in element");
+
+                on_event(btnComplete, 'click', function(event) {
+                    test_touchaction.step(function() {
+                        assert_equals(target0.scrollLeft, 0, "button scroll x offset should be 0 in the end of the test");
+                        assert_equals(target0.scrollTop, 0, "button scroll y offset should be 0 in the end of the test");
+                    });
+
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_touchaction.done();
+                    });
+                    updateDescriptionComplete();
+                });
+
+                on_event(btnComplete, 'pointerdown', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                });
+
+                on_event(target0, 'scroll', function(event) {
+                    test_touchaction.step(failOnScroll, "scroll received while touch-action is none");
+                });
+
+                // Inject touch inputs.
+                actions_promise = touchScrollInTarget(testButton, 'down').then(function() {
+                    return touchScrollInTarget(testButton, 'right');
+                }).then(function() {
+                    return clickInTarget("touch", btnComplete);
+                });
+            }
+        </script>
+        <h1>touch-action: none</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

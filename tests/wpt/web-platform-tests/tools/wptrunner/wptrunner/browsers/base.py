@@ -36,24 +36,16 @@ def cmd_arg(name, value=None):
     return rv
 
 
-def get_free_port(start_port, exclude=None):
-    """Get the first port number after start_port (inclusive) that is
-    not currently bound.
-
-    :param start_port: Integer port number at which to start testing.
-    :param exclude: Set of port numbers to skip"""
-    port = start_port
+def get_free_port():
+    """Get a random unbound port"""
     while True:
-        if exclude and port in exclude:
-            port += 1
-            continue
         s = socket.socket()
         try:
-            s.bind(("127.0.0.1", port))
+            s.bind(("127.0.0.1", 0))
         except socket.error:
-            port += 1
+            continue
         else:
-            return port
+            return s.getsockname()[1]
         finally:
             s.close()
 

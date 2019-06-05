@@ -11,6 +11,7 @@
                                  defined on a polygonal shape-outside."/>
     <!-- This test is derived from Example 10 in this version of the spec:
          http://www.w3.org/TR/2014/WD-css-shapes-1-20140211/ -->
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     <style type="text/css">
         #test {
             position: relative;
@@ -38,12 +39,14 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="support/spec-example-utils.js"></script>
     <script>
-    function checkFloats() {
+    setup({explicit_done: true});
+    document.fonts.ready.then(()=> {
       approxShapeTest('test', 'line-', 2, [48, 88, 128, 168, 180, 0]);
-    }
+      done();
+    });
     </script>
 </head>
-<body onload="checkFloats();">
+<body>
     <p>
         The test passes if the longest green horizontal bar is beneath the triangle and the
         rest of them are to its right and none intersect it. There should be no red.

@@ -8,6 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/testing-utils.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
   .inline-grid {
     display: inline-grid;
@@ -26,6 +27,8 @@
 </div>
 
 <script>
+setup({explicit_done: true});
+document.fonts.ready.then(()=> {
   // Valid values.
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[first] auto [last]", "[first] auto [last]", "[first] 0px [last]", "[first] 0px [last]");
   TestingUtils.testGridTemplateColumnsRows("grid", "[first] auto [last]", "[first] auto [last]", "[first] 90px [last]", "[first] 10px [last]");
@@ -115,4 +118,6 @@
   TestingUtils.testGridTemplateColumnsRows("grid", "[inherit] auto", "[inherit] auto", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[default] auto", "[default] auto", "none", "none");
   TestingUtils.testGridTemplateColumnsRows("grid", "[default] auto", "[default] auto", "90px", "10px");
+  done();
+});
 </script>

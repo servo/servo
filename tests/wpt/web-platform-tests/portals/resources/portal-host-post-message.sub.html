@@ -25,7 +25,6 @@
     }
   }
 
-  window.portalHost.postMessage("loaded", "*");
   window.portalHost.addEventListener("message", e => {
     if (e.data.type) {
       var type = e.data.type;

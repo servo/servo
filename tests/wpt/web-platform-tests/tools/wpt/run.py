@@ -576,7 +576,8 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
             kwargs["browser_channel"] = channel
         else:
             logger.info("Valid channels for %s not known; using argument unmodified" % kwargs["product"])
-    del kwargs["channel"]
+            kwargs["browser_channel"] = kwargs["channel"]
+        del kwargs["channel"]
 
     if install_browser:
         logger.info("Installing browser")

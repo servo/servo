@@ -3,6 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Selection API (https://w3c.github.io/selection-api/)
 
+[Exposed=Window]
 interface Selection {
   readonly attribute Node? anchorNode;
   readonly attribute unsigned long anchorOffset;

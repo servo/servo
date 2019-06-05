@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>math-script-level</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
+    <meta name="assert" content="Verify effect of math-script-level auto | add(<integer>) | <integer>, starting from different values of math-script-level.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      .container {
+          /* Ahem font does not have a MATH table so the font-size scale factor
+             is always 0.71^{computed - inherited math script level} */
+          font: 20px/1 Ahem;
+      }
+    </style>
+    <script>
+      function fontSize(id) {
+          return parseFloat((/(.+)px/).exec(getComputedStyle(document.getElementById(id)).getPropertyValue("font-size"))[1]);
+      }
+      setup({ explicit_done: true });
+      window.addEventListener("load", function() {
+          test(function() {
+              assert_equals(fontSize("autoDisplay"), 200);
+              assert_equals(fontSize("autoInline"), 355);
+          }, "auto");
+          test(function() {
+              assert_equals(fontSize("autoDisplayFrom7"), 200);
+              assert_equals(fontSize("autoInlineFrom7"), 355);
+          }, "auto ; starting from level 7");
+          test(function() {
+              assert_equals(fontSize("add0"), 200);
+              assert_equals(fontSize("add-1"), 100);
+              assert_equals(fontSize("add1"), 355);
+              assert_approx_equals(fontSize("add-2"), 397, 1);
+              assert_approx_equals(fontSize("add2"), 504, 1);
+              assert_approx_equals(fontSize("add-9"), 654, 1);
+              assert_approx_equals(fontSize("add9"), 92, 1);
+          }, "add(<integer>)");
+          test(function() {
+              assert_equals(fontSize("add0from3"), 200);
+              assert_equals(fontSize("add-1from3"), 100);
+              assert_equals(fontSize("add1from3"), 355);
+              assert_approx_equals(fontSize("add-2from3"), 397, 1);
+              assert_approx_equals(fontSize("add2from3"), 504, 1);
+              assert_approx_equals(fontSize("add-9from3"), 654, 1);
+              assert_approx_equals(fontSize("add9from3"), 92, 1);
+          }, "add(<integer>) ; starting from level 3");
+          test(function() {
+              assert_equals(fontSize("set0"), 200);
+              assert_equals(fontSize("set-1"), 100);
+              assert_equals(fontSize("set1"), 355);
+              assert_approx_equals(fontSize("set-2"), 397, 1);
+              assert_approx_equals(fontSize("set2"), 504, 1);
+              assert_approx_equals(fontSize("set-9"), 654, 1);
+              assert_approx_equals(fontSize("set9"), 92, 1);
+          }, "<integer>");
+          test(function() {
+              assert_equals(fontSize("set50"), 200);
+              assert_equals(fontSize("set49"), 100);
+              assert_equals(fontSize("set51"), 355);
+              assert_approx_equals(fontSize("set48"), 397, 1);
+              assert_approx_equals(fontSize("set52"), 504, 1);
+              assert_approx_equals(fontSize("set41"), 654, 1);
+              assert_approx_equals(fontSize("set59"), 92, 1);
+          }, "<integer> ; starting from level 50");
+          done();
+      });
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div>
+      <div class="container">
+        <div>
+          <div style="font-size: 200px; math-style: display">
+            <div id="autoDisplay" style="math-script-level: auto"></div>
+          </div>
+          <div style="font-size: 500px; math-style: inline">
+            <div id="autoInline" style="math-script-level: auto"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 200px; math-style: display; math-script-level: 7">
+            <div id="autoDisplayFrom7" style="math-script-level: auto"></div>
+          </div>
+          <div style="font-size: 500px; math-style: inline; math-script-level: 7">
+            <div id="autoInlineFrom7" style="math-script-level: auto"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 200px">
+            <div id="add0" style="math-script-level: add(0)"></div>
+          </div>
+          <div style="font-size: 71px">
+            <div id="add-1" style="math-script-level: add(-1)"></div>
+          </div>
+          <div style="font-size: 500px">
+            <div id="add1" style="math-script-level: add(1)"></div>
+          </div>
+          <div style="font-size: 200px">
+            <div id="add-2" style="math-script-level: add(-2)"></div>
+          </div>
+          <div style="font-size: 1000px">
+            <div id="add2" style="math-script-level: add(2)"></div>
+          </div>
+          <div style="font-size: 30px">
+            <div id="add-9" style="math-script-level: add(-9)"></div>
+          </div>
+          <div style="font-size: 2000px">
+            <div id="add9" style="math-script-level: add(9)"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 200px; math-script-level: 3;">
+            <div id="add0from3" style="math-script-level: add(0)"></div>
+          </div>
+          <div style="font-size: 71px; math-script-level: 3;">
+            <div id="add-1from3" style="math-script-level: add(-1)"></div>
+          </div>
+          <div style="font-size: 500px; math-script-level: 3;">
+            <div id="add1from3" style="math-script-level: add(1)"></div>
+          </div>
+          <div style="font-size: 200px; math-script-level: 3;">
+            <div id="add-2from3" style="math-script-level: add(-2)"></div>
+          </div>
+          <div style="font-size: 1000px; math-script-level: 3;">
+            <div id="add2from3" style="math-script-level: add(2)"></div>
+          </div>
+          <div style="font-size: 30px; math-script-level: 3;">
+            <div id="add-9from3" style="math-script-level: add(-9)"></div>
+          </div>
+          <div style="font-size: 2000px; math-script-level: 3;">
+            <div id="add9from3" style="math-script-level: add(9)"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 200px">
+            <div id="set0" style="math-script-level: 0"></div>
+          </div>
+          <div style="font-size: 71px">
+            <div id="set-1" style="math-script-level: -1"></div>
+          </div>
+          <div style="font-size: 500px">
+            <div id="set1" style="math-script-level: 1"></div>
+          </div>
+          <div style="font-size: 200px">
+            <div id="set-2" style="math-script-level: -2"></div>
+          </div>
+          <div style="font-size: 1000px">
+            <div id="set2" style="math-script-level: 2"></div>
+          </div>
+          <div style="font-size: 30px">
+            <div id="set-9" style="math-script-level: -9"></div>
+          </div>
+          <div style="font-size: 2000px">
+            <div id="set9" style="math-script-level: 9"></div>
+          </div>
+        </div>
+      </div>
+        <div>
+          <div style="font-size: 200px; math-script-level: 50">
+            <div id="set50" style="math-script-level: 50"></div>
+          </div>
+          <div style="font-size: 71px; math-script-level: 50">
+            <div id="set49" style="math-script-level: 49"></div>
+          </div>
+          <div style="font-size: 500px; math-script-level: 50">
+            <div id="set51" style="math-script-level: 51"></div>
+          </div>
+          <div style="font-size: 200px; math-script-level: 50">
+            <div id="set48" style="math-script-level: 48"></div>
+          </div>
+          <div style="font-size: 1000px; math-script-level: 50">
+            <div id="set52" style="math-script-level: 52"></div>
+          </div>
+          <div style="font-size: 30px; math-script-level: 50">
+            <div id="set41" style="math-script-level: 41"></div>
+          </div>
+          <div style="font-size: 2000px; math-script-level: 50">
+            <div id="set59" style="math-script-level: 59"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

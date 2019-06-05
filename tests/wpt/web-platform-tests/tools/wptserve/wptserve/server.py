@@ -29,7 +29,8 @@ from .router import Router
 from .utils import HTTPException
 from .constants import h2_headers
 
-"""HTTP server designed for testing purposes.
+"""
+HTTP server designed for testing purposes.
 
 The server is designed to provide flexibility in the way that
 requests are handled, and to provide control both of exactly
@@ -61,6 +62,12 @@ The handler functions are responsible for either populating the
 fields of the response object, which will then be written when the
 handler returns, or for directly writing to the output stream.
 """
+
+
+EDIT_HOSTS_HELP = ("Please ensure all the necessary WPT subdomains "
+                  "are mapped to a loopback device in /etc/hosts. "
+                  "See https://github.com/web-platform-tests/wpt#running-the-tests "
+                  "for instructions.")
 
 
 class RequestRewriter(object):
@@ -669,8 +676,7 @@ class WebTestHttpd(object):
 
             _host, self.port = self.httpd.socket.getsockname()
         except Exception:
-            self.logger.error("Failed to start HTTP server. "
-                              "You may need to edit /etc/hosts or similar, see README.md.")
+            self.logger.error("Failed to start HTTP server. {}".format(EDIT_HOSTS_HELP))
             raise
 
     def start(self, block=False):

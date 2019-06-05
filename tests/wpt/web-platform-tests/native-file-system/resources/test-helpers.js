@@ -1,3 +1,18 @@
+// A special path component meaning "this directory."
+const kCurrentDirectory = ".";
+
+// A special path component meaning "the parent directory."
+const kParentDirectory = "..";
+
+// Array of separators used to separate components in hierarchical paths.
+let kPathSeparators;
+if (navigator.userAgent.includes("Windows NT")) {
+    // Windows uses both '/' and '\' as path separators.
+    kPathSeparators = ['/', '\\' ];
+} else {
+    kPathSeparators = [ '/' ];
+}
+
 async function cleanupSandboxedFileSystem() {
     const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     for await (let entry of dir.getEntries()) {
@@ -36,6 +51,22 @@ async function getSortedDirectoryEntries(handle) {
     }
     result.sort();
     return result;
+}
+
+async function createDirectory(test, name, parent) {
+  const parent_dir_handle = parent ? parent :
+      await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+  const new_dir_handle = await parent_dir_handle.getDirectory(name, { create: true });
+  test.add_cleanup(async () => {
+        try {
+            await new_dir_handle.removeRecursively();
+        } catch (e) {
+            // Ignore any errors when removing directories, as tests might
+            // have already removed the directory.
+        }
+  });
+  return new_dir_handle;
 }
 
 async function createEmptyFile(test, name, parent) {

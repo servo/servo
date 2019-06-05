@@ -23,6 +23,13 @@ that its bottom is flush with the baseline.
 Most other US-ASCII characters in the font have the same glyph as X.
 
 ## Usage
+Ahem should be loaded in tests as a web font. To simplify this, a test can
+link to the `/fonts/ahem.css` stylesheet:
+
+```
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+```
+
 If the test uses the Ahem font, make sure its computed font-size is a
 multiple of 5px, otherwise baseline alignment may be rendered
 inconsistently. A minimum computed font-size of 20px is suggested.

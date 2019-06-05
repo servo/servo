@@ -3,40 +3,39 @@
 <!-- Submitted from TestTWF Paris -->
 <head>
 
-	<title>CSS Values and Units Test: elements should be the real world size given in mm, cm, inches...</title>
-	<meta name="assert" content="elements are not displayed with the real world size units they should be, when specified in millimeters, centimeters, inches, ...">
-	<link rel="author" title="Marc Bourlon" href="mailto:marc@bourlon.com">
-	<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths" title="5.1.2. Viewport-percentage lengths: the 'vw', 'vh', 'vmin', 'vmax' units">
+  <meta charset="UTF-8">
 
-	<style type="text/css">
+  <title>CSS Values and Units Test: elements should be the real world size given in mm, cm, inches...</title>
+  <link rel="author" title="Marc Bourlon" href="mailto:marc@bourlon.com">
+  <link rel="help" href="https://www.w3.org/TR/css3-values/#absolute-lengths" title="5.2 Absolute lengths: the cm, mm, Q, in, pt, pc, px units">
 
-		* { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; }
+  <style type="text/css">
 
-		.s1mm { background: #F00; width: 1mm; height: 1mm; }
-		.s10mm { background: #66F; width: 10mm; height: 10mm; }
-		.s1cm { background: #E90; width: 1cm; height: 1cm; }
-		.s254cm { background: #D0D; width: 2.54cm; height: 2.54cm; }
-		.s1in { background: #00F; width: 1in; height: 1in; }
+    .s1mm { background-color: fuchsia; width: 1mm; height: 1mm; }
+    .s10mm { background-color: olive; width: 10mm; height: 10mm; }
+    .s1cm { background-color: orange; width: 1cm; height: 1cm; }
+    .s254cm { background-color: gray; width: 2.54cm; height: 2.54cm; }
+    .s1in { background-color: blue; width: 1in; height: 1in; }
 
-		.inline { float: left; }
+    .inline { float: left; }
 
-		.newline { clear: left; }
+    .newline { clear: left; }
 
-		p { clear: both; margin: 10px 0; }
+    p { clear: both; margin: 10px 0; }
 
-	</style>
+  </style>
 
 </head>
 <body>
 
 <p>
-	This should be 1mm (width) by 1mm (height) size
+  There should be a 1mm (width) by 1mm (height) fuchsia square:
 </p>
 
 <div class="s1mm"></div>
 
 <p>
-	This is 10 1mm x 1mm divs, so it should be 10mm (width) by 1mm (height) size
+  There should be a 10mm (width) by 1mm (height) fuchsia stripe:
 </p>
 
 <div class="s1mm newline inline"></div>
@@ -51,25 +50,25 @@
 <div class="s1mm inline"></div>
 
 <p>
-	This should be 10mm (width) by 10mm (height) size.
+  There should be a 10mm (width) by 10mm (height) olive square:
 </p>
 
 <div class="s10mm newline "></div>
 
 <p>
-	This should be 1cm (width) by 1cm (height) size. So, same width as the line above.
+  There should be a 1cm (width) by 1cm (height) orange square. So, same width above:
 </p>
 
 <div class="s1cm newline "></div>
 
 <p>
-	This should be 2.54cm (width) by 2.54cm (height) size.
+  There should be a 2.54cm (width) by 2.54cm (height) gray square:
 </p>
 
 <div class="s254cm newline "></div>
 
 <p>
-	This should be 1in (width) by 1in (height) size. So, same size as above.
+  There should be a 1in (width) by 1in (height) blue square. So, same width as above:
 </p>
 
 <div class="s1in"></div>

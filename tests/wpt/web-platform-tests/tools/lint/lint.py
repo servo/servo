@@ -28,23 +28,40 @@ from six.moves.urllib.parse import urlsplit, urljoin
 MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
+    from typing import Any
+    from typing import Dict
+    from typing import IO
+    from typing import Iterable
+    from typing import List
+    from typing import Optional
+    from typing import Sequence
+    from typing import Set
+    from typing import Text
+    from typing import Tuple
     from typing import Type
+    from typing import Union
 
-logger = None
+    Whitelist = Dict[Text, Dict[Text, Set[Optional[int]]]]
+
+
+logger = None  # type: Optional[logging.Logger]
 
 def setup_logging(prefix=False):
+    # type: (bool) -> None
     global logger
     if logger is None:
         logger = logging.getLogger(os.path.basename(os.path.splitext(__file__)[0]))
-        handler = logging.StreamHandler(sys.stdout)
+        handler = logging.StreamHandler(sys.stdout)  # type: logging.Handler
         # Only add a handler if the parent logger is missing a handler
-        if logger.parent and len(logger.parent.handlers) == 0:
+        parent = logger.parent
+        assert isinstance(parent, logging.Logger)
+        if parent and len(parent.handlers) == 0:
             handler = logging.StreamHandler(sys.stdout)
             logger.addHandler(handler)
     if prefix:
         format = logging.BASIC_FORMAT
     else:
-        format = "%(message)s"
+        format = str("%(message)s")
     formatter = logging.Formatter(format)
     for handler in logger.handlers:
         handler.setFormatter(formatter)
@@ -68,7 +85,8 @@ you could add the following line to the lint.whitelist file.
 %s: %s"""
 
 def all_filesystem_paths(repo_root, subdir=None):
-    path_filter = PathFilter(repo_root, extras=[".git/"])
+    # type: (str, Optional[str]) -> Iterable[str]
+    path_filter = PathFilter(repo_root, extras=[str(".git/")])
     if subdir:
         expanded_path = subdir
     else:
@@ -83,6 +101,7 @@ def all_filesystem_paths(repo_root, subdir=None):
 
 
 def _all_files_equal(paths):
+    # type: (Iterable[str]) -> bool
     """
     Checks all the paths are files that are byte-for-byte identical
 
@@ -121,12 +140,14 @@ def _all_files_equal(paths):
 
 
 def check_path_length(repo_root, path):
+    # type: (str, str) -> List[rules.Error]
     if len(path) + 1 > 150:
         return [rules.PathLength.error(path, (path, len(path) + 1))]
     return []
 
 
 def check_worker_collision(repo_root, path):
+    # type: (str, str) -> List[rules.Error]
     endings = [(".any.html", ".any.js"),
                (".any.worker.html", ".any.js"),
                (".worker.html", ".worker.js")]
@@ -137,6 +158,7 @@ def check_worker_collision(repo_root, path):
 
 
 def check_gitignore_file(repo_root, path):
+    # type: (str, str) -> List[rules.Error]
     if not path.endswith(".gitignore"):
         return []
 
@@ -156,6 +178,7 @@ def check_gitignore_file(repo_root, path):
 
 
 def check_ahem_copy(repo_root, path):
+    # type: (str, str) -> List[rules.Error]
     lpath = path.lower()
     if "ahem" in lpath and lpath.endswith(".ttf"):
         return [rules.AhemCopy.error(path)]
@@ -163,6 +186,7 @@ def check_ahem_copy(repo_root, path):
 
 
 def check_git_ignore(repo_root, paths):
+    # type: (str, List[str]) -> List[rules.Error]
     errors = []
     with tempfile.TemporaryFile('w+') as f:
         f.write('\n'.join(paths))
@@ -189,6 +213,7 @@ w3c_dev_re = re.compile(r"https?\:\/\/dev\.w3c?\.org\/[^/?#]+\/([^/?#]+)")
 
 
 def check_css_globally_unique(repo_root, paths):
+    # type: (str, List[str]) -> List[rules.Error]
     """
     Checks that CSS filenames are sufficiently unique
 
@@ -206,13 +231,16 @@ def check_css_globally_unique(repo_root, paths):
     :returns: a list of errors found in ``paths``
 
     """
-    test_files = defaultdict(set)
-    ref_files = defaultdict(set)
-    support_files = defaultdict(set)
+    test_files = defaultdict(set)  # type: Dict[Union[bytes, Text], Set[str]]
+    ref_files = defaultdict(set)  # type: Dict[Union[bytes, Text], Set[str]]
+    support_files = defaultdict(set)  # type: Dict[Union[bytes, Text], Set[str]]
 
     for path in paths:
         if os.name == "nt":
-            path = path.replace("\\", "/")
+            if isinstance(path, binary_type):
+                path = path.replace(b"\\", b"/")
+            else:
+                path = path.replace(u"\\", u"/")
 
         if not path.startswith("css/"):
             continue
@@ -232,13 +260,17 @@ def check_css_globally_unique(repo_root, paths):
                 any(parts[:len(non_test_path)] == list(non_test_path) for non_test_path in source_file.dir_path_non_test)):
                 continue
 
-            name = path[offset+1:]
-            support_files[name].add(path)
+            support_name = path[offset+1:]
+            support_files[support_name].add(path)
         elif source_file.name_is_reference:
             ref_files[source_file.name].add(path)
         else:
-            name = source_file.name.replace('-manual', '')
-            test_files[name].add(path)
+            test_name = source_file.name  # type: Union[bytes, Text]
+            if isinstance(test_name, bytes):
+                test_name = test_name.replace(b'-manual', b'')
+            else:
+                test_name = test_name.replace(u'-manual', u'')
+            test_files[test_name].add(path)
 
     errors = []
 
@@ -246,7 +278,7 @@ def check_css_globally_unique(repo_root, paths):
         if len(colliding) > 1:
             if not _all_files_equal([os.path.join(repo_root, x) for x in colliding]):
                 # Only compute by_spec if there are prima-facie collisions because of cost
-                by_spec = defaultdict(set)
+                by_spec = defaultdict(set)  # type: Dict[Text, Set[str]]
                 for path in colliding:
                     source_file = SourceFile(repo_root, path, "/")
                     for link in source_file.spec_links:
@@ -259,46 +291,49 @@ def check_css_globally_unique(repo_root, paths):
                             continue
                         by_spec[spec].add(path)
 
-                for spec, paths in iteritems(by_spec):
-                    if not _all_files_equal([os.path.join(repo_root, x) for x in paths]):
-                        for x in paths:
-                            context = (name, spec, ", ".join(sorted(paths)))
+                for spec, spec_paths in iteritems(by_spec):
+                    if not _all_files_equal([os.path.join(repo_root, x) for x in spec_paths]):
+                        for x in spec_paths:
+                            context1 = (name, spec, ", ".join(sorted(spec_paths)))
                             errors.append(rules.CSSCollidingTestName.error(x,
-                                                                           context))
+                                                                           context1))
 
     for rule_class, d in [(rules.CSSCollidingRefName, ref_files),
                           (rules.CSSCollidingSupportName, support_files)]:
         for name, colliding in iteritems(d):
             if len(colliding) > 1:
                 if not _all_files_equal([os.path.join(repo_root, x) for x in colliding]):
-                    context = (name, ", ".join(sorted(colliding)))
+                    context2 = (name, ", ".join(sorted(colliding)))
 
                     for x in colliding:
-                        errors.append(rule_class.error(x, context))
+                        errors.append(rule_class.error(x, context2))
 
     return errors
 
 
 def parse_whitelist(f):
+    # type: (IO[bytes]) -> Tuple[Whitelist, Set[Text]]
     """
     Parse the whitelist file given by `f`, and return the parsed structure.
     """
 
-    data = defaultdict(lambda:defaultdict(set))
-    ignored_files = set()
+    data = defaultdict(lambda:defaultdict(set))  # type: Whitelist
+    ignored_files = set()  # type: Set[Text]
 
     for line in f:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
         parts = [item.strip() for item in line.split(":")]
-        if len(parts) == 2:
-            parts.append(None)
-        else:
-            parts[-1] = int(parts[-1])
 
-        error_types, file_match, line_number = parts
-        error_types = {item.strip() for item in error_types.split(",")}
+        if len(parts) == 2:
+            error_types_s, file_match = parts
+            line_number = None  # type: Optional[int]
+        else:
+            error_types_s, file_match, line_number_s = parts
+            line_number = int(line_number_s)
+
+        error_types = {item.strip() for item in error_types_s.split(",")}
         file_match = os.path.normcase(file_match)
 
         if "*" in error_types:
@@ -311,6 +346,7 @@ def parse_whitelist(f):
 
 
 def filter_whitelist_errors(data, errors):
+    # type: (Whitelist, Sequence[rules.Error]) -> List[rules.Error]
     """
     Filter out those errors that are whitelisted in `data`.
     """
@@ -349,7 +385,8 @@ regexps = [item() for item in  # type: ignore
             rules.SpecialPowersRegexp]]
 
 def check_regexp_line(repo_root, path, f):
-    errors = []
+    # type: (str, str, IO[bytes]) -> List[rules.Error]
+    errors = []  # type: List[rules.Error]
 
     applicable_regexps = [regexp for regexp in regexps if regexp.applies(path)]
 
@@ -361,9 +398,10 @@ def check_regexp_line(repo_root, path, f):
     return errors
 
 def check_parsed(repo_root, path, f):
+    # type: (str, str, IO[bytes]) -> List[rules.Error]
     source_file = SourceFile(repo_root, path, "/", contents=f.read())
 
-    errors = []
+    errors = []  # type: List[rules.Error]
 
     if path.startswith("css/"):
         if (source_file.type == "support" and
@@ -490,6 +528,7 @@ def check_parsed(repo_root, path, f):
         src = element.attrib["src"]
 
         def incorrect_path(script, src):
+            # type: (Text, Text) -> bool
             return (script == src or
                 ("/%s" % script in src and src != "/resources/%s" % script))
 
@@ -515,16 +554,18 @@ class ASTCheck(with_metaclass(abc.ABCMeta)):
 
     @abc.abstractmethod
     def check(self, root):
+        # type: (ast.AST) -> List[int]
         pass
 
 class OpenModeCheck(ASTCheck):
     rule = rules.OpenNoMode
 
     def check(self, root):
+        # type: (ast.AST) -> List[int]
         errors = []
         for node in ast.walk(root):
             if isinstance(node, ast.Call):
-                if hasattr(node.func, "id") and node.func.id in ("open", "file"):
+                if hasattr(node.func, "id") and node.func.id in ("open", "file"):  # type: ignore
                     if (len(node.args) < 2 and
                         all(item.arg != "mode" for item in node.keywords)):
                         errors.append(node.lineno)
@@ -533,6 +574,7 @@ class OpenModeCheck(ASTCheck):
 ast_checkers = [item() for item in [OpenModeCheck]]
 
 def check_python_ast(repo_root, path, f):
+    # type: (str, str, IO[bytes]) -> List[rules.Error]
     if not path.endswith(".py"):
         return []
 
@@ -553,6 +595,7 @@ broken_python_metadata = re.compile(br"#\s*META:")
 
 
 def check_global_metadata(value):
+    # type: (str) -> Iterable[Tuple[Type[rules.Rule], Tuple[Any, ...]]]
     global_values = {item.strip() for item in value.split(b",") if item.strip()}
 
     included_variants = set.union(get_default_any_variants(),
@@ -566,13 +609,13 @@ def check_global_metadata(value):
 
             elif excluded_value in global_values:
                 yield (rules.BrokenGlobalMetadata,
-                       ("Cannot specify both %s and %s" % (global_value, excluded_value)))
+                       (("Cannot specify both %s and %s" % (global_value, excluded_value)),))
 
             else:
                 excluded_variants = get_any_variants(excluded_value)
                 if not (excluded_variants & included_variants):
                     yield (rules.BrokenGlobalMetadata,
-                           ("Cannot exclude %s if it is not included" % (excluded_value,)))
+                           (("Cannot exclude %s if it is not included" % (excluded_value,)),))
 
         else:
             if not get_any_variants(global_value):
@@ -580,6 +623,7 @@ def check_global_metadata(value):
 
 
 def check_script_metadata(repo_root, path, f):
+    # type: (str, str, IO[bytes]) -> List[rules.Error]
     if path.endswith((".worker.js", ".any.js")):
         meta_re = js_meta_re
         broken_metadata = broken_js_metadata
@@ -629,6 +673,7 @@ def check_script_metadata(repo_root, path, f):
 
 
 def check_path(repo_root, path):
+    # type: (str, str) -> List[rules.Error]
     """
     Runs lints that check the file path.
 
@@ -644,6 +689,7 @@ def check_path(repo_root, path):
 
 
 def check_all_paths(repo_root, paths):
+    # type: (str, List[str]) -> List[rules.Error]
     """
     Runs lints that check all paths globally.
 
@@ -659,6 +705,7 @@ def check_all_paths(repo_root, paths):
 
 
 def check_file_contents(repo_root, path, f):
+    # type: (str, str, IO[bytes]) -> List[rules.Error]
     """
     Runs lints that check the file contents.
 
@@ -676,6 +723,8 @@ def check_file_contents(repo_root, path, f):
 
 
 def output_errors_text(errors):
+    # type: (List[rules.Error]) -> None
+    assert logger is not None
     for error_type, description, path, line_number in errors:
         pos_string = path
         if line_number:
@@ -684,8 +733,10 @@ def output_errors_text(errors):
 
 
 def output_errors_markdown(errors):
+    # type: (List[rules.Error]) -> None
     if not errors:
         return
+    assert logger is not None
     heading = """Got lint errors:
 
 | Error Type | Position | Message |
@@ -700,15 +751,18 @@ def output_errors_markdown(errors):
 
 
 def output_errors_json(errors):
+    # type: (List[rules.Error]) -> None
     for error_type, error, path, line_number in errors:
         print(json.dumps({"path": path, "lineno": line_number,
                           "rule": error_type, "message": error}))
 
 
 def output_error_count(error_count):
+    # type: (Dict[Text, int]) -> None
     if not error_count:
         return
 
+    assert logger is not None
     by_type = " ".join("%s: %d" % item for item in error_count.items())
     count = sum(error_count.values())
     logger.info("")
@@ -719,15 +773,17 @@ def output_error_count(error_count):
 
 
 def changed_files(wpt_root):
+    # type: (str) -> List[Text]
     revish = testfiles.get_revish(revish=None)
-    changed, _ = testfiles.files_changed(revish, set(), include_uncommitted=True, include_new=True)
+    changed, _ = testfiles.files_changed(revish, None, include_uncommitted=True, include_new=True)
     return [os.path.relpath(item, wpt_root) for item in changed]
 
 
 def lint_paths(kwargs, wpt_root):
-    if kwargs.get("paths"):
+    # type: (Dict[str, Any], str) -> List[str]
+    if kwargs.get(str("paths")):
         paths = []
-        for path in kwargs.get("paths"):
+        for path in kwargs.get(str("paths"), []):
             if os.path.isdir(path):
                 path_dir = list(all_filesystem_paths(wpt_root, path))
                 paths.extend(path_dir)
@@ -735,7 +791,7 @@ def lint_paths(kwargs, wpt_root):
                 paths.append(os.path.relpath(os.path.abspath(path), wpt_root))
 
 
-    elif kwargs["all"]:
+    elif kwargs[str("all")]:
         paths = list(all_filesystem_paths(wpt_root))
     else:
         changed_paths = changed_files(wpt_root)
@@ -745,13 +801,14 @@ def lint_paths(kwargs, wpt_root):
             if path == "lint.whitelist" or path.startswith("tools/lint/"):
                 force_all = True
                 break
-        paths = (list(changed_paths) if not force_all
+        paths = (list(changed_paths) if not force_all  # type: ignore
                  else list(all_filesystem_paths(wpt_root)))
 
     return paths
 
 
 def create_parser():
+    # type: () -> argparse.ArgumentParser
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*",
                         help="List of paths to lint")
@@ -767,15 +824,17 @@ def create_parser():
 
 
 def main(**kwargs):
-    if kwargs.get("json") and kwargs.get("markdown"):
+    # type: (**Any) -> int
+    assert logger is not None
+    if kwargs.get(str("json")) and kwargs.get(str("markdown")):
         logger.critical("Cannot specify --json and --markdown")
         sys.exit(2)
 
-    repo_root = kwargs.get('repo_root') or localpaths.repo_root
-    output_format = {(True, False): "json",
-                     (False, True): "markdown",
-                     (False, False): "normal"}[(kwargs.get("json", False),
-                                                kwargs.get("markdown", False))]
+    repo_root = kwargs.get(str('repo_root')) or localpaths.repo_root
+    output_format = {(True, False): str("json"),
+                     (False, True): str("markdown"),
+                     (False, False): str("normal")}[(kwargs.get(str("json"), False),
+                                                     kwargs.get(str("markdown"), False))]
 
     if output_format == "markdown":
         setup_logging(True)
@@ -786,7 +845,8 @@ def main(**kwargs):
 
 
 def lint(repo_root, paths, output_format):
-    error_count = defaultdict(int)
+    # type: (str, List[str], str) -> int
+    error_count = defaultdict(int)  # type: Dict[Text, int]
     last = None
 
     with open(os.path.join(repo_root, "lint.whitelist")) as f:
@@ -797,6 +857,7 @@ def lint(repo_root, paths, output_format):
                      "normal": output_errors_text}[output_format]
 
     def process_errors(errors):
+        # type: (List[rules.Error]) -> Optional[Tuple[Text, Text]]
         """
         Filters and prints the errors, and updates the ``error_count`` object.
 
@@ -840,6 +901,8 @@ def lint(repo_root, paths, output_format):
     if output_format in ("normal", "markdown"):
         output_error_count(error_count)
         if error_count:
+            assert last is not None
+            assert logger is not None
             for line in (ERROR_MSG % (last[0], last[1], last[0], last[1])).split("\n"):
                 logger.info(line)
     return sum(itervalues(error_count))

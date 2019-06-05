@@ -17,7 +17,7 @@
       document.body.append(portal);
 
       var loadPromise = new Promise((resolve, reject) => {
-        portal.onmessage = resolve;
+        portal.onload = resolve;
       });
       await loadPromise;
       return portal;

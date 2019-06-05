@@ -12,14 +12,20 @@
   <script type="text/javascript">
    test(function() {
     assert_equals(document.designMode, "off", "check for designMode value");
+    assert_true(document.queryCommandSupported("delete"));
+    assert_false(document.queryCommandEnabled("delete"));
    }, "initial designMode attribute");
    document.designMode="on";
    test(function() {
     assert_equals(document.designMode, "on", "check for designMode value");
+    assert_true(document.queryCommandSupported("delete"));
+    assert_true(document.queryCommandEnabled("delete"));
    }, "set designMode = \"on\"");
    document.designMode="off";
    test(function() {
     assert_equals(document.designMode,"off", "check for designMode value");
+    assert_true(document.queryCommandSupported("delete"));
+    assert_false(document.queryCommandEnabled("delete"));
    }, "set designMode = \"off\"");
   </script>
  </body>

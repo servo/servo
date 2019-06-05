@@ -6,12 +6,10 @@
   promise_test(async () => {
     var portal = document.createElement("portal");
     portal.src = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/simple-portal.html";
-    var receiveMessage = new Promise((resolve, reject) => {
-      portal.onmessage = e => { resolve(e.data) };
+    return new Promise((resolve, reject) => {
+      portal.onload = resolve;
+      document.body.appendChild(portal);
     });
-    document.body.appendChild(portal);
-    var message = await receiveMessage;
-    assert_equals(message, "loaded");
   });
 </script>
 </body>

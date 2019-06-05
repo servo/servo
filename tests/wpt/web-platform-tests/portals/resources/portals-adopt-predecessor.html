@@ -6,7 +6,7 @@
   var test = searchParams.get("test");
   var portal = document.createElement("portal");
   portal.src = `portals-adopt-predecessor-portal.html?test=${test}`;
-  portal.onmessage = e => {
+  portal.onload = () => {
     portal.activate().then(() => {
       window.portalHost.addEventListener("message", e => {
         window.opener.postMessage({test, message: e.data}, "*");

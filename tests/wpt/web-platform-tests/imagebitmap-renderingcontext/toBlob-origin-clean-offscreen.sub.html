@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>convertToBlob, OffscreenCanvas: origin-clean flag</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#the-imagebitmap-rendering-context">
+<script>
+const crossOriginImageUrl = "http://{{domains[www1]}}:{{ports[http][0]}}/images/red.png";
+
+async_test(t => {
+  var img = new Image();
+  // Use a cross-origin URL.
+  img.src = crossOriginImageUrl;
+
+  img.onload = t.step_func(e => {
+    createImageBitmap(img, 0, 0, img.width, img.height)
+    .then(t.step_func(bitmap => {
+      var canvasBitmap = new OffscreenCanvas(img.width,img.height);
+      var contextBitmap = canvasBitmap.getContext("bitmaprenderer");
+      contextBitmap.transferFromImageBitmap(bitmap);
+      promise_rejects(t,
+        new DOMException(
+                'convertToBlob on a tainted OffscreenCanvas has to throw',
+                'SecurityError'),
+        canvasBitmap.convertToBlob(),
+        "convertToBlob on a tainted OffscreenCanvas has to throw").then(t.step_func_done());
+    }));
+  });
+}, "Test that call convertToBlob on a tainted OffscreenCanvas throws exception");
+</script>
