@@ -2395,6 +2395,7 @@ name = "layout_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "metrics 0.0.1",
@@ -2402,6 +2403,7 @@ dependencies = [
  "net_traits 0.0.1",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
+ "servo_geometry 0.0.1",
  "servo_url 0.0.1",
  "webrender_api 0.60.0 (git+https://github.com/servo/webrender)",
 ]

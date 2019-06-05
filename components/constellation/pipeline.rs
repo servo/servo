@@ -580,6 +580,17 @@ impl UnprivilegedPipelineContent {
             self.webrender_document,
             paint_time_metrics,
             layout_thread_busy_flag.clone(),
+            self.opts.load_webfonts_synchronously,
+            self.opts.initial_window_size,
+            self.opts.device_pixels_per_px,
+            self.opts.dump_display_list,
+            self.opts.dump_display_list_json,
+            self.opts.dump_style_tree,
+            self.opts.dump_rule_tree,
+            self.opts.relayout_event,
+            self.opts.nonincremental_layout,
+            self.opts.trace_layout,
+            self.opts.dump_flow_tree,
         );
 
         if wait_for_completion {

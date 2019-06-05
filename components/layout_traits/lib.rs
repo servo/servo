@@ -10,6 +10,7 @@
 //   that these modules won't have to depend on layout.
 
 use crossbeam_channel::{Receiver, Sender};
+use euclid::TypedSize2D;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
@@ -19,6 +20,7 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
+use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -46,5 +48,16 @@ pub trait LayoutThreadFactory {
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
+        load_webfonts_synchronously: bool,
+        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+        device_pixels_per_px: Option<f32>,
+        dump_display_list: bool,
+        dump_display_list_json: bool,
+        dump_style_tree: bool,
+        dump_rule_tree: bool,
+        relayout_event: bool,
+        nonincremental_layout: bool,
+        trace_layout: bool,
+        dump_flow_tree: bool,
     );
 }
