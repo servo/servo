@@ -187,10 +187,10 @@ pub struct EmbedderCoordinates {
 }
 
 impl EmbedderCoordinates {
-    pub fn get_flipped_viewport(&self) -> FramebufferIntRect {
+    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
         let mut view = self.viewport.clone();
         view.origin.y = fb_height - view.origin.y - view.size.height;
-        FramebufferIntRect::from_untyped(&view.to_untyped())
+        DeviceIntRect::from_untyped(&view.to_untyped())
     }
 }

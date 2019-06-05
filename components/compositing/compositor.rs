@@ -43,7 +43,8 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
-use webrender_api::units::{DeviceIntPoint, DevicePoint, FramebufferIntSize, LayoutVector2D};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint};
+use webrender_api::units::{FramebufferIntSize, LayoutVector2D};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
@@ -1272,7 +1273,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             || {
                 debug!("compositor: compositing");
 
-                let size = FramebufferIntSize::from_untyped(
+                let size = DeviceIntSize::from_untyped(
                     &self.embedder_coordinates.framebuffer.to_untyped(),
                 );
 
