@@ -26,6 +26,7 @@ use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::script_module::{fetch_module_script_graph, ModuleOwner};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -140,7 +141,7 @@ pub struct ScriptOrigin {
 }
 
 impl ScriptOrigin {
-    fn internal(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn internal(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
@@ -149,13 +150,17 @@ impl ScriptOrigin {
         }
     }
 
-    fn external(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn external(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: true,
             type_,
         }
+    }
+
+    pub fn text(&self) -> DOMString {
+        self.text.clone()
     }
 }
 
@@ -388,7 +393,7 @@ impl HTMLScriptElement {
             return;
         }
 
-        let _script_type = if let Some(ty) = self.get_script_type() {
+        let script_type = if let Some(ty) = self.get_script_type() {
             ty
         } else {
             // Step 7.
@@ -493,43 +498,59 @@ impl HTMLScriptElement {
                 },
             };
 
-            // Preparation for step 26.
-            let kind = if element.has_attribute(&local_name!("defer")) &&
-                was_parser_inserted &&
-                !r#async
-            {
-                // Step 26.a: classic, has src, has defer, was parser-inserted, is not async.
-                ExternalScriptKind::Deferred
-            } else if was_parser_inserted && !r#async {
-                // Step 26.c: classic, has src, was parser-inserted, is not async.
-                ExternalScriptKind::ParsingBlocking
-            } else if !r#async && !self.non_blocking.get() {
-                // Step 26.d: classic, has src, is not async, is not non-blocking.
-                ExternalScriptKind::AsapInOrder
-            } else {
-                // Step 26.f: classic, has src.
-                ExternalScriptKind::Asap
-            };
-
             // Step 24.6.
-            fetch_a_classic_script(
-                self,
-                kind,
-                url,
-                cors_setting,
-                integrity_metadata.to_owned(),
-                encoding,
-            );
+            match script_type {
+                ScriptType::Classic => {
+                    // Preparation for step 26
+                    let kind = if element.has_attribute(&local_name!("defer")) &&
+                        was_parser_inserted &&
+                        !r#async
+                    {
+                        // Step 26.a: classic, has src, has defer, was parser-inserted, is not async.
+                        ExternalScriptKind::Deferred
+                    } else if was_parser_inserted && !r#async {
+                        // Step 26.c: classic, has src, was parser-inserted, is not async.
+                        ExternalScriptKind::ParsingBlocking
+                    } else if !r#async && !self.non_blocking.get() {
+                        // Step 26.d: classic, has src, is not async, is not non-blocking.
+                        ExternalScriptKind::AsapInOrder
+                    } else {
+                        // Step 26.f: classic, has src.
+                        ExternalScriptKind::Asap
+                    };
 
-            // Step 23.
-            match kind {
-                ExternalScriptKind::Deferred => doc.add_deferred_script(self),
-                ExternalScriptKind::ParsingBlocking => {
-                    doc.set_pending_parsing_blocking_script(self, None)
+                    fetch_a_classic_script(
+                        self,
+                        kind,
+                        url,
+                        cors_setting,
+                        integrity_metadata.to_owned(),
+                        encoding,
+                    );
+
+                    match kind {
+                        ExternalScriptKind::Deferred => doc.add_deferred_script(self),
+                        ExternalScriptKind::ParsingBlocking => {
+                            doc.set_pending_parsing_blocking_script(self, None)
+                        },
+                        ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
+                        ExternalScriptKind::Asap => doc.add_asap_script(self),
+                    };
                 },
-                ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
-                ExternalScriptKind::Asap => doc.add_asap_script(self),
-            }
+                ScriptType::Module => {
+                    fetch_module_script_graph(
+                        ModuleOwner::Window(Trusted::new(self)),
+                        url,
+                        Destination::Script,
+                    );
+
+                    if r#async {
+                        // doc.add_asap_script(self);
+                    } else {
+                        // doc.add_deferred_script(self);
+                    };
+                },
+            };
         } else {
             // Step 25.
             assert!(!text.is_empty());
