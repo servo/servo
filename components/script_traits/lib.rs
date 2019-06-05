@@ -122,6 +122,9 @@ pub enum LayoutControlMsg {
 /// parameters or headers
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoadData {
+    /// The origin of the page when it started the load.
+    /// Used for same-origin comparisons.
+    pub source_origin: String,
     /// The URL.
     pub url: ServoUrl,
     /// The creator pipeline id if this is an about:blank load.
@@ -161,12 +164,14 @@ pub enum JsEvalResult {
 impl LoadData {
     /// Create a new `LoadData` object.
     pub fn new(
+        source_origin: String,
         url: ServoUrl,
         creator_pipeline_id: Option<PipelineId>,
         referrer: Option<Referrer>,
         referrer_policy: Option<ReferrerPolicy>,
     ) -> LoadData {
         LoadData {
+            source_origin,
             url: url,
             creator_pipeline_id: creator_pipeline_id,
             method: Method::GET,

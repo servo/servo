@@ -281,6 +281,7 @@ impl WindowProxy {
                 .unwrap();
             let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
             let load_data = LoadData::new(
+                document.url().origin().ascii_serialization(),
                 blank_url,
                 None,
                 Some(Referrer::ReferrerUrl(document.url().clone())),
@@ -439,7 +440,13 @@ impl WindowProxy {
             // Step 14.5
             let referrer_policy = target_document.get_referrer_policy();
             let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
-            let load_data = LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy);
+            let load_data = LoadData::new(
+                existing_document.url().origin().ascii_serialization(),
+                url,
+                Some(pipeline_id),
+                Some(referrer),
+                referrer_policy,
+            );
             let replacement_flag = if new {
                 HistoryEntryReplacement::Enabled
             } else {

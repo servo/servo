@@ -50,7 +50,13 @@ impl Location {
         let referrer = Referrer::ReferrerUrl(url.clone());
         let referrer_policy = self.window.Document().get_referrer_policy();
         let pipeline_id = self.window.upcast::<GlobalScope>().pipeline_id();
-        let load_data = LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy);
+        let load_data = LoadData::new(
+            self.window.get_url().origin().ascii_serialization(),
+            url,
+            Some(pipeline_id),
+            Some(referrer),
+            referrer_policy,
+        );
         // TODO: rethrow exceptions, set exceptions enabled flag.
         self.window
             .load_url(replacement_flag, reload_triggered, load_data);

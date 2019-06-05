@@ -683,7 +683,14 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
 
         // Step 14
         let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
-        let load_data = LoadData::new(url, Some(pipeline_id), Some(referrer), referrer_policy);
+        println!("Url: {:?}", url);
+        let load_data = LoadData::new(
+            document.url().origin().ascii_serialization(),
+            url,
+            Some(pipeline_id),
+            Some(referrer),
+            referrer_policy,
+        );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {
             debug!("following hyperlink to {}", load_data.url);
