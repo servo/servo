@@ -194,7 +194,5 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn prepare_for_composite(&self) -> bool {
-        true
-    }
+    fn prepare_for_composite(&self) { }
 }

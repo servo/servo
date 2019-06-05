@@ -142,9 +142,8 @@ pub trait WindowMethods {
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
     /// Requests that the window system prepare a composite. Typically this will involve making
-    /// some type of platform-specific graphics context current. Returns true if the composite may
-    /// proceed and false if it should not.
-    fn prepare_for_composite(&self) -> bool;
+    /// some type of platform-specific graphics context current.
+    fn prepare_for_composite(&self);
     /// Return the GL function pointer trait.
     #[cfg(feature = "gl")]
     fn gl(&self) -> Rc<dyn gl::Gl>;

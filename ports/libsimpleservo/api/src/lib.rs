@@ -580,10 +580,9 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 }
 
 impl WindowMethods for ServoWindowCallbacks {
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(&self) {
         debug!("WindowMethods::prepare_for_composite");
         self.host_callbacks.make_current();
-        true
     }
 
     fn present(&self) {

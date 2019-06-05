@@ -48,7 +48,6 @@ use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
-    WindowUnprepared,
     NotReadyToPaintImage(NotReadyToPaint),
 }
 
@@ -1212,10 +1211,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .framebuffer
             .to_u32()
             .height_typed();
-        if !self.window.prepare_for_composite() {
-            return Err(UnableToComposite::WindowUnprepared);
-        }
 
+        self.window.prepare_for_composite();
         self.webrender.update();
 
         let wait_for_stable_image = match target {
