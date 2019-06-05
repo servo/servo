@@ -1,26 +1,40 @@
 import itertools
 import json
 import os
-from collections import defaultdict
-from six import iteritems, iterkeys, itervalues, string_types
+from collections import MutableMapping, defaultdict
+from six import iteritems, iterkeys, itervalues, string_types, binary_type, text_type
 
 from . import vcs
-from .item import (ManualTest, WebDriverSpecTest, Stub, RefTestNode, RefTest,
-                   TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest)
+from .item import (ConformanceCheckerTest, ManifestItem, ManualTest, RefTest, RefTestNode, Stub,
+                   SupportFile, TestharnessTest, VisualTest, WebDriverSpecTest)
 from .log import get_logger
+from .sourcefile import SourceFile
 from .utils import from_os_path, to_os_path
 
 MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
+    from logging import Logger
+    from typing import Any
+    from typing import Container
     from typing import Dict
-    from types import ModuleType
+    from typing import IO
+    from typing import Iterable
+    from typing import Iterator
+    from typing import List
+    from typing import Optional
+    from typing import Set
+    from typing import Text
+    from typing import Tuple
+    from typing import Type
+    from typing import Union
+    from typing import cast
 
 try:
     import ujson
-    fast_json = ujson  # type: ModuleType
+    fast_json = ujson
 except ImportError:
-    fast_json = json
+    fast_json = json  # type: ignore
 
 CURRENT_VERSION = 6
 
@@ -41,11 +55,17 @@ item_classes = {"testharness": TestharnessTest,
                 "wdspec": WebDriverSpecTest,
                 "conformancechecker": ConformanceCheckerTest,
                 "visual": VisualTest,
-                "support": SupportFile}
+                "support": SupportFile}  # type: Dict[str, Type[ManifestItem]]
 
 
-class TypeData(object):
+if MYPY:
+    TypeDataType = MutableMapping[Text, Set[ManifestItem]]
+else:
+    TypeDataType = MutableMapping
+
+class TypeData(TypeDataType):
     def __init__(self, manifest, type_cls):
+        # type: (Manifest, Type[ManifestItem]) -> None
         """Dict-like object containing the TestItems for each test type.
 
         Loading an actual Item class for each test is unnecessarily
@@ -58,25 +78,29 @@ class TypeData(object):
         over the class."""
         self.manifest = manifest
         self.type_cls = type_cls
-        self.json_data = {}
-        self.tests_root = None
-        self.data = {}
+        self.json_data = {}  # type: Optional[Dict[Text, List[Any]]]
+        self.tests_root = None  # type: Optional[str]
+        self.data = {}  # type: Dict[Text, Set[ManifestItem]]
 
     def __getitem__(self, key):
-        if key not in self.data:
+        # type: (Text) -> Set[ManifestItem]
+        if key not in self.data and self.json_data is not None:
             self.load(key)
         return self.data[key]
 
     def __nonzero__(self):
+        # type: () -> bool
         return bool(self.data) or bool(self.json_data)
 
     def __len__(self):
+        # type: () -> int
         rv = len(self.data)
         if self.json_data is not None:
             rv += len(self.json_data)
         return rv
 
     def __delitem__(self, key):
+        # type: (Text) -> None
         if key in self.data:
             del self.data[key]
         elif self.json_data is not None:
@@ -85,6 +109,7 @@ class TypeData(object):
             raise KeyError
 
     def __setitem__(self, key, value):
+        # type: (Text, Set[ManifestItem]) -> None
         if self.json_data is not None:
             path = from_os_path(key)
             if path in self.json_data:
@@ -92,43 +117,35 @@ class TypeData(object):
         self.data[key] = value
 
     def __contains__(self, key):
+        # type: (Any) -> bool
         self.load_all()
         return key in self.data
 
     def __iter__(self):
+        # type: () -> Iterator[Text]
         self.load_all()
         return self.data.__iter__()
 
-    def pop(self, key, default=None):
-        try:
-            value = self[key]
-        except ValueError:
-            value = default
-        else:
-            del self.data[key]
-        return value
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except ValueError:
-            return default
-
     def itervalues(self):
+        # type: () -> Iterator[Set[ManifestItem]]
         self.load_all()
         return itervalues(self.data)
 
     def iteritems(self):
+        # type: () -> Iterator[Tuple[Text, Set[ManifestItem]]]
         self.load_all()
         return iteritems(self.data)
 
     def values(self):
-        return self.itervalues()
+        # type: () -> List[Set[ManifestItem]]
+        return list(self.itervalues())
 
     def items(self):
-        return self.iteritems()
+        # type: () -> List[Tuple[Text, Set[ManifestItem]]]
+        return list(self.iteritems())
 
     def load(self, key):
+        # type: (Text) -> None
         """Load a specific Item given a path"""
         if self.json_data is not None:
             data = set()
@@ -145,6 +162,7 @@ class TypeData(object):
             raise ValueError
 
     def load_all(self):
+        # type: () -> None
         """Load all test items in this class"""
         if self.json_data is not None:
             for path, value in iteritems(self.json_data):
@@ -159,12 +177,14 @@ class TypeData(object):
             self.json_data = None
 
     def set_json(self, tests_root, data):
+        # type: (str, Dict[Text, Any]) -> None
         if not isinstance(data, dict):
             raise ValueError("Got a %s expected a dict" % (type(data)))
         self.tests_root = tests_root
         self.json_data = data
 
     def to_json(self):
+        # type: () -> Dict[Text, Any]
         data = {
             from_os_path(path):
             [t for t in sorted(test.to_json() for test in tests)]
@@ -180,6 +200,7 @@ class TypeData(object):
         return data
 
     def paths(self):
+        # type: () -> Set[Text]
         """Get a list of all paths containing items of this type,
         without actually constructing all the items"""
         rv = set(iterkeys(self.data))
@@ -188,25 +209,33 @@ class TypeData(object):
         return rv
 
 
-class ManifestData(dict):
+if MYPY:
+    ManifestDataType = Dict[Any, TypeData]
+else:
+    ManifestDataType = dict
+
+class ManifestData(ManifestDataType):
     def __init__(self, manifest):
+        # type: (Manifest) -> None
         """Dictionary subclass containing a TypeData instance for each test type,
         keyed by type name"""
-        self.initialized = False
+        self.initialized = False  # type: bool
         for key, value in iteritems(item_classes):
             self[key] = TypeData(manifest, value)
         self.initialized = True
-        self.json_obj = None
+        self.json_obj = None  # type: None
 
     def __setitem__(self, key, value):
+        # type: (str, TypeData) -> None
         if self.initialized:
             raise AttributeError
         dict.__setitem__(self, key, value)
 
     def paths(self):
+        # type: () -> Set[Text]
         """Get a list of all paths containing test items
         without actually constructing all the items"""
-        rv = set()
+        rv = set()  # type: Set[Text]
         for item_data in itervalues(self):
             rv |= set(item_data.paths())
         return rv
@@ -214,30 +243,35 @@ class ManifestData(dict):
 
 class Manifest(object):
     def __init__(self, tests_root=None, url_base="/"):
+        # type: (Optional[str], Text) -> None
         assert url_base is not None
-        self._path_hash = {}
-        self._data = ManifestData(self)
-        self._reftest_nodes_by_url = None
-        self.tests_root = tests_root
-        self.url_base = url_base
+        self._path_hash = {}  # type: Dict[Text, Tuple[Text, Text]]
+        self._data = ManifestData(self)  # type: ManifestData
+        self._reftest_nodes_by_url = None  # type: Optional[Dict[Text, Union[RefTest, RefTestNode]]]
+        self.tests_root = tests_root  # type: Optional[str]
+        self.url_base = url_base  # type: Text
 
     def __iter__(self):
+        # type: () -> Iterable[Tuple[str, Text, Set[ManifestItem]]]
         return self.itertypes()
 
     def itertypes(self, *types):
-        if not types:
-            types = sorted(self._data.keys())
-        for item_type in types:
+        # type: (*str) -> Iterable[Tuple[str, Text, Set[ManifestItem]]]
+        for item_type in (types or sorted(self._data.keys())):
             for path in sorted(self._data[item_type]):
                 tests = self._data[item_type][path]
                 yield item_type, path, tests
 
     def iterpath(self, path):
+        # type: (Text) -> Iterable[ManifestItem]
         for type_tests in self._data.values():
-            for test in type_tests.get(path, set()):
+            i = type_tests.get(path, set())
+            assert i is not None
+            for test in i:
                 yield test
 
     def iterdir(self, dir_name):
+        # type: (Text) -> Iterable[ManifestItem]
         if not dir_name.endswith(os.path.sep):
             dir_name = dir_name + os.path.sep
         for type_tests in self._data.values():
@@ -248,19 +282,23 @@ class Manifest(object):
 
     @property
     def reftest_nodes_by_url(self):
+        # type: () -> Dict[Text, Union[RefTest, RefTestNode]]
         if self._reftest_nodes_by_url is None:
             by_url = {}
-            for path, nodes in itertools.chain(iteritems(self._data.get("reftest", {})),
-                                               iteritems(self._data.get("reftest_node", {}))):
+            for path, nodes in itertools.chain(iteritems(self._data["reftest"]),
+                                               iteritems(self._data["reftest_node"])):
                 for node in nodes:
+                    assert isinstance(node, (RefTest, RefTestNode))
                     by_url[node.url] = node
             self._reftest_nodes_by_url = by_url
         return self._reftest_nodes_by_url
 
     def get_reference(self, url):
+        # type: (Text) -> Optional[ManifestItem]
         return self.reftest_nodes_by_url.get(url)
 
     def update(self, tree):
+        # type: (Iterable[Tuple[Union[SourceFile, bytes], bool]]) -> bool
         """Update the manifest given an iterable of items that make up the updated manifest.
 
         The iterable must either generate tuples of the form (SourceFile, True) for paths
@@ -268,38 +306,40 @@ class Manifest(object):
         unusual API is designed as an optimistaion meaning that SourceFile items need not be
         constructed in the case we are not updating a path, but the absence of an item from
         the iterator may be used to remove defunct entries from the manifest."""
-        reftest_nodes = []
-        seen_files = set()
+        all_reftest_nodes = []  # type: List[Tuple[ManifestItem, Text]]
+        seen_files = set()  # type: Set[Text]
 
         changed = False
         reftest_changes = False
 
         # Create local variable references to these dicts so we avoid the
         # attribute access in the hot loop below
-        path_hash = self._path_hash
+        path_hash = self._path_hash  # type: Dict[Text, Tuple[Text, Text]]
         data = self._data
 
-        prev_files = data.paths()
+        prev_files = data.paths()  # type: Set[Text]
 
         reftest_types = ("reftest", "reftest_node")
 
         for source_file, update in tree:
             if not update:
-                rel_path = source_file
+                assert isinstance(source_file, (binary_type, text_type))
+                rel_path = source_file  # type: Text
                 seen_files.add(rel_path)
                 assert rel_path in path_hash
-                old_hash, old_type = path_hash[rel_path]
+                old_hash, old_type = path_hash[rel_path]  # type: Tuple[Text, Text]
                 if old_type in reftest_types:
-                    manifest_items = data[old_type][rel_path]
-                    reftest_nodes.extend((item, old_hash) for item in manifest_items)
+                    manifest_items = data[old_type][rel_path]  # type: Iterable[ManifestItem]
+                    all_reftest_nodes.extend((item, old_hash) for item in manifest_items)
             else:
+                assert not isinstance(source_file, bytes)
                 rel_path = source_file.rel_path
                 seen_files.add(rel_path)
 
-                file_hash = source_file.hash
+                file_hash = source_file.hash  # type: Text
 
-                is_new = rel_path not in path_hash
-                hash_changed = False
+                is_new = rel_path not in path_hash  # type: bool
+                hash_changed = False  # type: bool
 
                 if not is_new:
                     old_hash, old_type = path_hash[rel_path]
@@ -318,7 +358,7 @@ class Manifest(object):
                     new_type, manifest_items = source_file.manifest_items()
 
                 if new_type in reftest_types:
-                    reftest_nodes.extend((item, file_hash) for item in manifest_items)
+                    all_reftest_nodes.extend((item, file_hash) for item in manifest_items)
                     if is_new or hash_changed:
                         reftest_changes = True
                 elif is_new or hash_changed:
@@ -347,43 +387,66 @@ class Manifest(object):
                             del test_data[rel_path]
 
         if reftest_changes:
-            reftests, reftest_nodes, changed_hashes = self._compute_reftests(reftest_nodes)
-            data["reftest"].data = reftests
-            data["reftest_node"].data = reftest_nodes
+            reftests, reftest_nodes, changed_hashes = self._compute_reftests(all_reftest_nodes)
+            reftest_data = data["reftest"]
+            reftest_data.clear()
+            for path, items in iteritems(reftests):
+                if MYPY:
+                    reftest_data[path] = cast(Set[ManifestItem], items)
+                else:
+                    reftest_data[path] = items
+
+            reftest_node_data = data["reftest_node"]
+            reftest_node_data.clear()
+            for node_path, node_items in iteritems(reftest_nodes):
+                if MYPY:
+                    reftest_node_data[node_path] = cast(Set[ManifestItem], node_items)
+                else:
+                    reftest_node_data[node_path] = node_items
+
             path_hash.update(changed_hashes)
 
         return changed
 
-    def _compute_reftests(self, reftest_nodes):
+    def _compute_reftests(self,
+                          reftest_nodes  # type: List[Tuple[ManifestItem, Text]]
+                          ):
+        # type: (...) -> Tuple[Dict[Text, Set[RefTest]], Dict[Text, Set[RefTestNode]], Dict[Text, Tuple[Text, Text]]]
         self._reftest_nodes_by_url = {}
         has_inbound = set()
         for item, _ in reftest_nodes:
+            assert isinstance(item, (RefTestNode, RefTest))
             for ref_url, ref_type in item.references:
                 has_inbound.add(ref_url)
 
-        reftests = defaultdict(set)
-        references = defaultdict(set)
-        changed_hashes = {}
+        reftests = defaultdict(set)  # type: Dict[Text, Set[RefTest]]
+        references = defaultdict(set)  # type: Dict[Text, Set[RefTestNode]]
+        changed_hashes = {}  # type: Dict[Text, Tuple[Text, Text]]
 
         for item, file_hash in reftest_nodes:
+            assert isinstance(item, (RefTestNode, RefTest))
             if item.url in has_inbound:
                 # This is a reference
                 if isinstance(item, RefTest):
                     item = item.to_RefTestNode()
                     changed_hashes[item.path] = (file_hash,
                                                  item.item_type)
+                assert isinstance(item, RefTestNode)
                 references[item.path].add(item)
             else:
                 if isinstance(item, RefTestNode):
                     item = item.to_RefTest()
                     changed_hashes[item.path] = (file_hash,
                                                  item.item_type)
+                assert isinstance(item, RefTest)
                 reftests[item.path].add(item)
+            assert isinstance(item, (RefTestNode, RefTest))
             self._reftest_nodes_by_url[item.url] = item
 
         return reftests, references, changed_hashes
 
     def to_json(self):
+        # type: () -> Dict[Text, Any]
         out_items = {
             test_type: type_paths.to_json()
             for test_type, type_paths in iteritems(self._data) if type_paths
@@ -391,11 +454,12 @@ class Manifest(object):
         rv = {"url_base": self.url_base,
               "paths": {from_os_path(k): v for k, v in iteritems(self._path_hash)},
               "items": out_items,
-              "version": CURRENT_VERSION}
+              "version": CURRENT_VERSION}  # type: Dict[Text, Any]
         return rv
 
     @classmethod
     def from_json(cls, tests_root, obj, types=None):
+        # type: (str, Dict[Text, Any], Optional[Container[Text]]) -> Manifest
         version = obj.get("version")
         if version != CURRENT_VERSION:
             raise ManifestVersionMismatch
@@ -419,6 +483,7 @@ class Manifest(object):
 
 
 def load(tests_root, manifest, types=None):
+    # type: (str, Union[IO[bytes], str], Optional[Container[Text]]) -> Optional[Manifest]
     logger = get_logger()
 
     logger.warning("Prefer load_and_update instead")
@@ -428,8 +493,13 @@ def load(tests_root, manifest, types=None):
 __load_cache = {}  # type: Dict[str, Manifest]
 
 
-def _load(logger, tests_root, manifest, types=None, allow_cached=True):
-    # "manifest" is a path or file-like object.
+def _load(logger,  # type: Logger
+          tests_root,  # type: str
+          manifest,  # type: Union[IO[bytes], str]
+          types=None,  # type: Optional[Container[Text]]
+          allow_cached=True  # type: bool
+          ):
+    # type: (...) -> Optional[Manifest]
     manifest_path = (manifest if isinstance(manifest, string_types)
                      else manifest.name)
     if allow_cached and manifest_path in __load_cache:
@@ -441,7 +511,7 @@ def _load(logger, tests_root, manifest, types=None, allow_cached=True):
         else:
             logger.debug("Creating new manifest at %s" % manifest)
         try:
-            with open(manifest) as f:
+            with open(manifest, "rb") as f:
                 rv = Manifest.from_json(tests_root,
                                         fast_json.load(f),
                                         types=types)
@@ -460,17 +530,19 @@ def _load(logger, tests_root, manifest, types=None, allow_cached=True):
     return rv
 
 
-def load_and_update(tests_root,
-                    manifest_path,
-                    url_base,
-                    update=True,
-                    rebuild=False,
-                    metadata_path=None,
-                    cache_root=None,
-                    working_copy=True,
-                    types=None,
-                    write_manifest=True,
-                    allow_cached=True):
+def load_and_update(tests_root,  # type: bytes
+                    manifest_path,  # type: bytes
+                    url_base,  # type: Text
+                    update=True,  # type: bool
+                    rebuild=False,  # type: bool
+                    metadata_path=None,  # type: Optional[bytes]
+                    cache_root=None,  # type: Optional[bytes]
+                    working_copy=True,  # type: bool
+                    types=None,  # type: Optional[Container[Text]]
+                    write_manifest=True,  # type: bool
+                    allow_cached=True  # type: bool
+                    ):
+    # type: (...) -> Manifest
     logger = get_logger()
 
     manifest = None
@@ -505,6 +577,7 @@ def load_and_update(tests_root,
 
 
 def write(manifest, manifest_path):
+    # type: (Manifest, bytes) -> None
     dir_name = os.path.dirname(manifest_path)
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)

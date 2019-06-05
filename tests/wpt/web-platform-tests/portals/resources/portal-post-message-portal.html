@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <script>
-  window.portalHost.postMessage("loaded", "*");
-
   window.portalHost.onmessage = e => {
     var message = {
       origin: e.origin,

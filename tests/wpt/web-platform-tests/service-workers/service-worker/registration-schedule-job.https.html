@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Service Worker: Schedule Job algorithm</title>
+<script src="/resources/testharness.js"></script>
+<script src="resources/testharness-helpers.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Tests for https://w3c.github.io/ServiceWorker/#schedule-job-algorithm
+// Non-equivalent register jobs should not be coalesced.
+const scope = 'resources/';
+const script1 = 'resources/empty.js';
+const script2 = 'resources/empty.js?change';
+
+async function cleanup() {
+  const registration = await navigator.serviceWorker.getRegistration(scope);
+  if (registration)
+    await registration.unregister();
+}
+
+function absolute_url(url) {
+  return new URL(url, self.location).toString();
+}
+
+// Test scriptURL and updateViaCache.
+promise_test(async t => {
+  await cleanup();
+  t.add_cleanup(cleanup);
+
+  // Check defaults.
+  const registration = await
+      navigator.serviceWorker.register(script1, {scope});
+  assert_equals(registration.updateViaCache, 'imports');
+
+  // Schedule several register jobs.
+  navigator.serviceWorker.register(script1, {scope});
+  navigator.serviceWorker.register(script2, {scope});
+  await navigator.serviceWorker.register(script2,
+                                         {scope, updateViaCache: 'none'});
+
+  // None of the changes should have been coalesced.
+  assert_equals(registration.installing.scriptURL, absolute_url(script2));
+  assert_equals(registration.updateViaCache, 'none');
+}, 'different scriptURL and updateViaCache');
+
+// Test |type| in another test case because most browsers don't support it.
+promise_test(async t => {
+  const script1 = 'resources/empty.js';
+  const script2 = 'resources/empty.js?change';
+
+  await cleanup();
+  t.add_cleanup(cleanup);
+
+  // Check defaults.
+  const registration = await
+      navigator.serviceWorker.register(script1, {scope});
+  assert_equals(registration.installing.type, 'classic');
+
+  // Schedule several register jobs.
+  navigator.serviceWorker.register(script1, {scope});
+  navigator.serviceWorker.register(script2, {scope});
+  await navigator.serviceWorker.register(script2, {scope, type: 'module'});
+
+  // None of the changes should have been coalesced.
+  assert_equals(registration.installing.scriptURL, absolute_url(script2));
+  assert_equals(registration.installing.type, 'module');
+}, 'different type');
+</script>

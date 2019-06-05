@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>math-style</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
+    <meta name="assert" content="Check the resolved value of math-style">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      function mathStyle(id) {
+          return window.getComputedStyle(document.getElementById(id)).
+              getPropertyValue("math-style");
+      }
+      setup({ explicit_done: true });
+      window.addEventListener("load", function() {
+          test(function() {
+              assert_equals(mathStyle("initial"), "inline");
+          }, "Initial value of math-style");
+          test(function() {
+              assert_equals(mathStyle("specifiedInline"), "inline");
+              assert_equals(mathStyle("specifiedDisplay"), "display");
+          }, "Specified values of math-style");
+          test(function() {
+              assert_equals(mathStyle("inheritedInline"), "inline");
+              assert_equals(mathStyle("inheritedDisplay"), "display");
+          }, "Inherited values of math-style");
+          done();
+      });
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="initial"></div>
+    <div id="specifiedInline" style="math-style: inline">
+      <div id="inheritedInline"></div>
+    </div>
+    <div id="specifiedDisplay" style="math-style: display">
+      <div id="inheritedDisplay"></div>
+    </div>
+  </body>
+</html>

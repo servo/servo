@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Reference: min/max-content size on box-decoration-break:slice inline box</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+
+div {
+  border: 5px solid blue;
+  white-space: pre;
+}
+.max > div {
+  width: -moz-max-content;
+  width: -webkit-max-content;
+  width: max-content;
+}
+.min > div {
+  width: -moz-min-content;
+  width: -webkit-min-content;
+  width: min-content;
+}
+
+span {
+  border: 2px solid gray;
+  padding: 0 10px 0 6px;
+  border-width: 0 8px 0 5px;
+  margin: 0 4px 0 3px;
+  background: yellow;
+}
+
+f { margin-right: 30px; float: left; }
+</style>
+<body>
+<f class="max">
+<div><span>aaa</span><span>aaa</span></div>
+<div><span>aaa</span>aa<span>aaa</span></div>
+<div><span>aaa</span> <span>aaa</span></div>
+<div><span>aaa </span><span>aaa</span></div>
+<div><span>aaa</span><span> aaa</span></div>
+<div><span>aaa</span> aa<span>aaa</span></div>
+<div><span>aaa </span>aa<span>aaa</span></div>
+<div><span>aaa</span>aa<span> aaa</span></div>
+<div><span>aaa</span> aa <span>aaa</span></div>
+<div><span>aaa</span>aa <span>aaa</span></div>
+<div><span>aaa</span>aa</div>
+</f>
+
+<f class="min">
+<div><span>aaa</span><span>aaa</span></div>
+<div><span>aaa</span>aa<span>aaa</span></div>
+<div><span>aaa</span><br><span>aaa</span></div>
+<div><span>aaa</span><br><span>aaa</span></div>
+<div><span>aaa</span><span><br>aaa</span></div>
+<div><span>aaa</span><br>aa<span>aaa</span></div>
+<div><span>aaa</span><br>aa<span>aaa</span></div>
+<div><span>aaa</span>aa<span><br>aaa</span></div>
+<div><span>aaa</span><br>aa<br><span>aaa</span></div>
+<div><span>aaa</span>aa<br><span>aaa</span></div>
+<div><span>aaa</span>aa</div>
+</f>

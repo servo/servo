@@ -58,7 +58,7 @@ promise_test(t => {
 }, "Test receiving Accept-CH-Lifetime header");
 
 async_test(t => {
-  window.addEventListener('message', function(e) {
+  window.addEventListener('message', t.step_func(function(e) {
     if(!e.source.location.pathname.includes("do_not_expect_client_hints_headers.html")) {
       return;
     }
@@ -66,7 +66,7 @@ async_test(t => {
       return;
     assert_equals(e.data, "PASS");
     t.done();
-  })
+  }));
 }, "Loading of resources/do_not_expect_client_hints_headers.html did not finish.");
 
 

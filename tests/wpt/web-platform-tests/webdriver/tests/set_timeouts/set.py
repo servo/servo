@@ -30,10 +30,11 @@ def test_parameters_invalid(session, value):
     assert_error(response, "invalid argument")
 
 
-def test_parameters_empty_no_change(session):
+@pytest.mark.parametrize("value", [{}, {"a": 42}])
+def test_parameters_unknown_fields(session, value):
     original = session.timeouts._get()
 
-    response = set_timeouts(session, {})
+    response = set_timeouts(session, value)
     assert_success(response)
 
     assert session.timeouts._get() == original
@@ -91,4 +92,4 @@ def test_script_value_null(session):
     response = set_timeouts(session, {"script": None})
     assert_success(response)
 
-    assert session.timeouts.script == None
+    assert session.timeouts.script is None

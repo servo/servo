@@ -7,7 +7,7 @@
     portal2.src = "simple-portal.html"
 
     var waitForPortalToLoad = portal => new Promise((resolve, reject) => {
-      portal.onmessage = resolve;
+      portal.onload = resolve;
     });
 
     Promise.all([waitForPortalToLoad(portal1),

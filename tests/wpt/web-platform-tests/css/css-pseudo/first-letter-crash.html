@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/967194">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target:first-letter{
+  float:right;
+}
+</style>
+The test passes if it does not CRASH.
+<div id="target">
+  <textarea style="display: block;">A</textarea>
+</div>
+<script>test(() => { });</script>

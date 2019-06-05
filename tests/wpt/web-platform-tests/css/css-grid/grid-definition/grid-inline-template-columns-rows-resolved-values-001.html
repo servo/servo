@@ -8,6 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/testing-utils.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
   .inline-grid {
     display: inline-grid;
@@ -57,6 +58,8 @@
 </div>
 
 <script>
+setup({explicit_done: true});
+document.fonts.ready.then(()=> {
   // Valid values.
   TestingUtils.testGridTemplateColumnsRows("grid", "", "", "110px", ["10px 10px 20px", "repeat(2, 10px) 20px"]);
   TestingUtils.testGridTemplateColumnsRows("grid", "auto auto", "", "100px 110px", "10px 20px");
@@ -99,4 +102,6 @@
   TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px", "60px 70px", ["60px 50px 0px 0px 100px", "60px 50px repeat(2, 0px) 100px"], "60px 70px 0px 20px");
   TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px 70px", "60px", ["60px 70px 0px 0px 100px", "60px 70px repeat(2, 0px) 100px"], ["60px 0px 0px 20px", "60px repeat(2, 0px) 20px"]);
   TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px 70px", "60px 70px", ["60px 70px 0px 0px 100px", "60px 70px repeat(2, 0px) 100px"], "60px 70px 0px 20px");
+  done();
+});
 </script>

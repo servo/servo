@@ -7,23 +7,32 @@ import hypothesis.strategies as hs
 
 import pytest
 
-from .. import manifest, item, utils
+from .. import manifest, sourcefile, item, utils
+
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import Any
+    from typing import Type
 
 
 def SourceFileWithTest(path, hash, cls, **kwargs):
+    # type: (str, str, Type[item.ManifestItem], **Any) -> sourcefile.SourceFile
     s = mock.Mock(rel_path=path, hash=hash)
     if cls == item.SupportFile:
-        test = cls("/foobar", path, **kwargs)
+        test = cls("/foobar", path)
     else:
+        assert issubclass(cls, item.URLManifestItem)
         test = cls("/foobar", path, "/", utils.from_os_path(path), **kwargs)
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
-    return s
+    return s  # type: ignore
 
 def SourceFileWithTests(path, hash, cls, variants):
+    # type: (str, str, Type[item.URLManifestItem], **Any) -> sourcefile.SourceFile
     s = mock.Mock(rel_path=path, hash=hash)
-    tests = [cls("/foobar", path, "/", item[0], *item[1:]) for item in variants]
+    tests = [cls("/foobar", path, "/", item[0], **item[1]) for item in variants]
     s.manifest_items = mock.Mock(return_value=(cls.item_type, tests))
-    return s
+    return s  # type: ignore
 
 
 @hs.composite
@@ -110,7 +119,7 @@ def test_manifest_to_json_forwardslash():
         'url_base': '/',
         'items': {
             'testharness': {
-                'a/b': [['a/b', {}]]
+                'a/b': [('a/b', {})]
             }
         }
     }
@@ -132,7 +141,7 @@ def test_manifest_to_json_backslash():
         'url_base': '/',
         'items': {
             'testharness': {
-                'a/b': [['a/b', {}]]
+                'a/b': [('a/b', {})]
             }
         }
     }
@@ -283,8 +292,8 @@ def test_iterpath():
     m = manifest.Manifest()
 
     sources = [SourceFileWithTest("test1", "0"*40, item.RefTestNode, references=[("/test1-ref", "==")]),
-               SourceFileWithTests("test2", "1"*40, item.TestharnessTest, [("test2-1.html",),
-                                                                           ("test2-2.html",)]),
+               SourceFileWithTests("test2", "1"*40, item.TestharnessTest, [("test2-1.html", {}),
+                                                                           ("test2-2.html", {})]),
                SourceFileWithTest("test3", "0"*40, item.TestharnessTest)]
     m.update([(s, True) for s in sources])
 
@@ -385,7 +394,7 @@ def test_update_from_json_modified():
     m.update([(s2, True)])
     json_str = m.to_json()
     assert json_str == {
-        'items': {'testharness': {'test1': [['test1', {"timeout": "long"}]]}},
+        'items': {'testharness': {'test1': [('test1', {"timeout": "long"})]}},
         'paths': {'test1': ('1111111111111111111111111111111111111111',
                             'testharness')},
         'url_base': '/',

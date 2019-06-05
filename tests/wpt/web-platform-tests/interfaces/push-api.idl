@@ -17,15 +17,15 @@ interface PushManager {
   Promise<PushPermissionState> permissionState(optional PushSubscriptionOptionsInit options);
 };
 
-dictionary PushSubscriptionOptionsInit {
-  boolean userVisibleOnly = false;
-  (BufferSource or DOMString)? applicationServerKey = null;
-};
-
 [Exposed=(Window,Worker), SecureContext]
 interface PushSubscriptionOptions {
   readonly attribute boolean userVisibleOnly;
   [SameObject] readonly attribute ArrayBuffer? applicationServerKey;
+};
+
+dictionary PushSubscriptionOptionsInit {
+  boolean userVisibleOnly = false;
+  (BufferSource or DOMString)? applicationServerKey = null;
 };
 
 [Exposed=(Window,Worker), SecureContext]
@@ -64,26 +64,26 @@ partial interface ServiceWorkerGlobalScope {
   attribute EventHandler onpushsubscriptionchange;
 };
 
+[Constructor(DOMString type, optional PushEventInit eventInitDict), Exposed=ServiceWorker, SecureContext]
+interface PushEvent : ExtendableEvent {
+  readonly attribute PushMessageData? data;
+};
+
 typedef (BufferSource or USVString) PushMessageDataInit;
 
 dictionary PushEventInit : ExtendableEventInit {
   PushMessageDataInit data;
 };
 
-[Constructor(DOMString type, optional PushEventInit eventInitDict), Exposed=ServiceWorker, SecureContext]
-interface PushEvent : ExtendableEvent {
-  readonly attribute PushMessageData? data;
+[Constructor(DOMString type, optional PushSubscriptionChangeInit eventInitDict), Exposed=ServiceWorker, SecureContext]
+interface PushSubscriptionChangeEvent : ExtendableEvent {
+  readonly attribute PushSubscription? newSubscription;
+  readonly attribute PushSubscription? oldSubscription;
 };
 
 dictionary PushSubscriptionChangeInit : ExtendableEventInit {
   PushSubscription newSubscription = null;
   PushSubscription oldSubscription = null;
-};
-
-[Constructor(DOMString type, optional PushSubscriptionChangeInit eventInitDict), Exposed=ServiceWorker, SecureContext]
-interface PushSubscriptionChangeEvent : ExtendableEvent {
-  readonly attribute PushSubscription? newSubscription;
-  readonly attribute PushSubscription? oldSubscription;
 };
 
 enum PushPermissionState {

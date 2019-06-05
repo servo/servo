@@ -69,4 +69,64 @@ promise_test(async t => {
     assert_array_equals(await getSortedDirectoryEntries(dir), ['old-file', 'target']);
 }, 'copyTo() when target file already exists should overwrite target');
 
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const subdir_name = 'subdir-name';
+    const subdir = await createDirectory(t, subdir_name, /*parent=*/dir);
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/subdir);
+
+    // An empty name indicates that the filename should remain unchanged.
+    await file.copyTo(dir, /*name=*/"");
+    await dir.getFile(file_name);
+}, `copyTo() when target is empty`);
+
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const subdir_name = 'subdir-name';
+    const subdir = await createDirectory(t, subdir_name, /*parent=*/dir);
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/subdir);
+
+    await promise_rejects(t, 'SecurityError', file.copyTo(dir, /*name=*/kCurrentDirectory));
+}, `copyTo() when target is ${kCurrentDirectory}`);
+
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const first_subdir_name = 'first-subdir-name';
+    const first_subdir = await createDirectory(t, first_subdir_name, /*parent=*/dir);
+
+    const second_subdir_name = 'second-subdir-name';
+    const second_subdir = await createDirectory(t, second_subdir_name, /*parent=*/first_subdir);
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/second_subdir);
+
+    await promise_rejects(t, 'SecurityError', file.copyTo(first_subdir, /*name=*/kParentDirectory));
+}, `copyTo() when target is ${kParentDirectory}`);
+
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/dir);
+
+    const first_subdir_name = 'first-subdir-name';
+    const first_subdir = await createDirectory(t, first_subdir_name, /*parent=*/dir);
+
+    const second_subdir_name = 'second-subdir-name';
+    const second_subdir = await createDirectory(t, second_subdir_name, /*parent=*/first_subdir);
+
+    for (let i = 0; i < kPathSeparators.length; ++i) {
+        const path_with_separator = `${second_subdir_name}${kPathSeparators[i]}${file_name}`;
+        await promise_rejects(t, 'SecurityError', file.copyTo(first_subdir, path_with_separator),
+            `copyTo() must reject names containing "${kPathSeparators[i]}"`);
+    }
+}, 'copyTo() when target contains path separator');
+
 // TODO(mek): Tests to copy directories.

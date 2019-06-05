@@ -12,8 +12,6 @@
     }
   });
 
-  window.portalHost.postMessage("loaded", "*");
-
   Promise.all([postMessagePromise, activatePromise])
     .then(values => {
       bc = new BroadcastChannel("portals-post-message-before-activate");

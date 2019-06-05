@@ -4,18 +4,28 @@
 
 // These get reset at the start of a test case.
 let reportResult;
-let resultPromise;
 
 // The test page sends a message to tell us that a new test case is starting.
 // We expect a fetch event after this.
 self.addEventListener('message', (event) => {
-  resultPromise = new Promise((resolve) => {
+  // Ensure tests run mutually exclusive.
+  if (reportResult) {
+    event.source.postMessage('testAlreadyRunning');
+    return;
+  }
+
+  const resultPromise = new Promise((resolve) => {
     reportResult = resolve;
+    // Tell the client that everything is initialized and that it's safe to
+    // proceed with the test without relying on the order of events (which some
+    // browsers like Chrome may not guarantee).
+    event.source.postMessage('messageHandlerInitialized');
   });
 
   // Keep the worker alive until the test case finishes, and report
   // back the result to the test page.
   event.waitUntil(resultPromise.then(result => {
+    reportResult = null;
     event.source.postMessage(result);
   }));
 });

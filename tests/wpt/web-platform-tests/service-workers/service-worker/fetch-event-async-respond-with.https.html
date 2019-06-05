@@ -21,23 +21,33 @@ promise_test(async (t) => {
   frame = await with_iframe(scope);
 }, 'global setup');
 
+// Waits for a single message from the service worker and then removes the
+// message handler. Not safe for concurrent use.
+function wait_for_message() {
+  return new Promise((resolve) => {
+    const handler = (event) => {
+      navigator.serviceWorker.removeEventListener('message', handler);
+      resolve(event.data);
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+  });
+}
+
 // Does one test case. It fetches |url|. The service worker gets a fetch event
 // for |url| and attempts to call respondWith() asynchronously. It reports back
 // to the test whether an exception was thrown.
 async function do_test(url) {
   // Send a message to tell the worker a new test case is starting.
-  const sawMessage = new Promise(resolve => {
-    navigator.serviceWorker.onmessage = (event) => {
-      resolve(event.data);
-    };
-    worker.postMessage('');
-  });
+  const message = wait_for_message();
+  worker.postMessage('initializeMessageHandler');
+  const response = await message;
+  assert_equals(response, 'messageHandlerInitialized');
 
   // Start a fetch.
   frame.contentWindow.fetch(url);
 
   // Receive the test result from the service worker.
-  return await sawMessage;
+  return wait_for_message();
 };
 
 promise_test(async (t) => {

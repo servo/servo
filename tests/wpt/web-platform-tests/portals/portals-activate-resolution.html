@@ -8,7 +8,7 @@
     portal.src = new URL("resources/simple-portal.html", location.href)
 
     await new Promise((resolve, reject) => {
-      portal.onmessage = resolve;
+      portal.onload = resolve;
       win.document.body.appendChild(portal);
     });
 

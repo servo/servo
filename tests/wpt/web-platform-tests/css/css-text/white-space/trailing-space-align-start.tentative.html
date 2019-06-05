@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Preserved trailing spaces when `text-align: left`</title>
+<link rel="help" href="http://crbug.com/966773">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="match" href="reference/trailing-space-align-start-ref.html">
+<style>
+div {
+  font-family: monospace;
+  font-size: 30px;
+  width: 3ch;
+  overflow: auto;
+}
+.pre { white-space: pre; }
+.pre-wrap { white-space: pre-wrap; }
+</style>
+<body>
+  <div class="pre">0 0 </div>
+  <div class="pre">0 0</div>
+  <div class="pre-wrap">0 0</div>
+  <div class="pre-wrap">0 0 </div>
+  <div class="pre-wrap">0 0 0 0 </div>
+</body>

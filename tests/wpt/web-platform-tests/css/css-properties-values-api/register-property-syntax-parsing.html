@@ -132,6 +132,12 @@ assert_invalid("*+", "banana");
 assert_invalid("|", "banana");
 assert_invalid(" |", "banana");
 assert_invalid("||", "banana");
+assert_invalid("foo bar", "foo bar");
+assert_invalid("foo foo foo", "foo foo foo");
+assert_invalid("foo § bar", "foo § bar");
+assert_invalid("foo \\1F914 bar", "foo \\1F914 bar");
+assert_invalid("<length> <number>", "0px 0");
+assert_invalid("<length> <length> <length>", "0px 0px 0px");
 
 assert_invalid("initial", "initial");
 assert_invalid("inherit", "inherit");
@@ -191,6 +197,8 @@ assert_invalid("<percentage>", "0");
 assert_invalid("<integer>", "1.0");
 assert_invalid("<integer>", "1e0");
 assert_invalid("<number>|foo", "foo var(--foo, bla)");
+assert_invalid("Foo | bar", "foo");
+assert_invalid("Foo | bar", "Bar");
 
 assert_invalid("<angle>", "0");
 assert_invalid("<angle>", "10%");

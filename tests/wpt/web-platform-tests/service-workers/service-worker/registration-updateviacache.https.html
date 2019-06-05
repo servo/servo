@@ -184,4 +184,21 @@
     }, testName);
   }
 
+  promise_test(async t => {
+    await cleanup();
+    t.add_cleanup(cleanup);
+
+    const registration = await navigator.serviceWorker.register(
+        'resources/empty.js',
+        {scope: SCOPE});
+    assert_equals(registration.updateViaCache, 'imports',
+                  'before update attempt');
+
+    const fail = navigator.serviceWorker.register(
+        'resources/malformed-worker.py?parse-error',
+        {scope: SCOPE, updateViaCache: 'none'});
+    await promise_rejects(t, new TypeError(), fail);
+    assert_equals(registration.updateViaCache, 'imports',
+                  'after update attempt');
+  }, 'updateViaCache is not updated if register() rejects');
 </script>

@@ -43,7 +43,6 @@ promise_test(async t => {
     assert_array_equals(await getSortedDirectoryEntries(target_dir), ['old-file']);
 }, 'moveTo() to move a file into a sub-directory');
 
-
 promise_test(async t => {
     const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
     const handle = await createFileWithContents(t, 'old-file', '12345', dir);
@@ -68,5 +67,65 @@ promise_test(async t => {
     assert_equals(await getFileContents(target_handle), '12345');
     assert_array_equals(await getSortedDirectoryEntries(dir), ['target']);
 }, 'moveTo() when target file already exists should overwrite target');
+
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const subdir_name = 'subdir-name';
+    const subdir = await createDirectory(t, subdir_name, /*parent=*/dir);
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/subdir);
+
+    // An empty name indicates that the filename should remain unchanged.
+    await file.moveTo(dir, /*name=*/"");
+    await dir.getFile(file_name);
+}, `moveTo() when target is empty`);
+
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const subdir_name = 'subdir-name';
+    const subdir = await createDirectory(t, subdir_name, /*parent=*/dir);
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/subdir);
+
+    await promise_rejects(t, 'SecurityError', file.moveTo(dir, /*name=*/kCurrentDirectory));
+}, `moveTo() when target is ${kCurrentDirectory}`);
+
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const first_subdir_name = 'first-subdir-name';
+    const first_subdir = await createDirectory(t, first_subdir_name, /*parent=*/dir);
+
+    const second_subdir_name = 'second-subdir-name';
+    const second_subdir = await createDirectory(t, second_subdir_name, /*parent=*/first_subdir);
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/second_subdir);
+
+    await promise_rejects(t, 'SecurityError', file.moveTo(first_subdir, /*name=*/kParentDirectory));
+}, `moveTo() when target is ${kParentDirectory}`);
+
+promise_test(async t => {
+    const dir = await FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' });
+
+    const file_name = 'file-name';
+    const file = await createEmptyFile(t, file_name, /*parent=*/dir);
+
+    const first_subdir_name = 'first-subdir-name';
+    const first_subdir = await createDirectory(t, first_subdir_name, /*parent=*/dir);
+
+    const second_subdir_name = 'second-subdir-name';
+    const second_subdir = await createDirectory(t, second_subdir_name, /*parent=*/first_subdir);
+
+    for (let i = 0; i < kPathSeparators.length; ++i) {
+        const path_with_separator = `${second_subdir_name}${kPathSeparators[i]}${file_name}`;
+        await promise_rejects(t, 'SecurityError', file.moveTo(first_subdir, path_with_separator),
+            `moveTo() must reject names containing "${kPathSeparators[i]}"`);
+    }
+}, 'moveTo() when target contains path separator');
 
 // TODO(mek): Tests to move directories.
