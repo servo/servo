@@ -159,8 +159,6 @@ def parse_property_aliases(alias_list):
     if alias_list:
         for alias in alias_list.split():
             (name, _, pref) = alias.partition(":")
-            if name.startswith("-webkit-") and not pref:
-                pref = "layout.css.prefixes.webkit"
             result.append((name, pref))
     return result
 
@@ -542,10 +540,6 @@ class PropertiesData(object):
         #       See servo/servo#14941.
         if self.product == "gecko":
             for (prefix, pref) in property.extra_prefixes:
-                # All webkit prefixed properties are currently under
-                # control of this pref in Gecko currently.
-                if prefix == "webkit" and not pref:
-                    pref = "layout.css.prefixes.webkit"
                 property.alias.append(('-%s-%s' % (prefix, property.name), pref))
 
     def declare_longhand(self, name, products="gecko servo", **kwargs):
