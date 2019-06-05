@@ -43,8 +43,7 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint};
-use webrender_api::units::{FramebufferIntSize, LayoutVector2D};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
@@ -1159,7 +1158,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 for (id, _) in &self.pipeline_details {
                     let webrender_pipeline_id = id.to_webrender();
                     if let Some(webrender_api::Epoch(epoch)) =
-                        self.webrender.current_epoch(webrender_pipeline_id)
+                        self.webrender.current_epoch(self.webrender_document,
+                                                     webrender_pipeline_id)
                     {
                         let epoch = Epoch(epoch);
                         pipeline_epochs.insert(*id, epoch);
@@ -1295,7 +1295,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             for (id, pending_epoch) in &self.pending_paint_metrics {
                 // we get the last painted frame id from webrender
                 if let Some(webrender_api::Epoch(epoch)) =
-                    self.webrender.current_epoch(id.to_webrender())
+                    self.webrender.current_epoch(self.webrender_document, id.to_webrender())
                 {
                     // and check if it is the one the layout thread is expecting,
                     let epoch = Epoch(epoch);
