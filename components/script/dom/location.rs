@@ -47,7 +47,7 @@ impl Location {
         replacement_flag: HistoryEntryReplacement,
         reload_triggered: bool,
     ) {
-        let referrer = Referrer::ReferrerUrl(url.clone());
+        let referrer = Referrer::ReferrerUrl(self.window.get_url());
         let referrer_policy = self.window.Document().get_referrer_policy();
         let pipeline_id = self.window.upcast::<GlobalScope>().pipeline_id();
         let load_data = LoadData::new(

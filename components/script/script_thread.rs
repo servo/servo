@@ -881,6 +881,7 @@ impl ScriptThread {
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+                    println!("Check origin: {:?} {:?}", load_data.source_origin, target_origin.ascii_serialization());
                     if load_data.source_origin == target_origin.ascii_serialization() {
                         ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
                         sender

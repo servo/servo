@@ -111,11 +111,16 @@ function indexedTests() {
 function specialTargetTest(target) {
   if (["_self", "_parent", "_top"].includes(target)) {
     var t = async_test("noopener window.open targeting " + target);
-    t.openedWindow = window.open(`javascript:var w2 = window.open("", "${target}", "noopener"); this.checkValues(w2); this.close(); void(0);`);
+    console.log("start")
+    t.openedWindow = window.open(`javascript:console.log("JS URL"); var w2 = window.open("", "${target}", "noopener"); this.checkValues(w2); this.close(); void(0);`);
+    console.log("opened")
+    console.log(t.openedWindow.opener == window)
     assert_equals(t.openedWindow.opener, window);
     t.openedWindow.checkValues = t.step_func_done(function(win) {
+      console.log("Callback")
       assert_equals(win, this.openedWindow);
     });
+    console.log("End")
   } else {
     throw 'testError: special target must be one of: _self, _parent, _top'
   }
