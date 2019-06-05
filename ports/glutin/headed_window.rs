@@ -27,9 +27,8 @@ use servo::script_traits::{TouchEventType, WheelMode, WheelDelta};
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation,
-};
+use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
@@ -499,7 +498,7 @@ impl WindowMethods for Window {
             .expect("Failed to get window inner size.");
         let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
         let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
-        let framebuffer = FramebufferIntSize::from_untyped(&viewport.size.to_untyped());
+        let framebuffer = DeviceIntSize::from_untyped(&viewport.size.to_untyped());
 
         EmbedderCoordinates {
             viewport,

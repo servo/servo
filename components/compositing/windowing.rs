@@ -20,7 +20,7 @@ use std::time::Duration;
 use style_traits::DevicePixel;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
-use webrender_api::units::{DevicePoint, FramebufferIntSize};
+use webrender_api::units::DevicePoint;
 use webvr::VRServiceManager;
 use webvr_traits::WebVRMainThreadHeartbeat;
 
@@ -181,7 +181,7 @@ pub struct EmbedderCoordinates {
     /// Size of the native window.
     pub window: (DeviceIntSize, DeviceIntPoint),
     /// Size of the GL buffer in the window.
-    pub framebuffer: FramebufferIntSize,
+    pub framebuffer: DeviceIntSize,
     /// Coordinates of the document within the framebuffer.
     pub viewport: DeviceIntRect,
 }
