@@ -27,6 +27,7 @@ fn test_exit() {
         MemProfilerChan(mtx),
         create_embedder_proxy(),
         None,
+        None,
     );
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();

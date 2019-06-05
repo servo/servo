@@ -630,6 +630,7 @@ fn create_constellation(
         mem_profiler_chan.clone(),
         embedder_proxy.clone(),
         config_dir,
+        opts.certificate_path.clone(),
     );
     let font_cache_thread = FontCacheThread::new(
         public_resource_threads.sender(),
