@@ -1200,7 +1200,7 @@ impl LayoutThread {
                             &mut build_state.indexable_text,
                             IndexableText::default(),
                         );
-                        rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
+                        rw_data.display_list = Some(build_state.to_display_list());
                     }
                 }
 
@@ -1217,7 +1217,8 @@ impl LayoutThread {
                 if let Some(document) = document {
                     document.will_paint();
                 }
-                let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
+
+                let display_list = rw_data.display_list.as_mut().unwrap();
 
                 if self.dump_display_list {
                     display_list.print();
@@ -1229,11 +1230,7 @@ impl LayoutThread {
                 debug!("Layout done!");
 
                 // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let builder = rw_data
-                    .display_list
-                    .as_ref()
-                    .unwrap()
-                    .convert_to_webrender(self.id);
+                let builder = display_list.convert_to_webrender(self.id);
 
                 let viewport_size = Size2D::new(
                     self.viewport_size.width.to_f32_px(),

@@ -51,7 +51,7 @@ pub struct LayoutThreadData {
     pub constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The root stacking context.
-    pub display_list: Option<Arc<DisplayList>>,
+    pub display_list: Option<DisplayList>,
 
     pub indexable_text: IndexableText,
 
