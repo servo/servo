@@ -69,3 +69,13 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.initial-letter.enabled",
     spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials",
 )}
+
+${helpers.predefined_type(
+   "text-decoration-width",
+   "LengthOrAuto",
+   "computed::LengthOrAuto::auto()",
+   products="gecko",
+   animation_value_type="ComputedValue",
+   gecko_pref="layout.css.text-decoration-width.enabled",
+   spec="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property"
+)}
