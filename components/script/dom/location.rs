@@ -246,8 +246,8 @@ impl LocationMethods for Location {
         // restructure set_url_component to accomodate various checks.
         let mut try_parse = ServoUrl::from_url(url);
         UrlHelper::SetProtocol(&mut try_parse, value.clone());
-        match try_parse.scheme() {
-            "http:" | "https:" => {
+        match try_parse.scheme().split(":").nth(0) {
+            Some("http") | Some("https") => {
                 self.set_url_component(value, UrlHelper::SetProtocol);
             },
             _ => {

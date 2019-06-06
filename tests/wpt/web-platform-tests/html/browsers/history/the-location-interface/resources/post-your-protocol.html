@@ -1,4 +1,5 @@
 <script>
   var id = location.search.substring(1);
   parent.postMessage({ id: id, protocol: location.protocol }, "*");
+  console.log("posting")
 </script>
