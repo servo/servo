@@ -65,7 +65,6 @@ impl From<Angle> for CoordDataValue {
 }
 
 fn line_direction(horizontal: LengthPercentage, vertical: LengthPercentage) -> LineDirection {
-    use crate::values::computed::position::Position;
     use crate::values::specified::position::{X, Y};
 
     let horizontal_percentage = horizontal.as_percentage();
@@ -107,13 +106,7 @@ fn line_direction(horizontal: LengthPercentage, vertical: LengthPercentage) -> L
         }
     }
 
-    LineDirection::MozPosition(
-        Some(Position {
-            horizontal,
-            vertical,
-        }),
-        None,
-    )
+    unreachable!("Unexpected line direction");
 }
 
 impl nsStyleImage {
@@ -241,20 +234,10 @@ impl nsStyleImage {
                                 .set_value(CoordDataValue::Percent(percent_y));
                         }
                     },
-                    #[cfg(feature = "gecko")]
-                    LineDirection::MozPosition(position, angle) => unsafe {
-                        if let Some(position) = position {
-                            (*gecko_gradient).mBgPosX.set(position.horizontal);
-                            (*gecko_gradient).mBgPosY.set(position.vertical);
-                        }
-                        if let Some(angle) = angle {
-                            (*gecko_gradient).mAngle.set(angle);
-                        }
-                    },
                 }
                 gecko_gradient
             },
-            GradientKind::Radial(shape, position, angle) => {
+            GradientKind::Radial(shape, position) => {
                 let keyword_to_gecko_size = |keyword| match keyword {
                     ShapeExtent::ClosestSide => CLOSEST_SIDE,
                     ShapeExtent::FarthestSide => FARTHEST_SIDE,
@@ -293,13 +276,6 @@ impl nsStyleImage {
                         stop_count as u32,
                     )
                 };
-
-                // Clear mBgPos field and set mAngle if angle is set. Otherwise clear it.
-                unsafe {
-                    if let Some(angle) = angle {
-                        (*gecko_gradient).mAngle.set(angle);
-                    }
-                }
 
                 // Setting radius values depending shape
                 match shape {
@@ -405,30 +381,19 @@ impl nsStyleImage {
         let gecko_gradient = bindings::Gecko_GetGradientImageValue(self)
             .as_ref()
             .unwrap();
-        let angle = Angle::from_gecko_style_coord(&gecko_gradient.mAngle);
         let horizontal_style = LengthPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosX);
         let vertical_style = LengthPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosY);
 
         let kind = match gecko_gradient.mShape as u32 {
             structs::NS_STYLE_GRADIENT_SHAPE_LINEAR => {
+                let angle = Angle::from_gecko_style_coord(&gecko_gradient.mAngle);
                 let line_direction = match (angle, horizontal_style, vertical_style) {
                     (Some(a), None, None) => LineDirection::Angle(a),
                     (None, Some(horizontal), Some(vertical)) => {
                         line_direction(horizontal, vertical)
                     },
-                    (Some(_), Some(horizontal), Some(vertical)) => LineDirection::MozPosition(
-                        Some(Position {
-                            horizontal,
-                            vertical,
-                        }),
-                        angle,
-                    ),
                     _ => {
-                        debug_assert!(
-                            horizontal_style.is_none() && vertical_style.is_none(),
-                            "Unexpected linear gradient direction"
-                        );
-                        LineDirection::MozPosition(None, None)
+                        unreachable!("unexpected line direction for linear gradient direction");
                     },
                 };
                 GradientKind::Linear(line_direction)
@@ -507,7 +472,7 @@ impl nsStyleImage {
                     },
                 };
 
-                GradientKind::Radial(shape, position, angle)
+                GradientKind::Radial(shape, position)
             },
         };
 
