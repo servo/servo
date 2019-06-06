@@ -11,6 +11,7 @@
   <meta name="assert" content="Test checks that css properties of grid layout exist.">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
   <style>
     #container {
         width: 800px;
@@ -34,6 +35,8 @@
   </div>
 
   <script>
+  setup({explicit_done: true});
+  document.fonts.ready.then(()=> {
     var myDiv = document.getElementById('myDiv')
 
     test(function(){
@@ -228,6 +231,8 @@
         'reset': ['auto', 'auto'],
       },
     })
+    done();
+  });
   </script>
 </body>
 </html>

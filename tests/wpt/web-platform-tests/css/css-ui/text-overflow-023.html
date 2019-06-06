@@ -15,6 +15,7 @@
 -->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
 #parent {
   position: absolute;
@@ -27,9 +28,13 @@
 </style>
 <div id=parent>&nbsp;&nbsp;<span id=target>&nbsp;&nbsp;</span></div>
 <script>
-test(
-  function() {
-    var e = document.elementFromPoint(125,25);
-    assert_equals(e.id,"target", "the element targeted by a hit on the ellipsis is the elided inline.");
-  }, "Checks hit testing on the ellipsis");
+setup({explicit_done: true});
+document.fonts.ready.then(()=> {
+  test(
+    function() {
+      var e = document.elementFromPoint(125,25);
+      assert_equals(e.id,"target", "the element targeted by a hit on the ellipsis is the elided inline.");
+    }, "Checks hit testing on the ellipsis");
+  done();
+});
 </script>
