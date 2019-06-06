@@ -252,7 +252,7 @@ impl LocationMethods for Location {
             },
             other => {
                 // Step 6, If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
-            }
+            },
         }
         // TODO: Step 5, If possibleFailure is failure, then throw a "SyntaxError" DOMException.
         Ok(())
