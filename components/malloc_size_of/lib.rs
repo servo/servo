@@ -43,7 +43,7 @@
 //!   measured as well as the thing it points to. E.g.
 //!   `<Box<_> as MallocSizeOf>::size_of(field, ops)`.
 //!
-//!   Note: WebRender has a reduced for of this crate, so that we can avoid
+//!   Note: WebRender has a reduced fork of this crate, so that we can avoid
 //!   publishing this crate on crates.io.
 
 extern crate app_units;
