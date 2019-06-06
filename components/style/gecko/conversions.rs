@@ -389,6 +389,7 @@ impl nsStyleImage {
                 let angle = Angle::from_gecko_style_coord(&gecko_gradient.mAngle);
                 let line_direction = match (angle, horizontal_style, vertical_style) {
                     (Some(a), None, None) => LineDirection::Angle(a),
+                    (None, None, None) => LineDirection::Angle(Angle::from_radians(PI)),
                     (None, Some(horizontal), Some(vertical)) => {
                         line_direction(horizontal, vertical)
                     },
