@@ -281,7 +281,7 @@ impl WindowProxy {
                 .unwrap();
             let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
             let load_data = LoadData::new(
-                document.url().origin().ascii_serialization(),
+                document.url().origin(),
                 blank_url,
                 None,
                 Some(Referrer::ReferrerUrl(document.url().clone())),
@@ -445,7 +445,7 @@ impl WindowProxy {
                 // about:blank auxiliary, otherwise a JS url passed to window.open
                 // will not pass the same-origin check performed before evaluating the JS.
                 // Normally, the origin of the document where the navigation was initiated should be used.
-                target_document.url().origin().ascii_serialization(),
+                target_document.url().origin(),
                 url,
                 Some(pipeline_id),
                 Some(referrer),

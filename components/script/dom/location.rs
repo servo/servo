@@ -44,14 +44,14 @@ impl Location {
     fn navigate(
         &self,
         url: ServoUrl,
+        referrer: Referrer,
         replacement_flag: HistoryEntryReplacement,
         reload_triggered: bool,
     ) {
-        let referrer = Referrer::ReferrerUrl(self.window.get_url());
         let referrer_policy = self.window.Document().get_referrer_policy();
         let pipeline_id = self.window.upcast::<GlobalScope>().pipeline_id();
         let load_data = LoadData::new(
-            self.window.get_url().origin().ascii_serialization(),
+            self.window.get_url().origin(),
             url,
             Some(pipeline_id),
             Some(referrer),
@@ -68,8 +68,9 @@ impl Location {
 
     fn set_url_component(&self, value: USVString, setter: fn(&mut ServoUrl, USVString)) {
         let mut url = self.window.get_url();
+        let referrer = Referrer::ReferrerUrl(url.clone());
         setter(&mut url, value);
-        self.navigate(url, HistoryEntryReplacement::Disabled, false);
+        self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
     }
 
     fn check_same_origin_domain(&self) -> ErrorResult {
@@ -88,7 +89,8 @@ impl Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
     pub fn reload_without_origin_check(&self) {
         let url = self.get_url();
-        self.navigate(url, HistoryEntryReplacement::Enabled, true);
+        let referrer = Referrer::ReferrerUrl(url.clone());
+        self.navigate(url, referrer, HistoryEntryReplacement::Enabled, true);
     }
 
     #[allow(dead_code)]
@@ -105,7 +107,8 @@ impl LocationMethods for Location {
         //       _entry settings object_.
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
-            self.navigate(url, HistoryEntryReplacement::Disabled, false);
+            let referrer = Referrer::ReferrerUrl(base_url.clone());
+            self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -116,7 +119,8 @@ impl LocationMethods for Location {
     fn Reload(&self) -> ErrorResult {
         self.check_same_origin_domain()?;
         let url = self.get_url();
-        self.navigate(url, HistoryEntryReplacement::Enabled, true);
+        let referrer = Referrer::ReferrerUrl(url.clone());
+        self.navigate(url, referrer, HistoryEntryReplacement::Enabled, true);
         Ok(())
     }
 
@@ -127,7 +131,8 @@ impl LocationMethods for Location {
         //       _entry settings object_.
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
-            self.navigate(url, HistoryEntryReplacement::Enabled, false);
+            let referrer = Referrer::ReferrerUrl(base_url.clone());
+            self.navigate(url, referrer, HistoryEntryReplacement::Enabled, false);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -196,7 +201,8 @@ impl LocationMethods for Location {
             Ok(url) => url,
             Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
         };
-        self.navigate(url, HistoryEntryReplacement::Disabled, false);
+        let referrer = Referrer::ReferrerUrl(current_url.clone());
+        self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
         Ok(())
     }
 

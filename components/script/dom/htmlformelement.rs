@@ -401,7 +401,7 @@ impl HTMLFormElement {
         };
         let target_window = target_document.window();
         let mut load_data = LoadData::new(
-            doc.url().origin().ascii_serialization(),
+            doc.url().origin(),
             action_components,
             None,
             Some(Referrer::ReferrerUrl(target_document.url())),

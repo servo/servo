@@ -685,7 +685,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
         println!("Url: {:?}", url);
         let load_data = LoadData::new(
-            document.url().origin().ascii_serialization(),
+            document.url().origin(),
             url,
             Some(pipeline_id),
             Some(referrer),

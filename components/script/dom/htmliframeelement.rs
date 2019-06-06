@@ -143,7 +143,7 @@ impl HTMLIFrameElement {
                 if let Some(window_proxy) = window_proxy {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
-                    if load_data.source_origin == document.url().origin().ascii_serialization() {
+                    if load_data.source_origin == document.url().origin() {
                         ScriptThread::eval_js_url(&window_proxy.global(), load_data);
                     }
                 }
@@ -274,7 +274,7 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         let load_data = LoadData::new(
-            document.url().origin().ascii_serialization(),
+            document.url().origin(),
             url,
             creator_pipeline_id,
             Some(Referrer::ReferrerUrl(document.url())),
@@ -305,7 +305,7 @@ impl HTMLIFrameElement {
         let window = window_from_node(self);
         let pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
         let load_data = LoadData::new(
-            document.url().origin().ascii_serialization(),
+            document.url().origin(),
             url,
             pipeline_id,
             Some(Referrer::ReferrerUrl(document.url().clone())),

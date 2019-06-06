@@ -1163,7 +1163,7 @@ where
             // However, if the id is not encompassed by another change, it will be.
             FromCompositorMsg::LoadUrl(top_level_browsing_context_id, url) => {
                 let load_data =
-                    LoadData::new(url.origin().ascii_serialization(), url, None, None, None);
+                    LoadData::new(url.origin(), url, None, None, None);
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,
@@ -1765,7 +1765,7 @@ where
 
         let new_pipeline_id = PipelineId::new();
         let load_data = LoadData::new(
-            failure_url.origin().ascii_serialization(),
+            failure_url.origin(),
             failure_url,
             None,
             None,
@@ -1889,7 +1889,7 @@ where
         );
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let load_data = LoadData::new(url.origin().ascii_serialization(), url, None, None, None);
+        let load_data = LoadData::new(url.origin(), url, None, None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
         let is_visible = true;
@@ -2052,7 +2052,7 @@ where
 
             // TODO - loaddata here should have referrer info (not None, None)
             LoadData::new(
-                url.origin().ascii_serialization(),
+                url.origin(),
                 url,
                 Some(parent_pipeline_id),
                 None,
@@ -2145,7 +2145,7 @@ where
 
         // TODO: Referrer?
         let load_data = LoadData::new(
-            url.origin().ascii_serialization(),
+            url.origin(),
             url.clone(),
             Some(parent_pipeline_id),
             None,
@@ -2213,7 +2213,7 @@ where
 
         // TODO: Referrer?
         let load_data = LoadData::new(
-            url.origin().ascii_serialization(),
+            url.origin(),
             url.clone(),
             None,
             None,
