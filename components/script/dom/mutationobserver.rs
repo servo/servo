@@ -132,7 +132,12 @@ impl MutationObserver {
 
         // Step 2 & 3
         for node in target.inclusive_ancestors(ShadowIncluding::No) {
-            for registered in &*node.registered_mutation_observers() {
+            let registered = node.registered_mutation_observers();
+            if registered.is_none() {
+                continue;
+            }
+
+            for registered in &*registered.unwrap() {
                 if &*node != target && !registered.options.subtree {
                     continue;
                 }
@@ -297,7 +302,7 @@ impl MutationObserverMethods for MutationObserver {
         // Step 7
         let add_new_observer = {
             let mut replaced = false;
-            for registered in &mut *target.registered_mutation_observers() {
+            for registered in &mut *target.registered_mutation_observers_mut() {
                 if &*registered.observer as *const MutationObserver !=
                     self as *const MutationObserver
                 {
