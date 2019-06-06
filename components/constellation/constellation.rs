@@ -1162,8 +1162,7 @@ where
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
             FromCompositorMsg::LoadUrl(top_level_browsing_context_id, url) => {
-                let load_data =
-                    LoadData::new(url.origin(), url, None, None, None);
+                let load_data = LoadData::new(url.origin(), url, None, None, None);
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,
@@ -1764,13 +1763,7 @@ where
         warn!("creating replacement pipeline for about:failure");
 
         let new_pipeline_id = PipelineId::new();
-        let load_data = LoadData::new(
-            failure_url.origin(),
-            failure_url,
-            None,
-            None,
-            None,
-        );
+        let load_data = LoadData::new(failure_url.origin(), failure_url, None, None, None);
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
         self.new_pipeline(
@@ -2051,13 +2044,7 @@ where
             };
 
             // TODO - loaddata here should have referrer info (not None, None)
-            LoadData::new(
-                url.origin(),
-                url,
-                Some(parent_pipeline_id),
-                None,
-                None,
-            )
+            LoadData::new(url.origin(), url, Some(parent_pipeline_id), None, None)
         });
 
         let is_parent_private = {
@@ -2212,13 +2199,7 @@ where
         let url = ServoUrl::parse("about:blank").expect("infallible");
 
         // TODO: Referrer?
-        let load_data = LoadData::new(
-            url.origin(),
-            url.clone(),
-            None,
-            None,
-            None,
-        );
+        let load_data = LoadData::new(url.origin(), url.clone(), None, None, None);
 
         let (script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
