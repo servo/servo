@@ -224,6 +224,7 @@ where
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
+            opts.profile_heartbeats,
         );
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
         let debugger_chan = opts.debugger_port.map(|port| debugger::start_server(port));
