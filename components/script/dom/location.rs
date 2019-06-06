@@ -250,7 +250,7 @@ impl LocationMethods for Location {
             "http:" | "https:" => {
                 self.set_url_component(value, UrlHelper::SetProtocol);
             },
-            other => {
+            _ => {
                 // Step 6, If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
             },
         }
