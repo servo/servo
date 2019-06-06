@@ -858,10 +858,9 @@ impl ScriptThread {
     /// for now only used to prevent cross-origin JS url evaluation.
     pub fn check_same_origin(source: &ImmutableOrigin, target: &ImmutableOrigin) -> bool {
         match (source, target) {
-            (ImmutableOrigin::Opaque(_), ImmutableOrigin::Opaque(_)) => return true,
-            _ => {},
+            (_, ImmutableOrigin::Opaque(_)) => true,
+            _ => source == target,
         }
-        source == target
     }
 
     /// Step 13 of https://html.spec.whatwg.org/multipage/#navigate
@@ -893,6 +892,7 @@ impl ScriptThread {
                     println!("Starting task");
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
                          println!("Starting task 1");
+                         println!("Origin check {:?} {:?}", load_data.source_origin, window.get_url().origin());
                         if ScriptThread::check_same_origin(&load_data.source_origin, &window.get_url().origin()) {
                              println!("Starting task 2");
                             ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
