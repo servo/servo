@@ -440,6 +440,7 @@ impl WindowProxy {
             // Step 14.5
             let referrer_policy = target_document.get_referrer_policy();
             let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
+            println!("Setting origin to {:?}", target_document.url().origin());
             let load_data = LoadData::new(
                 // Note on security: we set the origin to that of the newly created
                 // about:blank auxiliary, otherwise a JS url passed to window.open

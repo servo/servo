@@ -854,6 +854,16 @@ impl ScriptThread {
         });
     }
 
+    /// Check that two origins are "similar enough",
+    /// for now only used to prevent cross-origin JS url evaluation.
+    pub fn check_same_origin(source: &ImmutableOrigin, target: &ImmutableOrigin) -> bool {
+        match (source, target) {
+            (ImmutableOrigin::Opaque(_), ImmutableOrigin::Opaque(_)) => return true,
+            _ => {},
+        }
+        source == target
+    }
+
     /// Step 13 of https://html.spec.whatwg.org/multipage/#navigate
     pub fn navigate(
         pipeline_id: PipelineId,
@@ -877,15 +887,19 @@ impl ScriptThread {
                 let global = window.upcast::<GlobalScope>();
                 let trusted_global = Trusted::new(global);
                 let sender = script_thread.script_sender.clone();
-                let target_origin = window.get_url().origin();
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
-                    if load_data.source_origin == target_origin {
-                        ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
-                        sender
-                            .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
-                            .unwrap();
+                    println!("Starting task");
+                    if let Some(window) = trusted_global.root().downcast::<Window>() {
+                         println!("Starting task 1");
+                        if ScriptThread::check_same_origin(&load_data.source_origin, &window.get_url().origin()) {
+                             println!("Starting task 2");
+                            ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
+                            sender
+                                .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                                .unwrap();
+                        }
                     }
                 });
                 global
