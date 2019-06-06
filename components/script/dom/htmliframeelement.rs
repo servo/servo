@@ -143,7 +143,10 @@ impl HTMLIFrameElement {
                 if let Some(window_proxy) = window_proxy {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
-                    if ScriptThread::check_same_origin(&load_data.source_origin, &document.url().origin()) {
+                    if ScriptThread::check_same_origin(
+                        &load_data.source_origin,
+                        &document.url().origin(),
+                    ) {
                         ScriptThread::eval_js_url(&window_proxy.global(), load_data);
                     }
                 }
