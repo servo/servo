@@ -13,7 +13,7 @@ interface CustomElementRegistry {
   Promise<void> whenDefined(DOMString name);
 };
 
-callback CustomElementConstructor = any();
+callback CustomElementConstructor = HTMLElement();
 
 dictionary ElementDefinitionOptions {
   DOMString extends;
