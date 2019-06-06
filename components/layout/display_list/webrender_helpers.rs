@@ -163,7 +163,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         clip_id: common.clip_id,
                                     },
                                     item.iframe.to_webrender(),
-                                    false);
+                                    true);
             },
             DisplayItem::PushStackingContext(ref mut item) => {
                 let stacking_context = &item.stacking_context;
