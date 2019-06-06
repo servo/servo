@@ -998,7 +998,7 @@ where
                 "Adding new host entry {} for top-level browsing context {}.",
                 host, top_level_browsing_context_id
             );
-            let _ = self.set_event_loop(
+            self.set_event_loop(
                 Rc::downgrade(&pipeline.pipeline.event_loop),
                 host,
                 top_level_browsing_context_id,
