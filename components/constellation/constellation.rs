@@ -781,17 +781,16 @@ where
         host: &Host,
         top_level_browsing_context_id: &TopLevelBrowsingContextId,
         opener: &Option<BrowsingContextId>,
-    ) -> Option<Weak<EventLoop>> {
+    ) -> Result<Weak<EventLoop>, &'static str> {
         let bc_group = match opener {
             Some(browsing_context_id) => {
-                let opener = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(bc) => bc,
-                    None => {
-                        warn!("Opener has closed before the openee has started");
-                        return None;
-                    },
-                };
-                self.browsing_context_group_set.get(&opener.bc_group_id)
+                let opener = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .ok_or("Opener was closed before the openee started")?;
+                self.browsing_context_group_set
+                    .get(&opener.bc_group_id)
+                    .ok_or("Opener belongs to an unknow BC group")?
             },
             None => self
                 .browsing_context_group_set
@@ -806,18 +805,16 @@ where
                         None
                     }
                 })
-                .last(),
+                .last()
+                .ok_or(
+                    "Trying to get an event-loop for a top-level belonging to an unknown BC group",
+                )?,
         };
-        let event_loop = if let Some(bc_group) = bc_group {
-            bc_group.event_loops.get(host)
-        } else {
-            warn!("Trying to get an event-loop from an unknown BC group");
-            return None;
-        };
-        if let Some(event_loop) = event_loop {
-            return Some(event_loop.clone());
-        }
-        None
+        bc_group
+            .event_loops
+            .get(host)
+            .ok_or("Trying to get an event-loop from an unknown BC group")
+            .map(|event_loop| event_loop.clone())
     }
 
     fn set_event_loop(
@@ -908,12 +905,22 @@ where
                     match reg_host(&load_data.url) {
                         None => (None, None),
                         Some(host) => {
-                            let event_loop = self
-                                .get_event_loop(&host, &top_level_browsing_context_id, &opener)
-                                .and_then(|weak| weak.upgrade());
-                            match event_loop {
-                                None => (None, Some(host)),
-                                Some(event_loop) => (Some(event_loop), None),
+                            match self.get_event_loop(
+                                &host,
+                                &top_level_browsing_context_id,
+                                &opener,
+                            ) {
+                                Err(err) => {
+                                    warn!("{}", err);
+                                    (None, Some(host))
+                                },
+                                Ok(event_loop) => {
+                                    if let Some(event_loop) = event_loop.upgrade() {
+                                        (Some(event_loop), None)
+                                    } else {
+                                        (None, Some(host))
+                                    }
+                                },
                             }
                         },
                     }
