@@ -28,10 +28,10 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;
 
 /// The specified value of a horizontal position.
-pub type HorizontalPosition = PositionComponent<X>;
+pub type HorizontalPosition = PositionComponent<HorizontalPositionKeyword>;
 
 /// The specified value of a vertical position.
-pub type VerticalPosition = PositionComponent<Y>;
+pub type VerticalPosition = PositionComponent<VerticalPositionKeyword>;
 
 /// The specified value of a component of a CSS `<position>`.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
@@ -61,7 +61,8 @@ pub enum PositionComponent<S> {
     ToShmem,
 )]
 #[allow(missing_docs)]
-pub enum X {
+#[repr(u8)]
+pub enum HorizontalPositionKeyword {
     Left,
     Right,
 }
@@ -83,7 +84,8 @@ pub enum X {
     ToShmem,
 )]
 #[allow(missing_docs)]
-pub enum Y {
+#[repr(u8)]
+pub enum VerticalPositionKeyword {
     Top,
     Bottom,
 }
@@ -123,7 +125,7 @@ impl Position {
                     let y_pos = PositionComponent::Center;
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_keyword) = input.try(Y::parse) {
+                if let Ok(y_keyword) = input.try(VerticalPositionKeyword::parse) {
                     let y_lp = input
                         .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                         .ok();
@@ -136,7 +138,7 @@ impl Position {
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(x_pos @ PositionComponent::Length(_)) => {
-                if let Ok(y_keyword) = input.try(Y::parse) {
+                if let Ok(y_keyword) = input.try(VerticalPositionKeyword::parse) {
                     let y_pos = PositionComponent::Side(y_keyword, None);
                     return Ok(Self::new(x_pos, y_pos));
                 }
@@ -152,12 +154,12 @@ impl Position {
             },
             Err(_) => {},
         }
-        let y_keyword = Y::parse(input)?;
+        let y_keyword = VerticalPositionKeyword::parse(input)?;
         let lp_and_x_pos: Result<_, ParseError> = input.try(|i| {
             let y_lp = i
                 .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                 .ok();
-            if let Ok(x_keyword) = i.try(X::parse) {
+            if let Ok(x_keyword) = i.try(HorizontalPositionKeyword::parse) {
                 let x_lp = i
                     .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                     .ok();
@@ -301,27 +303,27 @@ pub trait Side {
     fn is_start(&self) -> bool;
 }
 
-impl Side for X {
+impl Side for HorizontalPositionKeyword {
     #[inline]
     fn start() -> Self {
-        X::Left
+        HorizontalPositionKeyword::Left
     }
 
     #[inline]
     fn is_start(&self) -> bool {
-        *self == X::Left
+        *self == Self::start()
     }
 }
 
-impl Side for Y {
+impl Side for VerticalPositionKeyword {
     #[inline]
     fn start() -> Self {
-        Y::Top
+        VerticalPositionKeyword::Top
     }
 
     #[inline]
     fn is_start(&self) -> bool {
-        *self == Y::Top
+        *self == Self::start()
     }
 }
 

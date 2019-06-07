@@ -9,7 +9,7 @@ use crate::values::computed::{Context, LengthPercentage as ComputedLengthPercent
 use crate::values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use crate::values::generics::transform as generic;
 use crate::values::generics::transform::{Matrix, Matrix3D};
-use crate::values::specified::position::{Side, X, Y};
+use crate::values::specified::position::{Side, HorizontalPositionKeyword, VerticalPositionKeyword};
 use crate::values::specified::{self, Angle, Integer, Length, LengthPercentage, Number};
 use crate::Zero;
 use cssparser::Parser;
@@ -25,7 +25,11 @@ pub type TransformOperation =
 pub type Transform = generic::Transform<TransformOperation>;
 
 /// The specified value of a CSS `<transform-origin>`
-pub type TransformOrigin = generic::TransformOrigin<OriginComponent<X>, OriginComponent<Y>, Length>;
+pub type TransformOrigin = generic::TransformOrigin<
+    OriginComponent<HorizontalPositionKeyword>,
+    OriginComponent<VerticalPositionKeyword>,
+    Length,
+>;
 
 impl Transform {
     /// Internal parse function for deciding if we wish to accept prefixed values or not
@@ -263,7 +267,7 @@ impl Parse for TransformOrigin {
                     return Ok(Self::new(x_origin, y_origin, depth));
                 }
                 let y_origin = OriginComponent::Center;
-                if let Ok(x_keyword) = input.try(X::parse) {
+                if let Ok(x_keyword) = input.try(HorizontalPositionKeyword::parse) {
                     let x_origin = OriginComponent::Side(x_keyword);
                     let depth = parse_depth(input);
                     return Ok(Self::new(x_origin, y_origin, depth));
@@ -282,9 +286,9 @@ impl Parse for TransformOrigin {
             },
             Err(_) => {},
         }
-        let y_keyword = Y::parse(input)?;
+        let y_keyword = VerticalPositionKeyword::parse(input)?;
         let y_origin = OriginComponent::Side(y_keyword);
-        if let Ok(x_keyword) = input.try(X::parse) {
+        if let Ok(x_keyword) = input.try(HorizontalPositionKeyword::parse) {
             let x_origin = OriginComponent::Side(x_keyword);
             let depth = parse_depth(input);
             return Ok(Self::new(x_origin, y_origin, depth));
