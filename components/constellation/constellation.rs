@@ -126,7 +126,8 @@ use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
-    BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
+    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
+    TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::pub_domains::reg_host;
@@ -159,7 +160,7 @@ use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
@@ -182,6 +183,24 @@ struct Browser {
 
     /// The joint session history for this browser.
     session_history: JointSessionHistory,
+}
+
+/// A browsing context group.
+///
+/// https://html.spec.whatwg.org/multipage/#browsing-context-group
+#[derive(Clone, Default)]
+struct BrowsingContextGroup {
+    /// A browsing context group holds a set of top-level browsing contexts.
+    top_level_browsing_context_set: HashSet<TopLevelBrowsingContextId>,
+
+    /// The set of all event loops in this BrowsingContextGroup.
+    /// We store the event loops in a map
+    /// indexed by registered domain name (as a `Host`) to event loops.
+    /// It is important that scripts with the same eTLD+1,
+    /// who are part of the same browsing-context group
+    /// share an event loop, since they can use `document.domain`
+    /// to become same-origin, at which point they can share DOM objects.
+    event_loops: HashMap<Host, Weak<EventLoop>>,
 }
 
 /// The `Constellation` itself. In the servo browser, there is one
@@ -313,20 +332,20 @@ pub struct Constellation<Message, LTF, STF> {
     /// WebRender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
 
-    /// The set of all event loops in the browser.
-    /// We store the event loops in a map
-    /// indexed by registered domain name (as a `Host`) to event loops.
-    /// It is important that scripts with the same eTLD+1
-    /// share an event loop, since they can use `document.domain`
-    /// to become same-origin, at which point they can share DOM objects.
-    event_loops: HashMap<Host, Weak<EventLoop>>,
-
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
 
     /// The set of all the browsing contexts in the browser.
     browsing_contexts: HashMap<BrowsingContextId, BrowsingContext>,
+
+    /// A user agent holds a a set of browsing context groups.
+    ///
+    /// https://html.spec.whatwg.org/multipage/#browsing-context-group-set
+    browsing_context_group_set: HashMap<BrowsingContextGroupId, BrowsingContextGroup>,
+
+    /// The Id counter for BrowsingContextGroup.
+    browsing_context_group_next_id: u32,
 
     /// When a navigation is performed, we do not immediately update
     /// the session history, instead we ask the event loop to begin loading
@@ -694,7 +713,8 @@ where
                     swmanager_chan: None,
                     swmanager_receiver: swmanager_receiver,
                     swmanager_sender: sw_mgr_clone,
-                    event_loops: HashMap::new(),
+                    browsing_context_group_set: Default::default(),
+                    browsing_context_group_next_id: Default::default(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -765,6 +785,106 @@ where
         namespace_id
     }
 
+    fn next_browsing_context_group_id(&mut self) -> BrowsingContextGroupId {
+        let id = self.browsing_context_group_next_id;
+        self.browsing_context_group_next_id += 1;
+        BrowsingContextGroupId(id)
+    }
+
+    fn get_event_loop(
+        &mut self,
+        host: &Host,
+        top_level_browsing_context_id: &TopLevelBrowsingContextId,
+        opener: &Option<BrowsingContextId>,
+    ) -> Result<Weak<EventLoop>, &'static str> {
+        let bc_group = match opener {
+            Some(browsing_context_id) => {
+                let opener = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .ok_or("Opener was closed before the openee started")?;
+                self.browsing_context_group_set
+                    .get(&opener.bc_group_id)
+                    .ok_or("Opener belongs to an unknow BC group")?
+            },
+            None => self
+                .browsing_context_group_set
+                .iter()
+                .filter_map(|(_, bc_group)| {
+                    if bc_group
+                        .top_level_browsing_context_set
+                        .contains(&top_level_browsing_context_id)
+                    {
+                        Some(bc_group)
+                    } else {
+                        None
+                    }
+                })
+                .last()
+                .ok_or(
+                    "Trying to get an event-loop for a top-level belonging to an unknown BC group",
+                )?,
+        };
+        bc_group
+            .event_loops
+            .get(host)
+            .ok_or("Trying to get an event-loop from an unknown BC group")
+            .map(|event_loop| event_loop.clone())
+    }
+
+    fn set_event_loop(
+        &mut self,
+        event_loop: Weak<EventLoop>,
+        host: Host,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        opener: Option<BrowsingContextId>,
+    ) {
+        let relevant_top_level = if let Some(opener) = opener {
+            match self.browsing_contexts.get(&opener) {
+                Some(opener) => opener.top_level_id,
+                None => {
+                    warn!("Setting event-loop for an unknown auxiliary");
+                    return;
+                },
+            }
+        } else {
+            top_level_browsing_context_id
+        };
+        let maybe_bc_group_id = self
+            .browsing_context_group_set
+            .iter()
+            .filter_map(|(id, bc_group)| {
+                if bc_group
+                    .top_level_browsing_context_set
+                    .contains(&top_level_browsing_context_id)
+                {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .last();
+        let bc_group_id = match maybe_bc_group_id {
+            Some(id) => id,
+            None => {
+                warn!("Trying to add an event-loop to an unknown BC group");
+                return;
+            },
+        };
+        if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) {
+            if !bc_group
+                .event_loops
+                .insert(host.clone(), event_loop)
+                .is_none()
+            {
+                warn!(
+                    "Double-setting an event-loop for {:?} at {:?}",
+                    host, relevant_top_level
+                );
+            }
+        }
+    }
+
     /// Helper function for creating a pipeline
     fn new_pipeline(
         &mut self,
@@ -800,11 +920,22 @@ where
                     match reg_host(&load_data.url) {
                         None => (None, None),
                         Some(host) => {
-                            let event_loop =
-                                self.event_loops.get(&host).and_then(|weak| weak.upgrade());
-                            match event_loop {
-                                None => (None, Some(host)),
-                                Some(event_loop) => (Some(event_loop), None),
+                            match self.get_event_loop(
+                                &host,
+                                &top_level_browsing_context_id,
+                                &opener,
+                            ) {
+                                Err(err) => {
+                                    warn!("{}", err);
+                                    (None, Some(host))
+                                },
+                                Ok(event_loop) => {
+                                    if let Some(event_loop) = event_loop.upgrade() {
+                                        (Some(event_loop), None)
+                                    } else {
+                                        (None, Some(host))
+                                    }
+                                },
                             }
                         },
                     }
@@ -882,9 +1013,12 @@ where
                 "Adding new host entry {} for top-level browsing context {}.",
                 host, top_level_browsing_context_id
             );
-            let _ = self
-                .event_loops
-                .insert(host, Rc::downgrade(&pipeline.pipeline.event_loop));
+            self.set_event_loop(
+                Rc::downgrade(&pipeline.pipeline.event_loop),
+                host,
+                top_level_browsing_context_id,
+                opener,
+            );
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
@@ -937,7 +1071,31 @@ where
         is_visible: bool,
     ) {
         debug!("Creating new browsing context {}", browsing_context_id);
+        let bc_group_id = match self
+            .browsing_context_group_set
+            .iter_mut()
+            .filter_map(|(id, bc_group)| {
+                if bc_group
+                    .top_level_browsing_context_set
+                    .contains(&top_level_id)
+                {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .last()
+        {
+            Some(id) => id.clone(),
+            None => {
+                warn!(
+                    "Top-level was unpexpectedly removed from its top_level_browsing_context_set."
+                );
+                return;
+            },
+        };
         let browsing_context = BrowsingContext::new(
+            bc_group_id,
             browsing_context_id,
             top_level_id,
             pipeline_id,
@@ -1892,6 +2050,15 @@ where
             },
         );
 
+        // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
+        let mut new_bc_group: BrowsingContextGroup = Default::default();
+        let new_bc_group_id = self.next_browsing_context_group_id();
+        new_bc_group
+            .top_level_browsing_context_set
+            .insert(top_level_browsing_context_id.clone());
+        self.browsing_context_group_set
+            .insert(new_bc_group_id, new_bc_group);
+
         self.new_pipeline(
             pipeline_id,
             browsing_context_id,
@@ -1927,6 +2094,16 @@ where
         if self.active_browser_id == Some(top_level_browsing_context_id) {
             self.active_browser_id = None;
         }
+        let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(bc) => bc,
+            None => {
+                warn!("BC has closed before it has started");
+                return;
+            },
+        };
+        // https://html.spec.whatwg.org/multipage/#bcg-remove
+        self.browsing_context_group_set
+            .remove(&browsing_context.bc_group_id);
     }
 
     fn handle_iframe_size_msg(&mut self, iframe_sizes: Vec<IFrameSizeMsg>) {
@@ -2229,6 +2406,26 @@ where
                 session_history: JointSessionHistory::new(),
             },
         );
+
+        // https://html.spec.whatwg.org/multipage/#bcg-append
+        let opener = match self.browsing_contexts.get(&opener_browsing_context_id) {
+            Some(id) => id,
+            None => {
+                warn!("Trying to append an unknow auxiliary to a BC group");
+                return;
+            },
+        };
+        let bc_group = match self.browsing_context_group_set.get_mut(&opener.bc_group_id) {
+            Some(bc_group) => bc_group,
+            None => {
+                warn!("Trying to add a top-level to an unknown group.");
+                return;
+            },
+        };
+        bc_group
+            .top_level_browsing_context_set
+            .insert(new_top_level_browsing_context_id.clone());
+
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: new_top_level_browsing_context_id,
             browsing_context_id: new_browsing_context_id,
