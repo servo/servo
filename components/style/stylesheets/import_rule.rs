@@ -21,6 +21,7 @@ use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// With asynchronous stylesheet parsing, we can't synchronously create a
 /// GeckoStyleSheet. So we use this placeholder instead.
+#[cfg(feature = "gecko")]
 #[derive(Clone, Debug)]
 pub struct PendingSheet {
     origin: Origin,

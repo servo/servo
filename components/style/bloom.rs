@@ -194,11 +194,6 @@ impl<E: TElement> StyleBloom<E> {
         Some(popped_element)
     }
 
-    /// Returns true if the bloom filter is empty.
-    pub fn is_empty(&self) -> bool {
-        self.elements.is_empty()
-    }
-
     /// Returns the DOM depth of elements that can be correctly
     /// matched against the bloom filter (that is, the number of
     /// elements in our list).

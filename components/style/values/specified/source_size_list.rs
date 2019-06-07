@@ -54,11 +54,6 @@ impl SourceSizeList {
         }
     }
 
-    /// Set content of `value`, which can be used as fall-back during evaluate.
-    pub fn set_fallback_value(&mut self, width: Option<Length>) {
-        self.value = width;
-    }
-
     /// Evaluate this <source-size-list> to get the final viewport length.
     pub fn evaluate(&self, device: &Device, quirks_mode: QuirksMode) -> Au {
         let matching_source_size = self

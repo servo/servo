@@ -298,18 +298,6 @@ impl AttrValue {
         }
     }
 
-    /// Assumes the `AttrValue` is a `Length` and returns its value
-    ///
-    /// ## Panics
-    ///
-    /// Panics if the `AttrValue` is not a `Length`
-    pub fn as_length(&self) -> Option<&Length> {
-        match *self {
-            AttrValue::Length(_, ref length) => length.as_ref(),
-            _ => panic!("Length not found"),
-        }
-    }
-
     /// Assumes the `AttrValue` is a `Dimension` and returns its value
     ///
     /// ## Panics
