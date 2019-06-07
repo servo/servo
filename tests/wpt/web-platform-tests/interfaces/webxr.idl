@@ -126,7 +126,7 @@ enum XREye {
 interface XRRigidTransform {
   [SameObject] readonly attribute DOMPointReadOnly position;
   [SameObject] readonly attribute DOMPointReadOnly orientation;
-  [SameObject] readonly attribute Float32Array matrix;
+  readonly attribute Float32Array matrix;
   [SameObject] readonly attribute XRRigidTransform inverse;
 };
 
@@ -136,7 +136,7 @@ interface XRRigidTransform {
 interface XRRay {
   [SameObject] readonly attribute DOMPointReadOnly origin;
   [SameObject] readonly attribute DOMPointReadOnly direction;
-  [SameObject] readonly attribute Float32Array matrix;
+  readonly attribute Float32Array matrix;
 };
 
 [SecureContext, Exposed=Window] interface XRPose {

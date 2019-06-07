@@ -697,7 +697,7 @@ class EdgeChromium(Browser):
         return find_executable("msedgedriver")
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        if self.platform == "win":
+        if self.platform != "win":
             raise ValueError("Only Windows platform is currently supported")
 
         if dest is None:

@@ -19,8 +19,18 @@ runListValuedPropertyTests('transition-timing-function', [
   { syntax: 'ease-in' },
   { syntax: 'ease-out' },
   { syntax: 'ease-in-out' },
-  { syntax: 'step-start' },
-  { syntax: 'step-end' },
+  {
+    syntax: 'step-start',
+    computed: (_, result) => {
+      assert_equals(result.toString(), 'steps(1, start)');
+    }
+  },
+  {
+    syntax: 'step-end',
+    computed: (_, result) => {
+      assert_equals(result.toString(), 'steps(1)');
+    }
+  },
 ]);
 
 runUnsupportedPropertyTests('transition-timing-function', [

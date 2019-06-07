@@ -3,10 +3,35 @@
 # necessary because the Windows 10 agents aren't reset between each job.
 steps:
 - powershell: |
+    function UninstallEdge($edgePath, $uninstallArgs) {
+      try {
+        cmd /c taskkill /f /im msedge* `> nul 2`> nul
+        cmd /c taskkill /f /im setup.exe `> nul 2`> nul
+        if (Test-Path $edgePath) {
+          $installerPath = Get-ChildItem -PATH $edgePath -Filter "setup.exe" -Recurse | Select -First 1 FullName
+          if (Test-Path $installerPath.FullName) {
+            Write-Host "Uninstall: $($installerPath.FullName) $uninstallArgs"
+            Start-Process "$($installerPath.FullName)" -ArgumentList $uninstallArgs -Wait
+            Remove-Item -Path $edgePath -Recurse -Force -ErrorAction SilentlyContinue
+          }
+        }
+      } catch [Exception] {
+        Write-Host "Failed to unstall Edge from $edgePath. ERROR= $($_.Exception.Message)" -ForegroundColor Red
+      }
+    }
+
+    # restore hosts file
     $hostFile = "$env:systemroot\System32\drivers\etc\hosts"
     Copy-Item -Path "$hostFile.back" -Destination $hostFile -Force
-    taskkill /f /im MicrosoftEdge*
-    taskkill /f /im MicrosoftWebDriver.exe
+
+    # uninstall Edge
+    UninstallEdge "$env:localappdata\Microsoft\Edge\Application" "--uninstall --force-uninstall"
+    # uninstall Edge Canary channel
+    UninstallEdge "$env:localappdata\Microsoft\Edge SxS\Application" "--uninstall --msedge-sxs --system-level --force-uninstall"
+    # uninstall Edge Dev channel
+    UninstallEdge "$env:systemdrive\Program Files (x86)\Microsoft\Edge Dev\Application" "--uninstall --msedge-dev --system-level --force-uninstall"
+    # uninstall Edge Beta channel
+    UninstallEdge "$env:systemdrive\Program Files (x86)\Microsoft\Edge Beta\Application" "--uninstall --msedge-beta --system-level --force-uninstall"
   displayName: 'Restore hosts file and cleanup test machine'
   condition: always()
   errorActionPreference: silentlyContinue

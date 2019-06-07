@@ -11,15 +11,10 @@ t.step(function() {
     var serviceWorkerStates = [];
     var lastServiceWorkerState = '';
     var receivedMessageFromPort = '';
-    var currentChangeCount = 0;
 
     assert_true(navigator.serviceWorker instanceof ServiceWorkerContainer);
     assert_equals(typeof navigator.serviceWorker.register, 'function');
     assert_equals(typeof navigator.serviceWorker.getRegistration, 'function');
-
-    navigator.serviceWorker.oncurrentchange = function() {
-        ++currentChangeCount;
-    };
 
     service_worker_unregister_and_register(
         t, 'resources/end-to-end-worker.js', scope)
@@ -74,9 +69,6 @@ t.step(function() {
             assert_array_equals(serviceWorkerStates,
                                 ['installing', 'installed', 'activating', 'activated'],
                                 'Service worker should pass through all states');
-
-            assert_equals(currentChangeCount, 0,
-                          'Should not see current changes since document is out of scope');
 
             assert_equals(receivedMessageFromPort, 'Ack for: registering doc');
 

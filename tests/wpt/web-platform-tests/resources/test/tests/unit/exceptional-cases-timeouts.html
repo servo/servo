@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <title>Exceptional cases - timeouts</title>
+</head>
+<body>
+<p>
+  The tests in this file are executed in parallel to avoid exceeding the "long"
+  timeout duration.
+</p>
+<script>
+function makeTest(...bodies) {
+  const closeScript = '<' + '/script>';
+  let src = `
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Document title</title>
+<script src="/resources/testharness.js?${Math.random()}">${closeScript}
+</head>
+
+<body>
+<div id="log"></div>`;
+  bodies.forEach((body) => {
+    src += '<script>(' + body + ')();' + closeScript;
+  });
+
+  const iframe = document.createElement('iframe');
+
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(src);
+
+  return new Promise((resolve) => {
+    window.addEventListener('message', function onMessage(e) {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      if (!e.data || e.data.type !=='complete') {
+        return;
+      }
+      window.removeEventListener('message', onMessage);
+      resolve(e.data);
+    });
+
+    iframe.contentDocument.close();
+  }).then(({ tests, status }) => {
+    const summary = {
+      harness: getEnumProp(status, status.status),
+      tests: {}
+    };
+
+    tests.forEach((test) => {
+      summary.tests[test.name] = getEnumProp(test, test.status);
+    });
+
+    return summary;
+  });
+}
+
+function getEnumProp(object, value) {
+  for (let property in object) {
+    if (!/^[A-Z]+$/.test(property)) {
+      continue;
+    }
+
+    if (object[property] === value) {
+      return property;
+    }
+  }
+}
+
+(() => {
+  window.asyncTestCleanupCount1 = 0;
+  const nestedTest = makeTest(
+    () => {
+      async_test((t) => {
+        t.add_cleanup(() => window.parent.asyncTestCleanupCount1 += 1);
+        setTimeout(() => {
+          throw new Error('this error is expected');
+        });
+      }, 'test');
+    }
+  );
+  promise_test(() => {
+    return nestedTest.then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.test, 'TIMEOUT');
+        assert_equals(window.asyncTestCleanupCount1, 1);
+      });
+  }, 'uncaught exception during async_test which times out');
+})();
+
+(() => {
+  window.promiseTestCleanupCount2 = 0;
+  const nestedTest = makeTest(
+    () => {
+      promise_test((t) => {
+        t.add_cleanup(() => window.parent.promiseTestCleanupCount2 += 1);
+        setTimeout(() => {
+          throw new Error('this error is expected');
+        });
+
+        return new Promise(() => {});
+      }, 'test');
+    }
+  );
+  promise_test(() => {
+    return nestedTest.then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.test, 'TIMEOUT');
+        assert_equals(window.promiseTestCleanupCount2, 1);
+      });
+  }, 'uncaught exception during promise_test which times out');
+})();
+</script>
+</body>
+</html>

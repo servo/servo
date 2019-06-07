@@ -1,0 +1,32 @@
+parameters:
+  channel: dev
+
+# Should match https://web-platform-tests.org/running-tests/chrome.html
+# Just replace chrome with edgechromium
+steps:
+- ${{ if eq(parameters.channel, 'canary') }}:
+  - powershell: |
+      $edgeInstallerName = 'MicrosoftEdgeSetup.exe'
+      # Link to Canary channel installer
+      Start-BitsTransfer -Source 'https://go.microsoft.com/fwlink/?linkid=2084649&Channel=Canary&language=en-us' -Destination MicrosoftEdgeSetup.exe
+      cmd /c START /WAIT $edgeInstallerName /silent /install
+      $edgePath = "$env:localappdata\Microsoft\Edge SxS\Application"
+      if (Test-Path $edgePath) {
+        Write-Host "##vso[task.prependpath]$edgePath"
+      } else {
+        Throw "Failed to install Edge at $edgePath"
+      }
+    displayName: 'Install Edge Canary'
+- ${{ if eq(parameters.channel, 'dev') }}:
+  - powershell: |
+      $edgeInstallerName = 'MicrosoftEdgeSetup.exe'
+      # Link to Dev channel installer
+      Start-BitsTransfer -Source 'https://go.microsoft.com/fwlink/?linkid=2069324&Channel=Dev&language=en-us' -Destination MicrosoftEdgeSetup.exe
+      cmd /c START /WAIT $edgeInstallerName /silent /install
+      $edgePath = "$env:systemdrive\Program Files (x86)\Microsoft\Edge Dev\Application"
+      if (Test-Path $edgePath) {
+        Write-Host "##vso[task.prependpath]$edgePath"
+      } else {
+        Throw "Failed to install Edge at $edgePath"
+      }
+    displayName: 'Install Edge Dev'
