@@ -11,41 +11,41 @@ use crate::values::computed::position::Position;
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, Color, Context};
 use crate::values::computed::{Length, LengthPercentage, NumberOrPercentage, ToComputedValue};
-use crate::values::generics::image::{self as generic, CompatMode};
+use crate::values::generics::image::{self as generic, GradientCompatMode};
 use crate::values::specified::image::LineDirection as SpecifiedLineDirection;
-use crate::values::specified::position::{X, Y};
-use crate::values::{Either, None_};
+use crate::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
 use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
 /// A computed image layer.
-pub type ImageLayer = Either<None_, Image>;
+pub type ImageLayer = generic::GenericImageLayer<Image>;
 
 /// Computed values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
-pub type Image = generic::Image<Gradient, MozImageRect, ComputedImageUrl>;
+pub type Image = generic::GenericImage<Gradient, MozImageRect, ComputedImageUrl>;
 
 /// Computed values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
 pub type Gradient =
-    generic::Gradient<LineDirection, Length, LengthPercentage, Position, Color>;
+    generic::GenericGradient<LineDirection, Length, LengthPercentage, Position, Color>;
 
 /// A computed gradient kind.
 pub type GradientKind =
-    generic::GradientKind<LineDirection, Length, LengthPercentage, Position>;
+    generic::GenericGradientKind<LineDirection, Length, LengthPercentage, Position>;
 
 /// A computed gradient line direction.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToResolvedValue)]
+#[repr(C, u8)]
 pub enum LineDirection {
     /// An angle.
     Angle(Angle),
     /// A horizontal direction.
-    Horizontal(X),
+    Horizontal(HorizontalPositionKeyword),
     /// A vertical direction.
-    Vertical(Y),
+    Vertical(VerticalPositionKeyword),
     /// A corner.
-    Corner(X, Y),
+    Corner(HorizontalPositionKeyword, VerticalPositionKeyword),
 }
 
 /// A computed radial gradient ending shape.
@@ -61,35 +61,39 @@ pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
 pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, ComputedImageUrl>;
 
 impl generic::LineDirection for LineDirection {
-    fn points_downwards(&self, compat_mode: CompatMode) -> bool {
+    fn points_downwards(&self, compat_mode: GradientCompatMode) -> bool {
         match *self {
             LineDirection::Angle(angle) => angle.radians() == PI,
-            LineDirection::Vertical(Y::Bottom) if compat_mode == CompatMode::Modern => true,
-            LineDirection::Vertical(Y::Top) if compat_mode != CompatMode::Modern => true,
+            LineDirection::Vertical(VerticalPositionKeyword::Bottom) => {
+                compat_mode == GradientCompatMode::Modern
+            }
+            LineDirection::Vertical(VerticalPositionKeyword::Top) => {
+                compat_mode != GradientCompatMode::Modern
+            }
             _ => false,
         }
     }
 
-    fn to_css<W>(&self, dest: &mut CssWriter<W>, compat_mode: CompatMode) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>, compat_mode: GradientCompatMode) -> fmt::Result
     where
         W: Write,
     {
         match *self {
             LineDirection::Angle(ref angle) => angle.to_css(dest),
             LineDirection::Horizontal(x) => {
-                if compat_mode == CompatMode::Modern {
+                if compat_mode == GradientCompatMode::Modern {
                     dest.write_str("to ")?;
                 }
                 x.to_css(dest)
             },
             LineDirection::Vertical(y) => {
-                if compat_mode == CompatMode::Modern {
+                if compat_mode == GradientCompatMode::Modern {
                     dest.write_str("to ")?;
                 }
                 y.to_css(dest)
             },
             LineDirection::Corner(x, y) => {
-                if compat_mode == CompatMode::Modern {
+                if compat_mode == GradientCompatMode::Modern {
                     dest.write_str("to ")?;
                 }
                 x.to_css(dest)?;

@@ -16,18 +16,16 @@ use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue, Matrix4x4Comp
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::stylesheets::RulesMutateError;
-use crate::values::computed::image::LineDirection;
 use crate::values::computed::transform::Matrix3D;
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, Gradient, Image};
 use crate::values::computed::{Integer, LengthPercentage};
 use crate::values::computed::{Length, Percentage, TextAlign};
 use crate::values::generics::grid::{TrackListValue, TrackSize};
-use crate::values::generics::image::{CompatMode, Image as GenericImage};
+use crate::values::generics::image::GenericImage;
 use crate::values::generics::rect::Rect;
 use crate::Zero;
 use app_units::Au;
-use std::f32::consts::PI;
 use style_traits::values::specified::AllowedNumericType;
 
 impl From<LengthPercentage> for nsStyleCoord_CalcValue {
@@ -64,56 +62,11 @@ impl From<Angle> for CoordDataValue {
     }
 }
 
-fn line_direction(horizontal: LengthPercentage, vertical: LengthPercentage) -> LineDirection {
-    use crate::values::specified::position::{X, Y};
-
-    let horizontal_percentage = horizontal.as_percentage();
-    let vertical_percentage = vertical.as_percentage();
-
-    let horizontal_as_corner = horizontal_percentage.and_then(|percentage| {
-        if percentage.0 == 0.0 {
-            Some(X::Left)
-        } else if percentage.0 == 1.0 {
-            Some(X::Right)
-        } else {
-            None
-        }
-    });
-
-    let vertical_as_corner = vertical_percentage.and_then(|percentage| {
-        if percentage.0 == 0.0 {
-            Some(Y::Top)
-        } else if percentage.0 == 1.0 {
-            Some(Y::Bottom)
-        } else {
-            None
-        }
-    });
-
-    if let (Some(hc), Some(vc)) = (horizontal_as_corner, vertical_as_corner) {
-        return LineDirection::Corner(hc, vc);
-    }
-
-    if let Some(hc) = horizontal_as_corner {
-        if vertical_percentage == Some(Percentage(0.5)) {
-            return LineDirection::Horizontal(hc);
-        }
-    }
-
-    if let Some(vc) = vertical_as_corner {
-        if horizontal_percentage == Some(Percentage(0.5)) {
-            return LineDirection::Vertical(vc);
-        }
-    }
-
-    unreachable!("Unexpected line direction");
-}
-
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
     pub fn set(&mut self, image: Image) {
         match image {
-            GenericImage::Gradient(boxed_gradient) => self.set_gradient(*boxed_gradient),
+            GenericImage::Gradient(boxed_gradient) => self.set_gradient(boxed_gradient),
             GenericImage::Url(ref url) => unsafe {
                 bindings::Gecko_SetLayerImageImageValue(self, url);
             },
@@ -144,172 +97,9 @@ impl nsStyleImage {
         }
     }
 
-    // FIXME(emilio): This is really complex, we should use cbindgen for this.
-    fn set_gradient(&mut self, gradient: Gradient) {
-        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
-        use crate::values::generics::image::{
-            Circle, Ellipse, EndingShape, GradientKind, ShapeExtent,
-        };
-        use crate::values::specified::position::{X, Y};
-
-        let stop_count = gradient.items.len();
-        if stop_count >= ::std::u32::MAX as usize {
-            warn!("stylo: Prevented overflow due to too many gradient stops");
-            return;
-        }
-
-        let gecko_gradient = match gradient.kind {
-            GradientKind::Linear(direction) => {
-                let gecko_gradient = unsafe {
-                    bindings::Gecko_CreateGradient(
-                        structs::NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
-                        structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
-                        gradient.repeating,
-                        gradient.compat_mode != CompatMode::Modern,
-                        gradient.compat_mode == CompatMode::Moz,
-                        stop_count as u32,
-                    )
-                };
-
-                match direction {
-                    LineDirection::Angle(angle) => {
-                        // PI radians (180deg) is ignored because it is the default value.
-                        if angle.radians() != PI {
-                            unsafe {
-                                (*gecko_gradient).mAngle.set(angle);
-                            }
-                        }
-                    },
-                    LineDirection::Horizontal(x) => {
-                        let x = match x {
-                            X::Left => 0.0,
-                            X::Right => 1.0,
-                        };
-
-                        unsafe {
-                            (*gecko_gradient)
-                                .mBgPosX
-                                .set_value(CoordDataValue::Percent(x));
-                            (*gecko_gradient)
-                                .mBgPosY
-                                .set_value(CoordDataValue::Percent(0.5));
-                        }
-                    },
-                    LineDirection::Vertical(y) => {
-                        // Although bottom is the default value, we can not ignore
-                        // it here, because the rendering code of Gecko relies on
-                        // this to behave correctly for legacy mode.
-                        let y = match y {
-                            Y::Top => 0.0,
-                            Y::Bottom => 1.0,
-                        };
-                        unsafe {
-                            (*gecko_gradient)
-                                .mBgPosX
-                                .set_value(CoordDataValue::Percent(0.5));
-                            (*gecko_gradient)
-                                .mBgPosY
-                                .set_value(CoordDataValue::Percent(y));
-                        }
-                    },
-                    LineDirection::Corner(horiz, vert) => {
-                        let percent_x = match horiz {
-                            X::Left => 0.0,
-                            X::Right => 1.0,
-                        };
-                        let percent_y = match vert {
-                            Y::Top => 0.0,
-                            Y::Bottom => 1.0,
-                        };
-
-                        unsafe {
-                            (*gecko_gradient)
-                                .mBgPosX
-                                .set_value(CoordDataValue::Percent(percent_x));
-                            (*gecko_gradient)
-                                .mBgPosY
-                                .set_value(CoordDataValue::Percent(percent_y));
-                        }
-                    },
-                }
-                gecko_gradient
-            },
-            GradientKind::Radial(shape, position) => {
-                let keyword_to_gecko_size = |keyword| match keyword {
-                    ShapeExtent::ClosestSide => CLOSEST_SIDE,
-                    ShapeExtent::FarthestSide => FARTHEST_SIDE,
-                    ShapeExtent::ClosestCorner => CLOSEST_CORNER,
-                    ShapeExtent::FarthestCorner => FARTHEST_CORNER,
-                    ShapeExtent::Contain => CLOSEST_SIDE,
-                    ShapeExtent::Cover => FARTHEST_CORNER,
-                };
-                let (gecko_shape, gecko_size) = match shape {
-                    EndingShape::Circle(ref circle) => {
-                        let size = match *circle {
-                            Circle::Extent(extent) => keyword_to_gecko_size(extent),
-                            _ => structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
-                        };
-                        (structs::NS_STYLE_GRADIENT_SHAPE_CIRCULAR as u8, size as u8)
-                    },
-                    EndingShape::Ellipse(ref ellipse) => {
-                        let size = match *ellipse {
-                            Ellipse::Extent(extent) => keyword_to_gecko_size(extent),
-                            _ => structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
-                        };
-                        (
-                            structs::NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL as u8,
-                            size as u8,
-                        )
-                    },
-                };
-
-                let gecko_gradient = unsafe {
-                    bindings::Gecko_CreateGradient(
-                        gecko_shape,
-                        gecko_size,
-                        gradient.repeating,
-                        gradient.compat_mode == CompatMode::Moz,
-                        gradient.compat_mode == CompatMode::Moz,
-                        stop_count as u32,
-                    )
-                };
-
-                // Setting radius values depending shape
-                match shape {
-                    EndingShape::Circle(Circle::Radius(length)) => unsafe {
-                        let au = length.to_i32_au();
-                        (*gecko_gradient)
-                            .mRadiusX
-                            .set_value(CoordDataValue::Coord(au));
-                        (*gecko_gradient)
-                            .mRadiusY
-                            .set_value(CoordDataValue::Coord(au));
-                    },
-                    EndingShape::Ellipse(Ellipse::Radii(x, y)) => unsafe {
-                        (*gecko_gradient).mRadiusX.set(x);
-                        (*gecko_gradient).mRadiusY.set(y);
-                    },
-                    _ => {},
-                }
-                unsafe {
-                    (*gecko_gradient).mBgPosX.set(position.horizontal);
-                    (*gecko_gradient).mBgPosY.set(position.vertical);
-                }
-
-                gecko_gradient
-            },
-        };
-
-        for (index, item) in gradient.items.into_iter().enumerate() {
-            let gecko_stop = unsafe { &mut (*gecko_gradient).mStops[index] };
-            *gecko_stop = item;
-        }
-
+    fn set_gradient(&mut self, gradient: Box<Gradient>) {
         unsafe {
-            bindings::Gecko_SetGradientImageValue(self, gecko_gradient);
+             bindings::Gecko_SetGradientImageValue(self, Box::into_raw(gradient));
         }
     }
 
@@ -352,7 +142,9 @@ impl nsStyleImage {
                 }
             },
             nsStyleImageType::eStyleImageType_Gradient => {
-                Some(GenericImage::Gradient(self.get_gradient()))
+                let gradient: &Gradient =
+                    &**self.__bindgen_anon_1.mGradient.as_ref();
+                Some(GenericImage::Gradient(Box::new(gradient.clone())))
             },
             nsStyleImageType::eStyleImageType_Element => {
                 use crate::gecko_string_cache::Atom;
@@ -367,131 +159,6 @@ impl nsStyleImage {
             .as_ref()
             .expect("Null image request?");
         ComputedImageUrl::from_image_request(image_request)
-    }
-
-    unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {
-        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
-        use crate::values::computed::position::Position;
-        use crate::values::generics::image::{Circle, Ellipse};
-        use crate::values::generics::image::{EndingShape, GradientKind, ShapeExtent};
-
-        let gecko_gradient = bindings::Gecko_GetGradientImageValue(self)
-            .as_ref()
-            .unwrap();
-        let horizontal_style = LengthPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosX);
-        let vertical_style = LengthPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosY);
-
-        let kind = match gecko_gradient.mShape as u32 {
-            structs::NS_STYLE_GRADIENT_SHAPE_LINEAR => {
-                let angle = Angle::from_gecko_style_coord(&gecko_gradient.mAngle);
-                let line_direction = match (angle, horizontal_style, vertical_style) {
-                    (Some(a), None, None) => LineDirection::Angle(a),
-                    (None, None, None) => LineDirection::Angle(Angle::from_radians(PI)),
-                    (None, Some(horizontal), Some(vertical)) => {
-                        line_direction(horizontal, vertical)
-                    },
-                    _ => {
-                        unreachable!("unexpected line direction for linear gradient direction");
-                    },
-                };
-                GradientKind::Linear(line_direction)
-            },
-            _ => {
-                let gecko_size_to_keyword = |gecko_size| {
-                    match gecko_size {
-                        CLOSEST_SIDE => ShapeExtent::ClosestSide,
-                        FARTHEST_SIDE => ShapeExtent::FarthestSide,
-                        CLOSEST_CORNER => ShapeExtent::ClosestCorner,
-                        FARTHEST_CORNER => ShapeExtent::FarthestCorner,
-                        // FIXME: We should support ShapeExtent::Contain and ShapeExtent::Cover.
-                        // But we can't choose those yet since Gecko does not support both values.
-                        // https://bugzilla.mozilla.org/show_bug.cgi?id=1217664
-                        _ => panic!("Found unexpected gecko_size"),
-                    }
-                };
-
-                let shape = match gecko_gradient.mShape as u32 {
-                    structs::NS_STYLE_GRADIENT_SHAPE_CIRCULAR => {
-                        let circle = match gecko_gradient.mSize as u32 {
-                            structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => {
-                                let radius =
-                                    Length::from_gecko_style_coord(&gecko_gradient.mRadiusX)
-                                        .expect("mRadiusX could not convert to Length");
-                                debug_assert_eq!(
-                                    radius,
-                                    Length::from_gecko_style_coord(&gecko_gradient.mRadiusY)
-                                        .unwrap()
-                                );
-                                Circle::Radius(radius)
-                            },
-                            size => Circle::Extent(gecko_size_to_keyword(size)),
-                        };
-                        EndingShape::Circle(circle)
-                    },
-                    structs::NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL => {
-                        let length_percentage_keyword = match gecko_gradient.mSize as u32 {
-                            structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => match (
-                                LengthPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusX),
-                                LengthPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusY),
-                            ) {
-                                (Some(x), Some(y)) => Ellipse::Radii(x, y),
-                                _ => {
-                                    debug_assert!(
-                                        false,
-                                        "mRadiusX, mRadiusY could not convert to LengthPercentage"
-                                    );
-                                    Ellipse::Radii(
-                                        LengthPercentage::zero(),
-                                        LengthPercentage::zero(),
-                                    )
-                                },
-                            },
-                            size => Ellipse::Extent(gecko_size_to_keyword(size)),
-                        };
-                        EndingShape::Ellipse(length_percentage_keyword)
-                    },
-                    _ => panic!("Found unexpected mShape"),
-                };
-
-                let position = match (horizontal_style, vertical_style) {
-                    (Some(horizontal), Some(vertical)) => Position {
-                        horizontal,
-                        vertical,
-                    },
-                    _ => {
-                        debug_assert!(
-                            false,
-                            "mRadiusX, mRadiusY could not convert to LengthPercentage"
-                        );
-                        Position {
-                            horizontal: LengthPercentage::zero(),
-                            vertical: LengthPercentage::zero(),
-                        }
-                    },
-                };
-
-                GradientKind::Radial(shape, position)
-            },
-        };
-
-        let items = gecko_gradient.mStops.iter().cloned().collect();
-        let compat_mode = if gecko_gradient.mMozLegacySyntax {
-            CompatMode::Moz
-        } else if gecko_gradient.mLegacySyntax {
-            CompatMode::WebKit
-        } else {
-            CompatMode::Modern
-        };
-
-        Box::new(Gradient {
-            items,
-            repeating: gecko_gradient.mRepeating,
-            kind,
-            compat_mode,
-        })
     }
 }
 
