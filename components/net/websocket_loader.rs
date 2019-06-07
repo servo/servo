@@ -16,7 +16,6 @@ use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use openssl::ssl::SslStream;
-use servo_config::opts;
 use servo_url::ServoUrl;
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -40,6 +39,7 @@ struct Client<'a> {
     resource_url: &'a ServoUrl,
     event_sender: &'a IpcSender<WebSocketNetworkEvent>,
     protocol_in_use: Option<String>,
+    certificate_path: Option<String>,
 }
 
 impl<'a> Factory for Client<'a> {
@@ -153,7 +153,7 @@ impl<'a> Handler for Client<'a> {
         stream: TcpStream,
         url: &Url,
     ) -> WebSocketResult<SslStream<TcpStream>> {
-        let certs = match opts::get().certificate_path {
+        let certs = match self.certificate_path {
             Some(ref path) => fs::read_to_string(path).expect("Couldn't not find certificate file"),
             None => resources::read_string(Resource::SSLCertificates),
         };
@@ -178,6 +178,7 @@ pub fn init(
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
+    certificate_path: Option<String>,
 ) {
     thread::Builder::new()
         .name(format!("WebSocket connection to {}", req_builder.url))
@@ -229,6 +230,7 @@ pub fn init(
                 resource_url: &req_builder.url,
                 event_sender: &resource_event_sender,
                 protocol_in_use: None,
+                certificate_path,
             };
             let mut ws = WebSocket::new(client).unwrap();
 

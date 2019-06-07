@@ -34,7 +34,6 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
-use servo_config::opts;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
@@ -54,6 +53,7 @@ pub fn new_resource_threads(
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
     config_dir: Option<PathBuf>,
+    certificate_path: Option<String>,
 ) -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
@@ -62,6 +62,7 @@ pub fn new_resource_threads(
         mem_profiler_chan,
         embedder_proxy,
         config_dir.clone(),
+        certificate_path,
     );
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (
@@ -78,6 +79,7 @@ pub fn new_core_resource_thread(
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
     config_dir: Option<PathBuf>,
+    certificate_path: Option<String>,
 ) -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -91,11 +93,13 @@ pub fn new_core_resource_thread(
                 devtools_chan,
                 time_profiler_chan,
                 embedder_proxy,
+                certificate_path.clone(),
             );
 
             let mut channel_manager = ResourceChannelManager {
-                resource_manager: resource_manager,
-                config_dir: config_dir,
+                resource_manager,
+                config_dir,
+                certificate_path,
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -112,9 +116,13 @@ pub fn new_core_resource_thread(
 struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
+    certificate_path: Option<String>,
 }
 
-fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpState>) {
+fn create_http_states(
+    config_dir: Option<&Path>,
+    certificate_path: Option<String>,
+) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::new();
     let http_cache = HttpCache::new();
@@ -125,7 +133,7 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
-    let certs = match opts::get().certificate_path {
+    let certs = match certificate_path {
         Some(ref path) => fs::read_to_string(path).expect("Couldn't not find certificate file"),
         None => resources::read_string(Resource::SSLCertificates),
     };
@@ -154,8 +162,10 @@ impl ResourceChannelManager {
         private_receiver: IpcReceiver<CoreResourceMsg>,
         memory_reporter: IpcReceiver<ReportsChan>,
     ) {
-        let (public_http_state, private_http_state) =
-            create_http_states(self.config_dir.as_ref().map(Deref::deref));
+        let (public_http_state, private_http_state) = create_http_states(
+            self.config_dir.as_ref().map(Deref::deref),
+            self.certificate_path.clone(),
+        );
 
         let mut rx_set = IpcReceiverSet::new().unwrap();
         let private_id = rx_set.add(private_receiver).unwrap();
@@ -407,6 +417,7 @@ pub struct CoreResourceManager {
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     fetch_pool: rayon::ThreadPool,
+    certificate_path: Option<String>,
 }
 
 impl CoreResourceManager {
@@ -415,6 +426,7 @@ impl CoreResourceManager {
         devtools_channel: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
+        certificate_path: Option<String>,
     ) -> CoreResourceManager {
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(16)
@@ -426,6 +438,7 @@ impl CoreResourceManager {
             swmanager_chan: None,
             filemanager: FileManager::new(embedder_proxy),
             fetch_pool: pool,
+            certificate_path,
         }
     }
 
@@ -500,6 +513,12 @@ impl CoreResourceManager {
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
     ) {
-        websocket_loader::init(request, event_sender, action_receiver, http_state.clone());
+        websocket_loader::init(
+            request,
+            event_sender,
+            action_receiver,
+            http_state.clone(),
+            self.certificate_path.clone(),
+        );
     }
 }
