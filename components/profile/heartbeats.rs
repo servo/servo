@@ -5,7 +5,6 @@
 use self::synchronized_heartbeat::{heartbeat_window_callback, lock_and_work};
 use heartbeats_simple::HeartbeatPow as Heartbeat;
 use profile_traits::time::ProfilerCategory;
-use servo_config::opts;
 use std::collections::HashMap;
 use std::env::var_os;
 use std::error::Error;
@@ -13,11 +12,15 @@ use std::fs::File;
 use std::path::Path;
 
 /// Initialize heartbeats
-pub fn init() {
+pub fn init(profile_heartbeats: bool) {
     lock_and_work(|hbs_opt| {
         if hbs_opt.is_none() {
             let mut hbs: Box<HashMap<ProfilerCategory, Heartbeat>> = Box::new(HashMap::new());
-            maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
+            maybe_create_heartbeat(
+                &mut hbs,
+                ProfilerCategory::ApplicationHeartbeat,
+                profile_heartbeats,
+            );
             *hbs_opt = Some(Box::into_raw(hbs))
         }
     });
@@ -40,13 +43,13 @@ pub fn cleanup() {
 }
 
 /// Check if a heartbeat exists for the given category
-pub fn is_heartbeat_enabled(category: &ProfilerCategory) -> bool {
+pub fn is_heartbeat_enabled(category: &ProfilerCategory, profile_heartbeats: bool) -> bool {
     let is_enabled = lock_and_work(|hbs_opt| {
         hbs_opt.map_or(false, |hbs_ptr| unsafe {
             (*hbs_ptr).contains_key(category)
         })
     });
-    is_enabled || is_create_heartbeat(category)
+    is_enabled || is_create_heartbeat(category, profile_heartbeats)
 }
 
 /// Issue a heartbeat (if one exists) for the given category
@@ -56,12 +59,13 @@ pub fn maybe_heartbeat(
     end_time: u64,
     start_energy: u64,
     end_energy: u64,
+    profile_heartbeats: bool,
 ) {
     lock_and_work(|hbs_opt| {
         if let Some(hbs_ptr) = *hbs_opt {
             unsafe {
                 if !(*hbs_ptr).contains_key(category) {
-                    maybe_create_heartbeat(&mut (*hbs_ptr), category.clone());
+                    maybe_create_heartbeat(&mut (*hbs_ptr), category.clone(), profile_heartbeats);
                 }
                 if let Some(h) = (*hbs_ptr).get_mut(category) {
                     (*h).heartbeat(0, 1, start_time, end_time, start_energy, end_energy);
@@ -73,9 +77,8 @@ pub fn maybe_heartbeat(
 
 // TODO(cimes): Android doesn't really do environment variables. Need a better way to configure dynamically.
 
-fn is_create_heartbeat(category: &ProfilerCategory) -> bool {
-    opts::get().profile_heartbeats ||
-        var_os(format!("SERVO_HEARTBEAT_ENABLE_{:?}", category)).is_some()
+fn is_create_heartbeat(category: &ProfilerCategory, profile_heartbeats: bool) -> bool {
+    profile_heartbeats || var_os(format!("SERVO_HEARTBEAT_ENABLE_{:?}", category)).is_some()
 }
 
 fn open_heartbeat_log<P: AsRef<Path>>(name: P) -> Option<File> {
@@ -113,8 +116,9 @@ fn get_heartbeat_window_size(category: &ProfilerCategory) -> usize {
 fn maybe_create_heartbeat(
     hbs: &mut HashMap<ProfilerCategory, Heartbeat>,
     category: ProfilerCategory,
+    profile_heartbeats: bool,
 ) {
-    if is_create_heartbeat(&category) {
+    if is_create_heartbeat(&category, profile_heartbeats) {
         // get optional log file
         let logfile: Option<File> = get_heartbeat_log(&category);
         // window size
