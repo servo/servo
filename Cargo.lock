@@ -2853,7 +2853,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "mozangle"
 version = "0.2.2"
-source = "git+https://github.com/jdm/mozangle?branch=sse2#2cdd799d6374f3dc55baa671f15503933c7c2e18"
+source = "git+https://github.com/jdm/mozangle?branch=sse2#3e5d999e6d2a862777d33a9ead16d8eaca43e290"
 dependencies = [
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
