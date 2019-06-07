@@ -2,7 +2,6 @@
 function checkElementInternal(entry, expectedUrl, expectedIdentifier, expectedID, beforeRender,
     expectedElement) {
   assert_equals(entry.entryType, 'element');
-  assert_equals(entry.name, 'image-paint');
   assert_equals(entry.url, expectedUrl);
   assert_equals(entry.identifier, expectedIdentifier);
   assert_equals(entry.duration, 0);
@@ -19,6 +18,7 @@ function checkElement(entry, expectedUrl, expectedIdentifier, expectedID, before
     expectedElement) {
   checkElementInternal(entry, expectedUrl, expectedIdentifier, expectedID, beforeRender,
       expectedElement);
+  assert_equals(entry.name, 'image-paint');
   const rt_entries = performance.getEntriesByName(expectedUrl, 'resource');
   assert_equals(rt_entries.length, 1);
   assert_equals(rt_entries[0].responseEnd, entry.responseEnd);
@@ -28,6 +28,7 @@ function checkElementWithoutResourceTiming(entry, expectedUrl, expectedIdentifie
     expectedID, beforeRender, expectedElement) {
   checkElementInternal(entry, expectedUrl, expectedIdentifier, expectedID, beforeRender,
       expectedElement);
+  assert_equals(entry.name, 'image-paint');
   // No associated resource from ResourceTiming, so the responseEnd should be 0.
   assert_equals(entry.responseEnd, 0);
 }
@@ -48,4 +49,12 @@ function checkRect(entry, expected, description="") {
 function checkNaturalSize(entry, width, height) {
   assert_equals(entry.naturalWidth, width);
   assert_equals(entry.naturalHeight, height);
+}
+
+function checkTextElement(entry, expectedIdentifier, expectedID, beforeRender,
+    expectedElement) {
+  checkElementInternal(entry, '', expectedIdentifier, expectedID, beforeRender,
+      expectedElement);
+  assert_equals(entry.name, 'text-paint');
+  assert_equals(entry.responseEnd, 0);
 }
