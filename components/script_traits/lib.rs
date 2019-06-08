@@ -644,6 +644,14 @@ pub trait ScriptThreadFactory {
     fn create(
         state: InitialScriptState,
         load_data: LoadData,
+        profile_script_events: bool,
+        print_pwm: bool,
+        relayout_event: bool,
+        prepare_for_screenshot: bool,
+        unminify_js: bool,
+        userscripts_path: Option<String>,
+        headless: bool,
+        replace_surrogates: bool,
     ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
@@ -878,6 +886,8 @@ pub struct WorkerGlobalScopeInit {
     pub pipeline_id: PipelineId,
     /// The origin
     pub origin: ImmutableOrigin,
+    /// True if headless mode
+    pub is_headless: bool,
 }
 
 /// Common entities representing a network load origin

@@ -73,6 +73,7 @@ pub fn prepare_workerscope_init(
         worker_id: global.get_next_worker_id(),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
+        is_headless: global.is_headless(),
     };
 
     init
@@ -132,6 +133,7 @@ impl WorkerGlobalScope {
                 timer_event_chan,
                 MutableOrigin::new(init.origin),
                 Default::default(),
+                init.is_headless,
             ),
             worker_id: init.worker_id,
             worker_name,

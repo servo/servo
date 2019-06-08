@@ -72,6 +72,7 @@ impl WorkletGlobalScope {
                 timer_event_chan,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 Default::default(),
+                init.is_headless,
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
@@ -153,6 +154,8 @@ pub struct WorkletGlobalScopeInit {
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The image cache
     pub image_cache: Arc<dyn ImageCache>,
+    /// True if in headless mode
+    pub is_headless: bool,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

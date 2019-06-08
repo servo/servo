@@ -157,6 +157,9 @@ pub struct GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
     #[ignore_malloc_size_of = "mozjs"]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
+
+    /// True if headless mode.
+    is_headless: bool,
 }
 
 impl GlobalScope {
@@ -171,6 +174,7 @@ impl GlobalScope {
         timer_event_chan: IpcSender<TimerEvent>,
         origin: MutableOrigin,
         microtask_queue: Rc<MicrotaskQueue>,
+        is_headless: bool,
     ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
@@ -193,6 +197,7 @@ impl GlobalScope {
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
+            is_headless,
         }
     }
 
@@ -788,6 +793,10 @@ impl GlobalScope {
             return worker.performance_timeline_task_source();
         }
         unreachable!();
+    }
+
+    pub fn is_headless(&self) -> bool {
+        self.is_headless
     }
 }
 
