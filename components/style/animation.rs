@@ -181,14 +181,6 @@ impl KeyframesAnimationState {
         self.current_direction = old_direction;
         self.started_at = new_started_at;
     }
-
-    #[inline]
-    fn is_paused(&self) -> bool {
-        match self.running_state {
-            KeyframesRunningState::Paused(..) => true,
-            KeyframesRunningState::Running => false,
-        }
-    }
 }
 
 impl fmt::Debug for KeyframesAnimationState {
@@ -242,15 +234,6 @@ impl Animation {
         match *self {
             Animation::Transition(ref node, _, _) => node,
             Animation::Keyframes(ref node, _, _, _) => node,
-        }
-    }
-
-    /// Whether this animation is paused. A transition can never be paused.
-    #[inline]
-    pub fn is_paused(&self) -> bool {
-        match *self {
-            Animation::Transition(..) => false,
-            Animation::Keyframes(_, _, _, ref state) => state.is_paused(),
         }
     }
 

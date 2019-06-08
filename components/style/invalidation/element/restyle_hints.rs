@@ -105,12 +105,6 @@ impl RestyleHint {
         Self::empty()
     }
 
-    /// Creates a new `RestyleHint` that indicates the element must be
-    /// recascaded.
-    pub fn recascade_self() -> Self {
-        RestyleHint::RECASCADE_SELF
-    }
-
     /// Returns a hint that contains all the replacement hints.
     pub fn replacements() -> Self {
         RestyleHint::RESTYLE_STYLE_ATTRIBUTE | Self::for_animations()

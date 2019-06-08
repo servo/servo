@@ -9,9 +9,7 @@ use crate::dom::TElement;
 use crate::invalidation::element::invalidator::InvalidationResult;
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::properties::ComputedValues;
-use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, RestyleDamage, EAGER_PSEUDO_COUNT};
-use crate::shared_lock::StylesheetGuards;
 use crate::style_resolver::{PrimaryStyle, ResolvedElementStyles, ResolvedStyle};
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocSizeOfOps;
@@ -373,29 +371,6 @@ impl ElementData {
         return RestyleKind::CascadeOnly;
     }
 
-    /// Return true if important rules are different.
-    /// We use this to make sure the cascade of off-main thread animations is correct.
-    /// Note: Ignore custom properties for now because we only support opacity and transform
-    ///       properties for animations running on compositor. Actually, we only care about opacity
-    ///       and transform for now, but it's fine to compare all properties and let the user
-    ///       the check which properties do they want.
-    ///       If it costs too much, get_properties_overriding_animations() should return a set
-    ///       containing only opacity and transform properties.
-    pub fn important_rules_are_different(
-        &self,
-        rules: &StrongRuleNode,
-        guards: &StylesheetGuards,
-    ) -> bool {
-        debug_assert!(self.has_styles());
-        let (important_rules, _custom) = self
-            .styles
-            .primary()
-            .rules()
-            .get_properties_overriding_animations(&guards);
-        let (other_important_rules, _custom) = rules.get_properties_overriding_animations(&guards);
-        important_rules != other_important_rules
-    }
-
     /// Drops any restyle state from the element.
     ///
     /// FIXME(bholley): The only caller of this should probably just assert that
@@ -411,11 +386,6 @@ impl ElementData {
     pub fn clear_restyle_flags_and_damage(&mut self) {
         self.damage = RestyleDamage::empty();
         self.flags.remove(ElementDataFlags::WAS_RESTYLED);
-    }
-
-    /// Returns whether this element is going to be reconstructed.
-    pub fn reconstructed_self(&self) -> bool {
-        self.damage.contains(RestyleDamage::reconstruct())
     }
 
     /// Mark this element as restyled, which is useful to know whether we need
@@ -436,13 +406,6 @@ impl ElementData {
     pub fn set_traversed_without_styling(&mut self) {
         self.flags
             .insert(ElementDataFlags::TRAVERSED_WITHOUT_STYLING);
-    }
-
-    /// Returns whether the element was traversed without computing any style for
-    /// it.
-    pub fn traversed_without_styling(&self) -> bool {
-        self.flags
-            .contains(ElementDataFlags::TRAVERSED_WITHOUT_STYLING)
     }
 
     /// Returns whether this element has been part of a restyle.
