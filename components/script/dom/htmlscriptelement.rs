@@ -131,23 +131,23 @@ pub enum ScriptType {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct ClassicScript {
+pub struct ScriptOrigin {
     text: DOMString,
     url: ServoUrl,
     external: bool,
 }
 
-impl ClassicScript {
-    fn internal(text: DOMString, url: ServoUrl) -> ClassicScript {
-        ClassicScript {
+impl ScriptOrigin {
+    fn internal(text: DOMString, url: ServoUrl) -> ScriptOrigin {
+        ScriptOrigin {
             text: text,
             url: url,
             external: false,
         }
     }
 
-    fn external(text: DOMString, url: ServoUrl) -> ClassicScript {
-        ClassicScript {
+    fn external(text: DOMString, url: ServoUrl) -> ScriptOrigin {
+        ScriptOrigin {
             text: text,
             url: url,
             external: true,
@@ -155,7 +155,7 @@ impl ClassicScript {
     }
 }
 
-pub type ScriptResult = Result<ClassicScript, NetworkError>;
+pub type ScriptResult = Result<ScriptOrigin, NetworkError>;
 
 /// The context required for asynchronously loading an external script source.
 struct ClassicContext {
@@ -231,7 +231,7 @@ impl FetchResponseListener for ClassicContext {
 
             // Step 7.
             let (source_text, _, _) = encoding.decode(&self.data);
-            ClassicScript::external(DOMString::from(source_text), metadata.final_url)
+            ScriptOrigin::external(DOMString::from(source_text), metadata.final_url)
         });
 
         // Step 9.
@@ -473,7 +473,7 @@ impl HTMLScriptElement {
                 return;
             }
 
-            // Step 24.3: The "from an external file"" flag is stored in ClassicScript.
+            // Step 24.3: The "from an external file"" flag is stored in ScriptOrigin.
 
             // Step 24.4-24.5.
             let url = match base_url.join(&src) {
@@ -526,7 +526,7 @@ impl HTMLScriptElement {
             // Step 25.
             assert!(!text.is_empty());
             // Step 25-1.
-            let result = Ok(ClassicScript::internal(text, base_url));
+            let result = Ok(ScriptOrigin::internal(text, base_url));
 
             // TODO: Step 25-2.
 
@@ -545,7 +545,7 @@ impl HTMLScriptElement {
         }
     }
 
-    fn unminify_js(&self, script: &mut ClassicScript) {
+    fn unminify_js(&self, script: &mut ScriptOrigin) {
         if !self.parser_document.window().unminify_js() {
             return;
         }
@@ -598,7 +598,7 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#execute-the-script-block>
-    pub fn execute(&self, result: Result<ClassicScript, NetworkError>) {
+    pub fn execute(&self, result: Result<ScriptOrigin, NetworkError>) {
         // Step 1.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*doc != &*self.parser_document {
@@ -653,7 +653,7 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub fn run_a_classic_script(&self, script: &ClassicScript) {
+    pub fn run_a_classic_script(&self, script: &ScriptOrigin) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = document_from_node(self);
