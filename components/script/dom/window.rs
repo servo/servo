@@ -106,7 +106,6 @@ use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
-use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
@@ -299,6 +298,22 @@ pub struct Window {
     /// Flag that indicates if the layout thread is busy handling a request.
     #[ignore_malloc_size_of = "Arc<T> is hard"]
     layout_is_busy: Arc<AtomicBool>,
+
+    /// Emits notifications when there is a relayout.
+    relayout_event: bool,
+
+    /// True if output file name is provided.
+    output_file_is_some: bool,
+
+    /// True to exit after the page load (`-x`).
+    exit_after_load: bool,
+
+    /// False if WebDriver is disabled or True to start a server
+    /// to listen to remote WebDriver commands.
+    webdriver_port_is_some: bool,
+
+    /// Unminify Javascript.
+    unminify_js: bool,
 }
 
 impl Window {
@@ -1402,7 +1417,7 @@ impl Window {
         let (join_chan, join_port) = unbounded();
 
         // On debug mode, print the reflow event information.
-        if opts::get().relayout_event {
+        if self.relayout_event {
             debug_reflow_events(
                 self.upcast::<GlobalScope>().pipeline_id(),
                 &reflow_goal,
@@ -1540,9 +1555,7 @@ impl Window {
         // When all these conditions are met, notify the constellation
         // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
-        if (opts::get().output_file.is_some() ||
-            opts::get().exit_after_load ||
-            opts::get().webdriver_port.is_some()) &&
+        if (self.output_file_is_some || self.exit_after_load || self.webdriver_port_is_some) &&
             for_display
         {
             let document = self.Document();
@@ -1704,7 +1717,7 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(&document));
-        if !opts::get().unminify_js {
+        if !self.unminify_js {
             return;
         }
         // Create a folder for the document host to store unminified scripts.
@@ -2043,6 +2056,11 @@ impl Window {
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
         layout_is_busy: Arc<AtomicBool>,
+        relayout_event: bool,
+        output_file_is_some: bool,
+        exit_after_load: bool,
+        webdriver_port_is_some: bool,
+        unminify_js: bool,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2116,6 +2134,11 @@ impl Window {
             webrender_api_sender,
             has_sent_idle_message: Cell::new(false),
             layout_is_busy,
+            relayout_event,
+            output_file_is_some,
+            exit_after_load,
+            webdriver_port_is_some,
+            unminify_js,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }

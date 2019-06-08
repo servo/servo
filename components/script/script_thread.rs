@@ -135,7 +135,6 @@ use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use servo_atoms::Atom;
-use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::cell::RefCell;
@@ -644,6 +643,28 @@ pub struct ScriptThread {
 
     /// FIXME(victor):
     webrender_api_sender: RenderApiSender,
+
+    /// Periodically print out on which events script threads spend their processing time.
+    profile_script_events: bool,
+
+    /// Print Progressive Web Metrics to console.
+    print_pwm: bool,
+
+    /// Emits notifications when there is a relayout.
+    relayout_event: bool,
+
+    /// True if output file name is provided.
+    output_file_is_some: bool,
+
+    /// True to exit after the page load (`-x`).
+    exit_after_load: bool,
+
+    /// False if WebDriver is disabled or True to start a server
+    /// to listen to remote WebDriver commands.
+    webdriver_port_is_some: bool,
+
+    /// Unminify Javascript.
+    unminify_js: bool,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -681,6 +702,13 @@ impl ScriptThreadFactory for ScriptThread {
     fn create(
         state: InitialScriptState,
         load_data: LoadData,
+        profile_script_events: bool,
+        print_pwm: bool,
+        relayout_event: bool,
+        output_file_is_some: bool,
+        exit_after_load: bool,
+        webdriver_port_is_some: bool,
+        unminify_js: bool,
     ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let (script_chan, script_port) = unbounded();
 
@@ -703,7 +731,18 @@ impl ScriptThreadFactory for ScriptThread {
                 let window_size = state.window_size;
                 let layout_is_busy = state.layout_is_busy.clone();
 
-                let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
+                let script_thread = ScriptThread::new(
+                    state,
+                    script_port,
+                    script_chan.clone(),
+                    profile_script_events,
+                    print_pwm,
+                    relayout_event,
+                    output_file_is_some,
+                    exit_after_load,
+                    webdriver_port_is_some,
+                    unminify_js,
+                );
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -1051,6 +1090,13 @@ impl ScriptThread {
         state: InitialScriptState,
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
+        profile_script_events: bool,
+        print_pwm: bool,
+        relayout_event: bool,
+        output_file_is_some: bool,
+        exit_after_load: bool,
+        webdriver_port_is_some: bool,
+        unminify_js: bool,
     ) -> ScriptThread {
         let runtime = new_rt_and_cx();
         let cx = runtime.cx();
@@ -1154,6 +1200,15 @@ impl ScriptThread {
 
             webrender_document: state.webrender_document,
             webrender_api_sender: state.webrender_api_sender,
+
+            profile_script_events,
+            print_pwm,
+
+            relayout_event,
+            output_file_is_some,
+            exit_after_load,
+            webdriver_port_is_some,
+            unminify_js,
         }
     }
 
@@ -1532,7 +1587,7 @@ impl ScriptThread {
     {
         self.notify_activity_to_hang_monitor(&category);
         let start = precise_time_ns();
-        let value = if opts::get().profile_script_events {
+        let value = if self.profile_script_events {
             let profiler_cat = match category {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
                 ScriptThreadEventCategory::ConstellationMsg => {
@@ -1581,7 +1636,7 @@ impl ScriptThread {
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
                 if pipeline_id == doc_id && end - start > MAX_TASK_NS {
-                    if opts::get().print_pwm {
+                    if self.print_pwm {
                         println!(
                             "Task took longer than max allowed ({:?}) {:?}",
                             category,
@@ -2883,6 +2938,11 @@ impl ScriptThread {
             self.webrender_document,
             self.webrender_api_sender.clone(),
             incomplete.layout_is_busy,
+            self.relayout_event,
+            self.output_file_is_some,
+            self.exit_after_load,
+            self.webdriver_port_is_some,
+            self.unminify_js,
         );
 
         // Initialize the browsing context for the window.

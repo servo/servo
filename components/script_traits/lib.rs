@@ -618,6 +618,13 @@ pub trait ScriptThreadFactory {
     fn create(
         state: InitialScriptState,
         load_data: LoadData,
+        profile_script_events: bool,
+        print_pwm: bool,
+        relayout_event: bool,
+        output_file_is_some: bool,
+        exit_after_load: bool,
+        webdriver_port_is_some: bool,
+        unminify_js: bool,
     ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
