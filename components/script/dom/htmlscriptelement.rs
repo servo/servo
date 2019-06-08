@@ -38,7 +38,6 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
-use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fs::File;
@@ -533,7 +532,7 @@ impl HTMLScriptElement {
     }
 
     fn unminify_js(&self, script: &mut ClassicScript) {
-        if !opts::get().unminify_js {
+        if !self.parser_document.window().unminify_js() {
             return;
         }
 

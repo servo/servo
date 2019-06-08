@@ -66,7 +66,7 @@ pub struct Opts {
 
     pub output_file: Option<String>,
 
-    /// Replace unpaires surrogates in DOM strings with U+FFFD.
+    /// Replace unpaired surrogates in DOM strings with U+FFFD.
     /// See <https://github.com/servo/servo/issues/6564>
     pub replace_surrogates: bool,
 

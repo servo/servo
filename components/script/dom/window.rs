@@ -106,9 +106,9 @@ use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
-use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
+use std::borrow::Cow;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
@@ -299,6 +299,24 @@ pub struct Window {
     /// Flag that indicates if the layout thread is busy handling a request.
     #[ignore_malloc_size_of = "Arc<T> is hard"]
     layout_is_busy: Arc<AtomicBool>,
+
+    /// Emits notifications when there is a relayout.
+    relayout_event: bool,
+
+    /// True if it is safe to write to the image.
+    prepare_for_screenshot: bool,
+
+    /// Unminify Javascript.
+    unminify_js: bool,
+
+    /// Where to load userscripts from, if any. An empty string will load from
+    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
+    /// won't be loaded.
+    userscripts_path: Option<String>,
+
+    /// Replace unpaired surrogates in DOM strings with U+FFFD.
+    /// See <https://github.com/servo/servo/issues/6564>
+    replace_surrogates: bool,
 }
 
 impl Window {
@@ -449,6 +467,18 @@ impl Window {
 
     pub fn get_webrender_api_sender(&self) -> RenderApiSender {
         self.webrender_api_sender.clone()
+    }
+
+    pub fn get_userscripts_path(&self) -> Option<String> {
+        self.userscripts_path.clone()
+    }
+
+    pub fn replace_surrogates(&self) -> bool {
+        self.replace_surrogates
+    }
+
+    pub fn unminify_js(&self) -> bool {
+        self.unminify_js
     }
 }
 
@@ -1402,7 +1432,7 @@ impl Window {
         let (join_chan, join_port) = unbounded();
 
         // On debug mode, print the reflow event information.
-        if opts::get().relayout_event {
+        if self.relayout_event {
             debug_reflow_events(
                 self.upcast::<GlobalScope>().pipeline_id(),
                 &reflow_goal,
@@ -1540,11 +1570,7 @@ impl Window {
         // When all these conditions are met, notify the constellation
         // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
-        if (opts::get().output_file.is_some() ||
-            opts::get().exit_after_load ||
-            opts::get().webdriver_port.is_some()) &&
-            for_display
-        {
+        if self.prepare_for_screenshot && for_display {
             let document = self.Document();
 
             // Checks if the html element has reftest-wait attribute present.
@@ -1704,7 +1730,7 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(&document));
-        if !opts::get().unminify_js {
+        if !self.unminify_js {
             return;
         }
         // Create a folder for the document host to store unminified scripts.
@@ -2043,6 +2069,13 @@ impl Window {
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
         layout_is_busy: Arc<AtomicBool>,
+        relayout_event: bool,
+        prepare_for_screenshot: bool,
+        unminify_js: bool,
+        userscripts_path: Option<String>,
+        is_headless: bool,
+        replace_surrogates: bool,
+        user_agent: Cow<'static, str>,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2065,6 +2098,8 @@ impl Window {
                 timer_event_chan,
                 origin,
                 microtask_queue,
+                is_headless,
+                user_agent,
             ),
             script_chan,
             task_manager,
@@ -2116,6 +2151,11 @@ impl Window {
             webrender_api_sender,
             has_sent_idle_message: Cell::new(false),
             layout_is_busy,
+            relayout_event,
+            prepare_for_screenshot,
+            unminify_js,
+            userscripts_path,
+            replace_surrogates,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }
