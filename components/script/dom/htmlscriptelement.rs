@@ -159,7 +159,7 @@ impl ClassicScript {
 pub type ScriptResult = Result<ClassicScript, NetworkError>;
 
 /// The context required for asynchronously loading an external script source.
-struct ScriptContext {
+struct ClassicContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLScriptElement>,
     /// The kind of external script.
@@ -179,7 +179,7 @@ struct ScriptContext {
     resource_timing: ResourceFetchTiming,
 }
 
-impl FetchResponseListener for ScriptContext {
+impl FetchResponseListener for ClassicContext {
     fn process_request_body(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
 
     fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
@@ -266,7 +266,7 @@ impl FetchResponseListener for ScriptContext {
     }
 }
 
-impl ResourceTimingListener for ScriptContext {
+impl ResourceTimingListener for ClassicContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         let initiator_type = InitiatorType::LocalName(
             self.elem
@@ -283,7 +283,7 @@ impl ResourceTimingListener for ScriptContext {
     }
 }
 
-impl PreInvoke for ScriptContext {}
+impl PreInvoke for ClassicContext {}
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
 fn fetch_a_classic_script(
@@ -319,7 +319,7 @@ fn fetch_a_classic_script(
 
     // TODO: Step 3, Add custom steps to perform fetch
 
-    let context = Arc::new(Mutex::new(ScriptContext {
+    let context = Arc::new(Mutex::new(ClassicContext {
         elem: Trusted::new(script),
         kind: kind,
         character_encoding: character_encoding,
