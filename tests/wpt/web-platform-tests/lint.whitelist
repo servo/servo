@@ -319,6 +319,7 @@ SET TIMEOUT: resources/test/tests/functional/api-tests-1.html
 SET TIMEOUT: resources/test/tests/functional/worker.js
 SET TIMEOUT: resources/test/tests/functional/worker-uncaught-allow.js
 SET TIMEOUT: resources/test/tests/unit/exceptional-cases.html
+SET TIMEOUT: resources/test/tests/unit/exceptional-cases-timeouts.html
 SET TIMEOUT: resources/testharness.js
 
 # setTimeout use in reftests

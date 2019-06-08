@@ -116,44 +116,6 @@ promise_test(() => {
 }, 'uncaught exception during promise_test');
 
 promise_test(() => {
-  window.asyncTestCleanupCount = 0;
-  return makeTest(
-      () => {
-        async_test((t) => {
-          t.add_cleanup(() => window.parent.asyncTestCleanupCount += 1);
-          setTimeout(() => {
-            throw new Error('this error is expected');
-          });
-        }, 'test');
-      }
-    ).then(({harness, tests}) => {
-      assert_equals(harness, 'ERROR');
-      assert_equals(tests.test, 'TIMEOUT');
-      assert_equals(window.asyncTestCleanupCount, 1);
-    });
-}, 'uncaught exception during async_test which times out');
-
-promise_test(() => {
-  window.promiseTestCleanupCount = 0;
-  return makeTest(
-      () => {
-        promise_test((t) => {
-          t.add_cleanup(() => window.parent.promiseTestCleanupCount += 1);
-          setTimeout(() => {
-            throw new Error('this error is expected');
-          });
-
-          return new Promise(() => {});
-        }, 'test');
-      }
-    ).then(({harness, tests}) => {
-      assert_equals(harness, 'ERROR');
-      assert_equals(tests.test, 'TIMEOUT');
-      assert_equals(window.promiseTestCleanupCount, 1);
-    });
-}, 'uncaught exception during promise_test which times out');
-
-promise_test(() => {
   return makeTest(
       () => { test(() => {}, 'before'); },
       () => { throw new Error('this error is expected'); },
@@ -194,7 +156,6 @@ if ('onunhandledrejection' in window) {
   promise_test(() => {
     return makeTest(
         () => {
-          async_test('pending');
           async_test((t) => {
             Promise.reject(new Error('this error is expected'));
 
@@ -207,7 +168,6 @@ if ('onunhandledrejection' in window) {
         }
       ).then(({harness, tests}) => {
         assert_equals(harness, 'ERROR');
-        assert_equals(tests.pending, 'NOTRUN');
         assert_equals(tests.during, 'PASS');
         assert_equals(tests.after, 'PASS');
       });
@@ -249,8 +209,7 @@ if ('onunhandledrejection' in window) {
       ).then(({harness, tests}) => {
         assert_equals(harness, 'ERROR');
         assert_equals(tests.before, 'PASS');
-        // TODO: investigate why this is not present
-        assert_false('after' in tests);
+        assert_true('after' in tests);
       });
   }, 'unhandled rejection between tests');
 
@@ -286,8 +245,7 @@ if ('onunhandledrejection' in window) {
       ).then(({harness, tests}) => {
         assert_equals(harness, 'ERROR');
         assert_equals(tests.before, 'PASS');
-        // TODO: investigate why this is not present
-        assert_false('after' in tests);
+        assert_true('after' in tests);
       });
   }, 'unhandled rejection between promise_tests');
 

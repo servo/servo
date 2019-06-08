@@ -7,7 +7,10 @@ steps:
   - script: |
       # This is equivalent to `Homebrew/homebrew-cask-versions/safari-technology-preview`,
       # but the raw URL is used to bypass caching.
-      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/master/Casks/safari-technology-preview.rb
+      # Safari Technology Preview version 83 includes a regression that
+      # interferes with results collection. The version of the installation
+      # script referenced here installs STP at version 82.
+      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/dbde508bb83254c53be4eb6387dbd9fbf9797a35/Casks/safari-technology-preview.rb
       sudo "/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" --enable
       defaults write com.apple.SafariTechnologyPreview WebKitJavaScriptCanOpenWindowsAutomatically 1
       defaults write com.apple.SafariTechnologyPreview ExperimentalServerTimingEnabled 1
