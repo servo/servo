@@ -79,7 +79,7 @@ impl WorkerNavigatorMethods for WorkerNavigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
     fn UserAgent(&self) -> DOMString {
-        navigatorinfo::UserAgent()
+        navigatorinfo::UserAgent(self.global().get_user_agent())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion

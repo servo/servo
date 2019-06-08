@@ -30,6 +30,7 @@ use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::sync::Arc;
 
 #[dom_struct]
@@ -72,6 +73,8 @@ impl WorkletGlobalScope {
                 timer_event_chan,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 Default::default(),
+                init.is_headless,
+                init.user_agent.clone(),
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
@@ -153,6 +156,10 @@ pub struct WorkletGlobalScopeInit {
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The image cache
     pub image_cache: Arc<dyn ImageCache>,
+    /// True if in headless mode
+    pub is_headless: bool,
+    /// An optional string allowing the user agent to be set for testing
+    pub user_agent: Cow<'static, str>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
