@@ -135,7 +135,6 @@ use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use servo_atoms::Atom;
-use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::cell::RefCell;
@@ -644,6 +643,26 @@ pub struct ScriptThread {
 
     /// FIXME(victor):
     webrender_api_sender: RenderApiSender,
+
+    /// Periodically print out on which events script threads spend their processing time.
+    profile_script_events: bool,
+
+    /// Print Progressive Web Metrics to console.
+    print_pwm: bool,
+
+    /// Emits notifications when there is a relayout.
+    relayout_event: bool,
+
+    /// True if it is safe to write to the image.
+    prepare_for_screenshot: bool,
+
+    /// Unminify Javascript.
+    unminify_js: bool,
+
+    /// Where to load userscripts from, if any. An empty string will load from
+    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
+    /// won't be loaded
+    userscripts_path: Option<String>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -681,6 +700,12 @@ impl ScriptThreadFactory for ScriptThread {
     fn create(
         state: InitialScriptState,
         load_data: LoadData,
+        profile_script_events: bool,
+        print_pwm: bool,
+        relayout_event: bool,
+        prepare_for_screenshot: bool,
+        unminify_js: bool,
+        userscripts_path: Option<String>,
     ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let (script_chan, script_port) = unbounded();
 
@@ -703,7 +728,17 @@ impl ScriptThreadFactory for ScriptThread {
                 let window_size = state.window_size;
                 let layout_is_busy = state.layout_is_busy.clone();
 
-                let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
+                let script_thread = ScriptThread::new(
+                    state,
+                    script_port,
+                    script_chan.clone(),
+                    profile_script_events,
+                    print_pwm,
+                    relayout_event,
+                    prepare_for_screenshot,
+                    unminify_js,
+                    userscripts_path,
+                );
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -1051,6 +1086,12 @@ impl ScriptThread {
         state: InitialScriptState,
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
+        profile_script_events: bool,
+        print_pwm: bool,
+        relayout_event: bool,
+        prepare_for_screenshot: bool,
+        unminify_js: bool,
+        userscripts_path: Option<String>,
     ) -> ScriptThread {
         let runtime = new_rt_and_cx();
         let cx = runtime.cx();
@@ -1154,6 +1195,15 @@ impl ScriptThread {
 
             webrender_document: state.webrender_document,
             webrender_api_sender: state.webrender_api_sender,
+
+            profile_script_events,
+            print_pwm,
+
+            relayout_event,
+            prepare_for_screenshot,
+            unminify_js,
+
+            userscripts_path,
         }
     }
 
@@ -1532,7 +1582,7 @@ impl ScriptThread {
     {
         self.notify_activity_to_hang_monitor(&category);
         let start = precise_time_ns();
-        let value = if opts::get().profile_script_events {
+        let value = if self.profile_script_events {
             let profiler_cat = match category {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
                 ScriptThreadEventCategory::ConstellationMsg => {
@@ -1581,7 +1631,7 @@ impl ScriptThread {
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
                 if pipeline_id == doc_id && end - start > MAX_TASK_NS {
-                    if opts::get().print_pwm {
+                    if self.print_pwm {
                         println!(
                             "Task took longer than max allowed ({:?}) {:?}",
                             category,
@@ -2889,6 +2939,10 @@ impl ScriptThread {
             self.webrender_document,
             self.webrender_api_sender.clone(),
             incomplete.layout_is_busy,
+            self.relayout_event,
+            self.prepare_for_screenshot,
+            self.unminify_js,
+            self.userscripts_path.clone(),
         );
 
         // Initialize the browsing context for the window.

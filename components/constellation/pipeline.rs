@@ -559,6 +559,14 @@ impl UnprivilegedPipelineContent {
                 layout_is_busy: layout_thread_busy_flag.clone(),
             },
             self.load_data.clone(),
+            self.opts.profile_script_events,
+            self.opts.print_pwm,
+            self.opts.relayout_event,
+            self.opts.output_file.is_some() ||
+                self.opts.exit_after_load ||
+                self.opts.webdriver_port.is_some(),
+            self.opts.unminify_js,
+            self.opts.userscripts,
         );
 
         LTF::create(
