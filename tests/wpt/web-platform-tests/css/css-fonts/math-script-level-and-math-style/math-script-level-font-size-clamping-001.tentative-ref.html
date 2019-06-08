@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>math-script-level and font-max-size (reference)</title>
+    <title>math-script-level (reference)</title>
     <meta charset="utf-8">
     <style>
       .container {
           /* Ahem font does not have a MATH table so the font-size scale factor
              is always 0.71^{computed - inherited math script level} */
-          font: 100px/1 Ahem;
+          font: 12px/1 Ahem;
       }
     </style>
   </head>
   <body>
-    <p>Test passes if you see a square of side 355px.</p>
+    <p>Test passes if you see a square of side 12px.</p>
     <div class="container">
-      <div style="font-size: 355px">X</div>
+      <div>
+        <div>X</div>
+      </div>
     </div>
   </body>
 </html>

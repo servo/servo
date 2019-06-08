@@ -23,7 +23,9 @@ async_test((t) => {
     i++;
     if (i === 1) {
       assert_equals(e.data.message, 'Exception', 'before navigation');
-      assert_array_equals(e.data.details, [true /* ex instanceof DOMException*/, 18 /* ex.code */, 'SecurityError' /* ex.name */], 'before navigation');
+      assert_equals(4, e.data.details.length);
+      // The last entry is the error stacktrace. Ignore it in comparison.
+      assert_array_equals(e.data.details.slice(0, 3), [true /* ex instanceof DOMException*/, 18 /* ex.code */, 'SecurityError' /* ex.name */], 'before navigation');
 
       // Navigate the iframe. This will fire a second 'load' event on the iframe.
       iframe.contentWindow.location.href = iframe.src + '?2';

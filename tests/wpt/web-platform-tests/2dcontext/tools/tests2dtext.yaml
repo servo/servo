@@ -967,24 +967,27 @@
   expected: green
 
 
-
-
 - name: 2d.text.measure.width.basic
+  desc: The width of character is same as font used
   testing:
     - 2d.text.measure
   fonts:
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        @assert ctx.measureText('A').width === 50;
-        @assert ctx.measureText('AA').width === 100;
-        @assert ctx.measureText('ABCD').width === 200;
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            @assert ctx.measureText('A').width === 50;
+            @assert ctx.measureText('AA').width === 100;
+            @assert ctx.measureText('ABCD').width === 200;
 
-        ctx.font = '100px CanvasTest';
-        @assert ctx.measureText('A').width === 100;
-    }), 500);
+            ctx.font = '100px CanvasTest';
+            @assert ctx.measureText('A').width === 100;
+        }), 500);
+    });
 
 - name: 2d.text.measure.width.empty
   desc: The empty string has zero width
@@ -994,10 +997,14 @@
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        @assert ctx.measureText("").width === 0;
-    }), 500);
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            @assert ctx.measureText("").width === 0;
+        }), 500);
+    });
 
 - name: 2d.text.measure.width.space
   desc: Space characters are converted to U+0020 and collapsed (per CSS)
@@ -1007,16 +1014,20 @@
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        @assert ctx.measureText('A B').width === 150;
-        @assert ctx.measureText('A  B').width === 150; @moz-todo
-        @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 150; @moz-todo
-        @assert ctx.measureText('A \x0b B').width >= 200;
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            @assert ctx.measureText('A B').width === 150;
+            @assert ctx.measureText('A  B').width === 150; @moz-todo
+            @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 150; @moz-todo
+            @assert ctx.measureText('A \x0b B').width >= 200;
 
-        @assert ctx.measureText(' AB').width === 100; @moz-todo
-        @assert ctx.measureText('AB ').width === 100; @moz-todo
-    }), 500);
+            @assert ctx.measureText(' AB').width === 100; @moz-todo
+            @assert ctx.measureText('AB ').width === 100; @moz-todo
+        }), 500);
+    });
 
 - name: 2d.text.measure.advances
   desc: Testing width advances
@@ -1026,25 +1037,29 @@
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        ctx.direction = 'ltr';
-        ctx.align = 'left'
-        // Some platforms may return '-0'.
-        @assert Math.abs(ctx.measureText('Hello').advances[0]) === 0;
-        // Different platforms may render text slightly different.
-        @assert ctx.measureText('Hello').advances[1] >= 36;
-        @assert ctx.measureText('Hello').advances[2] >= 58;
-        @assert ctx.measureText('Hello').advances[3] >= 70;
-        @assert ctx.measureText('Hello').advances[4] >= 80;
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            // Some platforms may return '-0'.
+            @assert Math.abs(ctx.measureText('Hello').advances[0]) === 0;
+            // Different platforms may render text slightly different.
+            @assert ctx.measureText('Hello').advances[1] >= 36;
+            @assert ctx.measureText('Hello').advances[2] >= 58;
+            @assert ctx.measureText('Hello').advances[3] >= 70;
+            @assert ctx.measureText('Hello').advances[4] >= 80;
 
-        var tm = ctx.measureText('Hello');
-        @assert ctx.measureText('Hello').advances[0] === tm.advances[0];
-        @assert ctx.measureText('Hello').advances[1] === tm.advances[1];
-        @assert ctx.measureText('Hello').advances[2] === tm.advances[2];
-        @assert ctx.measureText('Hello').advances[3] === tm.advances[3];
-        @assert ctx.measureText('Hello').advances[4] === tm.advances[4];
-    }), 500);
+            var tm = ctx.measureText('Hello');
+            @assert ctx.measureText('Hello').advances[0] === tm.advances[0];
+            @assert ctx.measureText('Hello').advances[1] === tm.advances[1];
+            @assert ctx.measureText('Hello').advances[2] === tm.advances[2];
+            @assert ctx.measureText('Hello').advances[3] === tm.advances[3];
+            @assert ctx.measureText('Hello').advances[4] === tm.advances[4];
+        }), 500);
+    });
 
 - name: 2d.text.measure.actualBoundingBox
   desc: Testing actualBoundingBox
@@ -1054,23 +1069,27 @@
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        ctx.direction = 'ltr';
-        ctx.align = 'left'
-        ctx.baseline = 'alphabetic'
-        // Some platforms may return '-0'.
-        @assert Math.abs(ctx.measureText('A').actualBoundingBoxLeft) === 0;
-        // Different platforms may render text slightly different.
-        @assert ctx.measureText('A').actualBoundingBoxRight >= 50;
-        @assert ctx.measureText('A').actualBoundingBoxAscent >= 35;
-        @assert Math.abs(ctx.measureText('A').actualBoundingBoxDescent) === 0;
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            ctx.baseline = 'alphabetic'
+            // Some platforms may return '-0'.
+            @assert Math.abs(ctx.measureText('A').actualBoundingBoxLeft) === 0;
+            // Different platforms may render text slightly different.
+            @assert ctx.measureText('A').actualBoundingBoxRight >= 50;
+            @assert ctx.measureText('A').actualBoundingBoxAscent >= 35;
+            @assert Math.abs(ctx.measureText('A').actualBoundingBoxDescent) === 0;
 
-        @assert Math.abs(ctx.measureText('ABCD').actualBoundingBoxLeft) === 0;
-        @assert ctx.measureText('ABCD').actualBoundingBoxRight >= 200;
-        @assert ctx.measureText('ABCD').actualBoundingBoxAscent >= 85;
-        @assert ctx.measureText('ABCD').actualBoundingBoxDescent >= 37;
-    }), 500);
+            @assert Math.abs(ctx.measureText('ABCD').actualBoundingBoxLeft) === 0;
+            @assert ctx.measureText('ABCD').actualBoundingBoxRight >= 200;
+            @assert ctx.measureText('ABCD').actualBoundingBoxAscent >= 85;
+            @assert ctx.measureText('ABCD').actualBoundingBoxDescent >= 37;
+        }), 500);
+    });
 
 - name: 2d.text.measure.fontBoundingBox
   desc: Testing fontBoundingBox
@@ -1080,16 +1099,20 @@
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        ctx.direction = 'ltr';
-        ctx.align = 'left'
-        @assert ctx.measureText('A').fontBoundingBoxAscent === 85;
-        @assert ctx.measureText('A').fontBoundingBoxDescent === 39;
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            @assert ctx.measureText('A').fontBoundingBoxAscent === 85;
+            @assert ctx.measureText('A').fontBoundingBoxDescent === 39;
 
-        @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 85;
-        @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 39;
-    }), 500);
+            @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 85;
+            @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 39;
+        }), 500);
+    });
 
 - name: 2d.text.measure.emHeights
   desc: Testing emHeights
@@ -1099,18 +1122,22 @@
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        ctx.direction = 'ltr';
-        ctx.align = 'left'
-        @assert ctx.measureText('A').emHeightAscent === 37.5;
-        @assert ctx.measureText('A').emHeightDescent === 12.5;
-        @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 50;
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+         step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            @assert ctx.measureText('A').emHeightAscent === 37.5;
+            @assert ctx.measureText('A').emHeightDescent === 12.5;
+            @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 50;
 
-        @assert ctx.measureText('ABCD').emHeightAscent === 37.5;
-        @assert ctx.measureText('ABCD').emHeightDescent === 12.5;
-        @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 50;
-    }), 500);
+            @assert ctx.measureText('ABCD').emHeightAscent === 37.5;
+            @assert ctx.measureText('ABCD').emHeightDescent === 12.5;
+            @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 50;
+        }), 500);
+    });
 
 - name: 2d.text.measure.baselines
   desc: Testing baselines
@@ -1120,17 +1147,21 @@
     - CanvasTest
   code: |
     deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        ctx.direction = 'ltr';
-        ctx.align = 'left'
-        @assert Math.abs(ctx.measureText('A').getBaselines().alphabetic) === 0;
-        @assert ctx.measureText('A').getBaselines().ideographic === -39;
-        @assert ctx.measureText('A').getBaselines().hanging === 68;
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+         step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            @assert Math.abs(ctx.measureText('A').getBaselines().alphabetic) === 0;
+            @assert ctx.measureText('A').getBaselines().ideographic === -39;
+            @assert ctx.measureText('A').getBaselines().hanging === 68;
 
-        @assert Math.abs(ctx.measureText('ABCD').getBaselines().alphabetic) === 0;
-        @assert ctx.measureText('ABCD').getBaselines().ideographic === -39;
-        @assert ctx.measureText('ABCD').getBaselines().hanging === 68;
-    }), 500);
+            @assert Math.abs(ctx.measureText('ABCD').getBaselines().alphabetic) === 0;
+            @assert ctx.measureText('ABCD').getBaselines().ideographic === -39;
+            @assert ctx.measureText('ABCD').getBaselines().hanging === 68;
+        }), 500);
+    });
 
 # TODO: shadows, alpha, composite, clip

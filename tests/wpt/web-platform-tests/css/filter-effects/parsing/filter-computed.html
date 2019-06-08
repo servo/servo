@@ -35,6 +35,7 @@ test_computed_value("filter", "drop-shadow(1px 2px)", "drop-shadow(rgb(0, 255, 0
 test_computed_value("filter", "drop-shadow(rgb(4, 5, 6) 1px 2px 0px)");
 
 test_computed_value("filter", "grayscale(50%)", "grayscale(0.5)");
+test_computed_value("filter", "grayscale(2)", "grayscale(1)");
 test_computed_value("filter", "grayscale()", "grayscale(1)");
 
 test_computed_value("filter", "hue-rotate(90deg)");
@@ -42,10 +43,12 @@ test_computed_value("filter", "hue-rotate()", "hue-rotate(0deg)");
 
 test_computed_value("filter", "invert(0)");
 test_computed_value("filter", "invert(100%)", "invert(1)");
+test_computed_value("filter", "invert(2)", "invert(1)");
 test_computed_value("filter", "invert()", "invert(1)");
 
 test_computed_value("filter", "opacity(0)");
 test_computed_value("filter", "opacity(100%)", "opacity(1)");
+test_computed_value("filter", "opacity(2)", "opacity(1)");
 test_computed_value("filter", "opacity()", "opacity(1)");
 
 test_computed_value("filter", "saturate(0)");
@@ -54,6 +57,7 @@ test_computed_value("filter", "saturate()", "saturate(1)");
 
 test_computed_value("filter", "sepia(0)");
 test_computed_value("filter", "sepia(100%)", "sepia(1)");
+test_computed_value("filter", "sepia(2)", "sepia(1)");
 test_computed_value("filter", "sepia()", "sepia(1)");
 
 test_computed_value("filter", 'blur(10px) url("https://www.example.com/picture.svg#f") contrast(20) brightness(30)');

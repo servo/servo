@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>math-script-level and font-max-size</title>
+    <title>math-script-level clamping</title>
     <meta charset="utf-8">
-    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
-    <meta name="assert" content="The clamping of font-size implied by font-min-size and font-max-size must apply after the change due to math-script-level.">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3739">
+    <meta name="assert" content="Clamping due to browser's min font size only affects the used size.">
     <link rel="match" href="math-script-level-font-size-clamping-001.tentative-ref.html">
     <style>
       .container {
           /* Ahem font does not have a MATH table so the font-size scale factor
              is always 0.71^{computed - inherited math script level} */
-          font: 100px/1 Ahem;
+          font: 12px/1 Ahem;
       }
     </style>
   </head>
   <body>
-    <p>Test passes if you see a square of side 355px.</p>
-    <div class="container" style="font-size: 500px">
-      <div style="math-script-level: add(1); font-max-size: 480px">X</div>
+    <p>Test passes if you see a square of side 12px.</p>
+    <div class="container"><!-- Initial size is 12px. -->
+      <div style="math-script-level: add(8);"><!-- Size is 12*.71^8 = 0.7749042374949131 < 1px. -->
+        <div style="math-script-level: add(-8);">X</div><!-- back to 12px. -->
+      </div>
     </div>
   </body>
 </html>
