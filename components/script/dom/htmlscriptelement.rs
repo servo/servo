@@ -126,6 +126,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum ScriptType {
     Classic,
     Module,
@@ -136,22 +137,25 @@ pub struct ScriptOrigin {
     text: DOMString,
     url: ServoUrl,
     external: bool,
+    type_: ScriptType,
 }
 
 impl ScriptOrigin {
-    fn internal(text: DOMString, url: ServoUrl) -> ScriptOrigin {
+    fn internal(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: false,
+            type_,
         }
     }
 
-    fn external(text: DOMString, url: ServoUrl) -> ScriptOrigin {
+    fn external(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: true,
+            type_,
         }
     }
 }
@@ -232,7 +236,11 @@ impl FetchResponseListener for ClassicContext {
 
             // Step 7.
             let (source_text, _, _) = encoding.decode(&self.data);
-            ScriptOrigin::external(DOMString::from(source_text), metadata.final_url)
+            ScriptOrigin::external(
+                DOMString::from(source_text),
+                metadata.final_url,
+                ScriptType::Classic,
+            )
         });
 
         // Step 9.
@@ -527,7 +535,7 @@ impl HTMLScriptElement {
             // Step 25.
             assert!(!text.is_empty());
             // Step 25-1.
-            let result = Ok(ScriptOrigin::internal(text, base_url));
+            let result = Ok(ScriptOrigin::internal(text, base_url, ScriptType::Classic));
 
             // TODO: Step 25-2.
 
