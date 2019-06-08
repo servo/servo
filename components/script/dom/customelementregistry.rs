@@ -680,7 +680,9 @@ fn run_upgrade_constructor(
             return Err(Error::JSFailed);
         }
         if !same {
-            return Err(Error::InvalidState);
+            return Err(Error::Type(
+                "Returned element is not SameValue as the upgraded element".to_string(),
+            ));
         }
     }
     Ok(())

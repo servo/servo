@@ -182,7 +182,12 @@ where
             DomRoot::downcast(element).ok_or(Error::InvalidState)
         },
         // Step 10
-        Some(ConstructionStackEntry::AlreadyConstructedMarker) => Err(Error::InvalidState),
+        Some(ConstructionStackEntry::AlreadyConstructedMarker) => {
+            let s = "Top of construction stack marked AlreadyConstructed due to \
+                     a custom element constructor constructing itself after super()"
+                .to_string();
+            Err(Error::Type(s))
+        },
     }
 }
 
