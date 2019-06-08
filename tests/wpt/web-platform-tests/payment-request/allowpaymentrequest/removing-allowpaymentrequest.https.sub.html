@@ -48,7 +48,9 @@ async_test((t) => {
       // 8. This is the second message we receive, from the second load.
       // Since the allowpaymentrequest flag was not set, we expect an exception.
       assert_equals(e.data.message, 'Exception', 'after navigation');
-      assert_array_equals(e.data.details, [true /* ex instanceof DOMException*/, 18 /* ex.code */, 'SecurityError' /* ex.name */], 'after navigation');
+      assert_equals(4, e.data.details.length);
+      // The last entry is the error stacktrace. Ignore it in comparison.
+      assert_array_equals(e.data.details.slice(0, 3), [true /* ex instanceof DOMException*/, 18 /* ex.code */, 'SecurityError' /* ex.name */], 'after navigation');
       t.done();
     }
   });

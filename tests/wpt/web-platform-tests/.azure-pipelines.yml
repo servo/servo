@@ -256,7 +256,7 @@ jobs:
   - template: tools/ci/azure/install_edge.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-tbpl - --log-tbpl-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt edgechromium
+  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-tbpl - --log-tbpl-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --channel dev edgechromium
     displayName: 'Run tests (Edge Dev)'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
@@ -270,7 +270,9 @@ jobs:
 
 - job: results_safari
   displayName: 'all tests (Safari)'
-  condition: eq(variables['Build.Reason'], 'Schedule')
+  condition: |
+    or(eq(variables['Build.Reason'], 'Schedule'),
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_safari']))
   strategy:
     parallel: 4 # chosen to make runtime ~2h
   timeoutInMinutes: 360

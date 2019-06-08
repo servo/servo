@@ -14,7 +14,7 @@
 <body class="show_output">
 
 <h1>2d.text.measure.width.basic</h1>
-<p class="desc"></p>
+<p class="desc">The width of character is same as font used</p>
 
 
 <span style="font-family: CanvasTest; position: absolute; visibility: hidden">A</span>
@@ -23,19 +23,23 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("");
+var t = async_test("The width of character is same as font used");
 _addTest(function(canvas, ctx) {
 
 deferTest();
-step_timeout(t.step_func_done(function () {
-    ctx.font = '50px CanvasTest';
-    _assertSame(ctx.measureText('A').width, 50, "ctx.measureText('A').width", "50");
-    _assertSame(ctx.measureText('AA').width, 100, "ctx.measureText('AA').width", "100");
-    _assertSame(ctx.measureText('ABCD').width, 200, "ctx.measureText('ABCD').width", "200");
+var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+document.fonts.add(f);
+document.fonts.ready.then(() => {
+    step_timeout(t.step_func_done(function () {
+        ctx.font = '50px CanvasTest';
+        _assertSame(ctx.measureText('A').width, 50, "ctx.measureText('A').width", "50");
+        _assertSame(ctx.measureText('AA').width, 100, "ctx.measureText('AA').width", "100");
+        _assertSame(ctx.measureText('ABCD').width, 200, "ctx.measureText('ABCD').width", "200");
 
-    ctx.font = '100px CanvasTest';
-    _assertSame(ctx.measureText('A').width, 100, "ctx.measureText('A').width", "100");
-}), 500);
+        ctx.font = '100px CanvasTest';
+        _assertSame(ctx.measureText('A').width, 100, "ctx.measureText('A').width", "100");
+    }), 500);
+});
 
 
 });
