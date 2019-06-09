@@ -102,8 +102,7 @@ interface ServiceWorkerGlobalScope : WorkerGlobalScope {
   attribute EventHandler onactivate;
   attribute EventHandler onfetch;
 
-  // event
-  attribute EventHandler onmessage; // event.source of the message events is Client object
+  attribute EventHandler onmessage;
   attribute EventHandler onmessageerror;
 };
 
