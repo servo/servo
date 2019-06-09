@@ -220,7 +220,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     stacking_context: StackingContext {
                         transform_style: stacking_context.transform_style,
                         mix_blend_mode: stacking_context.mix_blend_mode,
-                        clip_id: Some(cur_clip_id),
+                        clip_id: None,
                         raster_space: RasterSpace::Screen,
                         // TODO(pcwalton): Enable picture caching?
                         cache_tiles: false,
