@@ -382,6 +382,8 @@ class CommandBase(object):
             simpleservo = True
         elif target:
             base_path = path.join(base_path, target)
+        if simpleservo:
+            binary_name = "simpleservo.dll" if sys.platform == "win32" else "libsimpleservo.so"
 
         if simpleservo:
             binary_name = "simpleservo.dll" if sys.platform == "win32" else "libsimpleservo.so"
