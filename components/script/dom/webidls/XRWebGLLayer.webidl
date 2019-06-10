@@ -41,3 +41,7 @@ interface XRWebGLLayer : XRLayer {
   // // Static Methods
   // static double getNativeFramebufferScaleFactor(XRSession session);
 };
+
+partial interface WebGLRenderingContext {
+    [Pref="dom.webxr.enabled"] Promise<void> makeXRCompatible();
+};
