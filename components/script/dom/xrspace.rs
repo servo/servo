@@ -19,7 +19,6 @@ use webvr_traits::{WebVRFrameData, WebVRPose};
 pub struct XRSpace {
     eventtarget: EventTarget,
     session: Dom<XRSession>,
-    is_viewerspace: bool,
     input_source: MutNullableDom<XRInputSource>,
 }
 
@@ -28,33 +27,14 @@ impl XRSpace {
         XRSpace {
             eventtarget: EventTarget::new_inherited(),
             session: Dom::from_ref(session),
-            is_viewerspace: false,
             input_source: Default::default(),
         }
-    }
-
-    fn new_viewerspace_inner(session: &XRSession) -> XRSpace {
-        XRSpace {
-            eventtarget: EventTarget::new_inherited(),
-            session: Dom::from_ref(session),
-            is_viewerspace: true,
-            input_source: Default::default(),
-        }
-    }
-
-    pub fn new_viewerspace(global: &GlobalScope, session: &XRSession) -> DomRoot<XRSpace> {
-        reflect_dom_object(
-            Box::new(XRSpace::new_viewerspace_inner(session)),
-            global,
-            XRSpaceBinding::Wrap,
-        )
     }
 
     fn new_inputspace_inner(session: &XRSession, input: &XRInputSource) -> XRSpace {
         XRSpace {
             eventtarget: EventTarget::new_inherited(),
             session: Dom::from_ref(session),
-            is_viewerspace: false,
             input_source: MutNullableDom::new(Some(input)),
         }
     }
@@ -81,8 +61,6 @@ impl XRSpace {
     pub fn get_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
-        } else if self.is_viewerspace {
-            XRSpace::pose_to_transform(&base_pose.pose)
         } else if let Some(source) = self.input_source.get() {
             XRSpace::pose_to_transform(&source.pose())
         } else {

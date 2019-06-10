@@ -5,12 +5,11 @@
 use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
+use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRReferenceSpaceOptions;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -24,7 +23,6 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrspace::XRSpace;
-use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -87,12 +85,6 @@ impl XRSessionMethods for XRSession {
         )
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrsession-viewerspace
-    fn ViewerSpace(&self) -> DomRoot<XRSpace> {
-        self.viewer_space
-            .or_init(|| XRSpace::new_viewerspace(&self.global(), &self))
-    }
-
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
     fn UpdateRenderState(&self, init: &XRRenderStateInit, comp: InCompartment) -> Rc<Promise> {
         let p = Promise::new_in_current_compartment(&self.global(), comp);
@@ -116,11 +108,7 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
-    fn RequestReferenceSpace(
-        &self,
-        options: &XRReferenceSpaceOptions,
-        comp: InCompartment,
-    ) -> Rc<Promise> {
+    fn RequestReferenceSpace(&self, ty: XRReferenceSpaceType, comp: InCompartment) -> Rc<Promise> {
         let p = Promise::new_in_current_compartment(&self.global(), comp);
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
@@ -128,26 +116,13 @@ impl XRSessionMethods for XRSession {
         // XXXManishearth reject based on session type
         // https://github.com/immersive-web/webxr/blob/master/spatial-tracking-explainer.md#practical-usage-guidelines
 
-        match options.type_ {
-            XRReferenceSpaceType::Identity => {
-                p.resolve_native(&XRReferenceSpace::identity(&self.global(), self));
-            },
-            XRReferenceSpaceType::Stationary => {
-                if let Some(subtype) = options.subtype {
-                    p.resolve_native(&XRStationaryReferenceSpace::new(
-                        &self.global(),
-                        self,
-                        subtype,
-                    ));
-                } else {
-                    p.reject_error(Error::Type(format!(
-                        "stationary XRReferenceSpaces must specify a subtype"
-                    )))
-                }
-            },
-            XRReferenceSpaceType::Bounded | XRReferenceSpaceType::Unbounded => {
+        match ty {
+            XRReferenceSpaceType::Bounded_floor | XRReferenceSpaceType::Unbounded => {
                 // XXXManishearth eventually support these
                 p.reject_error(Error::NotSupported)
+            },
+            ty => {
+                p.resolve_native(&XRReferenceSpace::new(&self.global(), self, ty));
             },
         }
 
