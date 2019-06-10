@@ -160,43 +160,42 @@ impl FetchResponseListener for ModuleContext {
             )
         });
 
+        if load.is_err() {
+            // https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
+            // Step 9.
+            global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
+            return;
+        }
+
         // TODO: HANDLE MIME TYPE CHECKING
 
-        match load {
-            Err(_) => {
-                // https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
-                // Step 9.
-                global.set_module_map(self.url.clone(), ModuleObject::Fetched(None));
-            },
-            Ok(resp_mod_script) => {
-                let compiled_module =
-                    compile_module_script(resp_mod_script.text(), self.url.clone(), &global);
+        if let Ok(ref resp_mod_script) = load {
+            let compiled_module =
+                compile_module_script(resp_mod_script.text(), self.url.clone(), &global);
 
-                let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
+            let compiled = compiled_module.ok().map(|compiled| Heap::boxed(compiled));
 
-                global.set_module_map(self.url.clone(), ModuleObject::Fetched(compiled));
+            global.set_module_map(self.url.clone(), ModuleObject::Fetched(compiled));
 
-                match &self.owner {
-                    ModuleOwner::Worker(_) => unimplemented!(),
-                    ModuleOwner::Window(script) => {
-                        let document = document_from_node(&*script.root());
+            match &self.owner {
+                ModuleOwner::Worker(_) => unimplemented!(),
+                ModuleOwner::Window(script) => {
+                    let document = document_from_node(&*script.root());
 
-                        let r#async = script
-                            .root()
-                            .upcast::<Element>()
-                            .has_attribute(&local_name!("async"));
+                    let r#async = script
+                        .root()
+                        .upcast::<Element>()
+                        .has_attribute(&local_name!("async"));
 
-                        if r#async {
-                            // document.asap_module_script_loaded(script.root(), load);
-                        } else {
-                            document
-                                .deferred_module_script_loaded(&*script.root(), self.url.clone());
-                        }
+                    if r#async {
+                        document.asap_script_loaded(&*script.root(), load);
+                    } else {
+                        document.deferred_script_loaded(&*script.root(), load);
+                    }
 
-                        document.finish_load(LoadType::Script(self.url.clone()));
-                    },
-                }
-            },
+                    document.finish_load(LoadType::Script(self.url.clone()));
+                },
+            }
         }
     }
 
