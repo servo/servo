@@ -345,7 +345,7 @@ impl<'a> DisplayListBuildState<'a> {
         }
     }
 
-    fn add_display_item(&mut self, display_item: DisplayItem) {
+    pub fn add_display_item(&mut self, display_item: DisplayItem) {
         let items = self
             .items
             .entry(display_item.stacking_context_id())
@@ -374,7 +374,7 @@ impl<'a> DisplayListBuildState<'a> {
             self.processing_scrolling_overflow_element
     }
 
-    fn create_base_display_item(
+    pub fn create_base_display_item(
         &self,
         bounds: Rect<Au>,
         clip_rect: Rect<Au>,
