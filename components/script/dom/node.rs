@@ -451,16 +451,23 @@ impl Node {
         cmp & NodeConstants::DOCUMENT_POSITION_PRECEDING != 0
     }
 
-    /// Return all registered mutation observers for this node.
-    /// XXX(ferjm) This should probably be split into two functions,
-    /// `registered_mutation_observers`, which returns an Option or
-    /// an empty slice or something, and doesn't create the rare data,
-    /// and `registered_mutation_observers_mut`, which does lazily
-    /// initialize the raredata.
-    pub fn registered_mutation_observers(&self) -> RefMut<Vec<RegisteredObserver>> {
+    /// Return all registered mutation observers for this node. Lazily initialize the
+    /// raredata if it does not exist.
+    pub fn registered_mutation_observers_mut(&self) -> RefMut<Vec<RegisteredObserver>> {
         RefMut::map(self.ensure_rare_data(), |rare_data| {
             &mut rare_data.mutation_observers
         })
+    }
+
+    pub fn registered_mutation_observers(&self) -> Option<Ref<Vec<RegisteredObserver>>> {
+        let rare_data: Ref<_> = self.rare_data.borrow();
+
+        if rare_data.is_none() {
+            return None;
+        }
+        Some(Ref::map(rare_data, |rare_data| {
+            &rare_data.as_ref().unwrap().mutation_observers
+        }))
     }
 
     /// Add a new mutation observer for a given node.
