@@ -1834,6 +1834,22 @@ impl ScriptThread {
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
+        // https://github.com/servo/servo/issues/23535
+        // These two messages need different treatment since the JS script might mutate
+        // `self.documents`, which would conflict with the immutable borrow of it that
+        // occurs for the rest of the messages
+        match msg {
+            WebDriverScriptCommand::ExecuteScript(script, reply) => {
+                let window = { self.documents.borrow().find_window(pipeline_id) };
+                return webdriver_handlers::handle_execute_script(window, script, reply);
+            },
+            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
+                let window = { self.documents.borrow().find_window(pipeline_id) };
+                return webdriver_handlers::handle_execute_async_script(window, script, reply);
+            },
+            _ => (),
+        }
+
         let documents = self.documents.borrow();
         match msg {
             WebDriverScriptCommand::AddCookie(params, reply) => {
@@ -1841,9 +1857,6 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::DeleteCookies(reply) => {
                 webdriver_handlers::handle_delete_cookies(&*documents, pipeline_id, reply)
-            },
-            WebDriverScriptCommand::ExecuteScript(script, reply) => {
-                webdriver_handlers::handle_execute_script(&*documents, pipeline_id, script, reply)
             },
             WebDriverScriptCommand::FindElementCSS(selector, reply) => {
                 webdriver_handlers::handle_find_element_css(
@@ -1937,14 +1950,7 @@ impl ScriptThread {
             WebDriverScriptCommand::GetTitle(reply) => {
                 webdriver_handlers::handle_get_title(&*documents, pipeline_id, reply)
             },
-            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
-                webdriver_handlers::handle_execute_async_script(
-                    &*documents,
-                    pipeline_id,
-                    script,
-                    reply,
-                )
-            },
+            _ => (),
         }
     }
 
