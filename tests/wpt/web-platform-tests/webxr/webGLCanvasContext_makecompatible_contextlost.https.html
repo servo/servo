@@ -9,7 +9,7 @@
     xr_promise_test(
       "A lost webglCanvasContext should not be able to set xr compatibility",
      (t) => {
-      return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+      return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:true })
         .then( (controller) => {
           webglCanvas = document.getElementById('webgl-canvas');
           gl = webglCanvas.getContext('webgl', {xrCompatible: true});

@@ -7,7 +7,7 @@
     xr_promise_test(
       "supportsSession rejects when options not supported",
       (t) => {
-      return XRTest.simulateDeviceConnection({ supportsImmersive:false })
+      return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:false })
         .then( (controller) => {
           return promise_rejects(
             t,

@@ -7,7 +7,7 @@
     xr_promise_test(
       "supportsSession resolves when inline options supported",
       (t) => {
-      return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+      return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:true })
         .then( (controller) => {
           // Inline sessions should be supported.
           return navigator.xr.supportsSession('inline');

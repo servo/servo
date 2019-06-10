@@ -7,7 +7,7 @@
     xr_promise_test(
       "supportsSession resolves when immersive options supported",
       () => {
-        return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+        return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:true })
           .then( (controller) => navigator.xr.supportsSession('immersive-vr'));
       });
   </script>

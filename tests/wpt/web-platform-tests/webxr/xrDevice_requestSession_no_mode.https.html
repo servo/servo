@@ -7,9 +7,9 @@
     xr_promise_test(
       "Requesting a session with no mode rejects",
       (t) => {
-        return XRTest.simulateDeviceConnection({ supportsImmersive:false })
+        return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:false })
           .then( (controller) => new Promise((resolve) => {
-            XRTest.simulateUserActivation( () => {
+            navigator.xr.test.simulateUserActivation( () => {
               resolve(promise_rejects(
                 t,
                 new TypeError(),

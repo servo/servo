@@ -7,7 +7,7 @@
   <script>
     xr_promise_test("An XR-compatible webglCanvasContext can be created",
       (t) => {
-        return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+        return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:true })
           .then( (controller) => {
             webglCanvas = document.getElementById('webgl-canvas');
             gl = webglCanvas.getContext('webgl', {xrCompatible: true});

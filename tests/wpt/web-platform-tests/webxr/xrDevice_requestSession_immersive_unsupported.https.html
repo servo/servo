@@ -7,9 +7,9 @@
     xr_promise_test(
       "Requesting an immersive session when unsupported rejects",
       (t) => {
-        return XRTest.simulateDeviceConnection({ supportsImmersive:false })
+        return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:false })
           .then( (controller) => new Promise((resolve) => {
-            XRTest.simulateUserActivation( () => {
+            navigator.xr.test.simulateUserActivation( () => {
               resolve(promise_rejects(
                 t,
                 "NotSupportedError",

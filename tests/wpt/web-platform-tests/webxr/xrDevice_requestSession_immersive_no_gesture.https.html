@@ -7,7 +7,7 @@
     xr_promise_test(
       "Requesting immersive session outside of a user gesture rejects",
       (t) => {
-        return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+        return navigator.xr.test.simulateDeviceConnection({ supportsImmersive:true })
           .then( (controller) => promise_rejects(
             t, 'SecurityError', navigator.xr.requestSession('immersive-vr')));
       });
