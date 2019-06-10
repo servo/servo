@@ -1135,8 +1135,13 @@ impl LayoutThread {
                     rw_data.display_list.is_none()
                 {
                     if reflow_goal.needs_display_list() {
-                        let mut build_state =
-                            sequential::build_display_list_for_subtree(layout_root, layout_context);
+                        let background_color = get_root_flow_background_color(layout_root);
+                        let mut build_state = sequential::build_display_list_for_subtree(
+                            layout_root,
+                            layout_context,
+                            background_color,
+                            data.page_clip_rect.size,
+                        );
 
                         debug!("Done building display list.");
 
@@ -1252,7 +1257,7 @@ impl LayoutThread {
                 let mut txn = webrender_api::Transaction::new();
                 txn.set_display_list(
                     webrender_api::Epoch(epoch.0),
-                    Some(get_root_flow_background_color(layout_root)),
+                    None,
                     viewport_size,
                     builder.finalize(),
                     true,

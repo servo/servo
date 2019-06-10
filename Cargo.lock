@@ -5274,7 +5274,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.60.0"
-source = "git+https://github.com/servo/webrender#fb1c0cf5ee16724820d004ad77e9f72beeeb7181"
+source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
 dependencies = [
  "base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5315,7 +5315,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.60.0"
-source = "git+https://github.com/servo/webrender#fb1c0cf5ee16724820d004ad77e9f72beeeb7181"
+source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5337,7 +5337,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#fb1c0cf5ee16724820d004ad77e9f72beeeb7181"
+source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
 dependencies = [
  "sha2 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -5462,7 +5462,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#fb1c0cf5ee16724820d004ad77e9f72beeeb7181"
+source = "git+https://github.com/servo/webrender#81703c1274cd4935f82412d4e5819942934d0c96"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
