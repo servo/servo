@@ -19,7 +19,6 @@ use webvr_traits::{WebVRFrameData, WebVRPose};
 pub struct XRSpace {
     eventtarget: EventTarget,
     session: Dom<XRSession>,
-    is_viewerspace: bool,
     input_source: MutNullableDom<XRInputSource>,
 }
 
@@ -31,23 +30,6 @@ impl XRSpace {
             is_viewerspace: false,
             input_source: Default::default(),
         }
-    }
-
-    fn new_viewerspace_inner(session: &XRSession) -> XRSpace {
-        XRSpace {
-            eventtarget: EventTarget::new_inherited(),
-            session: Dom::from_ref(session),
-            is_viewerspace: true,
-            input_source: Default::default(),
-        }
-    }
-
-    pub fn new_viewerspace(global: &GlobalScope, session: &XRSession) -> DomRoot<XRSpace> {
-        reflect_dom_object(
-            Box::new(XRSpace::new_viewerspace_inner(session)),
-            global,
-            XRSpaceBinding::Wrap,
-        )
     }
 
     fn new_inputspace_inner(session: &XRSession, input: &XRInputSource) -> XRSpace {

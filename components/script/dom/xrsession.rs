@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRReferenceSpaceOptions;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRReferenceSpaceType;
+use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -90,7 +90,7 @@ impl XRSessionMethods for XRSession {
     // https://immersive-web.github.io/webxr/#dom-xrsession-viewerspace
     fn ViewerSpace(&self) -> DomRoot<XRSpace> {
         self.viewer_space
-            .or_init(|| XRSpace::new_viewerspace(&self.global(), &self))
+            .or_init(|| XRRenderState::new(&self.global(), &self, XRReferenceSpaceType::Viewer))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
@@ -129,25 +129,19 @@ impl XRSessionMethods for XRSession {
         // https://github.com/immersive-web/webxr/blob/master/spatial-tracking-explainer.md#practical-usage-guidelines
 
         match options.type_ {
-            XRReferenceSpaceType::Identity => {
-                p.resolve_native(&XRReferenceSpace::identity(&self.global(), self));
-            },
-            XRReferenceSpaceType::Stationary => {
-                if let Some(subtype) = options.subtype {
-                    p.resolve_native(&XRStationaryReferenceSpace::new(
-                        &self.global(),
-                        self,
-                        subtype,
-                    ));
-                } else {
-                    p.reject_error(Error::Type(format!(
-                        "stationary XRReferenceSpaces must specify a subtype"
-                    )))
-                }
-            },
             XRReferenceSpaceType::Bounded | XRReferenceSpaceType::Unbounded => {
                 // XXXManishearth eventually support these
                 p.reject_error(Error::NotSupported)
+            },
+            XRReferenceSpaceType::Identity => {
+                p.resolve_native(&XRReferenceSpace::identity(&self.global(), self));
+            },
+            ty => {
+                p.resolve_native(&XRReferenceSpace::new(
+                    &self.global(),
+                    self,
+                    ty,
+                ));
             },
         }
 

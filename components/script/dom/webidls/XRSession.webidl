@@ -23,7 +23,7 @@ interface XRSession : EventTarget {
   [SameObject] readonly attribute XRSpace viewerSpace;
 
   // // Methods
-  Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceOptions options);
+  Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
   // workaround until we have FrozenArray
   // see https://github.com/servo/servo/issues/10427#issuecomment-449593626
@@ -46,14 +46,3 @@ interface XRSession : EventTarget {
   // attribute EventHandler onselectend;
 };
 
-enum XRReferenceSpaceType {
-  "identity",
-  "stationary",
-  "bounded",
-  "unbounded"
-};
-
-dictionary XRReferenceSpaceOptions {
-  required XRReferenceSpaceType type;
-  XRStationaryReferenceSpaceSubtype subtype;
-};

@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceMethods;
+use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{DomRoot, MutDom};
@@ -11,7 +12,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
-use crate::dom::xrstationaryreferencespace::XRStationaryReferenceSpace;
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use webvr_traits::WebVRFrameData;
@@ -20,21 +20,23 @@ use webvr_traits::WebVRFrameData;
 pub struct XRReferenceSpace {
     xrspace: XRSpace,
     transform: MutDom<XRRigidTransform>,
+    ty: XRReferenceSpaceType,
 }
 
 impl XRReferenceSpace {
-    pub fn new_inherited(session: &XRSession, transform: &XRRigidTransform) -> XRReferenceSpace {
+    pub fn new_inherited(session: &XRSession, transform: &XRRigidTransform, ty: XRReferenceSpaceType) -> XRReferenceSpace {
         XRReferenceSpace {
             xrspace: XRSpace::new_inherited(session),
             transform: MutDom::new(transform),
+            ty
         }
     }
 
     #[allow(unused)]
-    pub fn identity(global: &GlobalScope, session: &XRSession) -> DomRoot<XRReferenceSpace> {
+    pub fn new(global: &GlobalScope, session: &XRSession, ty: XRReferenceSpaceType) -> DomRoot<XRReferenceSpace> {
         let transform = XRRigidTransform::identity(global);
         reflect_dom_object(
-            Box::new(XRReferenceSpace::new_inherited(session, &transform)),
+            Box::new(XRReferenceSpace::new_inherited(session, &transform, ty)),
             global,
             XRReferenceSpaceBinding::Wrap,
         )
@@ -77,13 +79,35 @@ impl XRReferenceSpace {
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
     pub fn get_unoffset_viewer_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
-        if let Some(stationary) = self.downcast::<XRStationaryReferenceSpace>() {
-            stationary.get_unoffset_viewer_pose(base_pose)
-        } else {
-            // non-subclassed XRReferenceSpaces exist, obtained via the "identity"
-            // type. These poses are equivalent to the viewer pose and follow the headset
-            // around, so the viewer is always at an identity transform with respect to them
-            RigidTransform3D::identity()
+        let viewer_pose = XRSpace::pose_to_transform(&viewer_pose.pose);
+        // all math is in column-vector notation
+        // we use the following equation to verify correctness here:
+        // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
+        match self.ty {
+            XRReferenceSpaceType::Local => {
+                // get_viewer_pose(eye_level) = get_pose(eye_level).inverse() * get_pose(viewer_space)
+                //                            = I * viewer_pose
+                //                            = viewer_pose
+
+                // we get viewer poses in eye-level space by default
+                viewer_pose
+            },
+            XRReferenceSpaceType::LocalFloor => {
+                // XXXManishearth support getting floor info from stage parameters
+
+                // get_viewer_pose(floor_level) = get_pose(floor_level).inverse() * get_pose(viewer_space)
+                //                            = Translate(-2).inverse() * viewer_pose
+                //                            = Translate(2) * viewer_pose
+
+                // assume approximate user height of 2 meters
+                let floor_to_eye: RigidTransform3D<f64> = Vector3D::new(0., 2., 0.).into();
+                floor_to_eye.pre_mul(&viewer_pose)
+            },
+            XRReferenceSpace::Viewer => {
+                // This reference space follows the viewer around, so the viewer is
+                // always at an identity transform with respect to it
+                RigidTransform3D::identity()
+            }
         }
     }
 
@@ -104,13 +128,22 @@ impl XRReferenceSpace {
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
     pub fn get_unoffset_pose(&self, base_pose: &WebVRFrameData) -> RigidTransform3D<f64> {
-        if let Some(stationary) = self.downcast::<XRStationaryReferenceSpace>() {
-            stationary.get_unoffset_pose(base_pose)
-        } else {
-            // non-subclassed XRReferenceSpaces exist, obtained via the "identity"
-            // type. These are equivalent to the viewer pose and follow the headset
-            // around
-            XRSpace::pose_to_transform(&base_pose.pose)
+        match self.ty {
+            XRReferenceSpaceType::Local => {
+                // The eye-level pose is basically whatever the headset pose was at t=0, which
+                // for most devices is (0, 0, 0)
+                RigidTransform3D::identity()
+            },
+            XRReferenceSpaceType::LocalFloor => {
+                // XXXManishearth support getting floor info from stage parameters
+
+                // Assume approximate height of 2m
+                // the floor-level space is 2m below the eye-level space, which is (0, 0, 0)
+                Vector3D::new(0., -2., 0.).into()
+            },
+            XRReferenceSpaceType::Viewer => {
+                XRSpace::pose_to_transform(&base_pose.pose)
+            },
         }
     }
 }
