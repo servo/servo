@@ -5,8 +5,9 @@
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutDom};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
@@ -18,19 +19,19 @@ use webvr_traits::WebVRFrameData;
 #[dom_struct]
 pub struct XRReferenceSpace {
     xrspace: XRSpace,
-    transform: MutDom<XRRigidTransform>,
+    offset: Dom<XRRigidTransform>,
     ty: XRReferenceSpaceType,
 }
 
 impl XRReferenceSpace {
     pub fn new_inherited(
         session: &XRSession,
-        transform: &XRRigidTransform,
+        offset: &XRRigidTransform,
         ty: XRReferenceSpaceType,
     ) -> XRReferenceSpace {
         XRReferenceSpace {
             xrspace: XRSpace::new_inherited(session),
-            transform: MutDom::new(transform),
+            offset: Dom::from_ref(offset),
             ty,
         }
     }
@@ -41,9 +42,19 @@ impl XRReferenceSpace {
         session: &XRSession,
         ty: XRReferenceSpaceType,
     ) -> DomRoot<XRReferenceSpace> {
-        let transform = XRRigidTransform::identity(global);
+        let offset = XRRigidTransform::identity(global);
+        Self::new_offset(global, session, ty, &offset)
+    }
+
+    #[allow(unused)]
+    pub fn new_offset(
+        global: &GlobalScope,
+        session: &XRSession,
+        ty: XRReferenceSpaceType,
+        offset: &XRRigidTransform,
+    ) -> DomRoot<XRReferenceSpace> {
         reflect_dom_object(
-            Box::new(XRReferenceSpace::new_inherited(session, &transform, ty)),
+            Box::new(XRReferenceSpace::new_inherited(session, &offset, ty)),
             global,
             XRReferenceSpaceBinding::Wrap,
         )
@@ -51,14 +62,16 @@ impl XRReferenceSpace {
 }
 
 impl XRReferenceSpaceMethods for XRReferenceSpace {
-    /// https://immersive-web.github.io/webxr/#dom-xrreferencespace-originoffset
-    fn SetOriginOffset(&self, transform: &XRRigidTransform) {
-        self.transform.set(transform);
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrreferencespace-originoffset
-    fn OriginOffset(&self) -> DomRoot<XRRigidTransform> {
-        self.transform.get()
+    /// https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace
+    fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform) -> DomRoot<Self> {
+        let offset = new.transform().pre_mul(&self.offset.transform());
+        let offset = XRRigidTransform::new(&self.global(), offset);
+        Self::new_offset(
+            &self.global(),
+            self.upcast::<XRSpace>().session(),
+            self.ty,
+            &offset,
+        )
     }
 }
 
@@ -77,7 +90,7 @@ impl XRReferenceSpace {
         //                        = (get_unoffset_pose(space) * offset).inverse() * get_pose(viewer_space)
         //                        = offset.inverse() * get_unoffset_pose(space).inverse() * get_pose(viewer_space)
         //                        = offset.inverse() * get_unoffset_viewer_pose(space)
-        let offset = self.transform.get().transform();
+        let offset = self.offset.transform();
         let inverse = offset.inverse();
         inverse.pre_mul(&pose)
     }
@@ -128,7 +141,7 @@ impl XRReferenceSpace {
         let pose = self.get_unoffset_pose(base_pose);
 
         // This may change, see https://github.com/immersive-web/webxr/issues/567
-        let offset = self.transform.get().transform();
+        let offset = self.offset.transform();
         offset.post_mul(&pose)
     }
 
