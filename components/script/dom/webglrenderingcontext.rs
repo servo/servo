@@ -24,6 +24,7 @@ use crate::dom::htmlcanvaselement::utils as canvas_utils;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
+use crate::dom::promise::Promise;
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webgl_validations::tex_image_2d::{
     CommonCompressedTexImage2DValidatorResult, CommonTexImage2DValidator,
@@ -76,6 +77,7 @@ use servo_config::pref;
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
+use std::rc::Rc;
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -4089,6 +4091,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetAttachedShaders(&self, program: &WebGLProgram) -> Option<Vec<DomRoot<WebGLShader>>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(self, program.attached_shaders().map(Some), None)
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible
+    fn MakeXRCompatible(&self) -> Rc<Promise> {
+        // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
+        let p = Promise::new(&self.global());
+        p.resolve_native(&());
+        p
     }
 }
 

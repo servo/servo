@@ -44,4 +44,3 @@ interface XRSession : EventTarget {
   // attribute EventHandler onselectstart;
   // attribute EventHandler onselectend;
 };
-
