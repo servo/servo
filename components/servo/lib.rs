@@ -65,7 +65,7 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
-use canvas_traits::webgl::{DOMToTextureCommand, WebGLMsg, WebGLSender};
+use canvas_traits::webgl::{DOMToTextureCommand, WebGLMsg};
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
 };
@@ -81,9 +81,10 @@ use compositing::{CompositingReason, IOCompositor, ShutdownState};
 use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
+use fnv::FnvHashMap;
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -94,8 +95,8 @@ use env_logger::Builder as EnvLoggerBuilder;
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use gl_traits::{
-    ExternalImageHandlerChannel, OutputImageHandlerChannel, WebrenderImageHandler,
-    WebrenderImageHandlerLockChannel, WebrenderImageHandlersMsg, WebrenderImageId,
+    WebrenderImageHandler, WebrenderImageHandlerChannel, WebrenderImageHandlerLockChannel,
+    WebrenderImageHandlersMsg, WebrenderImageId,
 };
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::{Log, Metadata, Record};
@@ -144,95 +145,79 @@ mod media_platform {
 
 type MediaBackend = media_platform::MediaBackend;
 
-macro_rules! webrender_image_handlers(
-    ($name:ident, $handler:ty, $id:ty) => (
-         struct $name {
-            handlers: HashMap<$id, $handler>,
-        }
-
-        impl $name {
-            pub fn new() -> Self {
-                Self {
-                    handlers: HashMap::new(),
-                }
-            }
-
-            pub fn register(&mut self, key: $id, handler: $handler) {
-                self.handlers.insert(key, handler);
-            }
-
-            pub fn unregister(&mut self, key: $id) {
-                if self.handlers.remove(&key).is_none() {
-                    warn!("Tried to remove unknown image handler");
-                }
-            }
-
-            pub fn get(&self, key: $id) -> Option<&$handler> {
-                self.handlers.get(&key)
-            }
-        }
-    );
-);
-
-webrender_image_handlers!(
-    ExternalImageHandlers,
-    ExternalImageHandlerChannel,
-    webrender_api::ExternalImageId
-);
-webrender_image_handlers!(
-    OutputImageHandlers,
-    OutputImageHandlerChannel,
-    webrender_api::PipelineId
-);
-
 #[derive(Clone)]
 struct WebrenderImageHandlers {
-    external_handlers: Rc<ExternalImageHandlers>,
-    output_handlers: Rc<OutputImageHandlers>,
+    handlers: HashMap<WebrenderImageId, WebrenderImageHandlerChannel>,
     // Used to avoid creating a new channel on each received WebRender request.
     lock_channel: WebrenderImageHandlerLockChannel,
     webrender_gl: Rc<dyn gl::Gl>,
+    sync_objects: FnvHashMap<webrender_api::PipelineId, gl::GLsync>,
 }
 
 impl WebrenderImageHandlers {
     pub fn new(webrender_gl: Rc<dyn gl::Gl>) -> Self {
         Self {
-            external_handlers: Rc::new(ExternalImageHandlers::new()),
-            output_handlers: Rc::new(OutputImageHandlers::new()),
+            handlers: HashMap::new(),
             lock_channel: WebrenderImageHandlerLockChannel::new(),
             webrender_gl,
+            sync_objects: Default::default(),
+        }
+    }
+
+    pub fn register(&mut self, handler: WebrenderImageHandler) {
+        self.handlers.insert(handler.0, handler.1);
+    }
+
+    pub fn unregister(&mut self, id: WebrenderImageId) {
+        if self.handlers.remove(&id).is_none() {
+            warn!("Tried to remove unknown image handler");
         }
     }
 }
 
-impl webrender::ExternalImageHandler for WebrenderImageHandlers {
+#[derive(Clone)]
+struct WebrenderImageHandlersRef(Rc<WebrenderImageHandlers>);
+
+impl WebrenderImageHandlersRef {
+    pub fn new(webrender_gl: Rc<dyn gl::Gl>) -> Self {
+        Self(Rc::new(WebrenderImageHandlers::new(webrender_gl)))
+    }
+}
+
+impl webrender::ExternalImageHandler for WebrenderImageHandlersRef {
     /// Lock the external image. Then, WR could start to read the image content.
     /// The WR client should not change the image content until the unlock() call.
     fn lock(
         &mut self,
         key: webrender_api::ExternalImageId,
-        channel_index: u8,
-        rendering: webrender_api::ImageRendering,
+        _channel_index: u8,
+        _rendering: webrender_api::ImageRendering,
     ) -> webrender::ExternalImage {
-        let handler = self
-            .external_handlers
-            .get(key)
+        let this = &self.0;
+        let handler = this
+            .handlers
+            .get(&WebrenderImageId::External(key))
             .expect("Got a lock request for an unregistered texture ID");
         let (texture_id, size, gl_sync) = match handler {
-            ExternalImageHandlerChannel::WebGL(channel) => {
+            WebrenderImageHandlerChannel::WebGL(channel) => {
                 // WebGL Thread has it's own GL command queue that we need to synchronize with the WR GL command queue.
                 // The WebGLMsg::Lock message inserts a fence in the WebGL command queue.
                 channel
-                    .send(WebGLMsg::Lock(key, self.lock_channel.0.clone()))
+                    .send(WebGLMsg::Lock(key, this.lock_channel.0.clone()))
                     .unwrap();
-                self.lock_channel.1.recv().unwrap()
+                this.lock_channel.1.recv().unwrap()
             },
-        };
+        }
+        .expect("Wrong lock channel message");
         // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
         // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
         // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
-        self.webrender_gl
-            .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
+        if let Some(gl_sync) = gl_sync {
+            this.webrender_gl
+                .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
+        } else {
+            warn!("Could not call glWaitSync");
+        }
         webrender::ExternalImage {
             uv: webrender_api::TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
             source: webrender::ExternalImageSource::NativeTexture(texture_id),
@@ -241,15 +226,64 @@ impl webrender::ExternalImageHandler for WebrenderImageHandlers {
 
     /// Unlock the external image. The WR should not read the image content
     /// after this call.
-    fn unlock(&mut self, key: webrender_api::ExternalImageId, channel_index: u8) {
-        let handler = self
-            .external_handlers
-            .get(key)
+    fn unlock(&mut self, key: webrender_api::ExternalImageId, _: u8) {
+        let this = &self.0;
+        let handler = this
+            .handlers
+            .get(&WebrenderImageId::External(key))
             .expect("Got a lock request for an unregistered texture ID");
         match handler {
-            ExternalImageHandlerChannel::WebGL(channel) => {
+            WebrenderImageHandlerChannel::WebGL(channel) => {
                 channel.send(WebGLMsg::Unlock(key)).unwrap();
             },
+        }
+    }
+}
+
+impl webrender::OutputImageHandler for WebrenderImageHandlersRef {
+    fn lock(
+        &mut self,
+        id: webrender_api::PipelineId,
+    ) -> Option<(u32, webrender_api::FramebufferIntSize)> {
+        let this = &self.0;
+        // Insert a fence in the WR command queue
+        let gl_sync = this
+            .webrender_gl
+            .fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+        let handler = this
+            .handlers
+            .get(&WebrenderImageId::Output(id))
+            .expect("Got a lock request for an unregistered texture ID");
+        match handler {
+            WebrenderImageHandlerChannel::WebGL(channel) => {
+                // The lock command adds a WaitSync call on the WebGL command flow.
+                let command =
+                    DOMToTextureCommand::Lock(id, gl_sync as usize, this.lock_channel.0.clone());
+                channel
+                    .send(WebGLMsg::DOMToTextureCommand(command))
+                    .unwrap();
+                this.lock_channel
+                    .1
+                    .recv()
+                    .unwrap()
+                    .map(|(tex_id, size, _)| {
+                        (
+                            tex_id,
+                            webrender_api::FramebufferIntSize::new(size.width, size.height),
+                        )
+                    })
+            },
+        }
+    }
+
+    fn unlock(&mut self, id: webrender_api::PipelineId) {
+        let this =
+            Rc::get_mut(&mut self.0).expect("Cannot get mutable reference to image handlers");
+        if let Some(gl_sync) = this.sync_objects.remove(&id) {
+            // Flush the Sync object into the GPU's command queue to guarantee that it it's signaled.
+            this.webrender_gl.flush();
+            // Mark the sync object for deletion.
+            this.webrender_gl.delete_sync(gl_sync);
         }
     }
 }
@@ -271,7 +305,7 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
-    webrender_image_handlers: WebrenderImageHandlers,
+    webrender_image_handlers: WebrenderImageHandlersRef,
     /// Channel to register/unregister WebrenderImageHandlers.
     webrender_image_handlers_recv: IpcReceiver<WebrenderImageHandlersMsg>,
 }
@@ -399,9 +433,9 @@ where
         // Set webrender external and output image handler for WebGL,
         // media element textures and future webrender::ExternalImage
         // users.
-        let webrender_image_handlers = WebrenderImageHandlers::new(window.gl());
+        let webrender_image_handlers = WebrenderImageHandlersRef::new(window.gl());
         webrender.set_external_image_handler(Box::new(webrender_image_handlers.clone()));
-        //XXX webrender.set_output_image_handler(Box::new(webrender_image_handlers.clone()));
+        webrender.set_output_image_handler(Box::new(webrender_image_handlers.clone()));
 
         let (webrender_image_handlers_sender, webrender_image_handlers_recv) =
             ipc::channel().expect("ipc channel error");
@@ -439,7 +473,6 @@ where
             devtools_chan,
             webrender_document,
             webrender_api_sender,
-            window.gl(),
             webvr_services,
             webrender_image_handlers_sender,
         );
@@ -692,32 +725,14 @@ where
     }
 
     fn handle_webrender_image_handlers_msg(&mut self, msg: WebrenderImageHandlersMsg) {
+        let handlers = Rc::get_mut(&mut self.webrender_image_handlers.0)
+            .expect("Cannot register external image handler");
         match msg {
-            WebrenderImageHandlersMsg::Register(handler) => match handler {
-                WebrenderImageHandler::External(id, handler) => {
-                    let handlers =
-                        Rc::get_mut(&mut self.webrender_image_handlers.external_handlers)
-                            .expect("Cannot register external image handler");
-                    handlers.register(id, handler);
-                },
-                WebrenderImageHandler::Output(id, handler) => {
-                    let handlers = Rc::get_mut(&mut self.webrender_image_handlers.output_handlers)
-                        .expect("Cannot register output image handler");
-                    handlers.register(id, handler);
-                },
+            WebrenderImageHandlersMsg::Register(handler) => {
+                handlers.register(handler);
             },
-            WebrenderImageHandlersMsg::Unregister(id) => match id {
-                WebrenderImageId::External(id) => {
-                    let handlers =
-                        Rc::get_mut(&mut self.webrender_image_handlers.external_handlers)
-                            .expect("Cannot register external image handler");
-                    handlers.unregister(id);
-                },
-                WebrenderImageId::Output(id) => {
-                    let handlers = Rc::get_mut(&mut self.webrender_image_handlers.output_handlers)
-                        .expect("Cannot register output image handler");
-                    handlers.unregister(id);
-                },
+            WebrenderImageHandlersMsg::Unregister(id) => {
+                handlers.unregister(id);
             },
         }
     }
@@ -785,7 +800,6 @@ fn create_constellation(
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
-    window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
     webrender_image_handlers_sender: IpcSender<WebrenderImageHandlersMsg>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
@@ -837,7 +851,6 @@ fn create_constellation(
     let webgl_threads = gl_factory.map(|factory| {
         WebGLThreads::new(
             factory,
-            window_gl,
             webrender_api_sender.clone(),
             webvr_compositor.map(|c| c as Box<_>),
             webrender_image_handlers_sender.clone(),

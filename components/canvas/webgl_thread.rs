@@ -7,7 +7,10 @@ use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
-use gl_traits::{ExternalImageHandlerChannel, WebrenderImageHandler, WebrenderImageHandlersMsg};
+use gl_traits::{
+    WebrenderImageHandler, WebrenderImageHandlerChannel, WebrenderImageHandlersMsg,
+    WebrenderImageId,
+};
 use gleam::gl;
 use half::f16;
 use ipc_channel::ipc::IpcSender;
@@ -246,7 +249,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     fn handle_lock(
         &mut self,
         context_id: WebGLContextId,
-        sender: IpcSender<(u32, Size2D<i32>, usize)>,
+        sender: IpcSender<Option<(u32, Size2D<i32>, Option<usize>)>>,
     ) {
         let data =
             Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
@@ -262,7 +265,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         data.ctx.gl().flush();
 
         sender
-            .send((info.texture_id, info.size, gl_sync as usize))
+            .send(Some((info.texture_id, info.size, Some(gl_sync as usize))))
             .unwrap();
     }
 
@@ -527,7 +530,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                         data.ctx
                             .gl()
                             .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-                        Some((dom_data.texture_id.get(), dom_data.size))
+                        Some((dom_data.texture_id.get(), dom_data.size, None))
                     })
                 });
 
@@ -598,11 +601,10 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id);
 
-        let registration_msg =
-            WebrenderImageHandlersMsg::Register(WebrenderImageHandler::External(
-                webrender_api::ExternalImageId(context_id.0 as u64),
-                ExternalImageHandlerChannel::WebGL(webgl_sender),
-            ));
+        let registration_msg = WebrenderImageHandlersMsg::Register(WebrenderImageHandler(
+            WebrenderImageId::External(webrender_api::ExternalImageId(context_id.0 as u64)),
+            WebrenderImageHandlerChannel::WebGL(webgl_sender),
+        ));
         webrender_image_handlers_sender
             .send(registration_msg)
             .unwrap();

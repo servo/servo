@@ -9,33 +9,25 @@
 #[macro_use]
 extern crate serde;
 
-use canvas_traits::webgl::{DOMToTextureCommand, WebGLMsg, WebGLSender};
+use canvas_traits::webgl::{WebGLMsg, WebGLSender};
 use euclid::Size2D;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use std::rc::Rc;
 use webrender_api::{ExternalImageId, PipelineId};
 
-#[derive(Deserialize, Serialize)]
-pub enum ExternalImageHandlerChannel {
+#[derive(Clone, Deserialize, Serialize)]
+pub enum WebrenderImageHandlerChannel {
     WebGL(WebGLSender<WebGLMsg>),
 }
 
-#[derive(Deserialize, Serialize)]
-pub enum OutputImageHandlerChannel {
-    WebGL(DOMToTextureCommand),
-}
-
-#[derive(Deserialize, Serialize)]
-pub enum WebrenderImageHandler {
-    External(ExternalImageId, ExternalImageHandlerChannel),
-    Output(PipelineId, OutputImageHandlerChannel),
-}
-
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum WebrenderImageId {
     External(ExternalImageId),
-    Output(webrender_api::PipelineId),
+    Output(PipelineId),
 }
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WebrenderImageHandler(pub WebrenderImageId, pub WebrenderImageHandlerChannel);
 
 #[derive(Deserialize, Serialize)]
 pub enum WebrenderImageHandlersMsg {
@@ -45,8 +37,8 @@ pub enum WebrenderImageHandlersMsg {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct WebrenderImageHandlerLockChannel(
-    pub IpcSender<(u32, Size2D<i32>, usize)>,
-    pub Rc<IpcReceiver<(u32, Size2D<i32>, usize)>>,
+    pub IpcSender<Option<(u32, Size2D<i32>, Option<usize>)>>,
+    pub Rc<IpcReceiver<Option<(u32, Size2D<i32>, Option<usize>)>>>,
 );
 
 impl WebrenderImageHandlerLockChannel {

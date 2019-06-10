@@ -2505,6 +2505,7 @@ dependencies = [
  "embedder_traits 0.0.1",
  "env_logger 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gaol 0.2.0 (git+https://github.com/servo/gaol)",
  "gfx 0.0.1",
  "gl_traits 0.0.1",

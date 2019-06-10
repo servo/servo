@@ -51,6 +51,7 @@ devtools_traits = {path = "../devtools_traits"}
 embedder_traits = {path = "../embedder_traits"}
 env_logger = "0.6"
 euclid = "0.19"
+fnv = "1.0"
 gfx = {path = "../gfx"}
 gleam = "0.6"
 gl_traits = {path = "../gl_traits"}

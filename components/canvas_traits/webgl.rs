@@ -58,7 +58,10 @@ pub enum WebGLMsg {
     /// WR locks a external texture when it wants to use the shared texture contents.
     /// The WR client should not change the shared texture content until the Unlock call.
     /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
-    Lock(ExternalImageId, IpcSender<(u32, Size2D<i32>, usize)>),
+    Lock(
+        ExternalImageId,
+        IpcSender<Option<(u32, Size2D<i32>, Option<usize>)>>,
+    ),
     /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
     /// with WebRender external image API.
     /// The WR unlocks a context when it finished reading the shared texture contents.
@@ -558,7 +561,11 @@ pub enum DOMToTextureCommand {
     /// Releases the HTMLIFrameElement to WebGLTexture attachment.
     Detach(WebGLTextureId),
     /// Lock message used for a correct synchronization with WebRender GL flow.
-    Lock(PipelineId, usize, WebGLSender<Option<(u32, Size2D<i32>)>>),
+    Lock(
+        PipelineId,
+        usize,
+        IpcSender<Option<(u32, Size2D<i32>, Option<usize>)>>,
+    ),
 }
 
 /// Information about a WebGL program linking operation.
