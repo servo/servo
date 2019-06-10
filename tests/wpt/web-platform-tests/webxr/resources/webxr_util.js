@@ -43,7 +43,11 @@ function xr_session_promise_test(
           navigator.xr.test.simulateDeviceConnection(fakeDeviceInit)
               .then((controller) => {
                 testDeviceController = controller;
-                return gl.makeXRCompatible();
+                let p = new Promise();
+                p.resolve();
+                return p;
+                // XXXManishearth servo doesn't support this yet
+                // return gl.makeXRCompatible();
               })
               .then(() => new Promise((resolve, reject) => {
                       // Perform the session request in a user gesture.
