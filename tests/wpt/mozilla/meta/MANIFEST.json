@@ -11222,7 +11222,13 @@
      {}
     ]
    ],
-   "mozilla/xmlhttprequest_url.html": []
+   "mozilla/xmlhttprequest_url.html": [],
+   "webxr/obtain_frame_BASE_17524.html": [
+    []
+   ],
+   "webxr/resources/webxr-util.js": [
+    []
+   ]
   },
   "testharness": {
    "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
@@ -13925,6 +13931,36 @@
    "mozilla/xmlhttprequest_url.html": [
     [
      "mozilla/xmlhttprequest_url.html",
+     {}
+    ]
+   ],
+   "webxr/create_session.html": [
+    [
+     "webxr/create_session.html",
+     {}
+    ]
+   ],
+   "webxr/obtain_frame.html": [
+    [
+     "webxr/obtain_frame.html",
+     {}
+    ]
+   ],
+   "webxr/obtain_frame_BACKUP_17524.html": [
+    [
+     "webxr/obtain_frame_BACKUP_17524.html",
+     {}
+    ]
+   ],
+   "webxr/obtain_frame_LOCAL_17524.html": [
+    [
+     "webxr/obtain_frame_LOCAL_17524.html",
+     {}
+    ]
+   ],
+   "webxr/obtain_frame_REMOTE_17524.html": [
+    [
+     "webxr/obtain_frame_REMOTE_17524.html",
      {}
     ]
    ]
@@ -21112,6 +21148,34 @@
   "mozilla/xmlhttprequest_url.html": [
    "e5d10f27c06e1febd3bb70f8f128194fc3f63861",
    "testharness"
+  ],
+  "webxr/create_session.html": [
+   "306ab85d3b1b914d2dd7c11a3b03dccd990148ae",
+   "testharness"
+  ],
+  "webxr/obtain_frame.html": [
+   "1089bb25c2f6b26db4e21b6bf07c28add3fee5ec",
+   "testharness"
+  ],
+  "webxr/obtain_frame_BACKUP_17524.html": [
+   "e414f12fc19f806043c9cd39ed80e8648a37a14f",
+   "testharness"
+  ],
+  "webxr/obtain_frame_BASE_17524.html": [
+   "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+   "support"
+  ],
+  "webxr/obtain_frame_LOCAL_17524.html": [
+   "e6e142fa103575b3f371ef34d27e81d7c6d3a68d",
+   "testharness"
+  ],
+  "webxr/obtain_frame_REMOTE_17524.html": [
+   "1089bb25c2f6b26db4e21b6bf07c28add3fee5ec",
+   "testharness"
+  ],
+  "webxr/resources/webxr-util.js": [
+   "505173c82998a80b1e543f1a18aefaf1891f8269",
+   "support"
   ]
  },
  "url_base": "/_mozilla/",
