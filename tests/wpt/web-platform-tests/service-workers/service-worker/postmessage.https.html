@@ -39,15 +39,6 @@ promise_test(t => {
       .then(e => {
           assert_equals(e.data, 'quit');
           return registration.unregister(scope);
-        })
-      .then(() => { return wait_for_state(t, worker, 'redundant'); })
-      .then(() => {
-          assert_equals(worker.state, 'redundant');
-          assert_throws(
-            {name:'InvalidStateError'},
-            function() { worker.postMessage(''); },
-            'Calling postMessage on a redundant ServiceWorker should ' +
-                'throw InvalidStateError.');
         });
   }, 'postMessage to a ServiceWorker (and back via MessagePort)');
 
@@ -178,4 +169,34 @@ promise_test(t => {
         });
   }, 'postMessage with dictionary a transferable ArrayBuffer between ServiceWorker and Client');
 
+  promise_test(async t => {
+    const firstScript = 'resources/postmessage-echo-worker.js?one';
+    const secondScript = 'resources/postmessage-echo-worker.js?two';
+    const scope = 'resources/';
+
+    const registration = await service_worker_unregister_and_register(t, firstScript, scope);
+    t.add_cleanup(() => registration.unregister());
+    const firstWorker = registration.installing;
+
+    const messagePromise = new Promise(resolve => {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        resolve(event.data);
+      }, {once: true});
+    });
+
+    await wait_for_state(t, firstWorker, 'activated');
+    await navigator.serviceWorker.register(secondScript, {scope});
+    const secondWorker = registration.installing;
+    await wait_for_state(t, firstWorker, 'redundant');
+
+    // postMessage() to a redundant worker should be dropped silently.
+    // Historically, this threw an exception.
+    firstWorker.postMessage('firstWorker');
+
+    // To test somewhat that it was not received, send a message to another
+    // worker and check that we get a reply for that one.
+    secondWorker.postMessage('secondWorker');
+    const data = await messagePromise;
+    assert_equals(data, 'secondWorker');
+  }, 'postMessage to a redundant worker');
 </script>

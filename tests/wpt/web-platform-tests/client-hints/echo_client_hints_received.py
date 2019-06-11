@@ -5,6 +5,8 @@ def main(request, response):
     """
 
     response.headers.append("Access-Control-Allow-Origin", "*")
+    response.headers.append("Access-Control-Allow-Headers", "*")
+    response.headers.append("Access-Control-Expose-Headers", "*")
 
     if "device-memory" in request.headers:
             response.headers.set("device-memory-received", request.headers.get("device-memory"))

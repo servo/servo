@@ -1,0 +1,62 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+
+// If the response for the HTML file contains "Accept-CH" in the response
+// headers, then the browser should attach the specified client hints in the
+// HTTP request headers depending on whether the resource is being fetched from
+// the same origin or a different origin. Test this functionality by fetching
+// same-origin and cross-origin resources from this page. The response headers
+// for this page include "Accept-CH: device-memory, dpr, viewport-width, rtt, downlink, ect".
+//
+// echo_client_hints_received.py sets the response headers depending on the set
+// of client hints it receives in the request headers.
+
+promise_test(t => {
+  return fetch(get_host_info()["HTTPS_ORIGIN"] + "/client-hints/echo_client_hints_received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser includes client hints in the headers for a
+    // same-origin fetch with the default feature policy in place.
+    assert_true(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_true(r.headers.has("dpr-received"), "dpr-received");
+    assert_true(r.headers.has("viewport-width-received"), "viewport-width-received");
+
+    assert_true(r.headers.has("rtt-received"), "rtt-received");
+    var rtt = parseInt(r.headers.get("rtt-received"));
+    assert_greater_than_equal(rtt, 0);
+    assert_less_than_equal(rtt, 3000);
+    assert_equals(rtt % 50, 0, 'rtt must be a multiple of 50 msec');
+
+    assert_true(r.headers.has("downlink-received"), "downlink-received");
+    var downlinkKbps  = r.headers.get("downlink-received") * 1000;
+    assert_greater_than_equal(downlinkKbps, 0);
+    assert_less_than_equal(downlinkKbps, 10000);
+
+    assert_in_array(r.headers.get("ect-received"), ["slow-2g", "2g",
+          "3g", "4g"], 'ect-received is unexpected');
+  });
+}, "Accept-CH header test");
+
+promise_test(t => {
+  return fetch(get_host_info()["HTTPS_REMOTE_ORIGIN"] + "/client-hints/echo_client_hints_received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser includes no client hints in the headers for a
+    // cross-origin fetch with the default feature policy in place.
+    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_false(r.headers.has("dpr-received"), "dpr-received");
+    assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_false(r.headers.has("rtt-received"), "rtt-received");
+    assert_false(r.headers.has("downlink-received"), "downlink-received");
+    assert_false(r.headers.has("ect-received"), "ect-received");
+  });
+}, "Cross-Origin Accept-CH header test");
+
+
+
+</script>
+
+</body>
+</html>
