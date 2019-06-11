@@ -32,3 +32,9 @@ mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
 spirv_cross = { git = "https://github.com/kvark/spirv_cross", branch = "wgpu" }
 wgpu-native = { git = "https://github.com/zakorgy/wgpu", branch = "v0.4" }
+
+core-text = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+core-graphics = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+core-foundation = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+core-foundation-sys = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }
+io-surface = { git = "https://github.com/servo/core-foundation-rs/", branch = "mac-font" }

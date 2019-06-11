@@ -819,9 +819,8 @@ checksum = "6ff9c56c9fb2a49c05ef0e431485a22400af20d33226dc0764d891d09e724127"
 
 [[package]]
 name = "core-foundation"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58667b9a618a37ea8c4c4cb5298703e5dfadcd3698c79f54fc43e6a2e94733ea"
+version = "0.6.4"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -830,14 +829,12 @@ dependencies = [
 [[package]]
 name = "core-foundation-sys"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7ca8a5221364ef15ce201e8ed2f609fc312682a8f4e0e3d4aa5879764e0fa3b"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
 
 [[package]]
 name = "core-graphics"
 version = "0.17.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56790968ab1c8a1202a102e6de05fc6e1ec87da99e4e93e9a7d13efbfc1e95a9"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#b4e39229e2a85ac460601f334b7afbb71de9b6e1"
 dependencies = [
  "bitflags",
  "core-foundation",
@@ -847,9 +844,8 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "13.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95a72b5e50e549969dd88eff3047495fe5b8c6f028635442c2b708be707e669"
+version = "13.3.2"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
 dependencies = [
  "core-foundation",
  "core-graphics",
@@ -2544,12 +2540,11 @@ dependencies = [
 [[package]]
 name = "io-surface"
 version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2279a6faecd06034f88218f77f7a767693e0957bce0323a96d92747e2760b445"
+source = "git+https://github.com/servo/core-foundation-rs/?branch=mac-font#12d2dc0f19931b3f0391651cdf4e89ed2101e576"
 dependencies = [
- "cgl 0.3.2",
+ "cgl 0.2.3",
  "core-foundation",
- "gleam 0.7.0",
+ "gleam 0.6.18",
  "leaky-cow",
  "libc",
 ]
