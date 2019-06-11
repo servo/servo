@@ -270,6 +270,8 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         // If no Swap message received we use the currently bound IOSurface
         if !info.has_request_animtion {
             info.io_surface_id = data.ctx.get_active_io_surface_id();
+        } else {
+            info.io_surface_id = data.ctx.handle_lock();
         }
 
         sender
