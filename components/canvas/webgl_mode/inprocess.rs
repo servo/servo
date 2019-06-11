@@ -11,7 +11,7 @@ use canvas_traits::webgl::{WebGLReceiver, WebGLSender, WebVRCommand, WebVRRender
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 use io_surface;
 use servo_config::pref;
 use std::rc::Rc;
@@ -109,16 +109,21 @@ impl WebGLExternalImageApi for WebGLExternalImages {
         self.webgl_channel
             .send(WebGLMsg::Lock(ctx_id, self.lock_channel.0.clone()))
             .unwrap();
-        let WebGLLockMessage { texture_id, size, io_surface_id, gl_sync } = self.lock_channel.1.recv().unwrap();
+        let WebGLLockMessage {
+            texture_id,
+            size,
+            io_surface_id,
+            gl_sync,
+        } = self.lock_channel.1.recv().unwrap();
 
         // If we have a new IOSurface bind it to a new texture on the WR thread,
         // or if it's already bound use that texture.
         // In the case of IOsurfaces we send these textures to WR.
         let texture_id = match io_surface_id {
             Some(io_surface_id) => {
-                #[cfg(target_os="macos")]
+                #[cfg(target_os = "macos")]
                 let gl = &self.webrender_gl;
-                #[cfg(target_os="macos")]
+                #[cfg(target_os = "macos")]
                 let texture_id = *self.textures.entry(io_surface_id).or_insert_with(|| {
                     let texture_id = gl.gen_textures(1)[0];
                     gl.bind_texture(gl::TEXTURE_RECTANGLE, texture_id);
