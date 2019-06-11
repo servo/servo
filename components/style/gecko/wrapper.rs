@@ -185,6 +185,21 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
             bindings::Gecko_ShadowRoot_GetElementsWithId(self.0, id.as_ptr())
         }))
     }
+
+    #[inline]
+    fn parts<'a>(&self) -> &[<Self::ConcreteNode as TNode>::ConcreteElement]
+    where
+        Self: 'a
+    {
+        let slice: &[*const RawGeckoElement] = &*self.0.mParts;
+
+        #[allow(dead_code)]
+        unsafe fn static_assert() {
+            mem::transmute::<*const RawGeckoElement, GeckoElement<'static>>(0xbadc0de as *const _);
+        }
+
+        unsafe { mem::transmute(slice) }
+    }
 }
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.

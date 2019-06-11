@@ -346,6 +346,14 @@ pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
     where
         Self: 'a;
 
+    /// Get the list of shadow parts for this shadow root.
+    fn parts<'a>(&self) -> &[<Self::ConcreteNode as TNode>::ConcreteElement]
+    where
+        Self: 'a
+    {
+        &[]
+    }
+
     /// Get a list of elements with a given ID in this shadow root, sorted by
     /// tree position.
     ///
