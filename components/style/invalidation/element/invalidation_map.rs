@@ -66,6 +66,8 @@ pub enum DependencyInvalidationKind {
     Siblings,
     /// This dependency may affect slotted elements of the element that changed.
     SlottedElements,
+    /// This dependency may affect parts of the element that changed.
+    Parts,
 }
 
 impl Dependency {
@@ -98,7 +100,7 @@ impl Dependency {
             // an eager pseudo, and return only Descendants here if not.
             Some(Combinator::PseudoElement) => DependencyInvalidationKind::ElementAndDescendants,
             Some(Combinator::SlotAssignment) => DependencyInvalidationKind::SlottedElements,
-            Some(Combinator::Part) => unimplemented!("Need to add invalidation for shadow parts"),
+            Some(Combinator::Part) => DependencyInvalidationKind::Parts,
         }
     }
 }

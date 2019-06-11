@@ -72,11 +72,14 @@ pub struct DescendantInvalidationLists<'a> {
     pub dom_descendants: InvalidationVector<'a>,
     /// Invalidations for slotted children of an element.
     pub slotted_descendants: InvalidationVector<'a>,
+    /// Invalidations for ::part()s of an element.
+    pub parts: InvalidationVector<'a>,
 }
 
 impl<'a> DescendantInvalidationLists<'a> {
     fn is_empty(&self) -> bool {
-        self.dom_descendants.is_empty() && self.slotted_descendants.is_empty()
+        self.dom_descendants.is_empty() && self.slotted_descendants.is_empty() &&
+            self.parts.is_empty()
     }
 }
 
@@ -104,6 +107,8 @@ enum DescendantInvalidationKind {
     Dom,
     /// A ::slotted() descendant invalidation.
     Slotted,
+    /// A ::part() descendant invalidation.
+    Part,
 }
 
 /// The kind of invalidation we're processing.
@@ -175,7 +180,7 @@ impl<'a> Invalidation<'a> {
                 InvalidationKind::Descendant(DescendantInvalidationKind::Dom)
             },
             Combinator::Part => {
-                unimplemented!("Need to add invalidation for shadow parts");
+                InvalidationKind::Descendant(DescendantInvalidationKind::Part)
             },
             Combinator::SlotAssignment => {
                 InvalidationKind::Descendant(DescendantInvalidationKind::Slotted)
@@ -472,6 +477,36 @@ where
         any_descendant
     }
 
+    fn invalidate_parts(&mut self, invalidations: &[Invalidation<'b>]) -> bool {
+        if invalidations.is_empty() {
+            return false;
+        }
+
+        let shadow = match self.element.shadow_root() {
+            Some(s) => s,
+            None => return false,
+        };
+
+        let mut any = false;
+        let mut sibling_invalidations = InvalidationVector::new();
+        for element in shadow.parts() {
+            any |= self.invalidate_child(
+                *element,
+                invalidations,
+                &mut sibling_invalidations,
+                DescendantInvalidationKind::Part,
+            );
+            debug_assert!(
+                sibling_invalidations.is_empty(),
+                "::part() shouldn't have sibling combinators to the right, \
+                 this makes no sense! {:?}",
+                sibling_invalidations
+            );
+        }
+        any
+    }
+
+
     fn invalidate_slotted_elements(&mut self, invalidations: &[Invalidation<'b>]) -> bool {
         if invalidations.is_empty() {
             return false;
@@ -598,6 +633,7 @@ where
 
         any_descendant |= self.invalidate_non_slotted_descendants(&invalidations.dom_descendants);
         any_descendant |= self.invalidate_slotted_elements(&invalidations.slotted_descendants);
+        any_descendant |= self.invalidate_parts(&invalidations.parts);
 
         any_descendant
     }
@@ -672,7 +708,7 @@ where
                 debug_assert_eq!(
                     descendant_invalidation_kind,
                     DescendantInvalidationKind::Dom,
-                    "Slotted invalidations don't propagate."
+                    "Slotted or part invalidations don't propagate."
                 );
                 descendant_invalidations.dom_descendants.push(invalidation);
             }
@@ -859,6 +895,9 @@ where
                             descendant_invalidations
                                 .dom_descendants
                                 .push(next_invalidation);
+                        },
+                        InvalidationKind::Descendant(DescendantInvalidationKind::Part) => {
+                            descendant_invalidations.parts.push(next_invalidation);
                         },
                         InvalidationKind::Descendant(DescendantInvalidationKind::Slotted) => {
                             descendant_invalidations

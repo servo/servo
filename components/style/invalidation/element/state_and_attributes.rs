@@ -472,6 +472,9 @@ where
             DependencyInvalidationKind::Siblings => {
                 self.sibling_invalidations.push(invalidation);
             },
+            DependencyInvalidationKind::Parts => {
+                self.descendant_invalidations.parts.push(invalidation);
+            },
             DependencyInvalidationKind::SlottedElements => {
                 self.descendant_invalidations
                     .slotted_descendants
@@ -486,6 +489,7 @@ where
         match dependency.invalidation_kind() {
             DependencyInvalidationKind::Element => !self.invalidates_self,
             DependencyInvalidationKind::SlottedElements => self.element.is_html_slot_element(),
+            DependencyInvalidationKind::Parts => self.element.shadow_root().is_some(),
             DependencyInvalidationKind::ElementAndDescendants |
             DependencyInvalidationKind::Siblings |
             DependencyInvalidationKind::Descendants => true,
