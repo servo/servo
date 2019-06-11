@@ -283,7 +283,7 @@ impl Node {
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
                 if let Some(shadow_root) = self.containing_shadow_root() {
-                    node.set_containing_shadow_root(&*shadow_root);
+                    node.set_containing_shadow_root(Some(&*shadow_root));
                 }
                 debug_assert!(node.containing_shadow_root().is_some());
             }
@@ -961,8 +961,8 @@ impl Node {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub fn set_containing_shadow_root(&self, shadow_root: &ShadowRoot) {
-        self.ensure_rare_data().containing_shadow_root = Some(Dom::from_ref(shadow_root));
+    pub fn set_containing_shadow_root(&self, shadow_root: Option<&ShadowRoot>) {
+        self.ensure_rare_data().containing_shadow_root = shadow_root.map(|sr| Dom::from_ref(sr));
     }
 
     pub fn is_in_html_doc(&self) -> bool {
@@ -1241,7 +1241,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
         let parent = (*self.unsafe_get()).parent_node.get_inner_as_layout();
         if let Some(ref parent) = parent {
             if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
-                return Some(shadow_root.get_host_for_layout().upcast());
+                return shadow_root.get_host_for_layout().map(|h| h.upcast());
             }
         }
         parent

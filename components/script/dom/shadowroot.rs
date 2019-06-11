@@ -41,7 +41,7 @@ pub struct ShadowRoot {
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
-    host: Dom<Element>,
+    host: MutNullableDom<Element>,
     /// List of author styles associated with nodes in this shadow tree.
     author_styles: DomRefCell<AuthorStyles<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
@@ -62,7 +62,7 @@ impl ShadowRoot {
             document_fragment,
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
-            host: Dom::from_ref(host),
+            host: MutNullableDom::new(Some(host)),
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
@@ -75,6 +75,16 @@ impl ShadowRoot {
             document.window(),
             ShadowRootBinding::Wrap,
         )
+    }
+
+    pub fn detach(&self) {
+        self.host.set(None);
+        let node = self.upcast::<Node>();
+        node.set_containing_shadow_root(None);
+        node.set_flag(NodeFlags::IS_CONNECTED, false);
+        for child in node.traverse_preorder(ShadowIncluding::No) {
+            child.set_flag(NodeFlags::IS_CONNECTED, false);
+        }
     }
 
     pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {
@@ -130,9 +140,9 @@ impl ShadowRoot {
         self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
-        self.host
-            .upcast::<Node>()
-            .dirty(NodeDamage::NodeStyleDamaged);
+        if let Some(host) = self.host.get() {
+            host.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+        }
     }
 
     /// Remove any existing association between the provided id and any elements
@@ -216,7 +226,9 @@ impl ShadowRootMethods for ShadowRoot {
 
     /// https://dom.spec.whatwg.org/#dom-shadowroot-host
     fn Host(&self) -> DomRoot<Element> {
-        DomRoot::from_ref(&self.host)
+        let host = self.host.get();
+        debug_assert!(host.is_some());
+        host.unwrap()
     }
 
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
@@ -232,7 +244,7 @@ impl ShadowRootMethods for ShadowRoot {
 
 #[allow(unsafe_code)]
 pub trait LayoutShadowRootHelpers {
-    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element>;
+    unsafe fn get_host_for_layout(&self) -> Option<LayoutDom<Element>>;
     unsafe fn get_style_data_for_layout<'a, E: TElement>(
         &self,
     ) -> &'a AuthorStyles<StyleSheetInDocument>;
@@ -247,8 +259,8 @@ pub trait LayoutShadowRootHelpers {
 impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
-        (*self.unsafe_get()).host.to_layout()
+    unsafe fn get_host_for_layout(&self) -> Option<LayoutDom<Element>> {
+        (*self.unsafe_get()).host.get_inner_as_layout()
     }
 
     #[inline]
