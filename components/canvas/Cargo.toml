@@ -15,6 +15,7 @@ azure_backend = ["azure"]
 default = ["azure_backend"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 raqote_backend = ["raqote"]
+no_wgl = ["offscreen_gl_context/no_wgl"]
 
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure", optional = true}

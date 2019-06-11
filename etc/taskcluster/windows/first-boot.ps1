@@ -77,8 +77,11 @@ $client.DownloadFile("https://aka.ms/vs/15/release/vs_buildtools.exe", "C:\vs_bu
 Start-Process C:\vs_buildtools.exe -ArgumentList (`
         "--passive --norestart --includeRecommended " +
         "--add Microsoft.VisualStudio.Workload.VCTools " +
+        "--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 " +
         "--add Microsoft.VisualStudio.Component.VC.ATL " +
-        "--add Microsoft.VisualStudio.Component.VC.ATLMFC"
+        "--add Microsoft.VisualStudio.Component.VC.ATL.ARM64 " +
+        "--add Microsoft.VisualStudio.Component.VC.ATLMFC " +
+        "--add Microsoft.VisualStudio.Component.VC.MFC.ARM64"
     ) -Wait
 
 
