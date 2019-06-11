@@ -1372,7 +1372,19 @@ impl<'le> TElement for GeckoElement<'le> {
             None => return,
         };
 
-        snapshot_helpers::each_class(attr, callback)
+        snapshot_helpers::each_class_or_part(attr, callback)
+    }
+
+    fn each_part<F>(&self, callback: F)
+    where
+        F: FnMut(&Atom),
+    {
+        let attr = match self.get_part_attr() {
+            Some(c) => c,
+            None => return,
+        };
+
+        snapshot_helpers::each_class_or_part(attr, callback)
     }
 
     #[inline]
