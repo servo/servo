@@ -96,18 +96,24 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         &mut self,
         parsed_pseudo: bool,
         parsed_slotted: bool,
+        parsed_part: bool,
     ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
         // Compute the specificity and flags.
-        let mut spec = SpecificityAndFlags(specificity(self.simple_selectors.iter()));
+        let specificity = specificity(self.simple_selectors.iter());
+        let mut flags = SelectorFlags::empty();
         if parsed_pseudo {
-            spec.0 |= HAS_PSEUDO_BIT;
+            flags |= SelectorFlags::HAS_PSEUDO;
         }
-
         if parsed_slotted {
-            spec.0 |= HAS_SLOTTED_BIT;
+            flags |= SelectorFlags::HAS_SLOTTED;
         }
-
-        self.build_with_specificity_and_flags(spec)
+        if parsed_part {
+            flags |= SelectorFlags::HAS_PART;
+        }
+        self.build_with_specificity_and_flags(SpecificityAndFlags {
+            specificity,
+            flags,
+        })
     }
 
     /// Builds with an explicit SpecificityAndFlags. This is separated from build() so
@@ -188,28 +194,44 @@ fn split_from_end<T>(s: &[T], at: usize) -> (&[T], &[T]) {
     s.split_at(s.len() - at)
 }
 
-pub const HAS_PSEUDO_BIT: u32 = 1 << 30;
-pub const HAS_SLOTTED_BIT: u32 = 1 << 31;
+bitflags! {
+    /// Flags that indicate at which point of parsing a selector are we.
+    #[derive(Default, ToShmem)]
+    pub (crate) struct SelectorFlags : u8 {
+        const HAS_PSEUDO = 1 << 0;
+        const HAS_SLOTTED = 1 << 1;
+        const HAS_PART = 1 << 2;
+    }
+}
 
-/// We use ten bits for each specificity kind (id, class, element), and the two
-/// high bits for the pseudo and slotted flags.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
-pub struct SpecificityAndFlags(pub u32);
+pub struct SpecificityAndFlags {
+    /// There are two free bits here, since we use ten bits for each specificity
+    /// kind (id, class, element).
+    pub (crate) specificity: u32,
+    /// There's padding after this field due to the size of the flags.
+    pub (crate) flags: SelectorFlags,
+}
 
 impl SpecificityAndFlags {
     #[inline]
     pub fn specificity(&self) -> u32 {
-        self.0 & !(HAS_PSEUDO_BIT | HAS_SLOTTED_BIT)
+        self.specificity
     }
 
     #[inline]
     pub fn has_pseudo_element(&self) -> bool {
-        (self.0 & HAS_PSEUDO_BIT) != 0
+        self.flags.intersects(SelectorFlags::HAS_PSEUDO)
     }
 
     #[inline]
     pub fn is_slotted(&self) -> bool {
-        (self.0 & HAS_SLOTTED_BIT) != 0
+        self.flags.intersects(SelectorFlags::HAS_SLOTTED)
+    }
+
+    #[inline]
+    pub fn is_part(&self) -> bool {
+        self.flags.intersects(SelectorFlags::HAS_PART)
     }
 }
 
