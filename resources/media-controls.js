@@ -234,8 +234,8 @@
       }
 
       // Current time and duration.
-      let currentTime = "0:00";
-      let duration = "0:00";
+      let currentTime = formatTime(0);
+      let duration = formatTime(0);
       if (!isNaN(this.media.currentTime) && !isNaN(this.media.duration)) {
         currentTime = formatTime(Math.round(this.media.currentTime * 1000));
         duration = formatTime(Math.round(this.media.duration * 1000));
