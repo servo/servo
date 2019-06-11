@@ -2385,7 +2385,13 @@ where
         let url = ServoUrl::parse("about:blank").expect("infallible");
 
         // TODO: Referrer?
-        let load_data = LoadData::new(LoadOrigin::Script(url.origin()), url.clone(), None, None, None);
+        let load_data = LoadData::new(
+            LoadOrigin::Script(url.origin()),
+            url.clone(),
+            None,
+            None,
+            None,
+        );
 
         let (script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
