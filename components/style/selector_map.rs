@@ -182,10 +182,6 @@ impl SelectorMap<Rule> {
 
         let quirks_mode = context.quirks_mode();
 
-        // At the end, we're going to sort the rules that we added, so remember
-        // where we began.
-        let init_len = matching_rules_list.len();
-
         if rule_hash_target.is_root() {
             SelectorMap::get_matching_rules(
                 element,
@@ -259,14 +255,10 @@ impl SelectorMap<Rule> {
             cascade_level,
             shadow_cascade_order,
         );
-
-        // Sort only the rules we just added.
-        matching_rules_list[init_len..]
-            .sort_unstable_by_key(|block| (block.specificity, block.source_order()));
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    fn get_matching_rules<E, F>(
+    pub (crate) fn get_matching_rules<E, F>(
         element: E,
         rules: &[Rule],
         matching_rules: &mut ApplicableDeclarationList,

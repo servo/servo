@@ -1257,7 +1257,7 @@ impl Stylist {
 
         let matches_document_rules =
             element.each_applicable_non_document_style_rule_data(|data, host| {
-                matching_context.with_shadow_host(host, |matching_context| {
+                matching_context.with_shadow_host(Some(host), |matching_context| {
                     data.selectors_for_cache_revalidation.lookup(
                         element,
                         self.quirks_mode,
