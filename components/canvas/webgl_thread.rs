@@ -246,11 +246,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Handles a lock external callback received from webrender::ExternalImageHandler
-    fn handle_lock(
-        &mut self,
-        context_id: WebGLContextId,
-        sender: WebGLSender<WebGLLockMessage>,
-    ) {
+    fn handle_lock(&mut self, context_id: WebGLContextId, sender: WebGLSender<WebGLLockMessage>) {
         let data = Self::make_current_if_needed_mut(
             context_id,
             &mut self.contexts,
@@ -275,14 +271,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         }
 
         sender
-            .send(
-                WebGLLockMessage {
-                    texture_id: info.texture_id,
-                    size: info.size,
-                    io_surface_id: info.io_surface_id,
-                    gl_sync: gl_sync as usize,
-                }
-            )
+            .send(WebGLLockMessage {
+                texture_id: info.texture_id,
+                size: info.size,
+                io_surface_id: info.io_surface_id,
+                gl_sync: gl_sync as usize,
+            })
             .unwrap();
     }
 
