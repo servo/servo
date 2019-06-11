@@ -391,6 +391,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
 
     /// Removes a WebGLContext and releases attached resources.
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
+        self.webrender_image_handlers_sender
+            .send(WebrenderImageHandlersMsg::Unregister(
+                WebrenderImageId::External(webrender_api::ExternalImageId(context_id.0 as u64)),
+            ))
+            .unwrap();
+
         // Release webrender image keys.
         if let Some(info) = self.cached_context_info.remove(&context_id) {
             let mut txn = webrender_api::Transaction::new();
