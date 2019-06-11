@@ -657,10 +657,10 @@ impl ResourceReaderMethods for ResourceReaderInstance {
                 &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
             },
             Resource::MediaControlsCSS => {
-                &include_bytes!("../../../../resources/media_controls.css")[..]
+                &include_bytes!("../../../../resources/media-controls.css")[..]
             },
             Resource::MediaControlsJS => {
-                &include_bytes!("../../../../resources/media_controls.js")[..]
+                &include_bytes!("../../../../resources/media-controls.js")[..]
             },
         })
     }
