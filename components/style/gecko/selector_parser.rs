@@ -5,7 +5,7 @@
 //! Gecko-specific bits for selector-parsing.
 
 use crate::element_state::{DocumentState, ElementState};
-use crate::gecko_bindings::structs::RawServoSelectorList;
+use crate::gecko_bindings::structs::{self, RawServoSelectorList};
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::selector_parser::{Direction, SelectorParser};
@@ -349,7 +349,14 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     #[inline]
     fn parse_host(&self) -> bool {
-        self.parse_slotted()
+        true
+    }
+
+    #[inline]
+    fn parse_part(&self) -> bool {
+        self.chrome_rules_enabled() || unsafe {
+            structs::StaticPrefs_sVarCache_layout_css_shadow_parts_enabled
+        }
     }
 
     fn parse_non_ts_pseudo_class(
