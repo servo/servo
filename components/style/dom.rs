@@ -520,6 +520,9 @@ pub trait TElement:
     /// Whether this element has an attribute with a given namespace.
     fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
 
+    /// Returns whether this element has a `part` attribute.
+    fn has_part_attr(&self) -> bool;
+
     /// The ID for this element.
     fn id(&self) -> Option<&WeakAtom>;
 
@@ -527,6 +530,13 @@ pub trait TElement:
     fn each_class<F>(&self, callback: F)
     where
         F: FnMut(&Atom);
+
+    /// Internal iterator for the part names of this element.
+    fn each_part<F>(&self, _callback: F)
+    where
+        F: FnMut(&Atom)
+    {
+    }
 
     /// Whether a given element may generate a pseudo-element.
     ///

@@ -627,11 +627,6 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn has_part_attr(&self) -> bool {
-        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
-    }
-
-    #[inline]
     fn may_have_anonymous_children(&self) -> bool {
         self.as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
@@ -1351,6 +1346,11 @@ impl<'le> TElement for GeckoElement<'le> {
     #[inline]
     fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
         unsafe { bindings::Gecko_HasAttr(self.0, namespace.0.as_ptr(), attr.as_ptr()) }
+    }
+
+    #[inline]
+    fn has_part_attr(&self) -> bool {
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
     }
 
     // FIXME(emilio): we should probably just return a reference to the Atom.
