@@ -10,3 +10,10 @@ test(() => {
       "' are repeated or they are not in alphabetical order.")
   }
 }, "supportedEntryTypes exists and returns entries in alphabetical order");
+
+test(() => {
+  if (typeof PerformanceObserver.supportedEntryTypes === "undefined")
+    assert_unreached("supportedEntryTypes is not supported.");
+  assert_true(PerformanceObserver.supportedEntryTypes ===
+      PerformanceObserver.supportedEntryTypes);
+}, "supportedEntryTypes caches result");

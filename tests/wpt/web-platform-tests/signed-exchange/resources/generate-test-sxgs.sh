@@ -28,7 +28,12 @@ tmpdir=$(mktemp -d)
 echo -n OCSP >$tmpdir/ocsp
 gen-certurl -pem $certfile -ocsp $tmpdir/ocsp > $certfile.cbor
 
-cert_base64=$(base64 -w 0 $certfile.cbor)
+option="-w 0"
+if [ "$(uname -s)" = "Darwin" ]; then
+    option=""
+fi
+
+cert_base64=$(base64 ${option} ${certfile}.cbor)
 data_cert_url="data:application/cert-chain+cbor;base64,$cert_base64"
 
 

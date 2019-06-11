@@ -222,7 +222,11 @@ function coupleIceCandidates(pc1, pc2) {
 }
 
 // Helper function for doing one round of offer/answer exchange
-// between two local peer connections
+// between two local peer connections.
+// Calls setRemoteDescription(offer/answer) before
+// setLocalDescription(offer/answer) to ensure the remote description
+// is set and candidates can be added before the local peer connection
+// starts generating candidates and ICE checks.
 async function doSignalingHandshake(localPc, remotePc, options={}) {
   let offer = await localPc.createOffer();
   // Modify offer if callback has been provided
@@ -230,9 +234,9 @@ async function doSignalingHandshake(localPc, remotePc, options={}) {
     offer = await options.modifyOffer(offer);
   }
 
-  // Apply offer
-  await localPc.setLocalDescription(offer);
+  // Apply offer.
   await remotePc.setRemoteDescription(offer);
+  await localPc.setLocalDescription(offer);
 
   let answer = await remotePc.createAnswer();
   // Modify answer if callback has been provided
@@ -240,7 +244,7 @@ async function doSignalingHandshake(localPc, remotePc, options={}) {
     answer = await options.modifyAnswer(answer);
   }
 
-  // Apply answer. Note: localPc should enter stable state first.
+  // Apply answer.
   await localPc.setRemoteDescription(answer);
   await remotePc.setLocalDescription(answer);
 }
