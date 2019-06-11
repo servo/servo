@@ -22,8 +22,11 @@ interface NavigatorID {
   readonly attribute DOMString appVersion;
   readonly attribute DOMString platform;
   readonly attribute DOMString product; // constant "Gecko"
+  [Exposed=Window] readonly attribute DOMString productSub;
   boolean taintEnabled(); // constant false
   readonly attribute DOMString userAgent;
+  [Exposed=Window] readonly attribute DOMString vendor;
+  [Exposed=Window] readonly attribute DOMString vendorSub; // constant ""
 };
 
 // https://webbluetoothcg.github.io/web-bluetooth/#navigator-extensions

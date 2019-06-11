@@ -42,6 +42,21 @@ impl WorkerNavigatorMethods for WorkerNavigator {
         navigatorinfo::Product()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-productsub
+    fn ProductSub(&self) -> DOMString {
+        navigatorinfo::ProductSub()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendor
+    fn Vendor(&self) -> DOMString {
+        navigatorinfo::Vendor()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub
+    fn VendorSub(&self) -> DOMString {
+        navigatorinfo::VendorSub()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-navigator-taintenabled
     fn TaintEnabled(&self) -> bool {
         navigatorinfo::TaintEnabled()
