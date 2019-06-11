@@ -227,7 +227,7 @@
 
       // Progress.
       const positionPercent = this.media.currentTime / this.media.duration * 100;
-      if (!isNaN(positionPercent) && positionPercent != Infinity) {
+      if (Number.isFinite(positionPercent)) {
         this.elements.progress.value = positionPercent;
       } else {
         this.elements.progress.value = 0;
