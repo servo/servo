@@ -5,6 +5,7 @@
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
 use crate::filemanager_thread::{fetch_file_in_chunks, FileManager, FILE_CHUNK_SIZE};
+use crate::http_cache::HttpCacheEntry;
 use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
@@ -226,6 +227,13 @@ pub fn main_fetch(
     // Step 11.
     // Not applicable: see fetch_async.
 
+    // Get the cache entry corresponding to the url, after potential hsts switch.
+    let cache_entry = if let Ok(mut http_cache) = context.state.http_cache.write() {
+        http_cache.get_entry(&request)
+    } else {
+        None
+    };
+
     // Step 12.
     let mut response = response.unwrap_or_else(|| {
         let current_url = request.current_url();
@@ -247,7 +255,7 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::Basic;
 
             // Substep 2.
-            scheme_fetch(request, cache, target, done_chan, context)
+            scheme_fetch(request, cache, target, done_chan, context, &cache_entry)
         } else if request.mode == RequestMode::SameOrigin {
             Response::network_error(NetworkError::Internal("Cross-origin response".into()))
         } else if request.mode == RequestMode::NoCors {
@@ -255,7 +263,7 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::Opaque;
 
             // Substep 2.
-            scheme_fetch(request, cache, target, done_chan, context)
+            scheme_fetch(request, cache, target, done_chan, context, &cache_entry)
         } else if !matches!(current_url.scheme(), "http" | "https") {
             Response::network_error(NetworkError::Internal("Non-http scheme".into()))
         } else if request.use_cors_preflight ||
@@ -269,7 +277,15 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::CorsTainting;
             // Substep 2.
             let response = http_fetch(
-                request, cache, true, true, false, target, done_chan, context,
+                request,
+                cache,
+                true,
+                true,
+                false,
+                target,
+                done_chan,
+                context,
+                &cache_entry,
             );
             // Substep 3.
             if response.is_network_error() {
@@ -282,7 +298,15 @@ pub fn main_fetch(
             request.response_tainting = ResponseTainting::CorsTainting;
             // Substep 2.
             http_fetch(
-                request, cache, true, false, false, target, done_chan, context,
+                request,
+                cache,
+                true,
+                false,
+                false,
+                target,
+                done_chan,
+                context,
+                &cache_entry,
             )
         }
     });
@@ -458,8 +482,13 @@ pub fn main_fetch(
     target.process_response_eof(&response);
 
     if !response.is_network_error() {
-        if let Ok(mut http_cache) = context.state.http_cache.write() {
-            http_cache.update_awaiting_consumers(&request, &response);
+        let cache_entry = if let Ok(mut http_cache) = context.state.http_cache.write() {
+            http_cache.get_entry(&request)
+        } else {
+            None
+        };
+        if let Some(entry) = cache_entry {
+            entry.update_awaiting_consumers(&request, &response);
         }
     }
 
@@ -574,6 +603,7 @@ fn scheme_fetch(
     target: Target,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
+    cache_entry: &Option<HttpCacheEntry>,
 ) -> Response {
     let url = request.current_url();
 
@@ -590,7 +620,15 @@ fn scheme_fetch(
         },
 
         "http" | "https" => http_fetch(
-            request, cache, false, false, false, target, done_chan, context,
+            request,
+            cache,
+            false,
+            false,
+            false,
+            target,
+            done_chan,
+            context,
+            cache_entry,
         ),
 
         "data" => match decode(&url) {

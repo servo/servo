@@ -42,6 +42,7 @@ mime_guess = "2.0.0-alpha.6"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 openssl = "0.10"
+parking_lot = "0.8"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}
 rayon = "1"
