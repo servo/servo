@@ -104,6 +104,7 @@ use background_hang_monitor::HangMonitorRegister;
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
+use canvas::media_thread::GLPlayerThreads;
 use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::canvas::CanvasMsg;
@@ -412,6 +413,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// results are required.
     enable_canvas_antialiasing: bool,
 
+    /// Entry point to create and get channels to a GLPlayerThread.
+    glplayer_threads: Option<GLPlayerThreads>,
+
     /// Application window's GL Context for Media player
     player_context: WindowGLContext,
 }
@@ -459,6 +463,8 @@ pub struct InitialConstellationState {
 
     /// A channel to the webgl thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+    pub glplayer_threads: Option<GLPlayerThreads>,
 
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
@@ -764,6 +770,7 @@ where
                     is_running_problem_test,
                     hard_fail,
                     enable_canvas_antialiasing,
+                    glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
                 };
 
@@ -1828,6 +1835,13 @@ where
             debug!("Exiting WebVR thread.");
             if let Err(e) = chan.send(WebVRMsg::Exit) {
                 warn!("Exit WebVR thread failed ({})", e);
+            }
+        }
+
+        debug!("Exiting GLPlayer thread.");
+        if let Some(glplayer_threads) = self.glplayer_threads.as_ref() {
+            if let Err(e) = glplayer_threads.exit() {
+                warn!("Exit GLPlayer Thread failed ({})", e);
             }
         }
 
