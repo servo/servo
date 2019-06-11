@@ -243,12 +243,8 @@
       this.elements.positionDurationBox.show(currentTime, duration);
 
       // Volume.
-      const volumeSwitchClass = this.media.muted || this.media.volume == 0 ? "muted" : "volumeup";
-      if (!this.elements.volumeSwitch.classList.contains(volumeSwitchClass)) {
-        this.elements.volumeSwitch.classList = "";
-        this.elements.volumeSwitch.classList.add(volumeSwitchClass);
-      }
-      const volumeLevelValue = Math.round((this.media.muted ? 0 : this.media.volume) * 100);
+      this.elements.volumeSwitch.className = this.media.muted || !this.media.volume ? "muted" : "volumeup";
+      const volumeLevelValue = this.media.muted ? 0 : Math.round(this.media.volume * 100);
       if (this.elements.volumeLevel.value != volumeLevelValue) {
         this.elements.volumeLevel.value = volumeLevelValue;
       }
@@ -275,7 +271,7 @@
               this.playOrPause();
               break;
             case this.elements.volumeSwitch:
-              this.muteUnmute();
+              this.toggleMuted();
               break;
           }
           break;
@@ -329,7 +325,7 @@
       }
     }
 
-    muteUnmute() {
+    toggleMuted() {
       this.media.muted = !this.media.muted;
     }
 
