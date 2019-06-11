@@ -12,7 +12,7 @@ use crate::fetch::methods::{
 };
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
-use crate::http_cache::HttpCache;
+use crate::http_cache::{HttpCache, HttpCacheEntry};
 use crate::resource_thread::AuthCache;
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{
@@ -469,6 +469,7 @@ pub fn http_fetch(
     target: Target,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
+    cache_entry: Option<HttpCacheEntry>,
 ) -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
@@ -551,6 +552,7 @@ pub fn http_fetch(
             cors_flag,
             done_chan,
             context,
+            cache_entry,
         );
 
         // Substep 4
@@ -786,6 +788,7 @@ fn http_network_or_cache_fetch(
     cors_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
+    cache_entry: Option<HttpCacheEntry>,
 ) -> Response {
     // Step 2
     let mut response: Option<Response> = None;
@@ -970,7 +973,7 @@ fn http_network_or_cache_fetch(
 
     // Step 5.19
     if let Ok(http_cache) = context.state.http_cache.read() {
-        if let Some(response_from_cache) = http_cache.construct_response(&http_request, done_chan) {
+        if let Some(response_from_cache) = cache_entry.construct_response(&http_request, done_chan) {
             let response_headers = response_from_cache.response.headers.clone();
             // Substep 1, 2, 3, 4
             let (cached_response, needs_revalidation) =
@@ -1125,6 +1128,7 @@ fn http_network_or_cache_fetch(
             cors_flag,
             done_chan,
             context,
+            cache_entry,
         );
     }
 
@@ -1189,6 +1193,7 @@ fn http_network_fetch(
     credentials_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
+    cache_entry: Option<HttpCacheEntry>,
 ) -> Response {
     let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
     // Step 1
@@ -1384,8 +1389,8 @@ fn http_network_fetch(
 
     // Step 14
     if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
-        if let Ok(mut http_cache) = context.state.http_cache.write() {
-            http_cache.store(&request, &response);
+        if let Some(entry) = cache_entry {
+            entry.store(&request, &response);
         }
     }
 
