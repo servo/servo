@@ -779,7 +779,10 @@ pub fn fetch_file_in_chunks(
                     return;
                 }
                 let length = {
-                    let buffer = reader.fill_buf().unwrap().to_vec();
+                    let buffer = match reader.fill_buf() {
+                        Ok(buf) => buf.to_vec(),
+                        Err(_) => vec![],
+                    };
                     let mut buffer_len = buffer.len();
                     if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                         let offset = usize::min(
