@@ -1589,55 +1589,53 @@ impl HTMLMediaElement {
             // if we are already showing the controls.
             return;
         }
-        if let Ok(shadow_root) = element.attach_shadow(IsUserAgentWidget::Yes) {
-            let document = document_from_node(self);
-            let script = HTMLScriptElement::new(
-                local_name!("script"),
-                None,
-                &document,
-                ElementCreator::ScriptCreated,
-            );
-            let mut media_controls_script =
-                resources::read_string(EmbedderResource::MediaControlsJS);
-            // This is our hacky way to temporarily workaround the lack of a privileged
-            // JS context.
-            // The media controls UI accesses the document.servoGetMediaControls(id) API
-            // to get an instance to the media controls ShadowRoot.
-            // `id` needs to match the internally generated UUID assigned to a media element.
-            let id = document.register_media_controls(&shadow_root);
-            let media_controls_script = media_controls_script.as_mut_str().replace("@@@id@@@", &id);
-            *self.media_controls_id.borrow_mut() = Some(id);
-            script
-                .upcast::<Node>()
-                .SetTextContent(Some(DOMString::from(media_controls_script)));
-            if let Err(e) = shadow_root
-                .upcast::<Node>()
-                .AppendChild(&*script.upcast::<Node>())
-            {
-                warn!("Could not render media controls {:?}", e);
-                return;
-            }
-
-            let media_controls_style = resources::read_string(EmbedderResource::MediaControlsCSS);
-            let style = HTMLStyleElement::new(
-                local_name!("script"),
-                None,
-                &document,
-                ElementCreator::ScriptCreated,
-            );
-            style
-                .upcast::<Node>()
-                .SetTextContent(Some(DOMString::from(media_controls_style)));
-
-            if let Err(e) = shadow_root
-                .upcast::<Node>()
-                .AppendChild(&*style.upcast::<Node>())
-            {
-                warn!("Could not render media controls {:?}", e);
-            }
-
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        let shadow_root = element.attach_shadow(IsUserAgentWidget::Yes).unwrap();
+        let document = document_from_node(self);
+        let script = HTMLScriptElement::new(
+            local_name!("script"),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+        );
+        let mut media_controls_script = resources::read_string(EmbedderResource::MediaControlsJS);
+        // This is our hacky way to temporarily workaround the lack of a privileged
+        // JS context.
+        // The media controls UI accesses the document.servoGetMediaControls(id) API
+        // to get an instance to the media controls ShadowRoot.
+        // `id` needs to match the internally generated UUID assigned to a media element.
+        let id = document.register_media_controls(&shadow_root);
+        let media_controls_script = media_controls_script.as_mut_str().replace("@@@id@@@", &id);
+        *self.media_controls_id.borrow_mut() = Some(id);
+        script
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(media_controls_script)));
+        if let Err(e) = shadow_root
+            .upcast::<Node>()
+            .AppendChild(&*script.upcast::<Node>())
+        {
+            warn!("Could not render media controls {:?}", e);
+            return;
         }
+
+        let media_controls_style = resources::read_string(EmbedderResource::MediaControlsCSS);
+        let style = HTMLStyleElement::new(
+            local_name!("script"),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+        );
+        style
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(media_controls_style)));
+
+        if let Err(e) = shadow_root
+            .upcast::<Node>()
+            .AppendChild(&*style.upcast::<Node>())
+        {
+            warn!("Could not render media controls {:?}", e);
+        }
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn remove_controls(&self) {
