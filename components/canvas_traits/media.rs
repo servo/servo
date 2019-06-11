@@ -66,6 +66,8 @@ pub struct WindowGLContext {
     pub gl_api: GlApi,
     /// Application's native display
     pub native_display: NativeDisplay,
+    /// A channel to the GLPlayer thread.
+    pub glplayer_chan: Option<GLPlayerPipeline>,
 }
 
 impl PlayerGLContext for WindowGLContext {
