@@ -16,5 +16,7 @@ mod raqote_backend;
 pub mod canvas_data;
 pub mod canvas_paint_thread;
 pub mod gl_context;
+mod media_mode;
+pub mod media_thread;
 mod webgl_mode;
 pub mod webgl_thread;
