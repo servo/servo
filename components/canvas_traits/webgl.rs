@@ -35,6 +35,14 @@ pub struct WebGLCommandBacktrace {
     pub js_backtrace: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WebGLLockMessage {
+    pub texture_id: u32,
+    pub size: Size2D<i32>,
+    pub io_surface_id: Option<u32>,
+    pub gl_sync: usize,
+}
+
 /// WebGL Message API
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLMsg {
@@ -60,7 +68,7 @@ pub enum WebGLMsg {
     /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
     Lock(
         WebGLContextId,
-        WebGLSender<(u32, Size2D<i32>, Option<u32>, usize)>,
+        WebGLSender<WebGLLockMessage>,
     ),
     /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
     /// with WebRender external image API.

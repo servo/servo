@@ -249,7 +249,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     fn handle_lock(
         &mut self,
         context_id: WebGLContextId,
-        sender: WebGLSender<(u32, Size2D<i32>, Option<u32>, usize)>,
+        sender: WebGLSender<WebGLLockMessage>,
     ) {
         let data = Self::make_current_if_needed_mut(
             context_id,
@@ -275,12 +275,14 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         }
 
         sender
-            .send((
-                info.texture_id,
-                info.size,
-                info.io_surface_id,
-                gl_sync as usize,
-            ))
+            .send(
+                WebGLLockMessage {
+                    texture_id: info.texture_id,
+                    size: info.size,
+                    io_surface_id: info.io_surface_id,
+                    gl_sync: gl_sync as usize,
+                }
+            )
             .unwrap();
     }
 
