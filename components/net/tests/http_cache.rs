@@ -32,14 +32,15 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         .headers
         .insert(EXPIRES, HeaderValue::from_str("-10").unwrap());
     let mut cache = HttpCache::new();
+    let entry = cache.get_entry(&request).unwrap();
     response_bodies.iter().for_each(|body| {
         *response.body.lock().unwrap() = body.clone();
         // First, store the 'normal' response.
-        cache.store(&request, &response);
+        entry.store(&request, &response);
         // Second, mutate the response into a 304 response, and refresh the stored one.
         response.status = Some((StatusCode::NOT_MODIFIED, String::from("304")));
         let mut done_chan = Some(unbounded());
-        let refreshed_response = cache.refresh(&request, response.clone(), &mut done_chan);
+        let refreshed_response = entry.refresh(&request, response.clone(), &mut done_chan);
         // Ensure a resource was found, and refreshed.
         assert!(refreshed_response.is_some());
         match body {
