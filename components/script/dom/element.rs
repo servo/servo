@@ -491,7 +491,7 @@ impl Element {
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
-            .set_containing_shadow_root(&shadow_root);
+            .set_containing_shadow_root(Some(&shadow_root));
 
         if self.is_connected() {
             self.node.owner_doc().register_shadow_root(&*shadow_root);
@@ -504,6 +504,7 @@ impl Element {
 
     pub fn detach_shadow(&self) {
         if let Some(ref shadow_root) = self.shadow_root() {
+            shadow_root.detach();
             self.node.owner_doc().unregister_shadow_root(shadow_root);
             self.ensure_rare_data().shadow_root = None;
         } else {
