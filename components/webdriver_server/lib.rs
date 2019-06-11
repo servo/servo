@@ -44,6 +44,7 @@ use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
+use webdriver::command::SwitchToWindowParameters;
 use webdriver::command::{
     AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
 };
@@ -818,6 +819,21 @@ impl Handler {
         }
     }
 
+    fn handle_switch_to_window(
+        &mut self,
+        parameters: &SwitchToWindowParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        // We assume there is only one window which has the current session's id as window id
+        if parameters.handle == self.session.as_ref().unwrap().id.to_string() {
+            Ok(WebDriverResponse::Void)
+        } else {
+            Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window",
+            ))
+        }
+    }
+
     fn handle_switch_to_frame(
         &mut self,
         parameters: &SwitchToFrameParameters,
@@ -1431,6 +1447,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetTitle => self.handle_title(),
             WebDriverCommand::GetWindowHandle => self.handle_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
+            WebDriverCommand::SwitchToWindow(ref parameters) => {
+                self.handle_switch_to_window(parameters)
+            },
             WebDriverCommand::SwitchToFrame(ref parameters) => {
                 self.handle_switch_to_frame(parameters)
             },
