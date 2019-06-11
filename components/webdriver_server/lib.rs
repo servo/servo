@@ -1303,6 +1303,10 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    fn handle_dismiss_alert(&self) -> WebDriverResult<WebDriverResponse> {
+        Ok(WebDriverResponse::Void)
+    }
+
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
         let mut img = None;
         let top_level_id = self.session()?.top_level_browsing_context_id;
@@ -1481,6 +1485,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
