@@ -590,6 +590,9 @@ impl<'le> GeckoElement<'le> {
 
     #[inline(always)]
     fn get_part_attr(&self) -> Option<&structs::nsAttrValue> {
+        if !self.has_part_attr() {
+            return None;
+        }
         snapshot_helpers::find_attr(self.attrs(), &atom!("part"))
     }
 
@@ -621,6 +624,11 @@ impl<'le> GeckoElement<'le> {
 
             current = current.traversal_parent()?;
         }
+    }
+
+    #[inline]
+    fn has_part_attr(&self) -> bool {
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
     }
 
     #[inline]
