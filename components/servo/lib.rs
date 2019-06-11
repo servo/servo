@@ -63,6 +63,7 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
+use canvas::media_thread::GLPlayerThreads;
 use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::media::WindowGLContext;
 use compositing::compositor_thread::{
@@ -104,6 +105,7 @@ use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
 use servo_config::{pref, prefs};
+use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
 use std::borrow::Cow;
 use std::cmp::max;
@@ -304,10 +306,16 @@ where
             None
         };
 
+        let gl_context = window.get_gl_context();
+        let glplayer_threads = match gl_context {
+            GlContext::Unknown => None,
+            _ => Some(GLPlayerThreads::new()),
+        };
         let player_context = WindowGLContext {
-            gl_context: window.get_gl_context(),
+            gl_context,
             native_display: window.get_native_display(),
             gl_api: window.get_gl_api(),
+            glplayer_chan: glplayer_threads.as_ref().map(|threads| threads.pipeline()),
         };
 
         // Create the constellation, which maintains the engine
@@ -328,6 +336,7 @@ where
             window.gl(),
             webvr_services,
             webxr_registry,
+            glplayer_threads,
             player_context,
         );
 
@@ -639,6 +648,7 @@ fn create_constellation(
     window_gl: Rc<dyn gl::Gl>,
     webvr_services: Option<VRServiceManager>,
     webxr_registry: webxr_api::Registry,
+    glplayer_threads: Option<GLPlayerThreads>,
     player_context: WindowGLContext,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
@@ -721,6 +731,7 @@ fn create_constellation(
         webgl_threads,
         webvr_chan,
         webxr_registry,
+        glplayer_threads,
         player_context,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
