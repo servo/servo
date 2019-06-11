@@ -10,7 +10,7 @@
       <button id="play-pause-button"></button>
       <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
       <span id="position-duration-box" class="hidden">
-        #1
+        <span id="position-text">#1</span>
         <span id="duration"> / #2</span>
       </span>
       <button id="volume-switch"></button>
@@ -91,6 +91,7 @@
         "duration",
         "play-pause-button",
         "position-duration-box",
+        "position-text",
         "progress",
         "volume-switch",
         "volume-level"
@@ -99,17 +100,13 @@
       });
 
       // Init position duration box.
-      const positionTextNode = Array.prototype.find.call(
-        this.elements.positionDurationBox.childNodes,
-        (n) => !!~n.textContent.search("#1")
-      );
+      const positionTextNode = this.elements.positionText;
       const durationSpan = this.elements.duration;
       const durationFormat = durationSpan.textContent;
       const positionFormat = positionTextNode.textContent;
 
       durationSpan.classList.add("duration");
       durationSpan.setAttribute("role", "none");
-      durationSpan.id = "durationSpan";
 
       Object.defineProperties(this.elements.positionDurationBox, {
         durationSpan: {
