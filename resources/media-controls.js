@@ -58,24 +58,18 @@
   }
 
   function formatTime(time, showHours = false) {
-      // Format the duration as "h:mm:ss" or "m:ss"
-      time = Math.round(time / 1000);
-      let hours = Math.floor(time / 3600);
-      let mins  = Math.floor((time % 3600) / 60);
-      let secs  = Math.floor(time % 60);
-      let timeString;
-      if (secs < 10) {
-        secs = "0" + secs;
-      }
-      if (hours || showHours) {
-        if (mins < 10) {
-          mins = "0" + mins;
-        }
-        timeString = hours + ":" + mins + ":" + secs;
-      } else {
-        timeString = mins + ":" + secs;
-      }
-      return timeString;
+    // Format the duration as "h:mm:ss" or "m:ss"
+    time = Math.round(time / 1000);
+
+    const hours = Math.floor(time / 3600);
+    const mins  = Math.floor((time % 3600) / 60);
+    const secs  = Math.floor(time % 60);
+
+    const formattedHours = hours || showHours ?
+      `${hours.toString().padStart(2, "0")}:` :
+      "";
+
+    return `${formattedHours}${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
   class MediaControls {
